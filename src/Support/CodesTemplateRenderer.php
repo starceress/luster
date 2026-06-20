@@ -17,14 +17,14 @@ use Luster\Core\TemplateEngine;
  *     {if_size_changed} available per row.
  *
  * Per-code tokens (inside {each_code}):
- *   {code_url}, {code_alt}, {code_width}, {code_height}, {code_size},
- *   {code_name}, {code_categories}, {code_donor_name}, {code_donor_url}
+ *   {code_url}, {code_width}, {code_height}, {code_size},
+ *   {code_name}, {code_donor_name}, {code_donor_url}
  *
  * Per-code conditionals:
  *   {if_size}...{/if_size}, {if_size_changed}...{/if_size_changed},
  *   {if_donor}...{/if_donor}, {if_no_donor}...{/if_no_donor},
  *   {if_donor_url}...{/if_donor_url}, {if_no_donor_url}...{/if_no_donor_url},
- *   {if_categories}...{/if_categories}, {if_code_name}...{/if_code_name}
+ *   {if_code_name}...{/if_code_name}
  *
  * Per-group tokens (grouped mode only, inside {each_size_group}):
  *   {group_size}, {group_code_count}
@@ -84,27 +84,6 @@ final class CodesTemplateRenderer
             $sizeLabel = $hasSize ? ((int) $code->width . '×' . (int) $code->height) : '';
             $sizeKey   = $hasSize ? ((int) $code->width . 'x' . (int) $code->height) : 'unknown';
 
-            // Alt text fallback: donor → size → listing name
-            if ($donorName !== null) {
-                $altText = 'Donated by ' . $donorName;
-            } elseif ($sizeLabel !== '') {
-                $altText = $sizeLabel;
-            } elseif ($listingName !== '') {
-                $altText = $listingName . ' code';
-            } else {
-                $altText = 'code';
-            }
-
-            // Category names
-            $codeCatIds   = $catMap[$code->id] ?? [];
-            $catNames     = [];
-            foreach ($codeCatIds as $catId) {
-                if (isset($categoryMap[$catId])) {
-                    $catNames[] = $categoryMap[$catId]->name;
-                }
-            }
-            $categoriesStr = implode(', ', $catNames);
-
             $sizeChanged   = !$isGrouped && $sizeKey !== $prevSizeKey;
             $prevSizeKey   = $sizeKey;
 
@@ -112,12 +91,10 @@ final class CodesTemplateRenderer
                 $inner,
                 [
                     'code_url'        => $uploadsUrl . '/' . $code->filename,
-                    'code_alt'        => $altText,
                     'code_width'      => $hasSize ? (string) (int) $code->width : '',
                     'code_height'     => $hasSize ? (string) (int) $code->height : '',
                     'code_size'       => $sizeLabel,
                     'code_name'       => (string) ($code->name ?? ''),
-                    'code_categories' => $categoriesStr,
                     'code_donor_name' => (string) ($donorName ?? ''),
                     'code_donor_url'  => $donorUrl,
                 ],
@@ -129,7 +106,6 @@ final class CodesTemplateRenderer
                     'no_donor'     => $donorName === null,
                     'donor_url'    => $donorUrl !== '',
                     'no_donor_url' => $donorUrl === '',
-                    'categories'   => !empty($catNames),
                     'code_name'    => ($code->name ?? '') !== '',
                 ],
             );

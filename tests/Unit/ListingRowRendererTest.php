@@ -124,20 +124,19 @@ final class ListingRowRendererTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // Image tokens — {listing_image_url} (escaped) / {listing_image_html} (raw) /
-    // {if_listing_image} — replace the old {listing_image} token outright (no alias)
+    // Image tokens — {listing_image_url} (escaped) / {if_listing_image} / {if_no_listing_image}
     // -----------------------------------------------------------------------
 
     public function testImageTokensEmptyWhenNoImageInSettings(): void
     {
         $html = ListingRowRenderer::render(
             $this->makeListing(name: 'Test FL'),
-            '{listing_image_url}|{listing_image_html}',
+            '{listing_image_url}',
             [],
             'https://example.com/uploads/listings',
         );
 
-        self::assertSame('|', $html);
+        self::assertSame('', $html);
     }
 
     public function testImageUrlTokenIsEscapedBareUrl(): void
@@ -152,33 +151,28 @@ final class ListingRowRendererTest extends TestCase
         self::assertSame('https://example.com/uploads/listings/a&amp;b.jpg', $html);
     }
 
-    public function testImageHtmlTokenRendersImgTagWhenImageSet(): void
+    public function testNoListingImageConditionalRendersWhenNoImage(): void
     {
         $html = ListingRowRenderer::render(
-            $this->makeListing(name: 'My Fanlisting', subject: 'The Subject'),
-            '{listing_image_html}',
+            $this->makeListing(),
+            '{if_no_listing_image}fallback{/if_no_listing_image}',
+            [],
+            'https://example.com/uploads/listings',
+        );
+
+        self::assertSame('fallback', $html);
+    }
+
+    public function testNoListingImageConditionalHiddenWhenImageSet(): void
+    {
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{if_no_listing_image}fallback{/if_no_listing_image}',
             ['image' => 'cover.jpg'],
             'https://example.com/uploads/listings',
         );
 
-        self::assertStringContainsString('<img', $html);
-        self::assertStringContainsString('src="https://example.com/uploads/listings/cover.jpg"', $html);
-        self::assertStringContainsString('alt="My Fanlisting"', $html);
-        self::assertStringContainsString('title="The Subject"', $html);
-    }
-
-    public function testImageHtmlTokenEscapesSpecialCharsInAttributes(): void
-    {
-        $html = ListingRowRenderer::render(
-            $this->makeListing(name: '<script>', subject: '"xss"'),
-            '{listing_image_html}',
-            ['image' => 'a&b.jpg'],
-            'https://example.com/uploads/listings',
-        );
-
-        self::assertStringContainsString('src="https://example.com/uploads/listings/a&amp;b.jpg"', $html);
-        self::assertStringContainsString('alt="&lt;script&gt;"', $html);
-        self::assertStringContainsString('title="&quot;xss&quot;"', $html);
+        self::assertSame('', $html);
     }
 
     public function testIfListingImageConditionalRendersOnlyWhenImageSet(): void
@@ -444,9 +438,9 @@ final class ListingRowRendererTest extends TestCase
         self::assertSame('', $none);
     }
 
-    public function testNetworkTokenRendersRawText(): void
+    public function testNetworkNameAndUrlTokens(): void
     {
-        $template = '{network}|{network_status}|{network_name}|{tfl_url}|{tafl_url}';
+        $template = '{network_name}|{tfl_url}|{tafl_url}';
 
         $tfl = ListingRowRenderer::render(
             $this->makeListing(),
@@ -467,9 +461,9 @@ final class ListingRowRendererTest extends TestCase
             'https://example.com/uploads/listings',
         );
 
-        self::assertSame('TFL|TFL|The Fanlistings Network|https://thefanlistings.org/|https://www.animefanlistings.com/', $tfl);
-        self::assertSame('TAFL|TAFL|The Anime Fanlistings Network|https://thefanlistings.org/|https://www.animefanlistings.com/', $tafl);
-        self::assertSame('|||https://thefanlistings.org/|https://www.animefanlistings.com/', $none);
+        self::assertSame('The Fanlistings Network|https://thefanlistings.org/|https://www.animefanlistings.com/', $tfl);
+        self::assertSame('The Anime Fanlistings Network|https://thefanlistings.org/|https://www.animefanlistings.com/', $tafl);
+        self::assertSame('|https://thefanlistings.org/|https://www.animefanlistings.com/', $none);
     }
 
     // -----------------------------------------------------------------------
@@ -588,7 +582,7 @@ final class ListingRowRendererTest extends TestCase
 
         $template = '<li>{listing_title}: {listing_category} — {member_count} members'
                   . ' (+{member_pending_count} pending), {country_count} countries,'
-                  . ' {approved_by}, {listing_image_html}</li>';
+                  . ' {approved_by}, {listing_image_url}</li>';
 
         $html = ListingRowRenderer::renderGroup(
             'listing',
@@ -605,7 +599,7 @@ final class ListingRowRendererTest extends TestCase
         self::assertSame(2, substr_count($html, '+2 pending'));
         self::assertSame(2, substr_count($html, '4 countries'));
         self::assertSame(2, substr_count($html, 'TFL'));
-        self::assertSame(2, substr_count($html, 'src="https://example.com/uploads/listings/shared.jpg"'));
+        self::assertSame(2, substr_count($html, 'https://example.com/uploads/listings/shared.jpg'));
         self::assertStringContainsString('Listing A:', $html);
         self::assertStringContainsString('Listing B:', $html);
     }
@@ -658,9 +652,9 @@ final class ListingRowRendererTest extends TestCase
         $upcoming = $this->makeListing(name: 'UpcomingOne', upcoming: true);
         $pending  = $this->makeListing(name: 'PendingOne', trouble: true);
 
-        $template = '{if_current_listings}<section>Current ({current_count}): {each_current}{listing_title}{/each_current}</section>{/if_current_listings}'
-                  . '{if_upcoming_listings}<section>Upcoming ({upcoming_count}): {each_upcoming}{listing_title}{/each_upcoming}</section>{/if_upcoming_listings}'
-                  . '{if_pending_listings}<section>Pending ({pending_count}): {each_pending}{listing_title}{/each_pending}</section>{/if_pending_listings}';
+        $template = '{if_current_listings}<section>Current ({current_owned_count}): {each_current}{listing_title}{/each_current}</section>{/if_current_listings}'
+                  . '{if_upcoming_listings}<section>Upcoming ({upcoming_owned_count}): {each_upcoming}{listing_title}{/each_upcoming}</section>{/if_upcoming_listings}'
+                  . '{if_pending_listings}<section>Pending ({pending_owned_count}): {each_pending}{listing_title}{/each_pending}</section>{/if_pending_listings}';
 
         $html = ListingRowRenderer::renderTemplate(
             $template,
@@ -727,18 +721,18 @@ final class ListingRowRendererTest extends TestCase
 
     public function testRenderTemplateAppliesOuterSectionTokensBeforeRowSubstitutionToAvoidCascading(): void
     {
-        // Regression coverage: outer section-count tokens like {pending_count}
+        // Regression coverage: outer section-count tokens like {pending_owned_count}
         // must be resolved against the template SHELL before any row HTML —
         // containing user-controlled, View::e()-escaped listing text — is
         // substituted in. Otherwise a listing whose *title* is literally
-        // "{pending_count}" would have that literal text overwritten by a
+        // "{pending_owned_count}" would have that literal text overwritten by a
         // second outer-token pass scanning the assembled HTML, breaking the
         // "escaped values stay plain text" guarantee View::e() exists to provide.
-        $literalTitleListing = $this->makeListing(name: '{pending_count}');
+        $literalTitleListing = $this->makeListing(name: '{pending_owned_count}');
         $pendingListing      = $this->makeListing(name: 'TroubledOne', trouble: true);
 
         $template = '{each_current}{listing_title}{/each_current}'
-                  . '|pending_count={pending_count}|'
+                  . '|pending_owned_count={pending_owned_count}|'
                   . '{each_pending}{listing_title}{/each_pending}';
 
         $html = ListingRowRenderer::renderTemplate(
@@ -749,11 +743,11 @@ final class ListingRowRendererTest extends TestCase
             [],
         );
 
-        // The outer {pending_count} resolves to the section count (one pending
-        // listing) — and the row whose *title* is literally "{pending_count}"
-        // survives as plain, untouched text rather than being overwritten by
-        // that very same substitution on a second pass.
-        self::assertSame('{pending_count}|pending_count=1|TroubledOne', $html);
+        // The outer {pending_owned_count} resolves to the section count (one
+        // pending listing) — and the row whose *title* is literally
+        // "{pending_owned_count}" survives as plain, untouched text rather than
+        // being overwritten by that very same substitution on a second pass.
+        self::assertSame('{pending_owned_count}|pending_owned_count=1|TroubledOne', $html);
     }
 
     public function testCollectiveDefaultsOwnedTemplateIsFlatNotSectioned(): void

@@ -86,7 +86,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .sidebar-brand { min-height: 100px; padding: 0 1.375rem; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid rgb(var(--ch-pink)/0.08); position: relative; z-index: 1; }
 
-.luster-glow { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; }
+.luster-glow { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; text-decoration: none; color: inherit; }
 
 .luster-glow::before { content: ''; position: absolute; top: 50%; left: 25px; width: 90px; height: 90px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgb(var(--ch-pink)/0.28) 25%, rgb(var(--ch-teal)/0.1) 45%, transparent 70%); pointer-events: none; z-index: -1; }
 

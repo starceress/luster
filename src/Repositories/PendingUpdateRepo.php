@@ -200,7 +200,9 @@ final class PendingUpdateRepo
     /**
      * Inserts a new pending update and returns the auto-incremented ID.
      *
-     * @param array<string, mixed> $changes  Final resolved field values (no password).
+     * @param array<string, mixed> $changes  Final resolved field values. Password
+     *                                         changes are applied immediately and
+     *                                         never included here.
      */
     public function insert(int $listingId, string $email, array $changes): int
     {

@@ -281,11 +281,13 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
         </td>
 
         <td data-label="Name">
-          <span class="text-strong"><?= View::e($m->name) ?></span>
-          <?php if ($m->url !== ''): ?>
-            <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-               class="mem-url link"><?= View::e($m->url) ?></a>
-          <?php endif; ?>
+          <div class="subject-title-stack">
+            <b><?= View::e($m->name) ?></b>
+            <?php if ($m->url !== ''): ?>
+              <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
+                 class="mem-url link"><?= View::e($m->url) ?></a>
+            <?php endif; ?>
+          </div>
         </td>
 
         <td data-label="Email" class="text-muted">
@@ -294,10 +296,14 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
 
         <?php if ($listing_id === 0): ?>
         <td data-label="Listing">
-          <?php if (isset($listing_map[$m->fanlistingId])): ?>
-            <a href="<?= $b ?>/admin/listings/<?= (int) $m->fanlistingId ?>/edit" class="link">
-              <b><?= View::e($listing_map[$m->fanlistingId]) ?></b>
-            </a>
+          <?php $_kimFl = $listing_map[$m->fanlistingId] ?? null; ?>
+          <?php if ($_kimFl !== null): ?>
+            <div class="subject-title-stack">
+              <a href="<?= $b ?>/admin/listings/<?= (int) $m->fanlistingId ?>/edit" class="link"><b><?= View::e($_kimFl->subject ?: $_kimFl->title) ?></b></a>
+              <?php if ($_kimFl->subject !== ''): ?>
+                <span class="mem-url"><?= View::e($_kimFl->title) ?></span>
+              <?php endif; ?>
+            </div>
           <?php else: ?>
             <span class="text-dim">—</span>
           <?php endif; ?>

@@ -93,7 +93,7 @@ final class KimAdminController extends AdminController
         $listingMap      = [];
         $selectedListing = null;
         foreach ($fanlistings as $fl) {
-            $listingMap[$fl->id] = $fl->subject;
+            $listingMap[$fl->id] = $fl;
             if ($fl->id === $listingId) {
                 $selectedListing = $fl;
             }

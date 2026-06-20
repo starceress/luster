@@ -6,9 +6,9 @@
  *   $form_action  string
  *   $csrf_token   string
  *   $errors       string  pre-escaped HTML error string, or ''
- *   $old          array   keys: send_copy
+ *   $old          array
  *   $f            array<string,string>  keys: name, url, email, fanlisting_id, password,
- *                                             password_confirm, captcha_answer
+ *                                             password_confirm
  *   $base_url     string
  */
 
@@ -54,7 +54,7 @@ if (isset($form_html) && $form_html !== null) {
       <div class="fl-errors"><?= $errors ?></div>
     <?php endif; ?>
 
-    <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+    <form class="fl-form fl-form-kim-signup" method="POST" action="<?= View::e($form_action) ?>">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
@@ -68,16 +68,6 @@ if (isset($form_html) && $form_html !== null) {
       <!-- Honeypot — hidden from humans, filled by bots -->
       <div style="display:none" aria-hidden="true">
         <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
-      </div>
-
-      <?= $f['captcha_answer'] ?>
-
-      <div class="fl-field">
-        <label>
-          <input type="checkbox" name="send_copy" value="1"
-                 <?= ((string) ($old['send_copy'] ?? '')) === '1' ? 'checked' : '' ?>>
-          Email me a copy of my submission
-        </label>
       </div>
 
       <div class="fl-form-actions">

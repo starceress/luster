@@ -389,7 +389,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      <?= ($for_adoption ?? false) ? 'checked' : '' ?>>
               <span class="toggle-label">Accept adoption applications</span>
             </label>
-            <p class="form-hint">Show a public adoption form for this listing and collect applications in the admin panel.</p>
+            <p class="form-hint">Make this listing available in the collective adoption form and collect applications in the admin panel.</p>
             <?php if (($for_adoption ?? false) && ($adoption_count ?? 0) > 0): ?>
             <p class="form-hint">
               <a href="<?= $b ?>/admin/adoptions/<?= (int) $listing->id ?>" class="link">
@@ -452,6 +452,18 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <span class="toggle-label">Auto-approve new joins for this listing</span>
             </label>
             <p class="form-hint">New joins are held for manual approval by default. Enable to approve them automatically for this listing only.</p>
+          </div>
+        </div>
+
+        <div class="listing-field-row">
+          <label class="listing-field-label">Update Settings</label>
+          <div>
+            <label class="toggle-wrap">
+              <input type="checkbox" name="queue_updates" value="1" id="fl-queue-updates"
+                     <?= ($queue_updates ?? false) ? 'checked' : '' ?>>
+              <span class="toggle-label">Hold updates for review</span>
+            </label>
+            <p class="form-hint">Name, email, URL, country, and custom field changes wait for admin approval. Password changes always apply immediately. Review pending updates in the Members page.</p>
           </div>
         </div>
       </div>
@@ -853,12 +865,12 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
             <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Up to 5 newest approved members, linked to their websites when available. Shows &ldquo;&hellip;and more&rdquo; when there are more than 5 total.') ?>
             <?= $ltok('stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
-            <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
+            <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average members per day, with unit (e.g. &ldquo;0.15 members/day&rdquo;).') ?>
+            <?= $ltok('stats_template', '{stat_growth_rate}',       '{stat_growth_rate}',       'Numeric growth rate only (e.g. &ldquo;0.15&rdquo;). Use this to build your own formatting.') ?>
             <?= $ltok('stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('stats_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
             <?= $ltok('stats_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
-            <?= $ltok('stats_template', '{network}',           '{network}',           'Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.') ?>
             <?= $ltok('stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
             <?= $ltok('stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
             <?= $ltok('stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
@@ -884,7 +896,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
             <?= $ltok('updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
             <?= $ltok('updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
-            <?= $ltok('updates_template', '{update_date_raw}',   '{update_date_raw}',   'The posted date in YYYY-MM-DD format.') ?>
             <?= $ltok('updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
             <?= $ltok('updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
             <?= $ltok('updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>
@@ -946,9 +957,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('update_form_template', '{additional_fields}', '{additional_fields}', 'Update step: all admin-defined additional fields, with labels and wrappers, in order.') ?>
             <?= $ltok('update_form_template', '{field_password}',         '{field_password}',         'Update step: the New Password field, with label and wrapper.') ?>
             <?= $ltok('update_form_template', '{field_password_confirm}', '{field_password_confirm}', 'Update step: the Confirm New Password field, with label and wrapper.') ?>
-            <?= $ltok('update_form_template', '{captcha_block}',       '{captcha_block}',       'The captcha question field, with label and wrapper.') ?>
-            <?= $ltok('update_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
-            <?= $ltok('update_form_template', '{captcha_question}',    '{captcha_question}',    'The captcha question text on its own.') ?>
+
             <?= $ltok('update_form_template', '{field_remove}',     '{field_remove}',     'Update step: the "Delete my membership" checkbox block.') ?>
             <?= $ltok('update_form_template', '{field_email}',      '{field_email}',      'Update step: the authenticated member\'s email address (display only, not editable).') ?>
             <?= $ltok('update_form_template', '{sign_out_url}',     '{sign_out_url}',     'Update step: URL for the "Sign out" link.') ?>
@@ -972,9 +981,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('reset_form_template', '{if_token_valid}{/if_token_valid}',   '{if_token_valid}...{/if_token_valid}',   'Inside {if_step_confirm}: shows when the reset token is valid.') ?>
             <?= $ltok('reset_form_template', '{if_token_invalid}{/if_token_invalid}', '{if_token_invalid}...{/if_token_invalid}', 'Inside {if_step_confirm}: shows when the reset token has expired or is invalid.') ?>
             <?= $ltok('reset_form_template', '{field_email}',               '{field_email}',               'Email-entry step: the Email field, with label and wrapper.') ?>
-            <?= $ltok('reset_form_template', '{captcha_block}',             '{captcha_block}',             'Email-entry step: the captcha question field, with label and wrapper.') ?>
-            <?= $ltok('reset_form_template', '{captcha_block_input}',       '{captcha_block_input}',       'Just the captcha answer input, no label or wrapper.') ?>
-            <?= $ltok('reset_form_template', '{captcha_question}',          '{captcha_question}',          'The captcha question text on its own.') ?>
+
             <?= $ltok('reset_form_template', '{field_new_password}',        '{field_new_password}',        'Confirm step: the New Password field, with label and wrapper.') ?>
             <?= $ltok('reset_form_template', '{field_new_password_confirm}', '{field_new_password_confirm}', 'Confirm step: the Confirm New Password field, with label and wrapper.') ?>
             <?= $ltok('reset_form_template', '{reset_request_url}',         '{reset_request_url}',         'URL of the email-entry form. Use inside {if_token_invalid} for a "request a new one" link.') ?>
@@ -998,12 +1005,10 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('codes_template', '{group_code_count}', '{group_code_count}', 'How many codes are in this size group. Use inside {each_size_group}.') ?>
             <?= $ltok('codes_template', '{each_code}{/each_code}', '{each_code}...{/each_code}', 'Repeats the HTML inside it once for each approved code shown.') ?>
             <?= $ltok('codes_template', '{code_url}',        '{code_url}',        'The full image URL for the code.') ?>
-            <?= $ltok('codes_template', '{code_alt}',        '{code_alt}',        'Suggested alt text: donor name, then size, then listing name. Good for &lt;img alt=&quot;{code_alt}&quot;&gt;.') ?>
             <?= $ltok('codes_template', '{code_width}',      '{code_width}',      'The code\'s width in pixels. Empty when dimensions are unknown.') ?>
             <?= $ltok('codes_template', '{code_height}',     '{code_height}',     'The code\'s height in pixels. Empty when dimensions are unknown.') ?>
             <?= $ltok('codes_template', '{code_size}',       '{code_size}',       'The code\'s dimensions as &ldquo;WxH&rdquo;, e.g. &ldquo;88×31&rdquo;. Empty when unknown.') ?>
             <?= $ltok('codes_template', '{code_name}',       '{code_name}',       'The code\'s saved name/title. Empty when not set.') ?>
-            <?= $ltok('codes_template', '{code_categories}', '{code_categories}', 'Comma-separated code category names. Empty when no categories assigned.') ?>
             <?= $ltok('codes_template', '{code_donor_name}', '{code_donor_name}', 'The donor\'s name. Empty when the code was not donated.') ?>
             <?= $ltok('codes_template', '{code_donor_url}',  '{code_donor_url}',  'The donor\'s website URL. Empty when not set.') ?>
             <?= $ltok('codes_template', '{if_size}{/if_size}',           '{if_size}...{/if_size}',           'Shows only when width and height are known.') ?>
@@ -1012,7 +1017,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('codes_template', '{if_no_donor}{/if_no_donor}',   '{if_no_donor}...{/if_no_donor}',   'Shows only when the code has no donor.') ?>
             <?= $ltok('codes_template', '{if_donor_url}{/if_donor_url}', '{if_donor_url}...{/if_donor_url}', 'Shows only when the donor has a website URL saved.') ?>
             <?= $ltok('codes_template', '{if_no_donor_url}{/if_no_donor_url}', '{if_no_donor_url}...{/if_no_donor_url}', 'Shows only when the donor has no website URL.') ?>
-            <?= $ltok('codes_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the code has categories assigned.') ?>
             <?= $ltok('codes_template', '{if_code_name}{/if_code_name}',   '{if_code_name}...{/if_code_name}',   'Shows only when the code has a saved name.') ?>
             <?= $ltok('codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
             <?= $ltok('codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
@@ -1699,12 +1703,6 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       </details>
       <?php endif; ?>
 
-      <?php if (in_array('Adoption', $nav_installed_addons ?? [], true) && ($adoption_addon_installed ?? false)): ?>
-      <details class="snip-section" open>
-        <summary class="pc-section-label snip-section-summary">Adoption</summary>
-        <?php $snip('Adoption form', 'adopt.php') ?>
-      </details>
-      <?php endif; ?>
 
       <?php if (in_array('Kim', $nav_installed_addons ?? [], true)): ?>
       <details class="snip-section" open>

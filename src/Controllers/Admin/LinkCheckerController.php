@@ -45,6 +45,12 @@ final class LinkCheckerController extends AdminController
         $memPage    = max(1, (int) ($request->query('mem_page',    1) ?: 1));
         $memSumPage = max(1, (int) ($request->query('mem_sum_page', 1) ?: 1));
 
+        $memSumSortAllowed = ['id', 'listing', 'last_checked'];
+        $memSumSortParam   = trim((string) $request->query('mem_sum_sort', 'id'));
+        $memSumDirParam    = strtolower(trim((string) $request->query('mem_sum_dir', 'asc')));
+        if (!in_array($memSumSortParam, $memSumSortAllowed, true)) { $memSumSortParam = 'id'; }
+        if (!in_array($memSumDirParam, ['asc', 'desc'], true)) { $memSumDirParam = 'asc'; }
+
         $statusValues = ['ok', 'redirect', 'dead', 'unchecked'];
         $statusParam  = trim((string) $request->query('status', ''));
         if (!in_array($statusParam, $statusValues, true)) { $statusParam = ''; }
@@ -90,12 +96,6 @@ final class LinkCheckerController extends AdminController
         $listingRepo  = new ListingRepo($db, $config);
         $allListings  = $listingRepo->getAll();
 
-        $memSumTotal      = count($allListings);
-        $memSumTotalPages = max(1, (int) ceil($memSumTotal / $perPage));
-        $memSumPage       = min($memSumPage, $memSumTotalPages);
-        $memSumOffset     = ($memSumPage - 1) * $perPage;
-        $memSumListings   = array_slice($allListings, $memSumOffset, $perPage);
-
         $memRepo      = new MemberLinkCheckRepo($db, $config);
         $memItems     = [];
         $memTotal     = 0;
@@ -104,6 +104,35 @@ final class LinkCheckerController extends AdminController
         $deadMembers  = [];
         $memListing   = null;
         $memSummary   = [];
+
+        // Pre-fetch member summary for sorting the overview table by last_checked
+        $memSummaryAll = $memRepo->getPerListingSummary();
+
+        // Sort the listing overview table
+        if ($memSumSortParam === 'listing') {
+            usort($allListings, static fn($a, $b) =>
+                strcasecmp($a->subject ?: $a->title, $b->subject ?: $b->title)
+            );
+            if ($memSumDirParam === 'desc') { $allListings = array_reverse($allListings); }
+        } elseif ($memSumSortParam === 'last_checked') {
+            usort($allListings, static function ($a, $b) use ($memSummaryAll) {
+                $aDate = $memSummaryAll[$a->id]['last_checked'] ?? null;
+                $bDate = $memSummaryAll[$b->id]['last_checked'] ?? null;
+                if ($aDate === null && $bDate === null) { return 0; }
+                if ($aDate === null) { return 1; }
+                if ($bDate === null) { return -1; }
+                return strcmp($aDate, $bDate);
+            });
+            if ($memSumDirParam === 'desc') { $allListings = array_reverse($allListings); }
+        } elseif ($memSumDirParam === 'desc') {
+            $allListings = array_reverse($allListings);
+        }
+
+        $memSumTotal      = count($allListings);
+        $memSumTotalPages = max(1, (int) ceil($memSumTotal / $perPage));
+        $memSumPage       = min($memSumPage, $memSumTotalPages);
+        $memSumOffset     = ($memSumPage - 1) * $perPage;
+        $memSumListings   = array_slice($allListings, $memSumOffset, $perPage);
 
         if ($listingFilter !== null && $listingFilter > 0) {
             $memListing   = $listingRepo->getById($listingFilter);
@@ -123,7 +152,7 @@ final class LinkCheckerController extends AdminController
             $deadMembers  = $memRepo->getByLinkStatus('dead', $listingFilter);
         } elseif ($listingFilter === null) {
             $memStats     = $memRepo->getLinkStatsAll();
-            $memSummary   = $memRepo->getPerListingSummary();
+            $memSummary   = $memSummaryAll;
             $memTotal     = array_sum($memStats);
             $movedMembers = $memRepo->getByLinkStatusAll('redirect');
             $deadMembers  = $memRepo->getByLinkStatusAll('dead');
@@ -167,6 +196,8 @@ final class LinkCheckerController extends AdminController
                 'mem_sum_page'       => $memSumPage,
                 'mem_sum_total'      => $memSumTotal,
                 'mem_sum_total_pages'=> $memSumTotalPages,
+                'mem_sum_sort'       => $memSumSortParam,
+                'mem_sum_dir'        => $memSumDirParam,
                 'listing_id_filter'  => $listingFilter,
                 'status'             => $statusParam,
                 'search'             => $searchParam,

@@ -23,12 +23,6 @@ use Luster\Support\PublicCategoryPresenter;
  *                               'all' — show ALL active listings grouped by category
  *                               other — exact category name; show only that category's listings
  *                               Default: '' (reads $_GET['cat'])
- *   $luster_show_list           bool    Overview page: show categories as a bulleted link
- *                                       list instead of a <select> dropdown.
- *                                       Default: true
- *   $luster_show_cat_switcher   bool    Per-category page: show a compact dropdown so
- *                                       visitors can switch categories without going back.
- *                                       Default: true
  *   $luster_browse_by_category  bool    Browse-by-category mode: index view when no category selected.
  *                                       Default: false
  *   $luster_show_all_by_default bool    Show grouped listings AND the selector initially.
@@ -56,13 +50,14 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------
 // 2. Resolve parameters
 // ---------------------------------------------------------------------------
 
-$_lusterShowList          = (bool) ($luster_show_list            ?? true);
-$_lusterShowCatSwitcher   = (bool) ($luster_show_cat_switcher     ?? true);
+$_lusterShowList          = false;
+$_lusterShowCatSwitcher   = true;
 $_lusterShowAllDefault    = (bool) ($luster_show_all_by_default   ?? false);
 $_lusterBrowseByCat       = (bool) ($luster_browse_by_category    ?? false);
 $_lusterShowPendingPseudo = (bool) ($luster_show_pending          ?? true);
@@ -217,7 +212,6 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
     'category_counts'    => $_lusterCategoryCountMap,
     'total_count'        => $_lusterTotalCount,
     'current_category'   => $_lusterCategory,
-    'show_list'          => $_lusterShowList,
     'browse_by_category' => $_lusterBrowseByCat,
     'view'               => $_lusterPseudoView,
     'uploads_url'        => $_lusterApp->getBaseUrl() . '/uploads/joined',
@@ -225,6 +219,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
     'form_action'        => $_lusterFormAction,
     'theme_path'         => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

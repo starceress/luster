@@ -7,7 +7,6 @@ namespace Luster\Addons\Kim\Controllers;
 use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Addons\Kim\KimPasswordResetRepo;
 use Luster\Core\Application;
-use Luster\Core\Captcha;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
@@ -16,9 +15,7 @@ use Luster\Core\TemplateEngine;
 use Luster\Core\Validator;
 use Luster\Core\View;
 use Luster\Repositories\EmailTemplateRepo;
-use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
-use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
@@ -50,10 +47,7 @@ final class KimResetController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old_email');
 
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlistings = $listingRepo->getAll();
-
-        return $this->renderResetForm($fanlistings, $oldEmail, $error, '', $successHtml);
+        return $this->renderResetForm($oldEmail, $error, $successHtml);
     }
 
     // -----------------------------------------------------------------------
@@ -83,39 +77,30 @@ final class KimResetController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlistings = $listingRepo->getAll();
+        $email = trim((string) $request->post('email', ''));
 
-        $email        = trim((string) $request->post('email',        ''));
-        $fanlistingId = (int) $request->post('fanlisting_id',          0);
-
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
-        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_reset')) {
-            $rateLimit->hitDefault($ip, 'kim_reset');
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old_email', $email);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
-        }
-
-        $fanlistingIds = array_map(static fn($fl) => $fl->id, $fanlistings);
-
-        $v = new Validator(['email' => $email, 'fanlisting_id' => (string) $fanlistingId]);
+        $v = new Validator(['email' => $email]);
         $v->field('email')->required()->email()->maxLength(255);
-        $v->field('fanlisting_id')->required();
-
-        $validationFailed = $v->fails();
-        if (!$validationFailed && ($fanlistingId <= 0 || !in_array($fanlistingId, $fanlistingIds, true))) {
-            $validationFailed = true;
-        }
 
         $rateLimit->hit($ip, 'kim_reset', 5, 3600);
 
-        if (!$validationFailed) {
-            $kimRepo = new KimMemberRepo($this->app->getDatabase());
-            $member  = $kimRepo->findByEmailAndFanlisting($email, $fanlistingId);
+        if (!$v->fails()) {
+            $db        = $this->app->getDatabase();
+            $config    = $this->app->getConfig();
+            $kimRepo   = new KimMemberRepo($db);
+            $resetRepo = new KimPasswordResetRepo($db);
+            $members   = $kimRepo->findAllByEmail($email);
+            $siteName  = (string) $config->get('site_name', '');
 
-            if ($member !== null && !$member->pending) {
-                $resetRepo = new KimPasswordResetRepo($this->app->getDatabase());
+            $listingRepo = new \Luster\Repositories\ListingRepo($db, $config);
+            $resetLinks  = [];
+            $recipientName = '';
+
+            foreach ($members as $member) {
+                if ($member->pending) {
+                    continue;
+                }
+
                 $resetRepo->deleteByMember($member->id);
 
                 $rawToken  = bin2hex(random_bytes(32));
@@ -126,29 +111,51 @@ final class KimResetController
 
                 $resetRepo->create($member->id, $tokenHash, $expiresAt);
 
-                $config   = $this->app->getConfig();
-                $siteName = (string) $config->get('site_name', '');
                 $sep      = str_contains($embedReturnTo, '?') ? '&' : '?';
                 $resetUrl = $embedReturnTo !== ''
                     ? $embedReturnTo . $sep . 'token=' . urlencode($rawToken)
                     : $baseUrl . '/kim/reset/confirm?token=' . urlencode($rawToken);
 
+                $listing     = $listingRepo->getById($member->fanlistingId);
+                $listingName = $listing !== null ? ($listing->subject ?: $listing->title) : 'Listing #' . $member->fanlistingId;
+
+                $resetLinks[] = ['listing' => $listingName, 'url' => $resetUrl];
+                if ($recipientName === '') {
+                    $recipientName = $member->name;
+                }
+            }
+
+            if ($resetLinks !== []) {
                 try {
+                    $ownerName  = (string) $config->get('owner_name',  '');
+                    $ownerEmail = (string) $config->get('owner_email', '');
+
+                    // Single entry: bare reset URL. Multiple entries: numbered list.
+                    if (count($resetLinks) === 1) {
+                        $resetUrlText = $resetLinks[0]['url'];
+                    } else {
+                        $lines = [];
+                        foreach ($resetLinks as $i => $link) {
+                            $lines[] = ($i + 1) . '. ' . $link['listing'] . "\n   " . $link['url'];
+                        }
+                        $resetUrlText = implode("\n\n", $lines);
+                    }
+
                     $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
                     $tokens    = EmailTemplateRepo::buildKimTokens(
                         listingName: $siteName,
-                        listingUrl:  $baseUrl,
+                        listingUrl:  $this->app->getBaseUrl(),
                         siteName:    $siteName,
-                        ownerName:   (string) $config->get('owner_name',  ''),
-                        ownerEmail:  (string) $config->get('owner_email', ''),
-                        kimName:     $member->name,
+                        ownerName:   $ownerName,
+                        ownerEmail:  $ownerEmail,
+                        kimName:     $recipientName,
                         kimEmail:    $email,
-                        kimUrl:      $member->url ?? '',
-                        resetUrl:    $resetUrl,
+                        resetUrl:    $resetUrlText,
                     );
                     [$subject, $body] = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_KIM_RESET, $tokens);
+
                     $mailer = new Mailer($config);
-                    $mailer->send($email, $member->name, $subject, $body);
+                    $mailer->send($email, $recipientName, $subject, $body);
                 } catch (\Throwable $e) {
                     error_log('[KIM] Password reset email failed: ' . $e->getMessage());
                 }
@@ -275,29 +282,15 @@ final class KimResetController
     // -----------------------------------------------------------------------
 
     private function renderResetForm(
-        array  $fanlistings,
         string $oldEmail = '',
         string $error = '',
-        string $captchaError = '',
         string $successHtml = '',
     ): Response {
         $baseUrl  = $this->app->getBaseUrl();
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
 
-        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
-                      . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>';
-        foreach ($fanlistings as $_fl) {
-            $_flId    = htmlspecialchars((string) $_fl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $_flTitle = htmlspecialchars((string) $_fl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $flSelectHtml .= '<option value="' . $_flId . '">' . $_flTitle . '</option>';
-        }
-        $flSelectHtml .= '</select>';
-
-        $captchaQ = Captcha::getQuestion('kim_reset');
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'email',  'name' => 'email',          'id' => 'kim-email',      'label' => 'Email',                  'required' => true, 'value' => $oldEmail, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'select', 'name' => 'fanlisting_id',  'id' => 'kim-fanlisting', 'label' => 'Fanlisting',             'required' => true, 'raw_input' => $flSelectHtml],
-            ['type' => 'text',   'name' => 'captcha_answer', 'id' => 'kim-captcha',    'label' => 'Captcha: ' . $captchaQ, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], '');
 
         $formHtml = null;
@@ -312,11 +305,11 @@ final class KimResetController
             $tokens = [
                 '{field_email}'          => $f['email'],
                 '{field_email_input}'    => $f['email_input'],
-                '{field_fanlisting_id}'  => $f['fanlisting_id'],
-                '{field_fanlisting_id_input}' => $f['fanlisting_id_input'],
-                '{captcha_block}'        => $f['captcha_answer'],
-                '{captcha_block_input}'  => $f['captcha_answer_input'],
-                '{captcha_question}'     => View::e($captchaQ),
+                '{field_fanlisting_id}'  => '',
+                '{field_fanlisting_id_input}' => '',
+                '{captcha_block}'        => '',
+                '{captcha_block_input}'  => '',
+                '{captcha_question}'     => '',
                 '{submit_button}'        => '<button type="submit" class="fl-submit">Send Reset Link</button>',
                 '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
                 '{reset_request_url}'    => View::e($baseUrl . '/kim/reset'),
@@ -324,8 +317,7 @@ final class KimResetController
                 '{field_password_input}' => '',
                 '{field_password_confirm}'       => '',
                 '{field_password_confirm_input}' => '',
-                '{hidden_token}'         => '',
-            ];
+                ];
             $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
             $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset', $this->app->getCSRF()->token(), false);
         }
@@ -355,7 +347,7 @@ final class KimResetController
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
 
         $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
             ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ], '');
 
@@ -383,8 +375,7 @@ final class KimResetController
                 '{field_password_input}' => $f['new_password_input'],
                 '{field_password_confirm}'       => $f['new_password_confirm'],
                 '{field_password_confirm_input}' => $f['new_password_confirm_input'],
-                '{hidden_token}'         => '',
-            ];
+                ];
             $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
             if ($rawToken !== '') {
                 $innerHtml .= '<input type="hidden" name="token" value="' . View::e($rawToken) . '">';

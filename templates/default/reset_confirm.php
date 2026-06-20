@@ -33,14 +33,14 @@ if (isset($form_html)) {
   <?php endif; ?>
 
   <?php if (!$token_valid): ?>
-    <p>
+    <p class="fl-errors">
       This reset link has expired or is invalid.
       <a href="<?= View::e($reset_url) ?>">Request a new one.</a>
     </p>
   <?php else: ?>
-    <p class="fl-hint">Choose a new password.</p>
+    <p class="fl-hint">Choose a new password. Minimum 12 characters.</p>
 
-    <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+    <form class="fl-form fl-form-reset-confirm" method="POST" action="<?= View::e($form_action) ?>">
       <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
       <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
       <input type="hidden" name="token"  value="<?= View::e($token) ?>">

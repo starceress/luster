@@ -41,6 +41,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------
 // 2. Fetch the most recently joined active, approved listing
@@ -74,7 +75,6 @@ if (trim($_lusterTemplate) === '') {
 $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
 
 $_lusterHtml = JoinedListingRowRenderer::renderTemplate($_lusterTemplate, [$_lusterListing], $_lusterUploadsUrl, (string) ($luster_date_format ?? ''));
-$_lusterHtml .= \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------
 // 4. Return or echo

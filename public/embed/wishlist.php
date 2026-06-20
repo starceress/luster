@@ -44,6 +44,7 @@ if (!is_file($_lusterRoot . '/vendor/autoload.php') || !is_file($_lusterRoot . '
 }
 
 $_app = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_app->getSession()->start();
 
 // ---------------------------------------------------------------------------
@@ -155,6 +156,7 @@ $_lusterHtml = $_app->getView()->renderFragment('wishlist.php', [
     'pages'                 => $_pages,
     'total'                 => $_total,
 ]);
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

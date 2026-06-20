@@ -238,8 +238,8 @@ final class AffiliateController extends AdminController
                     $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
                     if (!isset($allowed[$mime])) {
                         $imageError = 'Image must be a JPEG, PNG, GIF, or WebP file.';
-                    } elseif ((int) $imageFile['size'] > 2097152) {
-                        $imageError = 'Image must be under 2 MB.';
+                    } elseif ((int) $imageFile['size'] > 512000) {
+                        $imageError = 'Image must be under 500 KB.';
                     } elseif (getimagesize((string) $imageFile['tmp_name']) === false) {
                         $imageError = 'The uploaded file is not a valid image.';
                     } else {
@@ -392,8 +392,8 @@ final class AffiliateController extends AdminController
                     $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
                     if (!isset($allowed[$mime])) {
                         $imageError = 'Image must be a JPEG, PNG, GIF, or WebP file.';
-                    } elseif ((int) $imageFile['size'] > 2097152) {
-                        $imageError = 'Image must be under 2 MB.';
+                    } elseif ((int) $imageFile['size'] > 512000) {
+                        $imageError = 'Image must be under 500 KB.';
                     } elseif (getimagesize((string) $imageFile['tmp_name']) === false) {
                         $imageError = 'The uploaded file is not a valid image.';
                     } else {
@@ -775,7 +775,7 @@ final class AffiliateController extends AdminController
             'owner_name'    => (string) $config->get('owner_name',  ''),
             'owner_email'   => (string) $config->get('owner_email', ''),
             'site_name'     => (string) $config->get('site_name',   ''),
-            'site_url'      => (string) $config->get('app_url',     ''),
+            'site_url'      => (string) $config->get('site_url',     ''),
             'old'           => $old,
             'error'         => $error,
             'success'       => $success,
@@ -940,7 +940,7 @@ final class AffiliateController extends AdminController
             $listingUrl  = $listing->url;
         } else {
             $listingName = (string) $config->get('site_name', '');
-            $listingUrl  = (string) ($config->get('site_url', '') ?: $config->get('app_url', '') . '/affiliates');
+            $listingUrl  = (string) $config->get('site_url', '');
         }
 
         $emailRepo = new EmailTemplateRepo($db);

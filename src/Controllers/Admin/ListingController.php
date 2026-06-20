@@ -766,6 +766,7 @@ final class ListingController extends AdminController
                 default => null,
             };
             $autoApproveJoins = $request->post('auto_approve_joins') === '1';
+            $queueUpdates     = $request->post('queue_updates') === '1';
 
             // --- Image upload validation (before moving any file) ---
             $imageError  = '';
@@ -867,6 +868,7 @@ final class ListingController extends AdminController
                     'contact_recipient'       => $contactRecipient,
                     'join_confirmation_email' => $joinConfirmEmail,
                     'auto_approve_joins'      => $autoApproveJoins,
+                    'queue_updates'           => $queueUpdates,
                     'description'             => $description,
                 ], '', [
                     $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
@@ -901,6 +903,7 @@ final class ListingController extends AdminController
             $codeEmailVal  = $codeEmailPost === '' ? null : ($codeEmailPost === '1');
             $settingsRepo->setCodeApprovalEmail($id, $codeEmailVal);
             $settingsRepo->saveJoinSettings($id, $joinConfirmEmail, $autoApproveJoins);
+            $settingsRepo->setQueueUpdates($id, $queueUpdates);
             if ($lastUpdatedInput !== '' || $request->post('fl_last_updated') !== null) {
                 $settingsRepo->setLastUpdated($id, $lastUpdatedInput !== '' ? $lastUpdatedInput : null);
             }
@@ -958,6 +961,7 @@ final class ListingController extends AdminController
         $affiliateApplySettings = $settingsRepo->getAffiliateApplySettings($id);
         $codeApprovalEmail  = $settingsRepo->getCodeApprovalEmail($id);
         $joinSettings           = $settingsRepo->getJoinSettings($id);
+        $queueUpdates           = $settingsRepo->getQueueUpdates($id);
         $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
         $updatesAddonInstalled  = $this->app->isAddonInstalled('Updates');
         $rulesAddonInstalled    = $this->app->isAddonInstalled('Rules');
@@ -1123,6 +1127,7 @@ final class ListingController extends AdminController
             'code_approval_email'            => $codeApprovalEmail,
             'join_confirmation_email'        => $joinSettings['confirmation_email'],
             'auto_approve_joins'             => $joinSettings['auto_approve'],
+            'queue_updates'                  => $queueUpdates,
             'codes'               => $codes,
             'code_cats'           => $codeCats,
             'code_donors'          => $codeDonors,
@@ -1735,8 +1740,8 @@ final class ListingController extends AdminController
 
         $rendered = TemplateEngine::render($tpl, escaped: $values, raw: $rawValues, conditions: $conditions);
         return str_replace(
-            ['{approved_by}', '{network}', '{network_status}', '{network_name}', '{tfl_url}', '{tafl_url}'],
-            [$network, $network, $network, $networkName, 'https://thefanlistings.org/', 'https://www.animefanlistings.com/'],
+            ['{approved_by}', '{network_name}', '{tfl_url}', '{tafl_url}'],
+            [$network, $networkName, 'https://thefanlistings.org/', 'https://www.animefanlistings.com/'],
             $rendered,
         );
     }
@@ -1912,7 +1917,7 @@ final class ListingController extends AdminController
             ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
             ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => $countryFieldEnabled, 'raw_input' => $countrySelect],
             ...$fb->descriptorsFromAdditionalFields($fields, []),
-            ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional - If left blank, a password will be generated and emailed to you.'],
+            ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. If left blank, one will be generated for you.'],
             ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
             ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'join-captcha',          'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
@@ -2020,7 +2025,7 @@ final class ListingController extends AdminController
             ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => '', 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
             ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
             ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',           'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => '', 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,   'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
@@ -2053,7 +2058,7 @@ final class ListingController extends AdminController
 
     private function ltplPreviewContactForm(string $tpl, object $listing): string
     {
-        return $this->renderContactFormPreview($tpl, $listing->title, $listing->url);
+        return $this->renderContactFormPreview($tpl, $listing->title, $listing->url, $listing->subject);
     }
 
     private function ltplPreviewContactSent(string $tpl, object $listing): string
@@ -2063,7 +2068,7 @@ final class ListingController extends AdminController
             'sender_email'  => 'alice@example.com',
             'listing_title' => $listing->title,
             'listing_url'   => $listing->url,
-            'site_name'     => (string) ($this->app->getConfig()->get('app_name', '') ?: 'My Site'),
+            'site_name'     => (string) ($this->app->getConfig()->get('site_name', '') ?: 'My Site'),
             'owner_name'    => (string) ($this->app->getConfig()->get('owner_name', '') ?: 'Site Owner'),
             'owner_email'   => (string) ($this->app->getConfig()->get('owner_email', '') ?: 'owner@example.com'),
         ]);
@@ -2077,7 +2082,6 @@ final class ListingController extends AdminController
         $fieldRepo = new FieldRepo($db, $config);
         $fields    = $fieldRepo->getFieldsForListing((int) $listing->id);
 
-        $captchaQuestion = Captcha::getQuestion('update');
         $countrySelect   = Countries::buildSelect('');
         $fb = $this->app->getFormFieldBuilder();
 
@@ -2097,9 +2101,8 @@ final class ListingController extends AdminController
             ['type' => 'url',      'name' => 'url',                  'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
             ['type' => 'text',     'name' => 'country',              'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySelect],
             ...$fb->descriptorsFromAdditionalFields($fields, []),
-            ['type' => 'password', 'name' => 'new_password',         'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Leave blank to keep current']],
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
             ['type' => 'password', 'name' => 'new_password_confirm',  'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-            ['type' => 'text',     'name' => 'captcha_answer',        'id' => 'upd-captcha',      'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
         $fUpdate = $fb->build($updateDescriptors, '');
 
@@ -2131,9 +2134,9 @@ final class ListingController extends AdminController
             '{additional_fields}'      => $additionalFieldsHtml,
             '{field_password}'         => $fUpdate['new_password'],
             '{field_password_confirm}' => $fUpdate['new_password_confirm'],
-            '{captcha_block}'          => $fUpdate['captcha_answer'],
-            '{captcha_block_input}'    => $fUpdate['captcha_answer_input'],
-            '{captcha_question}'       => View::e($captchaQuestion),
+            '{captcha_block}'          => '',
+            '{captcha_block_input}'    => '',
+            '{captcha_question}'       => '',
             '{field_remove}'           => $removeMembershipHtml,
             '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
             '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
@@ -2148,17 +2151,15 @@ final class ListingController extends AdminController
 
     private function ltplPreviewResetForm(string $tpl, object $listing): string
     {
-        $captchaQuestion = Captcha::getQuestion('reset');
         $fb = $this->app->getFormFieldBuilder();
 
         $emailDescriptors = [
             ['type' => 'email', 'name' => 'email',           'id' => 'reset-email',  'label' => 'Email Address', 'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'text',  'name' => 'captcha_answer',  'id' => 'reset-captcha','label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
         $fEmail = $fb->build($emailDescriptors, '');
 
         $passwordDescriptors = [
-            ['type' => 'password', 'name' => 'new_password',        'id' => 'reset-pass',    'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password',        'id' => 'reset-pass',    'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
             ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'reset-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ];
         $fPassword = $fb->build($passwordDescriptors, '');
@@ -2177,14 +2178,13 @@ final class ListingController extends AdminController
             '{listing_subject}'           => View::e((string) ($listing->subject ?? $listing->title)),
             '{field_email}'               => $fEmail['email'],
             '{field_email_input}'         => $fEmail['email_input'],
-            '{captcha_block}'             => $fEmail['captcha_answer'],
-            '{captcha_block_input}'       => $fEmail['captcha_answer_input'],
-            '{captcha_question}'          => View::e($captchaQuestion),
+            '{captcha_block}'             => '',
+            '{captcha_block_input}'       => '',
+            '{captcha_question}'          => '',
             '{field_new_password}'        => $fPassword['new_password'],
             '{field_new_password_input}'  => $fPassword['new_password_input'],
             '{field_new_password_confirm}'       => $fPassword['new_password_confirm'],
             '{field_new_password_confirm_input}' => $fPassword['new_password_confirm_input'],
-            '{hidden_token}'              => '',
             '{reset_request_url}'         => '#',
             '{submit_button}'             => '<button type="submit" class="fl-submit">Reset Password</button>',
             '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
@@ -2581,7 +2581,6 @@ final class ListingController extends AdminController
 
     private function gtplPreviewUpdateForm(string $tpl): string
     {
-        $captchaQuestion = Captcha::getQuestion('update_prev');
         $countrySelect   = Countries::buildSelect('');
         $fb = $this->app->getFormFieldBuilder();
         $sampleFields = SampleTemplateData::additionalFields();
@@ -2600,9 +2599,8 @@ final class ListingController extends AdminController
             ['type' => 'url',      'name' => 'url',                   'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
             ['type' => 'text',     'name' => 'country',               'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySelect],
             ...$fb->descriptorsFromAdditionalFields($sampleFields, []),
-            ['type' => 'password', 'name' => 'new_password',          'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password',          'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
             ['type' => 'password', 'name' => 'new_password_confirm',  'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-            ['type' => 'text',     'name' => 'captcha_answer',        'id' => 'upd-captcha',      'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
         $fUpdate = $fb->build($updateDescriptors, '');
 
@@ -2631,9 +2629,9 @@ final class ListingController extends AdminController
             '{additional_fields}'      => $additionalFieldsHtml,
             '{field_password}'         => $fUpdate['new_password'],
             '{field_password_confirm}' => $fUpdate['new_password_confirm'],
-            '{captcha_block}'          => $fUpdate['captcha_answer'],
-            '{captcha_block_input}'    => $fUpdate['captcha_answer_input'],
-            '{captcha_question}'       => View::e($captchaQuestion),
+            '{captcha_block}'          => '',
+            '{captcha_block_input}'    => '',
+            '{captcha_question}'       => '',
             '{field_remove}'           => $removeMembershipHtml,
             '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
             '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
@@ -2648,15 +2646,13 @@ final class ListingController extends AdminController
 
     private function gtplPreviewResetForm(string $tpl): string
     {
-        $captchaQuestion = Captcha::getQuestion('reset_prev');
         $fb = $this->app->getFormFieldBuilder();
 
         $fEmail = $fb->build([
             ['type' => 'email', 'name' => 'email',          'id' => 'reset-email',  'label' => 'Email Address', 'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'text',  'name' => 'captcha_answer', 'id' => 'reset-captcha','label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], '');
         $fPassword = $fb->build([
-            ['type' => 'password', 'name' => 'new_password',        'id' => 'reset-pass',    'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password',        'id' => 'reset-pass',    'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
             ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'reset-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ], '');
 
@@ -2673,14 +2669,13 @@ final class ListingController extends AdminController
             '{listing_subject}'           => 'Sample Subject',
             '{field_email}'               => $fEmail['email'],
             '{field_email_input}'         => $fEmail['email_input'],
-            '{captcha_block}'             => $fEmail['captcha_answer'],
-            '{captcha_block_input}'       => $fEmail['captcha_answer_input'],
-            '{captcha_question}'          => View::e($captchaQuestion),
+            '{captcha_block}'             => '',
+            '{captcha_block_input}'       => '',
+            '{captcha_question}'          => '',
             '{field_new_password}'        => $fPassword['new_password'],
             '{field_new_password_input}'  => $fPassword['new_password_input'],
             '{field_new_password_confirm}'       => $fPassword['new_password_confirm'],
             '{field_new_password_confirm_input}' => $fPassword['new_password_confirm_input'],
-            '{hidden_token}'              => '',
             '{reset_request_url}'         => '#',
             '{submit_button}'             => '<button type="submit" class="fl-submit">Reset Password</button>',
             '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
@@ -2750,7 +2745,7 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewContactForm(string $tpl): string
     {
-        return $this->renderContactFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting');
+        return $this->renderContactFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting', 'Sample Subject');
     }
 
     /**
@@ -2758,7 +2753,7 @@ final class ListingController extends AdminController
      * Shared by ltplPreviewContactForm() (real listing data) and
      * gtplPreviewContactForm() (sample data, listing-independent).
      */
-    private function renderContactFormPreview(string $tpl, string $listingTitle, string $listingUrl): string
+    private function renderContactFormPreview(string $tpl, string $listingTitle, string $listingUrl, string $listingSubject = ''): string
     {
         $captchaQuestion = Captcha::getQuestion('contact_listing');
         $fb = $this->app->getFormFieldBuilder();
@@ -2782,6 +2777,7 @@ final class ListingController extends AdminController
 
         $tokens = [
             '{listing_title}'        => View::e($listingTitle),
+            '{listing_subject}'      => View::e($listingSubject),
             '{listing_url}'          => View::e($listingUrl),
             '{field_name}'           => $f['name'],
             '{field_name_input}'     => $f['name_input'],
@@ -2811,7 +2807,7 @@ final class ListingController extends AdminController
             'sender_email'  => 'alice@example.com',
             'listing_title' => 'Sample Fanlisting',
             'listing_url'   => 'https://example.com/sample-fanlisting',
-            'site_name'     => (string) ($this->app->getConfig()->get('app_name', '') ?: 'My Site'),
+            'site_name'     => (string) ($this->app->getConfig()->get('site_name', '') ?: 'My Site'),
             'owner_name'    => (string) ($this->app->getConfig()->get('owner_name', '') ?: 'Site Owner'),
             'owner_email'   => (string) ($this->app->getConfig()->get('owner_email', '') ?: 'owner@example.com'),
         ]);

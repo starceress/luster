@@ -154,7 +154,7 @@ SQL;
         self::assertStringContainsString('{field_new_email}', $tpl);
         self::assertStringContainsString('{additional_fields}', $tpl);
         self::assertStringContainsString('{field_remove}', $tpl);
-        self::assertStringContainsString('{captcha_block}', $tpl);
+        self::assertStringNotContainsString('{captcha_block}', $tpl, 'Update form no longer uses captcha (password-protected)');
     }
 
     // -----------------------------------------------------------------------
@@ -191,7 +191,7 @@ SQL;
         $tpl = ListingSettingsRepo::defaultResetFormTemplate();
 
         self::assertStringContainsString('{field_email}', $tpl);
-        self::assertStringContainsString('{captcha_block}', $tpl);
+        self::assertStringNotContainsString('{captcha_block}', $tpl, 'Reset form no longer uses captcha (rate-limited)');
         self::assertStringContainsString('{submit_button}', $tpl);
     }
 

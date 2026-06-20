@@ -141,7 +141,6 @@ final class UpdatesPublicController
                     [
                         'update_title'      => $update->title,
                         'update_date'       => date('F j, Y', strtotime($update->postedAt)),
-                        'update_date_raw'   => substr($update->postedAt, 0, 10),
                         'update_author'     => $update->author ?? '',
                         'update_categories' => implode(', ', $update->categories()),
                     ],

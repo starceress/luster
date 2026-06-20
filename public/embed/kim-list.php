@@ -46,6 +46,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
@@ -83,7 +84,7 @@ $_lusterKimUrls      = $_lusterSiteSettings->getMany([
     'kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list',
 ]);
 
-$_lusterKimParsed   = parse_url((string) $_lusterApp->getConfig()->get('app_url', ''));
+$_lusterKimParsed   = parse_url((string) ($_lusterApp->getConfig()->get('site_url', '')));
 $_lusterKimSiteRoot = ($_lusterKimParsed['scheme'] ?? 'https') . '://' . ($_lusterKimParsed['host'] ?? '');
 if (!empty($_lusterKimParsed['port'])) {
     $_lusterKimSiteRoot .= ':' . $_lusterKimParsed['port'];
@@ -273,7 +274,6 @@ if ($_lusterSubjectId > 0) {
     ]);
 }
 
-$_lusterHtml .= \Luster\Core\View::attribution();
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

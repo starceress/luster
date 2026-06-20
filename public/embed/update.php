@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Luster\Core\Captcha;
 use Luster\Core\Countries;
 use Luster\Core\TemplateEngine;
 use Luster\Core\View;
@@ -66,6 +65,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
@@ -277,7 +277,6 @@ if (!$_lusterSignedIn) {
     // ── Step 2: update form (authenticated) ─────────────────────────────────
     $_lusterFieldRepo    = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
     $_lusterFields       = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
-    $_lusterCaptchaQ     = Captcha::getQuestion('update');
     $_lusterCountrySel   = Countries::buildSelect((string) ($_lusterOld['country'] ?? ''));
     $_lusterFormAction2  = $_lusterRedirectTo;
     $_lusterSignOutUrl   = $_lusterRedirectTo
@@ -306,9 +305,8 @@ if (!$_lusterSignedIn) {
         ['type' => 'url',      'name' => 'url',                 'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $_lusterUrlRaw],
         ['type' => 'text',     'name' => 'country',             'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $_lusterCountrySel],
         ...$_lusterFb->descriptorsFromAdditionalFields($_lusterFields, $_lusterUpdOld),
-        ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Leave blank to keep current']],
+        ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
         ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Repeat new password']],
-        ['type' => 'text',     'name' => 'captcha_answer',      'id' => 'upd-captcha',      'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
     ];
     $_lusterF = $_lusterFb->build($_lusterDescriptors, $_lusterWrapperTpl);
 
@@ -339,9 +337,9 @@ if (!$_lusterSignedIn) {
             '{additional_fields}'      => $_lusterAddlHtml,
             '{field_password}'         => $_lusterF['new_password'],
             '{field_password_confirm}' => $_lusterF['new_password_confirm'],
-            '{captcha_block}'          => $_lusterF['captcha_answer'],
-            '{captcha_block_input}'    => $_lusterF['captcha_answer_input'] ?? '',
-            '{captcha_question}'       => View::e($_lusterCaptchaQ),
+            '{captcha_block}'          => '',
+            '{captcha_block_input}'    => '',
+            '{captcha_question}'       => '',
             '{field_remove}'           => $_lusterRemoveHtml,
             '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
             '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
@@ -375,6 +373,7 @@ if (!$_lusterSignedIn) {
     ]);
 
 }
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

@@ -7,7 +7,7 @@
  *   $csrf_token   string
  *   $errors       string  pre-escaped HTML error string, or ''
  *   $success_html string  pre-rendered success HTML, or ''
- *   $f            array<string,string>  keys: email, fanlisting_id, captcha_answer
+ *   $f            array<string,string>  keys: email
  *   $form_html    string|null  custom form template HTML, or null to use hardcoded form
  *   $base_url     string
  */
@@ -43,27 +43,24 @@ if (isset($form_html) && $form_html !== null) {
   <div class="fl-kim">
     <h2 class="fl-kim-heading">KIM List &mdash; Reset Password</h2>
     <p class="fl-kim-intro">
-      Enter your email address and select the fanlisting your KIM entry is for.
-      If a matching entry is found, we will send a reset link to that address.
+      Enter your email address below. If any matching KIM entries are found,
+      we will send a reset link for each one.
     </p>
 
     <?php if ($errors !== ''): ?>
       <div class="fl-errors"><?= $errors ?></div>
     <?php endif; ?>
 
-    <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+    <form class="fl-form fl-form-kim-reset" method="POST" action="<?= View::e($form_action) ?>">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
       <?= $f['email'] ?>
-      <?= $f['fanlisting_id'] ?>
 
       <!-- Honeypot — hidden from humans, filled by bots -->
       <div style="display:none" aria-hidden="true">
         <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
       </div>
-
-      <?= $f['captcha_answer'] ?>
 
       <div class="fl-form-actions">
         <button class="fl-submit fl-btn" type="submit">Send Reset Link</button>

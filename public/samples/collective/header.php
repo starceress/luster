@@ -5,7 +5,7 @@ $site_tagline = 'A fanlisting collective';
 // Everything else comes from your Luster installation automatically.
 $luster_root = dirname(__DIR__, 3);
 $_cfg        = require $luster_root . '/config/app.php';
-$site_name   = $_cfg['app_name']    ?? 'My Collective';
+$site_name   = $_cfg['site_name'] ?? 'My Collective';
 $owner_name  = $_cfg['owner_name']  ?? '';
 $owner_email = $_cfg['owner_email'] ?? '';
 unset($_cfg);

@@ -603,7 +603,14 @@ include LUSTER_BASE . '/templates/admin/_pagination.php';
           $flId = (int) $fl->id;
         ?>
         <tr>
-          <td data-label="Listing"><a href="<?= $b ?>/admin/members?listing_id=<?= $flId ?>" class="link"><?= View::e($fl->title) ?></a></td>
+          <td data-label="Listing">
+            <div class="subject-title-stack">
+              <a href="<?= $b ?>/admin/members?listing_id=<?= $flId ?>" class="link"><b><?= View::e($fl->subject ?: $fl->title) ?></b></a>
+              <?php if ($fl->subject !== ''): ?>
+                <span class="mem-url"><?= View::e($fl->title) ?></span>
+              <?php endif; ?>
+            </div>
+          </td>
           <td data-label="Name">
             <div class="subject-title-stack">
               <b><?= View::e($m->name) ?></b>
@@ -727,9 +734,12 @@ $_newTo         = min($_totalNew, $page * $per_page);
                      data-name="<?= View::e($m->name) ?>">
             </td>
             <td data-label="Listing">
-              <a href="<?= $b ?>/admin/members?listing_id=<?= $flId ?>&status=pending" class="link">
-                <b><?= View::e($fl->title) ?></b>
-              </a>
+              <div class="subject-title-stack">
+                <a href="<?= $b ?>/admin/members?listing_id=<?= $flId ?>&status=pending" class="link"><b><?= View::e($fl->subject ?: $fl->title) ?></b></a>
+                <?php if ($fl->subject !== ''): ?>
+                  <span class="mem-url"><?= View::e($fl->title) ?></span>
+                <?php endif; ?>
+              </div>
             </td>
             <td data-label="Name">
               <div class="subject-title-stack">
@@ -857,7 +867,12 @@ endif;
             <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
             <td data-label="Listing">
               <?php if ($puListing !== null): ?>
-                <a href="<?= $b ?>/admin/members?listing_id=<?= $puFlId ?>&status=pending" class="link"><b><?= View::e($puListing->title) ?></b></a>
+                <div class="subject-title-stack">
+                  <a href="<?= $b ?>/admin/members?listing_id=<?= $puFlId ?>&status=pending" class="link"><b><?= View::e($puListing->subject ?: $puListing->title) ?></b></a>
+                  <?php if ($puListing->subject !== ''): ?>
+                    <span class="mem-url"><?= View::e($puListing->title) ?></span>
+                  <?php endif; ?>
+                </div>
               <?php else: ?>
                 <span class="text-dim">#<?= $puFlId ?></span>
               <?php endif; ?>
@@ -880,7 +895,7 @@ endif;
                   <summary class="changes-toggle-summary"><?= $puCount ?> field<?= $puCount !== 1 ? 's' : '' ?> <?= View::icon('chevrondown') ?></summary>
                   <div class="changes-list">
                     <?php foreach ($pu->changes as $field => $val): ?>
-                      <div class="changes-list-item"><span class="changes-list-label"><?= View::e(ucfirst((string) $field)) ?>:</span> <?= View::e((string) $val) ?></div>
+                      <div class="changes-list-item"><span class="changes-list-label"><?= View::e(ucfirst((string) $field)) ?>:</span> <?= $field === 'password' ? '<em>Password change requested</em>' : View::e((string) $val) ?></div>
                     <?php endforeach; ?>
                   </div>
                 </details>

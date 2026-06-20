@@ -1,17 +1,17 @@
 <?php
 /**
- * KIM List update form — content fragment.
+ * KIM List update — sign-in form (step 1).
  *
  * Variables:
  *   $form_action  string
  *   $csrf_token   string
  *   $errors       string  pre-escaped HTML error string, or ''
  *   $success_html string  pre-rendered success HTML, or ''
- *   $old          array   keys: send_copy
- *   $f            array<string,string>  keys: name, current_email, current_password,
- *                                             fanlisting_id, new_email, new_url,
- *                                             new_password, new_password_confirm, captcha_answer
+ *   $f            array<string,string>  keys: email, email_input, password, password_input
  *   $form_html    string|null  custom form template HTML, or null to use hardcoded form
+ *   $form_marker  string  embed POST marker — optional; only set by embed file
+ *   $link_reset   string|null
+ *   $link_list    string|null
  *   $base_url     string
  */
 
@@ -19,7 +19,7 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 
-$b = rtrim(View::e($base_url), '/');
+$b          = rtrim(View::e($base_url), '/');
 $_linkReset = (($link_reset ?? null) !== null && $link_reset !== '') ? $link_reset : null;
 $_linkList  = (($link_list  ?? null) !== null && $link_list  !== '') ? $link_list  : null;
 
@@ -50,51 +50,27 @@ if (isset($form_html) && $form_html !== null) {
 ?>
 <div class="fl-embed fl-embed--kim-update">
   <div class="fl-kim">
-    <h2 class="fl-kim-heading">KIM List &mdash; Update Your Entry</h2>
-    <p class="fl-kim-intro">
-      Update your name, URL, or email address on the KIM list.
-      Provide your current email and password to authenticate.
-    </p>
+    <h2 class="fl-kim-heading">KIM List &mdash; Sign In</h2>
+    <p class="fl-kim-intro">Sign in to manage your KIM List entries across all fanlistings.</p>
 
     <?php if ($errors !== ''): ?>
       <div class="fl-errors"><?= $errors ?></div>
     <?php endif; ?>
 
-    <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+    <form class="fl-form fl-form-kim-update" method="POST" action="<?= View::e($form_action) ?>">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
-
-      <?= $f['name'] ?>
-      <?= $f['current_email'] ?>
-      <?= $f['current_password'] ?>
-      <?= $f['fanlisting_id'] ?>
-
-      <fieldset class="fl-fieldset">
-        <legend>Optional Updates</legend>
-
-        <?= $f['new_email'] ?>
-        <?= $f['new_url'] ?>
-        <?= $f['new_password'] ?>
-        <?= $f['new_password_confirm'] ?>
-      </fieldset>
 
       <!-- Honeypot — hidden from humans, filled by bots -->
       <div style="display:none" aria-hidden="true">
         <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
       </div>
 
-      <?= $f['captcha_answer'] ?>
-
-      <div class="fl-field">
-        <label>
-          <input type="checkbox" name="send_copy" value="1"
-                 <?= ((string) ($old['send_copy'] ?? '')) === '1' ? 'checked' : '' ?>>
-          Email me a confirmation of this update
-        </label>
-      </div>
+      <?= $f['email'] ?>
+      <?= $f['password'] ?>
 
       <div class="fl-form-actions">
-        <button class="fl-submit fl-btn" type="submit">Update</button>
+        <button class="fl-submit fl-btn" type="submit">Sign In</button>
       </div>
     </form>
 

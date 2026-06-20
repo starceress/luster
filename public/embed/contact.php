@@ -52,6 +52,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
@@ -142,7 +143,7 @@ $_lusterCaptchaQ     = Captcha::getQuestion('contact_listing');
 $_lusterSubjOld  = (string) ($_lusterOld['subject'] ?? '');
 $_lusterSubjHtml = '<select id="contact-subject" name="subject" required>'
                  . '<option value="" disabled' . ($_lusterSubjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
-foreach (['Comments', 'Contact', 'Questions/Concerns', 'Affiliation', 'Link Exchange'] as $_lusterSubjOpt) {
+foreach (['Comments', 'Contact', 'Questions & Concerns'] as $_lusterSubjOpt) {
     $_lusterOptEsc    = htmlspecialchars($_lusterSubjOpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterSubjHtml .= '<option value="' . $_lusterOptEsc . '"' . ($_lusterSubjOld === $_lusterSubjOpt ? ' selected' : '') . '>' . $_lusterOptEsc . '</option>';
 }
@@ -206,6 +207,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
     'form_html'    => $_lusterFormHtml,
     'form_marker'  => $_lusterMarker,
 ]);
+
 
 if ($luster_return ?? false) { return $_lusterHtml; }
 echo $_lusterHtml;

@@ -308,7 +308,7 @@ final class Application
             'nav_installed_addons'  => $this->installedAddonKeys,
             'selected_skin'         => $selectedSkin,
             'admin_default_theme'   => $adminDefaultTheme,
-            'app_name'              => (string) ($this->config->get('site_name', '') ?: ($this->config->get('app_name', '') ?? '')),
+            'site_name'             => (string) ($this->config->get('site_name', '') ?? ''),
             'owner_name'            => (string) ($this->config->get('owner_name', '') ?? ''),
             'nav_display_name'      => (string) ($this->session->get('lstr_admin_display_name', '') ?? ''),
         ];

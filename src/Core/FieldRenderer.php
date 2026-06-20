@@ -81,7 +81,7 @@ final class FieldRenderer
 
     public function file(string $id, string $name, bool $required = false, string $accept = '', array $attrs = []): string
     {
-        $html = '<input type="file"'
+        $html = '<input type="file" class="fl-input"'
               . ' id="' . View::e($id) . '"'
               . ' name="' . View::e($name) . '"'
               . ($required ? ' required' : '');
@@ -114,7 +114,7 @@ final class FieldRenderer
             $value   = (string) $value;
             $checked = in_array($value, $selected, true);
 
-            $html .= '<label><input type="checkbox"'
+            $html .= '<label class="fl-check-label"><input type="checkbox" class="fl-checkbox"'
                    . ' name="' . View::e($multi ? $name . '[]' : $name) . '"'
                    . ' value="' . View::e($value) . '"'
                    . ($checked ? ' checked' : '')
@@ -136,7 +136,7 @@ final class FieldRenderer
             $value   = (string) $value;
             $checked = $value === $selected;
 
-            $html .= '<label><input type="radio"'
+            $html .= '<label class="fl-check-label"><input type="radio" class="fl-radio"'
                    . ' name="' . View::e($name) . '"'
                    . ' value="' . View::e($value) . '"'
                    . ($checked ? ' checked' : '')

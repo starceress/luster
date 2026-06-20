@@ -51,6 +51,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
@@ -61,7 +62,7 @@ $_lusterDb = $_lusterApp->getDatabase();
 
 if ($_lusterIsCollective) {
     $_lusterListing     = null;
-    $_lusterListingName = (string) ($_lusterApp->getConfig()->get('app_name', '') ?: 'Collective');
+    $_lusterListingName = (string) ($_lusterApp->getConfig()->get('site_name', '') ?: 'Collective');
     $_lusterListingUrl  = '';
 } else {
     $_lusterListingRepo = new ListingRepo($_lusterDb, $_lusterApp->getConfig());
@@ -124,7 +125,48 @@ uksort($_lusterGrouped, function (string $a, string $b): int {
 });
 
 // ---------------------------------------------------------------------------
-// 4. Render
+// 4. Pagination (optional)
+// ---------------------------------------------------------------------------
+
+$_lusterPerPage    = isset($luster_per_page) ? max(1, (int) $luster_per_page) : 0;
+$_lusterTotalCodes = count($_lusterCodes);
+$_lusterPagHtml    = '';
+
+if ($_lusterPerPage > 0 && $_lusterTotalCodes > $_lusterPerPage) {
+    $_lusterPage      = max(1, (int) ($_GET['page'] ?? 1));
+    $_lusterTotalPgs  = (int) ceil($_lusterTotalCodes / $_lusterPerPage);
+    $_lusterPage      = min($_lusterPage, $_lusterTotalPgs);
+    $_lusterCodes     = array_slice($_lusterCodes, ($_lusterPage - 1) * $_lusterPerPage, $_lusterPerPage);
+
+    // Rebuild grouped from the paginated slice
+    $_lusterGrouped = [];
+    foreach ($_lusterCodes as $_lc) {
+        if ($_lc->width > 0 && $_lc->height > 0) {
+            $_lKey   = (int) $_lc->width . 'x' . (int) $_lc->height;
+            $_lLabel = (int) $_lc->width . '×' . (int) $_lc->height . 'px';
+        } else {
+            $_lKey   = 'unknown';
+            $_lLabel = 'Other';
+        }
+        if (!isset($_lusterGrouped[$_lKey])) {
+            $_lusterGrouped[$_lKey] = ['label' => $_lLabel, 'codes' => []];
+        }
+        $_lusterGrouped[$_lKey]['codes'][] = $_lc;
+    }
+    uksort($_lusterGrouped, function (string $a, string $b): int {
+        if ($a === 'unknown') return 1;
+        if ($b === 'unknown') return -1;
+        [$aw, $ah] = explode('x', $a);
+        [$bw, $bh] = explode('x', $b);
+        return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+    });
+
+    $_lusterPagBaseUrl = strtok((string) ($_SERVER['REQUEST_URI'] ?? ''), '?') ?: '';
+    $_lusterPagHtml    = \Luster\Core\Pagination::render($_lusterPage, $_lusterTotalPgs, $_lusterPagBaseUrl);
+}
+
+// ---------------------------------------------------------------------------
+// 5. Render
 // ---------------------------------------------------------------------------
 
 $_lusterBaseUrl    = rtrim($_lusterApp->getBaseUrl(), '/');
@@ -178,7 +220,12 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'base_url'            => $_lusterBaseUrl,
     'theme_path'          => $_lusterBaseUrl . '/assets/default/',
     'codes_template_html' => $_lusterCodesTemplateHtml,
+    'pagination'          => $_lusterPagHtml,
 ]);
+
+if ($_lusterPagHtml !== '') {
+    $_lusterHtml .= '<div class="fl-pagination-wrap">' . $_lusterPagHtml . '</div>';
+}
 
 // Optionally append the code donation form after the gallery.
 // Set $luster_append_submit = true before require to include the form here (useful when
@@ -198,6 +245,7 @@ if (($luster_append_submit ?? false) && ($_lusterEmbedSettings['codes_submit_ena
     $_lusterHtml         = $_lusterGalleryHtml . $_lusterSubmitHtml;
     $luster_return       = $_lusterReturnOrig; // restore so the outer embed behaves correctly
 }
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

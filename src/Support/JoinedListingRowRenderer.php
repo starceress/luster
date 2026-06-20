@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Support;
 
 use Luster\Core\TemplateEngine;
-use Luster\Core\View;
 use Luster\Models\JoinedListing;
 use Luster\Support\DateFormatter;
 
@@ -27,10 +26,6 @@ final class JoinedListingRowRenderer
     public static function render(JoinedListing $listing, string $template, string $uploadsUrl, string $dateFormat = ''): string
     {
         $imageUrl  = ($listing->image !== null && $listing->image !== '') ? $uploadsUrl . '/' . $listing->image : '';
-        $imageHtml = $imageUrl !== ''
-            ? '<img src="' . View::e($imageUrl) . '" alt="' . View::e($listing->name) . '" title="' . View::e($listing->name) . '">'
-            : '';
-
         return TemplateEngine::render(
             $template,
             escaped: [
@@ -40,9 +35,6 @@ final class JoinedListingRowRenderer
                 'listing_image_url' => $imageUrl,
                 'date_joined'       => DateFormatter::formatWith($listing->dateJoined ?? '', $dateFormat),
                 'listing_status'    => $listing->status,
-            ],
-            raw: [
-                'listing_image_html' => $imageHtml,
             ],
             conditions: [
                 'listing_image'    => $imageUrl !== '',

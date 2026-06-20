@@ -504,7 +504,7 @@ final class SettingsController extends AdminController
         $statsMap = [];
         $needsStats = str_contains($tpl, '{member_count}')
                    || str_contains($tpl, '{member_pending_count}')
-                   || str_contains($tpl, '{pending_count}')
+                   || str_contains($tpl, '{pending_owned_count}')
                    || str_contains($tpl, '{country_count}')
                    || str_contains($tpl, '{countries_count}')
                    || str_contains($tpl, '{if_countries}')
@@ -643,13 +643,13 @@ final class SettingsController extends AdminController
         $captchaQuestion = Captcha::getQuestion('affiliate_apply');
         $fb = $this->app->getFormFieldBuilder();
         $siteName = (string) $config->get('site_name', 'Collective');
-        $siteUrl  = (string) ($config->get('site_url', '') ?: $this->app->getBaseUrl());
+        $siteUrl  = (string) ($config->get('site_url', ''));
 
         $descriptors = [
             ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => '', 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
             ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
             ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email (optional)',           'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => '', 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,   'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
@@ -725,7 +725,6 @@ final class SettingsController extends AdminController
 
     private function coltplPreviewKimSignupForm(string $tpl, Config $config): string
     {
-        $captchaQuestion = Captcha::getQuestion('kim_signup');
         $fb       = $this->app->getFormFieldBuilder();
         $siteName = (string) $config->get('site_name', 'Collective');
 
@@ -735,14 +734,12 @@ final class SettingsController extends AdminController
                       . '</select>';
 
         $descriptors = [
-            ['type' => 'text',         'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                    'required' => true,  'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'url',          'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL', 'required' => true,  'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',        'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                   'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'select',       'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In','required' => true,  'raw_input' => $flSelectHtml],
-            ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'If left blank, a password will be generated and emailed to you.'],
-            ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',        'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-            ['type' => 'checkboxGroup','name' => 'send_copy',        'id' => '',                     'label' => 'Opt-in',                  'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => []],
-            ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+            ['type' => 'text',     'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                    'required' => true,  'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'url',      'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL',             'required' => true,  'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+            ['type' => 'email',    'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                   'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'select',   'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In','required' => true,  'raw_input' => $flSelectHtml],
+            ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. If left blank, we\'ll email you a link to set one.'],
+            ['type' => 'password', 'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',        'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ];
         $f = $fb->build($descriptors, '');
 
@@ -760,11 +757,11 @@ final class SettingsController extends AdminController
             '{field_password_input}'              => $f['password_input'],
             '{field_password_confirm}'            => $f['password_confirm'],
             '{field_password_confirm_input}'      => $f['password_confirm_input'],
-            '{field_send_copy}'                   => $f['send_copy'],
-            '{field_send_copy_input}'             => $f['send_copy_input'],
-            '{captcha_block}'                     => $f['captcha_answer'],
-            '{captcha_block_input}'               => $f['captcha_answer_input'],
-            '{captcha_question}'                  => View::e($captchaQuestion),
+            '{field_send_copy}'                   => '',
+            '{field_send_copy_input}'             => '',
+            '{captcha_block}'                     => '',
+            '{captcha_block_input}'               => '',
+            '{captcha_question}'                  => '',
             '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
             '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
@@ -850,77 +847,113 @@ final class SettingsController extends AdminController
 
     private function coltplPreviewKimUpdateForm(string $tpl, Config $config): string
     {
-        $captchaQ = Captcha::getQuestion('kim_update_prev');
-        $fb       = $this->app->getFormFieldBuilder();
+        $fb = $this->app->getFormFieldBuilder();
 
-        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
-                      . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>'
-                      . '<option value="1">Sample Fanlisting</option>'
-                      . '</select>';
-
-        $f = $fb->build([
-            ['type' => 'text',     'name' => 'name',                 'id' => 'kim-name',                 'label' => 'Name',                 'required' => true,  'attrs' => ['maxlength' => '100']],
-            ['type' => 'email',    'name' => 'current_email',        'id' => 'kim-current-email',        'label' => 'Current Email',        'required' => true,  'attrs' => ['maxlength' => '255']],
-            ['type' => 'password', 'name' => 'current_password',     'id' => 'kim-current-password',     'label' => 'Current Password',     'required' => true,  'attrs' => ['maxlength' => '255']],
-            ['type' => 'select',   'name' => 'fanlisting_id',        'id' => 'kim-fanlisting',           'label' => 'Fanlisting',           'required' => true,  'raw_input' => $flSelectHtml],
-            ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Leave blank to keep current'],
-            ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',      'required' => false, 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
-            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Min 8 characters; leave blank to keep current'],
-            ['type' => 'password',     'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255']],
-            ['type' => 'checkboxGroup', 'name' => 'send_copy',        'id' => '',                         'label' => 'Opt-in',               'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => []],
-            ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',              'label' => 'Captcha: ' . $captchaQ, 'required' => true, 'attrs' => ['maxlength' => '10']],
+        // ── Step 1: sign-in form (custom template) ─────────────────────────
+        $f1 = $fb->build([
+            ['type' => 'email',    'name' => 'email',    'id' => 'kim-email',    'label' => 'Email',    'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'password', 'name' => 'password', 'id' => 'kim-password', 'label' => 'Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
         ], '');
 
-        $lostPwUrl = '#';
         $tplOut = TemplateEngine::conditionals($tpl, ['lost_password_url' => true]);
         $tokens = [
-            '{field_name}'                       => $f['name'],
-            '{field_name_input}'                 => $f['name_input'],
-            '{field_current_email}'              => $f['current_email'],
-            '{field_current_email_input}'        => $f['current_email_input'],
-            '{field_current_password}'           => $f['current_password'],
-            '{field_current_password_input}'     => $f['current_password_input'],
-            '{field_fanlisting_id}'              => $f['fanlisting_id'],
-            '{field_fanlisting_id_input}'        => $f['fanlisting_id_input'],
-            '{field_new_email}'                  => $f['new_email'],
-            '{field_new_email_input}'            => $f['new_email_input'],
-            '{field_new_url}'                    => $f['new_url'],
-            '{field_new_url_input}'              => $f['new_url_input'],
-            '{field_new_password}'               => $f['new_password'],
-            '{field_new_password_input}'         => $f['new_password_input'],
-            '{field_new_password_confirm}'       => $f['new_password_confirm'],
-            '{field_new_password_confirm_input}' => $f['new_password_confirm_input'],
-            '{field_send_copy}'                  => $f['send_copy'],
-            '{field_send_copy_input}'            => $f['send_copy_input'],
-            '{captcha_block}'                    => $f['captcha_answer'],
-            '{captcha_block_input}'              => $f['captcha_answer_input'],
-            '{captcha_question}'                 => View::e($captchaQ),
-            '{submit_button}'                    => '<button type="submit" class="fl-submit">Update</button>',
+            '{field_email}'                      => $f1['email'],
+            '{field_email_input}'                => $f1['email_input'],
+            '{field_password}'                   => $f1['password'],
+            '{field_password_input}'             => $f1['password_input'],
+            // Deprecated tokens from the old all-in-one form — kept for backward compat
+            '{field_name}'                       => '',
+            '{field_name_input}'                 => '',
+            '{field_current_email}'              => $f1['email'],
+            '{field_current_email_input}'        => $f1['email_input'],
+            '{field_current_password}'           => $f1['password'],
+            '{field_current_password_input}'     => $f1['password_input'],
+            '{field_fanlisting_id}'              => '',
+            '{field_fanlisting_id_input}'        => '',
+            '{field_new_email}'                  => '',
+            '{field_new_email_input}'            => '',
+            '{field_new_url}'                    => '',
+            '{field_new_url_input}'              => '',
+            '{field_new_password}'               => '',
+            '{field_new_password_input}'         => '',
+            '{field_new_password_confirm}'       => '',
+            '{field_new_password_confirm_input}' => '',
+            '{field_send_copy}'                  => '',
+            '{field_send_copy_input}'            => '',
+            '{captcha_block}'                    => '',
+            '{captcha_block_input}'              => '',
+            '{captcha_question}'                 => '',
+            '{submit_button}'                    => '<button type="submit" class="fl-submit">Sign In</button>',
             '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-            '{lost_password_url}'                => View::e($lostPwUrl),
+            '{lost_password_url}'                => View::e('#'),
         ];
 
-        $inner = FormTemplateRenderer::expandTokens($tplOut, $tokens);
-        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
+        $step1Inner = FormTemplateRenderer::expandTokens($tplOut, $tokens);
+        $step1Html  = FormTemplateRenderer::wrapForm($step1Inner, '#', $this->app->getCSRF()->token(), false, preview: true);
+
+        // ── Step 2: dashboard (hardcoded — not customizable via template) ──
+        $f2 = $fb->build([
+            ['type' => 'text',     'name' => 'new_name',             'id' => 'kim-new-name',             'label' => 'New Name',             'required' => false, 'attrs' => ['maxlength' => '100'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',      'required' => false, 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255']],
+        ], '');
+
+        $sectionLabel = static fn(string $s): string =>
+            '<div style="margin:1.5rem 0 .5rem;padding:.35rem .6rem;background:#eef1f8;'
+            . 'border-left:3px solid #889bd6;font:600 .75rem sans-serif;color:#445;'
+            . 'text-transform:uppercase;letter-spacing:.04em">'
+            . htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</div>';
+
+        $_e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        $th  = static fn(string $s, string $style = ''): string =>
+            '<th style="padding:.4em .65em;border-bottom:2px solid #c0c0c0;white-space:nowrap' . ($style !== '' ? ';' . $style : '') . '">' . $_e($s) . '</th>';
+        $td  = static fn(string $s, string $style = ''): string =>
+            '<td style="padding:.4em .65em;border-bottom:1px solid #e0e0e0' . ($style !== '' ? ';' . $style : '') . '">' . $s . '</td>';
+        $row = static function (bool $entryChecked, string $fl, string $name, string $email, string $url) use ($_e, $td): string {
+            return '<tr>'
+                . '<td style="width:2em;text-align:center;padding:.4em .35em;border-bottom:1px solid #e0e0e0"><input type="checkbox"' . ($entryChecked ? ' checked' : '') . ' disabled></td>'
+                . $td($_e($fl)) . $td($_e($name)) . $td($_e($email))
+                . $td($url !== '' ? '<a href="#">' . $_e($url) . '</a>' : '')
+                . '<td style="text-align:center;padding:.4em .35em;border-bottom:1px solid #e0e0e0"><input type="checkbox" disabled></td>'
+                . '</tr>';
+        };
+        $tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:.9em"><thead><tr>'
+            . '<th style="width:2em;padding:.4em .35em;border-bottom:2px solid #c0c0c0"></th>'
+            . $th('Fanlisting') . $th('Name') . $th('Email') . $th('Website URL')
+            . $th('Remove?', 'text-align:center')
+            . '</tr></thead><tbody>'
+            . $row(true,  'Sample Fanlisting A', 'Jane Fan', 'fan@example.com', 'https://example.com')
+            . $row(true,  'Sample Fanlisting B', 'Jane Fan', 'fan@example.com', '')
+            . '</tbody></table>';
+
+        $step2Html = '<div class="fl-embed fl-embed--kim-dashboard"><div class="fl-kim">'
+            . '<p class="fl-hint">Signed in as <strong>' . $_e('fan@example.com') . '</strong>.'
+            . ' <a href="#">Not you?</a></p>'
+            . '<h2 class="fl-kim-heading">Update Your Entries</h2>'
+            . '<p class="fl-kim-intro">Select entries to update and fill in the fields below, or check <strong>Remove?</strong> on any row to delete that entry. Click <strong>Save Changes</strong> when done.</p>'
+            . '<div class="fl-kim-table-wrap">' . $tableHtml . '</div>'
+            . '<fieldset class="fl-fieldset fl-kim-changes"><legend class="fl-label">Changes to apply to selected entries</legend>'
+            . $f2['new_name'] . $f2['new_email'] . $f2['new_url'] . $f2['new_password'] . $f2['new_password_confirm']
+            . '</fieldset>'
+            . '<div class="fl-form-actions"><button class="fl-submit fl-btn" disabled>Save Changes</button> <button class="fl-btn" disabled>Clear</button></div>'
+            . '</div></div>';
+
+        return $sectionLabel('Step 1 — Sign In') . $step1Html
+             . $sectionLabel('Step 2 — Dashboard (Signed In)') . $step2Html;
     }
 
     private function coltplPreviewKimResetForm(string $tpl, Config $config): string
     {
-        $captchaQ = Captcha::getQuestion('kim_reset_prev');
-        $fb       = $this->app->getFormFieldBuilder();
-
-        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
-                      . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>'
-                      . '<option value="1">Sample Fanlisting</option>'
-                      . '</select>';
+        $fb = $this->app->getFormFieldBuilder();
 
         $fEmail = $fb->build([
-            ['type' => 'email',  'name' => 'email',          'id' => 'kim-email',      'label' => 'Email',                  'required' => true, 'attrs' => ['maxlength' => '255']],
-            ['type' => 'select', 'name' => 'fanlisting_id',  'id' => 'kim-fanlisting', 'label' => 'Fanlisting',             'required' => true, 'raw_input' => $flSelectHtml],
-            ['type' => 'text',   'name' => 'captcha_answer', 'id' => 'kim-captcha',    'label' => 'Captcha: ' . $captchaQ, 'required' => true, 'attrs' => ['maxlength' => '10']],
+            ['type' => 'email', 'name' => 'email', 'id' => 'kim-email', 'label' => 'Email', 'required' => true, 'attrs' => ['maxlength' => '255']],
         ], '');
         $fConfirm = $fb->build([
-            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255']],
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255'], 'hint' => 'Minimum 12 characters.'],
             ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255']],
         ], '');
 
@@ -934,16 +967,16 @@ final class SettingsController extends AdminController
         $tokens = [
             '{field_email}'                      => $fEmail['email'],
             '{field_email_input}'                => $fEmail['email_input'],
-            '{field_fanlisting_id}'              => $fEmail['fanlisting_id'],
-            '{field_fanlisting_id_input}'        => $fEmail['fanlisting_id_input'],
-            '{captcha_block}'                    => $fEmail['captcha_answer'],
-            '{captcha_block_input}'              => $fEmail['captcha_answer_input'],
-            '{captcha_question}'                 => View::e($captchaQ),
+            // Removed from runtime — kept as backward-compat stubs for old custom templates
+            '{field_fanlisting_id}'              => '',
+            '{field_fanlisting_id_input}'        => '',
+            '{captcha_block}'                    => '',
+            '{captcha_block_input}'              => '',
+            '{captcha_question}'                 => '',
             '{field_password}'                   => $fConfirm['new_password'],
             '{field_password_input}'             => $fConfirm['new_password_input'],
             '{field_password_confirm}'           => $fConfirm['new_password_confirm'],
             '{field_password_confirm_input}'     => $fConfirm['new_password_confirm_input'],
-            '{hidden_token}'                     => '',
             '{reset_request_url}'                => '#',
             '{submit_button}'                    => '<button type="submit" class="fl-submit">Submit</button>',
             '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
@@ -1079,10 +1112,10 @@ final class SettingsController extends AdminController
             return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
         });
 
-        $appName = (string) ($this->app->getConfig()->get('app_name', '') ?: 'Collective');
+        $siteName = (string) ($this->app->getConfig()->get('site_name', '') ?: 'Collective');
         $html = CodesTemplateRenderer::render(
             $tpl, $codes, $grouped, $donorMap, $uploadsUrl,
-            $catMap, $categoryMap, $appName,
+            $catMap, $categoryMap, $siteName,
         );
 
         if ($html === null) {
@@ -1099,7 +1132,7 @@ final class SettingsController extends AdminController
     private function coltplPreviewCodesSubmitForm(string $tpl, Config $config): string
     {
         $siteName = (string) $config->get('site_name', 'Collective');
-        $siteUrl  = (string) ($config->get('site_url', '') ?: $this->app->getBaseUrl());
+        $siteUrl  = (string) ($config->get('site_url', ''));
 
         $captchaQuestion = Captcha::getQuestion('code_submit');
         $fb = $this->app->getFormFieldBuilder();
@@ -1139,7 +1172,7 @@ final class SettingsController extends AdminController
     private function coltplPreviewContactForm(string $tpl, Config $config): string
     {
         $siteName = (string) $config->get('site_name', 'Collective');
-        $siteUrl  = (string) ($config->get('site_url', '') ?: $this->app->getBaseUrl());
+        $siteUrl  = (string) ($config->get('site_url', ''));
 
         $captchaQuestion = Captcha::getQuestion('contact_collective');
         $fb = $this->app->getFormFieldBuilder();

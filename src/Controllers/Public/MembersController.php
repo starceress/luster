@@ -99,8 +99,13 @@ final class MembersController
                 $listing->dbprefix, $country, $page, $perPage,
             );
 
-            $statsLine = $country . ': ' . $result['total'] . ' member(s)'
-                . ($result['pages'] > 1 ? ' — page ' . $page . ' of ' . $result['pages'] : '');
+            if ($result['total'] === 0) {
+                $statsLine = 'No members';
+            } else {
+                $start     = ($page - 1) * $perPage + 1;
+                $end       = min($page * $perPage, $result['total']);
+                $statsLine = 'Showing ' . $start . '–' . $end . ' of ' . $result['total'] . ' members';
+            }
 
             $paginationHtml = Pagination::render(
                 $page, $result['pages'], $membersBase, $paginationTemplate,
@@ -140,7 +145,7 @@ final class MembersController
             }
 
             $total     = count($countries);
-            $statsLine = $total . ' ' . ($total === 1 ? 'country' : 'countries') . ' represented';
+            $statsLine = $total === 0 ? 'No countries' : 'Showing 1–' . $total . ' of ' . $total . ' ' . ($total === 1 ? 'country' : 'countries');
 
             $html = $this->app->getView()->renderPublic('members.php', array_merge($commonData, [
                 'country'         => '',
@@ -160,7 +165,13 @@ final class MembersController
 
         $result = $memberRepo->paginate($listing->dbprefix, $page, $perPage, true, $sort);
 
-        $statsLine      = $result['total'] . ' member(s) — page ' . $page . ' of ' . $result['pages'];
+        if ($result['total'] === 0) {
+            $statsLine = 'No members';
+        } else {
+            $start     = ($page - 1) * $perPage + 1;
+            $end       = min($page * $perPage, $result['total']);
+            $statsLine = 'Showing ' . $start . '–' . $end . ' of ' . $result['total'] . ' members';
+        }
         $paginationHtml = Pagination::render(
             $page, $result['pages'], $membersBase, $paginationTemplate, ['sort' => $sort],
         );

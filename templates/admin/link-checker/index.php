@@ -122,11 +122,24 @@ $lcMemSortUrl = static function (string $col) use ($b, $listing_id_filter, $stat
     return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
 };
 
-$lcMemSumPageUrl = static function (int $p) use ($b, $listing_id_filter): string {
+$lcMemSumPageUrl = static function (int $p) use ($b, $listing_id_filter, $mem_sum_sort, $mem_sum_dir): string {
     $qs = http_build_query(array_filter([
         'listing_id'   => $listing_id_filter !== null ? (string) $listing_id_filter : '',
         'tab'          => 'members',
         'mem_sum_page' => $p > 1 ? (string) $p : '',
+        'mem_sum_sort' => ($mem_sum_sort ?? 'id') !== 'id' ? ($mem_sum_sort ?? '') : '',
+        'mem_sum_dir'  => ($mem_sum_dir  ?? 'asc') !== 'asc' ? ($mem_sum_dir ?? '') : '',
+    ], static fn(string $v): bool => $v !== ''));
+    return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
+};
+
+$lcMemSumSortUrl = static function (string $col) use ($b, $listing_id_filter, $mem_sum_sort, $mem_sum_dir): string {
+    $newDir = ($mem_sum_sort === $col && $mem_sum_dir === 'asc') ? 'desc' : 'asc';
+    $qs = http_build_query(array_filter([
+        'listing_id'   => $listing_id_filter !== null ? (string) $listing_id_filter : '',
+        'tab'          => 'members',
+        'mem_sum_sort' => $col !== 'id' ? $col : '',
+        'mem_sum_dir'  => $newDir !== 'asc' ? $newDir : '',
     ], static fn(string $v): bool => $v !== ''));
     return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
 };
@@ -152,13 +165,13 @@ $totalMoved    = count($moved_affiliates) + count($moved_joined)  + count($moved
 $totalDead     = count($dead_affiliates)  + count($dead_joined)   + count($dead_members   ?? []);
 $filtersActive = $listing_id_filter !== null || $status !== '' || $search !== '';
 
-$listingNameMap = [];
+$listingObjMap = [];
 foreach ($listings ?? [] as $_lst) {
-    $listingNameMap[$_lst->id] = $_lst->subject;
+    $listingObjMap[$_lst->id] = $_lst;
 }
 $filterLabel = match (true) {
     $listing_id_filter === 0    => 'Collective',
-    $listing_id_filter !== null => $listingNameMap[$listing_id_filter] ?? '',
+    $listing_id_filter !== null => ($listingObjMap[$listing_id_filter] ?? null)?->subject ?? '',
     default                     => null,
 };
 
@@ -232,7 +245,7 @@ $sumCell = static function (?array $ms, string $key): string {
       <select name="listing_id" id="lc-listing-sel" aria-label="Filter by listing">
         <option value=""><?= $_lcTotal > 0 ? 'All Listings (' . $_lcTotal . ')' : 'All Listings' ?></option>
         <?php $_lcCollN = (int) ($_lcSc[0] ?? 0); ?>
-        <?php $_lcCollLabel = ($app_name ?? '') !== '' ? View::e($app_name) . ' (Collective)' : 'Collective'; ?>
+        <?php $_lcCollLabel = ($site_name ?? '') !== '' ? View::e($site_name) . ' (Collective)' : 'Collective'; ?>
         <option value="0" <?= $listing_id_filter === 0 ? 'selected' : '' ?>><?= $_lcCollLabel ?><?= $_lcCollN > 0 ? ' (' . $_lcCollN . ')' : '' ?></option>
         <?php foreach ($listings as $lst): ?>
           <?php $_lcN = (int) ($_lcSc[(int) $lst->id] ?? 0); ?>
@@ -381,25 +394,33 @@ $sumCell = static function (?array $ms, string $key): string {
       </div>
       <?php else: ?>
       <div class="table-wrap">
+        <?php $_mss = $mem_sum_sort ?? 'id'; $_msd = $mem_sum_dir ?? 'asc'; ?>
         <table class="data-table mem-table">
           <thead>
             <tr>
-              <th>Listing</th>
+              <th><a href="<?= View::e($lcMemSumSortUrl('id')) ?>" class="sort-th<?= $_mss === 'id' ? ' sort-active' : '' ?>"># <?= View::sortIcon('id', $_mss, $_msd) ?></a></th>
+              <th><a href="<?= View::e($lcMemSumSortUrl('listing')) ?>" class="sort-th<?= $_mss === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $_mss, $_msd) ?></a></th>
               <th>Synced</th>
               <th>Active</th>
               <th>Dead</th>
               <th>Redirect</th>
               <th>Unchecked</th>
-              <th>Last Checked</th>
+              <th><a href="<?= View::e($lcMemSumSortUrl('last_checked')) ?>" class="sort-th<?= $_mss === 'last_checked' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('last_checked', $_mss, $_msd) ?></a></th>
               <th class="act-col">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <?php foreach ($mem_sum_listings ?? [] as $_lst): ?>
+            <?php foreach ($mem_sum_listings ?? [] as $_msIdx => $_lst): ?>
             <?php $_lsid = (int) $_lst->id; $_ms = $_memSummary[$_lsid] ?? null; ?>
             <tr id="lc-mem-sum-<?= $_lsid ?>">
+              <td class="table-num text-dim" data-label="#"><?= (int) $_lst->id ?></td>
               <td data-label="Listing">
-                <span class="text-strong"><?= View::e($_lst->subject ?: $_lst->title) ?></span>
+                <div class="subject-title-stack">
+                  <a href="<?= $b ?>/admin/listings/<?= $_lsid ?>/edit" class="link"><b><?= View::e($_lst->subject ?: $_lst->title) ?></b></a>
+                  <?php if ($_lst->subject !== ''): ?>
+                    <span class="mem-url"><?= View::e($_lst->title) ?></span>
+                  <?php endif; ?>
+                </div>
               </td>
               <td data-label="Synced" class="lc-ms-total"><?= $sumCell($_ms, 'total') ?></td>
               <td data-label="Active" class="lc-ms-ok"><?= $sumCell($_ms, 'ok') ?></td>
@@ -601,6 +622,7 @@ $sumCell = static function (?array $ms, string $key): string {
           <thead>
             <tr>
               <th><a href="<?= View::e($lcAffSortUrl('name')) ?>" class="sort-th<?= $aff_sort === 'name' ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $aff_sort, $aff_dir) ?></a></th>
+              <?php if ($listing_id_filter === null): ?><th>Listing</th><?php endif; ?>
               <th>URL</th>
               <th><a href="<?= View::e($lcAffSortUrl('link_status')) ?>" class="sort-th<?= $aff_sort === 'link_status' ? ' sort-active' : '' ?>">Link Status <?= View::sortIcon('link_status', $aff_sort, $aff_dir) ?></a></th>
               <th><a href="<?= View::e($lcAffSortUrl('reciprocal')) ?>" class="sort-th<?= $aff_sort === 'reciprocal' ? ' sort-active' : '' ?>">Reciprocal <?= View::sortIcon('reciprocal', $aff_sort, $aff_dir) ?></a></th>
@@ -612,13 +634,23 @@ $sumCell = static function (?array $ms, string $key): string {
             <?php foreach ($affiliates as $aff): ?>
             <tr id="lc-aff-<?= $aff->id ?>">
               <td data-label="Name">
-                <div class="subject-title-stack">
-                  <span class="text-strong"><?= View::e($aff->name) ?></span>
-                  <?php if ($listing_id_filter === null): ?>
-                    <span class="mem-url"><?= $aff->listingId === null ? 'Collective' : View::e($listingNameMap[$aff->listingId] ?? '') ?></span>
-                  <?php endif; ?>
-                </div>
+                <b><?= View::e($aff->name) ?></b>
               </td>
+              <?php if ($listing_id_filter === null): ?>
+              <td data-label="Listing">
+                <?php $_affFl = $aff->listingId !== null ? ($listingObjMap[$aff->listingId] ?? null) : null; ?>
+                <?php if ($_affFl !== null): ?>
+                  <div class="subject-title-stack">
+                    <a href="<?= $b ?>/admin/listings/<?= (int) $_affFl->id ?>/edit" class="link"><b><?= View::e($_affFl->subject ?: $_affFl->title) ?></b></a>
+                    <?php if ($_affFl->subject !== ''): ?>
+                      <span class="mem-url"><?= View::e($_affFl->title) ?></span>
+                    <?php endif; ?>
+                  </div>
+                <?php else: ?>
+                  <span class="text-muted">Collective</span>
+                <?php endif; ?>
+              </td>
+              <?php endif; ?>
               <td data-label="URL">
                 <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer" class="link">
                   <?= View::e($aff->url) ?>

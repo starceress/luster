@@ -104,7 +104,7 @@ $collLastDate = $latest_coll !== null
     <span class="row-sub">Showing <?= $rangeFirst ?>–<?= $rangeLast ?> of <?= $total_listings ?> Listing<?= $total_listings === 1 ? '' : 's' ?></span>
   </div>
   <div class="table-wrap">
-    <table class="data-table">
+    <table class="data-table mem-table">
       <thead>
         <tr>
           <th>
@@ -133,24 +133,24 @@ $collLastDate = $latest_coll !== null
 <!-- ──── COLLECTIVE ROW ─────────────────────────────────────────────── -->
         <?php if ($search === ''): ?>
         <tr style="background: rgb(var(--ch-gold)/.06);">
-          <td class="text-dim">0</td>
-          <td>
+          <td class="text-dim" data-label="#">0</td>
+          <td data-label="Listing">
             <div class="ctx-cell">
               <a href="<?= $b ?>/admin/updates/collective" class="link"><b><?= View::e($site_name) ?></b></a>
               <span class="badge badge-info-gold">Collective</span>
             </div>
           </td>
-          <td class="text-dim">
+          <td class="text-dim" data-label="Last Updated">
             <?= $collLastDate !== null ? View::e($collLastDate) : '<span class="text-dim">&mdash;</span>' ?>
           </td>
-          <td>
+          <td data-label="Total Updates">
             <?php if ($collective_cnt > 0): ?>
               <span><?= (int) $collective_cnt ?></span>
             <?php else: ?>
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
           </td>
-          <td class="act-col">
+          <td class="act-col" data-label="">
             <div class="data-actions">
               <a href="<?= $b ?>/admin/updates/collective" class="btn btn-primary btn-sm">View</a>
               <a href="<?= $b ?>/admin/updates/collective/add" class="btn btn-secondary btn-sm">Add</a>
@@ -170,21 +170,26 @@ $collLastDate = $latest_coll !== null
                 : null;
           ?>
           <tr>
-            <td class="text-dim"><?= $fid ?></td>
-            <td class="<?= $cnt === 0 ? 'text-muted' : '' ?>">
-              <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="link"><b><?= View::e($listing->subject) ?></b></a>
+            <td class="text-dim" data-label="#"><?= $fid ?></td>
+            <td class="<?= $cnt === 0 ? 'text-muted' : '' ?>" data-label="Listing">
+              <div class="subject-title-stack">
+                <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="link"><b><?= View::e($listing->subject ?: $listing->title) ?></b></a>
+                <?php if ($listing->subject !== ''): ?>
+                  <span class="mem-url"><?= View::e($listing->title) ?></span>
+                <?php endif; ?>
+              </div>
             </td>
-            <td class="text-dim">
+            <td class="text-dim" data-label="Last Updated">
               <?= $lastDate !== null ? View::e($lastDate) : '<span class="text-dim">&mdash;</span>' ?>
             </td>
-            <td>
+            <td data-label="Total Updates">
               <?php if ($cnt > 0): ?>
                 <span><?= $cnt ?></span>
               <?php else: ?>
                 <span class="text-dim">&mdash;</span>
               <?php endif; ?>
             </td>
-            <td class="act-col">
+            <td class="act-col" data-label="">
               <div class="data-actions">
                 <a href="<?= $b ?>/admin/updates/<?= $fid ?>" class="btn btn-primary btn-sm">View</a>
                 <a href="<?= $b ?>/admin/updates/<?= $fid ?>/add" class="btn btn-secondary btn-sm">Add</a>

@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 final class StatsApprovedByTest extends TestCase
 {
     // -----------------------------------------------------------------------
-    // {approved_by} / {network} token value mapping
+    // {approved_by} token value mapping
     // -----------------------------------------------------------------------
 
     public function testTflProducesUppercaseAcronym(): void
@@ -111,16 +111,16 @@ final class StatsApprovedByTest extends TestCase
 
     public function testFullReplacementWithTfl(): void
     {
-        $template = 'Members: {stat_approved} {if_approved_by}| Network: {network}{/if_approved_by}';
+        $template = 'Members: {stat_approved} {if_approved_by}| Approved: {approved_by}{/if_approved_by}';
 
         $result = $this->applyFull($template, 'tfl', '42');
 
-        self::assertSame('Members: 42 | Network: TFL', $result);
+        self::assertSame('Members: 42 | Approved: TFL', $result);
     }
 
     public function testFullReplacementWithNoApproval(): void
     {
-        $template = 'Members: {stat_approved} {if_approved_by}| Network: {network}{/if_approved_by}';
+        $template = 'Members: {stat_approved} {if_approved_by}| Approved: {approved_by}{/if_approved_by}';
 
         $result = $this->applyFull($template, '', '7');
 
@@ -159,8 +159,8 @@ final class StatsApprovedByTest extends TestCase
         $template = $this->applyConditional($template, $approvedBy);
         $network  = $this->networkValue($approvedBy);
         return str_replace(
-            ['{stat_approved}', '{approved_by}', '{network}'],
-            [$approvedCount, $network, $network],
+            ['{stat_approved}', '{approved_by}'],
+            [$approvedCount, $network],
             $template,
         );
     }

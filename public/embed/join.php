@@ -67,6 +67,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
@@ -157,7 +158,7 @@ $_lusterDescriptors = [
     ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => (string) ($_lusterOld['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
     ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => $_lusterCountryEnabled, 'raw_input' => $_lusterCountrySel],
     ...$_lusterFb->descriptorsFromAdditionalFields($_lusterFields, $_lusterOld),
-    ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'If left blank, a password will be generated and emailed to you.'],
+    ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. If left blank, one will be generated for you.'],
     ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'join-captcha',          'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ];
@@ -233,6 +234,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('join.php', [
     'form_html'             => $_lusterFormHtml,
     'form_marker'           => $_lusterMarker,
 ]);
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

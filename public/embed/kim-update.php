@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Addons\Kim\KimMemberRepo;
-use Luster\Core\Captcha;
+use Luster\Core\Request;
 use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
@@ -11,13 +11,17 @@ use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
 
 /**
- * Luster embed — KIM List update form fragment.
+ * Luster embed — KIM List update / management fragment.
  *
  * Usage:
  *   $luster_return = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/kim-update.php';
  *
- * The form POSTs to Luster's /kim/update URL.
+ * Two-step flow:
+ *   Step 1 — sign-in form (email + password)
+ *   Step 2 — dashboard: update or remove KIM entries across all fanlistings
+ *
+ * Sign-out: the sign-out link appends ?kim_signout=1 to the host page URL.
  */
 
 // ---------------------------------------------------------------------------
@@ -39,32 +43,60 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
     $_lusterProto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
+// Strip ?kim_signout from the canonical redirect URL so it doesn't persist
+$_lusterRedirectTo = preg_replace('/([?&])kim_signout=1(&|$)/', '$1', $_lusterRedirectTo);
+$_lusterRedirectTo = rtrim(rtrim($_lusterRedirectTo, '?'), '&');
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
 
 // ---------------------------------------------------------------------------
-// POST handler — process form submissions inline (self-post)
+// Sign-out — handled as a GET param to avoid needing a separate URL
+// ---------------------------------------------------------------------------
+
+if (isset($_GET['kim_signout'])) {
+    $_lusterApp->getSession()->remove('lstr_kim_update_authed');
+    if (!headers_sent()) {
+        header('Location: ' . $_lusterRedirectTo, true, 302);
+        exit;
+    }
+    echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+    return;
+}
+
+// ---------------------------------------------------------------------------
+// POST handler — route to controller based on embed form marker
 // ---------------------------------------------------------------------------
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (($_POST['_luster_embed_form'] ?? '') !== 'kim_update') {
+    $_lusterMarker = (string) ($_POST['_luster_embed_form'] ?? '');
+
+    if (!in_array($_lusterMarker, ['kim_update_auth', 'kim_update_save'], true)) {
         if ($luster_return ?? false) { return ''; }
         return;
     }
+
     if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
         $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
         if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
         echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
         return;
     }
-    $response   = (new \Luster\Addons\Kim\Controllers\KimUpdateController($_lusterApp))
-        ->submit(new \Luster\Core\Request(), []);
-    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+
+    $_lusterController = new \Luster\Addons\Kim\Controllers\KimUpdateController($_lusterApp);
+    $_lusterRequest    = new Request();
+
+    $_lusterResponse = match ($_lusterMarker) {
+        'kim_update_auth' => $_lusterController->submitSignIn($_lusterRequest, []),
+        'kim_update_save' => $_lusterController->submitSave($_lusterRequest,   []),
+    };
+
+    $_lusterUrl = $_lusterResponse->getRedirectUrl() ?? $_lusterRedirectTo;
     if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
     echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
     return;
@@ -84,42 +116,26 @@ if (!$_lusterApp->isAddonInstalled('Kim')) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Load fanlistings
-// ---------------------------------------------------------------------------
-
-$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterFanlistings = $_lusterListingRepo->getAll();
-
-// ---------------------------------------------------------------------------
-// 4. Consume flash data
+// 3. Consume flash data
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
 $_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
 $_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
-$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
 $_lusterSession->remove('lstr_flash_success_html');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old');
 
-if ($_lusterSuccess !== '') {
-    if ($luster_return ?? false) { return $_lusterSuccess; }
-    echo $_lusterSuccess;
-    return;
-}
-
 // ---------------------------------------------------------------------------
-// Load KIM page URLs from settings (allow host-page override)
+// 4. Load common settings
 // ---------------------------------------------------------------------------
 
 $_lusterSiteSettings = new SiteSettingsRepo($_lusterApp->getDatabase());
 $_lusterKimUrls = $_lusterSiteSettings->getMany([
-    "kim_url_signup", "kim_url_update", "kim_url_reset", "kim_url_list"
+    'kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list',
 ]);
 
-// Stored values are page filenames; combine with the site origin to build full URLs.
-// Host-page $luster_kim_*_url overrides are used as-is (they are already full URLs).
-$_lusterKimParsed   = parse_url((string) $_lusterApp->getConfig()->get('app_url', ''));
+$_lusterKimParsed   = parse_url((string) ($_lusterApp->getConfig()->get('site_url', '')));
 $_lusterKimSiteRoot = ($_lusterKimParsed['scheme'] ?? 'https') . '://' . ($_lusterKimParsed['host'] ?? '');
 if (!empty($_lusterKimParsed['port'])) {
     $_lusterKimSiteRoot .= ':' . $_lusterKimParsed['port'];
@@ -127,75 +143,124 @@ if (!empty($_lusterKimParsed['port'])) {
 $_toKimLink = static fn(?string $v): ?string =>
     ($v !== null && $v !== '') ? $_lusterKimSiteRoot . '/' . ltrim($v, '/') : null;
 
-$_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls["kim_url_signup"] ?: null);
-$_lusterLinkUpdate = $luster_kim_update_url ?? $_toKimLink($_lusterKimUrls["kim_url_update"] ?: null);
-$_lusterLinkReset  = $luster_kim_reset_url  ?? $_toKimLink($_lusterKimUrls["kim_url_reset"]  ?: null);
-$_lusterLinkList   = $luster_kim_list_url   ?? $_toKimLink($_lusterKimUrls["kim_url_list"]   ?: null);
-
-// ---------------------------------------------------------------------------
-// 5. Render fragment (no layout wrapper)
-// ---------------------------------------------------------------------------
+$_lusterLinkReset = $luster_kim_reset_url ?? $_toKimLink($_lusterKimUrls['kim_url_reset'] ?: null);
+$_lusterLinkList  = $luster_kim_list_url  ?? $_toKimLink($_lusterKimUrls['kim_url_list']  ?: null);
 
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
+$_lusterAuthedEmail = (string) $_lusterSession->get('lstr_kim_update_authed', '');
 
-$_lusterCaptchaQ   = Captcha::getQuestion('kim_update');
-$_lusterWrapperTpl = '';
+// ---------------------------------------------------------------------------
+// 5a. Dashboard — authenticated user
+// ---------------------------------------------------------------------------
 
-$_lusterFlSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
-                     . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>';
-foreach ($_lusterFanlistings as $_lusterFl) {
-    $_lusterFlId       = htmlspecialchars((string) $_lusterFl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    $_lusterFlTitle    = htmlspecialchars((string) $_lusterFl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    $_lusterFlSelected = ((string) ($_lusterOld['fanlisting_id'] ?? '')) === (string) $_lusterFl->id ? ' selected' : '';
-    $_lusterFlSelectHtml .= "<option value=\"{$_lusterFlId}\"{$_lusterFlSelected}>{$_lusterFlTitle}</option>";
+if ($_lusterAuthedEmail !== '') {
+    $_lusterKimRepo     = new KimMemberRepo($_lusterApp->getDatabase());
+    $_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+    $_lusterMembers     = $_lusterKimRepo->findAllByEmail($_lusterAuthedEmail);
+
+    // If no entries remain (all removed, or email changed), auto-sign-out
+    if ($_lusterMembers === []) {
+        $_lusterSession->remove('lstr_kim_update_authed');
+        $_lusterAuthedEmail = '';
+    } else {
+        $_lusterEntries = [];
+        foreach ($_lusterMembers as $_lusterMember) {
+            $_lusterListing = $_lusterListingRepo->getById($_lusterMember->fanlistingId);
+            $_lusterEntries[] = [
+                'id'           => $_lusterMember->id,
+                'fanlisting_id'=> $_lusterMember->fanlistingId,
+                'listing_name' => $_lusterListing !== null
+                    ? ($_lusterListing->subject ?: $_lusterListing->title)
+                    : 'Listing #' . $_lusterMember->fanlistingId,
+                'name'         => $_lusterMember->name,
+                'url'          => $_lusterMember->url ?? '',
+                'email'        => $_lusterMember->email,
+                'pending'      => $_lusterMember->pending,
+            ];
+        }
+
+        $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
+            ['type' => 'text',     'name' => 'new_name',             'id' => 'kim-new-name',             'label' => 'New Name',             'required' => false, 'attrs' => ['maxlength' => '100'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',      'required' => false, 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        ], '');
+
+        $_lusterSignOutSep  = str_contains($_lusterRedirectTo, '?') ? '&' : '?';
+        $_lusterSignOutUrl  = $_lusterRedirectTo . $_lusterSignOutSep . 'kim_signout=1';
+
+        $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/update-dashboard.php', [
+            'auth_email'         => $_lusterAuthedEmail,
+            'entries'            => $_lusterEntries,
+            'save_action'        => $_lusterRedirectTo,
+            'sign_out_url'       => $_lusterSignOutUrl,
+            'csrf_token'         => $_lusterApp->getCSRF()->token(),
+            'errors'             => $_lusterError !== ''
+                ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
+                : '',
+            'success_html'       => $_lusterSuccess,
+            'f'                  => $_lusterF,
+            'save_form_marker'   => 'kim_update_save',
+            'link_reset'         => $_lusterLinkReset,
+            'link_list'          => $_lusterLinkList,
+            'base_url'           => $_lusterBaseUrl,
+            'theme_path'         => $_lusterBaseUrl . '/assets/css/default/',
+        ]);
+
+        if ($luster_return ?? false) { return $_lusterHtml; }
+        echo $_lusterHtml;
+        return;
+    }
 }
-$_lusterFlSelectHtml .= '</select>';
+
+// ---------------------------------------------------------------------------
+// 5b. Sign-in form — not yet authenticated
+// ---------------------------------------------------------------------------
 
 $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
-    ['type' => 'text',     'name' => 'name',                 'id' => 'kim-name',                 'label' => 'Name',                                'required' => true,  'value' => (string) ($_lusterOld['name']          ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-    ['type' => 'email',    'name' => 'current_email',        'id' => 'kim-current-email',        'label' => 'Current Email',                       'required' => true,  'value' => (string) ($_lusterOld['current_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-    ['type' => 'password', 'name' => 'current_password',     'id' => 'kim-current-password',     'label' => 'Current Password',                    'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
-    ['type' => 'select',   'name' => 'fanlisting_id',        'id' => 'kim-fanlisting',           'label' => 'Fanlisting',                          'required' => true,  'raw_input' => $_lusterFlSelectHtml],
-    ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',                           'required' => false, 'value' => (string) ($_lusterOld['new_email']     ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'off'], 'hint' => 'Leave blank to keep current'],
-    ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',         'required' => false, 'value' => (string) ($_lusterOld['new_url']       ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
-    ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',                        'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Min 8 characters; leave blank to keep current'],
-    ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password',                'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-    ['type' => 'text',     'name' => 'captcha_answer',       'id' => 'kim-captcha',              'label' => 'Captcha: ' . $_lusterCaptchaQ,        'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-], $_lusterWrapperTpl);
+    ['type' => 'email',    'name' => 'email',    'id' => 'kim-email',    'label' => 'Email',    'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+    ['type' => 'password', 'name' => 'password', 'id' => 'kim-password', 'label' => 'Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
+], '');
 
 $_lusterFormHtml = null;
 $_lusterUpdateTpl = $_lusterSiteSettings->get('kim_update_form_template') ?? '';
 if ($_lusterUpdateTpl !== '') {
     $_lusterLostPwUrl = $_lusterLinkReset ?? $_lusterBaseUrl . '/kim/reset';
-    $_lusterTplOut = TemplateEngine::conditionals($_lusterUpdateTpl, [
-        'lost_password_url' => true,
-    ]);
-    $_lusterTokens = [
-        '{field_name}'                       => $_lusterF['name'],
-        '{field_name_input}'                 => $_lusterF['name_input'],
-        '{field_current_email}'              => $_lusterF['current_email'],
-        '{field_current_email_input}'        => $_lusterF['current_email_input'],
-        '{field_current_password}'           => $_lusterF['current_password'],
-        '{field_current_password_input}'     => $_lusterF['current_password_input'],
-        '{field_fanlisting_id}'              => $_lusterF['fanlisting_id'],
-        '{field_fanlisting_id_input}'        => $_lusterF['fanlisting_id_input'],
-        '{field_new_email}'                  => $_lusterF['new_email'],
-        '{field_new_email_input}'            => $_lusterF['new_email_input'],
-        '{field_new_url}'                    => $_lusterF['new_url'],
-        '{field_new_url_input}'              => $_lusterF['new_url_input'],
-        '{field_new_password}'               => $_lusterF['new_password'],
-        '{field_new_password_input}'         => $_lusterF['new_password_input'],
-        '{field_new_password_confirm}'       => $_lusterF['new_password_confirm'],
-        '{field_new_password_confirm_input}' => $_lusterF['new_password_confirm_input'],
-        '{captcha_block}'                    => $_lusterF['captcha_answer'],
-        '{captcha_block_input}'              => $_lusterF['captcha_answer_input'],
-        '{captcha_question}'                 => View::e($_lusterCaptchaQ),
-        '{submit_button}'                    => '<button type="submit" class="fl-submit">Update</button>',
+    $_lusterTplOut    = TemplateEngine::conditionals($_lusterUpdateTpl, ['lost_password_url' => true]);
+    $_lusterTokens    = [
+        '{field_email}'                      => $_lusterF['email'],
+        '{field_email_input}'                => $_lusterF['email_input'],
+        '{field_password}'                   => $_lusterF['password'],
+        '{field_password_input}'             => $_lusterF['password_input'],
+        // Deprecated tokens from old single-step form — kept for backward compat
+        '{field_name}'                       => '',
+        '{field_name_input}'                 => '',
+        '{field_current_email}'              => $_lusterF['email'],
+        '{field_current_email_input}'        => $_lusterF['email_input'],
+        '{field_current_password}'           => $_lusterF['password'],
+        '{field_current_password_input}'     => $_lusterF['password_input'],
+        '{field_fanlisting_id}'              => '',
+        '{field_fanlisting_id_input}'        => '',
+        '{field_new_email}'                  => '',
+        '{field_new_email_input}'            => '',
+        '{field_new_url}'                    => '',
+        '{field_new_url_input}'              => '',
+        '{field_new_password}'               => '',
+        '{field_new_password_input}'         => '',
+        '{field_new_password_confirm}'       => '',
+        '{field_new_password_confirm_input}' => '',
+        '{field_send_copy}'                  => '',
+        '{field_send_copy_input}'            => '',
+        '{captcha_block}'                    => '',
+        '{captcha_block_input}'              => '',
+        '{captcha_question}'                 => '',
+        '{submit_button}'                    => '<button type="submit" class="fl-submit">Sign In</button>',
         '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         '{lost_password_url}'                => View::e($_lusterLostPwUrl),
     ];
     $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterTplOut, $_lusterTokens);
-    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterRedirectTo, $_lusterApp->getCSRF()->token(), false, false, 'kim_update');
+    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterRedirectTo, $_lusterApp->getCSRF()->token(), false, false, 'kim_update_auth');
 }
 
 $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/update.php', [
@@ -204,17 +269,15 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/update.php', [
     'errors'      => $_lusterError !== ''
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
-    'old'         => $_lusterOld,
+    'success_html'=> $_lusterSuccess,
     'f'           => $_lusterF,
     'form_html'   => $_lusterFormHtml,
-    'form_marker' => 'kim_update',
-    'base_url'    => $_lusterBaseUrl,
-    'theme_path'  => $_lusterBaseUrl . '/assets/default/',
+    'form_marker' => 'kim_update_auth',
     'link_reset'  => $_lusterLinkReset,
     'link_list'   => $_lusterLinkList,
+    'base_url'    => $_lusterBaseUrl,
+    'theme_path'  => $_lusterBaseUrl . '/assets/css/default/',
 ]);
-
-$_lusterHtml .= \Luster\Core\View::attribution();
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

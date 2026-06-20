@@ -3,46 +3,32 @@
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
+use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormTemplateRenderer;
 
 /**
  * Luster embed — adoption application form fragment.
  *
- * Drop this into any PHP page to embed the adoption form without Luster's layout.
- * The listing must have "Available for adoption" enabled in its settings.
+ * Lists every listing with "Available for Adoption" enabled in a dropdown
+ * so visitors can apply to adopt any of them from a single embedded form.
+ * No $luster_fanlisting_id is required.
  *
  * Usage:
- *   $luster_fanlisting_id = 1;     // required: listing ID (int)
- *   $luster_return        = false;  // optional: true = return string, false = echo
+ *   $luster_return = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/adopt.php';
  */
 
 // ---------------------------------------------------------------------------
-// 1. Validate the required variable
-// ---------------------------------------------------------------------------
-
-$_lusterListingId = (int) ($luster_fanlisting_id ?? 0);
-
-if ($_lusterListingId === 0) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: <code>$luster_fanlisting_id</code> is not set.</p>';
-    if ($luster_return ?? false) {
-        return $_lusterHtml;
-    }
-    echo $_lusterHtml;
-    return;
-}
-
-// ---------------------------------------------------------------------------
-// 2. Bootstrap Luster
+// 1. Bootstrap Luster
 // ---------------------------------------------------------------------------
 
 $_lusterRoot = dirname(__DIR__, 2);
 
 if (!is_file($_lusterRoot . '/vendor/autoload.php') || !is_file($_lusterRoot . '/config/app.php')) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: Luster is not installed correctly at <code>'
-        . htmlspecialchars($_lusterRoot, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-        . '</code>.</p>';
+    $_lusterHtml = '<p class="fl-errors">Luster embed error: Luster is not installed correctly.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
     }
@@ -53,7 +39,8 @@ if (!is_file($_lusterRoot . '/vendor/autoload.php') || !is_file($_lusterRoot . '
 defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
-$_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$_lusterApp = $_lusterApp ?? require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
@@ -61,14 +48,13 @@ if ($_lusterRedirectTo === '') {
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
-$_lusterMarker = 'adopt:' . $_lusterListingId;
 
 // ---------------------------------------------------------------------------
 // POST handler — process form submissions inline (self-post)
 // ---------------------------------------------------------------------------
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
+    if (($_POST['_luster_embed_form'] ?? '') !== 'adopt_collective') {
         if ($luster_return ?? false) { return ''; }
         return;
     }
@@ -79,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         return;
     }
     $response   = (new \Luster\Addons\Adoption\Controllers\AdoptPublicController($_lusterApp))
-        ->submit(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
+        ->collectiveSubmit(new \Luster\Core\Request(), []);
     $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
     if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
     echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
@@ -87,33 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Load listing and check adoption flag
-// ---------------------------------------------------------------------------
-
-$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
-
-if ($_lusterListing === null) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: listing #' . $_lusterListingId . ' not found.</p>';
-    if ($luster_return ?? false) {
-        return $_lusterHtml;
-    }
-    echo $_lusterHtml;
-    return;
-}
-
-$_lusterSettingsRepo = new ListingSettingsRepo($_lusterApp->getDatabase());
-if (!$_lusterSettingsRepo->getForAdoption($_lusterListingId)) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: listing #' . $_lusterListingId . ' is not accepting adoption applications.</p>';
-    if ($luster_return ?? false) {
-        return $_lusterHtml;
-    }
-    echo $_lusterHtml;
-    return;
-}
-
-// ---------------------------------------------------------------------------
-// 4. Consume flash data
+// 2. Consume flash data
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
@@ -131,42 +91,102 @@ if ($_lusterSuccess !== '') {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Render fragment
+// 3. Build the listing picker + form fields
 // ---------------------------------------------------------------------------
 
-$_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
-                   ?: $_lusterApp->getBaseUrl();
+$_lusterConfig     = $_lusterApp->getConfig();
+$_lusterDb         = $_lusterApp->getDatabase();
+$_lusterBaseUrl    = rtrim((string) ($_lusterConfig->get('embed_base_url', '') ?: $_lusterApp->getBaseUrl()), '/');
 $_lusterFormAction = $_lusterRedirectTo;
+$_lusterSiteName   = (string) $_lusterConfig->get('site_name', 'Collective');
+$_lusterSiteUrl    = (string) $_lusterConfig->get('site_url', '');
 
-$_lusterCaptchaQ   = Captcha::getQuestion('adopt');
-$_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
+$_lusterListingRepo  = new ListingRepo($_lusterDb, $_lusterConfig);
+$_lusterSettingsRepo = new ListingSettingsRepo($_lusterDb);
+$_lusterAdoptable    = $_lusterSettingsRepo->getAdoptableListings($_lusterListingRepo);
 
-$_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
+$_lusterCaptchaQ = Captcha::getQuestion('adopt');
+
+$_lusterDescriptors = [];
+if ($_lusterAdoptable !== []) {
+    $_lusterOldListingId    = (string) ($_lusterOld['listing_id'] ?? '');
+    $_lusterListingOptions  = '<option value="">&#8212; Select a Listing &#8212;</option>';
+    foreach ($_lusterAdoptable as $_lusterRow) {
+        $_lusterValue           = (string) $_lusterRow['id'];
+        $_lusterSelected        = $_lusterValue === $_lusterOldListingId ? ' selected' : '';
+        $_lusterListingOptions .= '<option value="' . View::e($_lusterValue) . '"' . $_lusterSelected . '>' . View::e($_lusterRow['title']) . '</option>';
+    }
+    $_lusterListingSelectHtml = '<select class="fl-select" id="adopt-listing" name="listing_id" required>' . $_lusterListingOptions . '</select>';
+
+    $_lusterDescriptors[] = ['type' => 'select', 'name' => 'listing_id', 'id' => 'adopt-listing', 'label' => 'Listing', 'required' => true, 'raw_input' => $_lusterListingSelectHtml];
+}
+
+$_lusterDescriptors = array_merge($_lusterDescriptors, [
     ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',    'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
     ['type' => 'email',    'name' => 'email',          'id' => 'adopt-email',   'label' => 'Email',   'required' => true,  'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-    ['type' => 'url',      'name' => 'url',            'id' => 'adopt-url',     'label' => 'Website URL (optional)', 'required' => false, 'value' => (string) ($_lusterOld['url']  ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-    ['type' => 'textarea', 'name' => 'message',        'id' => 'adopt-message', 'label' => 'Message (optional)', 'required' => false, 'value' => (string) ($_lusterOld['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '5']],
+    ['type' => 'url',      'name' => 'url',            'id' => 'adopt-url',     'label' => 'Website URL', 'required' => false, 'value' => (string) ($_lusterOld['url']  ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
+    ['type' => 'textarea', 'name' => 'message',        'id' => 'adopt-message', 'label' => 'Message', 'required' => false, 'value' => (string) ($_lusterOld['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '5'], 'hint' => 'Optional'],
     ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-], $_lusterWrapperTpl);
+]);
 
-$_lusterFormHtml = null;
+$_lusterF = $_lusterApp->getFormFieldBuilder()->build($_lusterDescriptors, '');
+
+// ---------------------------------------------------------------------------
+// 4. Render fragment
+// ---------------------------------------------------------------------------
+
+$_lusterTpl = (new SiteSettingsRepo($_lusterDb))->get('collective_adoption_form_template')
+    ?: SiteSettingsRepo::defaultCollectiveAdoptionFormTemplate();
+
+if ($_lusterAdoptable !== []) {
+    $_lusterFieldListingId      = $_lusterF['listing_id'];
+    $_lusterFieldListingIdInput = $_lusterF['listing_id_input'];
+    $_lusterSubmitButton        = '<button type="submit" class="fl-submit">Submit Application</button>';
+} else {
+    $_lusterFieldListingId      = '<p>No listings are currently available for adoption.</p>';
+    $_lusterFieldListingIdInput = '';
+    $_lusterSubmitButton        = '';
+}
+
+$_lusterTokens = [
+    '{site_name}'              => View::e($_lusterSiteName),
+    '{field_listing_id}'       => $_lusterFieldListingId,
+    '{field_listing_id_input}' => $_lusterFieldListingIdInput,
+    '{field_name}'             => $_lusterF['name'],
+    '{field_name_input}'       => $_lusterF['name_input'],
+    '{field_email}'            => $_lusterF['email'],
+    '{field_email_input}'      => $_lusterF['email_input'],
+    '{field_url}'              => $_lusterF['url'],
+    '{field_url_input}'        => $_lusterF['url_input'],
+    '{field_message}'          => $_lusterF['message'],
+    '{field_message_input}'    => $_lusterF['message_input'],
+    '{captcha_block}'          => $_lusterF['captcha_answer'],
+    '{captcha_block_input}'    => $_lusterF['captcha_answer_input'],
+    '{captcha_question}'       => View::e($_lusterCaptchaQ),
+    '{submit_button}'          => $_lusterSubmitButton,
+    '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+];
+
+$_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterTpl, $_lusterTokens);
+$_lusterFormHtml  = FormTemplateRenderer::wrapForm($_lusterInnerHtml, $_lusterFormAction, $_lusterApp->getCSRF()->token(), false, false, 'adopt_collective');
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('adopt.php', [
-    'listing'             => $_lusterListing,
-    'listing_name'        => $_lusterListing->title,
-    'listing_url'         => $_lusterListing->url,
-    'page_title'          => 'Adopt ' . $_lusterListing->title,
-    'form_action'         => $_lusterFormAction,
-    'csrf_token'          => $_lusterApp->getCSRF()->token(),
-    'errors'              => $_lusterError !== ''
+    'listing'      => null,
+    'listing_name' => $_lusterSiteName,
+    'listing_url'  => $_lusterSiteUrl,
+    'page_title'   => 'Adopt a Fanlisting',
+    'base_url'     => $_lusterApp->getBaseUrl(),
+    'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/css/default/',
+    'form_action'  => $_lusterFormAction,
+    'csrf_token'   => $_lusterApp->getCSRF()->token(),
+    'errors'       => $_lusterError !== ''
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
-    'f'                   => $_lusterF,
-    'form_html'           => $_lusterFormHtml,
-    'form_marker'         => $_lusterMarker,
-    'base_url'            => $_lusterApp->getBaseUrl(),
-    'theme_path'          => $_lusterApp->getBaseUrl() . '/assets/default/',
+    'f'            => $_lusterF,
+    'form_html'    => $_lusterFormHtml,
+    'form_marker'  => 'adopt_collective',
 ]);
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

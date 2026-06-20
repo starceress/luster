@@ -36,7 +36,7 @@ if (isset($form_html)) {
     <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
-  <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+  <form class="fl-form fl-form-adopt" method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 

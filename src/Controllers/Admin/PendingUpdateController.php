@@ -71,20 +71,28 @@ final class PendingUpdateController
             return Response::redirect($baseUrl . '/admin/members');
         }
 
+        if (self::hasEmailConflict($pending, $listing, $memberRepo)) {
+            $session->set('lstr_flash_error', 'Cannot apply update — the requested email is already taken by another member. Update discarded.');
+            $pendingRepo->delete($id);
+            return Response::redirect($baseUrl . '/admin/members');
+        }
+
         // Apply the queued changes
         $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
 
         $pendingRepo->delete($id);
 
+        $finalEmail = (string) ($pending->changes['email'] ?? $pending->member_email);
+        $finalName  = (string) ($pending->changes['name']  ?? $member->name);
+
         // Sync member link check snapshot (best-effort)
         $updatedUrl = (string) ($pending->changes['url'] ?? $member->url ?? '');
         if ($updatedUrl !== '') {
             try {
-                $updatedName = (string) ($pending->changes['name'] ?? $member->name ?? '');
                 (new MemberLinkCheckRepo($db, $config))->upsertMember(
                     $pending->fanlisting_id,
-                    $pending->member_email,
-                    $updatedName,
+                    $finalEmail,
+                    $finalName,
                     $updatedUrl,
                 );
             } catch (\Throwable) {}
@@ -102,11 +110,11 @@ final class PendingUpdateController
                 listingSubject: $listing->subject,
                 ownerName:      (string) $cfg->get('owner_name', ''),
                 ownerEmail:     (string) $cfg->get('owner_email', ''),
-                fanName:        $member->name,
-                fanEmail:       $member->email,
+                fanName:        $finalName,
+                fanEmail:       $finalEmail,
             );
             [$subject, $body] = $emailRepo->resolveForListing($pending->fanlisting_id, EmailTemplateRepo::TYPE_UPDATE, $tokens);
-            $mailer->send($member->email, $member->name, $subject, $body);
+            $mailer->send($finalEmail, $finalName, $subject, $body);
         } catch (\Throwable $e) {
             error_log('[Luster] Pending update approval email failed: ' . $e->getMessage());
         }
@@ -118,7 +126,7 @@ final class PendingUpdateController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', "Update for {$pending->member_email} approved and applied.");
+        $session->set('lstr_flash_success', "Update for {$finalEmail} approved and applied.");
         return Response::redirect(
             $baseUrl . '/admin/members?listing_id=' . $pending->fanlisting_id . '&status=pending'
         );
@@ -146,7 +154,8 @@ final class PendingUpdateController
             ? $pendingRepo->getByListing($listingId)
             : $pendingRepo->getAll();
 
-        $count = 0;
+        $count    = 0;
+        $skipped  = 0;
 
         foreach ($pendings as $pending) {
             $listing = $listingRepo->getById($pending->fanlisting_id);
@@ -161,19 +170,24 @@ final class PendingUpdateController
                 continue;
             }
 
+            if (self::hasEmailConflict($pending, $listing, $memberRepo)) {
+                $pendingRepo->delete($pending->id);
+                $skipped++;
+                continue;
+            }
+
             $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
             $pendingRepo->delete($pending->id);
+
+            $finalEmail = (string) ($pending->changes['email'] ?? $pending->member_email);
+            $finalName  = (string) ($pending->changes['name']  ?? $member->name);
 
             // Sync member link check snapshot (best-effort)
             $_updatedUrl = (string) ($pending->changes['url'] ?? $member->url ?? '');
             if ($_updatedUrl !== '') {
                 try {
-                    $_updatedName = (string) ($pending->changes['name'] ?? $member->name ?? '');
                     (new MemberLinkCheckRepo($db, $config))->upsertMember(
-                        $pending->fanlisting_id,
-                        $pending->member_email,
-                        $_updatedName,
-                        $_updatedUrl,
+                        $pending->fanlisting_id, $finalEmail, $finalName, $_updatedUrl,
                     );
                 } catch (\Throwable) {}
             }
@@ -187,13 +201,13 @@ final class PendingUpdateController
                     listingSubject: $listing->subject,
                     ownerName:      (string) $config->get('owner_name', ''),
                     ownerEmail:     (string) $config->get('owner_email', ''),
-                    fanName:        $member->name,
-                    fanEmail:       $member->email,
+                    fanName:        $finalName,
+                    fanEmail:       $finalEmail,
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($pending->fanlisting_id, EmailTemplateRepo::TYPE_UPDATE, $tokens);
-                $mailer->send($member->email, $member->name, $subject, $body);
+                $mailer->send($finalEmail, $finalName, $subject, $body);
             } catch (\Throwable $e) {
-                error_log('[Luster] Approve-all-updates email failed for ' . $pending->member_email . ': ' . $e->getMessage());
+                error_log('[Luster] Approve-all-updates email failed for ' . $finalEmail . ': ' . $e->getMessage());
             }
 
             $count++;
@@ -206,7 +220,11 @@ final class PendingUpdateController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', "Approved {$count} pending update" . ($count !== 1 ? 's' : '') . '.');
+        $msg = "Approved {$count} pending update" . ($count !== 1 ? 's' : '') . '.';
+        if ($skipped > 0) {
+            $msg .= " Skipped {$skipped} because the requested email was already taken.";
+        }
+        $session->set('lstr_flash_success', $msg);
 
         $redirect = $listingId > 0
             ? $baseUrl . '/admin/members?listing_id=' . $listingId . '&status=pending'
@@ -240,6 +258,7 @@ final class PendingUpdateController
 
         $pendings = $pendingRepo->getByIds($ids);
         $count    = 0;
+        $skipped  = 0;
 
         foreach ($pendings as $pending) {
             if ($action === 'reject') {
@@ -261,16 +280,24 @@ final class PendingUpdateController
                 continue;
             }
 
+            if (self::hasEmailConflict($pending, $listing, $memberRepo)) {
+                $pendingRepo->delete($pending->id);
+                $skipped++;
+                continue;
+            }
+
             $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
             $pendingRepo->delete($pending->id);
+
+            $finalEmail = (string) ($pending->changes['email'] ?? $pending->member_email);
+            $finalName  = (string) ($pending->changes['name']  ?? $member->name);
 
             // Sync member link check snapshot (best-effort)
             $_bUrl = (string) ($pending->changes['url'] ?? $member->url ?? '');
             if ($_bUrl !== '') {
                 try {
-                    $_bName = (string) ($pending->changes['name'] ?? $member->name ?? '');
                     (new MemberLinkCheckRepo($db, $config))->upsertMember(
-                        $pending->fanlisting_id, $pending->member_email, $_bName, $_bUrl,
+                        $pending->fanlisting_id, $finalEmail, $finalName, $_bUrl,
                     );
                 } catch (\Throwable) {}
             }
@@ -285,7 +312,11 @@ final class PendingUpdateController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', ucfirst($action) . "d {$count} pending update" . ($count !== 1 ? 's' : '') . '.');
+        $msg = ucfirst($action) . "d {$count} pending update" . ($count !== 1 ? 's' : '') . '.';
+        if ($skipped > 0) {
+            $msg .= " Skipped {$skipped} because the requested email was already taken.";
+        }
+        $session->set('lstr_flash_success', $msg);
 
         $returnListingId = (int) $request->post('_listing_id', 0);
         $redirect = $returnListingId > 0
@@ -329,5 +360,14 @@ final class PendingUpdateController
         return Response::redirect(
             $baseUrl . '/admin/members?listing_id=' . $pending->fanlisting_id . '&status=pending'
         );
+    }
+
+    private static function hasEmailConflict(object $pending, object $listing, MemberRepo $memberRepo): bool
+    {
+        $changes = $pending->changes;
+        if (!isset($changes['email']) || $changes['email'] === $pending->member_email) {
+            return false;
+        }
+        return $memberRepo->getByEmail($listing->dbprefix, $changes['email']) !== null;
     }
 }

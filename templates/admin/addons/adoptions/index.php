@@ -326,11 +326,13 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
             </td>
 
             <td data-label="Name">
-              <span class="text-strong"><?= View::e($app['name']) ?></span>
-              <?php if ($app['url'] !== ''): ?>
-                <a href="<?= View::e($app['url']) ?>" target="_blank" rel="noopener noreferrer"
-                   class="mem-url link link-break"><?= View::e($app['url']) ?></a>
-              <?php endif; ?>
+              <div class="subject-title-stack">
+                <b><?= View::e($app['name']) ?></b>
+                <?php if ($app['url'] !== ''): ?>
+                  <a href="<?= View::e($app['url']) ?>" target="_blank" rel="noopener noreferrer"
+                     class="mem-url link link-break"><?= View::e($app['url']) ?></a>
+                <?php endif; ?>
+              </div>
             </td>
 
             <td data-label="Email" class="text-muted">
@@ -340,9 +342,12 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
             <?php if ($listing_id === 0): ?>
             <td data-label="Listing">
               <?php if ($fl !== null): ?>
-                <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit" class="link">
-                  <b><?= View::e($fl->subject ?: $fl->title) ?></b>
-                </a>
+                <div class="subject-title-stack">
+                  <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit" class="link"><b><?= View::e($fl->subject ?: $fl->title) ?></b></a>
+                  <?php if ($fl->subject !== ''): ?>
+                    <span class="mem-url"><?= View::e($fl->title) ?></span>
+                  <?php endif; ?>
+                </div>
               <?php else: ?>
                 <span class="text-dim">#<?= (int) $app['fanlisting_id'] ?></span>
               <?php endif; ?>
@@ -436,12 +441,12 @@ endif; ?>
           <tr>
             <td class="table-num text-dim"><?= $i + 1 ?></td>
             <td data-label="Listing">
-              <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit" class="link">
-                <?= View::e($fl->title) ?>
-              </a>
-              <?php if ($fl->subject !== ''): ?>
-                <span class="form-hint" style="display:inline;margin-left:.4rem"><?= View::e($fl->subject) ?></span>
-              <?php endif; ?>
+              <div class="subject-title-stack">
+                <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit" class="link"><b><?= View::e($fl->subject ?: $fl->title) ?></b></a>
+                <?php if ($fl->subject !== ''): ?>
+                  <span class="mem-url"><?= View::e($fl->title) ?></span>
+                <?php endif; ?>
+              </div>
             </td>
             <td class="table-num" data-label="Pending">
               <?php if ($item['count_pending'] > 0): ?>

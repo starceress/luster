@@ -6,7 +6,7 @@
  *   $form_action  string
  *   $csrf_token   string
  *   $errors       string  pre-escaped HTML error block, or ''
- *   $f            array<string,string>  keys: 'email', 'captcha_answer'
+ *   $f            array<string,string>  keys: 'email'
  *   $base_url     string
  */
 
@@ -33,7 +33,7 @@ if (isset($form_html)) {
     If you have lost or forgotten your password, enter the email address you joined with below and a reset link will be sent to you. For your security, reset links expire after 1 hour.
   </p>
 
-  <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+  <form class="fl-form fl-form-reset" method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
@@ -43,8 +43,6 @@ if (isset($form_html)) {
     <div style="display:none" aria-hidden="true">
       <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
     </div>
-
-    <?= $f['captcha_answer'] ?>
 
     <div class="fl-form-actions">
       <button type="submit" class="fl-submit">Send Reset Link</button>

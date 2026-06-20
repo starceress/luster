@@ -79,6 +79,7 @@ final class EmailTemplateRepo
     public const TYPE_ADOPTION_APPLIED   = 'adoption_applied';
     public const TYPE_ADOPTION_APPROVED  = 'adoption_approved';
     public const TYPE_ADOPTION_REJECTED  = 'adoption_rejected';
+    public const TYPE_KIM_SIGNUP          = 'kim_signup';
     public const TYPE_KIM_APPLIED        = 'kim_applied';
     public const TYPE_KIM_APPROVED       = 'kim_approved';
     public const TYPE_KIM_UPDATE         = 'kim_update';
@@ -94,6 +95,7 @@ final class EmailTemplateRepo
         self::TYPE_ADOPTION_APPLIED,
         self::TYPE_ADOPTION_APPROVED,
         self::TYPE_ADOPTION_REJECTED,
+        self::TYPE_KIM_SIGNUP,
         self::TYPE_KIM_APPLIED,
         self::TYPE_KIM_APPROVED,
         self::TYPE_KIM_UPDATE,
@@ -115,6 +117,7 @@ final class EmailTemplateRepo
         self::TYPE_ADOPTION_APPLIED,
         self::TYPE_ADOPTION_APPROVED,
         self::TYPE_ADOPTION_REJECTED,
+        self::TYPE_KIM_SIGNUP,
         self::TYPE_KIM_APPLIED,
         self::TYPE_KIM_APPROVED,
         self::TYPE_KIM_UPDATE,
@@ -139,6 +142,7 @@ final class EmailTemplateRepo
         self::TYPE_ADOPTION_APPLIED   => 'New adoption application for {listing_title}',
         self::TYPE_ADOPTION_APPROVED  => 'Your adoption application for {listing_title} has been approved',
         self::TYPE_ADOPTION_REJECTED  => 'Your adoption application for {listing_title}',
+        self::TYPE_KIM_SIGNUP         => 'Your KIM List sign-up for {listing_title}',
         self::TYPE_KIM_APPLIED        => 'New KIM List sign-up for {listing_title}',
         self::TYPE_KIM_APPROVED       => 'Your KIM List sign-up for {listing_title} has been approved',
         self::TYPE_KIM_UPDATE         => 'Your KIM List entry has been updated',
@@ -273,10 +277,22 @@ final class EmailTemplateRepo
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
+    private const DEFAULT_BODY_KIM_SIGNUP =
+        'Hi {kim_name},' . "\n\n"
+        . 'You have signed up for the KIM List for {listing_title}.' . "\n\n"
+        . 'Your name:  {kim_name}' . "\n"
+        . 'Your email: {kim_email}' . "\n"
+        . 'Your URL:   {kim_url}' . "\n\n"
+        . 'Your entry is currently pending approval.' . "\n\n"
+        . 'Use the link below to set up your password. This link expires in 1 hour.' . "\n\n"
+        . '{reset_url}' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
+
     private const DEFAULT_BODY_KIM_RESET =
         'Hi {kim_name},' . "\n\n"
         . 'We received a request to reset the password for your Keep In Mind account.' . "\n\n"
-        . 'Click the link below to set a new password. This link expires in 1 hour.' . "\n\n"
+        . 'Use the link(s) below to set a new password. Each link expires in 1 hour.' . "\n\n"
         . '{reset_url}' . "\n\n"
         . 'If you did not request this, you can safely ignore this email. Your password will not change.' . "\n\n"
         . '-- {owner_name}' . "\n"
@@ -472,6 +488,7 @@ final class EmailTemplateRepo
             self::TYPE_ADOPTION_APPLIED   => self::DEFAULT_BODY_ADOPTION_APPLIED,
             self::TYPE_ADOPTION_APPROVED  => self::DEFAULT_BODY_ADOPTION_APPROVED,
             self::TYPE_ADOPTION_REJECTED  => self::DEFAULT_BODY_ADOPTION_REJECTED,
+            self::TYPE_KIM_SIGNUP         => self::DEFAULT_BODY_KIM_SIGNUP,
             self::TYPE_KIM_APPLIED        => self::DEFAULT_BODY_KIM_APPLIED,
             self::TYPE_KIM_APPROVED       => self::DEFAULT_BODY_KIM_APPROVED,
             self::TYPE_KIM_UPDATE         => self::DEFAULT_BODY_KIM_UPDATE,

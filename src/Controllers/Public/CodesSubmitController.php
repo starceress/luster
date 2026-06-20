@@ -33,8 +33,8 @@ final class CodesSubmitController
     /** Allowed MIME types for submitted code images. */
     private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-    /** Maximum upload size per file (200 KB — tighter limit for fan submissions). */
-    private const MAX_SIZE = 204_800;
+    /** Maximum upload size per file (500 KB). */
+    private const MAX_SIZE = 512_000;
 
     public function __construct(private readonly Application $app) {}
 
@@ -90,7 +90,7 @@ final class CodesSubmitController
         }
 
         $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',         'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
+            ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',         'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
             ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name',      'required' => true, 'value' => (string) ($old['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
             ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',               'required' => true,  'value' => (string) ($old['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
             ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website URL (optional)',   'required' => false, 'value' => (string) ($old['submitter_url']   ?? ''), 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
@@ -339,7 +339,7 @@ final class CodesSubmitController
         }
 
         if ((int) $fileData['size'] > self::MAX_SIZE) {
-            $session->set('lstr_flash_error', 'The file exceeds the 200 KB size limit.');
+            $session->set('lstr_flash_error', 'The file exceeds the 500 KB size limit.');
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $submitterName  ?? '',
                 'submitter_email' => $submitterEmail ?? '',

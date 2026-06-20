@@ -351,9 +351,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_update_form_template', '{additional_fields}', '{additional_fields}', 'Update step: all additional fields, with labels and wrappers, in order.') ?>
             <?= $tok('listing_default_update_form_template', '{field_password}',         '{field_password}',         'Update step: the New Password field, with label and wrapper.') ?>
             <?= $tok('listing_default_update_form_template', '{field_password_confirm}', '{field_password_confirm}', 'Update step: the Confirm New Password field, with label and wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{captcha_block}',       '{captcha_block}',       'The captcha question field, with label and wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{captcha_question}',    '{captcha_question}',    'The captcha question text on its own.') ?>
+
             <?= $tok('listing_default_update_form_template', '{field_remove}',     '{field_remove}',     'Update step: the &ldquo;Delete my membership&rdquo; checkbox block.') ?>
             <?= $tok('listing_default_update_form_template', '{submit_button}',    '{submit_button}',    'The submit button.') ?>
             <?= $tok('listing_default_update_form_template', '{clear_button}',     '{clear_button}',     'The &ldquo;Clear&rdquo; reset button.') ?>
@@ -375,9 +373,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_reset_form_template', '{if_token_valid}{/if_token_valid}',   '{if_token_valid}...{/if_token_valid}',   'Inside confirm step: shows when the reset token is valid.') ?>
             <?= $tok('listing_default_reset_form_template', '{if_token_invalid}{/if_token_invalid}', '{if_token_invalid}...{/if_token_invalid}', 'Inside confirm step: shows when the token has expired or is invalid.') ?>
             <?= $tok('listing_default_reset_form_template', '{field_email}',               '{field_email}',               'Email-entry step: the Email field, with label and wrapper.') ?>
-            <?= $tok('listing_default_reset_form_template', '{captcha_block}',             '{captcha_block}',             'Email-entry step: the captcha question field, with label and wrapper.') ?>
-            <?= $tok('listing_default_reset_form_template', '{captcha_block_input}',       '{captcha_block_input}',       'Just the captcha answer input, no label or wrapper.') ?>
-            <?= $tok('listing_default_reset_form_template', '{captcha_question}',          '{captcha_question}',          'The captcha question text on its own.') ?>
+
             <?= $tok('listing_default_reset_form_template', '{field_new_password}',        '{field_new_password}',        'Confirm step: the New Password field, with label and wrapper.') ?>
             <?= $tok('listing_default_reset_form_template', '{field_new_password_confirm}', '{field_new_password_confirm}', 'Confirm step: the Confirm New Password field, with label and wrapper.') ?>
             <?= $tok('listing_default_reset_form_template', '{reset_request_url}',         '{reset_request_url}',         'URL of the email-entry form. Use inside {if_token_invalid} for a &ldquo;request a new one&rdquo; link.') ?>
@@ -397,18 +393,18 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for a listing.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_stats_template', '{stat_opened}',       '{stat_opened}',       'The date the listing opened.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date set for the listing. Shows "N/A" if neither is set.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date you set. Shows &ldquo;N/A&rdquo; if neither is set.') ?>
             <?= $tok('listing_default_stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
             <?= $tok('listing_default_stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
             <?= $tok('listing_default_stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
             <?= $tok('listing_default_stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Up to 5 newest approved members, linked to their websites when available. Shows &ldquo;&hellip;and more&rdquo; when there are more than 5 total.') ?>
             <?= $tok('listing_default_stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_growth}',            '{stat_growth}',            'Average members per day, with unit (e.g. &ldquo;0.15 members/day&rdquo;).') ?>
+            <?= $tok('listing_default_stats_template', '{stat_growth_rate}',       '{stat_growth_rate}',       'Numeric growth rate only (e.g. &ldquo;0.15&rdquo;). Use this to build your own formatting.') ?>
             <?= $tok('listing_default_stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_stats_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
             <?= $tok('listing_default_stats_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $tok('listing_default_stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
-            <?= $tok('listing_default_stats_template', '{network}',           '{network}',           'Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.') ?>
             <?= $tok('listing_default_stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
             <?= $tok('listing_default_stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
             <?= $tok('listing_default_stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
@@ -425,24 +421,26 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_codes_template', '{each_size_group}{/each_size_group}', '{each_size_group}...{/each_size_group}', 'Repeats once per group of same-sized codes.') ?>
-            <?= $tok('listing_default_codes_template', '{group_size}',       '{group_size}',       'The group label, e.g. "88&times;31px".') ?>
-            <?= $tok('listing_default_codes_template', '{group_code_count}', '{group_code_count}', 'How many codes are in this size group.') ?>
-            <?= $tok('listing_default_codes_template', '{each_code}{/each_code}', '{each_code}...{/each_code}', 'Repeats once for each approved code.') ?>
+            <?= $tok('listing_default_codes_template', '{each_size_group}{/each_size_group}', '{each_size_group}...{/each_size_group}', 'Repeats the HTML inside it once per group of same-sized codes. Wrap an {each_code}...{/each_code} loop inside it.') ?>
+            <?= $tok('listing_default_codes_template', '{group_size}',       '{group_size}',       'The group label, e.g. &ldquo;88&times;31px&rdquo; or &ldquo;Other&rdquo;. Use inside {each_size_group}.') ?>
+            <?= $tok('listing_default_codes_template', '{group_code_count}', '{group_code_count}', 'How many codes are in this size group. Use inside {each_size_group}.') ?>
+            <?= $tok('listing_default_codes_template', '{each_code}{/each_code}', '{each_code}...{/each_code}', 'Repeats the HTML inside it once for each approved code shown.') ?>
             <?= $tok('listing_default_codes_template', '{code_url}',        '{code_url}',        'The full image URL for the code.') ?>
-            <?= $tok('listing_default_codes_template', '{code_alt}',        '{code_alt}',        'Suggested alt text.') ?>
-            <?= $tok('listing_default_codes_template', '{code_width}',      '{code_width}',      'Code width in pixels. Empty when unknown.') ?>
-            <?= $tok('listing_default_codes_template', '{code_height}',     '{code_height}',     'Code height in pixels. Empty when unknown.') ?>
-            <?= $tok('listing_default_codes_template', '{code_size}',       '{code_size}',       'Dimensions as &ldquo;WxH&rdquo;. Empty when unknown.') ?>
-            <?= $tok('listing_default_codes_template', '{code_name}',       '{code_name}',       'The code name/title. Empty when not set.') ?>
-            <?= $tok('listing_default_codes_template', '{code_categories}', '{code_categories}', 'Comma-separated code category names.') ?>
-            <?= $tok('listing_default_codes_template', '{code_donor_name}', '{code_donor_name}', 'Donor name. Empty when not donated.') ?>
-            <?= $tok('listing_default_codes_template', '{code_donor_url}',  '{code_donor_url}',  'Donor website URL. Empty when not set.') ?>
-            <?= $tok('listing_default_codes_template', '{if_donor}{/if_donor}',         '{if_donor}...{/if_donor}',         'Shows only when the code has a donor.') ?>
-            <?= $tok('listing_default_codes_template', '{if_no_donor}{/if_no_donor}',   '{if_no_donor}...{/if_no_donor}',   'Shows only when no donor.') ?>
-            <?= $tok('listing_default_codes_template', '{if_code_name}{/if_code_name}', '{if_code_name}...{/if_code_name}', 'Shows only when the code has a name.') ?>
-            <?= $tok('listing_default_codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when at least one approved code exists.') ?>
-            <?= $tok('listing_default_codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when there are no approved codes (empty state).') ?>
+            <?= $tok('listing_default_codes_template', '{code_width}',      '{code_width}',      'The code\'s width in pixels. Empty when dimensions are unknown.') ?>
+            <?= $tok('listing_default_codes_template', '{code_height}',     '{code_height}',     'The code\'s height in pixels. Empty when dimensions are unknown.') ?>
+            <?= $tok('listing_default_codes_template', '{code_size}',       '{code_size}',       'The code\'s dimensions as &ldquo;WxH&rdquo;, e.g. &ldquo;88&times;31&rdquo;. Empty when unknown.') ?>
+            <?= $tok('listing_default_codes_template', '{code_name}',       '{code_name}',       'The code\'s saved name/title. Empty when not set.') ?>
+            <?= $tok('listing_default_codes_template', '{code_donor_name}', '{code_donor_name}', 'The donor\'s name. Empty when the code was not donated.') ?>
+            <?= $tok('listing_default_codes_template', '{code_donor_url}',  '{code_donor_url}',  'The donor\'s website URL. Empty when not set.') ?>
+            <?= $tok('listing_default_codes_template', '{if_size}{/if_size}',           '{if_size}...{/if_size}',           'Shows only when width and height are known.') ?>
+            <?= $tok('listing_default_codes_template', '{if_size_changed}{/if_size_changed}', '{if_size_changed}...{/if_size_changed}', 'Flat mode only. Shows when the code size differs from the previous code &mdash; useful for size headings.') ?>
+            <?= $tok('listing_default_codes_template', '{if_donor}{/if_donor}',         '{if_donor}...{/if_donor}',         'Shows only when the code was donated by a named donor.') ?>
+            <?= $tok('listing_default_codes_template', '{if_no_donor}{/if_no_donor}',   '{if_no_donor}...{/if_no_donor}',   'Shows only when the code has no donor.') ?>
+            <?= $tok('listing_default_codes_template', '{if_donor_url}{/if_donor_url}', '{if_donor_url}...{/if_donor_url}', 'Shows only when the donor has a website URL saved.') ?>
+            <?= $tok('listing_default_codes_template', '{if_no_donor_url}{/if_no_donor_url}', '{if_no_donor_url}...{/if_no_donor_url}', 'Shows only when the donor has no website URL.') ?>
+            <?= $tok('listing_default_codes_template', '{if_code_name}{/if_code_name}', '{if_code_name}...{/if_code_name}', 'Shows only when the code has a saved name.') ?>
+            <?= $tok('listing_default_codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
+            <?= $tok('listing_default_codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
           </tbody></table>
         </div>
       </details>
@@ -528,6 +526,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the contact form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_contact_form_template', '{listing_title}',         '{listing_title}',         'The listing\'s display name.') ?>
+            <?= $tok('listing_default_contact_form_template', '{listing_subject}',       '{listing_subject}',       'What this fanlisting is about (e.g. &ldquo;Archeology&rdquo;, &ldquo;Marilyn Monroe&rdquo;).') ?>
             <?= $tok('listing_default_contact_form_template', '{listing_url}',           '{listing_url}',           'The link to the listing.') ?>
             <?= $tok('listing_default_contact_form_template', '{field_name}',            '{field_name}',            'The Name field, with label and wrapper.') ?>
             <?= $tok('listing_default_contact_form_template', '{field_name_input}',      '{field_name_input}',      'Just the Name input, no label or wrapper.') ?>
@@ -577,7 +576,6 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
             <?= $tok('listing_default_updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
             <?= $tok('listing_default_updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
-            <?= $tok('listing_default_updates_template', '{update_date_raw}',   '{update_date_raw}',   'The posted date in YYYY-MM-DD format.') ?>
             <?= $tok('listing_default_updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
             <?= $tok('listing_default_updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
             <?= $tok('listing_default_updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>

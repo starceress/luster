@@ -55,7 +55,7 @@ if (isset($form_html) && $form_html !== null) {
         <div class="fl-errors"><?= $errors ?></div>
       <?php endif; ?>
 
-      <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+      <form class="fl-form fl-form-kim-reset-confirm" method="POST" action="<?= View::e($form_action) ?>">
         <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
         <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
         <input type="hidden" name="token" value="<?= View::e($token) ?>">

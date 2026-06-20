@@ -130,7 +130,7 @@ $items = [
         'label' => 'Adoption Form',
         'badge' => 'Addon',
         'file'  => 'adopt.php',
-        'desc'  => 'An adoption application form for this listing. Requires the Adoption add-on to be installed and the listing to have adoption enabled.',
+        'desc'  => 'An adoption application form. Visitors pick which fanlisting to apply for from a dropdown. Requires the Adoption add-on.',
     ],
     'rules-gate' => [
         'label' => 'Join Rules Gate',
@@ -575,8 +575,6 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code>$luster_status</code></td><td>Choose which owned listings to show: current, upcoming, pending, or all. Leave this out to show current listings only.</td></tr>
                 <tr><td class="act-col"><code>$luster_category_id</code></td><td>Show only one category of owned listings. Most users can leave this out and let visitors choose a category on the page.</td></tr>
                 <tr><td class="act-col"><code>$luster_hide_dropdown</code></td><td>Set this to <code>true</code> if you do not want the category dropdown to appear.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_list</code></td><td>Set this to <code>true</code> to show category links as a list instead of a dropdown.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_cat_switcher</code></td><td>Set this to <code>false</code> if you do not want the compact category switcher on an individual category page.</td></tr>
                 <tr><td class="act-col"><code>$luster_browse_by_category</code></td><td>Set this to <code>true</code> if you want visitors to choose a category first, then see the listings in that category.</td></tr>
                 <tr><td class="act-col"><code>$luster_exclude_pending</code></td><td>When showing all statuses, this keeps pending listings hidden. Leave it alone unless you want pending listings to show too.</td></tr>
               </tbody>
@@ -590,8 +588,6 @@ $epSafe = View::e($ep);
               <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code>$luster_category</code></td><td>Choose what joined listings to show. Leave it blank to let visitors choose a category. Use <code>'all'</code> to show everything grouped by category. Or type one category name to show only that category.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_list</code></td><td>Set this to <code>true</code> to show category links as a list instead of a dropdown. This only matters when visitors are choosing a category.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_cat_switcher</code></td><td>Set this to <code>false</code> if you do not want the compact category switcher on an individual category page.</td></tr>
                 <tr><td class="act-col"><code>$luster_show_all_by_default</code></td><td>Set this to <code>true</code> if you want all joined listings to show right away, while still letting visitors choose a category.</td></tr>
                 <tr><td class="act-col"><code>$luster_browse_by_category</code></td><td>Set this to <code>true</code> if you want visitors to choose a category first, then see the joined listings in that category.</td></tr>
               </tbody>
@@ -678,11 +674,11 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{stat_opened}</code></td><td>Date you opened the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_updated}</code></td><td>The most recent activity date: whichever is more recent of the newest approved member's join date and the &ldquo;last updated&rdquo; date you set for the listing. Shows <em>N/A</em> if neither is set.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Up to 5 newest approved members, linked to their websites when available. Shows <em>&hellip;and more</em> when there are more than 5 total.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_growth}</code></td><td>Average new members per day since the listing opened.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_growth}</code></td><td>Average members per day, with unit (e.g. &ldquo;0.15 members/day&rdquo;).</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_growth_rate}</code></td><td>Numeric growth rate only (e.g. &ldquo;0.15&rdquo;). Use to build your own formatting.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{network}</code></td><td>Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{network_name}</code></td><td>Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL website URL: <code>https://thefanlistings.org/</code></td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL website URL: <code>https://www.animefanlistings.com/</code></td></tr>
@@ -740,14 +736,12 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{listing_type}</code></td><td>The optional type you saved for the listing, such as fanlisting or shrine.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_category}</code></td><td>The category or categories this listing belongs to.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_image_url}</code></td><td>Just the image&rsquo;s web address as plain text. Empty when there is no image.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_image_html}</code></td><td>A ready-to-use <code>&lt;img&gt;</code> tag for the listing image. Empty when there is no image.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{date_opened}</code></td><td>Date you opened the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{date_updated}</code></td><td>The &ldquo;last updated&rdquo; date you set for the listing in Luster.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{member_count}</code></td><td>Number of approved members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{member_pending_count}</code></td><td>Number of members waiting for approval on this listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{country_count}</code></td><td>Number of different countries represented by approved members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{network}</code></td><td>Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{network_name}</code></td><td>Full network name, or empty.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL website URL.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL website URL.</td></tr>
@@ -761,15 +755,15 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted" style="margin-top:.875rem">Section words for sectioned owned templates. Put these near your section headings, outside the repeated row itself. Example: <code>Current ({current_count})</code>. These count listings, not members.</p>
+          <p class="text-muted" style="margin-top:.875rem">Section words for sectioned owned templates. Put these near your section headings, outside the repeated row itself. Example: <code>Current ({current_owned_count})</code>. These count listings, not members.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{current_count}</code></td><td>Number of current listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{upcoming_count}</code></td><td>Number of upcoming listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{pending_count}</code></td><td>Number of pending listings. For pending members, use <code>{member_pending_count}</code>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{current_owned_count}</code></td><td>Number of current listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{upcoming_owned_count}</code></td><td>Number of upcoming listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{pending_owned_count}</code></td><td>Number of pending listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{total_count}</code></td><td>Total listings shown.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Shows the text inside only when there are current listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_upcoming_listings}&hellip;{/if_upcoming_listings}</code></td><td>Shows the text inside only when there are upcoming listings.</td></tr>
@@ -795,7 +789,6 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_category}</code></td><td>Listing category.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_image_url}</code></td><td>Just the image&rsquo;s web address as plain text. Empty when there is no image.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_image_html}</code></td><td>A ready-to-use <code>&lt;img&gt;</code> tag for the listing image. Empty when there is no image.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_status}</code></td><td>Listing status.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{date_joined}</code></td><td>Date you joined the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code></td><td>Shows the text inside only when the listing has an image.</td></tr>
@@ -876,6 +869,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{owned_random_url}</code></td><td>Link to one random current owned listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Number of different countries represented by approved members across all your listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{collective_last_updated}</code></td><td>Date your newest owned listing was opened &mdash; the last time the collective grew.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{joined_total_cats}</code></td><td>Number of distinct categories across your active joined listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
               </tbody>
             </table>
@@ -946,8 +940,8 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{field_password}</code>, <code class="ec-tk">{field_password_confirm}</code></td><td>Password fields for join and KIM sign-up forms.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{field_code_image}</code>, <code class="ec-tk">{field_submitter_name}</code>, <code class="ec-tk">{field_submitter_email}</code>, <code class="ec-tk">{field_submitter_url}</code></td><td>Code donation upload and donor-credit fields.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{field_image}</code>, <code class="ec-tk">{field_message}</code></td><td>Affiliate image and application/adoption message fields.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{field_fanlisting_id}</code>, <code class="ec-tk">{field_send_copy}</code></td><td>KIM sign-up listing selector and confirmation-copy checkbox.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{captcha_block}</code>, <code class="ec-tk">{captcha_block_input}</code>, <code class="ec-tk">{captcha_question}</code></td><td>Captcha field wrapper, raw captcha input, and the captcha question text.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{field_fanlisting_id}</code></td><td>KIM sign-up listing selector.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{captcha_block}</code>, <code class="ec-tk">{captcha_block_input}</code>, <code class="ec-tk">{captcha_question}</code></td><td>Captcha field wrapper, raw captcha input, and the captcha question text. Used by forms that still include captcha (join, code donation, affiliate application, contact, adoption). Empty in update, reset, and KIM forms where captcha was removed.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{submit_button}</code>, <code class="ec-tk">{clear_button}</code></td><td>Ready-made action buttons. Some forms only provide a submit button.</td></tr>
               </tbody>
             </table>
@@ -997,16 +991,13 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{group_size}</code></td><td>The size label for the group.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{group_code_count}</code></td><td>How many codes are in this size group.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_url}</code></td><td>Direct link to the code image file.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{code_alt}</code></td><td>Suggested alt text (donor name, then size, then listing name). Good for <code>&lt;img alt="{code_alt}"&gt;</code>.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_width}</code>, <code class="ec-tk">{code_height}</code></td><td>Image width and height in pixels. Empty when Luster does not know the size.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_size}</code></td><td>The size label, such as 75x50.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_name}</code></td><td>The code name, if one is saved.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{code_categories}</code></td><td>Comma-separated code category names. Empty when none assigned.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_donor_name}</code>, <code class="ec-tk">{code_donor_url}</code></td><td>Donor name and donor link, when the code has donor credit.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_size}&hellip;{/if_size}</code></td><td>Shows only when width and height are known.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_size_changed}&hellip;{/if_size_changed}</code></td><td>Flat mode only. Shows when the code size differs from the previous code &mdash; useful for size headings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_donor}</code>, <code class="ec-tk">{if_no_donor}</code>, <code class="ec-tk">{if_donor_url}</code>, <code class="ec-tk">{if_no_donor_url}</code></td><td>Shows donor markup only when donor details exist, or alternate markup when they do not.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_categories}&hellip;{/if_categories}</code></td><td>Shows only when the code has categories assigned.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_code_name}</code></td><td>Shows the text inside only when the code has a saved name.</td></tr>
               </tbody>
             </table>
@@ -1026,7 +1017,6 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{each_update}&hellip;{/each_update}</code></td><td>Repeat box for one update post.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{update_title}</code></td><td>Update title.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{update_date}</code></td><td>Friendly date, such as January 15, 2026.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{update_date_raw}</code></td><td>Plain date for machine-readable markup, such as a <code>&lt;time datetime=""&gt;</code> attribute.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{update_body_html}</code></td><td>The update body with line breaks converted to <code>&lt;br&gt;</code>. Luster escapes the text first, so visitor-supplied HTML is not allowed through.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{update_author}</code></td><td>Update author, when saved.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{update_categories}</code></td><td>Update category names, separated by commas.</td></tr>
@@ -1135,8 +1125,10 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code>$luster_countries_count</code></td><td>Number of different countries represented by approved members across all listings.</td></tr>
                 <tr><td class="act-col"><code>$luster_collective_last_updated</code></td><td>Date your newest owned listing was opened, formatted "Month Dth Year" (or "Never" if no owned listing has an opened date).</td></tr>
                 <tr><td class="act-col"><code>$luster_total_cats</code></td><td>Number of owned-listing categories.</td></tr>
-                <tr><td class="act-col"><code>$luster_owned_current</code></td><td>Same number as <code>$luster_owned_active</code>.</td></tr>
-                <tr><td class="act-col"><code>$luster_collective_fans</code></td><td>Same number as <code>$luster_members_total</code>.</td></tr>
+                <tr><td class="act-col"><code>$luster_joined_categories</code></td><td>Array of distinct category names across your active joined listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_joined_total_cats</code></td><td>Number of distinct categories across your active joined listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_owned_current</code></td><td>Alias of <code>$luster_owned_active</code> (Enthusiast compatibility).</td></tr>
+                <tr><td class="act-col"><code>$luster_collective_fans</code></td><td>Alias of <code>$luster_members_total</code> (Enthusiast compatibility).</td></tr>
               </tbody>
             </table>
               </div>

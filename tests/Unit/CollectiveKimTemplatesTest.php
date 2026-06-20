@@ -86,13 +86,15 @@ final class CollectiveKimTemplatesTest extends TestCase
         $tpl      = $defaults['kim_update_form_template'];
 
         self::assertNotSame('', $tpl);
-        self::assertStringContainsString('{field_name}', $tpl);
-        self::assertStringContainsString('{field_current_email}', $tpl);
-        self::assertStringContainsString('{field_current_password}', $tpl);
-        self::assertStringContainsString('{field_fanlisting_id}', $tpl);
+        self::assertStringContainsString('{field_email}', $tpl);
+        self::assertStringContainsString('{field_password}', $tpl);
         self::assertStringContainsString('{submit_button}', $tpl);
         self::assertStringContainsString('{if_lost_password_url}', $tpl);
         self::assertStringContainsString('{lost_password_url}', $tpl);
+        // Old all-in-one fields are no longer in the default template (two-step flow)
+        self::assertStringNotContainsString('{field_name}', $tpl);
+        self::assertStringNotContainsString('{field_current_email}', $tpl);
+        self::assertStringNotContainsString('{field_fanlisting_id}', $tpl);
     }
 
     // -----------------------------------------------------------------------
@@ -116,9 +118,10 @@ final class CollectiveKimTemplatesTest extends TestCase
         self::assertStringContainsString('{/if_step_email}', $tpl);
         self::assertStringContainsString('{if_step_confirm}', $tpl);
         self::assertStringContainsString('{/if_step_confirm}', $tpl);
-        // Email step tokens
+        // Email step tokens — fanlisting selector and captcha removed from runtime and default
         self::assertStringContainsString('{field_email}', $tpl);
-        self::assertStringContainsString('{field_fanlisting_id}', $tpl);
+        self::assertStringNotContainsString('{field_fanlisting_id}', $tpl);
+        self::assertStringNotContainsString('{captcha_block}', $tpl);
         // Confirm step tokens
         self::assertStringContainsString('{field_password}', $tpl);
         self::assertStringContainsString('{field_password_confirm}', $tpl);

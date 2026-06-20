@@ -44,6 +44,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------
 // 2. Validate required parameter
@@ -166,7 +167,6 @@ if ($_lusterUpdatesTemplate !== null) {
                 [
                     'update_title'      => $update->title,
                     'update_date'       => date('F j, Y', strtotime($update->postedAt)),
-                    'update_date_raw'   => substr($update->postedAt, 0, 10),
                     'update_author'     => $update->author ?? '',
                     'update_categories' => implode(', ', $update->categories()),
                 ],
@@ -201,6 +201,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/updates/feed.php',
     'base_url'              => $_lusterApp->getBaseUrl(),
     'theme_path'            => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

@@ -60,6 +60,21 @@ final class RulesPublicController
         $listing = (new ListingRepo($this->app->getDatabase(), $this->app->getConfig()))
             ->getById($listingId);
 
+        $settingsRepo  = new \Luster\Repositories\ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
+        $listingUrl    = $listing?->url ?? '';
+
+        $resolveUrl = static function (string $settingKey, string $fallbackRoute) use ($embedSettings, $listingUrl, $baseUrl, $listingId): string {
+            $page = (string) ($embedSettings[$settingKey] ?? '');
+            if ($page !== '' && preg_match('#^https?://#i', $page)) {
+                return $page;
+            }
+            if ($page !== '') {
+                return rtrim($listingUrl, '/') . '/' . ltrim($page, '/');
+            }
+            return $baseUrl . '/' . $fallbackRoute . '/' . $listingId;
+        };
+
         [$gateCheckboxHtml, $gateButtonHtml] = $this->buildGateTokens($ruleSet);
 
         $rulesBodyHtml = RulesBodyRenderer::render(
@@ -67,9 +82,9 @@ final class RulesPublicController
             [
                 'subject'       => $listing?->subject ?? '',
                 'listing_title' => $listing?->title ?? '',
-                'listing_url'   => $listing?->url ?? '',
-                'join_url'      => $baseUrl . '/join/' . $listingId,
-                'update_url'    => $baseUrl . '/update/' . $listingId,
+                'listing_url'   => $listingUrl,
+                'join_url'      => $resolveUrl('form_url_join', 'join'),
+                'update_url'    => $resolveUrl('form_url_update', 'update'),
             ],
             [
                 'gate_checkbox' => $gateCheckboxHtml,

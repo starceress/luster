@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
-use Luster\Core\Captcha;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
@@ -121,14 +120,6 @@ final class ResetController
             $formUrl = rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/');
         } else {
             $formUrl = $baseUrl . '/reset/' . $listingId;
-        }
-
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
-        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'reset')) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old_email', $email);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         $v = new Validator(['email' => $email]);
@@ -356,10 +347,8 @@ final class ResetController
         Listing $listing,
         string $oldEmail = '',
         string $error = '',
-        string $captchaError = '',
     ): Response {
         $baseUrl         = $this->app->getBaseUrl();
-        $captchaQuestion = Captcha::getQuestion('reset');
         $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
         $wrapperTpl      = $settingsRepo->getWrapperTemplate($listingId) ?? '';
         $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
@@ -373,7 +362,6 @@ final class ResetController
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'email', 'name' => 'email',          'id' => 'rst-email',   'label' => 'Email',    'required' => true, 'value' => $oldEmail,       'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'text',  'name' => 'captcha_answer', 'id' => 'rst-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
         $formHtml = null;
@@ -389,13 +377,12 @@ final class ResetController
                 '{listing_subject}'           => View::e((string) $listing->subject),
                 '{listing_url}'               => View::e((string) $listing->url),
                 '{field_email}'               => $f['email'],
-                '{captcha_block}'             => $f['captcha_answer'],
-                '{captcha_block_input}'       => $f['captcha_answer_input'] ?? '',
-                '{captcha_question}'          => View::e($captchaQuestion),
+                '{captcha_block}'             => '',
+                '{captcha_block_input}'       => '',
+                '{captcha_question}'          => '',
                 '{field_new_password}'        => '',
                 '{field_new_password_confirm}' => '',
-                '{hidden_token}'              => '',
-                '{reset_request_url}'         => View::e($formAction),
+                    '{reset_request_url}'         => View::e($formAction),
                 '{submit_button}'             => '<button type="submit" class="fl-submit">Send Reset Link</button>',
                 '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];
@@ -443,7 +430,7 @@ final class ResetController
         $resetUrl     = $baseUrl . '/reset/' . $listingId;
 
         $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'password', 'name' => 'new_password',         'id' => 'rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
             ['type' => 'password', 'name' => 'new_password_confirm',  'id' => 'rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ], $wrapperTpl);
 
@@ -465,8 +452,7 @@ final class ResetController
                 '{captcha_question}'          => '',
                 '{field_new_password}'        => $f['new_password'],
                 '{field_new_password_confirm}' => $f['new_password_confirm'],
-                '{hidden_token}'              => '',
-                '{reset_request_url}'         => View::e($resetUrl),
+                    '{reset_request_url}'         => View::e($resetUrl),
                 '{submit_button}'             => '<button type="submit" class="fl-submit">Set New Password</button>',
                 '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];

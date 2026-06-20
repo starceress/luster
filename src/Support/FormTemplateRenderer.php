@@ -50,6 +50,7 @@ final class FormTemplateRenderer
         bool   $multipart,
         bool   $preview = false,
         string $formMarker = '',
+        string $extraHidden = '',
     ): string {
         $enctype  = $multipart ? ' enctype="multipart/form-data"' : '';
         $onsubmit = $preview ? ' onsubmit="return false;"' : '';
@@ -60,6 +61,7 @@ final class FormTemplateRenderer
         return '<form class="fl-form" method="POST" action="' . View::e($action) . '"' . $enctype . $onsubmit . '>'
              . '<input type="hidden" name="_csrf" value="' . View::e($csrfToken) . '">'
              . $marker
+             . $extraHidden
              . '<div style="display:none" aria-hidden="true"><input type="text" name="website_confirm" tabindex="-1" autocomplete="off"></div>'
              . $innerHtml
              . '</form>';

@@ -117,7 +117,7 @@ $rangeEnd   = min($total, $page * $per_page);
         <?php $_sc = $scope_counts ?? []; $_scTotal = array_sum($_sc); ?>
         <option value="all" <?= $scope === 'all' ? 'selected' : '' ?>><?= $_scTotal > 0 ? 'All Types (' . $_scTotal . ')' : 'All Types' ?></option>
         <?php $_scColl = (int) ($_sc[0] ?? 0); ?>
-        <?php $_scCollLabel = ($app_name ?? '') !== '' ? View::e($app_name) . ' (Collective)' : 'Collective'; ?>
+        <?php $_scCollLabel = ($site_name ?? '') !== '' ? View::e($site_name) . ' (Collective)' : 'Collective'; ?>
         <option value="collective"<?= $scope === 'collective' ? ' selected' : '' ?>><?= $_scCollLabel ?><?= $_scColl > 0 ? ' (' . $_scColl . ')' : '' ?></option>
         <?php foreach ($listings as $fl): ?>
           <?php $_scN = (int) ($_sc[(int) $fl->id] ?? 0); ?>
@@ -341,17 +341,19 @@ $rangeEnd   = min($total, $page * $per_page);
 
           <!-- Name + URL -->
           <td data-label="Name">
-            <span class="text-strong"><?= View::e($aff->name) ?></span> &nbsp;
-            <?php if ($aff->status === 'approved' && !$aff->active): ?>
-              <span class="badge badge-inactive">Inactive</span>
-            <?php endif; ?>
-            <?php if ($isConflict): ?>
-              <span class="badge badge-inactive" title="An active affiliate with this URL already exists for this listing.">Duplicate URL</span>
-            <?php endif; ?>
-            <?php if ($aff->url !== ''): ?>
-              <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
-                 class="mem-url link link-break"><?= View::e(mb_strimwidth($aff->url, 0, 60, '…')) ?></a>
-            <?php endif; ?>
+            <div class="subject-title-stack">
+              <b><?= View::e($aff->name) ?></b>
+              <?php if ($aff->status === 'approved' && !$aff->active): ?>
+                <span class="badge badge-inactive">Inactive</span>
+              <?php endif; ?>
+              <?php if ($isConflict): ?>
+                <span class="badge badge-inactive" title="An active affiliate with this URL already exists for this listing.">Duplicate URL</span>
+              <?php endif; ?>
+              <?php if ($aff->url !== ''): ?>
+                <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
+                   class="mem-url link link-break"><?= View::e(mb_strimwidth($aff->url, 0, 60, '…')) ?></a>
+              <?php endif; ?>
+            </div>
           </td>
 
           <!-- Email -->
@@ -367,7 +369,7 @@ $rangeEnd   = min($total, $page * $per_page);
               </a>
               <div class="mem-url">Listing</div>
             <?php else: ?>
-              <a href="<?= $b ?>/admin/collective" class="link text-strong"><?= ($app_name ?? '') !== '' ? View::e($app_name) : 'Collective' ?></a>
+              <a href="<?= $b ?>/admin/collective" class="link text-strong"><?= ($site_name ?? '') !== '' ? View::e($site_name) : 'Collective' ?></a>
               <div class="mem-url">Collective</div>
             <?php endif; ?>
           </td>
@@ -381,7 +383,7 @@ $rangeEnd   = min($total, $page * $per_page);
                     data-aff-url="<?= View::e($aff->url) ?>"
                     data-aff-email="<?= View::e($aff->email ?? '') ?>"
                     data-aff-image="<?= ($aff->image !== null && $aff->image !== '') ? View::e($b . '/uploads/affiliates/' . $aff->image) : '' ?>"
-                    data-aff-listing="<?= $fl !== null ? View::e($fl->subject ?: $fl->title) : View::e(($app_name ?? '') !== '' ? $app_name : 'Collective') ?>"
+                    data-aff-listing="<?= $fl !== null ? View::e($fl->subject ?: $fl->title) : View::e(($site_name ?? '') !== '' ? $site_name : 'Collective') ?>"
                     data-aff-date="<?= $aff->createdAt !== '' ? View::e(date($admin_date_format, strtotime($aff->createdAt))) : '' ?>"
                     data-aff-msg="<?= View::e($msg) ?>"><?= $msg !== '' ? 'Click to Read' : 'View Details' ?></button>
           </td>

@@ -151,7 +151,7 @@ $rangeLast  = min($page * $per_page, $total);
     </div>
 
     <div class="table-wrap">
-      <table class="data-table">
+      <table class="data-table mem-table">
         <thead>
           <tr>
             <th class="cb-col">
@@ -199,10 +199,15 @@ $rangeLast  = min($page * $per_page, $total);
             <td data-label="#" class="text-muted"><?= (int) $row['listing_id'] ?></td>
 
             <td data-label="Listing">
-              <div class="ctx-cell">
-                <a class="link" href="<?= $b ?>/admin/rules/<?= (int) $row['listing_id'] ?>/edit"><b><?= View::e($row['listing_subject']) ?></b></a>
-                <?php if ($row['listing_type'] !== '' && $row['listing_type'] !== 'listing'): ?>
-                  <span class="badge badge-inactive"><?= View::e($_typeLabels[$row['listing_type']] ?? ucfirst($row['listing_type'])) ?></span>
+              <div class="subject-title-stack">
+                <div class="ctx-cell">
+                  <a class="link" href="<?= $b ?>/admin/rules/<?= (int) $row['listing_id'] ?>/edit"><b><?= View::e($row['listing_subject'] ?: $row['listing_title']) ?></b></a>
+                  <?php if ($row['listing_type'] !== '' && $row['listing_type'] !== 'listing'): ?>
+                    <span class="badge badge-inactive"><?= View::e($_typeLabels[$row['listing_type']] ?? ucfirst($row['listing_type'])) ?></span>
+                  <?php endif; ?>
+                </div>
+                <?php if ($row['listing_subject'] !== ''): ?>
+                  <span class="mem-url"><?= View::e($row['listing_title']) ?></span>
                 <?php endif; ?>
               </div>
             </td>

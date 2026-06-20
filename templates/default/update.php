@@ -51,7 +51,7 @@ if (isset($form_html)) {
 <?php if (!$signed_in): ?>
 
   <!-- ── Step 1: Sign in ──────────────────────────────────────────────── -->
-  <form class="fl-form" method="POST" action="<?= View::e($sign_in_action) ?>">
+  <form class="fl-form fl-form-signin" method="POST" action="<?= View::e($sign_in_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
@@ -64,12 +64,12 @@ if (isset($form_html)) {
     </div>
 
     <div class="fl-form-actions">
-      <button type="submit">Sign in</button>
+      <button type="submit" class="fl-submit">Sign in</button>
     </div>
   </form>
 
   <?php if (($lost_password_url ?? '') !== ''): ?>
-    <p><a href="<?= View::e($lost_password_url) ?>">Forgot your password?</a></p>
+    <p class="fl-hint"><a href="<?= View::e($lost_password_url) ?>">Forgot your password?</a></p>
   <?php endif; ?>
 
 <?php else: ?>
@@ -84,7 +84,7 @@ if (isset($form_html)) {
     Fill in only the fields you want to change. Leave a field blank to keep your current value.
   </p>
 
-  <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+  <form class="fl-form fl-form-update" method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
@@ -106,8 +106,8 @@ if (isset($form_html)) {
     </div>
 
     <div class="fl-field fl-field--danger">
-      <label>
-        <input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">
+      <label class="fl-label fl-label-danger">
+        <input type="checkbox" class="fl-checkbox" id="upd-delete-membership" name="delete_membership" value="1">
         Permanently delete my membership instead of updating it.
       </label>
       <p class="fl-field-hint">
@@ -115,8 +115,6 @@ if (isset($form_html)) {
         Any changes above are ignored, and this cannot be undone.
       </p>
     </div>
-
-    <?= $f['captcha_answer'] ?>
 
     <div class="fl-form-actions">
       <button type="submit" class="fl-submit">Update Information</button>

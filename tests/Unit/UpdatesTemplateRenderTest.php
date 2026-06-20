@@ -58,16 +58,6 @@ final class UpdatesTemplateRenderTest extends TestCase
         self::assertStringContainsString('June 10, 2026', $result);
     }
 
-    public function testSampleDataRendersDateRawToken(): void
-    {
-        $result = self::render(
-            SampleTemplateData::updates(),
-            '{each_update}{update_date_raw}|{/each_update}',
-        );
-
-        self::assertStringContainsString('2026-06-10', $result);
-    }
-
     public function testSampleDataRendersBodyHtml(): void
     {
         $result = self::render(

@@ -54,7 +54,7 @@ use Luster\Core\View;
 </main>
 
 <footer>
-  <p>Powered by <a href="https://luster.nu/" rel="noopener noreferrer" target="_blank" title="Luster ✦ Fanlisting Management Script">Luster</a></p>
+  <p class="fl-powered-by">Powered by <a href="https://luster.nu/" rel="noopener noreferrer" target="_blank" title="Luster ✦ Fanlisting Management Script">Luster</a></p>
 </footer>
 
 </body>

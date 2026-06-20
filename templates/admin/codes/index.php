@@ -106,7 +106,7 @@ $filtersActive = $filters_active ?? false;
       ?>
       <select name="listing_id" id="codes-listing-sel">
         <option value="0"<?= $lid === 0 && $viewMode !== 'collective' ? ' selected' : '' ?>>All Listings<?= $_aplTotal > 0 ? ' (' . $_aplTotal . ')' : '' ?></option>
-        <option value="collective"<?= $viewMode === 'collective' ? ' selected' : '' ?>><?= ($app_name ?? '') !== '' ? View::e($app_name) . ' (Collective)' : 'Collective' ?><?= $_aplCollective > 0 ? ' (' . $_aplCollective . ')' : '' ?></option>
+        <option value="collective"<?= $viewMode === 'collective' ? ' selected' : '' ?>><?= ($site_name ?? '') !== '' ? View::e($site_name) . ' (Collective)' : 'Collective' ?><?= $_aplCollective > 0 ? ' (' . $_aplCollective . ')' : '' ?></option>
         <?php foreach ($allListing as $fl): ?>
           <?php $_flApproved = (int) ($_apl[(int) $fl->id] ?? 0); ?>
           <option value="<?= (int) $fl->id ?>"<?= $lid === (int) $fl->id ? ' selected' : '' ?>>
@@ -432,6 +432,15 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
     <a href="<?= View::e($tabUrl('pending')) ?>" class="tabs-btn<?= $tab === 'pending' ? ' active' : '' ?>">
       Pending <span class="badge badge-<?= $_globalPending > 0 ? 'pending' : 'inactive' ?>"><?= $_globalPending ?></span>
     </a>
+  </div>
+</div>
+<div class="tabs-select-wrap">
+  <span class="overview-section-title">View</span>
+  <div class="select-wrap flex-fill">
+    <select onchange="window.location.href=this.value">
+      <option value="<?= View::e($tabUrl('all')) ?>"<?= $tab === 'all' ? ' selected' : '' ?>>All</option>
+      <option value="<?= View::e($tabUrl('pending')) ?>"<?= $tab === 'pending' ? ' selected' : '' ?>>Pending (<?= $_globalPending ?>)</option>
+    </select>
   </div>
 </div>
 

@@ -69,6 +69,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
@@ -198,14 +199,29 @@ if ($_lusterRuleSet->gateType === 'button') {
                              . $_lusterEscGateLabel . '</button>';
 }
 
+$_lusterSettingsRepo = new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase());
+$_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
+$_lusterListingUrl = $_lusterListing?->url ?? '';
+
+$_lusterResolveUrl = static function (string $settingKey, string $fallbackRoute) use ($_lusterEmbedSettings, $_lusterListingUrl, $_lusterBaseUrl, $_lusterListingId): string {
+    $page = (string) ($_lusterEmbedSettings[$settingKey] ?? '');
+    if ($page !== '' && preg_match('#^https?://#i', $page)) {
+        return $page;
+    }
+    if ($page !== '') {
+        return rtrim($_lusterListingUrl, '/') . '/' . ltrim($page, '/');
+    }
+    return $_lusterBaseUrl . '/' . $fallbackRoute . '/' . $_lusterListingId;
+};
+
 $_lusterRulesBodyHtml = \Luster\Support\RulesBodyRenderer::render(
     $_lusterRuleSet->body,
     [
         'subject'       => $_lusterListing?->subject ?? '',
         'listing_title' => $_lusterListing?->title ?? '',
-        'listing_url'   => $_lusterListing?->url ?? '',
-        'join_url'      => $_lusterBaseUrl . '/join/' . $_lusterListingId,
-        'update_url'    => $_lusterBaseUrl . '/update/' . $_lusterListingId,
+        'listing_url'   => $_lusterListingUrl,
+        'join_url'      => $_lusterResolveUrl('form_url_join', 'join'),
+        'update_url'    => $_lusterResolveUrl('form_url_update', 'update'),
     ],
     [
         'gate_checkbox' => $_lusterGateCheckboxHtml,
@@ -226,6 +242,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/rules/gate.php', [
     'rules_body_html' => $_lusterRulesBodyHtml,
     'form_marker'     => $_lusterMarker,
 ]);
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

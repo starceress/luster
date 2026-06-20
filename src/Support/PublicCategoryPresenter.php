@@ -157,7 +157,7 @@ final class PublicCategoryPresenter
         array    $pseudoEntries = [],
     ): string {
         if (empty($categories) && empty($pseudoEntries)) {
-            return '<p>No categories to display.</p>';
+            return '<p class="fl-empty">No categories to display.</p>';
         }
 
         $countHtml = $totalCount > 0 ? ' <span class="fl-category-count">(' . $totalCount . ')</span>' : '';
@@ -286,8 +286,8 @@ final class PublicCategoryPresenter
 
         $html  = '<div class="fl-category-nav">';
         $html .= '<form method="GET" action="' . $e($formAction) . '" class="fl-category-dropdown">';
-        $html .= '<label for="fl-owned-cat">Category:</label> ';
-        $html .= '<select id="fl-owned-cat" name="cat">';
+        $html .= '<label class="fl-label" for="fl-owned-cat">Category:</label> ';
+        $html .= '<select class="fl-select" id="fl-owned-cat" name="cat">';
         $html .= '<option value="0"' . ($currentId === 0 && $view === '' ? ' selected' : '') . '>All</option>';
 
         foreach ($pseudoEntries as $entry) {
@@ -327,7 +327,7 @@ final class PublicCategoryPresenter
         }
 
         $html .= '</select>';
-        $html .= '<noscript><button type="submit">Go</button></noscript>';
+        $html .= '<noscript><button type="submit" class="fl-btn">Go</button></noscript>';
         $html .= '</form>';
         $html .= '</div>';
         return $html;
@@ -409,7 +409,7 @@ final class PublicCategoryPresenter
         array    $pseudoEntries = [],
     ): string {
         if (empty($categories) && empty($pseudoEntries)) {
-            return '<p>No categories to display.</p>';
+            return '<p class="fl-empty">No categories to display.</p>';
         }
 
         $html  = '<div class="fl-category-nav">';
@@ -494,8 +494,8 @@ final class PublicCategoryPresenter
     ): string {
         $html  = '<div class="fl-category-nav">';
         $html .= '<form method="GET" action="' . $e($formAction) . '" class="fl-category-dropdown">';
-        $html .= '<label for="fl-joined-cat">Category:</label> ';
-        $html .= '<select id="fl-joined-cat" name="cat">';
+        $html .= '<label class="fl-label" for="fl-joined-cat">Category:</label> ';
+        $html .= '<select class="fl-select" id="fl-joined-cat" name="cat">';
 
         // When no category is chosen yet, add a disabled placeholder so "All Listings"
         // can be selected via the change event even on first visit (already-selected
@@ -519,7 +519,7 @@ final class PublicCategoryPresenter
         }
 
         $html .= '</select>';
-        $html .= '<noscript><button type="submit">Go</button></noscript>';
+        $html .= '<noscript><button type="submit" class="fl-btn">Go</button></noscript>';
         $html .= '</form>';
         $html .= '</div>';
         return $html;

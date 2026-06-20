@@ -153,6 +153,26 @@ final class KimMemberRepo
     }
 
     /**
+     * Finds all KIM members with the given email address (across all fanlistings).
+     *
+     * @return KimMember[]
+     */
+    public function findAllByEmail(string $email): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_kim_members
+             WHERE email = :email
+             ORDER BY fanlisting_id ASC'
+        );
+        $stmt->execute(['email' => $email]);
+
+        return array_map(
+            static fn(array $row) => KimMember::fromRow($row),
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
      * Finds a KIM member by primary key.
      */
     public function findById(int $id): ?KimMember

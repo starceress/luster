@@ -60,6 +60,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------
 // 3. Load fanlisting
@@ -210,12 +211,11 @@ $_lusterHtml = str_replace(
         '{stat_countries}',
         '{stat_newmembers}',
         '{stat_growth}',
+        '{stat_growth_rate}',
         '{listing_title}',
         '{listing_subject}',
         '{listing_url}',
         '{approved_by}',
-        '{network}',
-        '{network_status}',
         '{network_name}',
         '{tfl_url}',
         '{tafl_url}',
@@ -228,11 +228,10 @@ $_lusterHtml = str_replace(
         (string) $_lusterCountries,
         $_lusterNewMembers,
         $_lusterGrowth . ' members/day',
+        $_lusterGrowth,
         htmlspecialchars($_lusterListing->title,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         htmlspecialchars($_lusterListing->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         htmlspecialchars($_lusterListing->url,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-        $_lusterNetwork,
-        $_lusterNetwork,
         $_lusterNetwork,
         $_lusterNetworkName,
         'https://thefanlistings.org/',
@@ -241,7 +240,6 @@ $_lusterHtml = str_replace(
     $_lusterTemplate,
 );
 
-$_lusterHtml .= \Luster\Core\View::attribution();
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

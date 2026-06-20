@@ -204,7 +204,7 @@ final class ContactController
             'sender_email'  => $email,
             'listing_title' => $listing->title,
             'listing_url'   => $listing->url,
-            'site_name'     => (string) ($this->app->getConfig()->get('app_name', '') ?: ''),
+            'site_name'     => (string) ($this->app->getConfig()->get('site_name', '') ?: ''),
         ]));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
@@ -222,8 +222,8 @@ final class ContactController
         if (!$enabled) {
             return $this->renderPublic('error.php', [
                 'listing'      => null,
-                'listing_name' => (string) $config->get('app_name', 'Collective'),
-                'listing_url'  => (string) $config->get('app_url',  ''),
+                'listing_name' => (string) $config->get('site_name', 'Collective'),
+                'listing_url'  => (string) ($config->get('site_url', '')),
                 'page_title'   => 'Contact',
                 'error'        => 'The collective contact form is currently disabled.',
             ]);
@@ -318,7 +318,7 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        $siteName  = (string) $config->get('app_name', 'Collective');
+        $siteName  = (string) $config->get('site_name', 'Collective');
         $recipient = (string) ($siteRepo->get('collective_contact_recipient') ?? '');
         if ($recipient === '') {
             $recipient = (string) $config->get('owner_email', '');
@@ -383,7 +383,7 @@ final class ContactController
         $subjOld     = (string) ($old['subject'] ?? '');
         $subjectHtml = '<select id="contact-subject" name="subject" required>'
                      . '<option value="" disabled' . ($subjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
-        foreach (['Comments', 'Contact', 'Questions/Concerns', 'Affiliation', 'Link Exchange'] as $_subjectOpt) {
+        foreach (['Comments', 'Contact', 'Questions & Concerns'] as $_subjectOpt) {
             $optEsc       = htmlspecialchars($_subjectOpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $subjectHtml .= '<option value="' . $optEsc . '"' . ($subjOld === $_subjectOpt ? ' selected' : '') . '>' . $optEsc . '</option>';
         }
@@ -417,9 +417,9 @@ final class ContactController
 
         if ($contactTpl !== '') {
             $tokens = [
-                '{listing_title}'        => View::e($listing?->title ?? (string) $this->app->getConfig()->get('app_name', 'Collective')),
-                '{listing_subject}'      => View::e($listing?->subject ?? (string) $this->app->getConfig()->get('app_name', 'Collective')),
-                '{listing_url}'          => View::e($listing?->url   ?? (string) $this->app->getConfig()->get('app_url',  '')),
+                '{listing_title}'        => View::e($listing?->title ?? (string) $this->app->getConfig()->get('site_name', 'Collective')),
+                '{listing_subject}'      => View::e($listing?->subject ?? (string) $this->app->getConfig()->get('site_name', 'Collective')),
+                '{listing_url}'          => View::e($listing?->url   ?? (string) ($this->app->getConfig()->get('site_url', ''))),
                 '{field_name}'           => $f['name'],
                 '{field_name_input}'     => $f['name_input'],
                 '{field_email}'          => $f['email'],
@@ -442,8 +442,8 @@ final class ContactController
 
         $data = [
             'listing'      => $listing,
-            'listing_name' => $listing?->title ?? (string) $this->app->getConfig()->get('app_name', 'Collective'),
-            'listing_url'  => $listing?->url   ?? (string) $this->app->getConfig()->get('app_url',  ''),
+            'listing_name' => $listing?->title ?? (string) $this->app->getConfig()->get('site_name', 'Collective'),
+            'listing_url'  => $listing?->url   ?? (string) ($this->app->getConfig()->get('site_url', '')),
             'page_title'   => 'Contact',
             'form_action'  => $formAction,
             'csrf_token'   => $this->app->getCSRF()->token(),

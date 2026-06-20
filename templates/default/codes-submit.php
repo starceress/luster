@@ -29,16 +29,16 @@ use Luster\Core\View;
 <?php return; ?>
 <?php endif; ?>
 <div class="fl-embed fl-embed--codes-submit">
-  <p>
+  <p class="fl-hint">
     Submit a code image for consideration. All submissions are reviewed before being published.
     Maximum file size: 200&nbsp;KB. Accepted formats: JPEG, PNG, GIF, WebP.
   </p>
 
   <?php if ($errors !== ''): ?>
-    <p><?= $errors ?></p>
+    <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
-  <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>" enctype="multipart/form-data">
+  <form class="fl-form fl-form-codes-submit" method="POST" action="<?= View::e($form_action) ?>" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
@@ -56,6 +56,7 @@ use Luster\Core\View;
 
     <div class="fl-form-actions">
       <button type="submit" class="fl-submit">Submit Code</button>
+      <button type="reset" class="fl-btn-secondary">Clear</button>
     </div>
   </form>
 </div>

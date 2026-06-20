@@ -28,7 +28,7 @@ use Luster\Core\View;
   <div class="fl-errors"><?= $errors ?></div>
 <?php endif; ?>
 
-<form class="fl-form" method="POST" action="<?= View::e($form_action) ?>" enctype="multipart/form-data">
+<form class="fl-form fl-form-affiliate-apply" method="POST" action="<?= View::e($form_action) ?>" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
   <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
@@ -47,6 +47,7 @@ use Luster\Core\View;
 
   <div class="fl-form-actions">
     <button type="submit" class="fl-submit fl-btn">Submit Application</button>
+    <button type="reset" class="fl-btn-secondary">Clear</button>
   </div>
 </form>
 </div>

@@ -32,7 +32,7 @@ use Luster\Core\View;
     <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
-  <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+  <form class="fl-form fl-form-contact" method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
@@ -51,6 +51,7 @@ use Luster\Core\View;
 
     <div class="fl-form-actions">
       <button type="submit" class="fl-submit">Send Message</button>
+      <button type="reset" class="fl-btn-secondary">Clear</button>
     </div>
   </form>
 

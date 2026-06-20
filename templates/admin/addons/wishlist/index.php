@@ -295,7 +295,7 @@ $showDragHint = isset($typeTabs[$filter_type])
     </div>
 
     <div class="table-wrap">
-      <table class="data-table"
+      <table class="data-table mem-table"
         <?php if ($dragEnabled): ?>
           data-wl-reorder-url="<?= View::e($b . '/admin/wishlist/reorder') ?>"
           data-wl-csrf="<?= View::e($csrf_token) ?>"

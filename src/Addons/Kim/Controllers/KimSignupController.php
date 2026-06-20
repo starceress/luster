@@ -7,7 +7,6 @@ namespace Luster\Addons\Kim\Controllers;
 use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Addons\Kim\KimPasswordResetRepo;
 use Luster\Core\Application;
-use Luster\Core\Captcha;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
@@ -17,7 +16,6 @@ use Luster\Core\View;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
-use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
@@ -78,21 +76,6 @@ final class KimSignupController
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlistings = $listingRepo->getAll();
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
-        $captchaOk = Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_signup');
-        if (!$captchaOk) {
-            $rateLimit->hitDefault($ip, 'kim_signup');
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old', [
-                'name'         => trim((string) $request->post('name',         '')),
-                'email'        => trim((string) $request->post('email',        '')),
-                'url'          => trim((string) $request->post('url',          '')),
-                'fanlisting_id' => (string) $request->post('fanlisting_id',    ''),
-                'send_copy'    => (string) $request->post('send_copy',         ''),
-            ]);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
-        }
-
         $name        = trim((string) $request->post('name',         ''));
         $email       = trim((string) $request->post('email',        ''));
         $url         = trim((string) $request->post('url',          ''));
@@ -122,7 +105,6 @@ final class KimSignupController
             'email'        => $email,
             'url'          => $url,
             'fanlisting_id' => (string) $fanlistingId,
-            'send_copy'    => (string) $request->post('send_copy', ''),
         ];
 
         if ($validationFailed) {
@@ -182,35 +164,36 @@ final class KimSignupController
             }
         }
 
-        $sendCopy = ((string) $request->post('send_copy', '') === '1');
+        // Always send confirmation email to the member
+        try {
+            $config     = $this->app->getConfig();
+            $siteName   = (string) $config->get('site_name', '');
+            $ownerName  = (string) $config->get('owner_name',  '');
+            $ownerEmail = (string) $config->get('owner_email', '');
 
-        if ($sendCopy || $wasGenerated) {
-            try {
-                $mailer  = new Mailer($this->app->getConfig());
-                $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
-                $setupUrl = $wasGenerated ? $this->issuePasswordSetupUrl($kimRepo, $email, $fanlistingId) : '';
-                $subject = "KIM List Sign-Up — {$siteName}";
-                $body    = "Hi {$name},\n\n"
-                         . "You have signed up for the KIM List for:\n"
-                         . "  Fanlisting: " . ($selectedListing?->subject ?? "ID {$fanlistingId}") . "\n"
-                         . "  Your name:  {$name}\n"
-                         . "  Your email: {$email}\n"
-                         . "  Your URL:   {$url}\n\n"
-                         . "Your entry is currently pending approval.\n\n"
-                         . "-- {$siteName}";
-                if ($setupUrl !== '') {
-                    $body = str_replace(
-                        "-- {$siteName}",
-                        "Use the link below to set your password. This link expires in 1 hour.\n"
-                        . $setupUrl . "\n\n"
-                        . "-- {$siteName}",
-                        $body,
-                    );
-                }
-                $mailer->send($email, $name, $subject, $body);
-            } catch (\Throwable $e) {
-                error_log('[KIM] Sign-up confirmation email failed: ' . $e->getMessage());
-            }
+            $listingName = $selectedListing !== null ? ($selectedListing->subject ?: $selectedListing->title) : $siteName;
+            $listingUrl  = $selectedListing !== null ? $selectedListing->url : $this->app->getBaseUrl();
+
+            // Always issue a setup URL so the fan can access their account.
+            // URL points to the KIM reset page (configured) or the Luster reset route —
+            // never to the signup page, even in embed context.
+            $setupUrl  = $this->issuePasswordSetupUrl($kimRepo, $email, $fanlistingId);
+            $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+            $tokens    = EmailTemplateRepo::buildKimTokens(
+                listingName: $listingName,
+                listingUrl:  $listingUrl,
+                siteName:    $siteName,
+                ownerName:   $ownerName,
+                ownerEmail:  $ownerEmail,
+                kimName:     $name,
+                kimEmail:    $email,
+                kimUrl:      $url,
+                resetUrl:    $setupUrl,
+            );
+            [$subject, $body] = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_KIM_SIGNUP, $tokens);
+            (new Mailer($config))->send($email, $name, $subject, $body);
+        } catch (\Throwable $e) {
+            error_log('[KIM] Sign-up confirmation email failed: ' . $e->getMessage());
         }
 
         // Admin notification email
@@ -260,7 +243,6 @@ final class KimSignupController
         array  $fanlistings,
         array  $old = [],
         string $error = '',
-        string $captchaError = '',
     ): Response {
         $baseUrl    = $this->app->getBaseUrl();
         $siteRepo   = new SiteSettingsRepo($this->app->getDatabase());
@@ -278,16 +260,13 @@ final class KimSignupController
         }
         $flSelectHtml .= '</select>';
 
-        $captchaQ = Captcha::getQuestion('kim_signup');
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'text',         'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                     'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
             ['type' => 'url',          'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL',  'required' => true,  'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
             ['type' => 'email',        'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'select',       'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $flSelectHtml],
-            ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'If left blank, a password will be generated and emailed to you.'],
+            ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. If left blank, we\'ll email you a link to set one.'],
             ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-            ['type' => 'checkboxGroup','name' => 'send_copy',        'id' => '',                     'label' => 'Opt-in',                   'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => ((string) ($old['send_copy'] ?? '')) === '1' ? ['1'] : []],
-            ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $captchaQ,   'required' => true,  'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
         $formHtml = null;
@@ -307,11 +286,11 @@ final class KimSignupController
                 '{field_password_input}'              => $f['password_input'],
                 '{field_password_confirm}'            => $f['password_confirm'],
                 '{field_password_confirm_input}'      => $f['password_confirm_input'],
-                '{field_send_copy}'                   => $f['send_copy'],
-                '{field_send_copy_input}'             => $f['send_copy_input'],
-                '{captcha_block}'                     => $f['captcha_answer'],
-                '{captcha_block_input}'               => $f['captcha_answer_input'],
-                '{captcha_question}'                  => View::e($captchaQ),
+                '{field_send_copy}'                   => '',
+                '{field_send_copy_input}'             => '',
+                '{captcha_block}'                     => '',
+                '{captcha_block_input}'               => '',
+                '{captcha_question}'                  => '',
                 '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
                 '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];
@@ -360,8 +339,11 @@ final class KimSignupController
         return Response::html($html);
     }
 
-    private function issuePasswordSetupUrl(KimMemberRepo $kimRepo, string $email, int $fanlistingId): string
-    {
+    private function issuePasswordSetupUrl(
+        KimMemberRepo $kimRepo,
+        string        $email,
+        int           $fanlistingId,
+    ): string {
         $member = $kimRepo->findByEmailAndFanlisting($email, $fanlistingId);
         if ($member === null) {
             return '';
@@ -378,6 +360,23 @@ final class KimSignupController
 
         $resetRepo->create($member->id, $tokenHash, $expiresAt);
 
-        return $this->app->getBaseUrl() . '/kim/reset/confirm?token=' . urlencode($rawToken);
+        // Resolve reset page: prefer the admin-configured KIM reset page URL so that
+        // the token lands on the host page embedding the kim-reset.php embed, not on
+        // the signup page or Luster's own routes.
+        $siteRepo      = new SiteSettingsRepo($this->app->getDatabase());
+        $resetPagePath = $siteRepo->get('kim_url_reset') ?? '';
+        if ($resetPagePath !== '') {
+            $parsed   = parse_url((string) ($this->app->getConfig()->get('site_url', '')));
+            $siteRoot = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '');
+            if (!empty($parsed['port'])) {
+                $siteRoot .= ':' . $parsed['port'];
+            }
+            $baseResetUrl = $siteRoot . '/' . ltrim($resetPagePath, '/');
+        } else {
+            $baseResetUrl = $this->app->getBaseUrl() . '/kim/reset/confirm';
+        }
+
+        $sep = str_contains($baseResetUrl, '?') ? '&' : '?';
+        return $baseResetUrl . $sep . 'token=' . urlencode($rawToken);
     }
 }

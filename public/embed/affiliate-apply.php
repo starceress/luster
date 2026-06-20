@@ -41,6 +41,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = $_lusterApp ?? require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
@@ -137,15 +138,15 @@ if ($_lusterListingId === 0) {
     $_lusterBaseUrl    = rtrim((string) ($_lusterConfig->get('embed_base_url', '') ?: $_lusterApp->getBaseUrl()), '/');
     $_lusterFormAction = $_lusterRedirectTo;
     $_lusterSiteName   = (string) $_lusterConfig->get('site_name', 'Collective');
-    $_lusterSiteUrl    = (string) ($_lusterConfig->get('site_url', '') ?: $_lusterApp->getBaseUrl());
+    $_lusterSiteUrl    = (string) $_lusterConfig->get('site_url', '');
 
     $_lusterCaptchaQ   = Captcha::getQuestion('affiliate_apply');
     $_lusterWrapperTpl = '';
     $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
         ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Name',                      'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
-        ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Website URL (optional)',                       'required' => true,  'value' => (string) ($_lusterOld['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+        ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Website URL',                                  'required' => true,  'value' => (string) ($_lusterOld['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
         ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
-        ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+        ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
         ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($_lusterOld['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
         ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
     ], $_lusterWrapperTpl);
@@ -261,8 +262,8 @@ $_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId)
 $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Name',                      'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
     ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Website URL',                       'required' => true,  'value' => (string) ($_lusterOld['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-    ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => false, 'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
-    ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+    ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true,  'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
+    ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
     ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($_lusterOld['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
     ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
@@ -294,6 +295,7 @@ if ($_lusterAffApplyTpl !== '') {
         '{captcha_block_input}'   => $_lusterF['captcha_answer_input'],
         '{captcha_question}'      => View::e($_lusterCaptchaQ),
         '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
+        '{clear_button}'          => '<button type="reset" class="fl-btn-secondary">Clear</button>',
     ];
     $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterAffApplyTpl, $_lusterAffTokens);
     $_lusterFormHtml  = FormTemplateRenderer::wrapForm(
@@ -315,6 +317,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliate-apply.php', [
     'form_html'    => $_lusterFormHtml,
     'form_marker'  => $_lusterMarker,
 ]);
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

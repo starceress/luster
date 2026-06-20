@@ -24,8 +24,8 @@ $snip = static function(string $file, bool $withId = false) use ($ep): string {
 
 <!-- ── Listings & Data ──────────────────────────────────────────────────── -->
 <section class="es-section">
-  <h3 class="es-section-heading">Listings &amp; Data</h3>
   <div class="gradient-card">
+    <div class="card-head">Listings &amp; Data</div>
     <ul class="es-list" role="list">
 
       <?php $_s = $snip('owned.php'); ?>
@@ -88,6 +88,36 @@ $snip = static function(string $file, bool $withId = false) use ($ep): string {
         <div class="es-snippet" hidden><pre class="es-snippet-pre"><?= $_s ?></pre></div>
       </li>
 
+      <?php $_s = $snip('random-joined-listing.php'); ?>
+      <li class="es-item">
+        <div class="es-item-row">
+          <span class="es-item-icon"><?= View::icon('wand', ['width' => 15, 'height' => 15]) ?></span>
+          <div class="es-item-meta">
+            <span class="es-item-label">Random Joined Listing</span>
+            <span class="es-item-desc">Shows one joined listing at random. Template editable under Collective &rarr; Templates.</span>
+          </div>
+          <span class="badge badge-info">Data</span> ✦
+          <button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>
+          <button type="button" class="btn btn-primary btn-xs es-copy" data-snippet="<?= $_s ?>">Copy</button>
+        </div>
+        <div class="es-snippet" hidden><pre class="es-snippet-pre"><?= $_s ?></pre></div>
+      </li>
+
+      <?php $_s = $snip('latest-joined-listing.php'); ?>
+      <li class="es-item">
+        <div class="es-item-row">
+          <span class="es-item-icon"><?= View::icon('updates', ['width' => 15, 'height' => 15]) ?></span>
+          <div class="es-item-meta">
+            <span class="es-item-label">Latest Joined Listing</span>
+            <span class="es-item-desc">Shows the newest joined listing. Template editable under Collective &rarr; Templates.</span>
+          </div>
+          <span class="badge badge-info">Data</span> ✦
+          <button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>
+          <button type="button" class="btn btn-primary btn-xs es-copy" data-snippet="<?= $_s ?>">Copy</button>
+        </div>
+        <div class="es-snippet" hidden><pre class="es-snippet-pre"><?= $_s ?></pre></div>
+      </li>
+
       <?php $_s = $snip('collective-stats.php'); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -140,8 +170,8 @@ $snip = static function(string $file, bool $withId = false) use ($ep): string {
 
 <!-- ── Forms ────────────────────────────────────────────────────────────── -->
 <section class="es-section">
-  <h3 class="es-section-heading">Forms</h3>
   <div class="gradient-card">
+    <div class="card-head">Forms</div>
     <ul class="es-list" role="list">
 
       <?php $_s = $snip('affiliate-apply.php', true); ?>
@@ -189,6 +219,21 @@ $snip = static function(string $file, bool $withId = false) use ($ep): string {
         <div class="es-snippet" hidden><pre class="es-snippet-pre"><?= $_s ?></pre></div>
       </li>
 
+      <?php $_s = $snip('adopt.php'); ?>
+      <li class="es-item">
+        <div class="es-item-row">
+          <span class="es-item-icon"><?= View::icon('heart', ['width' => 15, 'height' => 15]) ?></span>
+          <div class="es-item-meta">
+            <span class="es-item-label">Adoption Form</span>
+            <span class="es-item-desc">Lets visitors apply to adopt a listing. Requires the Adoption add-on.</span>
+          </div>
+          <span class="badge badge-info-pink">Form</span> ✦
+          <button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>
+          <button type="button" class="btn btn-primary btn-xs es-copy" data-snippet="<?= $_s ?>">Copy</button>
+        </div>
+        <div class="es-snippet" hidden><pre class="es-snippet-pre"><?= $_s ?></pre></div>
+      </li>
+
     </ul>
   </div>
 </section>
@@ -196,8 +241,8 @@ $snip = static function(string $file, bool $withId = false) use ($ep): string {
 
 <!-- ── Add-ons ──────────────────────────────────────────────────────────── -->
 <section class="es-section">
-  <h3 class="es-section-heading">Add-ons</h3>
   <div class="gradient-card">
+    <div class="card-head">Add-ons</div>
     <ul class="es-list" role="list">
 
       <?php $_s = $snip('collective-updates.php'); ?>

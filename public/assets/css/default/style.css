@@ -172,10 +172,16 @@
   padding: 0.6em 0.75em;
   border: 1px solid #c00;
   border-radius: var(--fl-input-radius, 3px);
+  background: #fff0f0;
+}
+
+.fl-field--danger label {
+  color: #c00;
 }
 
 .fl-field--danger .fl-field-hint {
   color: #c00;
+  font-weight: bold;
 }
 
 .fl-label {
@@ -202,6 +208,29 @@
   font-size: 0.85em;
   color: #c00;
   margin: 0.2em 0 0;
+}
+
+.fl-checkbox,
+.fl-radio {
+  margin-right: 0.25em;
+}
+
+.fl-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  cursor: pointer;
+}
+
+.fl-fieldset {
+  border: 1px solid currentColor;
+  border-radius: var(--fl-input-radius, 3px);
+  padding: 0.75em 1em;
+  margin: 0.5em 0;
+}
+
+.fl-heading {
+  --fl: ; /* Inherits from host — use for section headings in embeds */
 }
 
 /* Summary error block at top of form */
@@ -394,6 +423,10 @@
 
 .fl-member-field-label {
   font-weight: 500;
+}
+
+.fl-member-field-value {
+  --fl: ; /* Inherits from host */
 }
 
 /* ── Stats (per-listing) ─────────────────────────────────────────────────────── */
@@ -609,13 +642,9 @@
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.fl-joined-item {
   display: flex;
-  gap: 0.75em;
-  align-items: flex-start;
-  padding: 0.5em 0;
+  flex-wrap: wrap;
+  gap: 0.3em;
 }
 
 .fl-joined-image-wrap {
@@ -908,6 +937,53 @@
 
 .fl-kim-member-name {
   font-weight: 500;
+}
+
+/* ── KIM update dashboard table ─────────────────────────────────────────────── */
+
+.fl-kim-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.fl-kim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.fl-kim-table th,
+.fl-kim-table td {
+  padding: 0.45em 0.65em;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.fl-kim-table thead th {
+  border-bottom: 2px solid #c0c0c0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fl-kim-table td:first-child,
+.fl-kim-table th:first-child {
+  width: 2em;
+  text-align: center;
+  padding-left: 0.35em;
+  padding-right: 0.35em;
+}
+
+.fl-kim-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.fl-kim-entry-pending {
+  font-size: 0.8em;
+  color: #888;
+  font-style: italic;
+  display: inline-block;
+  margin-left: 0.35em;
 }
 
 /* ── Wishlist ────────────────────────────────────────────────────────────────── */

@@ -67,6 +67,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
@@ -252,10 +253,13 @@ if ($_lusterCountry !== '') {
     $_lusterResult     = $_lusterMemberRepo->paginateByCountry(
         $_lusterListing->dbprefix, $_lusterCountry, $_lusterPage, $_lusterPerPage,
     );
-    $_lusterStatsLine  = $_lusterCountry . ': ' . $_lusterResult['total'] . ' member(s)'
-        . ($_lusterResult['pages'] > 1
-            ? ' — page ' . $_lusterPage . ' of ' . $_lusterResult['pages']
-            : '');
+    if ($_lusterResult['total'] === 0) {
+        $_lusterStatsLine = 'No members';
+    } else {
+        $_lusterStart     = ($_lusterPage - 1) * $_lusterPerPage + 1;
+        $_lusterEnd       = min($_lusterPage * $_lusterPerPage, $_lusterResult['total']);
+        $_lusterStatsLine = 'Showing ' . $_lusterStart . '–' . $_lusterEnd . ' of ' . $_lusterResult['total'] . ' members';
+    }
     $_lusterPagination = Pagination::render(
         $_lusterPage, $_lusterResult['pages'], $_lusterMembersBase, $_lusterPaginationTemplate,
         ['sort' => 'country', 'country' => $_lusterCountry],
@@ -289,7 +293,7 @@ if ($_lusterCountry !== '') {
         ];
     }
     $_lusterTotal     = count($_lusterCountries);
-    $_lusterStatsLine = $_lusterTotal . ' ' . ($_lusterTotal === 1 ? 'country' : 'countries') . ' represented';
+    $_lusterStatsLine = $_lusterTotal === 0 ? 'No countries' : 'Showing 1–' . $_lusterTotal . ' of ' . $_lusterTotal . ' ' . ($_lusterTotal === 1 ? 'country' : 'countries');
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('members.php', array_merge($_lusterCommonData, [
         'country'         => '',
@@ -304,8 +308,13 @@ if ($_lusterCountry !== '') {
     $_lusterResult     = $_lusterMemberRepo->paginate(
         $_lusterListing->dbprefix, $_lusterPage, $_lusterPerPage, true, $_lusterSort,
     );
-    $_lusterStatsLine  = $_lusterResult['total'] . ' member(s) — page '
-        . $_lusterPage . ' of ' . $_lusterResult['pages'];
+    if ($_lusterResult['total'] === 0) {
+        $_lusterStatsLine = 'No members';
+    } else {
+        $_lusterStart     = ($_lusterPage - 1) * $_lusterPerPage + 1;
+        $_lusterEnd       = min($_lusterPage * $_lusterPerPage, $_lusterResult['total']);
+        $_lusterStatsLine = 'Showing ' . $_lusterStart . '–' . $_lusterEnd . ' of ' . $_lusterResult['total'] . ' members';
+    }
     $_lusterPagination = Pagination::render(
         $_lusterPage, $_lusterResult['pages'], $_lusterMembersBase, $_lusterPaginationTemplate,
         ['sort' => $_lusterSort],
@@ -328,6 +337,7 @@ if ($_lusterCountry !== '') {
         'pagination'      => $_lusterPagination,
     ]));
 }
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

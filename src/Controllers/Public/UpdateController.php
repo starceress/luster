@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
-use Luster\Core\Captcha;
 use Luster\Core\Countries;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
@@ -270,16 +269,6 @@ final class UpdateController
 
         $postData = $request->postAll();
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
-        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'update')) {
-            $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
-            foreach ($fields as $field) {
-                $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
-            }
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old', $old);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
-        }
 
         // Permanently delete membership instead of updating it
         if ((string) $request->post('delete_membership', '') === '1') {
@@ -426,27 +415,37 @@ final class UpdateController
                 : trim((string) $raw);
         }
 
+        // Password changes always apply immediately (never queued)
         if (isset($updateData['password'])) {
             $memberRepo->update($listing->dbprefix, $email, ['password' => $updateData['password']]);
             unset($updateData['password']);
         }
 
-        if (isset($updateData['email'])) {
-            $memberRepo->update($listing->dbprefix, $email, ['email' => $updateData['email']]);
-            unset($updateData['email']);
+        $shouldQueue = $settingsRepo->getQueueUpdates($listingId);
+
+        if ($shouldQueue) {
+            $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
+            $pendingRepo->insert($listingId, $email, $updateData);
+
+            $session->remove(self::AUTH_KEY . $listingId);
+            $session->remove('lstr_embed_return_to');
+            $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'updated-pending', [
+                'listing_title' => $listing->title,
+                'listing_url'   => $listing->url,
+            ]));
+        } else {
+            $memberRepo->update($listing->dbprefix, $email, $updateData);
+
+            $session->remove(self::AUTH_KEY . $listingId);
+            $session->remove('lstr_embed_return_to');
+            $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'updated', [
+                'listing_title' => $listing->title,
+                'listing_url'   => $listing->url,
+            ]));
         }
 
-        $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
-        $pendingRepo->insert($listingId, $finalEmail, $updateData);
-
-        // Clear auth session — member must sign in again for another update
-        $session->remove(self::AUTH_KEY . $listingId);
-        $session->remove('lstr_embed_return_to');
-        $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
-        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'updated-pending', [
-            'listing_title' => $listing->title,
-            'listing_url'   => $listing->url,
-        ]));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
@@ -553,11 +552,9 @@ final class UpdateController
         \Luster\Models\Member $member,
         array $old = [],
         string $error = '',
-        string $captchaError = '',
         string $updateError = '',
     ): Response {
         $baseUrl         = $this->app->getBaseUrl();
-        $captchaQuestion = Captcha::getQuestion('update');
         $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
         $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
         $wrapperTpl      = $settingsRepo->getWrapperTemplate($listingId) ?? '';
@@ -597,9 +594,8 @@ final class UpdateController
             ['type' => 'url',      'name' => 'url',                 'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
             ['type' => 'text',     'name' => 'country',             'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySelect],
             ...$fb->descriptorsFromAdditionalFields($fields, $updOld),
-            ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Leave blank to keep current']],
+            ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
             ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Repeat new password']],
-            ['type' => 'text',     'name' => 'captcha_answer',      'id' => 'upd-captcha',      'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
         $f = $fb->build($descriptors, $wrapperTpl);
 
@@ -631,9 +627,9 @@ final class UpdateController
                 '{additional_fields}'      => $additionalFieldsHtml,
                 '{field_password}'         => $f['new_password'],
                 '{field_password_confirm}' => $f['new_password_confirm'],
-                '{captcha_block}'          => $f['captcha_answer'],
-                '{captcha_block_input}'    => $f['captcha_answer_input'] ?? '',
-                '{captcha_question}'       => \Luster\Core\View::e($captchaQuestion),
+                '{captcha_block}'          => '',
+                '{captcha_block_input}'    => '',
+                '{captcha_question}'       => '',
                 '{field_remove}'           => $removeMembershipHtml,
                 '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
                 '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',

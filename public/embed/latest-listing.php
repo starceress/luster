@@ -45,6 +45,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------
 // 2. Fetch the most recently opened active listing
@@ -112,7 +113,7 @@ $_flNeedsApproved = str_contains($_lusterTemplate, '{member_count}')
                  || str_contains($_lusterTemplate, '{country_count}')
                  || str_contains($_lusterTemplate, '{if_countries}');
 $_flNeedsPending  = str_contains($_lusterTemplate, '{member_pending_count}')
-                 || str_contains($_lusterTemplate, '{pending_count}')
+                 || str_contains($_lusterTemplate, '{pending_owned_count}')
                  || str_contains($_lusterTemplate, '{if_pending}');
 
 if ($_flNeedsApproved || $_flNeedsPending) {
@@ -141,7 +142,6 @@ $_lusterHtml = ListingRowRenderer::renderTemplate(
     (string) ($luster_date_format ?? ''),
 );
 
-$_lusterHtml .= \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------
 // 4. Return or echo

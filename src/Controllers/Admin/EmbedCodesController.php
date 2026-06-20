@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Controllers\Admin;
 
 use Luster\Core\Application;
-use Luster\Core\Captcha;
 use Luster\Core\Countries;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -13,7 +12,6 @@ use Luster\Models\Member;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
-
 /**
  * Read-only reference page showing copyable PHP embed snippets, and the
  * compat wrapper smoke-test renderer.
@@ -138,12 +136,111 @@ final class EmbedCodesController
         // so submitting the preview can never act on a real membership.
         if ($key === 'update') {
             $listingId = max(1, (int) $request->query('lid', 1));
-            $html = $this->previewSectionLabel('Step 1 — Sign In')
-                . $this->previewUpdateSignInForm($listingId)
-                . $this->previewSectionLabel('Step 2 — Update Form (Signed In)')
-                . $this->previewUpdateSignedInForm($listingId);
+            $panels = [
+                ['label' => 'Sign In',    'html' => $this->previewUpdateSignInForm($listingId)],
+                ['label' => 'Update Form','html' => $this->previewUpdateSignedInForm($listingId)],
+            ];
+            return Response::html($this->previewWrap($this->previewTabbedPanels($panels), $appUrl));
+        }
 
-            return Response::html($this->previewWrap($html, $appUrl));
+        // KIM Update is also session-gated. Render both steps synthetically so the
+        // admin sees the full flow without consuming or mutating auth session state.
+        if ($key === 'kim-update') {
+            $panels = [
+                ['label' => 'Sign In',   'html' => $this->previewKimUpdateSignInForm()],
+                ['label' => 'Dashboard', 'html' => $this->previewKimUpdateDashboard()],
+            ];
+            return Response::html($this->previewWrap($this->previewTabbedPanels($panels), $appUrl));
+        }
+
+        // Members: run the real embed three times with different sort orders so
+        // the admin sees actual member data from the selected listing.
+        if ($key === 'members') {
+            $embedFile = $lusterBase . '/public/embed/members.php';
+            if (!is_file($embedFile)) {
+                return Response::html($this->previewWrap('<p>Embed file not found.</p>', $appUrl));
+            }
+            $lid = max(1, (int) $request->query('lid', 1));
+            $runSort = static function (string $sortBy) use ($embedFile, $lid): string {
+                $luster_return        = true;
+                $luster_fanlisting_id = $lid;
+                $luster_sort_by       = $sortBy;
+                $luster_show_search   = true;
+                try {
+                    ob_start();
+                    $result   = require $embedFile;
+                    $buffered = ob_get_clean() ?: '';
+                    return is_string($result) ? $result : $buffered;
+                } catch (\Throwable $ex) {
+                    ob_end_clean();
+                    return '<p style="color:#c00;font-family:monospace">Error: '
+                        . htmlspecialchars($ex->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+                }
+            };
+            $panels = [
+                ['label' => 'View All', 'html' => $runSort('added')],
+                ['label' => 'Name',     'html' => $runSort('name')],
+                ['label' => 'Country',  'html' => $runSort('country')],
+            ];
+            return Response::html($this->previewWrap($this->previewTabbedPanels($panels), $appUrl));
+        }
+
+        // Owned listings: run the real embed four times with different category
+        // navigation modes so the admin sees actual listings and categories.
+        if ($key === 'owned') {
+            $embedFile = $lusterBase . '/public/embed/owned.php';
+            if (!is_file($embedFile)) {
+                return Response::html($this->previewWrap('<p>Embed file not found.</p>', $appUrl));
+            }
+            $runOwned = static function (array $vars) use ($embedFile): string {
+                $luster_return = true;
+                extract($vars);
+                try {
+                    ob_start();
+                    $result   = require $embedFile;
+                    $buffered = ob_get_clean() ?: '';
+                    return is_string($result) ? $result : $buffered;
+                } catch (\Throwable $ex) {
+                    ob_end_clean();
+                    return '<p style="color:#c00;font-family:monospace">Error: '
+                        . htmlspecialchars($ex->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+                }
+            };
+            $panels = [
+                ['label' => 'List View',     'html' => $runOwned(['luster_browse_by_category' => true])],
+                ['label' => 'Dropdown View', 'html' => $runOwned([])],
+                ['label' => 'No Categories', 'html' => $runOwned(['luster_hide_dropdown' => true])],
+            ];
+            return Response::html($this->previewWrap($this->previewTabbedPanels($panels), $appUrl));
+        }
+
+        // Joined listings: three display-mode panels using real data.
+        if ($key === 'joined') {
+            $embedFile = $lusterBase . '/public/embed/joined.php';
+            if (!is_file($embedFile)) {
+                return Response::html($this->previewWrap('<p>Embed file not found.</p>', $appUrl));
+            }
+            $runJoined = static function (array $vars) use ($embedFile): string {
+                $luster_return = true;
+                extract($vars);
+                try {
+                    ob_start();
+                    $result   = require $embedFile;
+                    $buffered = ob_get_clean() ?: '';
+                    return is_string($result) ? $result : $buffered;
+                } catch (\Throwable $ex) {
+                    ob_end_clean();
+                    return '<p style="color:#c00;font-family:monospace">Error: '
+                        . htmlspecialchars($ex->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+                }
+            };
+
+            $panels = [
+                ['label' => 'List View',     'html' => $runJoined(['luster_browse_by_category' => true])],
+                ['label' => 'Dropdown View', 'html' => $runJoined([])],
+                ['label' => 'Show All',      'html' => $runJoined(['luster_category' => 'all'])],
+            ];
+            return Response::html($this->previewWrap($this->previewTabbedPanels($panels), $appUrl));
         }
 
         $embedFile = $lusterBase . '/public/embed/' . $fileMap[$key];
@@ -169,7 +266,6 @@ final class EmbedCodesController
         if ($q('sort_by') !== null && $q('sort_by') !== '')       { $luster_sort_by             = (string) $q('sort_by'); }
         if ($q('show_search') !== null)                           { $luster_show_search         = $q('show_search') !== 'false'; }
         if ($q('stats_template') !== null && $q('stats_template') !== '') { $luster_stats_template = (string) $q('stats_template'); }
-        if ($q('reset_step') !== null && $q('reset_step') !== '') { $luster_reset_step          = (string) $q('reset_step'); }
         if ($q('browse_by_category') !== null)                    { $luster_browse_by_category  = $q('browse_by_category') === 'true'; }
         if ($q('category_id') !== null && $q('category_id') !== '') { $luster_category_id        = max(0, (int) $q('category_id')); }
         if ($q('category') !== null && $q('category') !== '')     { $luster_category            = (string) $q('category'); }
@@ -192,6 +288,11 @@ final class EmbedCodesController
             ob_end_clean();
             $html = '<p style="color:#c00;font-family:monospace">Error: '
                 . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+        }
+
+        if ($key === 'rules-gate' && trim($html) === '') {
+            $html = '<p style="color:#777;font-style:italic">No rules are enabled for this listing. '
+                . 'Enable rules from <strong>Admin &rarr; Join Rules</strong> to see a preview.</p>';
         }
 
         return Response::html($this->previewWrap($html, $appUrl));
@@ -291,9 +392,6 @@ final class EmbedCodesController
             ]);
 
             $fb         = $this->app->getFormFieldBuilder();
-            // Use a dedicated captcha session slot so this preview never overwrites
-            // (and invalidates) a real in-progress update form's captcha answer.
-            $captchaQ   = Captcha::getQuestion('embed_preview_update');
             $countrySel = Countries::buildSelect($member->country);
 
             $urlVal = htmlspecialchars($member->url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -311,9 +409,8 @@ final class EmbedCodesController
                 ['type' => 'url',      'name' => 'url',                 'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
                 ['type' => 'text',     'name' => 'country',             'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySel],
                 ...$fb->descriptorsFromAdditionalFields($fields, $oldFields),
-                ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Leave blank to keep current']],
+                ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
                 ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Repeat new password']],
-                ['type' => 'text',     'name' => 'captcha_answer',      'id' => 'upd-captcha',      'label' => 'Captcha: ' . $captchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
             ];
 
             $f = $fb->build($descriptors, $wrapperTpl);
@@ -345,22 +442,137 @@ final class EmbedCodesController
     }
 
     /**
-     * Renders a small labelled section divider between stacked preview states.
-     * Matches ListingController::previewSectionLabel() / RulesBodyRenderer.
+     * Renders step 1 of the KIM Update embed (the sign-in form) using the
+     * hardcoded public template with placeholder/inert values. Never touches
+     * the real KIM auth session (lstr_kim_update_authed).
      */
-    private function previewSectionLabel(string $label): string
+    private function previewKimUpdateSignInForm(): string
     {
-        return '<div style="margin:1.5rem 0 .5rem;padding:.35rem .6rem;background:#eef1f8;'
-            . 'border-left:3px solid #889bd6;font:600 .75rem sans-serif;color:#445;'
-            . 'text-transform:uppercase;letter-spacing:.04em">'
-            . htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-            . '</div>';
+        try {
+            $fb = $this->app->getFormFieldBuilder();
+            $f  = $fb->build([
+                ['type' => 'email',    'name' => 'email',    'id' => 'kim-email',    'label' => 'Email',    'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+                ['type' => 'password', 'name' => 'password', 'id' => 'kim-password', 'label' => 'Password', 'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
+            ], '');
+
+            return $this->app->getView()->renderFragment('addons/kim/update.php', [
+                'form_action'  => '#',
+                'csrf_token'   => '',
+                'errors'       => '',
+                'success_html' => '',
+                'f'            => $f,
+                'form_html'    => null,
+                'form_marker'  => '',
+                'link_reset'   => null,
+                'link_list'    => null,
+                'base_url'     => $this->app->getBaseUrl(),
+                'theme_path'   => $this->app->getBaseUrl() . '/assets/default/',
+            ]);
+        } catch (\Throwable $e) {
+            return '<p style="color:#c00;font-family:monospace">Error: '
+                . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+        }
+    }
+
+    /**
+     * Renders step 2 of the KIM Update embed (the authenticated dashboard)
+     * using placeholder member data and inert form actions. Never touches the
+     * real KIM auth session or any KIM member records.
+     */
+    private function previewKimUpdateDashboard(): string
+    {
+        try {
+            $fb = $this->app->getFormFieldBuilder();
+            $f  = $fb->build([
+                ['type' => 'text',     'name' => 'new_name',             'id' => 'kim-new-name',             'label' => 'New Name',             'required' => false, 'attrs' => ['maxlength' => '100'],                                                   'hint' => 'Leave blank to keep current'],
+                ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255'],                                                   'hint' => 'Leave blank to keep current'],
+                ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',      'required' => false, 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'],                       'hint' => 'Leave blank to keep current'],
+                ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
+                ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ], '');
+
+            $sampleEntries = [
+                ['id' => 1, 'fanlisting_id' => 1, 'listing_name' => 'Sample Fanlisting A', 'name' => 'Jane Fan', 'url' => 'https://example.com', 'email' => 'fan@example.com', 'pending' => false],
+                ['id' => 2, 'fanlisting_id' => 2, 'listing_name' => 'Sample Fanlisting B', 'name' => 'Jane Fan', 'url' => '',                    'email' => 'fan@example.com', 'pending' => false],
+            ];
+
+            return $this->app->getView()->renderFragment('addons/kim/update-dashboard.php', [
+                'auth_email'         => 'fan@example.com',
+                'entries'            => $sampleEntries,
+                'save_action'      => '#',
+                'sign_out_url'     => '#',
+                'csrf_token'       => '',
+                'errors'           => '',
+                'success_html'     => '',
+                'f'                => $f,
+                'save_form_marker' => '',
+                'link_reset'         => null,
+                'link_list'          => null,
+                'base_url'           => $this->app->getBaseUrl(),
+                'theme_path'         => $this->app->getBaseUrl() . '/assets/default/',
+            ]);
+        } catch (\Throwable $e) {
+            return '<p style="color:#c00;font-family:monospace">Error: '
+                . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+        }
+    }
+
+    /**
+     * Renders a set of panels behind pill-toggle labels so the admin can
+     * switch views without scrolling through a long stacked preview.
+     *
+     * Pure CSS — hidden radio inputs + :checked sibling selectors, so the
+     * toggle works even under strict CSP that blocks inline scripts.
+     *
+     * @param list<array{label: string, html: string}> $panels
+     */
+    private function previewTabbedPanels(array $panels): string
+    {
+        $e = static fn(string $s): string =>
+            htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        $radios  = '';
+        $pills   = '<div class="preview-pills">';
+        $content = '';
+        $showCss = '';
+        $activeParts = [];
+
+        foreach ($panels as $i => $panel) {
+            $checked = $i === 0 ? ' checked' : '';
+            $radios  .= '<input type="radio" name="preview-tab" id="ptab-' . $i . '"' . $checked . '>';
+            $pills   .= '<label for="ptab-' . $i . '" class="preview-pill">' . $e($panel['label']) . '</label>';
+            $content .= '<div class="preview-panel" id="ppanel-' . $i . '">' . $panel['html'] . '</div>';
+            $showCss .= '#ptab-' . $i . ':checked~#ppanel-' . $i . '{display:block}';
+            $activeParts[] = '#ptab-' . $i . ':checked~.preview-pills [for="ptab-' . $i . '"]';
+        }
+        $pills .= '</div>';
+
+        $css = '<style>'
+            . 'input[name="preview-tab"]{position:absolute;opacity:0;pointer-events:none}'
+            . '.preview-pills{display:flex;justify-content:center;gap:6px;padding:12px 0 4px;flex-wrap:wrap;'
+            . 'position:sticky;top:0;background:#fff;z-index:10}'
+            . '.preview-pill{padding:5px 14px;border:1px solid #c0c8d8;border-radius:99px;background:#f5f6fa;'
+            . 'color:#556;font:600 .78rem/1.4 sans-serif;cursor:pointer;transition:background .15s,color .15s,border-color .15s}'
+            . '.preview-pill:hover{background:#e8ecf4}'
+            . '.preview-panel{display:none}'
+            . $showCss
+            . implode(',', $activeParts) . '{background:#5b6eae;color:#fff;border-color:#5b6eae}'
+            . '</style>';
+
+        return $css . $radios . $pills . $content;
     }
 
     private function previewWrap(string $content, string $appUrl): string
     {
+        $base    = rtrim($appUrl, '/');
+        $cssPath = defined('LUSTER_BASE')
+            ? \LUSTER_BASE . '/public/assets/css/default/style.css'
+            : '';
+        $cacheBust = ($cssPath !== '' && is_file($cssPath))
+            ? '?v=' . filemtime($cssPath)
+            : '';
         $cssUrl = htmlspecialchars(
-            rtrim($appUrl, '/') . '/assets/css/default/style.css',
+            $base . '/assets/css/default/style.css' . $cacheBust,
             ENT_QUOTES | ENT_SUBSTITUTE,
             'UTF-8'
         );

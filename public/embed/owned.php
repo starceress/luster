@@ -31,12 +31,6 @@ use Luster\Support\PublicCategoryPresenter;
  *                                     Default: 0 (reads $_GET['cat'])
  *   $luster_hide_dropdown       bool    Set true to suppress the category selector entirely.
  *                                       Default: false
- *   $luster_show_list           bool    Overview page: show categories as a bulleted link
- *                                       list instead of a <select> dropdown.
- *                                       Default: true
- *   $luster_show_cat_switcher   bool    Per-category page: show a compact dropdown so
- *                                       visitors can switch categories without going back.
- *                                       Default: true
  *   $luster_browse_by_category  bool    Set true to enable browse-by-category mode.
  *                                       Default: false
  *   $luster_show_pending        bool    Show "All Pending (N)" entry in the category nav
@@ -66,6 +60,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------
 // 2. Resolve parameters
@@ -78,8 +73,8 @@ $_lusterStatus        = in_array($luster_status ?? 'current', $_lusterValidStatu
 
 $_lusterExcludePending      = (bool) ($luster_exclude_pending     ?? true);
 $_lusterHideDropdown        = (bool) ($luster_hide_dropdown       ?? false);
-$_lusterShowList            = (bool) ($luster_show_list           ?? true);
-$_lusterShowCatSwitcher     = (bool) ($luster_show_cat_switcher   ?? true);
+$_lusterShowList            = false;
+$_lusterShowCatSwitcher     = true;
 $_lusterBrowseByCat         = (bool) ($luster_browse_by_category  ?? false);
 $_lusterShowPendingPseudo   = (bool) ($luster_show_pending        ?? true);
 $_lusterShowUpcomingPseudo  = (bool) ($luster_show_upcoming       ?? true);
@@ -264,7 +259,7 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     $_lusterMemberStatsMap = [];
     $_lusterNeedsMemberStats = str_contains($_lusterOwnedTemplate, '{member_count}')
                             || str_contains($_lusterOwnedTemplate, '{member_pending_count}')
-                            || str_contains($_lusterOwnedTemplate, '{pending_count}')
+                            || str_contains($_lusterOwnedTemplate, '{pending_owned_count}')
                             || str_contains($_lusterOwnedTemplate, '{country_count}')
                             || str_contains($_lusterOwnedTemplate, '{if_countries}')
                             || str_contains($_lusterOwnedTemplate, '{if_pending}');
@@ -298,6 +293,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
     'show_listings'       => $_lusterShowListings,
     'categories'          => $_lusterCategories,
     'current_category'    => $_lusterCatId,
+    'browse_by_category'  => $_lusterBrowseByCat,
     'browse_show_all'     => $_lusterBrowseShowAll,
     'total_count'         => count($_lusterListings),
     'status'              => $_lusterStatus,
@@ -307,6 +303,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
     'form_action'         => $_lusterFormAction,
     'theme_path'          => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

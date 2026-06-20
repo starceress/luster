@@ -53,6 +53,7 @@ $typeLabels = [
     EmailTemplateRepo::TYPE_ADOPTION_APPLIED   => 'Admin - Adoption Application',
     EmailTemplateRepo::TYPE_ADOPTION_APPROVED  => 'Adoption Application Approved',
     EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Adoption Application Rejected',
+    EmailTemplateRepo::TYPE_KIM_SIGNUP         => 'KIM Sign-Up Confirmation',
     EmailTemplateRepo::TYPE_KIM_APPLIED        => 'Admin - KIM List Sign-Up',
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM Sign-Up Approved',
     EmailTemplateRepo::TYPE_KIM_UPDATE         => 'KIM Entry Updated',
@@ -73,6 +74,7 @@ $navLabels = [
     EmailTemplateRepo::TYPE_ADOPTION_APPLIED   => 'Adoption Applied',
     EmailTemplateRepo::TYPE_ADOPTION_APPROVED  => 'Adoption Approved',
     EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Adoption Rejected',
+    EmailTemplateRepo::TYPE_KIM_SIGNUP         => 'KIM Sign-Up',
     EmailTemplateRepo::TYPE_KIM_APPLIED        => 'KIM Applied',
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM Approved',
     EmailTemplateRepo::TYPE_KIM_UPDATE         => 'KIM Updated',
@@ -93,6 +95,7 @@ $typeHints = [
     EmailTemplateRepo::TYPE_ADOPTION_APPLIED   => 'Sent to the listing admin when someone submits an adoption application.',
     EmailTemplateRepo::TYPE_ADOPTION_APPROVED  => 'Sent to the applicant after you approve their adoption application.',
     EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Sent to the applicant after you reject their adoption application.',
+    EmailTemplateRepo::TYPE_KIM_SIGNUP         => 'Sent to the KIM member right after they sign up. Always include {reset_url} so they can set their password.',
     EmailTemplateRepo::TYPE_KIM_APPLIED        => 'Sent to the listing admin when someone signs up to the KIM List.',
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'Sent to the KIM member after you approve their sign-up.',
     EmailTemplateRepo::TYPE_KIM_UPDATE         => 'Sent to the KIM member after their entry details are updated.',
@@ -142,6 +145,7 @@ $typeTokens[EmailTemplateRepo::TYPE_ADOPTION_APPLIED]   = $adoptionTokens;
 $typeTokens[EmailTemplateRepo::TYPE_ADOPTION_APPROVED]  = $adoptionTokens;
 $typeTokens[EmailTemplateRepo::TYPE_ADOPTION_REJECTED]  = $adoptionTokens;
 $kimTokens = ['{kim_name}', '{kim_email}', '{kim_url}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$typeTokens[EmailTemplateRepo::TYPE_KIM_SIGNUP]   = array_merge(['{reset_url}'], $kimTokens);
 $typeTokens[EmailTemplateRepo::TYPE_KIM_APPLIED]  = $kimTokens;
 $typeTokens[EmailTemplateRepo::TYPE_KIM_APPROVED] = $kimTokens;
 $typeTokens[EmailTemplateRepo::TYPE_KIM_UPDATE]   = $kimTokens;
@@ -157,6 +161,7 @@ $typeExtraHints = [
     EmailTemplateRepo::TYPE_ADOPTION_APPLIED  => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This notification goes to the listing admin email when an application arrives.',
     EmailTemplateRepo::TYPE_ADOPTION_APPROVED => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This email is sent to the applicant when you approve their application.',
     EmailTemplateRepo::TYPE_ADOPTION_REJECTED => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This email is sent to the applicant when you reject their application.',
+    EmailTemplateRepo::TYPE_KIM_SIGNUP   => 'KIM emails use {kim_*} tokens. This email is sent to the fan who just signed up. Always include {reset_url} — it is the only way for them to set a password after sign-up.',
     EmailTemplateRepo::TYPE_KIM_APPLIED  => 'KIM emails use {kim_*} tokens instead of {fan_*} tokens. This notification goes to the listing admin email when someone signs up to the KIM List.',
     EmailTemplateRepo::TYPE_KIM_APPROVED => 'KIM emails use {kim_*} tokens instead of {fan_*} tokens. This email is sent to the KIM member when you approve their sign-up.',
     EmailTemplateRepo::TYPE_KIM_UPDATE   => 'KIM emails use {kim_*} tokens. This email is sent to the KIM member after their entry details are changed.',
@@ -207,7 +212,10 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     <button class="tabs-btn<?= $active_tab === 'templates' ? ' active' : '' ?>" data-tab="templates">Email Templates</button>
     <button class="tabs-btn<?= $active_tab === 'custom'    ? ' active' : '' ?>" data-tab="custom">Custom Templates</button>
   </div>
-  <div class="select-wrap tabs-select-wrap">
+</div>
+<div class="tabs-select-wrap">
+  <span class="overview-section-title">Section</span>
+  <div class="select-wrap flex-fill">
     <select class="tabs-select">
       <option value="bulk"<?=      $active_tab === 'bulk'      ? ' selected' : '' ?>>Bulk Email</option>
       <option value="templates"<?= $active_tab === 'templates' ? ' selected' : '' ?>>Email Templates</option>

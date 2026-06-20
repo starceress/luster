@@ -9,19 +9,21 @@ use Luster\Support\DateFormatter;
 /**
  * Luster embed — collective statistics.
  *
- * Exposes site-wide statistics as PHP variables you can echo directly,
- * plus an optional pre-rendered HTML block. Significantly more capable
- * than Enthusiast's show_collective_stats.php.
+ * Always renders an HTML block (from the admin template or a built-in
+ * default) AND exposes every stat as a PHP variable the host page can
+ * echo wherever it likes. Drop-in compatible with Enthusiast's
+ * show_collective_stats.php — all the old variable names work.
  *
  * ──────────────────────────────────────────────────────────────────────
- * Basic usage (variable mode — echo values yourself):
+ * Basic usage:
  *
- *   $luster_return = false;   // optional: true = return rendered HTML
  *   require '/absolute/path/to/luster/public/embed/collective-stats.php';
+ *   // The rendered stats block is echoed automatically.
  *
- *   // Then use the exposed variables:
+ *   // You can also use the individual variables anywhere on the page:
  *   echo $luster_owned_active;        // e.g. 24
  *   echo $luster_owned_newest[0]->title; // e.g. "Always – Amy and Rory"
+ *   echo $luster_attribution;         // "Powered by Luster" footer
  *
  * ──────────────────────────────────────────────────────────────────────
  * Optional variables (set before require):
@@ -170,6 +172,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------
 // 2. Parameters
@@ -253,6 +256,11 @@ $_lusterJoinedNewest = $_lusterStatsRepo->getNewestJoined($_lusterCount);
 $_lusterOwnedRandom  = $_lusterStatsRepo->getRandomOwned();
 $_lusterJoinedRandom = $_lusterStatsRepo->getRandomJoined();
 $_lusterLastOwnedOpened = $_lusterStatsRepo->getLastOwnedOpenedDate();
+try {
+    $_lusterJoinedCats = (new \Luster\Repositories\JoinedListingRepo($_lusterApp->getDatabase()))->getCategories(true);
+} catch (\Throwable) {
+    $_lusterJoinedCats = [];
+}
 
 // ---------------------------------------------------------------------------
 // 4. Expose public variables
@@ -288,6 +296,8 @@ $luster_joined_random       = $_lusterJoinedRandom;
 
 // Category breakdown
 $luster_categories          = $_lusterCategories;
+$luster_joined_categories   = $_lusterJoinedCats;
+$luster_joined_total_cats   = count($_lusterJoinedCats);
 
 // Network counts
 $luster_owned_tfl_count     = $_lusterOwnedNetwork['tfl'];
@@ -370,27 +380,20 @@ $joined_random = $luster_joined_random !== null ? [
 ] : [];
 
 // ---------------------------------------------------------------------------
-// 5. Optional rendered HTML block
+// 5. Render HTML block
 // ---------------------------------------------------------------------------
 
-// Load collective stats template from DB (if set)
-$_lusterSiteRepo    = new SiteSettingsRepo($_lusterApp->getDatabase());
+$_lusterSiteRepo       = new SiteSettingsRepo($_lusterApp->getDatabase());
 $_lusterCStatsTemplate = $_lusterSiteRepo->get('collective_stats_template');
 if ($_lusterCStatsTemplate !== null && trim($_lusterCStatsTemplate) === '') {
     $_lusterCStatsTemplate = null;
 }
 
-if (!($luster_return ?? false) && $_lusterCStatsTemplate === null) {
-    return;
-}
+$_lusterE = static fn(string $v): string =>
+    htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-// When a DB template is set, do token substitution and return/echo it
 if ($_lusterCStatsTemplate !== null) {
-    $_lusterE = static fn(string $v): string =>
-        htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-    // Resolve {if_countries}...{/if_countries} and {if_pending}...{/if_pending}
-    // before flat token substitution
+    // Admin-defined template — token substitution
     $_lusterCStatsTemplate = (string) preg_replace(
         '/\{if_countries\}(.*?)\{\/if_countries\}/s',
         $_lusterCountriesCount > 0 ? '$1' : '',
@@ -422,6 +425,7 @@ if ($_lusterCStatsTemplate !== null) {
             '{owned_random_name}',
             '{owned_random_url}',
             '{collective_last_updated}',
+            '{joined_total_cats}',
             '{tfl_url}',
             '{tafl_url}',
         ],
@@ -444,26 +448,16 @@ if ($_lusterCStatsTemplate !== null) {
             $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->title : ''),
             $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->url  : ''),
             $_lusterE($luster_collective_last_updated),
+            (string) $luster_joined_total_cats,
             'https://thefanlistings.org/',
             'https://www.animefanlistings.com/',
         ],
         $_lusterCStatsTemplate,
     );
-
-    $_lusterHtml .= \Luster\Core\View::attribution();
-
-    if ($luster_return ?? false) {
-        return $_lusterHtml;
-    }
-    echo $_lusterHtml;
-    return;
-}
-
-$_lusterE = static fn(string $v): string =>
-    htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-ob_start();
-?>
+} else {
+    // Built-in default layout
+    ob_start();
+    ?>
 <div class="fl-cstats">
   <dl class="fl-cstats-grid">
     <dt>Owned listings</dt>
@@ -523,8 +517,13 @@ ob_start();
   </div>
   <?php endif; ?>
 </div>
-<?php
-$_lusterHtml = ob_get_clean();
-$_lusterHtml .= \Luster\Core\View::attribution();
+    <?php
+    $_lusterHtml = ob_get_clean();
+}
 
-return $_lusterHtml;
+
+if ($luster_return ?? false) {
+    return $_lusterHtml;
+}
+
+echo $_lusterHtml;

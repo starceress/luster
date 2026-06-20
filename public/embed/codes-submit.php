@@ -51,6 +51,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = $_lusterApp ?? require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
@@ -159,7 +160,7 @@ if ($_lusterIsCollective) {
 }
 
 $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
-    ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',         'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
+    ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',         'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
     ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name',      'required' => true, 'value' => (string) ($_lusterOld['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
     ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',               'required' => true,  'value' => (string) ($_lusterOld['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
     ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website URL (optional)',   'required' => false, 'value' => (string) ($_lusterOld['submitter_url']   ?? ''), 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
@@ -192,6 +193,7 @@ if (!$_lusterIsCollective) {
             '{captcha_block_input}'         => $_lusterF['captcha_input'],
             '{captcha_question}'            => View::e($_lusterCaptchaQ),
             '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
+            '{clear_button}'                => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
         $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterCsFormTpl, $_lusterCsTokens);
         $_lusterFormHtml  = FormTemplateRenderer::wrapForm(
@@ -246,6 +248,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
     'form_marker'  => $_lusterMarker,
     'base_url'     => $_lusterBaseUrl,
 ]);
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

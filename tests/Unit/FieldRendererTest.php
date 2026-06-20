@@ -90,7 +90,7 @@ final class FieldRendererTest extends TestCase
         $required    = $this->renderer->file('f-code', 'code_image', true);
         $notRequired = $this->renderer->file('f-code', 'code_image', false);
 
-        self::assertStringContainsString('<input type="file" id="f-code" name="code_image" required', $required);
+        self::assertStringContainsString('<input type="file" class="fl-input" id="f-code" name="code_image" required', $required);
         self::assertStringNotContainsString('required', $notRequired);
     }
 
@@ -98,7 +98,7 @@ final class FieldRendererTest extends TestCase
     {
         $html = $this->renderer->checkboxGroup('field_subscribe', ['1' => 'Subscribe to updates'], ['1'], true);
 
-        self::assertSame(1, substr_count($html, '<label>'));
+        self::assertSame(1, substr_count($html, '<label class="fl-check-label">'));
         self::assertStringContainsString('name="field_subscribe"', $html);
         self::assertStringNotContainsString('field_subscribe[]', $html);
         self::assertStringContainsString('checked', $html);

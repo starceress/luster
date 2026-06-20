@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Support;
 
 use Luster\Core\TemplateEngine;
-use Luster\Core\View;
 use Luster\Models\Listing;
 use Luster\Support\DateFormatter;
 
@@ -45,11 +44,6 @@ final class ListingRowRenderer
 
         $image    = (string) ($settings['image'] ?? '');
         $imageUrl = $image !== '' ? $uploadsUrl . '/' . $image : '';
-        $imageHtml = $imageUrl !== ''
-            ? '<img src="' . View::e($imageUrl) . '"'
-              . ' alt="' . View::e($listing->title) . '"'
-              . ' title="' . View::e($listing->subject) . '">'
-            : '';
 
         $countryCount = (int) ($memberStats['country_count'] ?? 0);
         $pendingCount = (int) ($memberStats['pending']        ?? 0);
@@ -75,24 +69,23 @@ final class ListingRowRenderer
                 'listing_category'     => $categoryName,
                 'listing_image_url'    => $imageUrl,
                 'date_opened'          => DateFormatter::formatWith($listing->opened ?? '', $dateFormat),
-                'date_updated'         => DateFormatter::formatWith((string) ($settings['last_updated'] ?? ''), $dateFormat),
+                'date_updated'         => DateFormatter::formatWith(
+                    DateFormatter::mostRecent((string) ($memberStats['newest_date'] ?? ''), (string) ($settings['last_updated'] ?? '')) ?? '',
+                    $dateFormat,
+                ),
                 'member_count'         => (int) ($memberStats['approved'] ?? 0),
                 'member_pending_count' => $pendingCount,
                 'pending_count'        => $pendingCount,
                 'country_count'        => $countryCount,
                 'approved_by'          => $network,
-                'network'              => $network,
-                'network_status'       => $network,
                 'network_name'         => $networkName,
                 'tfl_url'              => 'https://thefanlistings.org/',
                 'tafl_url'             => 'https://www.animefanlistings.com/',
                 'listing_description'  => $description,
             ],
-            raw: [
-                'listing_image_html' => $imageHtml,
-            ],
             conditions: [
-                'listing_image'   => $imageUrl !== '',
+                'listing_image'    => $imageUrl !== '',
+                'no_listing_image' => $imageUrl === '',
                 'countries'       => $countryCount > 0,
                 'pending'         => $pendingCount > 0,
                 'status_current'  => $status === 'current',
@@ -101,7 +94,7 @@ final class ListingRowRenderer
                 'tfl'             => $approvedBy === 'tfl',
                 'tafl'            => $approvedBy === 'tafl',
                 'approved_by'     => $approvedBy !== '',
-                'date_updated'    => (string) ($settings['last_updated'] ?? '') !== '',
+                'date_updated'    => DateFormatter::mostRecent((string) ($memberStats['newest_date'] ?? ''), (string) ($settings['last_updated'] ?? '')) !== null,
                 'description'     => $description !== '',
             ],
         );
@@ -219,10 +212,10 @@ final class ListingRowRenderer
         $html = TemplateEngine::render(
             $template,
             escaped: [
-                'current_count'  => count($current),
-                'upcoming_count' => count($upcoming),
-                'pending_count'  => count($pending),
-                'total_count'    => count($listings),
+                'current_owned_count'  => count($current),
+                'upcoming_owned_count' => count($upcoming),
+                'pending_owned_count'  => count($pending),
+                'total_count'          => count($listings),
             ],
             conditions: [
                 'current_listings'  => $current !== [],

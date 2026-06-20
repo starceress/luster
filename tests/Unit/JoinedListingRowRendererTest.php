@@ -60,16 +60,16 @@ final class JoinedListingRowRendererTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // Image tokens — {listing_image_url} / {listing_image_html} / {if_listing_image}
+    // Image tokens — {listing_image_url} / {if_listing_image} / {if_no_listing_image}
     // -----------------------------------------------------------------------
 
     public function testImageTokensAreEmptyWhenNoImage(): void
     {
         $listing = $this->makeJoined(image: null);
 
-        $html = JoinedListingRowRenderer::render($listing, '{listing_image_url}|{listing_image_html}', self::UPLOADS_URL);
+        $html = JoinedListingRowRenderer::render($listing, '{listing_image_url}', self::UPLOADS_URL);
 
-        self::assertSame('|', $html);
+        self::assertSame('', $html);
     }
 
     public function testImageUrlTokenIsBuiltFromUploadsUrl(): void
@@ -81,16 +81,13 @@ final class JoinedListingRowRendererTest extends TestCase
         self::assertSame(self::UPLOADS_URL . '/cover.jpg', $html);
     }
 
-    public function testImageHtmlTokenRendersImgTagWhenImageSet(): void
+    public function testNoListingImageConditionalRendersWhenNoImage(): void
     {
-        $listing = $this->makeJoined(name: 'Sailor Moon', image: 'cover.jpg');
+        $listing = $this->makeJoined(image: null);
 
-        $html = JoinedListingRowRenderer::render($listing, '{listing_image_html}', self::UPLOADS_URL);
+        $html = JoinedListingRowRenderer::render($listing, '{if_no_listing_image}fallback{/if_no_listing_image}', self::UPLOADS_URL);
 
-        self::assertStringContainsString('<img', $html);
-        self::assertStringContainsString('src="' . self::UPLOADS_URL . '/cover.jpg"', $html);
-        self::assertStringContainsString('alt="Sailor Moon"', $html);
-        self::assertStringContainsString('title="Sailor Moon"', $html);
+        self::assertSame('fallback', $html);
     }
 
     public function testIfListingImageConditionalOnlyRendersWhenImageSet(): void

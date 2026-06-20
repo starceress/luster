@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div>
-  <h2><?= View::e($error_title) ?></h2>
-  <p><?= View::e($error_message) ?></p>
+<div class="fl-embed fl-embed--error">
+  <h2 class="fl-heading"><?= View::e($error_title) ?></h2>
+  <p class="fl-error"><?= View::e($error_message) ?></p>
 </div>

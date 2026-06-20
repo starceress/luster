@@ -100,13 +100,13 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
   <div class="sidebar-dots" aria-hidden="true"></div>
 
   <div class="sidebar-brand">
-    <div class="luster-glow">
+    <a href="<?= $b ?>/admin" class="luster-glow">
       <img src="<?= $b ?>/assets/images/logo50.svg" alt="" class="luster-logo">
       <div class="luster-text">
         <span class="wordmark">Luster</span>
         <span class="luster-sub">Admin Panel</span>
       </div>
-    </div>
+    </a>
   </div>
 
   <div class="nav-search-wrap">
@@ -259,7 +259,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
       <?php if (!empty($nav_site_url)): ?>
         <a href="<?= View::e($nav_site_url) ?>" target="_blank" rel="noopener noreferrer"
            class="btn btn-quaternary btn-sm" aria-label="View public site"><?= View::icon('www') ?>
-          <span>View Site</span>
+          <span>View <?= View::e($site_name) ?></span>
         </a>
       <?php endif; ?>
       <button class="theme-toggle" aria-label="Toggle theme">

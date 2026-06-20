@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Luster\Core\Captcha;
 use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Repositories\FanPasswordResetRepo;
@@ -15,8 +14,8 @@ use Luster\Support\ListingTemplateResolver;
 /**
  * Luster embed — password reset fragment.
  *
- * Handles both the email-entry step and the confirm-new-password step,
- * determined by the presence of $luster_reset_step.
+ * Handles both the email-entry step and the confirm-new-password step.
+ * If the URL has ?token=..., the embed shows the new-password form automatically.
  *
  * Usage — email entry form (default):
  *   $luster_fanlisting_id = 1;        // required: listing ID (int)
@@ -76,6 +75,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
@@ -176,7 +176,7 @@ if ($_lusterStep === 'confirm') {
     $_lusterResetFormTpl  = $_lusterRstResolved['should_render_template'] ? $_lusterRstResolved['value'] : '';
     $_lusterFb            = $_lusterApp->getFormFieldBuilder();
     $_lusterF             = $_lusterFb->build([
-        ['type' => 'password', 'name' => 'new_password',        'id' => 'rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        ['type' => 'password', 'name' => 'new_password',        'id' => 'rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
         ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ], $_lusterWrapperTpl);
     $_lusterFormAction2   = $_lusterRedirectTo;
@@ -200,16 +200,15 @@ if ($_lusterStep === 'confirm') {
             '{captcha_question}'          => '',
             '{field_new_password}'        => $_lusterF['new_password'],
             '{field_new_password_confirm}' => $_lusterF['new_password_confirm'],
-            '{hidden_token}'              => '',
             '{reset_request_url}'         => View::e($_lusterResetUrl),
             '{submit_button}'             => '<button type="submit" class="fl-submit">Set New Password</button>',
             '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
         $_lusterInner2 = FormTemplateRenderer::expandTokens($_lusterProcessed2, $_lusterTokens2);
-        if ($_lusterTokenValid) {
-            $_lusterInner2 .= '<input type="hidden" name="token" value="' . View::e($_lusterRawToken) . '">';
-        }
-        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner2, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker);
+        $_lusterTokenHidden = $_lusterTokenValid
+            ? '<input type="hidden" name="token" value="' . View::e($_lusterRawToken) . '">'
+            : '';
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner2, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker, $_lusterTokenHidden);
     }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset_confirm.php', [
@@ -248,7 +247,6 @@ if ($_lusterStep === 'confirm') {
         return;
     }
 
-    $_lusterCaptchaQ      = Captcha::getQuestion('reset');
     $_lusterSettingsRepo2 = new ListingSettingsRepo($_lusterApp->getDatabase());
     $_lusterWrapperTpl2   = $_lusterSettingsRepo2->getWrapperTemplate($_lusterListingId) ?? '';
     $_lusterGlobalTpls2   = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
@@ -261,7 +259,6 @@ if ($_lusterStep === 'confirm') {
     $_lusterFormAction1   = $_lusterRedirectTo;
     $_lusterF             = $_lusterApp->getFormFieldBuilder()->build([
         ['type' => 'email', 'name' => 'email',          'id' => 'rst-email',   'label' => 'Email',    'required' => true, 'value' => $_lusterOldEmail, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-        ['type' => 'text',  'name' => 'captcha_answer', 'id' => 'rst-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
     ], $_lusterWrapperTpl2);
 
     $_lusterFormHtml1 = null;
@@ -277,12 +274,11 @@ if ($_lusterStep === 'confirm') {
             '{listing_subject}'           => View::e((string) $_lusterListing->subject),
             '{listing_url}'               => View::e((string) $_lusterListing->url),
             '{field_email}'               => $_lusterF['email'],
-            '{captcha_block}'             => $_lusterF['captcha_answer'],
-            '{captcha_block_input}'       => $_lusterF['captcha_answer_input'] ?? '',
-            '{captcha_question}'          => View::e($_lusterCaptchaQ),
+            '{captcha_block}'             => '',
+            '{captcha_block_input}'       => '',
+            '{captcha_question}'          => '',
             '{field_new_password}'        => '',
             '{field_new_password_confirm}' => '',
-            '{hidden_token}'              => '',
             '{reset_request_url}'         => View::e($_lusterFormAction1),
             '{submit_button}'             => '<button type="submit" class="fl-submit">Send Reset Link</button>',
             '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
@@ -308,6 +304,7 @@ if ($_lusterStep === 'confirm') {
         'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);
 }
+
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

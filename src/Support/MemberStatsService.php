@@ -41,15 +41,15 @@ final class MemberStatsService
     /**
      * Returns member stats keyed by listing ID for the given listing set.
      *
-     * Each value is ['approved' => int, 'pending' => int, 'country_count' => int].
+     * Each value is ['approved' => int, 'pending' => int, 'country_count' => int, 'newest_date' => ?string].
      * Listings with inaccessible member tables return zeros rather than throwing.
      *
      * @param  Listing[] $listings
-     * @return array<int, array{approved: int, pending: int, country_count: int}>
+     * @return array<int, array{approved: int, pending: int, country_count: int, newest_date: ?string}>
      */
     public function forListings(array $listings): array
     {
-        $zero   = ['approved' => 0, 'pending' => 0, 'country_count' => 0];
+        $zero   = ['approved' => 0, 'pending' => 0, 'country_count' => 0, 'newest_date' => null];
         $result = [];
         if (empty($listings)) {
             return $result;
@@ -80,7 +80,8 @@ final class MemberStatsService
                 $arms[]        = "SELECT {$quoted} AS tbl,
                                          COUNT(CASE WHEN {$aw} THEN 1 END) AS approved,
                                          COUNT(CASE WHEN {$pw} THEN 1 END) AS pending,
-                                         COUNT(DISTINCT CASE WHEN ({$aw}) AND country != '' AND country IS NOT NULL THEN country END) AS country_count
+                                         COUNT(DISTINCT CASE WHEN ({$aw}) AND country != '' AND country IS NOT NULL THEN country END) AS country_count,
+                                         MAX(CASE WHEN {$aw} THEN added END) AS newest_date
                                   FROM `{$table}`";
             }
 
@@ -99,6 +100,7 @@ final class MemberStatsService
                                 'approved'      => (int) $row['approved'],
                                 'pending'       => (int) $row['pending'],
                                 'country_count' => (int) $row['country_count'],
+                                'newest_date'   => ($row['newest_date'] ?? null) !== null ? (string) $row['newest_date'] : null,
                             ];
                         }
                     }
@@ -112,7 +114,8 @@ final class MemberStatsService
                     try {
                         $singleSql = "SELECT COUNT(CASE WHEN {$aw} THEN 1 END) AS approved,
                                              COUNT(CASE WHEN {$pw} THEN 1 END) AS pending,
-                                             COUNT(DISTINCT CASE WHEN ({$aw}) AND country != '' AND country IS NOT NULL THEN country END) AS country_count
+                                             COUNT(DISTINCT CASE WHEN ({$aw}) AND country != '' AND country IS NOT NULL THEN country END) AS country_count,
+                                             MAX(CASE WHEN {$aw} THEN added END) AS newest_date
                                       FROM `{$tableName}`";
                         $singleRow = $this->db->pdo()->query($singleSql);
                         if ($singleRow !== false) {
@@ -121,6 +124,7 @@ final class MemberStatsService
                                 'approved'      => (int) ($r['approved'] ?? 0),
                                 'pending'       => (int) ($r['pending']  ?? 0),
                                 'country_count' => (int) ($r['country_count'] ?? 0),
+                                'newest_date'   => ($r['newest_date'] ?? null) !== null ? (string) $r['newest_date'] : null,
                             ];
                         }
                     } catch (\Throwable) {

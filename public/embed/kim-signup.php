@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Luster\Addons\Kim\KimMemberRepo;
-use Luster\Core\Captcha;
 use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
@@ -19,7 +18,7 @@ use Luster\Support\FormTemplateRenderer;
  *   $luster_return = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/kim-signup.php';
  *
- * The form POSTs to Luster's /kim URL.
+ * The form self-posts to the host page; the embed handles the POST inline.
  */
 
 // ---------------------------------------------------------------------------
@@ -43,6 +42,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
@@ -123,7 +123,7 @@ $_lusterKimUrls = $_lusterSiteSettings->getMany([
 
 // Stored values are page filenames; combine with the site origin to build full URLs.
 // Host-page $luster_kim_*_url overrides are used as-is (they are already full URLs).
-$_lusterKimParsed   = parse_url((string) $_lusterApp->getConfig()->get('app_url', ''));
+$_lusterKimParsed   = parse_url((string) ($_lusterApp->getConfig()->get('site_url', '')));
 $_lusterKimSiteRoot = ($_lusterKimParsed['scheme'] ?? 'https') . '://' . ($_lusterKimParsed['host'] ?? '');
 if (!empty($_lusterKimParsed['port'])) {
     $_lusterKimSiteRoot .= ':' . $_lusterKimParsed['port'];
@@ -133,6 +133,11 @@ $_toKimLink = static fn(?string $v): ?string =>
 
 $_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls["kim_url_signup"] ?: null);
 $_lusterLinkUpdate = $luster_kim_update_url ?? $_toKimLink($_lusterKimUrls["kim_url_update"] ?: null);
+// $_lusterLinkReset is for the visible "Forgot your password?" link on this form only.
+// The emailed setup-link URL is resolved by KimSignupController::issuePasswordSetupUrl()
+// from the saved kim_url_reset setting — not from this per-page override. Design intent:
+// per-page overrides control visible links; the emailed URL must be a single canonical
+// address (the configured setting) valid for all users across all host pages.
 $_lusterLinkReset  = $luster_kim_reset_url  ?? $_toKimLink($_lusterKimUrls["kim_url_reset"]  ?: null);
 $_lusterLinkList   = $luster_kim_list_url   ?? $_toKimLink($_lusterKimUrls["kim_url_list"]   ?: null);
 
@@ -142,7 +147,6 @@ $_lusterLinkList   = $luster_kim_list_url   ?? $_toKimLink($_lusterKimUrls["kim_
 
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
 
-$_lusterCaptchaQ  = Captcha::getQuestion('kim_signup');
 $_lusterWrapperTpl = '';
 
 $_lusterFlSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
@@ -161,10 +165,8 @@ $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'url',      'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL',  'required' => true,  'value' => (string) ($_lusterOld['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
     ['type' => 'email',    'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($_lusterOld['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
     ['type' => 'select',   'name' => 'fanlisting_id',   'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $_lusterFlSelectHtml],
-    ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'If left blank, a password will be generated and emailed to you.'],
-    ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-    ['type' => 'checkboxGroup','name' => 'send_copy',        'id' => '',                     'label' => 'Opt-in',                   'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => ((string) ($_lusterOld['send_copy'] ?? '')) === '1' ? ['1'] : []],
-    ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+    ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. If left blank, we\'ll email you a link to set one.'],
+    ['type' => 'password', 'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
 ], $_lusterWrapperTpl);
 
 $_lusterFormHtml     = null;
@@ -185,11 +187,11 @@ if ($_lusterKimSignupTpl !== '') {
         '{field_password_input}'              => $_lusterF['password_input'],
         '{field_password_confirm}'            => $_lusterF['password_confirm'],
         '{field_password_confirm_input}'      => $_lusterF['password_confirm_input'],
-        '{field_send_copy}'                   => $_lusterF['send_copy'],
-        '{field_send_copy_input}'             => $_lusterF['send_copy_input'],
-        '{captcha_block}'                     => $_lusterF['captcha_answer'],
-        '{captcha_block_input}'               => $_lusterF['captcha_answer_input'],
-        '{captcha_question}'                  => View::e($_lusterCaptchaQ),
+        '{field_send_copy}'                   => '',
+        '{field_send_copy_input}'             => '',
+        '{captcha_block}'                     => '',
+        '{captcha_block_input}'               => '',
+        '{captcha_question}'                  => '',
         '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
         '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
     ];
@@ -214,7 +216,6 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/signup.php', [
     'link_list'   => $_lusterLinkList,
 ]);
 
-$_lusterHtml .= \Luster\Core\View::attribution();
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

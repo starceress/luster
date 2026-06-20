@@ -1683,8 +1683,8 @@ document.addEventListener('drop', function (e) {
   var pickItems = root.querySelectorAll('.ec-qc-item'); // no-op in new layout; kept for selectItem() loop
 
   var navGroups = [
-    { val: 'l', keys: ['join','members','stats','affiliates','aff-apply','update','reset','codes','codes-submit','contact','updates','adopt','rules-gate'] },
-    { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','random-joined','latest-joined','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-updates','col-contact','wishlist'] },
+    { val: 'l', keys: ['join','members','stats','affiliates','aff-apply','update','reset','codes','codes-submit','contact','updates','rules-gate'] },
+    { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','random-joined','latest-joined','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-updates','col-contact','wishlist','adopt'] },
   ];
 
   var secSel   = document.getElementById('ec-sec-sel');
@@ -1764,12 +1764,51 @@ document.addEventListener('drop', function (e) {
   var optsBadge      = document.getElementById('ec-opts-badge');
 
   // ── Preview modal open / close ─────────────────────────────────────────────
+  var cstatsSampleValues = {
+    luster_owned_active: '12', luster_owned_upcoming: '2', luster_owned_pending: '1', luster_owned: '15',
+    luster_joined_active: '48', luster_joined_approved: '45', luster_joined_upcoming: '3', luster_joined_pending: '0', luster_joined: '48',
+    luster_affiliates: '8', luster_members_approved: '3,450', luster_members_pending: '12',
+    luster_countries_count: '27', luster_total_cats: '9', luster_joined_total_cats: '6',
+    luster_owned_growth_rate: '2.50', luster_joined_growth_rate: '4.80', luster_members_growth_rate: '1.25',
+  };
+
+  function buildCstatsVarPreview(vars) {
+    var rows = vars.map(function (v) {
+      return '<tr><td style="font-family:monospace;padding:4px 12px 4px 0;color:#889;white-space:nowrap">$' + v.name + '</td>'
+           + '<td style="padding:4px 0;font-weight:600">' + (cstatsSampleValues[v.name] || '—') + '</td></tr>';
+    }).join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8">'
+      + '<style>body{font-family:system-ui,sans-serif;font-size:14px;padding:1.5rem;margin:0;background:#fff;color:#333}'
+      + 'table{border-collapse:collapse}td{border-bottom:1px solid #eee}</style></head><body>'
+      + '<h3 style="margin:0 0 1rem">Selected Variables (sample data)</h3>'
+      + '<table>' + rows + '</table>'
+      + '<p style="margin-top:1rem;font-size:12px;color:#999">These values are samples. Your page will show live data from your collective.</p>'
+      + '</body></html>';
+  }
+
+  function isCstatsVarMode() {
+    return currentKey === 'cstats' && Array.isArray(custVals.vars) && custVals.vars.length > 0;
+  }
+
+  function applyPreviewSource() {
+    if (!prevIframe) return;
+    if (isCstatsVarMode()) {
+      prevIframe.srcdoc = buildCstatsVarPreview(custVals.vars);
+      prevIframe.removeAttribute('src');
+      if (prevNewTab) prevNewTab.style.display = 'none';
+    } else {
+      var url = buildPreviewUrl();
+      if (!url) return;
+      prevIframe.removeAttribute('srcdoc');
+      prevIframe.src = url;
+      if (prevNewTab) { prevNewTab.href = url; prevNewTab.style.display = ''; }
+    }
+  }
+
   function openPreview() {
-    var url = buildPreviewUrl();
-    if (!url || !prevModal || !prevIframe) return;
+    if (!prevModal || !prevIframe) return;
     if (prevModalTitle) prevModalTitle.textContent = (items[currentKey] || {}).label || 'Preview';
-    if (prevNewTab) prevNewTab.href = url;
-    prevIframe.src = url;
+    applyPreviewSource();
     prevModal.style.display = 'flex';
     prevModal.classList.remove('is-hidden');
   }
@@ -1821,12 +1860,11 @@ document.addEventListener('drop', function (e) {
     var lines = [];
     lines.push('<?php');
     // Listing ID
-    var needsId = ['join','members','stats','update','reset','aff-apply','codes','codes-submit','contact','updates','adopt','rules-gate'];
+    var needsId = ['join','members','stats','update','reset','aff-apply','codes','codes-submit','contact','updates','rules-gate'];
     if (needsId.indexOf(type) !== -1) {
       var lid = parseInt(vals.lid || (listings.length ? listings[0].id : 1), 10) || 1;
       if (type === 'aff-apply') lines.push('// Enable in Admin → Listings → Edit → Affiliates');
       if (type === 'updates')   lines.push('// Requires Updates Feed add-on (Admin → Add-ons)');
-      if (type === 'adopt')     lines.push('// Requires Adoption add-on (Admin → Add-ons)');
       lines.push('$luster_fanlisting_id = ' + lid + ';');
     } else if (type === 'affiliates') {
       var aid = (vals.lid === '0' || vals.lid === '') ? 0 : (parseInt(vals.lid, 10) || (listings.length ? listings[0].id : 1));
@@ -1839,6 +1877,8 @@ document.addEventListener('drop', function (e) {
       lines.push('$luster_fanlisting_id = 0; // collective affiliate application');
     } else if (type === 'col-codes' || type === 'col-codes-submit') {
       lines.push('$luster_fanlisting_id = 0; // collective codes');
+    } else if (type === 'adopt') {
+      lines.push('// Requires Adoption add-on (Admin → Add-ons)');
     }
     // Type-specific options
     if (type === 'members') {
@@ -1849,22 +1889,19 @@ document.addEventListener('drop', function (e) {
     if (type === 'affiliates') {
       if (vals.per_page && vals.per_page !== '')       lines.push('$luster_per_page        = ' + (parseInt(vals.per_page, 10) || 50) + ';');
     }
-    if (type === 'reset' && vals.reset_step) lines.push('$luster_reset_step = ' + phpStr(vals.reset_step) + ';');
     if (type === 'owned') {
-      if (vals.browse_by_category === 'true') lines.push('$luster_browse_by_category = true;');
+      if (vals.display_mode === 'browse')     lines.push('$luster_browse_by_category = true;');
+      if (vals.display_mode === 'none')       lines.push('$luster_hide_dropdown      = true;');
       if (vals.status)                        lines.push('$luster_status             = ' + phpStr(vals.status) + ';');
-      if (vals.category_id)                   lines.push('$luster_category_id        = ' + (parseInt(vals.category_id, 10) || 0) + ';');
-      if (vals.hide_dropdown === 'true')      lines.push('$luster_hide_dropdown      = true;');
-      if (vals.show_list === 'false')         lines.push('$luster_show_list          = false;');
-      if (vals.show_cat_switcher === 'false') lines.push('$luster_show_cat_switcher  = false;');
       if (vals.exclude_pending === 'false')   lines.push('$luster_exclude_pending    = false;');
     }
     if (type === 'joined') {
-      if (vals.browse_by_category === 'true') lines.push('$luster_browse_by_category = true;');
-      if (vals.category)                      lines.push('$luster_category           = ' + phpStr(vals.category) + ';');
-      if (vals.show_list === 'false')         lines.push('$luster_show_list          = false;');
-      if (vals.show_cat_switcher === 'false') lines.push('$luster_show_cat_switcher  = false;');
+      if (vals.display_mode === 'browse')     lines.push('$luster_browse_by_category = true;');
+      if (vals.display_mode === 'all')        lines.push('$luster_category           = ' + phpStr('all') + ';');
       if (vals.show_all_by_default === 'true') lines.push('$luster_show_all_by_default = true;');
+    }
+    if (type === 'codes' || type === 'col-codes') {
+      if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page = ' + (parseInt(vals.per_page, 10) || 20) + ';');
     }
     if (type === 'random' && vals.status) lines.push('$luster_status = ' + phpStr(vals.status) + ';');
     if (type === 'updates' || type === 'col-updates') {
@@ -1879,20 +1916,27 @@ document.addEventListener('drop', function (e) {
       if (vals.only_with_signups === 'false')    lines.push('$luster_kim_only_with_signups = false;');
       if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page              = ' + (parseInt(vals.per_page, 10) || 25) + ';');
     }
-    if (type === 'cstats') {
-      if (vals.count && vals.count !== '')         lines.push('$luster_count     = ' + (parseInt(vals.count, 10) || 3) + ';');
-      if (vals.cache_ttl && vals.cache_ttl !== '') lines.push('$luster_cache_ttl = ' + Math.max(0, parseInt(vals.cache_ttl, 10) || 0) + ';');
-    }
-    // Stats template override
+    // Stats template override — builds a PHP concatenation string.
+    // Tokens with join:true append to the previous line (no <br>).
     if (type === 'stats' && Array.isArray(vals.tpl) && vals.tpl.length > 0) {
-      if (vals.tpl.length === 1) {
-        lines.push('$luster_stats_template = ' + phpStr(vals.tpl[0].line) + ';');
-      } else {
-        lines.push('$luster_stats_template = ' + phpStr(vals.tpl[0].line));
-        for (var ti = 1; ti < vals.tpl.length - 1; ti++) {
-          lines.push("  . '<br>" + vals.tpl[ti].line.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + "'");
+      var esc = function (s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); };
+      // Group consecutive join tokens onto the same segment
+      var segments = [];
+      vals.tpl.forEach(function (t) {
+        if (t.join && segments.length > 0) {
+          segments[segments.length - 1] += t.line;
+        } else {
+          segments.push(t.line);
         }
-        lines.push("  . '<br>" + vals.tpl[vals.tpl.length-1].line.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + "';");
+      });
+      if (segments.length === 1) {
+        lines.push('$luster_stats_template = ' + phpStr(segments[0]) + ';');
+      } else {
+        lines.push('$luster_stats_template = ' + phpStr(segments[0]));
+        for (var ti = 1; ti < segments.length - 1; ti++) {
+          lines.push("  . '<br>" + esc(segments[ti]) + "'");
+        }
+        lines.push("  . '<br>" + esc(segments[segments.length - 1]) + "';");
       }
     }
     // Date format override
@@ -1918,10 +1962,20 @@ document.addEventListener('drop', function (e) {
     } else {
       lines.push("require LUSTER_EMBED . '/" + (FILE[type] || type + '.php') + "';");
     };
-    // Collective stats display lines
+    // Collective stats display lines — when the user picks individual
+    // variables, suppress the auto-echoed HTML block so only the raw
+    // variables are output on the host page.
     if (type === 'cstats') {
       var selVars = Array.isArray(vals.vars) ? vals.vars : [];
       if (selVars.length > 0) {
+        // Insert $luster_return = true before the require so the rendered
+        // HTML block is captured but not echoed — the user echoes only the
+        // variables they selected.
+        var reqIdx = lines.findIndex(function (l) { return l.indexOf("require LUSTER_EMBED") !== -1; });
+        if (reqIdx !== -1) {
+          lines.splice(reqIdx, 0, '$luster_return = true;');
+        }
+        lines.push('$luster_return = false;');
         selVars.forEach(function (v) {
           var stmt = 'echo $' + v.name + ';';
           var pad  = new Array(Math.max(2, 34 - stmt.length)).join(' ');
@@ -1945,7 +1999,7 @@ document.addEventListener('drop', function (e) {
         { id: 'lid',          label: 'Listing',                 type: 'listing', hint: '' },
         { id: 'per_page',     label: 'Members per page',        type: 'number', ph: '25', hint: 'How many members to show per page. Leave blank to use your normal Luster setting (default 25).' },
         { id: 'sort_by',      label: 'Start sorted by',         type: 'select', opts: [['country','Country'],['name','Name']], hint: '' },
-        { id: 'show_search',  label: 'Sort and filter tools',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'Shows or hides the sort links and search box above the member list. Visitors use these to re-sort or filter members.' },
+        { id: 'show_search',  label: 'Sort and filter tools',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'Shows or hides the sort links (View All / Name / Country) above the member list.' },
       ],
     },
     stats: {
@@ -1954,21 +2008,19 @@ document.addEventListener('drop', function (e) {
         { id: 'tpl', label: 'Stats to show', type: 'tokens',
           hint: 'Choose stats for this snippet, or leave everything unchecked to use the stats template saved in Luster.',
           tokens: [
-            { token: '{stat_approved}',     label: 'Approved members',     line: '{stat_approved} members' },
-            { token: '{stat_pending}',      label: 'Pending members',      line: '{stat_pending} pending' },
-            { token: '{if_stat_pending}',   label: 'Pending only when present', line: '{if_stat_pending}{stat_pending} pending{/if_stat_pending}' },
-            { token: '{stat_countries}',    label: 'Countries represented', line: '{stat_countries} countries' },
-            { token: '{stat_opened}',       label: 'Date opened',          line: 'Opened: {stat_opened}' },
-            { token: '{stat_updated}',      label: 'Most recent activity date', line: 'Last updated: {stat_updated}' },
-            { token: '{stat_newmembers}',   label: 'Newest members (linked, up to 5)', line: 'Newest: {stat_newmembers}' },
-            { token: '{stat_growth}',       label: 'Average members per day', line: 'Growth: {stat_growth}' },
-            { token: '{listing_title}',      label: 'Listing name',         line: '{listing_title}' },
-            { token: '{listing_url}',       label: 'Listing link',         line: '{listing_url}' },
-            { token: '{approved_by}',       label: 'Approved-by network',   line: '{if_approved_by}Approved by: {approved_by}{/if_approved_by}' },
+            { token: '{stat_approved}',     label: 'Approved members',              line: '<b>Members:</b> {stat_approved} total' },
+            { token: '{if_stat_pending}',   label: 'Pending only when present',     line: ' {if_stat_pending}(+{stat_pending} pending){/if_stat_pending}', join: true },
+            { token: '{stat_countries}',    label: 'Countries represented',         line: ' across {stat_countries} countries', join: true },
+            { token: '{stat_opened}',       label: 'Date opened',                   line: '<b>Opened On:</b> {stat_opened}' },
+            { token: '{stat_updated}',      label: 'Most recent activity date',     line: '<b>Last Updated:</b> {stat_updated}' },
+            { token: '{stat_newmembers}',   label: 'Newest members (linked, up to 5)', line: '<b>Newest Members:</b> {stat_newmembers}' },
+            { token: '{stat_growth}',       label: 'Growth rate with unit',         line: '<b>Growth:</b> {stat_growth}' },
+            { token: '{stat_growth_rate}',  label: 'Growth rate (number only)',     line: '' },
+            { token: '{approved_by}',       label: 'Approved-by network',           line: '{if_approved_by}<b>Approved By:</b> {approved_by}{/if_approved_by}' },
           ],
         },
         { id: 'date_format', label: 'Date format', type: 'select',
-          opts: [['','Default (15th November 2026)'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
           hint: 'How dates appear in the stats snippet.' },
       ],
     },
@@ -1986,42 +2038,30 @@ document.addEventListener('drop', function (e) {
     },
     reset: {
       fields: [
-        { id: 'lid',        label: 'Listing', type: 'listing', hint: '' },
-        { id: 'reset_step', label: 'Password reset page', type: 'select',
-          opts: [['','Normal reset page'],['confirm','New-password page only']],
-          hint: 'Most sites should use "Normal reset page." Use the second option only for a separate new-password page.' },
+        { id: 'lid', label: 'Listing', type: 'listing', hint: '' },
       ],
     },
     owned: {
       fields: [
-        { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['true','Category list'],['','Listings']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
-        { id: 'status',             label: 'Listings to show',        type: 'select', opts: [['','Current only'],['upcoming','Upcoming only'],['pending','Pending only'],['all','All statuses']], hint: '' },
-        { id: 'category_id',        label: 'Only this category ID',    type: 'number', ph: '0', hint: 'Optional. Leave blank unless you know the category ID you want to lock this snippet to.' },
-        { id: 'hide_dropdown',      label: 'Category dropdown',       type: 'select', opts: [['','Show'],['true','Hide']], hint: 'The category dropdown is a small menu at the top of the listings snippet that lets visitors switch between categories. Hide it if you only have one category or want a simpler page.' },
-        { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.', showIf: { field: 'browse_by_category', equals: '' } },
-        { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'When a visitor is browsing a category, show a dropdown to switch to another.' },
-        { id: 'exclude_pending',    label: 'Pending listings',        type: 'select', opts: [['','Hide when showing all'],['false','Show when showing all']], hint: 'Only matters when "Listings to show" is All statuses.' },
+        { id: 'display_mode', label: 'How should visitors browse?', type: 'select', opts: [['browse','List view'],['','Dropdown view'],['none','No categories']], hint: 'List view: visitors click a category name to see its listings. Dropdown view: a dropdown menu lets visitors filter by category. No categories: just show all listings.' },
+        { id: 'status',             label: 'Listings shown',        type: 'select', opts: [['','Current only'],['upcoming','Upcoming only'],['pending','Pending only'],['all','All statuses']], hint: '' },
+        { id: 'exclude_pending',    label: 'Pending listings',        type: 'select', opts: [['','Hide when showing all'],['false','Show when showing all']], hint: 'Only matters when "Listings shown" is All statuses.' },
         { id: 'date_format', label: 'Date format', type: 'select',
-          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
           hint: 'How listing dates appear.' },
       ],
     },
     joined: {
       fields: [
-        { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['true','Category list'],['','Listings']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
-        { id: 'category',           label: 'Category view',           type: 'select', opts: [['','Selector (visitors choose a category)'],['all','All categories']], hint: 'To pin the snippet to one specific category, add $luster_category = \'Category Name\'; to the snippet above the require line, replacing Category Name with the exact category name.' },
-        { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.', showIf: { field: 'browse_by_category', equals: '' } },
-        { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'A compact category dropdown shown after a visitor has selected a category, letting them switch to another. Does not affect the main overview picker.' },
-        { id: 'show_all_by_default', label: 'Show all listings first', type: 'select', opts: [['','No'],['true','Yes']], hint: 'Shows every joined listing right away while still keeping the category selector visible for filtering. Only applies when visitors are choosing a category.', showIf: [{ field: 'browse_by_category', equals: '' }, { field: 'category', equals: '' }] },
-        { id: 'date_format', label: 'Date format', type: 'select',
-          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+        { id: 'display_mode', label: 'Display', type: 'select', opts: [['browse','List View'],['','Dropdown View'],['all','Show All']], hint: 'Choose whether listings are organized by a category list, a category dropdown, or shown all at once' },
+        { id: 'show_all_by_default', label: 'Show All By Default', type: 'select', opts: [['','No'],['true','Yes']], hint: 'Listings are shown all at once and can be filtered through a category dropdown.', showIf: { field: 'display_mode', equals: '' } },
+        { id: 'date_format', label: 'Date Format', type: 'select',
+          opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
           hint: 'How listing dates appear.' },
       ],
     },
     cstats: {
       fields: [
-        { id: 'count',     label: 'Newest/random count', type: 'number', ph: '3', hint: 'How many newest listings Luster should prepare for custom PHP output.' },
-        { id: 'cache_ttl', label: 'Cache seconds',       type: 'number', ph: '0', hint: 'Leave blank or 0 for fresh stats every time.' },
         { id: 'vars', label: 'Stats to show', type: 'cstatvars',
           hint: 'Choose the stats you want printed by the snippet. People comfortable with PHP can still use the rest manually.',
           vars: [
@@ -2037,11 +2077,9 @@ document.addEventListener('drop', function (e) {
             { name: 'luster_affiliates',          label: 'Collective affiliates',    desc: '' },
             { name: 'luster_members_approved',    label: 'Approved members',         desc: '', checked: true },
             { name: 'luster_members_pending',     label: 'Pending members',          desc: '', checked: true },
-            { name: 'luster_members_total',       label: 'Total members',            desc: '' },
             { name: 'luster_countries_count',     label: 'Countries represented',    desc: '' },
             { name: 'luster_total_cats',          label: 'Owned categories',         desc: '' },
-            { name: 'luster_owned_current',       label: 'Owned current alias',      desc: '' },
-            { name: 'luster_collective_fans',     label: 'Total fans alias',         desc: '' },
+            { name: 'luster_joined_total_cats',  label: 'Joined categories',        desc: '' },
             { name: 'luster_owned_growth_rate',   label: 'Owned listings per year',  desc: '' },
             { name: 'luster_joined_growth_rate',  label: 'Joined listings per year', desc: '' },
             { name: 'luster_members_growth_rate', label: 'Members per day',          desc: '', checked: true },
@@ -2050,7 +2088,10 @@ document.addEventListener('drop', function (e) {
       ],
     },
     codes: {
-      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
+      fields: [
+        { id: 'lid',      label: 'Listing',        type: 'listing', hint: '' },
+        { id: 'per_page', label: 'Codes per page', type: 'number',  ph: '', hint: 'Leave blank to show all codes at once. Enter a number to paginate — e.g. 20 shows 20 codes per page.' },
+      ],
     },
     'codes-submit': {
       fields: [
@@ -2068,7 +2109,8 @@ document.addEventListener('drop', function (e) {
       ],
     },
     adopt: {
-      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
+      fields: [],
+      note: 'Visitors choose which listing to apply for from a dropdown in the form.',
     },
     'aff-col': {
       fields: [
@@ -2080,8 +2122,9 @@ document.addEventListener('drop', function (e) {
       note: 'This is already set up for collective affiliate forms.',
     },
     'col-codes': {
-      fields: [],
-      note: 'This is already set up for collective codes.',
+      fields: [
+        { id: 'per_page', label: 'Codes per page', type: 'number', ph: '', hint: 'Leave blank to show all codes at once. Enter a number to paginate — e.g. 20 shows 20 codes per page.' },
+      ],
     },
     'col-codes-submit': {
       fields: [],
@@ -2110,28 +2153,28 @@ document.addEventListener('drop', function (e) {
         { id: 'status', label: 'Choose from', type: 'select',
           opts: [['current','Current listings'],['upcoming','Upcoming listings'],['all','All listings']], hint: '' },
         { id: 'date_format', label: 'Date format', type: 'select',
-          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
           hint: 'How listing dates appear.' },
       ],
     },
     latest: {
       fields: [
         { id: 'date_format', label: 'Date format', type: 'select',
-          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
           hint: 'How listing dates appear.' },
       ],
     },
     'random-joined': {
       fields: [
         { id: 'date_format', label: 'Date format', type: 'select',
-          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
           hint: 'How listing dates appear.' },
       ],
     },
     'latest-joined': {
       fields: [
         { id: 'date_format', label: 'Date format', type: 'select',
-          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
           hint: 'How listing dates appear.' },
       ],
     },
@@ -2243,14 +2286,21 @@ document.addEventListener('drop', function (e) {
       html += '</div></div>';
     });
     optsBody.innerHTML = html;
-    // Show/hide fields whose `showIf` condition depends on another field's value,
-    // resetting any hidden field back to its default so the generated snippet
-    // never carries an override for an option the user can no longer see.
+    // Show/hide fields whose `showIf` / `hideIf` conditions depend on other
+    // fields, resetting any hidden field back to its default so the generated
+    // snippet never carries an override for an option the user can no longer see.
     function applyConditionalRows() {
       def.fields.forEach(function (f) {
-        if (!f.showIf) return;
-        var conds = Array.isArray(f.showIf) ? f.showIf : [f.showIf];
-        var visible = conds.every(function (c) { return custVals[c.field] === c.equals; });
+        if (!f.showIf && !f.hideIf) return;
+        var visible = true;
+        if (f.showIf) {
+          var conds = Array.isArray(f.showIf) ? f.showIf : [f.showIf];
+          visible = conds.every(function (c) { return custVals[c.field] === c.equals; });
+        }
+        if (visible && f.hideIf) {
+          var hc = Array.isArray(f.hideIf) ? f.hideIf : [f.hideIf];
+          if (hc.every(function (c) { return custVals[c.field] === c.equals; })) visible = false;
+        }
         var row = optsBody.querySelector('#ec-row-' + f.id);
         if (row) row.style.display = visible ? '' : 'none';
         if (!visible) {
@@ -2331,13 +2381,7 @@ document.addEventListener('drop', function (e) {
   function schedulePreviewRefresh() {
     if (!prevModal || prevModal.style.display === 'none') return;
     clearTimeout(prevRefreshTimer);
-    prevRefreshTimer = setTimeout(function () {
-      var url = buildPreviewUrl();
-      if (url && prevIframe) {
-        prevIframe.src = url;
-        if (prevNewTab) prevNewTab.href = url;
-      }
-    }, 600);
+    prevRefreshTimer = setTimeout(function () { applyPreviewSource(); }, 600);
   }
 
   function buildPreviewUrl() {
@@ -2394,7 +2438,7 @@ document.addEventListener('drop', function (e) {
       }
 
       case 'stats': {
-        var statsDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var statsDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','Y-m-d':'2026-11-15'};
         var statsDfNote = vals.date_format && statsDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + statsDfMap[vals.date_format] + '</div>' : '';
         return '<h4>' + name + ' &mdash; Statistics</h4>'
           + '<div class="site-stats">'
@@ -2455,8 +2499,9 @@ document.addEventListener('drop', function (e) {
       }
 
       case 'adopt':
-        return '<h4>Apply to adopt ' + name + '</h4>'
-          + '<p class="site-sub">Interested in taking over this fanlisting? Fill in your details.</p>'
+        return '<h4>Apply to Adopt a Fanlisting</h4>'
+          + '<p class="site-sub">Interested in taking over a fanlisting? Choose one and fill in your details.</p>'
+          + '<label>Fanlisting</label><select class="fld fld--select"><option>— Choose a fanlisting —</option><option>Sample Fanlisting A</option><option>Sample Fanlisting B</option></select>'
           + '<label>Name</label><input class="fld" placeholder="Your name" />'
           + '<label>Email</label><input class="fld" placeholder="you@example.com" />'
           + '<label>Website</label><input class="fld" placeholder="https://" />'
@@ -2517,13 +2562,9 @@ document.addEventListener('drop', function (e) {
           + '<button class="site-btn">Send reset link</button>';
 
       case 'owned': {
-        var browse = vals.browse_by_category === 'true';
-        var asList = vals.show_list !== 'false';
-        var hideDropdown = vals.hide_dropdown === 'true';
-        var showSwitcher = vals.show_cat_switcher !== 'false';
+        var modeO = vals.display_mode || '';
         var statusVal = vals.status || '';
-        var hasCatId = parseInt(vals.category_id || '0', 10) > 0;
-        var ownedDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var ownedDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','Y-m-d':'2026-11-15'};
         var ownedDfNote = vals.date_format && ownedDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + ownedDfMap[vals.date_format] + '</div>' : '';
         var allSamplesO = {
           '':        [['Huntrix', ''],            ['Witch King', ''],      ['The Force', '']],
@@ -2538,58 +2579,43 @@ document.addEventListener('drop', function (e) {
         }).join('');
         var catDropdownO = '<select class="fld fld--select"><option>— Choose a category —</option><option>Anime (5)</option><option>Music (3)</option><option>Games (2)</option></select>';
         var catListO = '<ul style="margin:0 0 .25rem;padding-left:18px"><li><a class="site-link" href="#">Anime (5)</a></li><li><a class="site-link" href="#">Music (3)</a></li><li><a class="site-link" href="#">Games (2)</a></li></ul>';
-        var switcherO = showSwitcher
-          ? '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Music</option><option>Games</option></select>'
-          : '';
-        if (browse) {
+        var switcherO = '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Music</option><option>Games</option></select>';
+        if (modeO === 'browse') {
           return '<h4>Owned fanlistings</h4>'
-            + '<div class="site-note" style="margin-bottom:.25rem">Category overview:</div>'
+            + '<div class="site-note" style="margin-bottom:.25rem">Category list:</div>'
             + catListO
             + '<div class="site-note" style="margin:.4rem 0 .2rem">After selecting a category:</div>'
             + switcherO
             + rowsO + ownedDfNote;
         }
-        if (hasCatId) {
-          return '<h4>Owned fanlistings</h4>'
-            + '<div class="site-note" style="margin-bottom:.25rem">Showing category ID ' + parseInt(vals.category_id, 10) + ' only:</div>'
-            + rowsO + ownedDfNote;
-        }
-        if (hideDropdown) {
+        if (modeO === 'none') {
           return '<h4>Owned fanlistings</h4>' + rowsO + ownedDfNote;
         }
         return '<h4>Owned fanlistings</h4>'
-          + '<div class="site-note" style="margin-bottom:.25rem">Category overview:</div>'
-          + (asList ? catListO : catDropdownO)
-          + '<div class="site-note" style="margin:.4rem 0 .2rem">After selecting a category:</div>'
-          + switcherO
+          + catDropdownO
           + rowsO + ownedDfNote;
       }
 
       case 'joined': {
-        var browse2 = vals.browse_by_category === 'true';
-        var asList2 = vals.show_list !== 'false';
-        var showSwitcher2 = vals.show_cat_switcher !== 'false';
-        var catVal2 = vals.category || '';
+        var mode2 = vals.display_mode || '';
         var showAllFirst2 = vals.show_all_by_default === 'true';
-        var joinedDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var joinedDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','Y-m-d':'2026-11-15'};
         var joinedDfNote = vals.date_format && joinedDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + joinedDfMap[vals.date_format] + '</div>' : '';
         var sampleRows2 = [['Sailor Moon','Anime'],['Cowboy Bebop','Anime'],['Radiohead','Music']].map(function (it) {
           return '<div class="site-row"><a class="site-link" href="#">' + it[0] + '</a><span class="site-flag">' + it[1] + '</span></div>';
         }).join('');
         var catDropdown2 = '<select class="fld fld--select"><option>— Choose a category —</option><option>Anime (12)</option><option>Music (8)</option></select>';
         var catList2 = '<ul style="margin:0 0 .25rem;padding-left:18px"><li><a class="site-link" href="#">Anime (12)</a></li><li><a class="site-link" href="#">Music (8)</a></li></ul>';
-        if (browse2) {
-          var switcher2 = showSwitcher2
-            ? '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Music</option></select>'
-            : '';
+        var switcher2 = '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Music</option></select>';
+        if (mode2 === 'browse') {
           return '<h4>Joined fanlistings</h4>'
-            + '<div class="site-note" style="margin-bottom:.25rem">Category overview:</div>'
-            + (asList2 ? catList2 : catDropdown2)
+            + '<div class="site-note" style="margin-bottom:.25rem">Category index:</div>'
+            + catList2
             + '<div class="site-note" style="margin:.4rem 0 .2rem">After selecting a category:</div>'
             + switcher2
             + sampleRows2 + joinedDfNote;
         }
-        if (catVal2 === 'all') {
+        if (mode2 === 'all') {
           return '<h4>Joined fanlistings</h4>' + sampleRows2 + joinedDfNote;
         }
         if (showAllFirst2) {
@@ -2601,20 +2627,30 @@ document.addEventListener('drop', function (e) {
           + joinedDfNote;
       }
 
-      case 'cstats':
-        return '<h4>Across the collective</h4>'
-          + '<div class="site-stats">'
-          + '<div class="site-stat"><span class="k">Owned active</span><span class="v">12</span></div>'
-          + '<div class="site-stat"><span class="k">Joined</span><span class="v">48</span></div>'
-          + '<div class="site-stat"><span class="k">Members</span><span class="v">3,450</span></div>'
-          + '<div class="site-stat"><span class="k">Affiliates</span><span class="v">8</span></div>'
-          + '</div>'
-          + '<div class="site-note">These stats are for custom PHP pages.</div>';
+      case 'cstats': {
+        var selVars = Array.isArray(vals.vars) ? vals.vars : [];
+        if (selVars.length === 0) {
+          return '<div class="site-note" style="font-style:italic;color:#777">Select stats above to preview the generated code, or leave all unchecked to use the collective stats template.</div>';
+        }
+        var sampleValues = {
+          luster_owned_active: '12', luster_owned_upcoming: '2', luster_owned_pending: '1', luster_owned: '15',
+          luster_joined_active: '48', luster_joined_approved: '45', luster_joined_upcoming: '3', luster_joined_pending: '0', luster_joined: '48',
+          luster_affiliates: '8', luster_members_approved: '3,450', luster_members_pending: '12',
+          luster_countries_count: '27', luster_total_cats: '9', luster_joined_total_cats: '6',
+          luster_owned_growth_rate: '2.50', luster_joined_growth_rate: '4.80', luster_members_growth_rate: '1.25',
+        };
+        var statsHtml = '<h4>Selected Variables</h4><div class="site-stats">';
+        selVars.forEach(function (v) {
+          statsHtml += '<div class="site-stat"><span class="k">$' + v.name + '</span><span class="v">' + (sampleValues[v.name] || '—') + '</span></div>';
+        });
+        statsHtml += '</div><div class="site-note">These values are samples. The real page will show live data.</div>';
+        return statsHtml;
+      }
 
       case 'random': {
         var randStatus = vals.status || 'current';
         var randBadge = randStatus === 'upcoming' ? 'Upcoming' : randStatus === 'all' ? 'Any status' : 'Current';
-        var randDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var randDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','Y-m-d':'2026-11-15'};
         var randDfNote = vals.date_format && randDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + randDfMap[vals.date_format] + '</div>' : '';
         return '<h4>Featured listing</h4>'
           + '<div class="site-row"><a class="site-link" href="#">' + name + '</a><span class="site-flag">' + randBadge + '</span></div>'
@@ -2623,7 +2659,7 @@ document.addEventListener('drop', function (e) {
       }
 
       case 'latest': {
-        var latestDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var latestDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','Y-m-d':'2026-11-15'};
         var latestDfNote = vals.date_format && latestDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + latestDfMap[vals.date_format] + '</div>' : '';
         return '<h4>Latest listing</h4>'
           + '<div class="site-row"><a class="site-link" href="#">' + name + '</a><span class="site-flag">Current</span></div>'
@@ -2633,7 +2669,7 @@ document.addEventListener('drop', function (e) {
 
       case 'random-joined':
       case 'latest-joined': {
-        var rjlDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var rjlDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','Y-m-d':'2026-11-15'};
         var rjlDfNote = vals.date_format && rjlDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + rjlDfMap[vals.date_format] + '</div>' : '';
         return '<h4>' + (key === 'random-joined' ? 'Featured joined listing' : 'Latest joined listing') + '</h4>'
           + '<div class="site-row"><a class="site-link" href="#">Sailor Moon</a><span class="site-flag">Anime</span></div>'

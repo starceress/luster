@@ -40,9 +40,10 @@ use Luster\Core\View;
     }
     if ($_ownedCurrentCat !== null):
   ?>
-    <form method="GET" action="<?= View::e($form_action) ?>" class="fl-category-nav fl-category-dropdown fl-joined-nav">
-      <label for="fl-owned-cat"><b>Choose Category:</b></label>
-      <select id="fl-owned-cat" name="cat">
+    <?php if ($browse_by_category ?? false): ?>
+    <form method="GET" action="<?= View::e($form_action) ?>" class="fl-category-nav fl-category-dropdown">
+      <label class="fl-label" for="fl-owned-cat"><b>Choose Category:</b></label>
+      <select class="fl-select" id="fl-owned-cat" name="cat">
         <option value="all">All Categories</option>
         <?php foreach ($categories as $_oc):
           $_ocVal = ($_ = $_oc['slug'] ?? '') !== '' ? $_ : (string) $_oc['id'];
@@ -50,8 +51,9 @@ use Luster\Core\View;
           <option value="<?= View::e($_ocVal) ?>"<?= (int) $_oc['id'] === (int) $current_category ? ' selected' : '' ?>><?= View::e($_oc['name']) ?> (<?= (int) $_oc['listing_count'] ?>)</option>
         <?php endforeach; ?>
       </select>
-      <noscript><button type="submit">Go</button></noscript>
+      <noscript><button type="submit" class="fl-btn">Go</button></noscript>
     </form>
+    <?php endif; ?>
     <h2 class="fl-cat-heading"><?= View::e($_ownedCurrentCat['name']) ?> (<?= count($listings) ?>)</h2>
   <?php endif; endif; ?>
 
@@ -65,9 +67,9 @@ use Luster\Core\View;
   <?php if (($browse_show_all ?? false) && !empty($categories)):
     $_tcOwned = (int) ($total_count ?? count($listings));
   ?>
-    <form method="GET" action="<?= View::e($form_action) ?>" class="fl-category-nav fl-category-dropdown fl-joined-nav">
-      <label for="fl-owned-cat"><b>Choose Category:</b></label>
-      <select id="fl-owned-cat" name="cat">
+    <form method="GET" action="<?= View::e($form_action) ?>" class="fl-category-nav fl-category-dropdown">
+      <label class="fl-label" for="fl-owned-cat"><b>Choose Category:</b></label>
+      <select class="fl-select" id="fl-owned-cat" name="cat">
         <option value="all" selected>All Categories (<?= $_tcOwned ?>)</option>
         <?php foreach ($categories as $_oc):
           $_ocVal = ($_ = $_oc['slug'] ?? '') !== '' ? $_ : (string) $_oc['id'];
@@ -75,7 +77,7 @@ use Luster\Core\View;
           <option value="<?= View::e($_ocVal) ?>"><?= View::e($_oc['name']) ?> (<?= (int) $_oc['listing_count'] ?>)</option>
         <?php endforeach; ?>
       </select>
-      <noscript><button type="submit">Go</button></noscript>
+      <noscript><button type="submit" class="fl-btn">Go</button></noscript>
     </form>
     <h2 class="fl-cat-heading">All Categories (<?= $_tcOwned ?>)</h2>
   <?php endif; ?>

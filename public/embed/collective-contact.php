@@ -34,6 +34,7 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
@@ -114,7 +115,7 @@ $_lusterWrapperTpl = '';
 $_lusterSubjOld = (string) ($_lusterOld['subject'] ?? '');
 $_lusterSubjHtml = '<select id="contact-subject" name="subject" required>'
                  . '<option value="" disabled' . ($_lusterSubjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
-foreach (['Comments', 'Contact', 'Questions/Concerns', 'Affiliation', 'Link Exchange'] as $_lusterSubjOpt) {
+foreach (['Comments', 'Contact', 'Questions & Concerns'] as $_lusterSubjOpt) {
     $_lusterOptEsc    = htmlspecialchars($_lusterSubjOpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterSubjHtml .= '<option value="' . $_lusterOptEsc . '"' . ($_lusterSubjOld === $_lusterSubjOpt ? ' selected' : '') . '>' . $_lusterOptEsc . '</option>';
 }
@@ -133,9 +134,9 @@ $_lusterContactTpl = (string) ($_lusterSiteRepo->get('collective_contact_form_te
 $_lusterFormHtml   = null;
 if ($_lusterContactTpl !== '') {
     $_lusterTokens = [
-        '{listing_title}'        => htmlspecialchars((string) $_lusterConfig->get('app_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-        '{listing_subject}'      => htmlspecialchars((string) $_lusterConfig->get('app_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-        '{listing_url}'          => htmlspecialchars((string) $_lusterConfig->get('app_url',  ''),           ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        '{listing_title}'        => htmlspecialchars((string) $_lusterConfig->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        '{listing_subject}'      => htmlspecialchars((string) $_lusterConfig->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        '{listing_url}'          => htmlspecialchars((string) ($_lusterConfig->get('site_url', '')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         '{field_name}'           => $_lusterF['name'],
         '{field_name_input}'     => $_lusterF['name_input'],
         '{field_email}'          => $_lusterF['email'],
@@ -158,8 +159,8 @@ if ($_lusterContactTpl !== '') {
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
     'listing'      => null,
-    'listing_name' => (string) $_lusterConfig->get('app_name', 'Collective'),
-    'listing_url'  => (string) $_lusterConfig->get('app_url',  ''),
+    'listing_name' => (string) $_lusterConfig->get('site_name', 'Collective'),
+    'listing_url'  => (string) ($_lusterConfig->get('site_url', '')),
     'page_title'   => 'Contact',
     'base_url'     => $_lusterBaseUrl,
     'theme_path'   => rtrim($_lusterBaseUrl, '/') . '/assets/default',
@@ -172,6 +173,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
     'form_html'    => $_lusterFormHtml,
     'form_marker'  => 'contact_collective',
 ]);
+
 
 if ($luster_return ?? false) { return $_lusterHtml; }
 echo $_lusterHtml;

@@ -110,10 +110,12 @@ $pageUrl = static function (int $p) use ($b, $sort, $dir): string {
         ?>
         <tr>
           <td data-label="Listing">
-            <a href="<?= $b ?>/admin/kim?listing_id=<?= (int) $listing->id ?>"
-               class="link text-strong">
-              <?= View::e($listing->subject) ?>
-            </a>
+            <div class="subject-title-stack">
+              <a href="<?= $b ?>/admin/kim?listing_id=<?= (int) $listing->id ?>" class="link"><b><?= View::e($listing->subject ?: $listing->title) ?></b></a>
+              <?php if ($listing->subject !== ''): ?>
+                <span class="mem-url"><?= View::e($listing->title) ?></span>
+              <?php endif; ?>
+            </div>
           </td>
           <td data-label="Pending">
             <?php if ($pending > 0): ?>
