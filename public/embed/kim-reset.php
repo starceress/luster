@@ -191,13 +191,6 @@ if ($_lusterKimResetStep === 'confirm') {
             'token_invalid' => !$_lusterTokenValid,
         ]);
         $_lusterTokensC = [
-            '{field_email}'                  => '',
-            '{field_email_input}'            => '',
-            '{field_fanlisting_id}'          => '',
-            '{field_fanlisting_id_input}'    => '',
-            '{captcha_block}'                => '',
-            '{captcha_block_input}'          => '',
-            '{captcha_question}'             => '',
             '{submit_button}'                => '<button type="submit" class="fl-submit">Set New Password</button>',
             '{clear_button}'                 => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             '{reset_request_url}'            => View::e($_lusterResetRecoveryUrl),
@@ -247,18 +240,9 @@ if ($_lusterKimResetStep === 'confirm') {
         $_lusterTokens = [
             '{field_email}'                  => $_lusterF['email'],
             '{field_email_input}'            => $_lusterF['email_input'],
-            '{field_fanlisting_id}'          => '',
-            '{field_fanlisting_id_input}'    => '',
-            '{captcha_block}'                => '',
-            '{captcha_block_input}'          => '',
-            '{captcha_question}'             => '',
             '{submit_button}'                => '<button type="submit" class="fl-submit">Send Reset Link</button>',
             '{clear_button}'                 => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             '{reset_request_url}'            => View::e($_lusterResetRecoveryUrl),
-            '{field_password}'               => '',
-            '{field_password_input}'         => '',
-            '{field_password_confirm}'       => '',
-            '{field_password_confirm_input}' => '',
         ];
         $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterTplOut, $_lusterTokens);
         $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterRedirectToClean, $_lusterApp->getCSRF()->token(), false, false, 'kim_reset');

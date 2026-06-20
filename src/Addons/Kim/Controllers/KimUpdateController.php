@@ -372,7 +372,7 @@ final class KimUpdateController
             try {
                 $listing     = $listingRepo->getById($member->fanlistingId);
                 $listingName = $listing !== null ? ($listing->subject ?: $listing->title) : $siteName;
-                $listingUrl  = $listing !== null ? $listing->url : $this->app->getBaseUrl();
+                $listingUrl  = $listing !== null ? $listing->url : (string) $this->app->getConfig()->get('site_url', '');
                 $recipientEmail = $newEmail !== '' ? $newEmail : $member->email;
                 $recipientName  = $newName  !== '' ? $newName  : $member->name;
 
@@ -435,6 +435,17 @@ final class KimUpdateController
             ['type' => 'password', 'name' => 'password', 'id' => 'kim-password', 'label' => 'Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
         ], '');
 
+        $kimUrls  = $siteRepo->getMany(['kim_url_reset', 'kim_url_list']);
+        $kimParsed   = parse_url((string) ($this->app->getConfig()->get('site_url', '')));
+        $kimSiteRoot = ($kimParsed['scheme'] ?? 'https') . '://' . ($kimParsed['host'] ?? '');
+        if (!empty($kimParsed['port'])) {
+            $kimSiteRoot .= ':' . $kimParsed['port'];
+        }
+        $toLink = static fn(?string $v): ?string =>
+            ($v !== null && $v !== '') ? $kimSiteRoot . '/' . ltrim($v, '/') : null;
+
+        $resolvedResetUrl = $toLink($kimUrls['kim_url_reset'] ?: null) ?? $baseUrl . '/kim/reset';
+
         $formHtml  = null;
         $updateTpl = $siteRepo->get('kim_update_form_template') ?? '';
         if ($updateTpl !== '') {
@@ -444,44 +455,13 @@ final class KimUpdateController
                 '{field_email_input}'                => $f['email_input'],
                 '{field_password}'                   => $f['password'],
                 '{field_password_input}'             => $f['password_input'],
-                // deprecated / removed fields — keep for template backward compat
-                '{field_name}'                       => '',
-                '{field_name_input}'                 => '',
-                '{field_current_email}'              => $f['email'],
-                '{field_current_email_input}'        => $f['email_input'],
-                '{field_current_password}'           => $f['password'],
-                '{field_current_password_input}'     => $f['password_input'],
-                '{field_fanlisting_id}'              => '',
-                '{field_fanlisting_id_input}'        => '',
-                '{field_new_email}'                  => '',
-                '{field_new_email_input}'            => '',
-                '{field_new_url}'                    => '',
-                '{field_new_url_input}'              => '',
-                '{field_new_password}'               => '',
-                '{field_new_password_input}'         => '',
-                '{field_new_password_confirm}'       => '',
-                '{field_new_password_confirm_input}' => '',
-                '{field_send_copy}'                  => '',
-                '{field_send_copy_input}'            => '',
-                '{captcha_block}'                    => '',
-                '{captcha_block_input}'              => '',
-                '{captcha_question}'                 => '',
                 '{submit_button}'                    => '<button type="submit" class="fl-submit">Sign In</button>',
                 '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-                '{lost_password_url}'                => View::e($baseUrl . '/kim/reset'),
+                '{lost_password_url}'                => View::e($resolvedResetUrl),
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
             $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/update/sign-in', $this->app->getCSRF()->token(), false);
         }
-
-        $kimUrls  = $siteRepo->getMany(['kim_url_reset', 'kim_url_list']);
-        $kimParsed   = parse_url((string) ($this->app->getConfig()->get('site_url', '')));
-        $kimSiteRoot = ($kimParsed['scheme'] ?? 'https') . '://' . ($kimParsed['host'] ?? '');
-        if (!empty($kimParsed['port'])) {
-            $kimSiteRoot .= ':' . $kimParsed['port'];
-        }
-        $toLink = static fn(?string $v): ?string =>
-            ($v !== null && $v !== '') ? $kimSiteRoot . '/' . ltrim($v, '/') : null;
 
         return $this->renderKimPage('update.php', [
             'page_title'  => 'KIM — Sign In',

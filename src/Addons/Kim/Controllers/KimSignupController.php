@@ -172,7 +172,7 @@ final class KimSignupController
             $ownerEmail = (string) $config->get('owner_email', '');
 
             $listingName = $selectedListing !== null ? ($selectedListing->subject ?: $selectedListing->title) : $siteName;
-            $listingUrl  = $selectedListing !== null ? $selectedListing->url : $this->app->getBaseUrl();
+            $listingUrl  = $selectedListing !== null ? $selectedListing->url : (string) $this->app->getConfig()->get('site_url', '');
 
             // Always issue a setup URL so the fan can access their account.
             // URL points to the KIM reset page (configured) or the Luster reset route —
@@ -286,11 +286,6 @@ final class KimSignupController
                 '{field_password_input}'              => $f['password_input'],
                 '{field_password_confirm}'            => $f['password_confirm'],
                 '{field_password_confirm_input}'      => $f['password_confirm_input'],
-                '{field_send_copy}'                   => '',
-                '{field_send_copy_input}'             => '',
-                '{captcha_block}'                     => '',
-                '{captcha_block_input}'               => '',
-                '{captcha_question}'                  => '',
                 '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
                 '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];

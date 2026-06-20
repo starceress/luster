@@ -590,9 +590,6 @@ return [
         $router->post('/admin/compat-test',
             EmbedCodesController::class, 'compatTest');
 
-        // ── Compat wrapper ZIP download ───────────────────────────────
-        $router->get('/admin/listings/{id}/compat-zip/{set}',
-            ListingController::class, 'compatZip');
 
         // ── Import members (targeted SQL member import) ───────────────
         $router->get('/admin/import-members',

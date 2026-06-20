@@ -144,7 +144,7 @@ final class KimResetController
                     $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
                     $tokens    = EmailTemplateRepo::buildKimTokens(
                         listingName: $siteName,
-                        listingUrl:  $this->app->getBaseUrl(),
+                        listingUrl:  (string) $this->app->getConfig()->get('site_url', ''),
                         siteName:    $siteName,
                         ownerName:   $ownerName,
                         ownerEmail:  $ownerEmail,
@@ -305,19 +305,10 @@ final class KimResetController
             $tokens = [
                 '{field_email}'          => $f['email'],
                 '{field_email_input}'    => $f['email_input'],
-                '{field_fanlisting_id}'  => '',
-                '{field_fanlisting_id_input}' => '',
-                '{captcha_block}'        => '',
-                '{captcha_block_input}'  => '',
-                '{captcha_question}'     => '',
                 '{submit_button}'        => '<button type="submit" class="fl-submit">Send Reset Link</button>',
                 '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
                 '{reset_request_url}'    => View::e($baseUrl . '/kim/reset'),
-                '{field_password}'       => '',
-                '{field_password_input}' => '',
-                '{field_password_confirm}'       => '',
-                '{field_password_confirm_input}' => '',
-                ];
+            ];
             $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
             $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset', $this->app->getCSRF()->token(), false);
         }
@@ -361,13 +352,6 @@ final class KimResetController
                 'token_invalid' => !$tokenValid,
             ]);
             $tokens = [
-                '{field_email}'          => '',
-                '{field_email_input}'    => '',
-                '{field_fanlisting_id}'  => '',
-                '{field_fanlisting_id_input}' => '',
-                '{captcha_block}'        => '',
-                '{captcha_block_input}'  => '',
-                '{captcha_question}'     => '',
                 '{submit_button}'        => '<button type="submit" class="fl-submit">Set New Password</button>',
                 '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
                 '{reset_request_url}'    => View::e($baseUrl . '/kim/reset'),
@@ -375,7 +359,7 @@ final class KimResetController
                 '{field_password_input}' => $f['new_password_input'],
                 '{field_password_confirm}'       => $f['new_password_confirm'],
                 '{field_password_confirm_input}' => $f['new_password_confirm_input'],
-                ];
+            ];
             $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
             if ($rawToken !== '') {
                 $innerHtml .= '<input type="hidden" name="token" value="' . View::e($rawToken) . '">';

@@ -1127,25 +1127,6 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code>$luster_total_cats</code></td><td>Number of owned-listing categories.</td></tr>
                 <tr><td class="act-col"><code>$luster_joined_categories</code></td><td>Array of distinct category names across your active joined listings.</td></tr>
                 <tr><td class="act-col"><code>$luster_joined_total_cats</code></td><td>Number of distinct categories across your active joined listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_owned_current</code></td><td>Alias of <code>$luster_owned_active</code> (Enthusiast compatibility).</td></tr>
-                <tr><td class="act-col"><code>$luster_collective_fans</code></td><td>Alias of <code>$luster_members_total</code> (Enthusiast compatibility).</td></tr>
-              </tbody>
-            </table>
-              </div>
-              <p class="text-muted" style="margin-top:.875rem">Enthusiast-compatible aliases. These are helpful when moving an older Enthusiast collective page into Luster.</p>
-              <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th class="act-col">PHP variable</th><th>What it shows</th></tr></thead>
-              <tbody>
-                <tr><td class="act-col"><code>$owned</code>, <code>$joined</code>, <code>$total_cats</code></td><td>Short names for total owned listings, total joined listings, and total owned-listing categories.</td></tr>
-                <tr><td class="act-col"><code>$owned_current</code>, <code>$owned_upcoming</code>, <code>$owned_pending</code></td><td>Owned listing counts by status.</td></tr>
-                <tr><td class="act-col"><code>$joined_current</code>, <code>$joined_approved</code>, <code>$joined_upcoming</code>, <code>$joined_pending</code></td><td>Joined listing counts by status. Approved excludes pending and upcoming joined listings.</td></tr>
-                <tr><td class="act-col"><code>$affiliates_collective</code>, <code>$collective_affiliates</code></td><td>Two names for the active collective affiliate count.</td></tr>
-                <tr><td class="act-col"><code>$collective_total_fans_approved</code>, <code>$collective_total_fans_pending</code>, <code>$collective_total_fans</code></td><td>Approved, pending, and total member counts across all listings.</td></tr>
-                <tr><td class="act-col"><code>$collective_categories</code>, <code>$countries_count</code></td><td>Owned-listing category count and country count.</td></tr>
-                <tr><td class="act-col"><code>$collective_last_updated</code></td><td>Same value as <code>$luster_collective_last_updated</code>.</td></tr>
-                <tr><td class="act-col"><code>$owned_growth_rate</code>, <code>$joined_growth_rate</code>, <code>$collective_fans_growth_rate</code></td><td>Growth-rate aliases for old templates.</td></tr>
-                <tr><td class="act-col"><code>$owned_newest</code>, <code>$joined_newest</code>, <code>$owned_random</code>, <code>$joined_random</code></td><td>Flat arrays for old templates. Use keys like <code>['url']</code>, <code>['name']</code>, <code>['title']</code>, <code>['subject']</code>, <code>['desc']</code>, <code>['listingtype']</code>, <code>['category']</code>, <code>['opened']</code>, or <code>['added']</code> depending on the array.</td></tr>
               </tbody>
             </table>
               </div>

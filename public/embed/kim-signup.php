@@ -187,11 +187,6 @@ if ($_lusterKimSignupTpl !== '') {
         '{field_password_input}'              => $_lusterF['password_input'],
         '{field_password_confirm}'            => $_lusterF['password_confirm'],
         '{field_password_confirm_input}'      => $_lusterF['password_confirm_input'],
-        '{field_send_copy}'                   => '',
-        '{field_send_copy_input}'             => '',
-        '{captcha_block}'                     => '',
-        '{captcha_block_input}'               => '',
-        '{captcha_question}'                  => '',
         '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
         '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
     ];
