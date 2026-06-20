@@ -296,7 +296,7 @@ final class ImportMembersController
 
         $session->set(self::SESS_RESULT, [
             'listing_id'   => $listingId,
-            'listing_name' => $listing->title,
+            'listing_title' => $listing->title,
             'imported'     => $imported,
             'skipped'      => $skipped,
         ]);

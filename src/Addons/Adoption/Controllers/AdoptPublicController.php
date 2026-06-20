@@ -211,7 +211,7 @@ final class AdoptPublicController
             $baseUrl = $this->app->getBaseUrl();
             $html    = $this->app->getView()->renderPublic('adopt.php', [
                 'listing'      => null,
-                'listing_name' => (string) $this->app->getConfig()->get('site_name', ''),
+                'listing_title' => (string) $this->app->getConfig()->get('site_name', ''),
                 'listing_url'  => $baseUrl,
                 'page_title'   => 'Adopt a Listing',
                 'success_html' => $successHtml,
@@ -418,7 +418,7 @@ final class AdoptPublicController
         if ($successHtml !== '') {
             $html = $this->app->getView()->renderPublic('adopt.php', [
                 'listing'      => $listing,
-                'listing_name' => $listing->title,
+                'listing_title' => $listing->title,
                 'listing_url'  => $listing->url,
                 'page_title'   => 'Adopt ' . $listing->title,
                 'success_html' => $successHtml,
@@ -448,7 +448,7 @@ final class AdoptPublicController
 
         $html = $this->app->getView()->renderPublic('adopt.php', [
             'listing'             => $listing,
-            'listing_name'        => $listing->title,
+            'listing_title'        => $listing->title,
             'listing_url'         => $listing->url,
             'page_title'          => 'Adopt ' . $listing->title,
             'form_action'         => $baseUrl . '/adopt/' . $listingId,
@@ -542,7 +542,7 @@ final class AdoptPublicController
 
         $html = $this->app->getView()->renderPublic('adopt.php', [
             'listing'      => null,
-            'listing_name' => $siteName,
+            'listing_title' => $siteName,
             'listing_url'  => $siteUrl,
             'page_title'   => 'Adopt a Listing',
             'form_action'  => $formAction,

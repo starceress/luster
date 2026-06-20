@@ -182,7 +182,7 @@ if ($_lusterSectionTemplate !== null) {
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
     'listing'      => $_lusterListing,
-    'listing_name' => $_lusterTitle,
+    'listing_title' => $_lusterTitle,
     'listing_url'  => $_lusterListing?->url ?? $_lusterApp->getBaseUrl(),
     'page_title'      => $_lusterIsCollective ? 'Affiliates' : 'Affiliates — ' . $_lusterTitle,
     'affiliates'      => $_lusterResult['items'],

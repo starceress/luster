@@ -8,7 +8,7 @@ use Luster\Core\View;
  * Fan code submission form — content fragment.
  *
  * Variables injected:
- *   $listing_name  string
+ *   $listing_title  string
  *   $listing_url   string
  *   $form_action   string
  *   $csrf_token    string

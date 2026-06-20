@@ -182,7 +182,7 @@ if ($_lusterListingId === 0) {
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliate-apply.php', [
         'listing'      => null,
-        'listing_name' => $_lusterSiteName,
+        'listing_title' => $_lusterSiteName,
         'listing_url'  => $_lusterSiteUrl,
         'page_title'   => 'Affiliate Application',
         'base_url'     => $_lusterApp->getBaseUrl(),
@@ -305,7 +305,7 @@ if ($_lusterAffApplyTpl !== '') {
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliate-apply.php', [
     'listing'      => $_lusterListing,
-    'listing_name' => (string) $_lusterListing->title,
+    'listing_title' => (string) $_lusterListing->title,
     'listing_url'  => (string) $_lusterListing->url,
     'page_title'   => 'Affiliate Application — ' . $_lusterListing->title,
     'base_url'     => $_lusterApp->getBaseUrl(),

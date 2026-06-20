@@ -4,7 +4,7 @@
  *
  * Variables injected by ContactController / embed/contact.php:
  *   $listing      Listing|null  null for collective form
- *   $listing_name string
+ *   $listing_title string
  *   $form_action  string
  *   $csrf_token   string
  *   $errors       string  pre-escaped HTML error block, or ''

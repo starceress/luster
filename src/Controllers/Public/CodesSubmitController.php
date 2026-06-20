@@ -164,7 +164,7 @@ final class CodesSubmitController
 
         return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
             'listing'      => $listing,
-            'listing_name' => $listingName,
+            'listing_title' => $listingName,
             'listing_url'  => $listingUrl,
             'page_title'   => 'Submit a Code — ' . $listingName,
             'base_url'     => $baseUrl,

@@ -1258,7 +1258,7 @@ final class MemberController extends AdminController
         $listing     = $listingRepo->getById($id);
 
         if ($listing === null) {
-            return Response::redirect($this->app->getConfig()->get('site_url', '') . '/admin/members');
+            return Response::redirect($this->app->getBaseUrl() . '/admin/members');
         }
 
         $email       = trim((string) $request->query('email', ''));

@@ -3,7 +3,7 @@
  * Affiliates list — content fragment.
  *
  * Variables injected by AffiliatesController:
- *   $listing_name  string   listing name (or site name for collective)
+ *   $listing_title  string   listing name (or site name for collective)
  *   $listing_url   string
  *   $affiliates       Affiliate[]  active affiliates for this page
  *   $total            int      total active affiliate count

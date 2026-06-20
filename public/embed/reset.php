@@ -17,25 +17,21 @@ use Luster\Support\ListingTemplateResolver;
  * Handles both the email-entry step and the confirm-new-password step.
  * If the URL has ?token=..., the embed shows the new-password form automatically.
  *
- * Usage — email entry form (default):
+ * Usage:
  *   $luster_fanlisting_id = 1;        // required: listing ID (int)
  *   $luster_return        = false;     // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/reset.php';
  *
- * Usage — new password form (link from reset email):
- *   $luster_fanlisting_id = 1;
- *   $luster_reset_step    = 'confirm'; // drives the confirm form
- *   $luster_return        = false;
- *   require '/absolute/path/to/luster/public/embed/reset.php';
+ * If the URL contains ?token=..., the embed shows the new-password form
+ * automatically. Otherwise it shows the email-entry form.
  *
- * In both cases the form self-posts to the host page URL. After every outcome
+ * The form self-posts to the host page URL. After every outcome
  * (success or error) the user is redirected back to this same host page, where
  * the embed re-renders with a flash success or error message inline.
  *
  * To override the redirect target, set $luster_redirect_url before require.
  *
- * The ?token= query parameter is read automatically from $_GET when
- * $luster_reset_step = 'confirm'.
+ * The ?token= query parameter is read automatically from $_GET.
  */
 
 // ---------------------------------------------------------------------------
@@ -53,8 +49,7 @@ if ($_lusterListingId === 0) {
     return;
 }
 
-$_lusterStep = (string) ($luster_reset_step
-    ?? (isset($_GET['token']) && $_GET['token'] !== '' ? 'confirm' : 'request'));
+$_lusterStep = (isset($_GET['token']) && $_GET['token'] !== '') ? 'confirm' : 'request';
 
 // ---------------------------------------------------------------------------
 // 2. Bootstrap Luster
@@ -213,7 +208,7 @@ if ($_lusterStep === 'confirm') {
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset_confirm.php', [
         'listing'      => $_lusterListing,
-        'listing_name' => $_lusterListing->title,
+        'listing_title' => $_lusterListing->title,
         'listing_url'  => $_lusterListing->url,
         'page_title'   => 'Set New Password',
         'form_action'  => $_lusterFormAction2,
@@ -289,7 +284,7 @@ if ($_lusterStep === 'confirm') {
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset.php', [
         'listing'      => $_lusterListing,
-        'listing_name' => $_lusterListing->title,
+        'listing_title' => $_lusterListing->title,
         'listing_url'  => $_lusterListing->url,
         'page_title'   => 'Reset Password',
         'form_action'  => $_lusterFormAction1,

@@ -254,7 +254,7 @@ if (!$_lusterSignedIn) {
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
         'listing'           => $_lusterListing,
-        'listing_name'      => $_lusterListing->title,
+        'listing_title'      => $_lusterListing->title,
         'listing_url'       => $_lusterListing->url,
         'page_title'        => 'Update Membership',
         'signed_in'         => false,
@@ -353,7 +353,7 @@ if (!$_lusterSignedIn) {
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
         'listing'       => $_lusterListing,
-        'listing_name'  => $_lusterListing->title,
+        'listing_title'  => $_lusterListing->title,
         'listing_url'   => $_lusterListing->url,
         'page_title'    => 'Update Membership',
         'signed_in'     => true,

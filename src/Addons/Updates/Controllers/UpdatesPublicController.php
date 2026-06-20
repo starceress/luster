@@ -88,7 +88,7 @@ final class UpdatesPublicController
 
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
             'listing'               => $listing,
-            'listing_name'          => $listing->title,
+            'listing_title'          => $listing->title,
             'listing_url'           => $listing->url,
             'page_title'            => 'Updates — ' . $listing->title,
             'base_url'              => $baseUrl,
@@ -198,7 +198,7 @@ final class UpdatesPublicController
 
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
             'listing'               => null,
-            'listing_name'          => $siteName,
+            'listing_title'          => $siteName,
             'listing_url'           => $baseUrl,
             'page_title'            => 'Updates — ' . $siteName,
             'base_url'              => $baseUrl,

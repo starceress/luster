@@ -3,7 +3,7 @@
  * Members list — content fragment.
  *
  * Variables injected by MembersController:
- *   $listing_name   string
+ *   $listing_title   string
  *   $listing_url    string
  *   $join_url          string
  *   $members_base      string  base URL for sort/filter links

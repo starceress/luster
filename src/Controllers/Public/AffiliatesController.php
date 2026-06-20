@@ -76,7 +76,7 @@ final class AffiliatesController
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
             'listing'       => $listing,
-            'listing_name'  => $listing->title,
+            'listing_title'  => $listing->title,
             'listing_url'   => $listing->url,
             'page_title'       => 'Affiliates — ' . $listing->title,
             'affiliates'       => $result['items'],
@@ -124,7 +124,7 @@ final class AffiliatesController
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
             'listing'      => null,
-            'listing_name' => $siteName,
+            'listing_title' => $siteName,
             'listing_url'  => $baseUrl,
             'page_title'      => 'Affiliates',
             'affiliates'      => $result['items'],

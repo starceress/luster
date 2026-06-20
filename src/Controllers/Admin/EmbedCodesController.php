@@ -336,7 +336,7 @@ final class EmbedCodesController
 
             return $this->app->getView()->renderFragment('update.php', [
                 'listing'           => $listing,
-                'listing_name'      => $listing->title,
+                'listing_title'      => $listing->title,
                 'listing_url'       => $listing->url,
                 'page_title'        => 'Update Membership',
                 'signed_in'         => false,
@@ -417,7 +417,7 @@ final class EmbedCodesController
 
             return $this->app->getView()->renderFragment('update.php', [
                 'listing'      => $listing,
-                'listing_name' => $listing->title,
+                'listing_title' => $listing->title,
                 'listing_url'  => $listing->url,
                 'page_title'   => 'Update Membership',
                 'signed_in'    => true,
@@ -492,8 +492,8 @@ final class EmbedCodesController
             ], '');
 
             $sampleEntries = [
-                ['id' => 1, 'fanlisting_id' => 1, 'listing_name' => 'Sample Fanlisting A', 'name' => 'Jane Fan', 'url' => 'https://example.com', 'email' => 'fan@example.com', 'pending' => false],
-                ['id' => 2, 'fanlisting_id' => 2, 'listing_name' => 'Sample Fanlisting B', 'name' => 'Jane Fan', 'url' => '',                    'email' => 'fan@example.com', 'pending' => false],
+                ['id' => 1, 'fanlisting_id' => 1, 'listing_title' => 'Sample Fanlisting A', 'name' => 'Jane Fan', 'url' => 'https://example.com', 'email' => 'fan@example.com', 'pending' => false],
+                ['id' => 2, 'fanlisting_id' => 2, 'listing_title' => 'Sample Fanlisting B', 'name' => 'Jane Fan', 'url' => '',                    'email' => 'fan@example.com', 'pending' => false],
             ];
 
             return $this->app->getView()->renderFragment('addons/kim/update-dashboard.php', [

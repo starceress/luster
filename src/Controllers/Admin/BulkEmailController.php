@@ -68,7 +68,7 @@ final class BulkEmailController extends AdminController
 
         return $this->adminLayout('admin/emails/preview.php', 'Emails', 'emails', [
             'listing_id'   => $listingId,
-            'listing_name' => $listingName,
+            'listing_title' => $listingName,
             'subject'      => $subject,
             'body'         => $body,
             'total'        => count($recipients),
@@ -131,7 +131,7 @@ final class BulkEmailController extends AdminController
         );
 
         return $this->adminLayout('admin/emails/result.php', 'Emails', 'emails', [
-            'listing_name' => $listingName,
+            'listing_title' => $listingName,
             'subject'      => $subject,
             'sent'         => $sent,
             'total'        => count($recipients),
@@ -269,7 +269,7 @@ final class BulkEmailController extends AdminController
                     'email'            => $member->email,
                     'url'              => $member->url,
                     'country'          => $member->country,
-                    'listing_name'     => $listing->title,
+                    'listing_title'     => $listing->title,
                     'listing_subject'  => $listing->subject,
                     'listing_url'      => $listing->url,
                 ];
@@ -291,7 +291,7 @@ final class BulkEmailController extends AdminController
                         'email'            => $member->email,
                         'url'              => $member->url,
                         'country'          => $member->country,
-                        'listing_name'     => $listing->title,
+                        'listing_title'     => $listing->title,
                         'listing_subject'  => $listing->subject,
                         'listing_url'      => $listing->url,
                     ];
@@ -326,7 +326,7 @@ final class BulkEmailController extends AdminController
             ],
             [
                 $recipient['name'], $recipient['email'], $recipient['url'], $recipient['country'],
-                $recipient['listing_name'], $recipient['listing_subject'], $recipient['listing_url'],
+                $recipient['listing_title'], $recipient['listing_subject'], $recipient['listing_url'],
                 $siteName,      $ownerName,     $ownerEmail,
             ],
             $text,

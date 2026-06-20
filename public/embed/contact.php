@@ -193,7 +193,7 @@ if ($_lusterContactTpl !== '') {
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
     'listing'      => $_lusterListing,
-    'listing_name' => $_lusterListing->title,
+    'listing_title' => $_lusterListing->title,
     'listing_url'  => $_lusterListing->url,
     'page_title'   => 'Contact',
     'base_url'     => $_lusterBaseUrl,

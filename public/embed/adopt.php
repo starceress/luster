@@ -172,7 +172,7 @@ $_lusterFormHtml  = FormTemplateRenderer::wrapForm($_lusterInnerHtml, $_lusterFo
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('adopt.php', [
     'listing'      => null,
-    'listing_name' => $_lusterSiteName,
+    'listing_title' => $_lusterSiteName,
     'listing_url'  => $_lusterSiteUrl,
     'page_title'   => 'Adopt a Fanlisting',
     'base_url'     => $_lusterApp->getBaseUrl(),

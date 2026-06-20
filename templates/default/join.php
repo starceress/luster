@@ -3,7 +3,7 @@
  * Join form — content fragment.
  *
  * Variables injected by JoinController / embed/join.php:
- *   $listing_name           string
+ *   $listing_title           string
  *   $form_action            string
  *   $csrf_token             string
  *   $errors                 string  pre-escaped HTML error block, or ''

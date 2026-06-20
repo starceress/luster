@@ -398,7 +398,7 @@ final class AffiliateApplyController
 
         $data = [
             'listing'      => null,
-            'listing_name' => $siteName,
+            'listing_title' => $siteName,
             'listing_url'  => $siteUrl,
             'page_title'   => 'Affiliate Application',
             'base_url'     => $baseUrl,
@@ -494,7 +494,7 @@ final class AffiliateApplyController
 
         $data = [
             'listing'      => $listing,
-            'listing_name' => (string) $listing->title,
+            'listing_title' => (string) $listing->title,
             'listing_url'  => (string) $listing->url,
             'page_title'   => 'Affiliate Application — ' . $listing->title,
             'base_url'     => $this->app->getBaseUrl(),

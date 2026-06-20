@@ -8,7 +8,7 @@ use Luster\Core\View;
  * Codes list — content fragment.
  *
  * Variables injected by embed/codes.php:
- *   $listing_name  string
+ *   $listing_title  string
  *   $listing_url   string
  *   $codes         object[]     all approved codes
  *   $grouped       array        ['WxH' => ['label' => string, 'codes' => object[]]]
@@ -64,7 +64,7 @@ $_showHeadings  = count($grouped) > 1;
 
         $_altText = $_donorName !== null
             ? 'Donated by ' . $_donorName
-            : ($_sizeTitle !== '' ? $_sizeTitle : ($listing_name . ' code'));
+            : ($_sizeTitle !== '' ? $_sizeTitle : ($listing_title . ' code'));
         ?>
         <li class="fl-code-item">
           <figure class="fl-code-image">

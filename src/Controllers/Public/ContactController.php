@@ -60,7 +60,7 @@ final class ContactController
         if (!$contactSettings['enabled']) {
             return $this->renderPublic('error.php', [
                 'listing'      => $listing,
-                'listing_name' => $listing->title,
+                'listing_title' => $listing->title,
                 'listing_url'  => $listing->url,
                 'page_title'   => 'Contact',
                 'error'        => 'The contact form for this listing is currently disabled.',
@@ -222,7 +222,7 @@ final class ContactController
         if (!$enabled) {
             return $this->renderPublic('error.php', [
                 'listing'      => null,
-                'listing_name' => (string) $config->get('site_name', 'Collective'),
+                'listing_title' => (string) $config->get('site_name', 'Collective'),
                 'listing_url'  => (string) ($config->get('site_url', '')),
                 'page_title'   => 'Contact',
                 'error'        => 'The collective contact form is currently disabled.',
@@ -442,7 +442,7 @@ final class ContactController
 
         $data = [
             'listing'      => $listing,
-            'listing_name' => $listing?->title ?? (string) $this->app->getConfig()->get('site_name', 'Collective'),
+            'listing_title' => $listing?->title ?? (string) $this->app->getConfig()->get('site_name', 'Collective'),
             'listing_url'  => $listing?->url   ?? (string) ($this->app->getConfig()->get('site_url', '')),
             'page_title'   => 'Contact',
             'form_action'  => $formAction,

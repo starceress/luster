@@ -78,7 +78,7 @@ if (($success_html ?? '') !== '') {
             <?php foreach ($entries as $_e): ?>
             <tr>
               <td><input type="checkbox" name="entry_ids[]" value="<?= View::e((string) $_e['id']) ?>" checked></td>
-              <td><?= View::e($_e['listing_name']) ?></td>
+              <td><?= View::e($_e['listing_title']) ?></td>
               <td>
                 <?= View::e($_e['name']) ?>
                 <?php if ($_e['pending']): ?><span class="fl-kim-entry-pending">(pending)</span><?php endif; ?>

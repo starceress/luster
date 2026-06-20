@@ -98,7 +98,7 @@ final class RulesPublicController
 
         $html = $this->app->getView()->renderPublic('addons/rules/gate.php', [
             'listing'         => $listing,
-            'listing_name'    => $listing?->title ?? '',
+            'listing_title'    => $listing?->title ?? '',
             'listing_url'     => $listing?->url ?? '',
             'page_title'      => 'Join Rules',
             'rules'           => $ruleSet,

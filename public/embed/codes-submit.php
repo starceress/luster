@@ -238,7 +238,7 @@ if (!$_lusterIsCollective) {
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
     'listing'      => $_lusterListing,
-    'listing_name' => $_lusterListingName,
+    'listing_title' => $_lusterListingName,
     'listing_url'  => $_lusterListingUrl,
     'form_action'  => $_lusterFormAction,
     'csrf_token'   => $_lusterApp->getCSRF()->token(),

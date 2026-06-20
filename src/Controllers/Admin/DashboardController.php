@@ -231,7 +231,7 @@ final class DashboardController
             }
 
             foreach ($memberRepo->getRecent($fl->dbprefix, 2) as $m) {
-                $recentMembers[] = ['member' => $m, 'listing_name' => $fl->title, 'listing_id' => $fl->id];
+                $recentMembers[] = ['member' => $m, 'listing_title' => $fl->title, 'listing_id' => $fl->id];
             }
 
             $thisMonthCount   = $memberRepo->countApprovedSince($fl->dbprefix, $thisMonthStart);

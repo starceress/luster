@@ -6,7 +6,7 @@ use Luster\Core\View;
 
 /**
  * @var int    $listing_id
- * @var string $listing_name
+ * @var string $listing_title
  * @var string $subject
  * @var string $body
  * @var int    $total          recipient count
@@ -30,7 +30,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   <div class="db-info-grid summary-grid">
     <div>
       <div class="form-label summary-label">Send to</div>
-      <div><?= View::e($listing_name) ?></div>
+      <div><?= View::e($listing_title) ?></div>
     </div>
     <div>
       <div class="form-label summary-label">Recipients</div>

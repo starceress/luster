@@ -392,7 +392,7 @@ final class ResetController
 
         $html = $this->app->getView()->renderPublic('reset.php', [
             'listing'      => $listing,
-            'listing_name' => $listing->title,
+            'listing_title' => $listing->title,
             'listing_url'  => $listing->url,
             'page_title'   => 'Reset Password',
             'form_action'  => $formAction,
@@ -465,7 +465,7 @@ final class ResetController
 
         $html = $this->app->getView()->renderPublic('reset_confirm.php', [
             'listing'      => $listing,
-            'listing_name' => $listing->title,
+            'listing_title' => $listing->title,
             'listing_url'  => $listing->url,
             'page_title'   => 'Set New Password',
             'form_action'  => $formAction,

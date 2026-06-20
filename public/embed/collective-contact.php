@@ -159,7 +159,7 @@ if ($_lusterContactTpl !== '') {
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
     'listing'      => null,
-    'listing_name' => (string) $_lusterConfig->get('site_name', 'Collective'),
+    'listing_title' => (string) $_lusterConfig->get('site_name', 'Collective'),
     'listing_url'  => (string) ($_lusterConfig->get('site_url', '')),
     'page_title'   => 'Contact',
     'base_url'     => $_lusterBaseUrl,

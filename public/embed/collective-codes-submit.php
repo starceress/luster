@@ -143,7 +143,7 @@ if ($_lusterCsTpl !== null && trim($_lusterCsTpl) !== '') {
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
     'listing'      => null,
-    'listing_name' => $_lusterSiteName,
+    'listing_title' => $_lusterSiteName,
     'listing_url'  => '',
     'form_action'  => $_lusterFormAction,
     'csrf_token'   => $_lusterApp->getCSRF()->token(),

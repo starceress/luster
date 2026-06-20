@@ -519,7 +519,7 @@ final class UpdateController
 
         $html = $this->app->getView()->renderPublic('update.php', [
             'listing'           => $listing,
-            'listing_name'      => $listing->title,
+            'listing_title'      => $listing->title,
             'listing_url'       => $listing->url,
             'page_title'        => 'Update Membership',
             'signed_in'         => false,
@@ -643,7 +643,7 @@ final class UpdateController
 
         $html = $this->app->getView()->renderPublic('update.php', [
             'listing'       => $listing,
-            'listing_name'  => $listing->title,
+            'listing_title'  => $listing->title,
             'listing_url'   => $listing->url,
             'page_title'    => 'Update Membership',
             'signed_in'     => true,

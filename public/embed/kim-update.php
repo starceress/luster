@@ -143,7 +143,7 @@ if (!empty($_lusterKimParsed['port'])) {
 $_toKimLink = static fn(?string $v): ?string =>
     ($v !== null && $v !== '') ? $_lusterKimSiteRoot . '/' . ltrim($v, '/') : null;
 
-$_lusterLinkReset = $luster_kim_reset_url ?? $_toKimLink($_lusterKimUrls['kim_url_reset'] ?: null);
+$_lusterLinkReset = $luster_kim_reset_url ?? $_toKimLink($_lusterKimUrls['kim_url_reset'] ?? null) ?? $_lusterKimSiteRoot . '/kim-reset.php';
 $_lusterLinkList  = $luster_kim_list_url  ?? $_toKimLink($_lusterKimUrls['kim_url_list']  ?: null);
 
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
@@ -169,7 +169,7 @@ if ($_lusterAuthedEmail !== '') {
             $_lusterEntries[] = [
                 'id'           => $_lusterMember->id,
                 'fanlisting_id'=> $_lusterMember->fanlistingId,
-                'listing_name' => $_lusterListing !== null
+                'listing_title' => $_lusterListing !== null
                     ? ($_lusterListing->subject ?: $_lusterListing->title)
                     : 'Listing #' . $_lusterMember->fanlistingId,
                 'name'         => $_lusterMember->name,

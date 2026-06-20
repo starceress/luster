@@ -92,7 +92,7 @@ if (!empty($_lusterKimParsed['port'])) {
 $_toKimLink = static fn(?string $v): ?string =>
     ($v !== null && $v !== '') ? $_lusterKimSiteRoot . '/' . ltrim($v, '/') : null;
 
-$_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls['kim_url_signup'] ?: null);
+$_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls['kim_url_signup'] ?? null) ?? $_lusterKimSiteRoot . '/kim.php';
 
 // ---------------------------------------------------------------------------
 // 5. Render the appropriate fragment

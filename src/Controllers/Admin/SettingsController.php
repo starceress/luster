@@ -168,7 +168,7 @@ final class SettingsController extends AdminController
                     $recentMembers[] = [
                         'member'      => $member,
                         'listing_id'  => $fl->id,
-                        'listing_name'=> $fl->subject !== '' ? $fl->subject : $fl->title,
+                        'listing_title'=> $fl->subject !== '' ? $fl->subject : $fl->title,
                     ];
                 }
             } catch (\Throwable) {

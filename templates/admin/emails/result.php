@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 /**
- * @var string $listing_name
+ * @var string $listing_title
  * @var string $subject
  * @var int    $sent
  * @var int    $total
@@ -41,7 +41,7 @@ $allOk = empty($failed);
   <div class="db-info-grid summary-grid">
     <div>
       <div class="form-label summary-label">Sent to</div>
-      <div><?= View::e($listing_name) ?></div>
+      <div><?= View::e($listing_title) ?></div>
     </div>
     <div>
       <div class="form-label summary-label">Subject</div>

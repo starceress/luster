@@ -205,7 +205,7 @@ if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'listing'             => $_lusterListing,
-    'listing_name'        => $_lusterListingName,
+    'listing_title'        => $_lusterListingName,
     'listing_url'         => $_lusterListingUrl,
     'page_title'          => 'Codes',
     'codes'               => $_lusterCodes,

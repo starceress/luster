@@ -78,7 +78,7 @@ final class MembersController
 
         $commonData = [
             'listing'      => $listing,
-            'listing_name' => $listing->title,
+            'listing_title' => $listing->title,
             'listing_url'  => $listing->url,
             'page_title'      => 'Members',
             'join_url'        => $baseUrl . '/join/' . $listingId,

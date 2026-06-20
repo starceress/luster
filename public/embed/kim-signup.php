@@ -132,7 +132,7 @@ $_toKimLink = static fn(?string $v): ?string =>
     ($v !== null && $v !== '') ? $_lusterKimSiteRoot . '/' . ltrim($v, '/') : null;
 
 $_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls["kim_url_signup"] ?: null);
-$_lusterLinkUpdate = $luster_kim_update_url ?? $_toKimLink($_lusterKimUrls["kim_url_update"] ?: null);
+$_lusterLinkUpdate = $luster_kim_update_url ?? $_toKimLink($_lusterKimUrls["kim_url_update"] ?? null) ?? $_lusterKimSiteRoot . '/kim-update.php';
 // $_lusterLinkReset is for the visible "Forgot your password?" link on this form only.
 // The emailed setup-link URL is resolved by KimSignupController::issuePasswordSetupUrl()
 // from the saved kim_url_reset setting — not from this per-page override. Design intent:

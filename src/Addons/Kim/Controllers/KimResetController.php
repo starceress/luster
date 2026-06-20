@@ -394,7 +394,7 @@ final class KimResetController
         $layoutData = array_merge($data, [
             'content'      => $content,
             'listing'      => null,
-            'listing_name' => $siteName,
+            'listing_title' => $siteName,
             'listing_url'  => $baseUrl,
             'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);

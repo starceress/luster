@@ -3,7 +3,7 @@
  * Adoption application form — content fragment.
  *
  * Variables injected by AdoptPublicController / embed/adopt.php:
- *   $listing_name  string
+ *   $listing_title  string
  *   $form_action   string
  *   $csrf_token    string
  *   $errors        string  pre-escaped HTML error block, or ''

@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 /** @var object|null             $listing */
-/** @var string                  $listing_name */
+/** @var string                  $listing_title */
 /** @var string                  $listing_url */
 /** @var string                  $form_action */
 /** @var string                  $csrf_token */

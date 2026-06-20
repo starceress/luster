@@ -484,7 +484,7 @@ final class JoinController
 
         $html = $this->app->getView()->renderPublic('join.php', [
             'listing'               => $listing,
-            'listing_name'          => $listing->title,
+            'listing_title'          => $listing->title,
             'listing_url'           => $listing->url,
             'page_title'            => 'Join',
             'form_action'           => $baseUrl . '/join/' . $listingId,

@@ -167,7 +167,7 @@ final class KimUpdateController
             $entries[] = [
                 'id'           => $member->id,
                 'fanlisting_id'=> $member->fanlistingId,
-                'listing_name' => $listing !== null
+                'listing_title' => $listing !== null
                     ? ($listing->subject ?: $listing->title)
                     : 'Listing #' . $member->fanlistingId,
                 'name'         => $member->name,
@@ -207,8 +207,8 @@ final class KimUpdateController
                 : '',
             'success_html'  => $successHtml,
             'f'             => $f,
-            'link_reset'    => $toLink($kimUrls['kim_url_reset'] ?: null),
-            'link_list'     => $toLink($kimUrls['kim_url_list']  ?: null),
+            'link_reset'    => $toLink($kimUrls['kim_url_reset'] ?? null, 'kim-reset.php'),
+            'link_list'     => $toLink($kimUrls['kim_url_list']  ?? null, 'kim-list.php'),
             'base_url'      => $baseUrl,
             'theme_path'    => $baseUrl . '/assets/css/default/',
         ]);
@@ -441,10 +441,12 @@ final class KimUpdateController
         if (!empty($kimParsed['port'])) {
             $kimSiteRoot .= ':' . $kimParsed['port'];
         }
-        $toLink = static fn(?string $v): ?string =>
-            ($v !== null && $v !== '') ? $kimSiteRoot . '/' . ltrim($v, '/') : null;
+        $toLink = static fn(?string $v, string $default = ''): ?string =>
+            (($v !== null && $v !== '') || $default !== '')
+                ? $kimSiteRoot . '/' . ltrim($v !== null && $v !== '' ? $v : $default, '/')
+                : null;
 
-        $resolvedResetUrl = $toLink($kimUrls['kim_url_reset'] ?: null) ?? $baseUrl . '/kim/reset';
+        $resolvedResetUrl = $toLink($kimUrls['kim_url_reset'] ?? null, 'kim-reset.php');
 
         $formHtml  = null;
         $updateTpl = $siteRepo->get('kim_update_form_template') ?? '';
@@ -472,8 +474,8 @@ final class KimUpdateController
                 : '',
             'f'           => $f,
             'form_html'   => $formHtml,
-            'link_reset'  => $toLink($kimUrls['kim_url_reset'] ?: null),
-            'link_list'   => $toLink($kimUrls['kim_url_list']  ?: null),
+            'link_reset'  => $toLink($kimUrls['kim_url_reset'] ?? null, 'kim-reset.php'),
+            'link_list'   => $toLink($kimUrls['kim_url_list']  ?? null, 'kim-list.php'),
             'base_url'    => $baseUrl,
             'theme_path'  => $baseUrl . '/assets/css/default/',
         ]);
@@ -490,7 +492,7 @@ final class KimUpdateController
         $layoutData = array_merge($data, [
             'content'      => $content,
             'listing'      => null,
-            'listing_name' => $siteName,
+            'listing_title' => $siteName,
             'listing_url'  => $baseUrl,
             'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
