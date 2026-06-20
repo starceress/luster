@@ -1,8 +1,16 @@
 {
     "name": "luster/luster",
-    "description": "Modern PHP 8.1+ fanlisting management script",
+    "description": "Fanlisting management script",
+    "version": "1.0.6",
     "type": "project",
-    "license": "MIT",
+    "license": "GPL-3.0-or-later",
+    "homepage": "https://github.com/starceress/luster",
+    "authors": [
+        {
+            "name": "spyderfang",
+            "homepage": "https://github.com/starceress"
+        }
+    ],
     "require": {
         "php": ">=8.1",
         "phpmailer/phpmailer": "^6.0"

@@ -44,6 +44,29 @@ if ($_lusterRedirectTo === '') {
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
 
 // ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== 'codes_submit_collective') {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $response   = (new \Luster\Controllers\Public\CodesSubmitController($_lusterApp))
+        ->submit(new \Luster\Core\Request(), ['id' => 0]);
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
+
+// ---------------------------------------------------------------------------
 // 2. Consume flash
 // ---------------------------------------------------------------------------
 
@@ -73,7 +96,7 @@ if ($_lusterEmbedBase === '') {
     $_lusterEmbedBase = $_lusterBaseUrl;
 }
 
-$_lusterFormAction = $_lusterEmbedBase . '/codes/submit/0';
+$_lusterFormAction = $_lusterRedirectTo;
 $_lusterCaptchaQ   = Captcha::getQuestion('code_submit');
 $_lusterWrapperTpl = '';
 
@@ -112,6 +135,8 @@ if ($_lusterCsTpl !== null && trim($_lusterCsTpl) !== '') {
         $_lusterFormAction,
         $_lusterApp->getCSRF()->token(),
         true,
+        false,
+        'codes_submit_collective',
     );
 }
 
@@ -124,6 +149,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
     'errors'       => htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
     'f'            => $_lusterF,
     'form_html'    => $_lusterFormHtml,
+    'form_marker'  => 'codes_submit_collective',
     'base_url'     => $_lusterBaseUrl,
 ]);
 

@@ -82,7 +82,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
 </div>
 <!-- ──── COLLAPSIBLE FILTER PANEL ───────────────────────────────────── -->
 <div class="filter-panel" id="filter-panel">
-  <form method="GET" action="<?= $b ?>/admin/categories" class="filter-row">
+  <form method="GET" action="<?= $b ?>/admin/categories" class="filter-row" id="cat-filter-row">
     <?php if ($sort !== 'source'): ?><input type="hidden" name="sort" value="<?= View::e($sort) ?>"><?php endif; ?>
     <?php if ($dir !== 'asc'):    ?><input type="hidden" name="dir"  value="<?= View::e($dir) ?>"><?php endif; ?>
 

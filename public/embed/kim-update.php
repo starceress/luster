@@ -48,6 +48,29 @@ if ($_lusterRedirectTo === '') {
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
 
 // ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== 'kim_update') {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $response   = (new \Luster\Addons\Kim\Controllers\KimUpdateController($_lusterApp))
+        ->submit(new \Luster\Core\Request(), []);
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
+
+// ---------------------------------------------------------------------------
 // 2. Check KIM addon is installed
 // ---------------------------------------------------------------------------
 
@@ -172,11 +195,11 @@ if ($_lusterUpdateTpl !== '') {
         '{lost_password_url}'                => View::e($_lusterLostPwUrl),
     ];
     $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterTplOut, $_lusterTokens);
-    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterBaseUrl . '/kim/update', $_lusterApp->getCSRF()->token(), false);
+    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterRedirectTo, $_lusterApp->getCSRF()->token(), false, false, 'kim_update');
 }
 
 $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/update.php', [
-    'form_action' => $_lusterBaseUrl . '/kim/update',
+    'form_action' => $_lusterRedirectTo,
     'csrf_token'  => $_lusterApp->getCSRF()->token(),
     'errors'      => $_lusterError !== ''
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
@@ -184,6 +207,7 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/update.php', [
     'old'         => $_lusterOld,
     'f'           => $_lusterF,
     'form_html'   => $_lusterFormHtml,
+    'form_marker' => 'kim_update',
     'base_url'    => $_lusterBaseUrl,
     'theme_path'  => $_lusterBaseUrl . '/assets/default/',
     'link_reset'  => $_lusterLinkReset,

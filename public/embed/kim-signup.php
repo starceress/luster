@@ -52,6 +52,29 @@ if ($_lusterRedirectTo === '') {
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
 
 // ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== 'kim_signup') {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $response   = (new \Luster\Addons\Kim\Controllers\KimSignupController($_lusterApp))
+        ->submit(new \Luster\Core\Request(), []);
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
+
+// ---------------------------------------------------------------------------
 // 2. Check KIM addon is installed
 // ---------------------------------------------------------------------------
 
@@ -138,7 +161,7 @@ $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'url',      'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL',  'required' => true,  'value' => (string) ($_lusterOld['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
     ['type' => 'email',    'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($_lusterOld['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
     ['type' => 'select',   'name' => 'fanlisting_id',   'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $_lusterFlSelectHtml],
-    ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional - If left blank, a password will automatically generated and emailed to you.'],
+    ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'If left blank, a password will be generated and emailed to you.'],
     ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ['type' => 'checkboxGroup','name' => 'send_copy',        'id' => '',                     'label' => 'Opt-in',                   'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => ((string) ($_lusterOld['send_copy'] ?? '')) === '1' ? ['1'] : []],
     ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
@@ -171,11 +194,11 @@ if ($_lusterKimSignupTpl !== '') {
         '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
     ];
     $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterKimSignupTpl, $_lusterKimTokens);
-    $_lusterFormHtml  = FormTemplateRenderer::wrapForm($_lusterInnerHtml, $_lusterBaseUrl . '/kim', $_lusterApp->getCSRF()->token(), false);
+    $_lusterFormHtml  = FormTemplateRenderer::wrapForm($_lusterInnerHtml, $_lusterRedirectTo, $_lusterApp->getCSRF()->token(), false, false, 'kim_signup');
 }
 
 $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/signup.php', [
-    'form_action' => $_lusterBaseUrl . '/kim',
+    'form_action' => $_lusterRedirectTo,
     'csrf_token'  => $_lusterApp->getCSRF()->token(),
     'errors'      => $_lusterError !== ''
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
@@ -183,6 +206,7 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/signup.php', [
     'old'         => $_lusterOld,
     'f'           => $_lusterF,
     'form_html'   => $_lusterFormHtml,
+    'form_marker' => 'kim_signup',
     'base_url'    => $_lusterBaseUrl,
     'theme_path'  => $_lusterBaseUrl . '/assets/default/',
     'link_update' => $_lusterLinkUpdate,

@@ -117,7 +117,8 @@ final class RulesPublicController
 
         // Require explicit checkbox confirmation — browser required= is client-only
         if ($request->post('agree', '') !== '1') {
-            return Response::redirect($baseUrl . '/rules/' . $listingId);
+            $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/rules/' . $listingId);
         }
 
         // Record agreement as a fingerprint (row ID + version) so that a

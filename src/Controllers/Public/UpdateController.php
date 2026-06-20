@@ -105,16 +105,17 @@ final class UpdateController
         $baseUrl   = $this->app->getBaseUrl();
         $session   = $this->app->getSession();
         $rateLimit = $this->app->getRateLimit();
-        $ip        = $request->ip();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
-            return Response::redirect($baseUrl . '/update/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
         }
 
         // Honeypot — silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/update/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
         }
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -139,7 +140,7 @@ final class UpdateController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old', ['email' => $email]);
-            return Response::redirect($formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -149,7 +150,7 @@ final class UpdateController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', 'No membership found for that email address.');
             $session->set('lstr_flash_old', ['email' => $email]);
-            return Response::redirect($formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Verify password — detect and upgrade legacy MD5 hashes
@@ -171,13 +172,13 @@ final class UpdateController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', 'Incorrect password. Please try again.');
             $session->set('lstr_flash_old', ['email' => $email]);
-            return Response::redirect($formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_UPDATE);
         $session->set(self::AUTH_KEY . $listingId, $email);
 
-        return Response::redirect($formUrl);
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -234,7 +235,7 @@ final class UpdateController
         // Must be authenticated before reaching the update form
         $email = (string) $session->get(self::AUTH_KEY . $listingId, '');
         if ($email === '') {
-            return Response::redirect($baseUrl . '/update/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
         }
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -255,7 +256,7 @@ final class UpdateController
 
         if ($member === null) {
             $session->remove(self::AUTH_KEY . $listingId);
-            return Response::redirect($baseUrl . '/update/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
         }
 
         // Update fields (all optional; blank = keep existing)
@@ -357,7 +358,7 @@ final class UpdateController
             }
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old', $old);
-            return Response::redirect($formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // New password confirmation

@@ -53,6 +53,7 @@ if (isset($form_html)) {
   <!-- ── Step 1: Sign in ──────────────────────────────────────────────── -->
   <form class="fl-form" method="POST" action="<?= View::e($sign_in_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+    <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
     <?= $f['email'] ?>
     <?= $f['password'] ?>
@@ -85,6 +86,7 @@ if (isset($form_html)) {
 
   <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+    <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
     <?= $f['new_name'] ?>
     <?= $f['new_email'] ?>
@@ -106,7 +108,7 @@ if (isset($form_html)) {
     <div class="fl-field fl-field--danger">
       <label>
         <input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">
-        Permanently delete my membership instead of updating it
+        Permanently delete my membership instead of updating it.
       </label>
       <p class="fl-field-hint">
         This immediately and permanently removes your membership from this listing.

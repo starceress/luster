@@ -49,12 +49,17 @@ final class FormTemplateRenderer
         string $csrfToken,
         bool   $multipart,
         bool   $preview = false,
+        string $formMarker = '',
     ): string {
-        $enctype = $multipart ? ' enctype="multipart/form-data"' : '';
+        $enctype  = $multipart ? ' enctype="multipart/form-data"' : '';
         $onsubmit = $preview ? ' onsubmit="return false;"' : '';
+        $marker   = $formMarker !== ''
+            ? '<input type="hidden" name="_luster_embed_form" value="' . View::e($formMarker) . '">'
+            : '';
 
         return '<form class="fl-form" method="POST" action="' . View::e($action) . '"' . $enctype . $onsubmit . '>'
              . '<input type="hidden" name="_csrf" value="' . View::e($csrfToken) . '">'
+             . $marker
              . '<div style="display:none" aria-hidden="true"><input type="text" name="website_confirm" tabindex="-1" autocomplete="off"></div>'
              . $innerHtml
              . '</form>';

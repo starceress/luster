@@ -12,11 +12,21 @@ use Luster\Support\FormTemplateRenderer;
 /**
  * Luster embed — KIM List password reset form fragment.
  *
+ * Handles both the email-entry step and the confirm-new-password step.
+ * The confirm step is triggered automatically when ?token= is present in the URL.
+ *
  * Usage:
  *   $luster_return = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/kim-reset.php';
  *
- * The form POSTs to Luster's /kim/reset URL.
+ * The form self-posts to the host page URL. After every outcome (success or
+ * validation error) the user is redirected back to this same host page, where
+ * the embed re-renders with a flash success or error message inline.
+ *
+ * Reset emails link back to this host page with ?token= appended so the confirm
+ * step is rendered inline here, not on the backend /kim/reset/confirm route.
+ *
+ * To override the redirect target, set $luster_redirect_url before require.
  */
 
 // ---------------------------------------------------------------------------
@@ -44,7 +54,42 @@ if ($_lusterRedirectTo === '') {
     $_lusterProto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
-$_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+// Strip ?token= from the stored return-to URL so clicking a reset link doesn't
+// store the token-bearing URL as the post-confirm redirect target.
+$_lusterRedirectToClean = (string) preg_replace('/([?&])token=[^&]*&?/', '$1', $_lusterRedirectTo);
+$_lusterRedirectToClean = rtrim($_lusterRedirectToClean, '?&');
+$_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectToClean);
+
+// Determine step: confirm (token in GET) or email-entry
+$_lusterKimResetStep = trim((string) ($_GET['token'] ?? '')) !== '' ? 'confirm' : 'request';
+
+// ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== 'kim_reset') {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectToClean, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectToClean) . ');</script>';
+        return;
+    }
+    if (($_POST['token'] ?? '') !== '') {
+        $response = (new \Luster\Addons\Kim\Controllers\KimResetController($_lusterApp))
+            ->submitConfirm(new \Luster\Core\Request(), []);
+    } else {
+        $response = (new \Luster\Addons\Kim\Controllers\KimResetController($_lusterApp))
+            ->submit(new \Luster\Core\Request(), []);
+    }
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectToClean;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 2. Check KIM addon is installed
@@ -112,68 +157,148 @@ $_lusterLinkList   = $luster_kim_list_url   ?? $_toKimLink($_lusterKimUrls["kim_
 // 5. Render fragment (no layout wrapper)
 // ---------------------------------------------------------------------------
 
-$_lusterBaseUrl = $_lusterApp->getBaseUrl();
-
-$_lusterCaptchaQ   = Captcha::getQuestion('kim_reset');
-$_lusterWrapperTpl = '';
-
-$_lusterFlSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
-                     . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>';
-foreach ($_lusterFanlistings as $_lusterFl) {
-    $_lusterFlId    = htmlspecialchars((string) $_lusterFl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    $_lusterFlTitle = htmlspecialchars((string) $_lusterFl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    $_lusterFlSelectHtml .= "<option value=\"{$_lusterFlId}\">{$_lusterFlTitle}</option>";
-}
-$_lusterFlSelectHtml .= '</select>';
-
-$_lusterF = $_lusterApp->getFormFieldBuilder()->build([
-    ['type' => 'email',  'name' => 'email',          'id' => 'kim-email',      'label' => 'Email',                  'required' => true, 'value' => $_lusterOldEmail, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-    ['type' => 'select', 'name' => 'fanlisting_id',  'id' => 'kim-fanlisting', 'label' => 'Fanlisting',             'required' => true, 'raw_input' => $_lusterFlSelectHtml],
-    ['type' => 'text',   'name' => 'captcha_answer', 'id' => 'kim-captcha',    'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-], $_lusterWrapperTpl);
-
-$_lusterFormHtml = null;
+$_lusterBaseUrl  = $_lusterApp->getBaseUrl();
 $_lusterResetTpl = $_lusterSiteSettings->get('kim_reset_form_template') ?? '';
-if ($_lusterResetTpl !== '') {
-    $_lusterTplOut = TemplateEngine::conditionals($_lusterResetTpl, [
-        'step_email'    => true,
-        'step_confirm'  => false,
-        'token_valid'   => false,
-        'token_invalid' => false,
-    ]);
-    $_lusterTokens = [
-        '{field_email}'                  => $_lusterF['email'],
-        '{field_email_input}'            => $_lusterF['email_input'],
-        '{field_fanlisting_id}'          => $_lusterF['fanlisting_id'],
-        '{field_fanlisting_id_input}'    => $_lusterF['fanlisting_id_input'],
-        '{captcha_block}'                => $_lusterF['captcha_answer'],
-        '{captcha_block_input}'          => $_lusterF['captcha_answer_input'],
-        '{captcha_question}'             => View::e($_lusterCaptchaQ),
-        '{submit_button}'                => '<button type="submit" class="fl-submit">Send Reset Link</button>',
-        '{clear_button}'                 => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-        '{reset_request_url}'            => View::e($_lusterBaseUrl . '/kim/reset'),
-        '{field_password}'               => '',
-        '{field_password_input}'         => '',
-        '{field_password_confirm}'       => '',
-        '{field_password_confirm_input}' => '',
-        '{hidden_token}'                 => '',
-    ];
-    $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterTplOut, $_lusterTokens);
-    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterBaseUrl . '/kim/reset', $_lusterApp->getCSRF()->token(), false);
-}
+// Recovery URL for "request a new link" — prefer clean host-page URL (always
+// same-domain), then explicit $luster_kim_reset_url override, then saved setting.
+$_lusterResetRecoveryUrl = $_lusterRedirectToClean !== ''
+    ? $_lusterRedirectToClean
+    : (($luster_kim_reset_url ?? null) ?? ($_lusterLinkReset ?? ''));
 
-$_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/reset.php', [
-    'form_action' => $_lusterBaseUrl . '/kim/reset',
-    'csrf_token'  => $_lusterApp->getCSRF()->token(),
-    'errors'      => $_lusterError !== ''
-        ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
-        : '',
-    'f'           => $_lusterF,
-    'form_html'   => $_lusterFormHtml,
-    'base_url'    => $_lusterBaseUrl,
-    'theme_path'  => $_lusterBaseUrl . '/assets/default/',
-    'link_update' => $_lusterLinkUpdate,
-]);
+if ($_lusterKimResetStep === 'confirm') {
+    // ── Confirm step: validate token, show new-password form ─────────────────
+    // $_lusterError is already populated from flash data consumed above.
+
+    $_lusterRawToken   = trim((string) ($_GET['token'] ?? ''));
+    $_lusterTokenValid = false;
+
+    if ($_lusterRawToken === '') {
+        $_lusterError = $_lusterError !== '' ? $_lusterError : 'Missing or invalid reset link.';
+    } else {
+        $_lusterResetRepo = new \Luster\Addons\Kim\KimPasswordResetRepo($_lusterApp->getDatabase());
+        $_lusterTokenRow  = $_lusterResetRepo->findValidByToken(hash('sha256', $_lusterRawToken));
+        if ($_lusterTokenRow !== null) {
+            $_lusterTokenValid = true;
+        } else {
+            $_lusterError = $_lusterError !== '' ? $_lusterError : 'This reset link has expired or is invalid. Please request a new one.';
+        }
+    }
+
+    $_lusterFb = $_lusterApp->getFormFieldBuilder();
+    $_lusterF  = $_lusterFb->build([
+        ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+    ], '');
+
+    $_lusterFormHtml = null;
+    if ($_lusterResetTpl !== '') {
+        $_lusterTplC = TemplateEngine::conditionals($_lusterResetTpl, [
+            'step_email'    => false,
+            'step_confirm'  => true,
+            'token_valid'   => $_lusterTokenValid,
+            'token_invalid' => !$_lusterTokenValid,
+        ]);
+        $_lusterTokensC = [
+            '{field_email}'                  => '',
+            '{field_email_input}'            => '',
+            '{field_fanlisting_id}'          => '',
+            '{field_fanlisting_id_input}'    => '',
+            '{captcha_block}'                => '',
+            '{captcha_block_input}'          => '',
+            '{captcha_question}'             => '',
+            '{submit_button}'                => '<button type="submit" class="fl-submit">Set New Password</button>',
+            '{clear_button}'                 => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{reset_request_url}'            => View::e($_lusterResetRecoveryUrl),
+            '{field_password}'               => $_lusterF['new_password'],
+            '{field_password_input}'         => $_lusterF['new_password_input'] ?? '',
+            '{field_password_confirm}'       => $_lusterF['new_password_confirm'],
+            '{field_password_confirm_input}' => $_lusterF['new_password_confirm_input'] ?? '',
+            '{hidden_token}'                 => $_lusterTokenValid
+                ? '<input type="hidden" name="token" value="' . View::e($_lusterRawToken) . '">'
+                : '',
+        ];
+        $_lusterInnerC   = FormTemplateRenderer::expandTokens($_lusterTplC, $_lusterTokensC);
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInnerC, $_lusterRedirectToClean, $_lusterApp->getCSRF()->token(), false, false, 'kim_reset');
+    }
+
+    $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/kim/reset-confirm.php', [
+        'form_action' => $_lusterRedirectToClean,
+        'csrf_token'  => $_lusterApp->getCSRF()->token(),
+        'errors'      => $_lusterError !== ''
+            ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
+            : '',
+        'token'       => $_lusterTokenValid ? $_lusterRawToken : '',
+        'token_valid' => $_lusterTokenValid,
+        'f'           => $_lusterF,
+        'form_html'   => $_lusterFormHtml,
+        'form_marker'       => 'kim_reset',
+        'reset_request_url' => $_lusterResetRecoveryUrl,
+        'base_url'          => $_lusterBaseUrl,
+    ]);
+} else {
+    // ── Request step: email-entry form ────────────────────────────────────────
+
+    $_lusterCaptchaQ   = Captcha::getQuestion('kim_reset');
+    $_lusterWrapperTpl = '';
+
+    $_lusterFlSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
+                         . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>';
+    foreach ($_lusterFanlistings as $_lusterFl) {
+        $_lusterFlId    = htmlspecialchars((string) $_lusterFl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $_lusterFlTitle = htmlspecialchars((string) $_lusterFl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $_lusterFlSelectHtml .= "<option value=\"{$_lusterFlId}\">{$_lusterFlTitle}</option>";
+    }
+    $_lusterFlSelectHtml .= '</select>';
+
+    $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
+        ['type' => 'email',  'name' => 'email',          'id' => 'kim-email',      'label' => 'Email',                          'required' => true, 'value' => $_lusterOldEmail, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+        ['type' => 'select', 'name' => 'fanlisting_id',  'id' => 'kim-fanlisting', 'label' => 'Fanlisting',                     'required' => true, 'raw_input' => $_lusterFlSelectHtml],
+        ['type' => 'text',   'name' => 'captcha_answer', 'id' => 'kim-captcha',    'label' => 'Captcha: ' . $_lusterCaptchaQ,   'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+    ], $_lusterWrapperTpl);
+
+    $_lusterFormHtml = null;
+    if ($_lusterResetTpl !== '') {
+        $_lusterTplOut = TemplateEngine::conditionals($_lusterResetTpl, [
+            'step_email'    => true,
+            'step_confirm'  => false,
+            'token_valid'   => false,
+            'token_invalid' => false,
+        ]);
+        $_lusterTokens = [
+            '{field_email}'                  => $_lusterF['email'],
+            '{field_email_input}'            => $_lusterF['email_input'],
+            '{field_fanlisting_id}'          => $_lusterF['fanlisting_id'],
+            '{field_fanlisting_id_input}'    => $_lusterF['fanlisting_id_input'],
+            '{captcha_block}'                => $_lusterF['captcha_answer'],
+            '{captcha_block_input}'          => $_lusterF['captcha_answer_input'],
+            '{captcha_question}'             => View::e($_lusterCaptchaQ),
+            '{submit_button}'                => '<button type="submit" class="fl-submit">Send Reset Link</button>',
+            '{clear_button}'                 => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{reset_request_url}'            => View::e($_lusterResetRecoveryUrl),
+            '{field_password}'               => '',
+            '{field_password_input}'         => '',
+            '{field_password_confirm}'       => '',
+            '{field_password_confirm_input}' => '',
+            '{hidden_token}'                 => '',
+        ];
+        $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterTplOut, $_lusterTokens);
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterRedirectToClean, $_lusterApp->getCSRF()->token(), false, false, 'kim_reset');
+    }
+
+    $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/kim/reset.php', [
+        'form_action' => $_lusterRedirectToClean,
+        'csrf_token'  => $_lusterApp->getCSRF()->token(),
+        'errors'      => $_lusterError !== ''
+            ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
+            : '',
+        'f'           => $_lusterF,
+        'form_html'   => $_lusterFormHtml,
+        'form_marker' => 'kim_reset',
+        'base_url'    => $_lusterBaseUrl,
+        'theme_path'  => $_lusterBaseUrl . '/assets/default/',
+        'link_update' => $_lusterLinkUpdate,
+    ]);
+}
 
 $_lusterHtml .= \Luster\Core\View::attribution();
 

@@ -32,6 +32,7 @@ use Luster\Core\View;
     <div class="fl-rules-gate">
       <form class="fl-form fl-rules-form" method="POST" action="<?= View::e($form_action) ?>">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+        <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
         <input type="hidden" name="return_to" value="<?= View::e($return_to) ?>">
         <?= $rules_body_html ?>
       </form>

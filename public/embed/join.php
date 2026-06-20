@@ -24,8 +24,8 @@ use Luster\Support\ListingTemplateResolver;
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/join.php';
  *
- * The form POSTs to Luster's join URL. After every outcome (success or error)
- * the user is redirected back to this same host page, where the embed
+ * The form self-posts to the host page URL. After every outcome (success or
+ * error) the user is redirected back to this same page, where the embed
  * re-renders with a flash success or error message inline.
  *
  * To override the redirect target, set $luster_redirect_url before require.
@@ -74,6 +74,30 @@ if ($_lusterRedirectTo === '') {
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'join:' . $_lusterListingId;
+
+// ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $response    = (new \Luster\Controllers\Public\JoinController($_lusterApp))
+        ->submit(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
+    $_lusterUrl  = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 3. Load listing data
@@ -120,7 +144,7 @@ if ($_lusterSuccess !== '') {
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterFormAction = $_lusterBaseUrl . '/join/' . $_lusterListingId;
+$_lusterFormAction = $_lusterRedirectTo;
 $_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
 
 $_lusterCaptchaQ      = Captcha::getQuestion('join');
@@ -133,7 +157,7 @@ $_lusterDescriptors = [
     ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => (string) ($_lusterOld['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
     ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => $_lusterCountryEnabled, 'raw_input' => $_lusterCountrySel],
     ...$_lusterFb->descriptorsFromAdditionalFields($_lusterFields, $_lusterOld),
-    ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional - If left blank, a password will automatically generated and emailed to you.'],
+    ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'If left blank, a password will be generated and emailed to you.'],
     ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'join-captcha',          'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ];
@@ -186,6 +210,8 @@ if ($_lusterJoinFormTpl !== '') {
         $_lusterFormAction,
         $_lusterApp->getCSRF()->token(),
         false,
+        false,
+        $_lusterMarker,
     );
 }
 
@@ -205,6 +231,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('join.php', [
     'theme_path'            => $_lusterApp->getBaseUrl() . '/assets/default/',
     'country_field_enabled' => $_lusterCountryEnabled,
     'form_html'             => $_lusterFormHtml,
+    'form_marker'           => $_lusterMarker,
 ]);
 
 if ($luster_return ?? false) {

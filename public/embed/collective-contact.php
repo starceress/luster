@@ -43,6 +43,30 @@ if ($_lusterRedirectTo === '') {
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
 
 // ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// When $luster_contact_action is set, the form posts to that URL instead.
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($luster_contact_action)) {
+    if (($_POST['_luster_embed_form'] ?? '') !== 'contact_collective') {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $response   = (new \Luster\Controllers\Public\ContactController($_lusterApp))
+        ->collectiveSubmit(new \Luster\Core\Request(), []);
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
+
+// ---------------------------------------------------------------------------
 // 2. Check if collective contact is enabled
 // ---------------------------------------------------------------------------
 
@@ -82,7 +106,7 @@ $_lusterConfig     = $_lusterApp->getConfig();
 $_lusterBaseUrl    = $_lusterApp->getBaseUrl();
 $_lusterFormAction = isset($luster_contact_action)
     ? (string) $luster_contact_action
-    : $_lusterBaseUrl . '/contact';
+    : $_lusterRedirectTo;
 
 $_lusterCaptchaQ   = Captcha::getQuestion('contact_collective');
 $_lusterWrapperTpl = '';
@@ -129,7 +153,7 @@ if ($_lusterContactTpl !== '') {
         '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
     ];
     $_lusterInner  = FormTemplateRenderer::expandTokens($_lusterContactTpl, $_lusterTokens);
-    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction, $_lusterApp->getCSRF()->token(), true);
+    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction, $_lusterApp->getCSRF()->token(), true, false, 'contact_collective');
 }
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
@@ -146,6 +170,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
         : '',
     'f'            => $_lusterF,
     'form_html'    => $_lusterFormHtml,
+    'form_marker'  => 'contact_collective',
 ]);
 
 if ($luster_return ?? false) { return $_lusterHtml; }

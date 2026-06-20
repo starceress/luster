@@ -61,6 +61,30 @@ if ($_lusterRedirectTo === '') {
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'adopt:' . $_lusterListingId;
+
+// ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $response   = (new \Luster\Addons\Adoption\Controllers\AdoptPublicController($_lusterApp))
+        ->submit(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 3. Load listing and check adoption flag
@@ -112,7 +136,7 @@ if ($_lusterSuccess !== '') {
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterFormAction = $_lusterBaseUrl . '/adopt/' . $_lusterListingId;
+$_lusterFormAction = $_lusterRedirectTo;
 
 $_lusterCaptchaQ   = Captcha::getQuestion('adopt');
 $_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
@@ -139,6 +163,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('adopt.php', [
         : '',
     'f'                   => $_lusterF,
     'form_html'           => $_lusterFormHtml,
+    'form_marker'         => $_lusterMarker,
     'base_url'            => $_lusterApp->getBaseUrl(),
     'theme_path'          => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);

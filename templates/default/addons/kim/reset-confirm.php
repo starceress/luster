@@ -9,8 +9,10 @@
  *   $token        string  raw token (empty when invalid)
  *   $token_valid  bool
  *   $f            array<string,string>  keys: new_password, new_password_confirm
- *   $form_html    string|null  custom form template HTML (both valid/invalid states), or null
- *   $base_url     string
+ *   $form_html          string|null  custom form template HTML (both valid/invalid states), or null
+ *   $form_marker        string  embed form identity marker, or ''
+ *   $reset_request_url  string  URL for the "request a new link" recovery link
+ *   $base_url           string
  */
 
 declare(strict_types=1);
@@ -44,7 +46,7 @@ if (isset($form_html) && $form_html !== null) {
         <?php endif; ?>
       </div>
       <p class="fl-kim-meta">
-        <a href="<?= $b ?>/kim/reset">Request a new password reset link</a>
+        <a href="<?= View::e($reset_request_url ?? ($b . '/kim/reset')) ?>">Request a new password reset link</a>
       </p>
 
     <?php else: ?>
@@ -55,6 +57,7 @@ if (isset($form_html) && $form_html !== null) {
 
       <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
         <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
+        <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
         <input type="hidden" name="token" value="<?= View::e($token) ?>">
 
         <?= $f['new_password'] ?>

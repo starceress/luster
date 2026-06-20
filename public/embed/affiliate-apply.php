@@ -48,6 +48,36 @@ if ($_lusterRedirectTo === '') {
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'affiliate_apply:' . ((int) ($luster_fanlisting_id ?? 0));
+
+// ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $_lusterAaLid = (int) ($luster_fanlisting_id ?? -1);
+    if ($_lusterAaLid === 0) {
+        $response = (new \Luster\Controllers\Public\AffiliateApplyController($_lusterApp))
+            ->collectiveSubmit(new \Luster\Core\Request(), []);
+    } else {
+        $response = (new \Luster\Controllers\Public\AffiliateApplyController($_lusterApp))
+            ->submit(new \Luster\Core\Request(), ['id' => $_lusterAaLid]);
+    }
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 2. Load listing + settings
@@ -105,7 +135,7 @@ if ($_lusterListingId === 0) {
     }
 
     $_lusterBaseUrl    = rtrim((string) ($_lusterConfig->get('embed_base_url', '') ?: $_lusterApp->getBaseUrl()), '/');
-    $_lusterFormAction = $_lusterBaseUrl . '/affiliate-apply/collective';
+    $_lusterFormAction = $_lusterRedirectTo;
     $_lusterSiteName   = (string) $_lusterConfig->get('site_name', 'Collective');
     $_lusterSiteUrl    = (string) ($_lusterConfig->get('site_url', '') ?: $_lusterApp->getBaseUrl());
 
@@ -145,7 +175,7 @@ if ($_lusterListingId === 0) {
         ];
         $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterCollAffTpl, $_lusterAffTokens);
         $_lusterFormHtml  = FormTemplateRenderer::wrapForm(
-            $_lusterInnerHtml, $_lusterFormAction, $_lusterApp->getCsrf()->token(), true,
+            $_lusterInnerHtml, $_lusterFormAction, $_lusterApp->getCsrf()->token(), true, false, $_lusterMarker,
         );
     }
 
@@ -161,6 +191,7 @@ if ($_lusterListingId === 0) {
         'errors'       => $_lusterError,
         'f'            => $_lusterF,
         'form_html'    => $_lusterFormHtml,
+        'form_marker'  => $_lusterMarker,
     ]);
 
     if ($luster_return ?? false) {
@@ -219,9 +250,7 @@ if ($_lusterSuccess !== '') {
 $_lusterBaseUrl  = rtrim((string) ($_lusterApp->getConfig()->get('embed_base_url', '') ?: $_lusterApp->getBaseUrl()), '/');
 $_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
 
-$_lusterFormAction = $_lusterApplySettings['form_url'] !== ''
-    ? rtrim((string) $_lusterListing->url, '/') . '/' . ltrim($_lusterApplySettings['form_url'], '/')
-    : $_lusterBaseUrl . '/affiliate-apply/' . $_lusterListingId;
+$_lusterFormAction = $_lusterRedirectTo;
 
 // ---------------------------------------------------------------------------
 // 5. Render fragment
@@ -268,7 +297,7 @@ if ($_lusterAffApplyTpl !== '') {
     ];
     $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterAffApplyTpl, $_lusterAffTokens);
     $_lusterFormHtml  = FormTemplateRenderer::wrapForm(
-        $_lusterInnerHtml, $_lusterFormAction, $_lusterApp->getCsrf()->token(), true,
+        $_lusterInnerHtml, $_lusterFormAction, $_lusterApp->getCsrf()->token(), true, false, $_lusterMarker,
     );
 }
 
@@ -284,6 +313,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliate-apply.php', [
     'errors'       => $_lusterError,
     'f'            => $_lusterF,
     'form_html'    => $_lusterFormHtml,
+    'form_marker'  => $_lusterMarker,
 ]);
 
 if ($luster_return ?? false) {

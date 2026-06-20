@@ -19,9 +19,9 @@ use Luster\Support\ListingTemplateResolver;
  *   $luster_return        = true;   // true = return string, false/omit = echo
  *   echo require '/path/to/luster/public/embed/codes-submit.php';
  *
- * The form POSTs to Luster's public /codes/submit/{id} route. On success,
- * Luster redirects back to this page and the embed automatically shows the
- * confirmation message from the session flash.
+ * The form self-posts to the host page URL. On success, the embed redirects
+ * back to this page and automatically shows the confirmation message from the
+ * session flash.
  */
 
 // ---------------------------------------------------------------------------
@@ -58,6 +58,7 @@ if ($_lusterRedirectTo === '') {
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'codes_submit:' . $_lusterRawListingId;
 
 // ---------------------------------------------------------------------------
 // 3. Load listing (or collective identity)
@@ -100,9 +101,32 @@ if ($_lusterEmbedBase === '') {
     $_lusterEmbedBase = $_lusterBaseUrl;
 }
 
-// Build form action — POSTs to Luster's public route (0 = collective)
+// Build form action — self-post back to host page (0 = collective)
 $_lusterSubmitId   = $_lusterIsCollective ? 0 : $_lusterListingId;
-$_lusterFormAction = $_lusterEmbedBase . '/codes/submit/' . $_lusterSubmitId;
+$_lusterFormAction = $_lusterRedirectTo;
+
+// ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $response   = (new \Luster\Controllers\Public\CodesSubmitController($_lusterApp))
+        ->submit(new \Luster\Core\Request(), ['id' => $_lusterSubmitId]);
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 4. Consume flash
@@ -175,6 +199,8 @@ if (!$_lusterIsCollective) {
             $_lusterFormAction,
             $_lusterApp->getCSRF()->token(),
             true,
+            false,
+            $_lusterMarker,
         );
     }
 } else {
@@ -202,6 +228,8 @@ if (!$_lusterIsCollective) {
             $_lusterFormAction,
             $_lusterApp->getCSRF()->token(),
             true,
+            false,
+            $_lusterMarker,
         );
     }
 }
@@ -215,6 +243,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
     'errors'       => htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
     'f'            => $_lusterF,
     'form_html'    => $_lusterFormHtml,
+    'form_marker'  => $_lusterMarker,
     'base_url'     => $_lusterBaseUrl,
 ]);
 

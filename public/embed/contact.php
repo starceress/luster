@@ -59,6 +59,31 @@ if ($_lusterRedirectTo === '') {
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'contact:' . $_lusterListingId;
+
+// ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// When $luster_contact_action is set, the form posts to that URL instead.
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($luster_contact_action)) {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $response   = (new \Luster\Controllers\Public\ContactController($_lusterApp))
+        ->listingSubmit(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 3. Load listing and contact settings
@@ -109,7 +134,7 @@ if ($_lusterSuccess !== '') {
 $_lusterBaseUrl    = $_lusterApp->getBaseUrl();
 $_lusterFormAction = isset($luster_contact_action)
     ? (string) $luster_contact_action
-    : $_lusterBaseUrl . '/contact/' . $_lusterListingId;
+    : $_lusterRedirectTo;
 
 $_lusterSettingsRepo = new ListingSettingsRepo($_lusterApp->getDatabase());
 $_lusterCaptchaQ     = Captcha::getQuestion('contact_listing');
@@ -162,7 +187,7 @@ if ($_lusterContactTpl !== '') {
         '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
     ];
     $_lusterInner   = FormTemplateRenderer::expandTokens($_lusterContactTpl, $_lusterTokens);
-    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction, $_lusterApp->getCSRF()->token(), false);
+    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker);
 }
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
@@ -179,6 +204,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
         : '',
     'f'            => $_lusterF,
     'form_html'    => $_lusterFormHtml,
+    'form_marker'  => $_lusterMarker,
 ]);
 
 if ($luster_return ?? false) { return $_lusterHtml; }

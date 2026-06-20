@@ -30,6 +30,7 @@ use Luster\Core\View;
 
 <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
   <?= $f['name'] ?>
   <?= $f['email'] ?>

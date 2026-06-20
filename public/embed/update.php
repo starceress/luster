@@ -72,7 +72,54 @@ if ($_lusterRedirectTo === '') {
     $_lusterProto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
+// Strip sign-out param so lstr_embed_return_to is always the clean host page URL
+$_lusterRedirectTo = str_replace(
+    ['?_luster_update_sign_out=1&', '&_luster_update_sign_out=1', '?_luster_update_sign_out=1'],
+    ['?', '', ''],
+    $_lusterRedirectTo,
+);
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'update:' . $_lusterListingId;
+
+// ---------------------------------------------------------------------------
+// Sign-out handler — clears step-1 auth from session, then redirects
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['_luster_update_sign_out'] ?? '') === '1') {
+    $_lusterApp->getSession()->remove('lstr_update_authed_' . $_lusterListingId);
+    if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+    return;
+}
+
+// ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $_lusterAuthedNow = $_lusterApp->getSession()->get('lstr_update_authed_' . $_lusterListingId, '') !== '';
+    if ($_lusterAuthedNow) {
+        $response = (new \Luster\Controllers\Public\UpdateController($_lusterApp))
+            ->submit(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
+    } else {
+        $response = (new \Luster\Controllers\Public\UpdateController($_lusterApp))
+            ->signIn(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
+    }
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 3. Load listing data
@@ -165,7 +212,7 @@ $_lusterFb            = $_lusterApp->getFormFieldBuilder();
 if (!$_lusterSignedIn) {
 
     // ── Step 1: sign-in form ────────────────────────────────────────────────
-    $_lusterFormAction1  = $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-in';
+    $_lusterFormAction1  = $_lusterRedirectTo;
     $_lusterDescriptors = [
         ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true, 'value' => (string) ($_lusterOld['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
         ['type' => 'password', 'name' => 'password', 'id' => 'upd-password', 'label' => 'Password',       'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
@@ -202,7 +249,7 @@ if (!$_lusterSignedIn) {
             '{lost_password_url}'      => View::e($_lusterLostPasswordUrl),
         ];
         $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterProcessed, $_lusterTokens);
-        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction1, $_lusterApp->getCSRF()->token(), false);
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction1, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker);
     }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
@@ -213,6 +260,7 @@ if (!$_lusterSignedIn) {
         'signed_in'         => false,
         'sign_in_action'    => $_lusterFormAction1,
         'csrf_token'        => $_lusterApp->getCSRF()->token(),
+        'form_marker'       => $_lusterMarker,
         'errors'            => $_lusterError !== ''
             ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
             : '',
@@ -231,8 +279,10 @@ if (!$_lusterSignedIn) {
     $_lusterFields       = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
     $_lusterCaptchaQ     = Captcha::getQuestion('update');
     $_lusterCountrySel   = Countries::buildSelect((string) ($_lusterOld['country'] ?? ''));
-    $_lusterFormAction2  = $_lusterBaseUrl . '/update/' . $_lusterListingId;
-    $_lusterSignOutUrl   = $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-out';
+    $_lusterFormAction2  = $_lusterRedirectTo;
+    $_lusterSignOutUrl   = $_lusterRedirectTo
+        . (str_contains($_lusterRedirectTo, '?') ? '&' : '?')
+        . '_luster_update_sign_out=1';
 
     $_lusterUrlVal = htmlspecialchars(
         (string) (($_lusterOld['url'] ?? '') !== '' ? ($_lusterOld['url'] ?? '') : $_lusterMember->url),
@@ -300,7 +350,7 @@ if (!$_lusterSignedIn) {
             '{lost_password_url}'      => '',
         ];
         $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterProcessed, $_lusterTokens);
-        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false);
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker);
     }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
@@ -319,6 +369,7 @@ if (!$_lusterSignedIn) {
         'fields'        => $_lusterFields,
         'f'             => $_lusterF,
         'form_html'     => $_lusterFormHtml,
+        'form_marker'   => $_lusterMarker,
         'base_url'      => $_lusterApp->getBaseUrl(),
         'theme_path'    => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);

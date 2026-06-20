@@ -1,12 +1,12 @@
 Hi there,
 
-The following fanlistings on {collective_name} haven't been updated in {days}+ days:
+The following listings for {collective_name} haven't been updated in {days}+ days:
 
 {listings}
 
 Log in to your admin panel to mark them updated:
 {admin_url}
 
-You can adjust or disable this notification under Settings > General.
+You can adjust or disable this notification under Settings > General > Notifications.
 
-— Luster
+— Luster ✦

@@ -128,7 +128,10 @@ final class KimResetController
 
                 $config   = $this->app->getConfig();
                 $siteName = (string) $config->get('site_name', '');
-                $resetUrl = $baseUrl . '/kim/reset/confirm?token=' . urlencode($rawToken);
+                $sep      = str_contains($embedReturnTo, '?') ? '&' : '?';
+                $resetUrl = $embedReturnTo !== ''
+                    ? $embedReturnTo . $sep . 'token=' . urlencode($rawToken)
+                    : $baseUrl . '/kim/reset/confirm?token=' . urlencode($rawToken);
 
                 try {
                     $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
@@ -205,11 +208,11 @@ final class KimResetController
         $rawToken = trim((string) $request->post('token', ''));
 
         if ($rawToken === '') {
-            return $this->renderConfirmForm(
-                '',
-                false,
-                'Missing token. Please use the link from your email.',
-            );
+            if ($embedReturnTo !== '') {
+                $session->set('lstr_flash_error', 'Missing token. Please use the link from your email.');
+                return Response::redirect($embedReturnTo);
+            }
+            return $this->renderConfirmForm('', false, 'Missing token. Please use the link from your email.');
         }
 
         $resetRepo = new KimPasswordResetRepo($this->app->getDatabase());
@@ -217,6 +220,10 @@ final class KimResetController
 
         if ($tokenRow === null) {
             $rateLimit->hit($ip, 'kim_reset', 5, 3600);
+            if ($embedReturnTo !== '') {
+                $session->set('lstr_flash_error', 'This reset link has expired or is invalid. Please request a new one.');
+                return Response::redirect($embedReturnTo);
+            }
             return $this->renderConfirmForm(
                 '',
                 false,
@@ -231,10 +238,20 @@ final class KimResetController
         PasswordPolicy::apply($v->field('new_password'));
 
         if ($v->fails()) {
+            if ($embedReturnTo !== '') {
+                $sep = str_contains($embedReturnTo, '?') ? '&' : '?';
+                $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+                return Response::redirect($embedReturnTo . $sep . 'token=' . urlencode($rawToken));
+            }
             return $this->renderConfirmForm($rawToken, true, implode(' ', $v->allErrors()));
         }
 
         if ($newPassword !== $newPasswordConfirm) {
+            if ($embedReturnTo !== '') {
+                $sep = str_contains($embedReturnTo, '?') ? '&' : '?';
+                $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
+                return Response::redirect($embedReturnTo . $sep . 'token=' . urlencode($rawToken));
+            }
             return $this->renderConfirmForm($rawToken, true, 'Passwords do not match. Please try again.');
         }
 

@@ -29,9 +29,9 @@ use Luster\Support\ListingTemplateResolver;
  *   $luster_return        = false;
  *   require '/absolute/path/to/luster/public/embed/reset.php';
  *
- * In both cases the form POSTs to Luster's URL. After every outcome (success
- * or error) the user is redirected back to this same host page, where the
- * embed re-renders with a flash success or error message inline.
+ * In both cases the form self-posts to the host page URL. After every outcome
+ * (success or error) the user is redirected back to this same host page, where
+ * the embed re-renders with a flash success or error message inline.
  *
  * To override the redirect target, set $luster_redirect_url before require.
  *
@@ -86,6 +86,35 @@ if ($_lusterRedirectTo === '') {
 $_lusterRedirectTo = (string) preg_replace('/([?&])token=[^&]*&?/', '$1', $_lusterRedirectTo);
 $_lusterRedirectTo = rtrim($_lusterRedirectTo, '?&');
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'reset:' . $_lusterListingId;
+
+// ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    if (isset($_POST['token']) && $_POST['token'] !== '') {
+        $response = (new \Luster\Controllers\Public\ResetController($_lusterApp))
+            ->submitConfirm(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
+    } else {
+        $response = (new \Luster\Controllers\Public\ResetController($_lusterApp))
+            ->submit(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
+    }
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 3. Load listing data
@@ -114,17 +143,23 @@ if ($_lusterStep === 'confirm') {
     // ── Confirm step: validate token, show new-password form ──────────────
 
     $_lusterRawToken = trim((string) ($_GET['token'] ?? ''));
-    $_lusterError    = '';
+
+    // Consume flash error from a previous confirm-step POST redirect
+    $_lusterConfirmSession = $_lusterApp->getSession();
+    $_lusterFlashErr       = (string) $_lusterConfirmSession->get('lstr_flash_error', '');
+    $_lusterConfirmSession->remove('lstr_flash_error');
+
+    $_lusterError    = $_lusterFlashErr;
     $_lusterTokenValid = false;
 
     if ($_lusterRawToken === '') {
-        $_lusterError = 'Missing or invalid reset link.';
+        $_lusterError = $_lusterError !== '' ? $_lusterError : 'Missing or invalid reset link.';
     } else {
         $_lusterResetRepo = new FanPasswordResetRepo($_lusterApp->getDatabase());
         $_lusterTokenRow  = $_lusterResetRepo->findValidByToken(hash('sha256', $_lusterRawToken));
 
         if ($_lusterTokenRow === null || (int) $_lusterTokenRow['fanlisting_id'] !== $_lusterListingId) {
-            $_lusterError = 'This reset link has expired or is invalid. Please request a new one.';
+            $_lusterError = $_lusterError !== '' ? $_lusterError : 'This reset link has expired or is invalid. Please request a new one.';
         } else {
             $_lusterTokenValid = true;
         }
@@ -144,7 +179,7 @@ if ($_lusterStep === 'confirm') {
         ['type' => 'password', 'name' => 'new_password',        'id' => 'rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ], $_lusterWrapperTpl);
-    $_lusterFormAction2   = $_lusterBaseUrl . '/reset/' . $_lusterListingId . '/confirm';
+    $_lusterFormAction2   = $_lusterRedirectTo;
     $_lusterResetUrl      = $_lusterBaseUrl . '/reset/' . $_lusterListingId;
 
     $_lusterFormHtml = null;
@@ -174,7 +209,7 @@ if ($_lusterStep === 'confirm') {
         if ($_lusterTokenValid) {
             $_lusterInner2 .= '<input type="hidden" name="token" value="' . View::e($_lusterRawToken) . '">';
         }
-        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner2, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false);
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner2, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker);
     }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset_confirm.php', [
@@ -192,6 +227,7 @@ if ($_lusterStep === 'confirm') {
         'token_valid'  => $_lusterTokenValid,
         'f'            => $_lusterF,
         'form_html'    => $_lusterFormHtml,
+        'form_marker'  => $_lusterMarker,
         'base_url'     => $_lusterApp->getBaseUrl(),
         'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);
@@ -222,7 +258,7 @@ if ($_lusterStep === 'confirm') {
         ListingSettingsRepo::defaultResetFormTemplate(),
     );
     $_lusterResetFormTpl2 = $_lusterRstResolved2['should_render_template'] ? $_lusterRstResolved2['value'] : '';
-    $_lusterFormAction1   = $_lusterBaseUrl . '/reset/' . $_lusterListingId;
+    $_lusterFormAction1   = $_lusterRedirectTo;
     $_lusterF             = $_lusterApp->getFormFieldBuilder()->build([
         ['type' => 'email', 'name' => 'email',          'id' => 'rst-email',   'label' => 'Email',    'required' => true, 'value' => $_lusterOldEmail, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
         ['type' => 'text',  'name' => 'captcha_answer', 'id' => 'rst-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
@@ -252,7 +288,7 @@ if ($_lusterStep === 'confirm') {
             '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
         $_lusterInner1    = FormTemplateRenderer::expandTokens($_lusterProcessed1, $_lusterTokens1);
-        $_lusterFormHtml1 = FormTemplateRenderer::wrapForm($_lusterInner1, $_lusterFormAction1, $_lusterApp->getCSRF()->token(), false);
+        $_lusterFormHtml1 = FormTemplateRenderer::wrapForm($_lusterInner1, $_lusterFormAction1, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker);
     }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset.php', [
@@ -267,6 +303,7 @@ if ($_lusterStep === 'confirm') {
             : '',
         'f'            => $_lusterF,
         'form_html'    => $_lusterFormHtml1,
+        'form_marker'  => $_lusterMarker,
         'base_url'     => $_lusterApp->getBaseUrl(),
         'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);

@@ -268,7 +268,15 @@ final class ResetController
 
         $rawToken = trim((string) $request->post('token', ''));
 
+        $confirmReturnUrl = ($embedReturnTo !== '' && $rawToken !== '')
+            ? $embedReturnTo . (str_contains($embedReturnTo, '?') ? '&' : '?') . 'token=' . urlencode($rawToken)
+            : '';
+
         if ($rawToken === '') {
+            if ($embedReturnTo !== '') {
+                $session->set('lstr_flash_error', 'Missing reset token. Please use the link from your email.');
+                return Response::redirect($embedReturnTo);
+            }
             return $this->renderConfirmForm(
                 $listingId, $listing, '',
                 'Missing token. Please use the link from your email.',
@@ -280,6 +288,10 @@ final class ResetController
 
         if ($tokenRow === null || (int) $tokenRow['fanlisting_id'] !== $listingId) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
+            if ($embedReturnTo !== '') {
+                $session->set('lstr_flash_error', 'This reset link has expired or is invalid. Please request a new one.');
+                return Response::redirect($embedReturnTo);
+            }
             return $this->renderConfirmForm(
                 $listingId, $listing, '',
                 'This reset link has expired or is invalid. Please request a new one.',
@@ -293,6 +305,10 @@ final class ResetController
         PasswordPolicy::apply($v->field('new_password'));
 
         if ($v->fails()) {
+            if ($confirmReturnUrl !== '') {
+                $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+                return Response::redirect($confirmReturnUrl);
+            }
             return $this->renderConfirmForm(
                 $listingId, $listing, $rawToken,
                 implode(' ', $v->allErrors()),
@@ -300,6 +316,10 @@ final class ResetController
         }
 
         if ($newPassword !== $newPasswordConfirm) {
+            if ($confirmReturnUrl !== '') {
+                $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
+                return Response::redirect($confirmReturnUrl);
+            }
             return $this->renderConfirmForm(
                 $listingId, $listing, $rawToken,
                 'Passwords do not match. Please try again.',

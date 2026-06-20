@@ -82,6 +82,30 @@ if ($_lusterRedirectTo === '') {
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'rules_gate:' . $_lusterListingId;
+
+// ---------------------------------------------------------------------------
+// POST handler — process form submissions inline (self-post)
+// ---------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+        return;
+    }
+    $response   = (new \Luster\Addons\Rules\Controllers\RulesPublicController($_lusterApp))
+        ->agree(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
+    $_lusterUrl = $response->getRedirectUrl() ?? $_lusterRedirectTo;
+    if (!headers_sent()) { header('Location: ' . $_lusterUrl, true, 302); exit; }
+    echo '<script>window.location.replace(' . json_encode($_lusterUrl) . ');</script>';
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 4. Load the rule set — silently returns '' when not needed.
@@ -149,7 +173,7 @@ if ($_lusterStoredFp === $_lusterRuleSet->fingerprint()) {
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterFormAction = $_lusterBaseUrl . '/rules/' . $_lusterListingId . '/agree';
+$_lusterFormAction = $_lusterRedirectTo;
 
 try {
     $_lusterListing = (new \Luster\Repositories\ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig()))
@@ -200,6 +224,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/rules/gate.php', [
     'return_to'       => $_lusterRedirectTo,
     'csrf_token'      => $_lusterApp->getCSRF()->token(),
     'rules_body_html' => $_lusterRulesBodyHtml,
+    'form_marker'     => $_lusterMarker,
 ]);
 
 if ($luster_return ?? false) {

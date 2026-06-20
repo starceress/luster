@@ -1,4 +1,4 @@
-Hey there!
+Hi there,
 
 Here's your weekly pending items digest for {collective_name}:
 
@@ -9,6 +9,6 @@ Total pending: {total} item(s)
 Log in to your admin panel to review:
 {admin_url}
 
-You can adjust or disable this email under Collective > Settings.
+You can adjust or disable this email under Settings > General > Notifications.
 
 — Luster ✦

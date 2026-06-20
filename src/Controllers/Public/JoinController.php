@@ -119,10 +119,13 @@ final class JoinController
             return Response::notFound('That listing does not exist.');
         }
 
-        // Rules gate enforcement — catches direct POSTs that bypass the embed gate
+        // Rules gate enforcement — catches direct POSTs that bypass the embed gate.
+        // In embed mode ($embedReturnTo set) the fan should already have agreed via
+        // rules-gate.php on the host page; if not, redirect back to the host page so
+        // rules-gate.php can render the gate form there instead of going to the backend.
         if ($this->app->isAddonInstalled('Rules') && !$this->rulesAgreed($listingId)) {
             $session->set('lstr_embed_return_to', $embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
-            return Response::redirect($baseUrl . '/rules/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/rules/' . $listingId);
         }
 
         $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
