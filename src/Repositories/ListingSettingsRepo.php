@@ -1796,7 +1796,7 @@ final class ListingSettingsRepo
             );
             $stmt->execute(['id' => $listingId]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        } catch (\Throwable) {
+        } catch (\PDOException) {
             return null;
         }
         if ($row === false || !array_key_exists('code_approval_email', $row)) {
@@ -1818,7 +1818,7 @@ final class ListingSettingsRepo
                  ON DUPLICATE KEY UPDATE code_approval_email = :val'
             );
             $stmt->execute(['id' => $listingId, 'val' => $value === null ? null : (int) $value]);
-        } catch (\Throwable) {}
+        } catch (\PDOException) {}
     }
 
     public function saveAffiliateApplySettings(int $listingId, bool $enabled, string $formUrl, string $redirectUrl): void

@@ -38,7 +38,7 @@ class SiteSettingsRepo
             $row = $stmt->fetch();
 
             return $row !== false ? (string) $row['setting_value'] : $default;
-        } catch (\Exception) {
+        } catch (\PDOException) {
             return $default;
         }
     }
@@ -55,8 +55,7 @@ class SiteSettingsRepo
                  ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)'
             );
             $stmt->execute(['key' => $key, 'value' => $value]);
-        } catch (\Exception) {
-            // Table not yet created — Migration 28 not run; silently ignore
+        } catch (\PDOException) {
         }
     }
 
@@ -540,8 +539,7 @@ HTML;
             foreach ($stmt->fetchAll() as $row) {
                 $result[(string) $row['setting_key']] = (string) $row['setting_value'];
             }
-        } catch (\Exception) {
-            // Table not yet created — silently ignore
+        } catch (\PDOException) {
         }
 
         return $result;
