@@ -6,7 +6,7 @@ namespace Luster\Core;
 
 final class Version
 {
-    public const CURRENT       = '1.0.8';
+    public const CURRENT       = '1.0.9';
     public const GITHUB_REPO   = 'starceress/luster';
     public const SUPPORT_EMAIL = 'support@luster.net';
     public const SUPPORT_NAME  = 'Luster Support';
