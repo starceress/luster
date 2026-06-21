@@ -69,7 +69,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
             if ($affiliate->listingId !== null) {
                 foreach ($listings as $fl) {
                     if ((int) $fl->id === $affiliate->listingId) {
-                        $scopeLabel = $fl->title;
+                        $scopeLabel = $fl->subject ?: $fl->title;
                         break;
                     }
                 }
@@ -90,10 +90,14 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
               <div class="select-wrap">
                 <select id="aff-listing" name="fanlisting_id">
                   <option value="0"><?= View::e(($site_name ?? 'Collective') . ' (Collective)') ?></option>
-                  <?php foreach ($listings as $fl): ?>
-                    <?php $selId = (int) ($old['fanlisting_id'] ?? 0); ?>
+                  <?php
+                    $sortedListings = $listings;
+                    usort($sortedListings, static fn($a, $b) => strcasecmp($a->subject ?: $a->title, $b->subject ?: $b->title));
+                    $selId = (int) ($old['fanlisting_id'] ?? 0);
+                  ?>
+                  <?php foreach ($sortedListings as $fl): ?>
                     <option value="<?= (int) $fl->id ?>" <?= (int) $fl->id === $selId ? 'selected' : '' ?>>
-                      <?= View::e($fl->title) ?>
+                      <?= View::e($fl->subject ?: $fl->title) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>

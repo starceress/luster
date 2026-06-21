@@ -15,7 +15,8 @@ use Luster\Core\View;
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $ep = rtrim($embed_path ?? '/path/to/luster/public/embed', '/');
 $setupDefine = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . str_replace(["\\", "'"], ["\\\\", "\\'"], $ep) . "'); ?>";
-$setupCss = '<link rel="stylesheet" href="' . rtrim((string) ($base_url ?? ''), '/') . '/assets/css/default/style.css">';
+$setupAutoload = "<?php require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.php'; ?>";
+$setupCss = "<?php Luster\\Core\\View::embedStylesheet(); ?>";
 
 // ── icon + badge maps ─────────────────────────────────────────────────────
 $iconMap = [
@@ -296,13 +297,14 @@ $epSafe = View::e($ep);
           <div class="wizard-step-node wizard-step-node--active ec-setup-step" id="ec-step1-node">
             <div class="wizard-step-bubble">1</div>
             <span class="wizard-step-label"
-                  data-step-sub="Paste *both* lines into your header, just before </head>"><span class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></span></span>
+                  data-step-sub="Paste all three lines into your header, just before </head>"><span class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></span></span>
           </div>
           <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
-                  data-setup-text="<?= htmlspecialchars($setupDefine . "\n" . $setupCss, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy</button>
+                  data-setup-text="<?= htmlspecialchars($setupDefine . "\n" . $setupAutoload . "\n" . $setupCss, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy</button>
         </div>
         <div class="ec-setup-snip">
           <div class="ec-setup-snip-line"><code><?= View::e($setupDefine) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= View::e($setupAutoload) ?></code></div>
           <div class="ec-setup-snip-line"><code><?= View::e($setupCss) ?></code></div>
         </div>
       </div>

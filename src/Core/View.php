@@ -272,6 +272,23 @@ final class View
         return "\n" . '<p class="fl-powered-by">Powered by <a href="https://luster.nu/" rel="noopener noreferrer" target="_blank" title="Luster ✦ Fanlisting Management Script">Luster</a></p>';
     }
 
+    /**
+     * Outputs the public embed stylesheet as an inline <style> block.
+     *
+     * Call from the site's <head> so no public URL reveals the Luster
+     * install path.  Requires the Composer autoloader to be loaded first.
+     */
+    public static function embedStylesheet(): void
+    {
+        $path = dirname(__DIR__, 2) . '/public/assets/css/default/style.css';
+        if (!is_file($path)) {
+            return;
+        }
+        $css = (string) file_get_contents($path);
+        $css = (string) preg_replace('#/\*.*?\*/#s', '', $css);
+        echo '<style>' . $css . '</style>';
+    }
+
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------

@@ -101,7 +101,7 @@ $rangeEnd   = min($total, $page * $per_page);
   </div>
   <div class="actions-row actions-row--right">
     <a href="<?= $b ?>/admin/affiliates/email?scope=<?= View::e($scope) ?>" class="btn btn-secondary btn-sm">Email Affiliates</a>
-    <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
+    <a href="<?= $b ?>/admin/affiliates/add<?= $scope !== 'all' && $scope !== 'collective' ? '?listing=' . View::e($scope) : '' ?>" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
   </div>
 </div>
 
@@ -180,7 +180,7 @@ $rangeEnd   = min($total, $page * $per_page);
       <div class="empty-title">No affiliates yet.</div>
       <?php if (!$_tableOnly): ?>
       <div>Add your first affiliate to display them on your site.</div>
-      <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
+      <a href="<?= $b ?>/admin/affiliates/add<?= $scope !== 'all' && $scope !== 'collective' ? '?listing=' . View::e($scope) : '' ?>" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
       <?php endif; ?>
     <?php endif; ?>
   </div>

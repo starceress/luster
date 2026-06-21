@@ -148,8 +148,7 @@ $displayCount = $selectedOnly ? $totalCount : (int) ($scope_counts[$oldScope] ??
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         <div class="pc-head-title"><?= $selectedOnly ? 'Email Selected Affiliates' : 'Email Affiliates' ?></div>
         <span class="badge badge-info-pink pc-head-badge" id="es-count-badge">
-          <span id="es-count-label"><?= $displayCount ?></span>
-          affiliate<?= $displayCount !== 1 ? 's' : '' ?>
+          <span id="es-count-label"><?= $displayCount ?> affiliate<?= $displayCount !== 1 ? 's' : '' ?></span>
         </span>
       </div>
 

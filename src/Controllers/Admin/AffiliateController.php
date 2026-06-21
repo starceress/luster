@@ -324,11 +324,14 @@ final class AffiliateController extends AdminController
         // Prefill sort order: next available in the context scope (collective when no context)
         $nextSortOrder = $affiliateRepo->getNextSortOrder($contextFid > 0 ? $contextFid : null);
 
+        $preselect = (int) $request->query('listing', 0);
+        $old       = $preselect > 0 ? ['fanlisting_id' => $preselect] : [];
+
         return $this->adminLayout('admin/affiliates/add.php', 'Add Affiliate', 'affiliates', [
             'listings'       => $listings,
             'affiliate'      => null,
             'error'          => '',
-            'old'            => [],
+            'old'            => $old,
             'context_fid'    => $contextFid,
             'site_name'      => $siteName,
             'next_sort_order' => $nextSortOrder,
