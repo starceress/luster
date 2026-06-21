@@ -14,9 +14,11 @@ use Luster\Core\View;
 
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $ep = rtrim($embed_path ?? '/path/to/luster/public/embed', '/');
-$setupDefine = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . str_replace(["\\", "'"], ["\\\\", "\\'"], $ep) . "'); ?>";
-$setupAutoload = "<?php require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.php'; ?>";
-$setupCss = "<?php Luster\\Core\\View::embedStylesheet(); ?>";
+$escapedEp     = str_replace(["\\", "'"], ["\\\\", "\\'"], $ep);
+$setupLine1 = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . $escapedEp . "'); ?>";
+$setupLine2 = "<?php require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.php'; ?>";
+$setupLine3 = "<?php if (isset(\$_GET['luster_css'])) { Luster\\Core\\View::serveCss(); exit; } ?>";
+$setupLine4 = '<link rel="stylesheet" href="?luster_css">';
 
 // ── icon + badge maps ─────────────────────────────────────────────────────
 $iconMap = [
@@ -297,15 +299,22 @@ $epSafe = View::e($ep);
           <div class="wizard-step-node wizard-step-node--active ec-setup-step" id="ec-step1-node">
             <div class="wizard-step-bubble">1</div>
             <span class="wizard-step-label"
-                  data-step-sub="Paste all three lines into your header, just before </head>"><span class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></span></span>
+                  data-step-sub="Paste these snippets into your header files."><span class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></span></span>
           </div>
           <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
-                  data-setup-text="<?= htmlspecialchars($setupDefine . "\n" . $setupAutoload . "\n" . $setupCss, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy</button>
+                  data-setup-text="<?= htmlspecialchars($setupLine1 . "\n" . $setupLine2 . "\n" . $setupLine3 . "\n\n" . $setupLine4, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
         </div>
+
+        <p class="form-hint" style="margin:0.75em 0 0.25em">Paste this before your HTML begins (above <code>&lt;!doctype&gt;</code>):</p>
         <div class="ec-setup-snip">
-          <div class="ec-setup-snip-line"><code><?= View::e($setupDefine) ?></code></div>
-          <div class="ec-setup-snip-line"><code><?= View::e($setupAutoload) ?></code></div>
-          <div class="ec-setup-snip-line"><code><?= View::e($setupCss) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= View::e($setupLine1) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= View::e($setupLine2) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= View::e($setupLine3) ?></code></div>
+        </div>
+
+        <p class="form-hint" style="margin:0.75em 0 0.25em">Paste this inside <code>&lt;head&gt;</code>, before your own stylesheets:</p>
+        <div class="ec-setup-snip">
+          <div class="ec-setup-snip-line"><code><?= View::e($setupLine4) ?></code></div>
         </div>
       </div>
 

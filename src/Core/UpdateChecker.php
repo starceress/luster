@@ -227,9 +227,9 @@ final class UpdateChecker
             $cmp = self::compareVersions($installed, $latest);
             if ($cmp === true) {
                 $updateAvailable = true;
-            } elseif ($cmp === false) {
-                // Version says up-to-date or newer — check release date as tiebreaker
-                // so a version-number reset (e.g. 1.0.9 → 1.0.0) still triggers an update.
+            } elseif ($cmp === false && version_compare(ltrim($latest, 'v'), ltrim($installed, 'v'), '<')) {
+                // Remote version is strictly lower (version reset scenario, e.g. 1.0.9 → 1.0.0).
+                // Fall back to release date: if the release is newer by date, it's a real update.
                 $publishedAt = $this->repo->get('update_published_at');
                 if ($publishedAt !== null) {
                     $remoteTs  = strtotime($publishedAt);

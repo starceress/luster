@@ -2263,11 +2263,14 @@ document.addEventListener('drop', function (e) {
             + '<label class="listing-field-label" for="ec-f-' + esc(f.id) + '">' + f.label + '</label>'
             + '<div>';
       if (f.type === 'listing' || f.type === 'listing_or_zero') {
+        var isListingSection = secSel && secSel.value === 'l';
+        var defaultToFirst   = f.type === 'listing_or_zero' && isListingSection && listings.length > 0;
         html += '<div class="select-wrap"><select id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '">';
-        if (f.type === 'listing_or_zero') html += '<option value="0">Collective</option>';
-        listings.forEach(function (fl) {
+        if (f.type === 'listing_or_zero') html += '<option value="0"' + (defaultToFirst ? '' : ' selected') + '>Collective</option>';
+        listings.forEach(function (fl, idx) {
           var label = esc(fl.subject || fl.name);
-          html += '<option value="' + parseInt(fl.id, 10) + '">' + label + '</option>';
+          var sel   = (f.type === 'listing' && idx === 0) || (defaultToFirst && idx === 0) ? ' selected' : '';
+          html += '<option value="' + parseInt(fl.id, 10) + '"' + sel + '>' + label + '</option>';
         });
         if (!listings.length) html += '<option value="1">1</option>';
         html += '</select></div>';

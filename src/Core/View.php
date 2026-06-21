@@ -273,20 +273,37 @@ final class View
     }
 
     /**
-     * Outputs the public embed stylesheet as an inline <style> block.
+     * Serves the public embed stylesheet as a standalone CSS response.
      *
-     * Call from the site's <head> so no public URL reveals the Luster
-     * install path.  Requires the Composer autoloader to be loaded first.
+     * Call at the very top of the host page (before any HTML output) behind
+     * a query-param guard:
+     *
+     *   if (isset($_GET['luster_css'])) { Luster\Core\View::serveCss(); exit; }
+     *
+     * The browser requests `?luster_css` via `<link rel="stylesheet" href="?luster_css">`,
+     * hits the PHP guard, and receives pure CSS with cache headers. No Luster
+     * install path is exposed in the page source.
      */
-    public static function embedStylesheet(): void
+    public static function serveCss(): void
     {
         $path = dirname(__DIR__, 2) . '/public/assets/css/default/style.css';
         if (!is_file($path)) {
+            http_response_code(404);
             return;
         }
-        $css = (string) file_get_contents($path);
-        $css = (string) preg_replace('#/\*.*?\*/#s', '', $css);
-        echo '<style>' . $css . '</style>';
+        $mtime = (int) filemtime($path);
+        $etag  = '"' . dechex($mtime) . '-' . dechex((int) filesize($path)) . '"';
+
+        header('Content-Type: text/css; charset=UTF-8');
+        header('Cache-Control: public, max-age=604800');
+        header('ETag: ' . $etag);
+
+        if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+            http_response_code(304);
+            return;
+        }
+
+        readfile($path);
     }
 
     // -----------------------------------------------------------------------

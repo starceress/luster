@@ -70,7 +70,7 @@ final class UpdateApplier
 
         $isNewer = UpdateChecker::compareVersions(Version::CURRENT, $version);
         $isNewerByDate = false;
-        if ($isNewer !== true && isset($release['published_at'])) {
+        if ($isNewer !== true && version_compare($version, ltrim(Version::CURRENT, 'v'), '<') && isset($release['published_at'])) {
             $remoteTs = strtotime((string) $release['published_at']);
             $builtTs  = strtotime(Version::BUILT_AT);
             $isNewerByDate = ($remoteTs !== false && $builtTs !== false && $remoteTs > $builtTs);
