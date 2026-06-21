@@ -58,7 +58,33 @@ final class FormTemplateRenderer
             ? '<input type="hidden" name="_luster_embed_form" value="' . View::e($formMarker) . '">'
             : '';
 
-        return '<form class="fl-form" method="POST" action="' . View::e($action) . '"' . $enctype . $onsubmit . '>'
+        $formClass = 'fl-form';
+        if ($formMarker !== '') {
+            $base = strtok($formMarker, ':');
+            $classMap = [
+                'join'                   => 'fl-form-join',
+                'update'                 => 'fl-form-update',
+                'reset'                  => 'fl-form-reset',
+                'reset_confirm'          => 'fl-form-reset',
+                'contact'                => 'fl-form-contact',
+                'contact_collective'     => 'fl-form-contact',
+                'adopt_collective'       => 'fl-form-adopt',
+                'kim_signup'             => 'fl-form-kim-signup',
+                'kim_reset'              => 'fl-form-kim-reset',
+                'kim_update_auth'        => 'fl-form-signin',
+                'kim_update_save'        => 'fl-form-kim-update',
+                'aff_apply'              => 'fl-form-aff-apply',
+                'aff_apply_collective'   => 'fl-form-aff-apply',
+                'codes_submit'           => 'fl-form-codes-submit',
+                'codes_submit_collective'=> 'fl-form-codes-submit',
+                'rules'                  => 'fl-form-rules',
+            ];
+            if (isset($classMap[$base])) {
+                $formClass .= ' ' . $classMap[$base];
+            }
+        }
+
+        return '<form class="' . $formClass . '" method="POST" action="' . View::e($action) . '"' . $enctype . $onsubmit . '>'
              . '<input type="hidden" name="_csrf" value="' . View::e($csrfToken) . '">'
              . $marker
              . $extraHidden
