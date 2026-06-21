@@ -33,6 +33,11 @@ jobs:
       - name: Install production dependencies only
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
+      - name: Stamp build timestamp
+        run: |
+          BUILT_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          sed -i "s|public const BUILT_AT.*=.*'[^']*';|public const BUILT_AT      = '${BUILT_AT}';|" src/Core/Version.php
+
       - name: Assemble package contents
         run: |
           VERSION="${GITHUB_REF_NAME#v}"

@@ -83,16 +83,19 @@ final class UpdateChecker
             );
         }
 
-        [$fetchedVersion, $fetchedUrl, $fetchedTitle, $fetchError] = $this->fetchLatest();
+        [$fetchedVersion, $fetchedUrl, $fetchedTitle, $fetchError, $fetchedPublishedAt] = $this->fetchLatest();
 
         $now = time();
 
         if ($fetchError === null && $fetchedVersion !== null) {
-            $this->repo->set('update_latest_version', $fetchedVersion);
-            $this->repo->set('update_release_url',    $fetchedUrl);
-            $this->repo->set('update_release_title',  $fetchedTitle);
-            $this->repo->set('update_checked_at',     (string) $now);
-            $this->repo->set('update_check_failed',   '0');
+            $this->repo->set('update_latest_version',  $fetchedVersion);
+            $this->repo->set('update_release_url',     $fetchedUrl);
+            $this->repo->set('update_release_title',   $fetchedTitle);
+            $this->repo->set('update_checked_at',      (string) $now);
+            $this->repo->set('update_check_failed',    '0');
+            if ($fetchedPublishedAt !== null) {
+                $this->repo->set('update_published_at', $fetchedPublishedAt);
+            }
 
             return $this->buildStatus(
                 $installed, $fetchedVersion, $fetchedUrl, $fetchedTitle,
@@ -166,8 +169,8 @@ final class UpdateChecker
     // -----------------------------------------------------------------------
 
     /**
-     * @return array{0: ?string, 1: ?string, 2: ?string, 3: ?string}
-     *   [version, releaseUrl, releaseTitle, errorMessage]
+     * @return array{0: ?string, 1: ?string, 2: ?string, 3: ?string, 4: ?string}
+     *   [version, releaseUrl, releaseTitle, errorMessage, publishedAt]
      */
     private function fetchLatest(): array
     {
@@ -178,32 +181,33 @@ final class UpdateChecker
         }
 
         if ($body === false || $body === '') {
-            return [null, null, null, 'Could not reach GitHub — check your server\'s outbound internet access.'];
+            return [null, null, null, 'Could not reach GitHub — check your server\'s outbound internet access.', null];
         }
 
         $data = json_decode((string) $body, true);
         if (!is_array($data)) {
-            return [null, null, null, 'GitHub returned an unexpected response.'];
+            return [null, null, null, 'GitHub returned an unexpected response.', null];
         }
 
         if (isset($data['message'])) {
             // "Not Found" means the repo has no releases yet — not a network error.
             // Return empty-string version (sentinel: checked OK, nothing to compare) with no error.
             if ((string) $data['message'] === 'Not Found') {
-                return ['', null, null, null];
+                return ['', null, null, null, null];
             }
-            return [null, null, null, 'GitHub: ' . (string) $data['message']];
+            return [null, null, null, 'GitHub: ' . (string) $data['message'], null];
         }
 
         $tag = isset($data['tag_name']) ? ltrim((string) $data['tag_name'], 'v') : '';
         if ($tag === '' || !preg_match('/^\d+\.\d+/', $tag)) {
-            return [null, null, null, 'GitHub returned an unrecognised version format: ' . ($tag ?: '(empty)')];
+            return [null, null, null, 'GitHub returned an unrecognised version format: ' . ($tag ?: '(empty)'), null];
         }
 
-        $releaseUrl   = isset($data['html_url']) ? (string) $data['html_url'] : null;
-        $releaseTitle = isset($data['name'])      ? (string) $data['name']     : null;
+        $releaseUrl   = isset($data['html_url'])     ? (string) $data['html_url']     : null;
+        $releaseTitle = isset($data['name'])         ? (string) $data['name']         : null;
+        $publishedAt  = isset($data['published_at']) ? (string) $data['published_at'] : null;
 
-        return [$tag, $releaseUrl, $releaseTitle, null];
+        return [$tag, $releaseUrl, $releaseTitle, null, $publishedAt];
     }
 
     private function buildStatus(
@@ -221,7 +225,20 @@ final class UpdateChecker
         $updateAvailable = false;
         if ($latest !== null && !$failed) {
             $cmp = self::compareVersions($installed, $latest);
-            $updateAvailable = $cmp === true;
+            if ($cmp === true) {
+                $updateAvailable = true;
+            } elseif ($cmp === false) {
+                // Version says up-to-date or newer — check release date as tiebreaker
+                // so a version-number reset (e.g. 1.0.9 → 1.0.0) still triggers an update.
+                $publishedAt = $this->repo->get('update_published_at');
+                if ($publishedAt !== null) {
+                    $remoteTs  = strtotime($publishedAt);
+                    $builtTs   = strtotime(Version::BUILT_AT);
+                    if ($remoteTs !== false && $builtTs !== false && $remoteTs > $builtTs) {
+                        $updateAvailable = true;
+                    }
+                }
+            }
         }
 
         return new UpdateStatus(

@@ -69,7 +69,13 @@ final class UpdateApplier
         $version = (string) $release['version'];
 
         $isNewer = UpdateChecker::compareVersions(Version::CURRENT, $version);
-        if ($isNewer !== true) {
+        $isNewerByDate = false;
+        if ($isNewer !== true && isset($release['published_at'])) {
+            $remoteTs = strtotime((string) $release['published_at']);
+            $builtTs  = strtotime(Version::BUILT_AT);
+            $isNewerByDate = ($remoteTs !== false && $builtTs !== false && $remoteTs > $builtTs);
+        }
+        if ($isNewer !== true && !$isNewerByDate) {
             return [
                 'ok' => false,
                 'up_to_date' => true,
@@ -420,6 +426,7 @@ final class UpdateApplier
             'tag' => $tag,
             'html_url' => isset($data['html_url']) ? (string) $data['html_url'] : null,
             'name' => isset($data['name']) ? (string) $data['name'] : null,
+            'published_at' => isset($data['published_at']) ? (string) $data['published_at'] : null,
             'assets_url' => isset($data['assets_url']) ? (string) $data['assets_url'] : null,
             'assets' => isset($data['assets']) && is_array($data['assets']) ? $data['assets'] : [],
         ];
