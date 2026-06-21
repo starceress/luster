@@ -223,8 +223,8 @@ final class UpdateApplier
         $zip->addFromString(
             'BACKUP-NOTES.txt',
             "Luster backup created " . date('c') . "\n\n"
-            . "This backup contains Luster application files and lstr_* database tables.\n"
-            . "Per-listing member tables are not included. Use your host's database tools for a full database backup.\n"
+            . "This backup contains Luster application files, lstr_* database tables,\n"
+            . "the listing registry (owned/enth_fanlistings), and all per-listing member tables.\n"
         );
 
         foreach (self::BACKUP_PATHS as $rel) {
@@ -236,7 +236,7 @@ final class UpdateApplier
             }
         }
 
-        $zip->addFromString('database/lstr_tables.sql', $this->dumpDatabase());
+        $zip->addFromString('database/luster_database.sql', $this->dumpDatabase());
         $zip->close();
 
         return ['path' => $path, 'filename' => $filename];
@@ -661,7 +661,7 @@ final class UpdateApplier
         $out = [];
         $out[] = '-- Luster updater backup';
         $out[] = '-- Created: ' . date('c');
-        $out[] = '-- Only lstr_* tables are included. Per-listing member tables are excluded by the lstr_ prefix filter.';
+        $out[] = '-- Includes lstr_* tables, listing registry, and per-listing member tables.';
         $out[] = 'SET FOREIGN_KEY_CHECKS=0;';
         $out[] = '';
 
@@ -695,12 +695,45 @@ final class UpdateApplier
      */
     private function lusterTableNames(PDO $pdo): array
     {
-        $tables = [];
+        $allTables = [];
         foreach ($pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_NUM) as $row) {
-            $table = (string) ($row[0] ?? '');
+            $allTables[] = (string) ($row[0] ?? '');
+        }
+
+        $tables = [];
+
+        // Luster's own tables
+        foreach ($allTables as $table) {
             if (str_starts_with($table, 'lstr_') && preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
                 $tables[] = $table;
             }
+        }
+
+        // Enthusiast registry tables
+        foreach (['owned', 'enth_fanlistings'] as $registry) {
+            if (in_array($registry, $allTables, true)) {
+                $tables[] = $registry;
+            }
+        }
+
+        // Per-listing member tables (from owned.dbtable or enth_fanlistings.dbprefix)
+        foreach (['owned' => 'dbtable', 'enth_fanlistings' => 'dbprefix'] as $registry => $col) {
+            if (!in_array($registry, $allTables, true)) {
+                continue;
+            }
+            try {
+                $stmt = $pdo->query("SELECT `{$col}` FROM `{$registry}`");
+                while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
+                    $prefix = (string) ($row[0] ?? '');
+                    if ($prefix === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+                        continue;
+                    }
+                    $memberTable = $registry === 'enth_fanlistings' ? $prefix . 'members' : $prefix;
+                    if (in_array($memberTable, $allTables, true) && !in_array($memberTable, $tables, true)) {
+                        $tables[] = $memberTable;
+                    }
+                }
+            } catch (\Throwable) {}
         }
 
         sort($tables);

@@ -9,6 +9,7 @@ use Luster\Addons\Wishlist\WishlistRepo;
 use Luster\Core\Captcha;
 use Luster\Core\Config;
 use Luster\Core\Countries;
+use Luster\Support\DateFormatter;
 use Luster\Core\Mailer;
 use Luster\Core\Database;
 use Luster\Core\Request;
@@ -588,6 +589,12 @@ final class SettingsController extends AdminController
         $countries      = $repo->getDistinctCountryCount();
         $ownedNetwork   = $repo->getOwnedNetworkCounts();
         $joinedNetwork  = $repo->getJoinedNetworkCounts();
+        $lastOpened     = $repo->getLastOwnedOpenedDate();
+        $joinedCats     = (new \Luster\Repositories\JoinedListingRepo($db))->getCategories(true);
+
+        $collectiveLastUpdated = $lastOpened !== null
+            ? DateFormatter::format($lastOpened)
+            : 'Never';
 
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -606,10 +613,12 @@ final class SettingsController extends AdminController
             [
                 '{owned_active}', '{owned_upcoming}', '{owned_pending}',
                 '{owned_tfl_count}', '{owned_tafl_count}',
-                '{joined_active}',
+                '{joined_active}', '{joined_pending}', '{joined_upcoming}', '{joined_approved}',
                 '{joined_tfl_count}', '{joined_tafl_count}',
                 '{members_total}', '{members_approved}', '{members_pending}',
                 '{countries_count}',
+                '{collective_last_updated}',
+                '{joined_total_cats}',
                 '{owned_newest_name}', '{owned_newest_url}',
                 '{owned_random_name}', '{owned_random_url}',
                 '{tfl_url}', '{tafl_url}',
@@ -621,12 +630,17 @@ final class SettingsController extends AdminController
                 (string) $ownedNetwork['tfl'],
                 (string) $ownedNetwork['tafl'],
                 (string) $joined['active'],
+                (string) $joined['pending'],
+                (string) $joined['upcoming'],
+                (string) $joined['approved'],
                 (string) $joinedNetwork['tfl'],
                 (string) $joinedNetwork['tafl'],
                 (string) $members['total'],
                 (string) $members['approved'],
                 (string) $members['pending'],
                 (string) $countries,
+                $e($collectiveLastUpdated),
+                (string) count($joinedCats),
                 $e(!empty($newest) ? ($newest[0]->subject ?: $newest[0]->title) : ''),
                 $e(!empty($newest) ? $newest[0]->url : ''),
                 $e($random !== null ? ($random->subject ?: $random->title) : ''),

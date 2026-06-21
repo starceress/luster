@@ -105,7 +105,7 @@ $current = Version::CURRENT;
           <form method="POST" action="<?= $b ?>/admin/update/backup" class="update-action-card">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
             <strong>Download Backup</strong>
-            <span>Includes application files and Luster database tables. Member tables are not included.</span>
+            <span>Includes application files, Luster database tables, and all member tables.</span>
             <button type="submit" class="btn btn-secondary btn-sm"<?= !$preflight_ok ? ' disabled' : '' ?>>
               <?= View::icon('download') ?> Download Backup
             </button>
