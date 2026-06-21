@@ -1724,6 +1724,75 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   </div>
 </details>
 
+
+<!-- ──── COMPAT WRAPPERS ──────────────────────────────────────────── -->
+<details class="chevron card" style="margin-bottom:1.75rem" id="compat-wrappers">
+  <summary class="card-head">Compatibility Wrappers</summary>
+  <div class="card-body">
+    <p class="form-hint mb-md">
+      Use these files when an older Enthusiast or Listing Admin page still includes files like
+      <code>show_join.php</code>. The wrapper lets that old include point to Luster instead.
+      Copy the wrapper into the old script folder, then add the two lines shown before the include.
+    </p>
+
+    <?php
+    $compatInstallPath = rtrim((string) ($cfg['install_path'] ?? ''), '/');
+    $compatTabs = [
+        'Enthusiast' => [
+            ['file' => 'show_join.php',     'label' => 'Join form'],
+            ['file' => 'show_members.php',  'label' => 'Members list'],
+            ['file' => 'show_update.php',   'label' => 'Update membership'],
+            ['file' => 'show_lostpass.php', 'label' => 'Lost password'],
+            ['file' => 'show_stats.php',    'label' => 'Stats'],
+        ],
+        'Listing Admin' => [
+            ['file' => 'show-join.php',     'label' => 'Join form'],
+            ['file' => 'show-members.php',  'label' => 'Members list'],
+            ['file' => 'show-update.php',   'label' => 'Update membership'],
+            ['file' => 'show-stats.php',    'label' => 'Stats'],
+        ],
+    ];
+    $compatSubDirs = ['Enthusiast' => 'enthusiast', 'Listing Admin' => 'listing-admin'];
+    $compatTabId   = 'compat-' . (int) $listing->id;
+    ?>
+
+    <div class="tab-nav">
+      <a href="#<?= $compatTabId ?>-enth"  class="tab-link tab-link--active" data-target="<?= $compatTabId ?>-enth">Enthusiast</a>
+      <a href="#<?= $compatTabId ?>-la"    class="tab-link"                  data-target="<?= $compatTabId ?>-la">Listing Admin</a>
+    </div>
+
+    <?php foreach ($compatTabs as $network => $files): ?>
+    <?php $subDir = $compatSubDirs[$network]; $panelId = $compatTabId . '-' . ($network === 'Enthusiast' ? 'enth' : 'la'); ?>
+    <div id="<?= $panelId ?>" class="compat-panel" <?= $network !== 'Enthusiast' ? 'style="display:none"' : '' ?>>
+      <?php foreach ($files as $entry): ?>
+      <div class="listing-field-row listing-field-row--top mb-md">
+        <span class="listing-field-label"><?= View::e($entry['label']) ?></span>
+        <div>
+          <p class="form-hint mb-xs">
+            Copy <code>public/compat/<?= View::e($subDir) ?>/<?= View::e($entry['file']) ?></code>
+            into the old <?= View::e($network) ?> folder, then add this to your page:
+          </p>
+          <div class="ro-field embed-snippet">
+            $luster_listing_id = <?= (int) $listing->id ?>;<?php if ($compatInstallPath !== ''): ?><br>
+            $luster_path = '<?= View::e($compatInstallPath) ?>';<?php endif; ?>
+          </div>
+        </div>
+      </div>
+      <?php endforeach; ?>
+
+      <?php if ($compatInstallPath !== ''): ?>
+      <div class="mt-md">
+        <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/compat-zip/<?= View::e($subDir) ?>"
+           class="btn btn-ghost btn-sm">
+          <?= View::icon('download') ?> Download pre-configured <?= View::e($network) ?> wrappers (ZIP)
+        </a>
+      </div>
+      <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
+
+  </div>
+</details>
 </div>
 
 <!-- ──── TAB: ADVANCED ──────────────────────────────────────────────── -->

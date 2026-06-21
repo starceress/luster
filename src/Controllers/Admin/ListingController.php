@@ -2961,6 +2961,79 @@ final class ListingController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // GET /admin/listings/{id}/compat-zip/{set}
+    // -----------------------------------------------------------------------
+
+    public function compatZip(Request $request, array $params): Response
+    {
+        $id  = (int) ($params['id']  ?? 0);
+        $set = (string) ($params['set'] ?? '');
+
+        if (!in_array($set, ['enthusiast', 'listing-admin'], true)) {
+            return Response::notFound('Unknown wrapper set.');
+        }
+
+        $db          = $this->app->getDatabase();
+        $config      = $this->app->getConfig();
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($id);
+
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
+        }
+
+        $installPath = rtrim((string) $config->get('install_path', ''), '/');
+        $sourceDir   = $this->app->getBasePath() . '/public/compat/' . $set;
+
+        if (!is_dir($sourceDir)) {
+            return Response::notFound('Wrapper source directory not found.');
+        }
+
+        $zip = new \ZipArchive();
+        $tmp = sys_get_temp_dir() . '/luster_compat_' . $id . '_' . $set . '_' . bin2hex(random_bytes(4)) . '.zip';
+
+        if ($zip->open($tmp, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return Response::plain('Could not create ZIP archive.', 500);
+        }
+
+        foreach (new \DirectoryIterator($sourceDir) as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $source  = file_get_contents($file->getPathname());
+            if ($source === false) {
+                continue;
+            }
+
+            $header  = "<?php\n";
+            $header .= "// Pre-configured by Luster for listing #{$id}: " . $listing->title . "\n";
+            $header .= '$luster_listing_id = ' . $id . ";\n";
+            if ($installPath !== '') {
+                $header .= '$luster_path = \'' . addslashes($installPath) . "';\n";
+            }
+            $header .= "\n";
+
+            $body = preg_replace('/^<\?php\s*/', '', $source, 1) ?? $source;
+
+            $zip->addFromString($file->getFilename(), $header . $body);
+        }
+
+        $zip->close();
+
+        $zipContents = file_get_contents($tmp);
+        @unlink($tmp);
+
+        if ($zipContents === false) {
+            return Response::plain('Could not read generated ZIP.', 500);
+        }
+
+        $filename = 'luster-compat-listing-' . $id . '-' . $set . '.zip';
+
+        return Response::download($zipContents, $filename, 'application/zip');
+    }
+
+    // -----------------------------------------------------------------------
     // GET /admin/listings/{id}/email-templates  (kept for reference; no longer routed)
     // -----------------------------------------------------------------------
 

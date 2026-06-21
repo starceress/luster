@@ -20,6 +20,7 @@ Upload all project files to your server. The recommended layout:
   templates/
   config/
   storage/
+  install/
   ...
 ```
 
@@ -27,46 +28,42 @@ The web server should only be able to serve files from `public/`. Everything els
 (`src/`, `config/`, `storage/`) should be outside the document root or protected
 by your server configuration.
 
-### 2. Copy the config file
+### 2. Install via browser
 
-```bash
-cp config/app.sample.php config/app.php
-```
-
-Edit `config/app.php` and fill in:
-- `db_host`, `db_name`, `db_user`, `db_pass` — your database credentials
-- `app_url` — the full public URL to your `public/` directory, no trailing slash
-  (e.g. `https://example.com/luster/public`)
-- `site_name` — your collective or site name
-- `owner_email`, `owner_name` — contact details
-
-### 3. Install via browser
-
-Visit `public/install/` in your browser (e.g. `https://example.com/luster/public/install/`).
+Visit your admin URL (e.g. `https://example.com/luster/public/admin`). If
+`config/app.php` does not exist yet, you will be redirected to the installer
+automatically.
 
 The installer will:
 1. Check your PHP version and required extensions
-2. Test the database connection
-3. Create all required database tables
-4. Prompt you to create an admin account (username, email, password — minimum 12 characters)
-5. Show an "Installation Complete" screen
+2. Collect your database credentials, site URL, and site name
+3. Test the database connection
+4. Create all required database tables and `config/app.php`
+5. Prompt you to create an admin account (username, email, password — minimum 12 characters)
+6. Show an "Installation Complete" screen
 
-### 4. Restrict the installer
+### 3. Restrict the installer
 
-After installation completes, delete or password-protect the `public/install/` directory
+After installation completes, delete or password-protect the `install/` directory
 to prevent unauthorized re-use.
 
 ```bash
-rm -rf public/install/
+rm -rf install/
 # or restrict via .htaccess / nginx config
 ```
 
-### 5. First login
+### 4. First login
 
 Click "Go to Admin Panel" on the success screen, or navigate to your admin URL
 (e.g. `https://example.com/luster/public/admin`).
 
 Log in with the credentials you created in the installer.
+
+### 5. Configure your site URL
+
+Set your **Site URL** in Settings → Embed. This is your public website URL
+(e.g. `https://example.com`) — NOT the Luster install URL. All public-facing
+links, email tokens, and KIM navigation use this URL.
 
 ### 6. Configure email (optional but recommended)
 
