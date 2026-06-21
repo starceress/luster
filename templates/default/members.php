@@ -21,6 +21,14 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
+<?php if (($members_html ?? null) !== null && $members_html !== ''): ?>
+  <?= $members_html ?>
+  <?php if ($pagination !== ''): ?>
+    <div class="fl-pagination-wrap"><?= $pagination ?></div>
+  <?php endif; ?>
+
+<?php else: ?>
+
 <?php if ($show_search ?? true): ?>
   <div class="fl-member-controls">
     <p class="fl-member-sort">
@@ -54,13 +62,6 @@ use Luster\Core\View;
       <?php endforeach; ?>
     </ul>
 
-  <?php elseif (($members_html ?? null) !== null && $members_html !== ''): ?>
-    <!-- Custom DB template member rows -->
-    <?= $members_html ?>
-    <?php if ($pagination !== ''): ?>
-      <div class="fl-pagination-wrap"><?= $pagination ?></div>
-    <?php endif; ?>
-
   <?php elseif (!empty($members)): ?>
     <!-- Member list view -->
     <ul class="fl-member-list">
@@ -91,3 +92,4 @@ use Luster\Core\View;
   <?php else: ?>
     <p class="fl-empty">No members to display yet.</p>
   <?php endif; ?>
+<?php endif; ?>
