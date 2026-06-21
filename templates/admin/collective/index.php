@@ -157,7 +157,7 @@ foreach (array_keys($quickActions) as $qaKey) {
     <div class="stat-extra">
       <?php if (($newest_member ?? null) !== null): ?>
         <strong>Newest Member:</strong> <?= View::e($newest_member['member']->name) ?>
-        &mdash; <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $newest_member['listing_id'] ?>&amp;status=all"><?= View::e($newest_member['listing_name']) ?></a>
+        &mdash; <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $newest_member['listing_id'] ?>&amp;status=all"><?= View::e($newest_member['listing_title']) ?></a>
       <?php else: ?>
         <strong>Newest Member:</strong> None yet
       <?php endif; ?>

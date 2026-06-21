@@ -1,12 +1,12 @@
 <?php
 use Luster\Core\View;
-/** @var array  $result  listing_id, listing_name, imported, skipped */
+/** @var array  $result  listing_id, listing_title, imported, skipped */
 /** @var string $base_url */
 $b          = rtrim(View::e($base_url), '/');
 $imported   = (int) ($result['imported']     ?? 0);
 $skipped    = (int) ($result['skipped']      ?? 0);
 $listingId  = (int) ($result['listing_id']   ?? 0);
-$listingName = (string) ($result['listing_name'] ?? '');
+$listingName = (string) ($result['listing_title'] ?? '');
 ?>
 
 <div class="page-topbar">
