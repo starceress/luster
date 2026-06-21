@@ -189,55 +189,57 @@ foreach (array_keys($quickActions) as $qaKey) {
 <div class="overview-section-divider" aria-hidden="true"></div>
 
 <div class="collective-columns">
-  <div class="card">
-    <div class="card-head">
-      Quick Actions
-      <span class="card-head-sub">Hover a tile and drag its <?= View::icon('grip') ?> handle to reorder.</span>
+  <div>
+    <div class="card">
+      <div class="card-head">
+        Quick Actions
+        <span class="card-head-sub">Hover a tile and drag its <?= View::icon('grip') ?> handle to reorder.</span>
+      </div>
+      <div class="collective-action-grid" id="qa-grid" data-qa-reorder-url="<?= $b ?>/admin/collective/quick-actions/reorder" data-qa-csrf="<?= View::e($csrf_token) ?>">
+        <?php foreach ($quickActionsOrder as $qaKey): ?>
+          <?php $qa = $quickActions[$qaKey]; ?>
+          <a href="<?= View::e($qa['href']) ?>" class="collective-action-tile<?= !empty($qa['muted']) ? ' is-muted' : '' ?>" data-action-key="<?= View::e($qaKey) ?>" draggable="false">
+            <span class="qa-drag-handle" title="Drag to reorder"><?= View::icon('grip') ?></span>
+            <span class="pc-head-icon pc-head-icon-bg"><?= View::icon($qa['icon']) ?></span>
+            <span class="collective-action-label"><?= View::e($qa['label']) ?></span>
+            <?php if (!empty($qa['muted'])): ?>
+              <span class="badge badge-inactive badge-inline-sm">Install add-on</span>
+            <?php endif; ?>
+          </a>
+        <?php endforeach; ?>
+      </div>
     </div>
-    <div class="collective-action-grid" id="qa-grid" data-qa-reorder-url="<?= $b ?>/admin/collective/quick-actions/reorder" data-qa-csrf="<?= View::e($csrf_token) ?>">
-      <?php foreach ($quickActionsOrder as $qaKey): ?>
-        <?php $qa = $quickActions[$qaKey]; ?>
-        <a href="<?= View::e($qa['href']) ?>" class="collective-action-tile<?= !empty($qa['muted']) ? ' is-muted' : '' ?>" data-action-key="<?= View::e($qaKey) ?>" draggable="false">
-          <span class="qa-drag-handle" title="Drag to reorder"><?= View::icon('grip') ?></span>
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon($qa['icon']) ?></span>
-          <span class="collective-action-label"><?= View::e($qa['label']) ?></span>
-          <?php if (!empty($qa['muted'])): ?>
-            <span class="badge badge-inactive badge-inline-sm">Install add-on</span>
-          <?php endif; ?>
+
+    <div class="card" style="margin-top:1rem">
+      <div class="card-head">Migration &amp; Bridges</div>
+      <div class="collective-action-list">
+
+        <a href="<?= $b ?>/admin/import" class="collective-action-item">
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+          <span class="collective-action-label">Import Data</span>
         </a>
-      <?php endforeach; ?>
-    </div>
-  </div>
 
-  <div class="card">
-    <div class="card-head">Migration &amp; Bridges</div>
-    <div class="collective-action-list">
+        <a href="<?= $b ?>/admin/import-members" class="collective-action-item">
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('members') ?></span>
+          <span class="collective-action-label">Import Members Only</span>
+        </a>
 
-      <a href="<?= $b ?>/admin/import" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
-        <span class="collective-action-label">Import Data</span>
-      </a>
+        <a href="<?= $b ?>/admin/compat-bridge/enthusiast" class="collective-action-item">
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+          <span class="collective-action-label">Enthusiast Bridge (ZIP)</span>
+        </a>
 
-      <a href="<?= $b ?>/admin/import-members" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('members') ?></span>
-        <span class="collective-action-label">Import Members Only</span>
-      </a>
+        <a href="<?= $b ?>/admin/compat-bridge/listing-admin" class="collective-action-item">
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+          <span class="collective-action-label">Listing Admin Bridge (ZIP)</span>
+        </a>
 
-      <a href="<?= $b ?>/admin/compat-bridge/enthusiast" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
-        <span class="collective-action-label">Enthusiast Bridge (ZIP)</span>
-      </a>
+        <a href="<?= $b ?>/admin/compat-bridge/codesort" class="collective-action-item">
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+          <span class="collective-action-label">CodeSort Bridge (ZIP)</span>
+        </a>
 
-      <a href="<?= $b ?>/admin/compat-bridge/listing-admin" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
-        <span class="collective-action-label">Listing Admin Bridge (ZIP)</span>
-      </a>
-
-      <a href="<?= $b ?>/admin/compat-bridge/codesort" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
-        <span class="collective-action-label">CodeSort Bridge (ZIP)</span>
-      </a>
-
+      </div>
     </div>
   </div>
 
