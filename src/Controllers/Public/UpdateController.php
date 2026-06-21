@@ -422,10 +422,12 @@ final class UpdateController
         }
 
         // Strip unchanged fields so password-only submissions don't create no-op queue entries
-        $currentData = (array) $member;
-        foreach ($updateData as $k => $v) {
-            if (array_key_exists($k, $currentData) && (string) $currentData[$k] === (string) $v) {
-                unset($updateData[$k]);
+        $currentRow = $memberRepo->getRawRow($listing->dbprefix, $email);
+        if ($currentRow !== null) {
+            foreach ($updateData as $k => $v) {
+                if (array_key_exists($k, $currentRow) && (string) $currentRow[$k] === (string) $v) {
+                    unset($updateData[$k]);
+                }
             }
         }
 
@@ -443,7 +445,9 @@ final class UpdateController
                 'listing_url'   => $listing->url,
             ]));
         } else {
-            $memberRepo->update($listing->dbprefix, $email, $updateData);
+            if ($updateData !== []) {
+                $memberRepo->update($listing->dbprefix, $email, $updateData);
+            }
 
             $session->remove(self::AUTH_KEY . $listingId);
             $session->remove('lstr_embed_return_to');

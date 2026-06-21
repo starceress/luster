@@ -33,7 +33,7 @@ use Luster\Core\View;
  * @var int           $opened_this_year
  * @var int           $joined_this_year
  * @var int           $listings_up_to_date
- * @var array[]       $recent_members       [{member: Member, listing_name: string, listing_id: int}]
+ * @var array[]       $recent_members       [{member: Member, listing_title: string, listing_id: int}]
  * @var array[]       $recent_activity
  * @var array[]       $stale_listings
  * @var int           $stale_threshold_days

@@ -157,6 +157,15 @@ final class MemberRepo
         return $row !== false ? Member::fromRow($row) : null;
     }
 
+    public function getRawRow(string $prefix, string $email): ?array
+    {
+        $p    = $this->resolveTable($prefix);
+        $stmt = $this->db->prepare("SELECT * FROM {$p} WHERE email = :email LIMIT 1");
+        $stmt->execute(['email' => $email]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
+    }
+
     /**
      * Counts pending (queued) members for a listing.
      */
