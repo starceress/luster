@@ -593,6 +593,8 @@ return [
         // ── Compat wrapper ZIP download ───────────────────────────────
         $router->get('/admin/listings/{id}/compat-zip/{set}',
             ListingController::class, 'compatZip');
+        $router->get('/admin/compat-bridge',
+            SettingsController::class, 'compatBridgeDownload');
 
         // ── Import members (targeted SQL member import) ───────────────
         $router->get('/admin/import-members',

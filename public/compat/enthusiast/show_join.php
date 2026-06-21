@@ -1,33 +1,17 @@
 <?php
 /**
- * Luster compatibility wrapper for Enthusiast's show_join.php
+ * Luster compatibility wrapper — Enthusiast show_join.php
  *
- * Drop this file into your Enthusiast installation directory and set
- * $luster_listing_id (or $luster_path) in the host page before including it.
- *
- * Required: $luster_listing_id (int) — your Luster listing ID
- * Optional: $luster_path (string)   — absolute path to Luster install root
- *           (not needed when LUSTER_BASE is already defined)
+ * Drop this + luster-bridge.php into your Enthusiast folder.
+ * The listing is auto-detected from Enthusiast's $listing variable.
  */
 
-if (!isset($luster_fanlisting_id)) {
-    $luster_fanlisting_id = (int) ($luster_listing_id
-        ?? $listing_id_number
-        ?? $listing_id
-        ?? 0);
-}
+require_once __DIR__ . '/luster-bridge.php';
 
-if ($luster_fanlisting_id === 0) {
-    echo '<!-- Luster compat: $luster_listing_id not set -->';
-    return;
-}
-
-$_luster_root = defined('LUSTER_BASE') ? LUSTER_BASE : ($luster_path ?? '');
-
-if ($_luster_root === '') {
-    echo '<!-- Luster compat: set $luster_path or define LUSTER_BASE -->';
+if (!isset($luster_fanlisting_id) || (int) $luster_fanlisting_id === 0) {
+    echo '<!-- Luster compat: listing not found. Set $listing or $luster_listing_id. -->';
     return;
 }
 
 $luster_return = false;
-require $_luster_root . '/public/embed/join.php';
+require LUSTER_PATH . '/public/embed/join.php';

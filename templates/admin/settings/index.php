@@ -930,6 +930,19 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
         <?php endif; ?>
 
+        <!-- Compatibility Bridge -->
+        <div class="pc-section">
+          <div class="pc-section-label">Enthusiast Compatibility Bridge</div>
+          <p class="form-hint mb-sm">
+            Download a ready-to-use bridge that lets your existing Enthusiast fanlisting pages
+            serve through Luster with zero code changes. Unzip the files into your Enthusiast
+            folder — the bridge auto-detects which listing to show.
+          </p>
+          <a href="<?= $b ?>/admin/compat-bridge" class="btn btn-ghost btn-sm">
+            <?= View::icon('download') ?> Download Enthusiast Bridge (ZIP)
+          </a>
+        </div>
+
         <!-- Script -->
         <div class="pc-section">
           <div class="pc-section-label">Script</div>
