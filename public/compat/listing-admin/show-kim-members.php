@@ -13,5 +13,6 @@ if (!isset($luster_fanlisting_id) || (int) $luster_fanlisting_id === 0) {
     return;
 }
 
+$luster_kim_subject_id = (int) $luster_fanlisting_id;
 $luster_return = false;
 require LUSTER_PATH . '/public/embed/kim-list.php';

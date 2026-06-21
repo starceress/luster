@@ -2037,7 +2037,12 @@ final class SettingsController extends AdminController
 
         $bridgeSource = file_get_contents($bridgeTemplate);
         if ($bridgeSource !== false) {
-            $bridgeSource = str_replace('%%LUSTER_PATH%%', str_replace('\\', '/', $lusterBase), $bridgeSource);
+            $safePath     = str_replace('\\', '/', $lusterBase);
+            $bridgeSource = str_replace(
+                "'%%LUSTER_PATH%%'",
+                var_export($safePath, true),
+                $bridgeSource,
+            );
             $zip->addFromString('luster-bridge.php', $bridgeSource);
         }
 

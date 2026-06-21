@@ -35,11 +35,10 @@ if (!isset($luster_fanlisting_id) || (int) $luster_fanlisting_id === 0) {
             $_lbStmt->execute(['src' => 'codesort', 'eid' => (string) $_lbId]);
             $_lbRow = $_lbStmt->fetch(\PDO::FETCH_ASSOC);
 
-            $luster_fanlisting_id = $_lbRow !== false
-                ? (int) $_lbRow['listing_id']
-                : $_lbId;
+            if ($_lbRow !== false) {
+                $luster_fanlisting_id = (int) $_lbRow['listing_id'];
+            }
         } catch (\Throwable) {
-            $luster_fanlisting_id = $_lbId;
         }
 
         unset($_lbApp, $_lbDb, $_lbStmt, $_lbRow, $_lbId);

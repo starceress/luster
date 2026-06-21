@@ -10,8 +10,7 @@ variable (the dbtable name set by each fanlisting page's `config.php`).
 
 ### 1. Download the bridge
 
-Go to **Settings → System → Enthusiast Compatibility Bridge** and click
-**Download Enthusiast Bridge (ZIP)**.
+Go to **Collective → Migration & Bridges** and click **Enthusiast Bridge**.
 
 The ZIP contains:
 - `luster-bridge.php` — pre-configured with your Luster install path
@@ -94,8 +93,7 @@ public CSS to your page:
 <link rel="stylesheet" href="https://example.com/luster/public/assets/css/default/style.css">
 ```
 
-Replace the URL with your actual Luster install URL. This gives you the
-`fl-*` utility classes for forms, member lists, and stats.
+Replace the URL with your actual Luster install URL.
 
 ---
 
@@ -103,14 +101,9 @@ Replace the URL with your actual Luster install URL. This gives you the
 
 **"Luster compat: listing not found"**
 - The `$listing` variable is not set or doesn't match any `dbtable` value
-  in Luster's `owned` table. Check that your listing was imported correctly
-  and the dbtable name matches.
+  in Luster's `owned` table. Check that your listing was imported correctly.
 
 **Blank output**
 - Check that `luster-bridge.php` is in the same folder as the wrapper files.
 - Verify the `LUSTER_PATH` in `luster-bridge.php` points to the correct
   Luster install directory.
-
-**Forms submit but nothing happens**
-- Luster embeds self-post to the host page URL. Make sure your page's URL
-  is accessible and PHP sessions are working.

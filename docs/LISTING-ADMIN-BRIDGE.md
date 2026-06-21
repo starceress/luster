@@ -1,39 +1,37 @@
 # Listing Admin Compatibility Bridge
 
 Migrate your existing Listing Admin fanlisting pages to Luster.
+The bridge auto-detects which listing to serve by reading Listing Admin's
+`$listid` variable and looking it up in Luster's external refs table.
 
 ---
 
 ## Setup
 
-### 1. Drop in the wrapper files
+### 1. Download the bridge
 
-Copy everything from `public/compat/listing-admin/` into the folder where
-your old Listing Admin `show-join.php`, `show-members.php`, etc. live.
-The new files replace the old Listing Admin ones.
+Go to **Collective → Migration & Bridges** and click **Listing Admin Bridge**.
 
-### 2. Set the listing ID
+The ZIP contains:
+- `luster-bridge.php` — pre-configured with your Luster install path
+- All wrapper files (17 files covering per-listing, collective, and KIM)
 
-Listing Admin wrappers need a Luster listing ID. On each fanlisting page,
-set `$luster_listing_id` before the include:
+### 2. Import your data first
 
-```php
-<?php
-$luster_listing_id = 5;
-$luster_path = '/path/to/luster';
-include 'show-join.php';
-?>
-```
+Run the **Listing Admin import** in Luster's Import Wizard. This creates the
+ID mapping between Listing Admin listing IDs and Luster listing IDs in the
+`lstr_listing_external_refs` table. Without this, the bridge cannot auto-detect
+which listing to serve.
 
-If `LUSTER_BASE` is already defined (e.g. from another Luster embed on the
-same page), you can skip `$luster_path`.
+### 3. Unzip into your Listing Admin folder
 
-The wrapper also checks Listing Admin's own `$listid` variable as a fallback,
-so if your pages already set that, it may work without changes.
+Extract the ZIP contents into the folder where your old Listing Admin
+`show-join.php`, `show-members.php`, etc. live.
 
-### 3. Done
+### 4. Done
 
-The old `include` calls keep working — they now render through Luster.
+Your existing fanlisting pages keep working — the bridge auto-detects which
+listing to serve from `$listid`.
 
 ---
 
@@ -67,27 +65,28 @@ The old `include` calls keep working — they now render through Luster.
 | Old Listing Admin file | What it renders |
 |---|---|
 | `show-kim-join.php` | KIM sign-up form |
-| `show-kim-members.php` | KIM list |
+| `show-kim-members.php` | KIM members for a specific listing |
 | `show-kim-update.php` | KIM update form |
 | `show-kim-reset.php` | KIM password reset |
 
 ---
 
-## Styling
+## Manual override
 
-Add Luster's public CSS to your page for styled output:
+If auto-detection doesn't work, set `$luster_listing_id` before the include:
 
-```html
-<link rel="stylesheet" href="https://example.com/luster/public/assets/css/default/style.css">
+```php
+$luster_listing_id = 5;
+include 'show-join.php';
 ```
 
 ---
 
 ## Troubleshooting
 
-**"Luster compat: $luster_listing_id not set"**
-- Set `$luster_listing_id` to your listing's ID in Luster before the include.
-- Or set Listing Admin's `$listid` variable if your page already uses it.
+**"Luster compat: listing not found"**
+- Make sure you ran the Listing Admin import first (Import Wizard).
+- Set `$luster_listing_id` manually if the import wasn't used.
 
-**"Luster compat: set $luster_path or define LUSTER_BASE"**
-- Add `$luster_path = '/absolute/path/to/luster';` before the include.
+**Blank output**
+- Check that `luster-bridge.php` is in the same folder as the wrapper files.
