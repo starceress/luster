@@ -25,6 +25,9 @@ use Luster\Core\View;
 // When a custom codes_template has been applied in the embed, use it directly.
 if (isset($codes_template_html) && $codes_template_html !== null) {
     echo $codes_template_html;
+    if (($pagination ?? '') !== '') {
+        echo '<div class="fl-pagination-wrap">' . $pagination . '</div>';
+    }
     return;
 }
 
@@ -101,5 +104,9 @@ $_showHeadings  = count($grouped) > 1;
   </div><!-- /.fl-code-group -->
 <?php endforeach; ?>
 </div><!-- /.fl-codes -->
+
+<?php if (($pagination ?? '') !== ''): ?>
+  <div class="fl-pagination-wrap"><?= $pagination ?></div>
+<?php endif; ?>
 
 <?php endif; ?>

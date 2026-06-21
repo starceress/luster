@@ -223,9 +223,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'pagination'          => $_lusterPagHtml,
 ]);
 
-if ($_lusterPagHtml !== '') {
-    $_lusterHtml .= '<div class="fl-pagination-wrap">' . $_lusterPagHtml . '</div>';
-}
+// Pagination is now rendered inside the template (before attribution).
 
 // Optionally append the code donation form after the gallery.
 // Set $luster_append_submit = true before require to include the form here (useful when
