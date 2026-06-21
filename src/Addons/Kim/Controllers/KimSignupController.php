@@ -7,6 +7,7 @@ namespace Luster\Addons\Kim\Controllers;
 use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Addons\Kim\KimPasswordResetRepo;
 use Luster\Core\Application;
+use Luster\Core\Captcha;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
@@ -73,6 +74,19 @@ final class KimSignupController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
+        // CAPTCHA
+        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_signup')) {
+            $rateLimit->hit($ip, 'kim_signup', 5, 3600);
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old', [
+                'name'         => trim((string) $request->post('name',         '')),
+                'email'        => trim((string) $request->post('email',        '')),
+                'url'          => trim((string) $request->post('url',          '')),
+                'fanlisting_id' => (string) (int) $request->post('fanlisting_id', 0),
+            ]);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
+        }
+
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlistings = $listingRepo->getAll();
 
@@ -110,6 +124,13 @@ final class KimSignupController
         if ($validationFailed) {
             $rateLimit->hit($ip, 'kim_signup', 5, 3600);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()) ?: 'Please select a valid fanlisting.');
+            $session->set('lstr_flash_old', $oldFields);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
+        }
+
+        // Blacklist check
+        if ((new \Luster\Repositories\BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
+            $session->set('lstr_flash_error', 'That email address cannot be used to sign up.');
             $session->set('lstr_flash_old', $oldFields);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
@@ -153,7 +174,6 @@ final class KimSignupController
         $passwordHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
 
         $kimRepo->create($fanlistingId, $name, $email, $url, $passwordHash);
-        $rateLimit->clear($ip, 'kim_signup');
 
         // Find the fanlisting subject for the email
         $selectedListing = null;
@@ -267,6 +287,7 @@ final class KimSignupController
             ['type' => 'select',       'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $flSelectHtml],
             ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. If left blank, we\'ll email you a link to set one.'],
             ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . Captcha::getQuestion('kim_signup'), 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
         $formHtml = null;

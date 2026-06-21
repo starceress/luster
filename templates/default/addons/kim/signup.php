@@ -64,6 +64,7 @@ if (isset($form_html) && $form_html !== null) {
       <?= $f['fanlisting_id'] ?>
       <?= $f['password'] ?>
       <?= $f['password_confirm'] ?>
+      <?= $f['captcha_answer'] ?>
 
       <!-- Honeypot — hidden from humans, filled by bots -->
       <div style="display:none" aria-hidden="true">

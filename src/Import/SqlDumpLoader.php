@@ -60,7 +60,13 @@ final class SqlDumpLoader
             }
 
             if (preg_match('/^CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?([a-zA-Z0-9_]+)[`"]?/i', $stmt, $m)) {
-                $origName    = $m[1];
+                $origName = $m[1];
+
+                // Reject CREATE TABLE ... AS SELECT / LIKE (can read other tables)
+                if (preg_match('/\b(AS\s+SELECT|LIKE\s+[`"]?\w)/i', $stmt)) {
+                    throw new \RuntimeException("Rejected unsafe CREATE TABLE for `{$origName}`: AS SELECT and LIKE are not allowed.");
+                }
+
                 $prefixedSql = $this->rewriteTableName($stmt, $origName, $tempPrefix . $origName);
                 try {
                     $pdo->exec($prefixedSql);
@@ -72,14 +78,27 @@ final class SqlDumpLoader
             }
 
             if (preg_match('/^INSERT\s+(?:IGNORE\s+)?INTO\s+[`"]?([a-zA-Z0-9_]+)[`"]?/i', $stmt, $m)) {
-                $origName    = $m[1];
+                $origName = $m[1];
+
+                // Reject INSERT ... SELECT (can read other tables)
+                if (!preg_match('/\bVALUES\s*\(/i', $stmt)) {
+                    continue;
+                }
+
+                // Reject dangerous functions in VALUES
+                if (preg_match('/\b(LOAD_FILE|SLEEP|BENCHMARK|GET_LOCK|RELEASE_LOCK|INTO\s+OUTFILE|INTO\s+DUMPFILE)\s*\(/i', $stmt)) {
+                    continue;
+                }
+
+                // Reject subqueries in VALUES
+                if (preg_match('/VALUES\s*\(.*\(\s*SELECT\b/i', $stmt)) {
+                    continue;
+                }
+
                 $prefixedSql = $this->rewriteTableName($stmt, $origName, $tempPrefix . $origName);
-                // Non-fatal: if the table wasn't created (e.g. CREATE was for an unknown
-                // table type we skipped), just continue.
                 try {
                     $pdo->exec($prefixedSql);
                 } catch (\PDOException) {
-                    // ignore — one bad INSERT batch does not abort the load
                 }
             }
             // All other statement types are silently discarded.
