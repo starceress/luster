@@ -281,6 +281,29 @@ $luster_collective_last_updated = $_lusterLastOwnedOpened !== null
 
 $luster_total_cats          = count($_lusterCategories);
 
+// Enthusiast-compatible unprefixed aliases
+$total_cats                     = $luster_total_cats;
+$owned                          = $luster_owned;
+$owned_current                  = $luster_owned_active;
+$owned_upcoming                 = $luster_owned_upcoming;
+$owned_pending                  = $luster_owned_pending;
+$joined                         = $luster_joined;
+$joined_current                 = $luster_joined_active;
+$joined_approved                = $luster_joined_approved;
+$joined_upcoming                = $luster_joined_upcoming;
+$joined_pending                 = $luster_joined_pending;
+$affiliates_collective          = $luster_affiliates;
+$collective_affiliates          = $luster_affiliates;
+$collective_total_fans_approved = $luster_members_approved;
+$collective_total_fans_pending  = $luster_members_pending;
+$collective_total_fans          = $luster_members_total;
+$collective_categories          = $luster_total_cats;
+$countries_count                = $luster_countries_count;
+$collective_last_updated        = $luster_collective_last_updated;
+$owned_growth_rate              = $luster_owned_growth_rate;
+$joined_growth_rate             = $luster_joined_growth_rate;
+$collective_fans_growth_rate    = $luster_members_growth_rate;
+
 // ---------------------------------------------------------------------------
 // 5. Render HTML block
 // ---------------------------------------------------------------------------
