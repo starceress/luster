@@ -538,7 +538,7 @@ final class AdoptPublicController
         ];
 
         $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
-        $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $formAction, $this->app->getCSRF()->token(), false);
+        $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $formAction, $this->app->getCSRF()->token(), false, formMarker: 'adopt_collective:0');
 
         $html = $this->app->getView()->renderPublic('adopt.php', [
             'listing'      => null,

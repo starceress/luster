@@ -437,7 +437,8 @@ final class ContactController
                 '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($contactTpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $formAction, $this->app->getCSRF()->token(), false);
+            $marker    = ($listing !== null) ? 'contact:' . $listingId : 'contact_collective:0';
+            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $formAction, $this->app->getCSRF()->token(), false, formMarker: $marker);
         }
 
         $data = [

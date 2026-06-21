@@ -479,6 +479,7 @@ final class JoinController
                 $baseUrl . '/join/' . $listingId,
                 $this->app->getCSRF()->token(),
                 false,
+                formMarker: 'join:' . $listingId,
             );
         }
 

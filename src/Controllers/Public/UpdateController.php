@@ -526,7 +526,7 @@ final class UpdateController
                 '{lost_password_url}'      => \Luster\Core\View::e($lostPasswordUrl),
             ];
             $inner    = FormTemplateRenderer::expandTokens($processed, $tokens);
-            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false);
+            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false, formMarker: 'update:' . $listingId);
         }
 
         $html = $this->app->getView()->renderPublic('update.php', [
@@ -650,7 +650,7 @@ final class UpdateController
                 '{lost_password_url}'      => '',
             ];
             $inner    = FormTemplateRenderer::expandTokens($processed, $tokens);
-            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false);
+            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false, formMarker: 'update:' . $listingId);
         }
 
         $html = $this->app->getView()->renderPublic('update.php', [

@@ -462,7 +462,7 @@ final class KimUpdateController
                 '{lost_password_url}'                => View::e($resolvedResetUrl),
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/update/sign-in', $this->app->getCSRF()->token(), false);
+            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/update/sign-in', $this->app->getCSRF()->token(), false, formMarker: 'kim_update_auth:' . $listingId);
         }
 
         return $this->renderKimPage('update.php', [

@@ -310,7 +310,7 @@ final class KimResetController
                 '{reset_request_url}'    => View::e($baseUrl . '/kim/reset'),
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset', $this->app->getCSRF()->token(), false);
+            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset', $this->app->getCSRF()->token(), false, formMarker: 'kim_reset:' . $listingId);
         }
 
         return $this->renderKimPage('reset.php', [
@@ -364,7 +364,7 @@ final class KimResetController
             if ($rawToken !== '') {
                 $innerHtml .= '<input type="hidden" name="token" value="' . View::e($rawToken) . '">';
             }
-            $formHtml = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset/confirm', $this->app->getCSRF()->token(), false);
+            $formHtml = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset/confirm', $this->app->getCSRF()->token(), false, formMarker: 'kim_reset:' . $listingId);
         }
 
         return $this->renderKimPage('reset-confirm.php', [

@@ -150,10 +150,26 @@ final class MembersController
             $total     = count($countries);
             $statsLine = $total === 0 ? 'No countries' : 'Showing 1–' . $total . ' of ' . $total . ' ' . ($total === 1 ? 'country' : 'countries');
 
+            $membersHtml = null;
+            if ($membersTemplate !== null) {
+                $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $countryRows = '';
+                foreach ($countrySummary as $cRow) {
+                    $countryRows .= '<li class="fl-member-item"><a class="fl-member-name" href="'
+                        . $e($cRow['url']) . '">' . $e($cRow['country'])
+                        . '</a> <span class="fl-member-country">(' . (int) $cRow['fan_count'] . ')</span></li>' . "\n";
+                }
+                $membersHtml = MembersTemplateRenderer::renderWithBody(
+                    $membersTemplate, '<ul class="fl-member-list">' . "\n" . $countryRows . '</ul>',
+                    $baseUrl . '/join/' . $listingId, $total,
+                    $statsLine, $sortLinkAll, $sortLinkName, $sortLinkCountry,
+                );
+            }
+
             $html = $this->app->getView()->renderPublic('members.php', array_merge($commonData, [
                 'country'         => '',
                 'members'         => [],
-                'members_html'    => null,
+                'members_html'    => $membersHtml,
                 'country_summary' => $countrySummary,
                 'stats_line'      => $statsLine,
                 'pagination'      => '',

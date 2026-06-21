@@ -131,6 +131,7 @@ final class CodesSubmitController
                     $baseUrl . '/codes/submit/' . $listingId,
                     $this->app->getCSRF()->token(),
                     true,
+                    formMarker: 'codes_submit:' . $listingId,
                 );
             }
         } else {
@@ -158,6 +159,7 @@ final class CodesSubmitController
                     $baseUrl . '/codes/submit/' . $listingId,
                     $this->app->getCSRF()->token(),
                     true,
+                    formMarker: 'codes_submit_collective:' . $listingId,
                 );
             }
         }

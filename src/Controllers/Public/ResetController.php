@@ -387,7 +387,7 @@ final class ResetController
                 '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];
             $inner    = FormTemplateRenderer::expandTokens($processed, $tokens);
-            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false);
+            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false, formMarker: 'reset:' . $listingId);
         }
 
         $html = $this->app->getView()->renderPublic('reset.php', [
@@ -460,7 +460,7 @@ final class ResetController
             if ($tokenValid) {
                 $inner .= '<input type="hidden" name="token" value="' . View::e($rawToken) . '">';
             }
-            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false);
+            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false, formMarker: 'reset_confirm:' . $listingId);
         }
 
         $html = $this->app->getView()->renderPublic('reset_confirm.php', [

@@ -306,10 +306,36 @@ if ($_lusterCountry !== '') {
     $_lusterTotal     = count($_lusterCountries);
     $_lusterStatsLine = $_lusterTotal === 0 ? 'No countries' : 'Showing 1–' . $_lusterTotal . ' of ' . $_lusterTotal . ' ' . ($_lusterTotal === 1 ? 'country' : 'countries');
 
+    $_lusterMembersHtml = null;
+    if ($_lusterMemberTemplate !== null) {
+        $_lusterE = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $_lusterCountryRows = '';
+        foreach ($_lusterCountrySummary as $_lusterCRow) {
+            $_lusterCountryRows .= '<li class="fl-member-item"><a class="fl-member-name" href="'
+                . $_lusterE($_lusterCRow['url']) . '">' . $_lusterE($_lusterCRow['country'])
+                . '</a> <span class="fl-member-country">(' . (int) $_lusterCRow['fan_count'] . ')</span></li>' . "\n";
+        }
+        $_lusterCountryBody = '<ul class="fl-member-list">' . "\n" . $_lusterCountryRows . '</ul>';
+
+        $_lusterTpl = (string) preg_replace('/\{each_member\}.*?\{\/each_member\}/s', $_lusterCountryBody, $_lusterMemberTemplate, 1);
+        if ($_lusterTotal > 0) {
+            $_lusterTpl = preg_replace('/\{if_no_members\}.*?\{\/if_no_members\}/s', '', $_lusterTpl) ?? $_lusterTpl;
+            $_lusterTpl = str_replace(['{if_members}', '{/if_members}'], '', $_lusterTpl);
+        } else {
+            $_lusterTpl = preg_replace('/\{if_members\}.*?\{\/if_members\}/s', '', $_lusterTpl) ?? $_lusterTpl;
+            $_lusterTpl = str_replace(['{if_no_members}', '{/if_no_members}'], '', $_lusterTpl);
+        }
+        $_lusterMembersHtml = str_replace(
+            ['{join_url}', '{member_count}', '{stats_line}', '{sort_link_all}', '{sort_link_name}', '{sort_link_country}'],
+            [$_lusterE($_lusterBaseUrl . '/join/' . $_lusterListingId), (string) $_lusterTotal, $_lusterE($_lusterStatsLine), $_lusterSortLinkAll, $_lusterSortLinkName, $_lusterSortLinkCountry],
+            $_lusterTpl,
+        );
+    }
+
     $_lusterHtml = $_lusterApp->getView()->renderFragment('members.php', array_merge($_lusterCommonData, [
         'country'         => '',
         'members'         => [],
-        'members_html'    => null,
+        'members_html'    => $_lusterMembersHtml,
         'country_summary' => $_lusterCountrySummary,
         'stats_line'      => $_lusterStatsLine,
         'pagination'      => '',

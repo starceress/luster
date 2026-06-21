@@ -393,6 +393,7 @@ final class AffiliateApplyController
                 $this->collectiveFormUrl($config, $baseUrl),
                 $this->app->getCSRF()->token(),
                 true,
+                formMarker: 'aff_apply_collective:0',
             );
         }
 
@@ -489,6 +490,7 @@ final class AffiliateApplyController
                 $formUrl,
                 $this->app->getCSRF()->token(),
                 true,
+                formMarker: 'aff_apply:' . $listingId,
             );
         }
 

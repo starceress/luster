@@ -88,10 +88,22 @@ final class SqlDumpLoader
                     continue;
                 }
 
-                // Reject any function call pattern: word( inside the VALUES block.
-                // Literal values are strings, numbers, NULL, and hex — none contain word(.
+                // Strip quoted strings from the VALUES block before safety checks,
+                // so legitimate text like 'Star Trek (2009)' or 'KIM (Keep In Mind)'
+                // does not trigger false positives. Only unquoted SQL structure is checked.
                 $valuesBlock = (string) preg_replace('/^.*?\bVALUES\s*/i', '', $stmt);
-                if (preg_match('/[a-zA-Z_]\w*\s*\(/', $valuesBlock)) {
+                $stripped    = self::stripQuotedStrings($valuesBlock);
+
+                // Reject subqueries and expressions: SELECT, variables (@), subquery parens
+                if (preg_match('/\b(SELECT|CONCAT|IF|CASE|LOAD_FILE|BENCHMARK|SLEEP)\b/i', $stripped)) {
+                    continue;
+                }
+                // Reject @variables (user-defined or system)
+                if (preg_match('/@\w/', $stripped)) {
+                    continue;
+                }
+                // Reject any function call pattern: word( in unquoted context
+                if (preg_match('/[a-zA-Z_]\w*\s*\(/', $stripped)) {
                     continue;
                 }
 
@@ -321,6 +333,49 @@ final class SqlDumpLoader
      * SQL statement to the given replacement name. Only rewrites in positions
      * where a table name is expected (after TABLE, INTO, FROM, JOIN, UPDATE).
      */
+    /**
+     * Replaces all single- and double-quoted string literals with empty quotes,
+     * so safety checks only inspect unquoted SQL structure.
+     */
+    private static function stripQuotedStrings(string $sql): string
+    {
+        $out       = '';
+        $len       = strlen($sql);
+        $inString  = false;
+        $quote     = '';
+
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $sql[$i];
+
+            if ($inString) {
+                if ($ch === '\\' && $i + 1 < $len) {
+                    $i++;
+                    continue;
+                }
+                if ($ch === $quote) {
+                    if ($i + 1 < $len && $sql[$i + 1] === $quote) {
+                        $i++;
+                        continue;
+                    }
+                    $inString = false;
+                    $out .= $quote;
+                }
+                continue;
+            }
+
+            if ($ch === "'" || $ch === '"') {
+                $inString = true;
+                $quote    = $ch;
+                $out     .= $ch;
+                continue;
+            }
+
+            $out .= $ch;
+        }
+
+        return $out;
+    }
+
     private function rewriteTableName(string $sql, string $original, string $replacement): string
     {
         // Match backtick-quoted or bare table name after the keywords we care about.
