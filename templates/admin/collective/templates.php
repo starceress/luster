@@ -843,6 +843,9 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('kim_signup_form_template', '{field_password_input}',        '{field_password_input}',        'Just the password input element.') ?>
             <?= $tok('kim_signup_form_template', '{field_password_confirm}',      '{field_password_confirm}',      'Full label + input block for the confirm password field.') ?>
             <?= $tok('kim_signup_form_template', '{field_password_confirm_input}','{field_password_confirm_input}','Just the confirm password input element.') ?>
+            <?= $tok('kim_signup_form_template', '{captcha_block}',               '{captcha_block}',               'The captcha field, with label and wrapper.') ?>
+            <?= $tok('kim_signup_form_template', '{captcha_block_input}',         '{captcha_block_input}',         'Just the captcha answer input, no label or wrapper.') ?>
+            <?= $tok('kim_signup_form_template', '{captcha_question}',            '{captcha_question}',            'The captcha question text on its own.') ?>
             <?= $tok('kim_signup_form_template', '{submit_button}',               '{submit_button}',               'The submit button.') ?>
             <?= $tok('kim_signup_form_template', '{clear_button}',                '{clear_button}',                'A reset button that clears the form.') ?>
           </tbody></table>

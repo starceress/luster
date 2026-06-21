@@ -174,6 +174,7 @@ final class KimSignupController
         $passwordHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
 
         $kimRepo->create($fanlistingId, $name, $email, $url, $passwordHash);
+        $rateLimit->hit($ip, 'kim_signup', 10, 3600);
 
         // Find the fanlisting subject for the email
         $selectedListing = null;
@@ -307,6 +308,9 @@ final class KimSignupController
                 '{field_password_input}'              => $f['password_input'],
                 '{field_password_confirm}'            => $f['password_confirm'],
                 '{field_password_confirm_input}'      => $f['password_confirm_input'],
+                '{captcha_block}'                     => $f['captcha_answer'],
+                '{captcha_block_input}'               => $f['captcha_answer_input'] ?? '',
+                '{captcha_question}'                  => View::e(Captcha::getQuestion('kim_signup')),
                 '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
                 '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];

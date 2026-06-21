@@ -62,9 +62,11 @@ final class SqlDumpLoader
             if (preg_match('/^CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?([a-zA-Z0-9_]+)[`"]?/i', $stmt, $m)) {
                 $origName = $m[1];
 
-                // Reject CREATE TABLE ... AS SELECT / LIKE (can read other tables)
-                if (preg_match('/\b(AS\s+SELECT|LIKE\s+[`"]?\w)/i', $stmt)) {
-                    throw new \RuntimeException("Rejected unsafe CREATE TABLE for `{$origName}`: AS SELECT and LIKE are not allowed.");
+                // Only allow CREATE TABLE name (...) — the column definition must
+                // start with an opening paren. Reject AS SELECT, LIKE, SELECT, and
+                // any form that doesn't have a column-definition block.
+                if (!preg_match('/^CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?[a-zA-Z0-9_]+[`"]?\s*\(/i', $stmt)) {
+                    throw new \RuntimeException("Rejected unsafe CREATE TABLE for `{$origName}`: only CREATE TABLE name (...) is allowed.");
                 }
 
                 $prefixedSql = $this->rewriteTableName($stmt, $origName, $tempPrefix . $origName);
@@ -80,18 +82,16 @@ final class SqlDumpLoader
             if (preg_match('/^INSERT\s+(?:IGNORE\s+)?INTO\s+[`"]?([a-zA-Z0-9_]+)[`"]?/i', $stmt, $m)) {
                 $origName = $m[1];
 
-                // Reject INSERT ... SELECT (can read other tables)
+                // Only allow INSERT ... VALUES (...) with literal-only tuples.
+                // Reject INSERT ... SELECT and any function calls inside VALUES.
                 if (!preg_match('/\bVALUES\s*\(/i', $stmt)) {
                     continue;
                 }
 
-                // Reject dangerous functions in VALUES
-                if (preg_match('/\b(LOAD_FILE|SLEEP|BENCHMARK|GET_LOCK|RELEASE_LOCK|INTO\s+OUTFILE|INTO\s+DUMPFILE)\s*\(/i', $stmt)) {
-                    continue;
-                }
-
-                // Reject subqueries in VALUES
-                if (preg_match('/VALUES\s*\(.*\(\s*SELECT\b/i', $stmt)) {
+                // Reject any function call pattern: word( inside the VALUES block.
+                // Literal values are strings, numbers, NULL, and hex — none contain word(.
+                $valuesBlock = (string) preg_replace('/^.*?\bVALUES\s*/i', '', $stmt);
+                if (preg_match('/[a-zA-Z_]\w*\s*\(/', $valuesBlock)) {
                     continue;
                 }
 

@@ -240,6 +240,7 @@ class SiteSettingsRepo
              . '{field_fanlisting_id}' . "\n"
              . '{field_password}' . "\n"
              . '{field_password_confirm}' . "\n"
+             . '{captcha_block}' . "\n"
              . '</div>' . "\n"
              . "\n"
              . '<div class="fl-form-actions">' . "\n"

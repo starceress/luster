@@ -187,6 +187,9 @@ if ($_lusterKimSignupTpl !== '') {
         '{field_password_input}'              => $_lusterF['password_input'],
         '{field_password_confirm}'            => $_lusterF['password_confirm'],
         '{field_password_confirm_input}'      => $_lusterF['password_confirm_input'],
+        '{captcha_block}'                     => $_lusterF['captcha_answer'],
+        '{captcha_block_input}'               => $_lusterF['captcha_answer_input'] ?? '',
+        '{captcha_question}'                  => htmlspecialchars(\Luster\Core\Captcha::getQuestion('kim_signup'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
         '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
     ];

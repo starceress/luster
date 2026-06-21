@@ -756,6 +756,7 @@ final class SettingsController extends AdminController
             ['type' => 'select',   'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In','required' => true,  'raw_input' => $flSelectHtml],
             ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. If left blank, we\'ll email you a link to set one.'],
             ['type' => 'password', 'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',        'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: 2 + 3',          'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
         $f = $fb->build($descriptors, '');
 
@@ -773,6 +774,9 @@ final class SettingsController extends AdminController
             '{field_password_input}'              => $f['password_input'],
             '{field_password_confirm}'            => $f['password_confirm'],
             '{field_password_confirm_input}'      => $f['password_confirm_input'],
+            '{captcha_block}'                     => $f['captcha_answer'],
+            '{captcha_block_input}'               => $f['captcha_answer_input'] ?? '',
+            '{captcha_question}'                  => '2 + 3',
             '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
             '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
