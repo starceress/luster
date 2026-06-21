@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
  *  - getJoinedCounts()['approved'] counts active+non-pending rows only
  *  - getJoinedCounts()['approved'] excludes pending and upcoming rows
  *  - Listing::fromRow() maps the 'name' DB column to ->title (not ->name)
- *  - Token-substitution source: {owned_newest_name}/{owned_random_name} use ->title
+ *  - Token-substitution source: {owned_newest_title} uses ->title, {owned_newest_subject} uses ->subject
  *  - Enthusiast flat-array alias keys: $owned_newest['title'], ['subject'], ['listingtype']
  *  - Enthusiast flat-array alias keys: $joined_newest['added'], ['subject']
  */
@@ -315,12 +315,11 @@ SQL;
     }
 
     // -------------------------------------------------------------------------
-    // Token substitution — {owned_newest_name} / {owned_random_name} use ->title
+    // Token substitution — {owned_newest_title/subject} / {owned_random_title/subject}
     // -------------------------------------------------------------------------
 
-    public function testOwnedNewestNameTokenUsesListingTitle(): void
+    public function testOwnedNewestTitleAndSubjectTokens(): void
     {
-        // Hydrate from enth_ schema where DB column is 'name', not 'title'
         $listing = Listing::fromRow([
             'id'              => 1,
             'name'            => 'Always - Amy and Rory',
@@ -335,14 +334,13 @@ SQL;
 
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        // Reproduce the exact str_replace replacement used in collective-stats.php
         $result = str_replace(
-            ['{owned_newest_name}', '{owned_random_name}'],
-            [$e($listing->title), $e($listing->title)],
-            '{owned_newest_name} / {owned_random_name}'
+            ['{owned_newest_title}', '{owned_newest_subject}', '{owned_random_title}', '{owned_random_subject}'],
+            [$e($listing->title), $e($listing->subject), $e($listing->title), $e($listing->subject)],
+            '{owned_newest_title} ({owned_newest_subject}) / {owned_random_title} ({owned_random_subject})'
         );
 
-        $this->assertSame('Always - Amy and Rory / Always - Amy and Rory', $result);
+        $this->assertSame('Always - Amy and Rory (Doctor Who couple) / Always - Amy and Rory (Doctor Who couple)', $result);
     }
 
     // -------------------------------------------------------------------------

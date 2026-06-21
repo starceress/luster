@@ -374,9 +374,11 @@ Related classes: `.fl-cstats`, `.fl-cstats-grid`, `.fl-cstats-label`,
 | `{members_approved}` | Approved members across all listings. |
 | `{members_pending}` | Pending members across all listings. |
 | `{countries_count}` | Number of distinct countries across approved members. |
-| `{owned_newest_name}` | Name of the newest current owned listing, or blank. |
+| `{owned_newest_title}` | Title of the newest current owned listing, or blank. |
+| `{owned_newest_subject}` | What the newest owned listing is about, or blank. |
 | `{owned_newest_url}` | URL of the newest current owned listing, or blank. |
-| `{owned_random_name}` | Name of one random current owned listing, or blank. |
+| `{owned_random_title}` | Title of one random current owned listing, or blank. |
+| `{owned_random_subject}` | What a random owned listing is about, or blank. |
 | `{owned_random_url}` | URL of one random current owned listing, or blank. |
 | `{tfl_url}` | TFL website URL: `https://thefanlistings.org/` |
 | `{tafl_url}` | TAFL website URL: `https://www.animefanlistings.com/` |

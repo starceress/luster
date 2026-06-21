@@ -521,9 +521,11 @@ Processed by `public/embed/collective-stats.php` via direct `str_replace()` afte
 | `{members_pending}` | ✓ | ✗ | ✓ | |
 | `{countries_count}` | ✓ | ✗ | ✓ | Distinct countries across all approved members |
 | `{collective_last_updated}` | ✓ | ✗ | ✓ | MAX(opened) across owned listings |
-| `{owned_newest_name}` | ✓ | ✗ | ✓ | |
+| `{owned_newest_title}` | ✓ | ✗ | ✓ | Listing title |
+| `{owned_newest_subject}` | ✓ | ✗ | ✓ | Listing subject |
 | `{owned_newest_url}` | ✓ | ✗ | ✓ | |
-| `{owned_random_name}` | ✓ | ✗ | ✓ | |
+| `{owned_random_title}` | ✓ | ✗ | ✓ | Listing title |
+| `{owned_random_subject}` | ✓ | ✗ | ✓ | Listing subject |
 | `{owned_random_url}` | ✓ | ✗ | ✓ | |
 | `{tfl_url}` | ✓ | ✗ | ✓ | Static |
 | `{tafl_url}` | ✓ | ✗ | ✓ | Static |

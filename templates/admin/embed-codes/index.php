@@ -863,9 +863,11 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{members_total}</code></td><td>Total members across all your listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{members_approved}</code></td><td>Approved members across all your listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{members_pending}</code></td><td>Members waiting for approval across all your listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{owned_newest_name}</code></td><td>Name of your newest current owned listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_newest_title}</code></td><td>Title of your newest current owned listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_newest_subject}</code></td><td>What your newest owned listing is about.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{owned_newest_url}</code></td><td>Link to your newest current owned listing.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{owned_random_name}</code></td><td>Name of one random current owned listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_random_title}</code></td><td>Title of one random current owned listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_random_subject}</code></td><td>What a random owned listing is about.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{owned_random_url}</code></td><td>Link to one random current owned listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Number of different countries represented by approved members across all your listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{collective_last_updated}</code></td><td>Date your newest owned listing was opened &mdash; the last time the collective grew.</td></tr>

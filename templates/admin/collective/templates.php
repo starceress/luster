@@ -626,10 +626,12 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('collective_stats_template', '{members_total}',     '{members_total}',     'Total members across your owned listings, approved and pending.') ?>
             <?= $tok('collective_stats_template', '{members_approved}',  '{members_approved}',  'Approved members across your owned listings.') ?>
             <?= $tok('collective_stats_template', '{members_pending}',   '{members_pending}',   'Members waiting for approval across your owned listings.') ?>
-            <?= $tok('collective_stats_template', '{owned_newest_name}', '{owned_newest_name}', 'The display name of your newest owned listing.') ?>
-            <?= $tok('collective_stats_template', '{owned_newest_url}',  '{owned_newest_url}',  'The link to your newest owned listing.') ?>
-            <?= $tok('collective_stats_template', '{owned_random_name}', '{owned_random_name}', 'The display name of a randomly chosen owned listing.') ?>
-            <?= $tok('collective_stats_template', '{owned_random_url}',  '{owned_random_url}',  'The link to a randomly chosen owned listing.') ?>
+            <?= $tok('collective_stats_template', '{owned_newest_title}',   '{owned_newest_title}',   'The title of your newest owned listing.') ?>
+            <?= $tok('collective_stats_template', '{owned_newest_subject}', '{owned_newest_subject}', 'What your newest owned listing is about.') ?>
+            <?= $tok('collective_stats_template', '{owned_newest_url}',     '{owned_newest_url}',     'The link to your newest owned listing.') ?>
+            <?= $tok('collective_stats_template', '{owned_random_title}',   '{owned_random_title}',   'The title of a randomly chosen owned listing.') ?>
+            <?= $tok('collective_stats_template', '{owned_random_subject}', '{owned_random_subject}', 'What a randomly chosen owned listing is about.') ?>
+            <?= $tok('collective_stats_template', '{owned_random_url}',     '{owned_random_url}',     'The link to a randomly chosen owned listing.') ?>
             <?= $tok('collective_stats_template', '{countries_count}',   '{countries_count}',   'How many different countries are represented across your owned listings.') ?>
             <?= $tok('collective_stats_template', '{collective_last_updated}', '{collective_last_updated}', 'The date your newest owned listing was opened — the last time the collective grew.') ?>
             <?= $tok('collective_stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
