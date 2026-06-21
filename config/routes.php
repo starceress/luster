@@ -590,9 +590,7 @@ return [
         $router->post('/admin/compat-test',
             EmbedCodesController::class, 'compatTest');
 
-        // ── Compat wrapper ZIP download ───────────────────────────────
-        $router->get('/admin/listings/{id}/compat-zip/{set}',
-            ListingController::class, 'compatZip');
+        // ── Compat bridge download ────────────────────────────────────
         $router->get('/admin/compat-bridge',
             SettingsController::class, 'compatBridgeDownload');
 
