@@ -429,19 +429,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Affiliate Applications</label>
-          <div>
-            <label class="toggle-wrap">
-              <input type="checkbox" name="affiliate_apply_enabled" value="1" id="fl-affiliate-apply-enabled"
-                     <?= ($affiliate_apply_enabled ?? false) ? 'checked' : '' ?>>
-              <span class="toggle-label">Accept affiliate applications for this listing</span>
-            </label>
-            <p class="form-hint">Enables a public application form. Submissions appear in
-              <a href="<?= $b ?>/admin/affiliates/pending" class="link">Affiliates &rarr; Pending</a>.
-            </p>
-          </div>
-        </div>
+        <!-- Affiliate applications toggle hidden — backend preserved, UI deferred -->
+        <input type="hidden" name="affiliate_apply_enabled" value="0">
 
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label">Join Settings</label>
@@ -1616,16 +1605,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         </div>
       </div>
 
-      <div class="listing-field-row" id="fl-aff-form-url-row"
-           <?= ($affiliate_apply_enabled ?? false) ? '' : 'style="display:none"' ?>>
-        <label class="listing-field-label" for="fl-form-url-aff-apply">Affiliate Applications</label>
-        <div>
-          <input id="fl-form-url-aff-apply" type="text" name="form_url_affiliate_apply" class="form"
-                 maxlength="500"
-                 value="<?= View::e(($form_url_affiliate_apply ?? '') !== '' ? $form_url_affiliate_apply : 'affiliate-apply.php') ?>">
-          <p class="form-hint">The public page where other sites can apply to affiliate with this listing. Leave blank to use Luster's built-in application page.</p>
-        </div>
-      </div>
+      <!-- Affiliate application URL row hidden — backend preserved, UI deferred -->
 
       <div class="listing-field-row" id="fl-codes-submit-embed-row"
            <?= ($embedSettings['codes_submit_enabled'] ?? true) ? '' : 'style="display:none"' ?>>

@@ -1761,11 +1761,11 @@ final class ListingSettingsRepo
             $stmt->execute(['id' => $listingId]);
             $row = $stmt->fetch();
         } catch (\Exception) {
-            return ['enabled' => true, 'form_url' => '', 'redirect_url' => ''];
+            return ['enabled' => false, 'form_url' => '', 'redirect_url' => ''];
         }
 
         if ($row === false) {
-            return ['enabled' => true, 'form_url' => '', 'redirect_url' => ''];
+            return ['enabled' => false, 'form_url' => '', 'redirect_url' => ''];
         }
 
         return [
