@@ -50,6 +50,8 @@ if (isset($form_html)) {
 
 <?php if (!$signed_in): ?>
 
+  <p class="fl-hint">If you are an existing member and would like to <strong>update</strong> your information or <strong>remove</strong> your membership entirely, log in with your current email address and password below.</p>
+
   <!-- ── Step 1: Sign in ──────────────────────────────────────────────── -->
   <form class="fl-form fl-form-signin" method="POST" action="<?= View::e($sign_in_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
