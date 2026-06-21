@@ -469,8 +469,8 @@ final class JoinController
                 '{captcha_block}'                 => $f['captcha_answer'],
                 '{captcha_block_input}'           => $f['captcha_answer_input'],
                 '{captcha_question}'              => View::e($captchaQuestion),
-                '{submit_button}'                 => '<button type="submit" class="fl-submit">Join Fanlisting</button>',
-                '{clear_button}'                  => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+                '{submit_button}'                 => '<button type="submit" class="fl-submit">Join Listing</button>',
+                '{clear_button}'                  => '<button type="reset" class="fl-btn-secondary">Clear Form</button>',
             ];
 
             $innerHtml = FormTemplateRenderer::expandTokens($joinFormTpl, $tokens);

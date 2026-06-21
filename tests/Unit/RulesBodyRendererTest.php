@@ -191,7 +191,7 @@ final class RulesBodyRendererTest extends TestCase
 
         self::assertStringContainsString('Checkbox Gate', $html);
         self::assertStringContainsString('Button Gate', $html);
-        self::assertStringContainsString('fl-embed--rules-gate', $html);
+        self::assertStringContainsString('fl-rules-gate', $html);
         self::assertStringContainsString('Test Show', $html);
 
         // The checkbox-mode section renders an <input type="checkbox">; the

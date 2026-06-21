@@ -20,21 +20,18 @@ declare(strict_types=1);
 use Luster\Core\View;
 ?>
 <?php if (isset($form_html)): ?>
-<div class="fl-embed fl-embed--join">
-  <?php if ($errors !== ''): ?>
-    <div class="fl-errors"><?= $errors ?></div>
-  <?php endif; ?>
-  <?= $form_html ?>
-</div>
+<?php if ($errors !== ''): ?>
+  <div class="fl-errors"><?= $errors ?></div>
+<?php endif; ?>
+<?= $form_html ?>
 <?php return; ?>
 <?php endif; ?>
-<div class="fl-embed fl-embed--join">
 
-  <?php if ($errors !== ''): ?>
-    <div class="fl-errors"><?= $errors ?></div>
-  <?php endif; ?>
+<?php if ($errors !== ''): ?>
+  <div class="fl-errors"><?= $errors ?></div>
+<?php endif; ?>
 
-  <form class="fl-form fl-form-join" method="POST" action="<?= View::e($form_action) ?>">
+<form class="fl-form fl-form-join" method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
@@ -60,8 +57,7 @@ use Luster\Core\View;
     <?= $f['captcha_answer'] ?>
 
     <div class="fl-form-actions">
-      <button type="submit" class="fl-submit">Join Fanlisting</button>
-      <button type="reset" class="fl-btn-secondary">Clear</button>
-    </div>
-  </form>
-</div>
+      <button type="submit" class="fl-submit">Join Listing</button>
+      <button type="reset" class="fl-btn-secondary">Clear Form</button>
+  </div>
+</form>

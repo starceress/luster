@@ -15,15 +15,12 @@ use Luster\Core\View;
 
 ?>
 <?php if (isset($form_html)): ?>
-<div class="fl-embed fl-embed--affiliate-apply">
 <?php if ($errors !== ''): ?>
   <div class="fl-errors"><?= $errors ?></div>
 <?php endif; ?>
-  <?= $form_html ?>
-</div>
+<?= $form_html ?>
 <?php return; ?>
 <?php endif; ?>
-<div class="fl-embed fl-embed--affiliate-apply">
 <?php if ($errors !== ''): ?>
   <div class="fl-errors"><?= $errors ?></div>
 <?php endif; ?>
@@ -50,4 +47,3 @@ use Luster\Core\View;
     <button type="reset" class="fl-btn-secondary">Clear</button>
   </div>
 </form>
-</div>

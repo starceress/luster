@@ -24,65 +24,61 @@ $_linkReset = (($link_reset ?? null) !== null && $link_reset !== '') ? $link_res
 $_linkList  = (($link_list  ?? null) !== null && $link_list  !== '') ? $link_list  : null;
 
 if (($success_html ?? '') !== '') {
-    echo '<div class="fl-embed fl-embed--kim-update"><div class="fl-kim">' . $success_html . '</div></div>';
+    echo '<div class="fl-kim">' . $success_html . '</div>';
     return;
 }
 
 if (isset($form_html) && $form_html !== null) {
     ?>
-<div class="fl-embed fl-embed--kim-update">
-  <div class="fl-kim">
-    <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
-    <?= $form_html ?>
-    <?php
-    $_metaLinks = [];
-    if ($_linkReset !== null) $_metaLinks[] = '<a href="' . View::e($_linkReset) . '">Forgot password?</a>';
-    if ($_linkList  !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)  . '">View the KIM list</a>';
-    ?>
-    <?php if (!empty($_metaLinks)): ?>
-    <p class="fl-kim-meta"><?= implode(' &middot; ', $_metaLinks) ?></p>
-    <?php endif; ?>
-  </div>
+<div class="fl-kim">
+  <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
+  <?= $form_html ?>
+  <?php
+  $_metaLinks = [];
+  if ($_linkReset !== null) $_metaLinks[] = '<a href="' . View::e($_linkReset) . '">Forgot password?</a>';
+  if ($_linkList  !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)  . '">View the KIM list</a>';
+  ?>
+  <?php if (!empty($_metaLinks)): ?>
+  <p class="fl-kim-meta"><?= implode(' &middot; ', $_metaLinks) ?></p>
+  <?php endif; ?>
 </div>
     <?php
     return;
 }
 ?>
-<div class="fl-embed fl-embed--kim-update">
-  <div class="fl-kim">
-    <h2 class="fl-kim-heading">KIM List &mdash; Sign In</h2>
-    <p class="fl-kim-intro">Sign in to manage your KIM List entries across all fanlistings.</p>
+<div class="fl-kim">
+  <h2 class="fl-kim-heading">KIM List &mdash; Sign In</h2>
+  <p class="fl-kim-intro">Sign in to manage your KIM List entries across all fanlistings.</p>
 
-    <?php if ($errors !== ''): ?>
-      <div class="fl-errors"><?= $errors ?></div>
-    <?php endif; ?>
+  <?php if ($errors !== ''): ?>
+    <div class="fl-errors"><?= $errors ?></div>
+  <?php endif; ?>
 
-    <form class="fl-form fl-form-kim-update" method="POST" action="<?= View::e($form_action) ?>">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-      <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
+  <form class="fl-form fl-form-kim-update" method="POST" action="<?= View::e($form_action) ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+    <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
-      <!-- Honeypot — hidden from humans, filled by bots -->
-      <div style="display:none" aria-hidden="true">
-        <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
-      </div>
+    <!-- Honeypot — hidden from humans, filled by bots -->
+    <div style="display:none" aria-hidden="true">
+      <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
+    </div>
 
-      <?= $f['email'] ?>
-      <?= $f['password'] ?>
+    <?= $f['email'] ?>
+    <?= $f['password'] ?>
 
-      <div class="fl-form-actions">
-        <button class="fl-submit fl-btn" type="submit">Sign In</button>
-      </div>
-    </form>
+    <div class="fl-form-actions">
+      <button class="fl-submit fl-btn" type="submit">Sign In</button>
+    </div>
+  </form>
 
-    <?php
-    $_metaLinks = [];
-    if ($_linkReset !== null) $_metaLinks[] = '<a href="' . View::e($_linkReset) . '">Forgot password?</a>';
-    if ($_linkList  !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)  . '">View the KIM list</a>';
-    ?>
-    <?php if (!empty($_metaLinks)): ?>
-    <p class="fl-kim-meta">
-      <?= implode(' &middot; ', $_metaLinks) ?>
-    </p>
-    <?php endif; ?>
-  </div>
+  <?php
+  $_metaLinks = [];
+  if ($_linkReset !== null) $_metaLinks[] = '<a href="' . View::e($_linkReset) . '">Forgot password?</a>';
+  if ($_linkList  !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)  . '">View the KIM list</a>';
+  ?>
+  <?php if (!empty($_metaLinks)): ?>
+  <p class="fl-kim-meta">
+    <?= implode(' &middot; ', $_metaLinks) ?>
+  </p>
+  <?php endif; ?>
 </div>

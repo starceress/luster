@@ -116,7 +116,7 @@ SQL;
         $tpl = SiteSettingsRepo::defaultCollectiveCodesTemplate();
 
         self::assertNotSame('', $tpl);
-        self::assertStringContainsString('fl-embed--codes', $tpl);
+        self::assertStringContainsString('fl-codes', $tpl);
         self::assertStringContainsString('{each_size_group}', $tpl);
         self::assertStringContainsString('{each_code}', $tpl);
         self::assertStringContainsString('{code_url}', $tpl);

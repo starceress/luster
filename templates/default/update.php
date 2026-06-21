@@ -33,24 +33,21 @@ $signed_in = $signed_in ?? false;
 
 if (isset($form_html)) {
     ?>
-<div class="fl-embed fl-embed--update">
-  <?php if ($errors !== ''): ?>
-    <div class="fl-errors"><?= $errors ?></div>
-  <?php endif; ?>
-  <?= $form_html ?>
-</div>
+<?php if ($errors !== ''): ?>
+  <div class="fl-errors"><?= $errors ?></div>
+<?php endif; ?>
+<?= $form_html ?>
     <?php
     return;
 }
 ?>
-<div class="fl-embed fl-embed--update">
-  <?php if ($errors !== ''): ?>
-    <div class="fl-errors"><?= $errors ?></div>
-  <?php endif; ?>
+<?php if ($errors !== ''): ?>
+  <div class="fl-errors"><?= $errors ?></div>
+<?php endif; ?>
 
 <?php if (!$signed_in): ?>
 
-  <p class="fl-hint">If you are an existing member and would like to <strong>update</strong> your information or <strong>remove</strong> your membership entirely, log in with your current email address and password below.</p>
+  <p>If you are an existing member and would like to <b>update</b> your information or <b>remove</b> your membership entirely, log in with your current email address and password below.</p>
 
   <!-- ── Step 1: Sign in ──────────────────────────────────────────────── -->
   <form class="fl-form fl-form-signin" method="POST" action="<?= View::e($sign_in_action) ?>">
@@ -66,12 +63,12 @@ if (isset($form_html)) {
     </div>
 
     <div class="fl-form-actions">
-      <button type="submit" class="fl-submit">Sign in</button>
+      <button type="submit" class="fl-submit">Sign In</button>
     </div>
   </form>
 
   <?php if (($lost_password_url ?? '') !== ''): ?>
-    <p class="fl-hint"><a href="<?= View::e($lost_password_url) ?>">Forgot your password?</a></p>
+    <p class="fl-hint" style="text-align:center"><a href="<?= View::e($lost_password_url) ?>">Forgot your password?</a></p>
   <?php endif; ?>
 
 <?php else: ?>
@@ -129,4 +126,3 @@ if (isset($form_html)) {
   <?php endif; ?>
 
 <?php endif; ?>
-</div>

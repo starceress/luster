@@ -178,9 +178,9 @@ RULES;
 
     private static function wrapGate(string $innerHtml): string
     {
-        return '<div class="fl-embed fl-embed--rules-gate"><div class="fl-rules-gate">'
+        return '<div class="fl-rules-gate">'
             . '<form class="fl-form fl-rules-form">' . $innerHtml . '</form>'
-            . '</div></div>';
+            . '</div>';
     }
 
     /**

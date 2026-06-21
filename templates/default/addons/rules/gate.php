@@ -19,25 +19,21 @@ use Luster\Core\View;
  *   $rules_body_html   string   pre-rendered HTML (template body with tokens substituted)
  */
 ?>
-<div class="fl-embed fl-embed--rules-gate">
+<?php if ($already_agreed ?? false): ?>
 
-  <?php if ($already_agreed ?? false): ?>
-
-    <div class="fl-rules-agreed">
-      <p>You have already agreed to the Join Rules.</p>
-    </div>
-
-  <?php else: ?>
-
-    <div class="fl-rules-gate">
-      <form class="fl-form fl-rules-form" method="POST" action="<?= View::e($form_action) ?>">
-        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-        <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
-        <input type="hidden" name="return_to" value="<?= View::e($return_to) ?>">
-        <?= $rules_body_html ?>
-      </form>
-    </div>
-
-  <?php endif; ?>
-
+<div class="fl-rules-agreed">
+  <p>You have already agreed to the Join Rules.</p>
 </div>
+
+<?php else: ?>
+
+<div class="fl-rules-gate">
+  <form class="fl-form fl-rules-form" method="POST" action="<?= View::e($form_action) ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+    <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
+    <input type="hidden" name="return_to" value="<?= View::e($return_to) ?>">
+    <?= $rules_body_html ?>
+  </form>
+</div>
+
+<?php endif; ?>

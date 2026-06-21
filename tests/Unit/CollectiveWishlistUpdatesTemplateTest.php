@@ -25,7 +25,7 @@ final class CollectiveWishlistUpdatesTemplateTest extends TestCase
         $defaults = SiteSettingsRepo::collectiveDefaults();
 
         self::assertNotSame('', $defaults['wishlist_template']);
-        self::assertStringContainsString('fl-embed--wishlist', $defaults['wishlist_template']);
+        self::assertStringContainsString('fl-wishlist-item', $defaults['wishlist_template']);
         self::assertStringContainsString('{item_subject}', $defaults['wishlist_template']);
         self::assertStringContainsString('{if_has_top}', $defaults['wishlist_template']);
         self::assertStringContainsString('{each_wishlist_item_top}', $defaults['wishlist_template']);

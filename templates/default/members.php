@@ -21,8 +21,7 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div class="fl-embed fl-embed--members">
-  <?php if ($show_search ?? true): ?>
+<?php if ($show_search ?? true): ?>
   <div class="fl-member-controls">
     <p class="fl-member-sort">
       Sort by:
@@ -31,8 +30,8 @@ use Luster\Core\View;
         $nameUrl    = View::e($members_base . '?sort=name');
         $countryUrl = View::e($members_base . '?sort=country');
       ?>
-      <?= $sort === 'added'   ? '<strong aria-current="page" class="fl-member-sort-link">View All</strong>' : '<a class="fl-member-sort-link" href="' . $allUrl    . '">View All</a>' ?> /
-      <?= $sort === 'name'    ? '<strong aria-current="page" class="fl-member-sort-link">Name</strong>'     : '<a class="fl-member-sort-link" href="' . $nameUrl   . '">Name</a>'    ?> /
+      <?= $sort === 'added'   ? '<strong aria-current="page" class="fl-member-sort-link">View All</strong>' : '<a class="fl-member-sort-link" href="' . $allUrl    . '">View All</a>' ?> |
+      <?= $sort === 'name'    ? '<strong aria-current="page" class="fl-member-sort-link">Name</strong>'     : '<a class="fl-member-sort-link" href="' . $nameUrl   . '">Name</a>'    ?> |
       <?= $sort === 'country' ? '<strong aria-current="page" class="fl-member-sort-link">Country</strong>'  : '<a class="fl-member-sort-link" href="' . $countryUrl . '">Country</a>' ?>
     </p>
 
@@ -92,4 +91,3 @@ use Luster\Core\View;
   <?php else: ?>
     <p class="fl-empty">No members to display yet.</p>
   <?php endif; ?>
-</div>

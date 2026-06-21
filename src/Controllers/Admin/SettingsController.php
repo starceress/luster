@@ -922,7 +922,7 @@ final class SettingsController extends AdminController
             . $row(true,  'Sample Fanlisting B', 'Jane Fan', 'fan@example.com', '')
             . '</tbody></table>';
 
-        $step2Html = '<div class="fl-embed fl-embed--kim-dashboard"><div class="fl-kim">'
+        $step2Html = '<div class="fl-kim">'
             . '<p class="fl-hint">Signed in as <strong>' . $_e('fan@example.com') . '</strong>.'
             . ' <a href="#">Not you?</a></p>'
             . '<h2 class="fl-kim-heading">Update Your Entries</h2>'
@@ -932,7 +932,7 @@ final class SettingsController extends AdminController
             . $f2['new_name'] . $f2['new_email'] . $f2['new_url'] . $f2['new_password'] . $f2['new_password_confirm']
             . '</fieldset>'
             . '<div class="fl-form-actions"><button class="fl-submit fl-btn" disabled>Save Changes</button> <button class="fl-btn" disabled>Clear</button></div>'
-            . '</div></div>';
+            . '</div>';
 
         return $sectionLabel('Step 1 — Sign In') . $step1Html
              . $sectionLabel('Step 2 — Dashboard (Signed In)') . $step2Html;

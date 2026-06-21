@@ -327,8 +327,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_join_form_template', '{captcha_block}',       '{captcha_block}',       'The captcha question field, with label and wrapper.') ?>
             <?= $tok('listing_default_join_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
             <?= $tok('listing_default_join_form_template', '{captcha_question}', '{captcha_question}', 'The captcha question text on its own.') ?>
-            <?= $tok('listing_default_join_form_template', '{submit_button}', '{submit_button}', 'The "Join Fanlisting" submit button.') ?>
-            <?= $tok('listing_default_join_form_template', '{clear_button}',  '{clear_button}',  'The "Clear" reset button.') ?>
+            <?= $tok('listing_default_join_form_template', '{submit_button}', '{submit_button}', 'The "Join Listing" submit button.') ?>
+            <?= $tok('listing_default_join_form_template', '{clear_button}',  '{clear_button}',  'The "Clear Form" button.') ?>
           </tbody></table>
         </div>
       </details>

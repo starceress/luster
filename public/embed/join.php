@@ -201,8 +201,8 @@ if ($_lusterJoinFormTpl !== '') {
         '{captcha_block}'                 => $_lusterF['captcha_answer'],
         '{captcha_block_input}'           => $_lusterF['captcha_answer_input'],
         '{captcha_question}'              => View::e($_lusterCaptchaQ),
-        '{submit_button}'                 => '<button type="submit" class="fl-submit">Join Fanlisting</button>',
-        '{clear_button}'                  => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        '{submit_button}'                 => '<button type="submit" class="fl-submit">Join Listing</button>',
+        '{clear_button}'                  => '<button type="reset" class="fl-btn-secondary">Clear Form</button>',
     ];
 
     $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterJoinFormTpl, $_lusterTokens);

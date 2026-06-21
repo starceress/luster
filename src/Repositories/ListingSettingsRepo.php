@@ -752,7 +752,6 @@ final class ListingSettingsRepo
     public static function defaultCodesTemplate(): string
     {
         return '<h2>Codes</h2>' . "\n"
-            . '<div class="fl-embed fl-embed--codes">' . "\n"
             . '{if_no_codes}<p>No codes available yet.</p>{/if_no_codes}' . "\n"
             . '{if_codes}' . "\n"
             . "\n"
@@ -778,8 +777,7 @@ final class ListingSettingsRepo
             . '{/each_size_group}' . "\n"
             . '</div>' . "\n"
             . "\n"
-            . '{/if_codes}' . "\n"
-            . '</div>';
+            . '{/if_codes}';
     }
 
     /**

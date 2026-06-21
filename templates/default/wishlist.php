@@ -24,7 +24,7 @@ if (isset($wishlist_template_html) && $wishlist_template_html !== null) {
 }
 
 if (empty($entries)) {
-    echo '<div class="fl-embed fl-embed--wishlist"><p class="fl-empty">No wishlist entries to display.</p></div>';
+    echo '<p class="fl-empty">No wishlist entries to display.</p>';
     return;
 }
 
@@ -33,8 +33,6 @@ $typeLabels = [
     'granted' => 'Granted',
     'wanted'  => 'Wanted',
 ];
-
-echo '<div class="fl-embed fl-embed--wishlist">';
 
 if ($filter_type === 'all') {
     // Group by type in a defined order
@@ -106,5 +104,3 @@ if ($filter_type === 'all') {
 if ($pagination !== '') {
     echo '<div class="fl-pagination-wrap">' . $pagination . '</div>';
 }
-
-echo '</div>';

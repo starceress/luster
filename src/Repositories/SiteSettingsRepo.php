@@ -252,8 +252,6 @@ class SiteSettingsRepo
     public static function defaultWishlistTemplate(): string
     {
         return <<<'HTML'
-<div class="fl-embed fl-embed--wishlist">
-
 {if_has_top}
 <h2>Top Wanted</h2>
 {each_wishlist_item_top}
@@ -298,7 +296,6 @@ class SiteSettingsRepo
 </div>
 {/each_wishlist_item_granted}
 {/if_has_granted}
-</div>
 HTML;
     }
 
@@ -327,8 +324,7 @@ HTML;
 
     public static function defaultCollectiveCodesTemplate(): string
     {
-        return '<div class="fl-embed fl-embed--codes">' . "\n"
-            . '{if_no_codes}<p>No codes available yet.</p>{/if_no_codes}' . "\n"
+        return '{if_no_codes}<p>No codes available yet.</p>{/if_no_codes}' . "\n"
             . '{if_codes}' . "\n"
             . "\n"
             . '<div class="fl-codes">' . "\n"
@@ -353,8 +349,7 @@ HTML;
             . '{/each_size_group}' . "\n"
             . '</div>' . "\n"
             . "\n"
-            . '{/if_codes}' . "\n"
-            . '</div>';
+            . '{/if_codes}';
     }
 
     /**
@@ -405,8 +400,7 @@ HTML;
      */
     public static function defaultCollectiveKimListOverviewTemplate(): string
     {
-        return '<div class="fl-embed fl-embed--kim-list">' . "\n"
-            . '{if_no_listings}<p>No fanlistings with sign-ups yet.</p>{/if_no_listings}' . "\n"
+        return '{if_no_listings}<p>No fanlistings with sign-ups yet.</p>{/if_no_listings}' . "\n"
             . "\n"
             . '{if_has_listings}' . "\n"
             . '<ul>' . "\n"
@@ -416,8 +410,7 @@ HTML;
             . '{/each_kim_listing}' . "\n"
             . "\n"
             . '</ul>' . "\n"
-            . '{/if_has_listings}' . "\n"
-            . '</div>';
+            . '{/if_has_listings}';
     }
 
     /**
@@ -425,8 +418,7 @@ HTML;
      */
     public static function defaultCollectiveKimListSubjectTemplate(): string
     {
-        return '<div class="fl-embed fl-embed--kim-subject">' . "\n"
-            . '<h3>KIM &mdash; {listing_subject}</h3>' . "\n"
+        return '<h3>KIM &mdash; {listing_subject}</h3>' . "\n"
             . '{if_kim_overview_url}<p><a href="{kim_overview_url}">&larr; Back to KIM List</a></p>{/if_kim_overview_url}' . "\n"
             . "\n"
             . '{if_kim_signup_url}<p>Interested in adopting this fanlisting? <a href="{kim_signup_url}">Click here to sign-up</a></p>{/if_kim_signup_url}' . "\n"
@@ -443,8 +435,7 @@ HTML;
             . "\n"
             . '{/each_kim_member}' . "\n"
             . '</ul>' . "\n"
-            . '{/if_has_kim_members}' . "\n"
-            . '</div>';
+            . '{/if_has_kim_members}';
     }
 
     /**

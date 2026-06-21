@@ -496,8 +496,6 @@ $_isOldMembersTemplate = static function (?string $v): bool {
     if ($v === null || trim($v) === '') return false;
     // Pre-sort-bar default: starts with {if_members} and has no sort link tokens
     if (str_starts_with(ltrim($v), '{if_members}') && !str_contains($v, '{sort_link_all}')) return true;
-    // Old default that included the now-removed {stats_line} paragraph
-    if (str_contains($v, '{stats_line}') && str_contains($v, '{sort_link_all}')) return true;
     return false;
 };
 // When no per-listing override exists, show the global default if one is set, otherwise the built-in.
@@ -932,8 +930,8 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('join_form_template', '{captcha_block}',       '{captcha_block}',       'The captcha question field, with label and wrapper.') ?>
             <?= $ltok('join_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
             <?= $ltok('join_form_template', '{captcha_question}', '{captcha_question}', 'The captcha question text on its own, e.g. for use inside a custom label.') ?>
-            <?= $ltok('join_form_template', '{submit_button}', '{submit_button}', 'The "Join Fanlisting" submit button.') ?>
-            <?= $ltok('join_form_template', '{clear_button}',  '{clear_button}',  'The "Clear" reset button.') ?>
+            <?= $ltok('join_form_template', '{submit_button}', '{submit_button}', 'The "Join Listing" submit button.') ?>
+            <?= $ltok('join_form_template', '{clear_button}',  '{clear_button}',  'The "Clear Form" button.') ?>
           </tbody></table>
         </div>
       </details>

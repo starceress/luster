@@ -30,14 +30,6 @@
   --fl-input-radius:  3px;
 }
 
-/* ── Per-embed root wrapper ──────────────────────────────────────────────────── */
-
-.fl-embed {
-  --fl: ; /* Intentionally empty — inherits font, color, line-height from host.
-             Serves as a specificity anchor for scoped overrides:
-               .fl-embed .fl-member-list { ... }  (specificity 0,2,0) */
-}
-
 /* ── Global utilities ────────────────────────────────────────────────────────── */
 
 .fl-empty {
@@ -394,13 +386,13 @@
   font-size: 0.9em;
 }
 
-.fl-embed .fl-member-list {
+.fl-member-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.fl-embed .fl-member-item {
+.fl-member-item {
   padding: 0.35em 0;
   line-height: 1.5;
 }
@@ -459,7 +451,7 @@
 
 /* ── Affiliates ──────────────────────────────────────────────────────────────── */
 
-.fl-embed .fl-affiliate-list {
+.fl-affiliate-list {
   display: flex;
   flex-wrap: wrap;
   gap: var(--fl-gap, 0.5em);
@@ -894,13 +886,13 @@
   font-size: 0.95em;
 }
 
-.fl-embed .fl-kim-list {
+.fl-kim-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.fl-embed .fl-kim-item {
+.fl-kim-item {
   padding: 0.3em 0;
 }
 
@@ -925,13 +917,13 @@
   margin: 0 0 0.5em;
 }
 
-.fl-embed .fl-kim-member-list {
+.fl-kim-member-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.fl-embed .fl-kim-member-item {
+.fl-kim-member-item {
   padding: 0.3em 0;
 }
 

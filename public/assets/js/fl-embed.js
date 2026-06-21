@@ -7,7 +7,7 @@
   }
 
   function wireDeleteMembershipConfirm() {
-    document.querySelectorAll('.fl-embed--update form.fl-form:not([data-fl-delete-wired])').forEach(function (form) {
+    document.querySelectorAll('form.fl-form-update:not([data-fl-delete-wired])').forEach(function (form) {
       var box = form.querySelector('#upd-delete-membership');
       if (!box) { return; }
       form.setAttribute('data-fl-delete-wired', '1');

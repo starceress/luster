@@ -16,36 +16,32 @@ use Luster\Core\View;
 
 if (isset($form_html)) {
     ?>
-<div class="fl-embed fl-embed--reset">
-  <?php if ($errors !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
-  <?= $form_html ?>
-</div>
+<?php if ($errors !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
+<?= $form_html ?>
     <?php
     return;
 }
 ?>
-<div class="fl-embed fl-embed--reset">
-  <?php if ($errors !== ''): ?>
-    <div class="fl-errors"><?= $errors ?></div>
-  <?php endif; ?>
+<?php if ($errors !== ''): ?>
+  <div class="fl-errors"><?= $errors ?></div>
+<?php endif; ?>
 
-  <p class="fl-hint">
-    If you have lost or forgotten your password, enter the email address you joined with below and a reset link will be sent to you. For your security, reset links expire after 1 hour.
-  </p>
+<p class="fl-hint">
+  If you have lost or forgotten your password, enter the email address you joined with below and a reset link will be sent to you. For your security, reset links expire after 1 hour.
+</p>
 
-  <form class="fl-form fl-form-reset" method="POST" action="<?= View::e($form_action) ?>">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
+<form class="fl-form fl-form-reset" method="POST" action="<?= View::e($form_action) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
-    <?= $f['email'] ?>
+  <?= $f['email'] ?>
 
-    <!-- Honeypot -->
-    <div style="display:none" aria-hidden="true">
-      <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
-    </div>
+  <!-- Honeypot -->
+  <div style="display:none" aria-hidden="true">
+    <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
+  </div>
 
-    <div class="fl-form-actions">
-      <button type="submit" class="fl-submit">Send Reset Link</button>
-    </div>
-  </form>
-</div>
+  <div class="fl-form-actions">
+    <button type="submit" class="fl-submit">Send Reset Link</button>
+  </div>
+</form>

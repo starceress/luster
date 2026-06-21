@@ -22,39 +22,35 @@ if (isset($success_html) && $success_html !== '') {
 }
 if (isset($form_html)) {
     ?>
-<div class="fl-embed fl-embed--adopt">
-  <?php if ($errors !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
-  <?= $form_html ?>
-</div>
+<?php if ($errors !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
+<?= $form_html ?>
     <?php
     return;
 }
 ?>
-<div class="fl-embed fl-embed--adopt">
 
-  <?php if ($errors !== ''): ?>
-    <div class="fl-errors"><?= $errors ?></div>
-  <?php endif; ?>
+<?php if ($errors !== ''): ?>
+  <div class="fl-errors"><?= $errors ?></div>
+<?php endif; ?>
 
-  <form class="fl-form fl-form-adopt" method="POST" action="<?= View::e($form_action) ?>">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
+<form class="fl-form fl-form-adopt" method="POST" action="<?= View::e($form_action) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
-    <?= $f['name'] ?>
-    <?= $f['email'] ?>
-    <?= $f['url'] ?>
-    <?= $f['message'] ?>
+  <?= $f['name'] ?>
+  <?= $f['email'] ?>
+  <?= $f['url'] ?>
+  <?= $f['message'] ?>
 
-    <!-- Honeypot — hidden from humans, filled by bots -->
-    <div style="display:none" aria-hidden="true">
-      <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
-    </div>
+  <!-- Honeypot — hidden from humans, filled by bots -->
+  <div style="display:none" aria-hidden="true">
+    <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
+  </div>
 
-    <?= $f['captcha_answer'] ?>
+  <?= $f['captcha_answer'] ?>
 
-    <div class="fl-form-actions">
-      <button type="submit" class="fl-submit">Submit Application</button>
-      <button type="reset" class="fl-btn-secondary">Clear</button>
-    </div>
-  </form>
-</div>
+  <div class="fl-form-actions">
+    <button type="submit" class="fl-submit">Submit Application</button>
+    <button type="reset" class="fl-btn-secondary">Clear</button>
+  </div>
+</form>

@@ -519,7 +519,7 @@ final class UpdateController
                 '{captcha_block_input}'    => '',
                 '{captcha_question}'       => '',
                 '{field_remove}'           => '',
-                '{submit_button}'          => '<button type="submit" class="fl-submit">Sign in</button>',
+                '{submit_button}'          => '<button type="submit" class="fl-submit">Sign In</button>',
                 '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
                 '{sign_out_url}'           => '#',
                 '{field_email}'            => '',

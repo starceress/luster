@@ -60,7 +60,10 @@ final class MembersController
 
         $baseUrl     = $this->app->getBaseUrl();
         $membersBase = $baseUrl . '/members/' . $listingId;
-        $perPage     = max(1, (int) $this->app->getConfig()->get('per_page', 50));
+        $perPageDb   = $settingsRepo->getMembersPerPage($listingId);
+        $perPage     = $perPageDb > 0
+            ? $perPageDb
+            : max(1, (int) $this->app->getConfig()->get('per_page', 50));
         $page        = max(1, (int) ($request->query('page', 1)));
 
         // Whitelist $sort; fall back to 'country'

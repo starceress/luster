@@ -99,10 +99,10 @@ $_lusterBaseUrl     = $_lusterApp->getBaseUrl();
 // includes this embed, so visitors never leave it when paging or sorting.
 $_lusterMembersBase = strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/';
 
-// $luster_per_page — override config value when set
-$_lusterPerPage = (isset($luster_per_page) && (int) $luster_per_page > 0)
+// $luster_per_page — resolved after settings repo is available (see below)
+$_lusterPerPageOverride = (isset($luster_per_page) && (int) $luster_per_page > 0)
     ? (int) $luster_per_page
-    : max(1, (int) $_lusterApp->getConfig()->get('per_page', 50));
+    : 0;
 
 $_lusterPage    = max(1, (int) ($_GET['page'] ?? 1));
 
@@ -129,6 +129,17 @@ $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->get
 // ---------------------------------------------------------------------------
 
 $_lusterSettingsRepo     = new ListingSettingsRepo($_lusterApp->getDatabase());
+
+// Resolve per-page: embed override > per-listing setting > global config
+if ($_lusterPerPageOverride > 0) {
+    $_lusterPerPage = $_lusterPerPageOverride;
+} else {
+    $_lusterPerPageDb = $_lusterSettingsRepo->getMembersPerPage($_lusterListingId);
+    $_lusterPerPage   = $_lusterPerPageDb > 0
+        ? $_lusterPerPageDb
+        : max(1, (int) $_lusterApp->getConfig()->get('per_page', 50));
+}
+
 $_lusterTemplates        = $_lusterSettingsRepo->getTemplates($_lusterListingId);
 $_lusterGlobalTpls       = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
 $_lusterMembResolved     = ListingTemplateResolver::resolve(
