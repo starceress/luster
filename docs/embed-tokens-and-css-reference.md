@@ -685,18 +685,8 @@ input element for custom layouts. Edit in Admin → Collective → Templates.
 
 | Token | What it means |
 | --- | --- |
-| `{site_name}` | The collective/site name. |
-| `{field_name}` / `{field_name_input}` | Name field (full block / raw input). |
-| `{field_current_email}` / `{field_current_email_input}` | Current email field. |
-| `{field_current_password}` / `{field_current_password_input}` | Current password field. |
-| `{field_fanlisting_id}` / `{field_fanlisting_id_input}` | Fanlisting selector. |
-| `{field_new_email}` / `{field_new_email_input}` | New email field. |
-| `{field_new_url}` / `{field_new_url_input}` | New website URL field. |
-| `{field_new_password}` / `{field_new_password_input}` | New password field. |
-| `{field_new_password_confirm}` / `{field_new_password_confirm_input}` | Confirm new password field. |
-| `{field_send_copy}` / `{field_send_copy_input}` | Email copy opt-in checkbox. |
-| `{captcha_block}` / `{captcha_block_input}` | CAPTCHA field (full block / raw input). |
-| `{captcha_question}` | The arithmetic question text only (e.g. `2 + 3`). |
+| `{field_email}` / `{field_email_input}` | Email field (full block / raw input). |
+| `{field_password}` / `{field_password_input}` | Password field (full block / raw input). |
 | `{lost_password_url}` | URL to the KIM password reset page. |
 | `{if_lost_password_url}...{/if_lost_password_url}` | Shows only when a reset URL is available. |
 | `{submit_button}` | The submit button. |
@@ -711,19 +701,16 @@ non-empty. This is a single template for both steps — use `{if_step_email}` an
 
 | Token | What it means |
 | --- | --- |
-| `{site_name}` | The collective/site name. |
 | `{if_step_email}...{/if_step_email}` | Block shown on the email-entry step only. |
 | `{if_step_confirm}...{/if_step_confirm}` | Block shown on the new-password step only. |
 | `{field_email}` / `{field_email_input}` | Email field (email step). |
-| `{field_fanlisting_id}` / `{field_fanlisting_id_input}` | Fanlisting selector (email step). |
-| `{captcha_block}` / `{captcha_block_input}` | CAPTCHA field (email step). |
-| `{captcha_question}` | The arithmetic question text (email step). |
 | `{field_password}` / `{field_password_input}` | New password field (confirm step). |
 | `{field_password_confirm}` / `{field_password_confirm_input}` | Confirm new password field (confirm step). |
 | `{reset_request_url}` | URL to the email-entry step for a "request a new link" fallback. |
 | `{if_token_valid}...{/if_token_valid}` | Shows only when the reset token is valid (confirm step). |
 | `{if_token_invalid}...{/if_token_invalid}` | Shows only when the token has expired or is invalid (confirm step). |
 | `{submit_button}` | The submit button (label changes per step). |
+| `{clear_button}` | A reset button that clears the form. |
 
 ### Legacy KIM Member Row Template Tokens
 

@@ -421,9 +421,17 @@ final class UpdateController
             unset($updateData['password']);
         }
 
+        // Strip unchanged fields so password-only submissions don't create no-op queue entries
+        $currentData = (array) $member;
+        foreach ($updateData as $k => $v) {
+            if (array_key_exists($k, $currentData) && (string) $currentData[$k] === (string) $v) {
+                unset($updateData[$k]);
+            }
+        }
+
         $shouldQueue = $settingsRepo->getQueueUpdates($listingId);
 
-        if ($shouldQueue) {
+        if ($shouldQueue && $updateData !== []) {
             $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
             $pendingRepo->insert($listingId, $email, $updateData);
 

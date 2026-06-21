@@ -486,7 +486,7 @@ $epSafe = View::e($ep);
             <table class="data-table">
               <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_reset_step</code></td><td>Most sites should leave this out. Use <code>'confirm'</code> only if you made a separate page where members enter their new password.</td></tr>
+                <tr><td class="act-col" colspan="2">The embed auto-detects the reset step from the URL. If the URL has <code>?token=...</code>, it shows the new-password form.</td></tr>
               </tbody>
             </table>
             </div>

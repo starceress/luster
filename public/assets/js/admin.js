@@ -1196,7 +1196,7 @@ document.addEventListener('drop', function (e) {
       email:           md.fanEmail       || '',
       url:             md.fanUrl         || '',
       added_at:        '',
-      listing_name:    md.listingName    || '',
+      listing_title:    md.listingName    || '',
       listing_subject: md.listingSubject || '',
       listing_url:     md.listingUrl     || '',
       listing_title:   md.listingName    || '',
@@ -2998,7 +2998,7 @@ document.addEventListener('click', function (e) {
       fan_country:     'United States',
       name:            'Fan Name',
       email:           'fan@example.com',
-      listing_name:    listName,
+      listing_title:    listName,
       listing_title:   listName,
       listing_subject: selSubject,
       listing_url:     selUrl,
@@ -4729,7 +4729,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       .replace(/\{aff_name\}/g,         'My Fanlisting')
       .replace(/\{aff_email\}/g,        'contact@myfanlisting.example')
       .replace(/\{aff_url\}/g,          'https://myfanlisting.example')
-      .replace(/\{listing_name\}/g,     sampleListingName  || sampleSite)
+      .replace(/\{listing_title\}/g,    sampleListingName  || sampleSite)
       .replace(/\{listing_subject\}/g,  sampleListingSubject)
       .replace(/\{listing_url\}/g,      sampleListingUrl   || sampleSiteUrl)
       .replace(/\{listing_title\}/g,    sampleListingName  || sampleSite)
