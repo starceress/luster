@@ -590,8 +590,8 @@ return [
         $router->post('/admin/compat-test',
             EmbedCodesController::class, 'compatTest');
 
-        // ── Compat bridge download ────────────────────────────────────
-        $router->get('/admin/compat-bridge',
+        // ── Compat bridge downloads ───────────────────────────────────
+        $router->get('/admin/compat-bridge/{set}',
             SettingsController::class, 'compatBridgeDownload');
 
         // ── Import members (targeted SQL member import) ───────────────

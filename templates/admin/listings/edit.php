@@ -1730,9 +1730,9 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   <summary class="card-head">Compatibility Wrappers</summary>
   <div class="card-body">
     <p class="form-hint mb-md">
-      To migrate your existing Enthusiast fanlisting pages to Luster, download the
-      Enthusiast Compatibility Bridge from <a href="<?= $b ?>/admin/settings#panel-system" class="link">Settings &rarr; System</a>.
-      The bridge auto-detects which listing to serve — no per-page editing needed.
+      To migrate your existing fanlisting pages to Luster, download a compatibility bridge
+      from the <a href="<?= $b ?>/admin/collective" class="link">Collective</a> page.
+      Bridges are available for Enthusiast, Listing Admin, and CodeSort.
     </p>
   </div>
 </details>

@@ -2009,8 +2009,15 @@ final class SettingsController extends AdminController
 
     public function compatBridgeDownload(Request $request, array $params): Response
     {
+        $set = (string) ($params['set'] ?? '');
+        $allowed = ['enthusiast', 'listing-admin', 'codesort'];
+
+        if (!in_array($set, $allowed, true)) {
+            return Response::notFound('Unknown bridge type.');
+        }
+
         $lusterBase = defined('LUSTER_BASE') ? \LUSTER_BASE : dirname(__DIR__, 3);
-        $sourceDir  = $lusterBase . '/public/compat/enthusiast';
+        $sourceDir  = $lusterBase . '/public/compat/' . $set;
 
         if (!is_dir($sourceDir)) {
             return Response::notFound('Compatibility wrapper directory not found.');
@@ -2022,20 +2029,18 @@ final class SettingsController extends AdminController
         }
 
         $zip = new \ZipArchive();
-        $tmp = sys_get_temp_dir() . '/luster_compat_bridge_' . bin2hex(random_bytes(4)) . '.zip';
+        $tmp = sys_get_temp_dir() . '/luster_compat_bridge_' . $set . '_' . bin2hex(random_bytes(4)) . '.zip';
 
         if ($zip->open($tmp, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
             return Response::plain('Could not create ZIP archive.', 500);
         }
 
-        // Add bridge config with the real install path
         $bridgeSource = file_get_contents($bridgeTemplate);
         if ($bridgeSource !== false) {
             $bridgeSource = str_replace('%%LUSTER_PATH%%', str_replace('\\', '/', $lusterBase), $bridgeSource);
             $zip->addFromString('luster-bridge.php', $bridgeSource);
         }
 
-        // Add all wrapper files
         foreach (new \DirectoryIterator($sourceDir) as $file) {
             if (!$file->isFile() || $file->getExtension() !== 'php') {
                 continue;
@@ -2055,7 +2060,7 @@ final class SettingsController extends AdminController
             return Response::plain('Could not read generated ZIP.', 500);
         }
 
-        return Response::download($zipContents, 'luster-enthusiast-bridge.zip', 'application/zip');
+        return Response::download($zipContents, 'luster-' . $set . '-bridge.zip', 'application/zip');
     }
 
 }

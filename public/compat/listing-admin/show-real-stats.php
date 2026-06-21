@@ -1,20 +1,17 @@
 <?php
 /**
- * Luster compatibility wrapper for Listing Admin's show-real-stats.php (collective stats)
+ * Luster compatibility wrapper — Listing Admin show-real-stats.php
  *
- * Drop this file into your Listing Admin installation directory.
- * No listing ID is needed — renders collective-wide statistics.
- *
- * Optional: $luster_path (string) — absolute path to Luster install root
- *           (not needed when LUSTER_BASE is already defined)
+ * Drop this + luster-bridge.php into your Listing Admin folder.
+ * The listing is auto-detected from Listing Admin's $listid variable.
  */
 
-$_luster_root = defined('LUSTER_BASE') ? LUSTER_BASE : ($luster_path ?? '');
+require_once __DIR__ . '/luster-bridge.php';
 
-if ($_luster_root === '') {
-    echo '<!-- Luster compat: set $luster_path or define LUSTER_BASE -->';
+if (!isset($luster_fanlisting_id) || (int) $luster_fanlisting_id === 0) {
+    echo '<!-- Luster compat: listing not found. Set $listid or $luster_listing_id. -->';
     return;
 }
 
 $luster_return = false;
-require $_luster_root . '/public/embed/collective-stats.php';
+require LUSTER_PATH . '/public/embed/stats.php';

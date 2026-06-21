@@ -1,21 +1,12 @@
 <?php
 /**
- * Luster compatibility wrapper for Listing Admin's show-wishlist.php
+ * Luster compatibility wrapper — Listing Admin show-wishlist.php
  *
- * Drop this file into your Listing Admin installation directory.
- * No listing ID is needed — renders the collective wishlist.
- * Requires the Wishlist add-on to be installed in Luster.
- *
- * Optional: $luster_path (string) — absolute path to Luster install root
- *           (not needed when LUSTER_BASE is already defined)
+ * Drop this + luster-bridge.php into your Listing Admin folder.
+ * No listing ID needed.
  */
 
-$_luster_root = defined('LUSTER_BASE') ? LUSTER_BASE : ($luster_path ?? '');
-
-if ($_luster_root === '') {
-    echo '<!-- Luster compat: set $luster_path or define LUSTER_BASE -->';
-    return;
-}
+require_once __DIR__ . '/luster-bridge.php';
 
 $luster_return = false;
-require $_luster_root . '/public/embed/wishlist.php';
+require LUSTER_PATH . '/public/embed/wishlist.php';

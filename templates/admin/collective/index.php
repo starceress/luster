@@ -210,6 +210,38 @@ foreach (array_keys($quickActions) as $qaKey) {
   </div>
 
   <div class="card">
+    <div class="card-head">Migration &amp; Bridges</div>
+    <div class="collective-action-list">
+
+      <a href="<?= $b ?>/admin/import" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+        <span class="collective-action-label">Import Data</span>
+      </a>
+
+      <a href="<?= $b ?>/admin/import-members" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('members') ?></span>
+        <span class="collective-action-label">Import Members Only</span>
+      </a>
+
+      <a href="<?= $b ?>/admin/compat-bridge/enthusiast" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+        <span class="collective-action-label">Enthusiast Bridge (ZIP)</span>
+      </a>
+
+      <a href="<?= $b ?>/admin/compat-bridge/listing-admin" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+        <span class="collective-action-label">Listing Admin Bridge (ZIP)</span>
+      </a>
+
+      <a href="<?= $b ?>/admin/compat-bridge/codesort" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+        <span class="collective-action-label">CodeSort Bridge (ZIP)</span>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-head">Manage Collective</div>
     <div class="collective-action-list">
 
