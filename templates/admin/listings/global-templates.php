@@ -149,6 +149,18 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
           <div class="pc-section-label">Statistics</div>
+
+          <div class="listing-field-row listing-field-row--top" style="margin-bottom: 1em">
+            <label class="listing-field-label" for="gl-newmembers-limit">Default newest members shown</label>
+            <div>
+              <input id="gl-newmembers-limit" type="number" name="stat_newmembers_limit" class="form form--compact"
+                     min="0" max="255"
+                     value="<?= View::e((string) ($stat_newmembers_limit ?? '')) ?>"
+                     placeholder="5">
+              <p class="form-hint">Global default for <code>{stat_newmembers}</code>. Leave blank for the built-in default (5). Set 0 to show all. Per-listing overrides this.</p>
+            </div>
+          </div>
+
           <div class="form-group">
             <textarea name="listing_default_stats_template" id="listing_default_stats_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_stats_template')) ?></textarea>
           </div>
@@ -397,7 +409,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
             <?= $tok('listing_default_stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
             <?= $tok('listing_default_stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Up to 5 newest approved members, linked to their websites when available. Shows &ldquo;&hellip;and more&rdquo; when there are more than 5 total.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Newest approved members, linked to their websites when available. Count controlled by the &ldquo;Default newest members shown&rdquo; setting above (per-listing can override). Shows &ldquo;&hellip;and more&rdquo; when there are more total.') ?>
             <?= $tok('listing_default_stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
             <?= $tok('listing_default_stats_template', '{stat_growth}',            '{stat_growth}',            'Average members per day, with unit (e.g. &ldquo;0.15 members/day&rdquo;).') ?>
             <?= $tok('listing_default_stats_template', '{stat_growth_rate}',       '{stat_growth_rate}',       'Numeric growth rate only (e.g. &ldquo;0.15&rdquo;). Use this to build your own formatting.') ?>
@@ -483,6 +495,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Shows a text link or button that reveals the full application form inline. Empty when applications are disabled for the listing.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>

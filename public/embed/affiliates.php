@@ -173,6 +173,44 @@ if ($_lusterSectionTemplate !== null) {
         $_lusterAffApplyUrl = CollectiveFormUrlResolver::resolve($_lusterAffOverride, $_lusterSiteUrl, $_lusterBaseUrl . '/affiliate-apply/collective');
     }
 
+    // {affiliate_apply_toggle} — collapsible inline affiliate application form
+    $_lusterToggleHtml = '';
+    if (str_contains($_lusterSectionHtml, '{affiliate_apply_toggle}')) {
+        $_lusterApplyEnabled = false;
+        $_lusterApplyStyle   = 'link';
+
+        if ($_lusterListingId > 0) {
+            $_lusterAffApplySettings = $_lusterSettingsRepo->getAffiliateApplySettings($_lusterListingId);
+            $_lusterApplyEnabled     = (bool) ($_lusterAffApplySettings['enabled'] ?? false);
+            $_lusterApplyStyle       = $_lusterSettingsRepo->getAffiliateApplyStyle($_lusterListingId);
+        } else {
+            $_lusterSiteRepoToggle  = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterApp->getDatabase());
+            $_lusterApplyEnabled    = ($_lusterSiteRepoToggle->get('collective_affiliate_apply_enabled') ?? '1') === '1';
+            $_lusterApplyStyle      = (string) ($_lusterSiteRepoToggle->get('collective_affiliate_apply_style') ?? 'link');
+            if (!in_array($_lusterApplyStyle, ['link', 'button'], true)) {
+                $_lusterApplyStyle = 'link';
+            }
+        }
+
+        if ($_lusterApplyEnabled) {
+            $_lusterReturnOrig = $luster_return ?? false;
+            $luster_return     = true;
+            $_lusterApplyFormHtml = (string) require __DIR__ . '/affiliate-apply.php';
+            $luster_return     = $_lusterReturnOrig;
+
+            $_lusterToggleHtml = '<details class="fl-affiliate-apply-collapsible">'
+                . '<summary class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($_lusterApplyStyle) . '">'
+                . 'Apply to become an affiliate?'
+                . '</summary>'
+                . '<div class="fl-affiliate-apply-form-wrap">'
+                . $_lusterApplyFormHtml
+                . '</div>'
+                . '</details>';
+        }
+
+        $_lusterSectionHtml = str_replace('{affiliate_apply_toggle}', $_lusterToggleHtml, $_lusterSectionHtml);
+    }
+
     $_lusterSectionHtml = str_replace(
         ['{affiliates_count}', '{affiliate_apply_url}'],
         [(string) $total, htmlspecialchars($_lusterAffApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
@@ -195,20 +233,6 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
     'base_url'        => $_lusterApp->getBaseUrl(),
     'theme_path'      => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
-
-// Conditionally append the affiliate application form if enabled for this listing
-// (per-listing only — collective has no per-listing application settings).
-if (!$_lusterIsCollective) {
-    $_lusterAffApplySettings = $_lusterSettingsRepo->getAffiliateApplySettings($_lusterListingId);
-    if ($_lusterAffApplySettings['enabled'] ?? false) {
-        $_lusterAffiliatesHtmlSaved = $_lusterHtml;
-        $_lusterReturnOrig          = $luster_return ?? false;
-        $luster_return              = true;
-        $_lusterApplyHtml           = (string) require __DIR__ . '/affiliate-apply.php';
-        $_lusterHtml                = $_lusterAffiliatesHtmlSaved . $_lusterApplyHtml;
-        $luster_return              = $_lusterReturnOrig;
-    }
-}
 
 
 if ($luster_return ?? false) {

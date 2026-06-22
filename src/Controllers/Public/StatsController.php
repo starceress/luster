@@ -49,22 +49,29 @@ final class StatsController
             return Response::notFound('Stats not available for this listing.');
         }
 
-        // ── Load stats ──────────────────────────────────────────────────────
+        // ── Load settings + stats ───────────────────────────────────────────
 
         $prefix     = $listing->dbprefix;
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
 
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $siteSettingsRepo = new SiteSettingsRepo($this->app->getDatabase());
+
+        $newestLimit = $this->resolveNewestLimit(
+            $settingsRepo->getStatNewmembersLimit($listingId),
+            $siteSettingsRepo->get('stat_newmembers_limit'),
+        );
+
         $approved   = $memberRepo->countApproved($prefix);
         $pending    = $memberRepo->countPending($prefix);
         $countries  = $memberRepo->countUniqueCountries($prefix);
-        $newest     = $memberRepo->getNewestMembers($prefix, 5);
+        $newest     = $memberRepo->getNewestMembers($prefix, $newestLimit);
         $memberDate = $memberRepo->getMostRecentApprovedDate($prefix);
 
         // ── Load template ───────────────────────────────────────────────────
 
-        $settingsRepo   = new ListingSettingsRepo($this->app->getDatabase());
         $templates      = $settingsRepo->getTemplates($listingId);
-        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $globalTemplates = $siteSettingsRepo->getGlobalTemplates();
         $resolved       = ListingTemplateResolver::resolve(
             $templates['stats_template'] ?? null,
             $globalTemplates['listing_default_stats_template'] ?? null,
@@ -175,6 +182,17 @@ final class StatsController
      *
      * @param array<int, array{name: string, url: string}> $members
      */
+    private function resolveNewestLimit(?int $perListing, ?string $global): int
+    {
+        if ($perListing !== null) {
+            return $perListing;
+        }
+        if ($global !== null && $global !== '' && ctype_digit($global)) {
+            return (int) $global;
+        }
+        return 5;
+    }
+
     private function formatNewestMembers(array $members, int $totalApproved): string
     {
         if ($members === []) {

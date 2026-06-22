@@ -503,14 +503,18 @@ final class MemberRepo
      */
     public function getNewestMembers(string $prefix, int $limit): array
     {
-        $p    = $this->resolveTable($prefix);
-        $stmt = $this->db->prepare(
-            "SELECT name, url, showurl FROM {$p}
-             WHERE {$this->approvedWhere}
-             ORDER BY added DESC
-             LIMIT :limit"
-        );
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $p   = $this->resolveTable($prefix);
+        $sql = "SELECT name, url, showurl FROM {$p}
+                WHERE {$this->approvedWhere}
+                ORDER BY added DESC";
+
+        if ($limit > 0) {
+            $sql .= ' LIMIT :limit';
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        } else {
+            $stmt = $this->db->prepare($sql);
+        }
         $stmt->execute();
 
         return array_map(

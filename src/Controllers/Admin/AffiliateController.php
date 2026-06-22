@@ -204,8 +204,11 @@ final class AffiliateController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        // Listing context — comes from route {fid} or query param
+        // Listing context — comes from route {fid}, query param, or ?listing= preselect
         $contextFid = (int) ($params['fid'] ?? $request->query('context_fid', 0));
+        if ($contextFid === 0) {
+            $contextFid = (int) $request->query('listing', 0);
+        }
 
         $contextListing = $contextFid > 0
             ? (static function (array $ls, int $fid): ?object { foreach ($ls as $l) { if ((int) $l->id === $fid) return $l; } return null; })($listings, $contextFid)

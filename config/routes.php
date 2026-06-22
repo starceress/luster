@@ -167,6 +167,8 @@ return [
             ListingController::class, 'saveTemplates');
         $router->post('/admin/listings/{id}/templates/preview',
             ListingController::class, 'templatesPreview');
+        $router->post('/admin/listings/{id}/templates/reset-all',
+            ListingController::class, 'resetAllTemplates');
         // Old per-listing email-template routes — redirect to unified page
         $router->get('/admin/listings/{id}/email-templates',
             ListingController::class, 'emailTemplatesRedirect');

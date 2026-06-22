@@ -79,8 +79,20 @@ if ($_lusterListing === null || $_lusterListing->upcoming || $_lusterListing->tr
 }
 
 // ---------------------------------------------------------------------------
-// 4. Gather stats
+// 4. Load settings + gather stats
 // ---------------------------------------------------------------------------
+
+$_lusterSettingsRepo    = new ListingSettingsRepo($_lusterApp->getDatabase());
+$_lusterSiteSettingsRepo = new SiteSettingsRepo($_lusterApp->getDatabase());
+
+$_lusterNewestLimit = (static function (?int $pl, ?string $gl): int {
+    if ($pl !== null) return $pl;
+    if ($gl !== null && $gl !== '' && ctype_digit($gl)) return (int) $gl;
+    return 5;
+})(
+    $_lusterSettingsRepo->getStatNewmembersLimit($_lusterListingId),
+    $_lusterSiteSettingsRepo->get('stat_newmembers_limit'),
+);
 
 $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
 $_lusterPrefix     = $_lusterListing->dbprefix;
@@ -88,20 +100,19 @@ $_lusterPrefix     = $_lusterListing->dbprefix;
 $_lusterApproved   = $_lusterMemberRepo->countApproved($_lusterPrefix);
 $_lusterPending    = $_lusterMemberRepo->countPending($_lusterPrefix);
 $_lusterCountries  = $_lusterMemberRepo->countUniqueCountries($_lusterPrefix);
-$_lusterNewest     = $_lusterMemberRepo->getNewestMembers($_lusterPrefix, 5);
+$_lusterNewest     = $_lusterMemberRepo->getNewestMembers($_lusterPrefix, $_lusterNewestLimit);
 $_lusterMemberDate = $_lusterMemberRepo->getMostRecentApprovedDate($_lusterPrefix);
 
 // ---------------------------------------------------------------------------
 // 5. Load template from DB (falls back to default)
 // ---------------------------------------------------------------------------
 
-$_lusterSettingsRepo = new ListingSettingsRepo($_lusterApp->getDatabase());
 $_lusterTemplates    = $_lusterSettingsRepo->getTemplates($_lusterListingId);
 
 // Last Updated — from lstr_fanlisting_settings.last_updated (admin-controlled)
 $_lusterAdminDate = $_lusterSettingsRepo->getLastUpdated($_lusterListingId);
 
-$_lusterGlobalTpls   = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+$_lusterGlobalTpls   = $_lusterSiteSettingsRepo->getGlobalTemplates();
 $_lusterStatResolved = ListingTemplateResolver::resolve(
     $_lusterTemplates['stats_template'] ?? null,
     $_lusterGlobalTpls['listing_default_stats_template'] ?? null,

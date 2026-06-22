@@ -571,6 +571,32 @@ final class SettingsController extends AdminController
         $affOverride = $siteRepo->get('collective_form_url_affiliate_apply');
         $affiliateApplyUrl = CollectiveFormUrlResolver::resolve($affOverride, $siteUrl, $baseUrl . '/affiliate-apply/collective');
 
+        $applyStyle = (string) ($siteRepo->get('collective_affiliate_apply_style') ?? 'link');
+        if (!in_array($applyStyle, ['link', 'button'], true)) {
+            $applyStyle = 'link';
+        }
+        $applyFormHtml = '';
+        if (str_contains($tpl, '{affiliate_apply_toggle}')) {
+            $collectiveAffTpl = $siteRepo->get('collective_affiliate_apply_form_template') ?? '';
+            if ($collectiveAffTpl === '') {
+                $collectiveAffTpl = SiteSettingsRepo::defaultCollectiveAffiliateApplyFormTemplate();
+            }
+            $config    = $this->app->getConfig();
+            $applyFormHtml = $this->coltplPreviewAffiliateApplyForm($collectiveAffTpl, $config);
+        }
+        $toggleHtml = '';
+        if ($applyFormHtml !== '') {
+            $toggleHtml = '<details class="fl-affiliate-apply-collapsible">'
+                . '<summary class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '">'
+                . 'Apply to become an affiliate?'
+                . '</summary>'
+                . '<div class="fl-affiliate-apply-form-wrap">'
+                . $applyFormHtml
+                . '</div>'
+                . '</details>';
+        }
+        $tpl = str_replace('{affiliate_apply_toggle}', $toggleHtml, $tpl);
+
         return str_replace(
             ['{affiliates_count}', '{affiliate_apply_url}'],
             [(string) $total, $e($affiliateApplyUrl)],

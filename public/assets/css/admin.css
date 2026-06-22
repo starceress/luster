@@ -960,6 +960,15 @@ html.fp-codes #codes-filter-panel { display: block; }
 [data-theme="dark"] .filter-panel select,
 [data-theme="dark"] .filter-panel input:not([type="button"]):not([type="submit"]):not([type="reset"]) { background: #322e4d; }
 
+.tpl-filter-panel { background: rgb(var(--ch-preview)/.09); border: 1px solid rgb(var(--ch-preview)/.2); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; }
+.tpl-filter-panel select,
+.tpl-filter-panel input:not([type="button"]):not([type="submit"]):not([type="reset"]) { background: var(--bg-elevated); }
+[data-theme="dark"] .tpl-filter-panel select,
+[data-theme="dark"] .tpl-filter-panel input:not([type="button"]):not([type="submit"]):not([type="reset"]) { background: #322e4d; }
+#tpl-filter-row { flex-wrap: nowrap; }
+#tpl-filter-row > .select-wrap { flex: 0 1 auto; min-width: 160px; }
+#tpl-filter-row > .search-field-wrap { flex: 1 1 0; min-width: 0; }
+
 .filter-toggle { position: relative; }
 
 .filter-dot { display: inline-block; width: 6px; height: 6px; background: var(--success); border-radius: 50%; margin-left: 4px; vertical-align: middle; flex-shrink: 0; }

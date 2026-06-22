@@ -705,8 +705,6 @@ final class ListingSettingsRepo
         return '<h2>Affiliates</h2>' . "\n"
             . '<div class="fl-affiliates-section">' . "\n"
             . '{if_affiliates}' . "\n"
-            . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n"
-            . "\n"
             . '{each_affiliate}' . "\n"
             . '{if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}' . "\n"
             . '{if_no_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank">{aff_name}</a>{/if_no_aff_image}' . "\n"
@@ -714,8 +712,9 @@ final class ListingSettingsRepo
             . '{/each_affiliate}{/if_affiliates}' . "\n"
             . "\n"
             . '{if_no_affiliates}' . "\n"
-            . 'No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a>' . "\n"
+            . 'No affiliates yet.' . "\n"
             . '{/if_no_affiliates}' . "\n"
+            . '{affiliate_apply_toggle}' . "\n"
             . '</div>';
     }
 
@@ -1813,7 +1812,7 @@ final class ListingSettingsRepo
             $stmt = $this->db->prepare(
                 'INSERT INTO lstr_fanlisting_settings (fanlisting_id, code_approval_email)
                  VALUES (:id, :val)
-                 ON DUPLICATE KEY UPDATE code_approval_email = :val'
+                 ON DUPLICATE KEY UPDATE code_approval_email = VALUES(code_approval_email)'
             );
             $stmt->execute(['id' => $listingId, 'val' => $value === null ? null : (int) $value]);
         } catch (\PDOException) {}
@@ -1841,5 +1840,87 @@ final class ListingSettingsRepo
         } catch (\Exception) {
             // Migration 41 not run yet
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Newest-members display limit (Migration 80)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns the per-listing newest-members limit for {stat_newmembers}.
+     * NULL = inherit global default; 0 = show all; 1–255 = explicit cap.
+     */
+    public function getStatNewmembersLimit(int $listingId): ?int
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT stat_newmembers_limit FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            return null;
+        }
+        if ($row === false || !array_key_exists('stat_newmembers_limit', $row)) {
+            return null;
+        }
+        return $row['stat_newmembers_limit'] === null ? null : (int) $row['stat_newmembers_limit'];
+    }
+
+    /**
+     * Saves the per-listing newest-members limit.
+     * Pass null to inherit the global default.
+     */
+    public function setStatNewmembersLimit(int $listingId, ?int $value): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, stat_newmembers_limit)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE stat_newmembers_limit = VALUES(stat_newmembers_limit)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => $value]);
+        } catch (\PDOException) {}
+    }
+
+    // -----------------------------------------------------------------------
+    // Affiliate application toggle style (Migration 81)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns the affiliate-apply toggle style for this listing: 'link' or 'button'.
+     */
+    public function getAffiliateApplyStyle(int $listingId): string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT affiliate_apply_style FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            return 'link';
+        }
+        if ($row === false || !array_key_exists('affiliate_apply_style', $row)) {
+            return 'link';
+        }
+        $val = (string) $row['affiliate_apply_style'];
+        return in_array($val, ['link', 'button'], true) ? $val : 'link';
+    }
+
+    /**
+     * Saves the affiliate-apply toggle style ('link' or 'button').
+     */
+    public function setAffiliateApplyStyle(int $listingId, string $style): void
+    {
+        $style = in_array($style, ['link', 'button'], true) ? $style : 'link';
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, affiliate_apply_style)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE affiliate_apply_style = VALUES(affiliate_apply_style)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => $style]);
+        } catch (\PDOException) {}
     }
 }

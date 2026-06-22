@@ -331,7 +331,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="pc-section-label">Preferences</div>
         <?php $lt = $listing_type ?? 'listing'; ?>
         <div class="listing-field-row">
-          <label class="listing-field-label" for="fl-listing-type">Type</label>
+          <label class="listing-field-label" for="fl-listing-type">Listing Type</label>
           <div class="select-wrap select-auto">
             <select id="fl-listing-type" name="listing_type" >
               <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Fanlisting</option>
@@ -346,7 +346,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
         <?php $ab = $approved_by ?? ''; ?>
         <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-approved-by">Directory Approval</label>
+          <label class="listing-field-label" for="fl-approved-by">Approved By</label>
           <div>
             <div class="select-wrap select-auto">
               <select id="fl-approved-by" name="approved_by">
@@ -360,7 +360,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-members-per-page">Members per page</label>
+          <label class="listing-field-label" for="fl-members-per-page">Members Shown Per Page</label>
           <div>
             <input id="fl-members-per-page" type="number" name="members_per_page" class="form form--compact"
                    min="5" max="200" value="<?= (int) ($members_per_page ?? 25) ?>">
@@ -402,7 +402,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <?php endif; ?>
 
         <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Code Donations</label>
+          <label class="listing-field-label">Codes Donations</label>
           <div>
             <label class="toggle-wrap">
               <input type="checkbox" name="codes_submit_enabled" value="1" id="fl-codes-submit-enabled"
@@ -423,14 +423,46 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                   <option value="0" <?= $_caeVal === '0' ? 'selected' : '' ?>>Never email donor on approval</option>
                 </select>
               </div>
-              <p class="form-hint">Controls the <em>Code Donation Approved</em> email for this listing. The global setting is configured in Settings &rarr; General.</p>
+              <p class="form-hint">Controls the <em>Codes Donation Approved</em> email for this listing. The global setting is configured in Settings &rarr; General.</p>
             </div>
             <?php endif; ?>
           </div>
         </div>
 
-        <!-- Affiliate applications toggle hidden — backend preserved, UI deferred -->
-        <input type="hidden" name="affiliate_apply_enabled" value="0">
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label">Affiliate Applications</label>
+          <div>
+            <input type="hidden" name="affiliate_apply_enabled" value="0">
+            <label class="toggle-wrap">
+              <input type="checkbox" name="affiliate_apply_enabled" value="1" id="fl-affiliate-apply-enabled"
+                     <?= ($affiliate_apply_enabled ?? false) ? 'checked' : '' ?>>
+              <span class="toggle-label">Accept affiliate applications for this listing</span>
+            </label>
+            <p class="form-hint">When enabled, the <code>{affiliate_apply_toggle}</code> token in your affiliates template shows a collapsible application form.</p>
+
+            <div id="fl-aff-apply-style-row" style="margin-top: 0.75em;<?= ($affiliate_apply_enabled ?? false) ? '' : ' display:none' ?>">
+              <label class="listing-field-label" for="fl-aff-apply-style" style="font-weight: normal; margin-bottom: 0.25em;">Toggle style</label>
+              <div class="select-wrap select-auto">
+                <select id="fl-aff-apply-style" name="affiliate_apply_style">
+                  <option value="link" <?= ($affiliate_apply_style ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
+                  <option value="button" <?= ($affiliate_apply_style ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
+                </select>
+              </div>
+              <p class="form-hint">How the &ldquo;Apply to become an affiliate?&rdquo; toggle appears &mdash; as a plain underlined link or a styled button.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="fl-newmembers-limit">Newest members shown</label>
+          <div>
+            <input id="fl-newmembers-limit" type="number" name="stat_newmembers_limit" class="form form--compact"
+                   min="0" max="255"
+                   value="<?= ($stat_newmembers_limit ?? '') !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : '' ?>"
+                   placeholder="Use default">
+            <p class="form-hint">How many names appear in the <code>{stat_newmembers}</code> stats token. Leave blank to use the global default. Set to 0 to show all members.</p>
+          </div>
+        </div>
 
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label">Join Settings</label>
@@ -560,31 +592,32 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 ?>
 <div id="tab-templates" class="tabs-panel">
 
-<div class="tpl-group-selector-bar">
-  <div class="select-wrap">
-    <select id="tpl-group-select" class="form">
-      <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
-      <option value="members"<?= $activeGroup === 'members' ? ' selected' : '' ?>>Members List</option>
-      <optgroup label="Membership Forms">
+<div class="tpl-filter-panel">
+  <div class="filter-row" id="tpl-filter-row">
+    <label for="tpl-group-select" style="font-weight:600; white-space:nowrap">Select Template:</label>
+    <div class="select-wrap">
+      <select id="tpl-group-select" class="form">
+        <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
+        <option value="members"<?= $activeGroup === 'members' ? ' selected' : '' ?>>Members List</option>
         <option value="join-form"<?= $activeGroup === 'join-form' ? ' selected' : '' ?>>Join Form</option>
         <option value="update-form"<?= $activeGroup === 'update-form' ? ' selected' : '' ?>>Update Membership Form</option>
         <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Lost Password Form</option>
-      </optgroup>
-      <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Statistics</option>
-      <optgroup label="Codes &amp; Donation Form">
+        <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Listing Statistics</option>
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
-        <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
-      </optgroup>
-      <optgroup label="Affiliates">
+        <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Codes Donation Form</option>
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
         <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
-      </optgroup>
-      <optgroup label="Contact Form">
         <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
         <option value="contact-sent"<?= $activeGroup === 'contact-sent' ? ' selected' : '' ?>>Contact Confirmation</option>
-      </optgroup>
-      <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>Updates Feed</option>
-    </select>
+        <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>Updates Feed</option>
+      </select>
+    </div>
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="search" id="tpl-group-search" class="form" placeholder="Search templates&hellip;" autocomplete="off">
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm" id="tpl-group-search-btn">Search</button>
+    <button type="button" class="btn btn-quaternary btn-sm" id="tpl-group-search-reset">Reset</button>
   </div>
 </div>
 
@@ -604,6 +637,15 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
       </div>
 
+      <div class="tpl-reset-all-row pc-section" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
+        <div style="text-align:center; padding: 0.75rem 0;">
+          <button type="button" class="btn btn-quaternary btn-block-center"
+                  id="fl-reset-all-templates"
+                  data-action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates/reset-all"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Reset All Templates to Default</button>
+        </div>
+      </div>
+
       <div class="pc-section">
 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
@@ -616,45 +658,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template">Reset to Default</button>
           </div>
         </div>
-
-        <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-          <div class="pc-section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
-          <p class="form-hint mb-sm">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
-          <div class="form-group">
-            <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
-          </div>
-          <div class="tpl-reset-row">
-            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="affiliates_section_template">Reset to Default</button>
-          </div>
-        </div>
-
-        <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
-          <div class="pc-section-label">Statistics <?= $srcBadge('stats_template') ?></div>
-          <div class="form-group">
-            <textarea id="stats_template" name="stats_template" class="form form-mono" spellcheck="false"><?= View::e($tplStatsVal) ?></textarea>
-          </div>
-          <div class="tpl-reset-row">
-            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="stats_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="stats_template">Reset to Default</button>
-          </div>
-        </div>
-
-        <?php if ($hasUpdatesAddon): ?>
-        <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
-          <div class="pc-section-label">Updates Feed <?= $srcBadge('updates_template') ?></div>
-          <p class="form-hint mb-sm">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
-          <div class="form-group">
-            <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
-          </div>
-          <div class="tpl-reset-row">
-            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="updates_template"><?= View::icon('eye-on') ?>  Preview</button>&nbsp;
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="updates_template">Reset to Default</button>
-          </div>
-        </div>
-        <?php else: ?>
-        <input type="hidden" name="updates_template" value="<?= View::e((string) ($tplUpdatesVal ?? '')) ?>">
-        <?php endif; ?>
 
         <div class="tpl-group-section" data-tpl-group="join-form" <?= $_grp('join-form') ?>>
           <div class="pc-section-label">Join Form <?= $srcBadge('join_form_template') ?></div>
@@ -669,7 +672,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-          <div class="pc-section-label">Update Membership Form <?= $srcBadge('update_form_template') ?></div>
+          <div class="pc-section-label">Update Form <?= $srcBadge('update_form_template') ?></div>
           <p class="form-hint mb-sm">Controls the full layout of the update form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
           <div class="form-group">
             <textarea id="update_form_template" name="update_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdateFormVal) ?></textarea>
@@ -692,6 +695,17 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           </div>
         </div>
 
+        <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
+          <div class="pc-section-label">Listing Statistics <?= $srcBadge('stats_template') ?></div>
+          <div class="form-group">
+            <textarea id="stats_template" name="stats_template" class="form form-mono" spellcheck="false"><?= View::e($tplStatsVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="stats_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="stats_template">Reset to Default</button>
+          </div>
+        </div>
+
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
           <div class="pc-section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
           <p class="form-hint mb-sm">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
@@ -706,8 +720,8 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <?php if ($hasCodesSubmit): ?>
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-          <div class="pc-section-label">Code Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
-          <p class="form-hint mb-sm">Controls the full layout of the code donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <div class="pc-section-label">Codes Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
+          <p class="form-hint mb-sm">Controls the full layout of the Codes Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="form-group">
             <textarea id="codes_submit_form_template" name="codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesFormVal) ?></textarea>
           </div>
@@ -719,6 +733,18 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php else: ?>
         <input type="hidden" name="codes_submit_form_template" value="<?= View::e((string) ($tplCodesFormVal ?? '')) ?>">
         <?php endif; ?>
+
+        <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
+          <div class="pc-section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
+          <p class="form-hint mb-sm">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
+          <div class="form-group">
+            <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="affiliates_section_template">Reset to Default</button>
+          </div>
+        </div>
 
         <?php if ($affiliate_apply_enabled ?? false): ?>
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
@@ -759,6 +785,22 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="contact_sent_template">Reset to Default</button>
           </div>
         </div>
+
+        <?php if ($hasUpdatesAddon): ?>
+        <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
+          <div class="pc-section-label">Updates Feed <?= $srcBadge('updates_template') ?></div>
+          <p class="form-hint mb-sm">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
+          <div class="form-group">
+            <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="updates_template"><?= View::icon('eye-on') ?> Preview</button>&nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="updates_template">Reset to Default</button>
+          </div>
+        </div>
+        <?php else: ?>
+        <input type="hidden" name="updates_template" value="<?= View::e((string) ($tplUpdatesVal ?? '')) ?>">
+        <?php endif; ?>
 
       </div>
 
@@ -819,80 +861,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
       </details>
 
-      <!-- Affiliates Section -->
-      <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-        <summary class="chevron-head">Affiliates Section Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
-            <?= $ltok('affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
-            <?= $ltok('affiliates_section_template', '{aff_url}',       '{aff_url}',       'The affiliate site link. Use inside {each_affiliate}.') ?>
-            <?= $ltok('affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
-            <?= $ltok('affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
-            <?= $ltok('affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
-            <?= $ltok('affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
-            <?= $ltok('affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
-            <?= $ltok('affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>
-            <?= $ltok('affiliates_section_template', '{if_no_aff_image}{/if_no_aff_image}', '{if_no_aff_image}...{/if_no_aff_image}', 'Inside {each_affiliate}, shows only when the affiliate has no image.') ?>
-          </tbody></table>
-        </div>
-      </details>
-
-      <!-- Statistics -->
-      <details class="card chevron" data-token-card data-tpl-group="statistics" <?= $_grp('statistics') ?>>
-        <summary class="chevron-head">Statistics Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for this listing.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('stats_template', '{stat_opened}',       '{stat_opened}',       'The date you opened the listing.') ?>
-            <?= $ltok('stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date you set. Shows &ldquo;N/A&rdquo; if neither is set.') ?>
-            <?= $ltok('stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
-            <?= $ltok('stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
-            <?= $ltok('stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
-            <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Up to 5 newest approved members, linked to their websites when available. Shows &ldquo;&hellip;and more&rdquo; when there are more than 5 total.') ?>
-            <?= $ltok('stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
-            <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average members per day, with unit (e.g. &ldquo;0.15 members/day&rdquo;).') ?>
-            <?= $ltok('stats_template', '{stat_growth_rate}',       '{stat_growth_rate}',       'Numeric growth rate only (e.g. &ldquo;0.15&rdquo;). Use this to build your own formatting.') ?>
-            <?= $ltok('stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
-            <?= $ltok('stats_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
-            <?= $ltok('stats_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
-            <?= $ltok('stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
-            <?= $ltok('stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
-            <?= $ltok('stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
-            <?= $ltok('stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
-            <?= $ltok('stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing is TFL-approved.') ?>
-            <?= $ltok('stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing is TAFL-approved.') ?>
-          </tbody></table>
-        </div>
-      </details>
-
-      <?php if ($hasUpdatesAddon): ?>
-      <!-- Updates Feed -->
-      <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
-        <summary class="chevron-head">Updates Feed Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('updates_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
-            <?= $ltok('updates_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
-            <?= $ltok('updates_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $ltok('updates_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one update on the current page.') ?>
-            <?= $ltok('updates_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no updates (use for an empty state message).') ?>
-            <?= $ltok('updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
-            <?= $ltok('updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
-            <?= $ltok('updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
-            <?= $ltok('updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
-            <?= $ltok('updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
-            <?= $ltok('updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>
-            <?= $ltok('updates_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the update has an author set.') ?>
-            <?= $ltok('updates_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the update has categories set.') ?>
-          </tbody></table>
-        </div>
-      </details>
-      <?php endif; ?>
-
       <!-- Join Form -->
       <details class="card chevron" data-token-card data-tpl-group="join-form" <?= $_grp('join-form') ?>>
         <summary class="chevron-head">Join Form Tokens</summary>
@@ -925,8 +893,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
       </details>
 
-
-      <!-- Update Membership Form -->
+      <!-- Update Form -->
       <details class="card chevron" data-token-card data-tpl-group="update-form" <?= $_grp('update-form') ?>>
         <summary class="chevron-head">Update Form Tokens</summary>
         <div class="chevron-body">
@@ -981,6 +948,35 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
       </details>
 
+      <!-- Listing Statistics -->
+      <details class="card chevron" data-token-card data-tpl-group="statistics" <?= $_grp('statistics') ?>>
+        <summary class="chevron-head">Listing Statistics Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for this listing.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('stats_template', '{stat_opened}',       '{stat_opened}',       'The date you opened the listing.') ?>
+            <?= $ltok('stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date you set. Shows &ldquo;N/A&rdquo; if neither is set.') ?>
+            <?= $ltok('stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
+            <?= $ltok('stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
+            <?= $ltok('stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
+            <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Newest approved members, linked to their websites when available. Count is set in Preferences (per-listing) or Global Templates (global default). Shows &ldquo;&hellip;and more&rdquo; when there are more total.') ?>
+            <?= $ltok('stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
+            <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average members per day, with unit (e.g. &ldquo;0.15 members/day&rdquo;).') ?>
+            <?= $ltok('stats_template', '{stat_growth_rate}',       '{stat_growth_rate}',       'Numeric growth rate only (e.g. &ldquo;0.15&rdquo;). Use this to build your own formatting.') ?>
+            <?= $ltok('stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('stats_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('stats_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
+            <?= $ltok('stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
+            <?= $ltok('stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
+            <?= $ltok('stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
+            <?= $ltok('stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
+            <?= $ltok('stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing is TFL-approved.') ?>
+            <?= $ltok('stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing is TAFL-approved.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
       <!-- Codes Display -->
       <details class="card chevron" data-token-card data-tpl-group="codes" <?= $_grp('codes') ?>>
         <summary class="chevron-head">Codes Display Tokens</summary>
@@ -1012,11 +1008,11 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
 
       <?php if ($hasCodesSubmit): ?>
-      <!-- Code Donation Form -->
+      <!-- Codes Donation Form -->
       <details class="card chevron" data-token-card data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-        <summary class="chevron-head">Code Donation Form Tokens</summary>
+        <summary class="chevron-head">Codes Donation Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the code donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the Codes Donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('codes_submit_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('codes_submit_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -1038,6 +1034,27 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
       </details>
       <?php endif; ?>
+
+      <!-- Affiliates Section -->
+      <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
+        <summary class="chevron-head">Affiliates Section Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
+            <?= $ltok('affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
+            <?= $ltok('affiliates_section_template', '{aff_url}',       '{aff_url}',       'The affiliate site link. Use inside {each_affiliate}.') ?>
+            <?= $ltok('affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Shows a text link or button (set in Preferences) that reveals the full application form inline. Empty when applications are disabled.') ?>
+            <?= $ltok('affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
+            <?= $ltok('affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
+            <?= $ltok('affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>
+            <?= $ltok('affiliates_section_template', '{if_no_aff_image}{/if_no_aff_image}', '{if_no_aff_image}...{/if_no_aff_image}', 'Inside {each_affiliate}, shows only when the affiliate has no image.') ?>
+          </tbody></table>
+        </div>
+      </details>
 
       <?php if ($affiliate_apply_enabled ?? false): ?>
       <!-- Affiliate Application Form -->
@@ -1111,6 +1128,31 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           </tbody></table>
         </div>
       </details>
+
+      <?php if ($hasUpdatesAddon): ?>
+      <!-- Updates Feed -->
+      <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
+        <summary class="chevron-head">Updates Feed Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('updates_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('updates_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('updates_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $ltok('updates_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one update on the current page.') ?>
+            <?= $ltok('updates_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no updates (use for an empty state message).') ?>
+            <?= $ltok('updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
+            <?= $ltok('updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
+            <?= $ltok('updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
+            <?= $ltok('updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
+            <?= $ltok('updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
+            <?= $ltok('updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>
+            <?= $ltok('updates_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the update has an author set.') ?>
+            <?= $ltok('updates_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the update has categories set.') ?>
+          </tbody></table>
+        </div>
+      </details>
+      <?php endif; ?>
 
     </div><!-- /.composer-side -->
   </div><!-- /.composer-grid -->
@@ -1586,7 +1628,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       </div>
 
       <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-form-update">Update Membership</label>
+        <label class="listing-field-label" for="fl-form-update">Update Form</label>
         <div>
           <input id="fl-form-update" type="text" name="form_url_update" class="form"
                  maxlength="200"
@@ -1609,7 +1651,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
       <div class="listing-field-row" id="fl-codes-submit-embed-row"
            <?= ($embedSettings['codes_submit_enabled'] ?? true) ? '' : 'style="display:none"' ?>>
-        <label class="listing-field-label" for="fl-form-codes-submit">Code Donation</label>
+        <label class="listing-field-label" for="fl-form-codes-submit">Codes Donation</label>
         <div>
           <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form"
                  maxlength="200"

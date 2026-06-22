@@ -759,6 +759,12 @@ final class ListingController extends AdminController
             $affiliateApplyFormUrl = trim((string) $request->post('form_url_affiliate_apply', ''));
             $affiliateApplyRedirectUrl = trim((string) $request->post('redirect_url_affiliate_apply', ''));
 
+            $affiliateApplyStylePost = trim((string) $request->post('affiliate_apply_style', 'link'));
+            $affiliateApplyStyle = in_array($affiliateApplyStylePost, ['link', 'button'], true) ? $affiliateApplyStylePost : 'link';
+
+            $statNewmembersLimitRaw = trim((string) $request->post('stat_newmembers_limit', ''));
+            $statNewmembersLimit = $statNewmembersLimitRaw !== '' ? max(0, min(255, (int) $statNewmembersLimitRaw)) : null;
+
             $jceRaw = $request->post('join_confirmation_email', '');
             $joinConfirmEmail = match ($jceRaw) {
                 '1'     => true,
@@ -897,6 +903,8 @@ final class ListingController extends AdminController
                 $settingsRepo->saveForAdoption($id, $forAdoptionInput);
             }
             $settingsRepo->saveAffiliateApplySettings($id, $affiliateApplyEnabled, $affiliateApplyFormUrl, $affiliateApplyRedirectUrl);
+            $settingsRepo->setAffiliateApplyStyle($id, $affiliateApplyStyle);
+            $settingsRepo->setStatNewmembersLimit($id, $statNewmembersLimit);
 
             // code_approval_email: null=inherit global, true=on, false=off
             $codeEmailPost = $request->post('code_approval_email', '');
@@ -1122,8 +1130,10 @@ final class ListingController extends AdminController
             'for_adoption'                   => $forAdoption,
             'adoption_count'                 => $adoptionCount,
             'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
+            'affiliate_apply_style'          => $settingsRepo->getAffiliateApplyStyle($id),
             'form_url_affiliate_apply'       => $affiliateApplySettings['form_url'],
             'redirect_url_affiliate_apply'   => $affiliateApplySettings['redirect_url'],
+            'stat_newmembers_limit'          => $settingsRepo->getStatNewmembersLimit($id),
             'code_approval_email'            => $codeApprovalEmail,
             'join_confirmation_email'        => $joinSettings['confirmation_email'],
             'auto_approve_joins'             => $joinSettings['auto_approve'],
@@ -1492,6 +1502,34 @@ final class ListingController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // POST /admin/listings/{id}/templates/reset-all
+    // -----------------------------------------------------------------------
+
+    public function resetAllTemplates(Request $request, array $params): Response
+    {
+        $id      = (int) ($params['id'] ?? 0);
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $listing = (new ListingRepo($db, $config))->getById($id);
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
+        }
+
+        $settingsRepo = new ListingSettingsRepo($db);
+        $settingsRepo->saveTemplates(
+            $id, null, null, null, null, null, null, null, null, null, null, null, null,
+        );
+        $settingsRepo->saveCodesTemplate($id, null);
+        $settingsRepo->saveContactSentTemplate($id, null);
+
+        $session->set('lstr_flash_success', 'All templates reset to global defaults.');
+        return Response::redirect($baseUrl . '/admin/listings/' . $id . '/edit#tab-templates');
+    }
+
+    // -----------------------------------------------------------------------
     // POST /admin/listings/{id}/templates/preview
     // -----------------------------------------------------------------------
 
@@ -1633,7 +1671,22 @@ final class ListingController extends AdminController
         }
 
         $affiliateApplyUrl = $appUrl . '/affiliate-apply/' . (int) $listing->id;
-        return self::renderAffiliatesSection($tpl, $affiliates, $uploadsUrl, $affiliateApplyUrl);
+        $settingsRepo = new ListingSettingsRepo($db);
+        $applyStyle   = $settingsRepo->getAffiliateApplyStyle((int) $listing->id);
+
+        $applyFormHtml = '';
+        if (str_contains($tpl, '{affiliate_apply_toggle}')) {
+            $affApplyTpl = $settingsRepo->getAffiliateApplyFormTemplate((int) $listing->id);
+            $globalTpls  = (new SiteSettingsRepo($db))->getGlobalTemplates();
+            $resolved    = ListingTemplateResolver::resolve(
+                $affApplyTpl,
+                $globalTpls['listing_default_affiliate_apply_form_template'] ?? null,
+                ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+            );
+            $applyFormHtml = $this->renderAffiliateApplyFormPreview($resolved['value'], $listing->title, $listing->url, (string) $listing->subject);
+        }
+
+        return self::renderAffiliatesSection($tpl, $affiliates, $uploadsUrl, $affiliateApplyUrl, $applyStyle, $applyFormHtml);
     }
 
     /**
@@ -1643,7 +1696,7 @@ final class ListingController extends AdminController
      *
      * @param \Luster\Models\Affiliate[] $affiliates
      */
-    private static function renderAffiliatesSection(string $tpl, array $affiliates, string $uploadsUrl, string $affiliateApplyUrl = ''): string
+    private static function renderAffiliatesSection(string $tpl, array $affiliates, string $uploadsUrl, string $affiliateApplyUrl = '', string $applyStyle = 'link', string $applyFormHtml = ''): string
     {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -1667,6 +1720,19 @@ final class ListingController extends AdminController
             $tpl = (string) (preg_replace('/\{if_affiliates\}.*?\{\/if_affiliates\}/s', '', $tpl) ?? $tpl);
             $tpl = str_replace(['{if_no_affiliates}', '{/if_no_affiliates}'], '', $tpl);
         }
+
+        $toggleHtml = '';
+        if ($applyFormHtml !== '') {
+            $toggleHtml = '<details class="fl-affiliate-apply-collapsible">'
+                . '<summary class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '">'
+                . 'Apply to become an affiliate?'
+                . '</summary>'
+                . '<div class="fl-affiliate-apply-form-wrap">'
+                . $applyFormHtml
+                . '</div>'
+                . '</details>';
+        }
+        $tpl = str_replace('{affiliate_apply_toggle}', $toggleHtml, $tpl);
 
         return str_replace(
             ['{affiliates_count}', '{affiliate_apply_url}'],
@@ -2308,9 +2374,10 @@ final class ListingController extends AdminController
         $globals  = $siteRepo->getGlobalTemplates();
 
         return $this->adminLayout('admin/listings/global-templates.php', 'Global Listing Templates', 'listings', [
-            'success'  => $success,
-            'error'    => $error,
-            'globals'  => $globals,
+            'success'                => $success,
+            'error'                  => $error,
+            'globals'                => $globals,
+            'stat_newmembers_limit'  => $siteRepo->get('stat_newmembers_limit'),
         ], '', [
             $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
@@ -2349,6 +2416,9 @@ final class ListingController extends AdminController
             $value     = ($submitted === '' || $submitted === $normalize($builtIn)) ? null : $submitted;
             $siteRepo->set($key, $value);
         }
+
+        $snlRaw = trim((string) $request->post('stat_newmembers_limit', ''));
+        $siteRepo->set('stat_newmembers_limit', $snlRaw !== '' ? (string) max(0, min(255, (int) $snlRaw)) : null);
 
         $session->set('lstr_flash_success', 'Global listing templates saved.');
         $returnGroup = (string) $request->post('return_group', '');
@@ -2457,8 +2527,19 @@ final class ListingController extends AdminController
         // not the collective template, so it must not use the collective apply URL.
         $affiliateApplyUrl = $appUrl . '/affiliate-apply/1';
 
-        $sample = self::renderAffiliatesSection($tpl, SampleTemplateData::affiliates(), $sampleImagesUrl, $affiliateApplyUrl);
-        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl);
+        $applyFormHtml = '';
+        if (str_contains($tpl, '{affiliate_apply_toggle}')) {
+            $globalTpls  = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+            $resolved    = ListingTemplateResolver::resolve(
+                null,
+                $globalTpls['listing_default_affiliate_apply_form_template'] ?? null,
+                ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+            );
+            $applyFormHtml = $this->renderAffiliateApplyFormPreview($resolved['value'], 'Sample Fanlisting', 'https://example.com/sample-fanlisting', 'Sample Subject');
+        }
+
+        $sample = self::renderAffiliatesSection($tpl, SampleTemplateData::affiliates(), $sampleImagesUrl, $affiliateApplyUrl, 'link', $applyFormHtml);
+        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl, 'link', $applyFormHtml);
 
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>';

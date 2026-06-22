@@ -173,7 +173,7 @@ function mig_render_results(array $done, array $errors): string
     </div>
   <?php endif; ?>
 
-  <div class="mig-summary"><strong>Migration Results:</strong> 
+  <div class="mig-summary"><strong>Migration Results:</strong>
     <?php if ($doneCount > 0): ?><span class="badge badge-current">&#10003; <?= $doneCount ?> applied</span><?php endif; ?>
     <?php if ($errorCount > 0): ?><span class="badge badge-error">&#10005; <?= $errorCount ?> failed</span><?php endif; ?>
   </div>
@@ -2659,6 +2659,63 @@ try {
     }
 } catch (PDOException $e) {
     $errors[] = 'Migration 79 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 80: per-listing newest-members display limit for {stat_newmembers}.
+// NULL = inherit global default; 0 = show all; 1–255 = explicit cap.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 80')->fetchColumn()) {
+        $hasSNL = (int) $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_fanlisting_settings'
+                AND COLUMN_NAME  = 'stat_newmembers_limit'"
+        )->fetchColumn();
+
+        if (!$hasSNL) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_fanlisting_settings`
+                 ADD COLUMN `stat_newmembers_limit` TINYINT UNSIGNED NULL DEFAULT NULL"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (80)');
+        $done[] = $hasSNL
+            ? 'Migration 80: <code>stat_newmembers_limit</code> column already present'
+            : 'Added <code>stat_newmembers_limit</code> column to <code>lstr_fanlisting_settings</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 80 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 81: per-listing affiliate application toggle style (link or button).
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 81')->fetchColumn()) {
+        $hasAAS = (int) $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_fanlisting_settings'
+                AND COLUMN_NAME  = 'affiliate_apply_style'"
+        )->fetchColumn();
+
+        if (!$hasAAS) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_fanlisting_settings`
+                 ADD COLUMN `affiliate_apply_style` VARCHAR(10) NOT NULL DEFAULT 'link'"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (81)');
+        $done[] = $hasAAS
+            ? 'Migration 81: <code>affiliate_apply_style</code> column already present'
+            : 'Added <code>affiliate_apply_style</code> column to <code>lstr_fanlisting_settings</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 81 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

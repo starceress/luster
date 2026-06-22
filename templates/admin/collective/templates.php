@@ -708,6 +708,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('collective_affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
             <?= $tok('collective_affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates there are.') ?>
             <?= $tok('collective_affiliates_section_template', '{affiliate_apply_url}', '{affiliate_apply_url}', 'The link to the collective affiliate application form.') ?>
+            <?= $tok('collective_affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Shows a text link or button that reveals the full application form inline. Empty when collective applications are disabled.') ?>
             <?= $tok('collective_affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when there is at least one affiliate.') ?>
             <?= $tok('collective_affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when there are no affiliates.') ?>
             <?= $tok('collective_affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>

@@ -2013,7 +2013,7 @@ document.addEventListener('drop', function (e) {
             { token: '{stat_countries}',    label: 'Countries represented',         line: ' across {stat_countries} countries', join: true },
             { token: '{stat_opened}',       label: 'Date opened',                   line: '<b>Opened On:</b> {stat_opened}' },
             { token: '{stat_updated}',      label: 'Most recent activity date',     line: '<b>Last Updated:</b> {stat_updated}' },
-            { token: '{stat_newmembers}',   label: 'Newest members (linked, up to 5)', line: '<b>Newest Members:</b> {stat_newmembers}' },
+            { token: '{stat_newmembers}',   label: 'Newest members (linked)', line: '<b>Newest Members:</b> {stat_newmembers}' },
             { token: '{stat_growth}',       label: 'Growth rate with unit',         line: '<b>Growth:</b> {stat_growth}' },
             { token: '{stat_growth_rate}',  label: 'Growth rate (number only)',     line: '' },
             { token: '{approved_by}',       label: 'Approved-by network',           line: '{if_approved_by}<b>Approved By:</b> {approved_by}{/if_approved_by}' },
@@ -3916,7 +3916,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       openedInput.style.display = 'none';
       openedInput.disabled      = true;
       if (openedTba)  { openedTba.disabled = false; }
-      if (openedText) { openedText.style.display = ''; }
+      if (openedText) { openedText.style.display = 'block'; }
     } else {
       openedInput.style.display = '';
       openedInput.disabled      = false;
@@ -3975,7 +3975,8 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     rename_prefix:         { title: 'Rename Member Table',     btn: 'Rename Table', desc: 'You are about to rename the member table from <strong>$$names$$</strong> to <strong>$$context$$</strong>.', warn: 'This renames the table directly in your database. If anything goes wrong, member data may become unreachable. This action cannot be undone.' },
     update:                { title: 'Delete Update',           btn: 'Delete',      desc: 'You are about to delete the update <strong>$$names$$</strong>.',                       warn: 'This action cannot be undone.' },
     rules:                 { title: 'Delete Rules',            btn: 'Delete',      desc: 'You are about to delete the join rules for <strong>$$names$$</strong>.',               warn: 'Deleting removes the rules text (and rules gate, if enabled) entirely for this listing. This action cannot be undone.' },
-    wishlist_entry:        { title: 'Delete Wishlist Entries', btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong>.',                                   warn: 'This action cannot be undone.' }
+    wishlist_entry:        { title: 'Delete Wishlist Entries', btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong>.',                                   warn: 'This action cannot be undone.' },
+    'reset-all-templates': { title: 'Reset All Templates',     btn: 'Reset All',   desc: 'You are about to reset <strong>$$names$$</strong>.',                                      warn: 'Every template for this listing will revert to the global default. Any per-listing customisations will be lost.' }
   };
 
   function show(cfg, names, context, warnOverride) {
@@ -4245,6 +4246,64 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     }
 
     sel.addEventListener('change', function () { applyGroup(sel.value); });
+  }());
+
+  // Template group search bar (listing edit — shows all matching template sections)
+  (function () {
+    var sel       = document.getElementById('tpl-group-select');
+    var input     = document.getElementById('tpl-group-search');
+    var searchBtn = document.getElementById('tpl-group-search-btn');
+    var resetBtn  = document.getElementById('tpl-group-search-reset');
+    if (!sel || !input) return;
+
+    var sections = document.querySelectorAll('[data-tpl-group]');
+    var groupLabels = {};
+    sel.querySelectorAll('option').forEach(function (o) {
+      if (o.value) groupLabels[o.value] = o.textContent.trim().toLowerCase();
+    });
+
+    function doSearch() {
+      var q = input.value.trim().toLowerCase();
+      if (q === '') { doReset(); return; }
+
+      sections.forEach(function (el) {
+        var g = el.getAttribute('data-tpl-group');
+        if (g === 'all') { el.hidden = true; return; }
+        var label = groupLabels[g] || g;
+        el.hidden = label.indexOf(q) === -1;
+      });
+    }
+
+    function doReset() {
+      input.value = '';
+      sel.value = 'all';
+      sel.dispatchEvent(new Event('change'));
+    }
+
+    input.addEventListener('input', doSearch);
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+    });
+
+    if (searchBtn) searchBtn.addEventListener('click', doSearch);
+    if (resetBtn)  resetBtn.addEventListener('click', doReset);
+  }());
+
+  // Reset All Templates button (listing edit — posts via dynamic form to avoid nesting)
+  (function () {
+    var btn = document.getElementById('fl-reset-all-templates');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      if (!confirm('Reset every template for this listing to the global default?\n\nAny per-listing customisations will be lost.')) return;
+      var f = document.createElement('form');
+      f.method = 'POST';
+      f.action = btn.getAttribute('data-action');
+      var t = document.createElement('input');
+      t.type = 'hidden'; t.name = '_csrf'; t.value = btn.getAttribute('data-csrf');
+      f.appendChild(t);
+      document.body.appendChild(f);
+      f.submit();
+    });
   }());
 
   // Reset to default button
@@ -6408,9 +6467,12 @@ document.addEventListener('click', function (e) {
 (function () {
   var affiliateApplyToggle = document.getElementById('fl-affiliate-apply-enabled');
   var affiliateApplyRow    = document.getElementById('fl-aff-form-url-row');
-  if (affiliateApplyToggle && affiliateApplyRow) {
+  var affiliateStyleRow    = document.getElementById('fl-aff-apply-style-row');
+  if (affiliateApplyToggle) {
     affiliateApplyToggle.addEventListener('change', function () {
-      affiliateApplyRow.style.display = affiliateApplyToggle.checked ? '' : 'none';
+      var show = affiliateApplyToggle.checked;
+      if (affiliateApplyRow)  affiliateApplyRow.style.display  = show ? '' : 'none';
+      if (affiliateStyleRow)  affiliateStyleRow.style.display  = show ? '' : 'none';
     });
   }
 

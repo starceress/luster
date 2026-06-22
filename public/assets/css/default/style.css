@@ -488,6 +488,31 @@
   font-style: italic;
 }
 
+/* ── Collapsible affiliate application ──────────────────────────────────────── */
+
+.fl-affiliate-apply-collapsible {
+  margin-top: 1em;
+}
+.fl-affiliate-apply-toggle {
+  cursor: pointer;
+}
+.fl-affiliate-apply-toggle--link {
+  text-decoration: underline;
+  list-style: none;
+}
+.fl-affiliate-apply-toggle--link::-webkit-details-marker,
+.fl-affiliate-apply-toggle--link::marker { display: none; content: ''; }
+.fl-affiliate-apply-toggle--button {
+  display: inline-block;
+  padding: 0.4em 1em;
+  list-style: none;
+}
+.fl-affiliate-apply-toggle--button::-webkit-details-marker,
+.fl-affiliate-apply-toggle--button::marker { display: none; content: ''; }
+.fl-affiliate-apply-form-wrap {
+  margin-top: 1em;
+}
+
 /* ── Owned listings ──────────────────────────────────────────────────────────── */
 
 .fl-listing-list {

@@ -303,7 +303,9 @@ final class View
             return;
         }
 
-        readfile($path);
+        $css = (string) file_get_contents($path);
+        $css = (string) preg_replace('#/\*.*?\*/#s', '', $css);
+        echo $css;
     }
 
     // -----------------------------------------------------------------------
