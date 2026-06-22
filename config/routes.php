@@ -138,6 +138,7 @@ return [
         $router->post('/admin/listings/add',     ListingController::class, 'add');
         $router->get('/admin/listings/global-templates',  ListingController::class, 'globalTemplates');
         $router->post('/admin/listings/global-templates', ListingController::class, 'saveGlobalTemplates');
+        $router->post('/admin/listings/global-templates/reset-all', ListingController::class, 'resetAllGlobalTemplates');
         $router->post('/admin/listings/global-templates/preview', ListingController::class, 'globalTemplatesPreview');
         $router->get('/admin/listings/settings', ListingController::class, 'indexSettings');
         $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
@@ -364,6 +365,8 @@ return [
             SettingsController::class, 'updateSmtp');
         $router->post('/admin/settings/templates',
             SettingsController::class, 'updateTemplates');
+        $router->post('/admin/settings/templates/reset-all',
+            SettingsController::class, 'resetAllTemplates');
         $router->post('/admin/settings/profile',
             SettingsController::class, 'updateProfile');
         $router->post('/admin/settings/test-email',

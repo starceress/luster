@@ -35,7 +35,7 @@ $b = rtrim(View::e($base_url), '/');
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
 
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="m-per-page">Members Per Page</label>
@@ -47,7 +47,7 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-    </div><!-- /.listing-field-section -->
+    </div><!-- /.pc-section -->
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>

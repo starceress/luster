@@ -40,7 +40,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
   <form method="POST" action="<?= $b ?>/admin/listings/add" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="listing-field-row">
         <span class="listing-field-label">Network & Category</span>
         <div>

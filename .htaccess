@@ -1,0 +1,29 @@
+# Luster — root directory protection
+#
+# Only public/ and this directory's index.php should be web-accessible.
+# Everything else (src/, config/, storage/, vendor/, docs/, tests/, etc.)
+# is denied by this file. If your web server's document root points at
+# public/ directly, this file is redundant but harmless.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Allow the root index.php (PHP version check + redirect)
+    RewriteRule ^index\.php$ - [L]
+
+    # Allow everything under public/
+    RewriteRule ^public(/.*)?$ - [L]
+
+    # Allow the install wizard (needed before public/.htaccess is active)
+    RewriteRule ^install(/.*)?$ - [L]
+
+    # Block everything else
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# Fallback for servers without mod_rewrite: deny common sensitive paths
+<FilesMatch "\.(php|json|lock|md|yml|yaml|xml|ini|log|sql|sh|txt)$">
+    <IfModule !mod_rewrite.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>

@@ -19,7 +19,6 @@ use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
-use Luster\Support\SuccessRenderer;
 
 /**
  * Public contact forms.
@@ -116,13 +115,8 @@ final class ContactController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $hpPerListing = $settingsRepo->getContactSentTemplate($listingId);
-            $hpGlobal     = (new SiteSettingsRepo($this->app->getDatabase()))->get('listing_default_contact_sent_template');
-            $hpTpl        = ($hpPerListing !== null && $hpPerListing !== '') ? $hpPerListing
-                          : (($hpGlobal !== null && $hpGlobal !== '') ? $hpGlobal : '');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($hpTpl, 'contact-sent', [
-                'sender_name' => trim((string) $request->post('name', '')) ?: 'there',
-            ]));
+            $senderName = trim((string) $request->post('name', '')) ?: 'there';
+            $session->set('lstr_flash_success_html', self::contactSentHtml($senderName));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -193,19 +187,7 @@ final class ContactController
         }
 
         $session->remove('lstr_embed_return_to');
-        $perListingSentTpl = $settingsRepo->getContactSentTemplate($listingId);
-        $globalSentTpl     = (new SiteSettingsRepo($this->app->getDatabase()))
-            ->get('listing_default_contact_sent_template');
-        $contactSentTpl    = ($perListingSentTpl !== null && $perListingSentTpl !== '')
-            ? $perListingSentTpl
-            : (($globalSentTpl !== null && $globalSentTpl !== '') ? $globalSentTpl : '');
-        $session->set('lstr_flash_success_html', SuccessRenderer::render($contactSentTpl, 'contact-sent', [
-            'sender_name'   => $name,
-            'sender_email'  => $email,
-            'listing_title' => $listing->title,
-            'listing_url'   => $listing->url,
-            'site_name'     => (string) ($this->app->getConfig()->get('site_name', '') ?: ''),
-        ]));
+        $session->set('lstr_flash_success_html', self::contactSentHtml($name));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
@@ -269,10 +251,8 @@ final class ContactController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $collectiveContactSentTpl = $siteRepo->get('collective_contact_sent_template') ?? '';
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveContactSentTpl, 'contact-sent', [
-                'sender_name' => trim((string) $request->post('name', '')) ?: 'there',
-            ]));
+            $senderName = trim((string) $request->post('name', '')) ?: 'there';
+            $session->set('lstr_flash_success_html', self::contactSentHtml($senderName));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -349,18 +329,19 @@ final class ContactController
         }
 
         $session->remove('lstr_embed_return_to');
-        $collectiveContactSentTpl = $siteRepo->get('collective_contact_sent_template') ?? '';
-        $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveContactSentTpl, 'contact-sent', [
-            'sender_name'  => $name,
-            'sender_email' => $email,
-            'site_name'    => $siteName,
-        ]));
+        $session->set('lstr_flash_success_html', self::contactSentHtml($name));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    private static function contactSentHtml(string $senderName): string
+    {
+        $escaped = htmlspecialchars($senderName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        return '<div class="fl-success"><p>Your message has been sent. Thank you for getting in touch, ' . $escaped . '!</p></div>';
+    }
 
     /**
      * @param \Luster\Models\Listing|null $listing  null = collective form

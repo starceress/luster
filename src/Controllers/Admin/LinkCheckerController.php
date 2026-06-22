@@ -57,7 +57,12 @@ final class LinkCheckerController extends AdminController
 
         $searchParam = trim((string) $request->query('search', ''));
 
-        $affSortAllowed = ['name' => 'name', 'link_status' => 'link_status', 'reciprocal' => 'reciprocal_status', 'last_checked' => 'link_checked_at'];
+        $enthPrefix     = (string) $config->get('enth_table_prefix', '');
+        $listingTable   = $enthPrefix === '' ? 'owned' : $enthPrefix . 'listings';
+        $listingIdCol   = $enthPrefix === '' ? 'listingid' : 'id';
+        $listingSubjCol = 'subject';
+        $affListingSub  = "(SELECT {$listingSubjCol} FROM `{$listingTable}` WHERE `{$listingIdCol}` = lstr_affiliates.fanlisting_id)";
+        $affSortAllowed = ['name' => 'name', 'listing' => $affListingSub, 'link_status' => 'link_status', 'reciprocal' => 'reciprocal_status', 'last_checked' => 'link_checked_at'];
         $affSortParam   = trim((string) $request->query('aff_sort', $defaultSort));
         $affDirParam    = strtolower(trim((string) $request->query('aff_dir', 'asc')));
         if (!isset($affSortAllowed[$affSortParam])) { $affSortParam = $defaultSort; }

@@ -69,7 +69,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="listing-field-row listing-field-row--top">
         <span class="listing-field-label">Network &amp; Category</span>
         <div>

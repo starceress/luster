@@ -10,7 +10,7 @@ $b = rtrim(View::e($base_url), '/');
 ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/updates" class="link">&larr; Back to Updates Feed</a>
+  <a href="<?= $b ?>/admin/updates" class="link">&larr; Back to News Feed</a>
 </div>
 
 <?php if ($success !== ''): ?>

@@ -312,7 +312,7 @@ final class SettingsController extends AdminController
             'stats',
             'codes', 'codes-form',
             'affiliates', 'affiliate-form',
-            'contact', 'contact-sent',
+            'contact',
             'kim-overview', 'kim-subject', 'kim-signup', 'kim-update', 'kim-reset',
             'adoption',
             'wishlist',
@@ -344,7 +344,6 @@ final class SettingsController extends AdminController
             'kim_update_form_template',
             'kim_reset_form_template',
             'collective_contact_form_template',
-            'collective_contact_sent_template',
             'collective_adoption_form_template',
         ]);
 
@@ -384,7 +383,7 @@ final class SettingsController extends AdminController
             'kim_update_form', 'kim_reset_form',
             'wishlist', 'collective_updates',
             'collective_codes', 'collective_codes_submit_form',
-            'collective_contact_form', 'collective_contact_sent',
+            'collective_contact_form',
         ];
 
         if (!in_array($type, $allowed, true)) {
@@ -420,7 +419,6 @@ final class SettingsController extends AdminController
                 'collective_codes'                   => $this->coltplPreviewCodes($tpl, $db, $uploadsBase . '/codes'),
                 'collective_codes_submit_form'        => $this->coltplPreviewCodesSubmitForm($tpl, $config),
                 'collective_contact_form'             => $this->coltplPreviewContactForm($tpl, $config),
-                'collective_contact_sent'             => $this->coltplPreviewContactSent($tpl),
             };
         } catch (\Throwable $e) {
             $html = '<p style="color:#c00;font-family:monospace">Preview error: '
@@ -1061,7 +1059,7 @@ final class SettingsController extends AdminController
     private function coltplPreviewCollectiveUpdates(string $tpl, Database $db): string
     {
         if (!$this->tableExists($db, 'lstr_updates')) {
-            return '<p style="font-style:italic;color:#888">The Update Feed add-on is not installed.</p>';
+            return '<p style="font-style:italic;color:#888">The News Feed add-on is not installed.</p>';
         }
 
         $liveUpdates   = (new UpdateRepo($db))->getCollective(1, 5);
@@ -1135,11 +1133,14 @@ final class SettingsController extends AdminController
             return '<p style="color:#c00">Template must include an {each_code} or {each_size_group} block.</p>';
         }
 
-        if (trim($html) === '' && empty($codes)) {
-            return '<p style="font-style:italic;color:#888">No approved collective codes to preview with.</p>';
-        }
+        $empty = CodesTemplateRenderer::render(
+            $tpl, [], [], [], $uploadsUrl, [], [], $siteName,
+        );
 
-        return $html;
+        $sectionLabel = static fn(string $l): string => '<p style="font-size:.8em;color:#888;margin:.75rem 0 .5rem">' . htmlspecialchars($l, ENT_QUOTES, 'UTF-8') . '</p>';
+
+        return $sectionLabel(empty($codes) ? 'Empty State' : 'Active Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved collective codes to preview with.</p>')
+            . (empty($codes) ? '' : $sectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved collective codes to preview with.</p>'));
     }
 
     private function coltplPreviewCodesSubmitForm(string $tpl, Config $config): string
@@ -1725,7 +1726,7 @@ final class SettingsController extends AdminController
             'stats',
             'codes', 'codes-form',
             'affiliates', 'affiliate-form',
-            'contact', 'contact-sent',
+            'contact',
             'kim-overview', 'kim-subject', 'kim-signup', 'kim-update', 'kim-reset',
             'adoption',
             'wishlist',
@@ -1756,7 +1757,6 @@ final class SettingsController extends AdminController
         $kimUpdateFormTpl                    = (string) $request->post('kim_update_form_template',                   '');
         $kimResetFormTpl                     = (string) $request->post('kim_reset_form_template',                    '');
         $contactFormTpl                      = (string) $request->post('collective_contact_form_template',           '');
-        $contactSentTpl                      = (string) $request->post('collective_contact_sent_template',           '');
 
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
         $siteRepo->set('owned_template',            $ownedTemplate  !== '' ? $ownedTemplate  : null);
@@ -1780,7 +1780,6 @@ final class SettingsController extends AdminController
         $siteRepo->set('kim_update_form_template',  $kimUpdateFormTpl !== '' ? $kimUpdateFormTpl : null);
         $siteRepo->set('kim_reset_form_template',   $kimResetFormTpl  !== '' ? $kimResetFormTpl  : null);
         $siteRepo->set('collective_contact_form_template', $contactFormTpl !== '' ? $contactFormTpl : null);
-        $siteRepo->set('collective_contact_sent_template', $contactSentTpl !== '' ? $contactSentTpl : null);
 
         $activityRepo = new ActivityRepo($this->app->getDatabase());
         $activityRepo->log(
@@ -1796,6 +1795,38 @@ final class SettingsController extends AdminController
             $redirect .= '?group=' . rawurlencode($returnGroup);
         }
         return Response::redirect($redirect);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/templates/reset-all
+    // -----------------------------------------------------------------------
+
+    public function resetAllTemplates(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $keys = [
+            'owned_template', 'joined_template',
+            'collective_stats_template', 'collective_affiliates_section_template',
+            'random_listing_template', 'latest_listing_template',
+            'random_joined_listing_template', 'latest_joined_listing_template',
+            'collective_affiliate_apply_form_template', 'collective_adoption_form_template',
+            'kim_signup_form_template', 'wishlist_template',
+            'collective_updates_template', 'collective_codes_template',
+            'collective_codes_submit_form_template',
+            'collective_kim_list_overview_template', 'collective_kim_list_subject_template',
+            'kim_update_form_template', 'kim_reset_form_template',
+            'collective_contact_form_template',
+            'collective_contact_sent_template',
+        ];
+        foreach ($keys as $key) {
+            $siteRepo->set($key, null);
+        }
+
+        $session->set('lstr_flash_success', 'All collective templates reset to defaults.');
+        return Response::redirect($baseUrl . '/admin/collective/templates');
     }
 
     private function tableExists(Database $db, string $table): bool

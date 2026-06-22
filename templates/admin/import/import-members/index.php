@@ -34,7 +34,7 @@ $b = rtrim(View::e($base_url), '/');
   <form id="im-upload-form" method="POST" action="<?= $b ?>/admin/import-members/upload" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="callout callout-info">
         <?= View::icon('notes') ?>
         <div>

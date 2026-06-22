@@ -169,7 +169,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
       <?php endif; ?>
 
       <?php if (in_array('Updates', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/updates" class="nav-item<?= navActive('updates', $s) ?>"><span class="nav-icon"><?= View::icon('updates') ?></span> Updates Feed</a>
+      <a href="<?= $b ?>/admin/updates" class="nav-item<?= navActive('updates', $s) ?>"><span class="nav-icon"><?= View::icon('updates') ?></span> News Feed</a>
       <?php endif; ?>
 
       <?php if (in_array('Wishlist', $_navAddons, true)): ?>
@@ -296,6 +296,10 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
     </div>
   </div>
 </div>
+
+<button type="button" id="scroll-to-top" class="scroll-to-top" aria-label="Scroll to top" title="Scroll to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
 
   <?php $jsV = filemtime(LUSTER_BASE . '/public/assets/js/admin.js') ?: 0; ?>
 <script src="<?= $b ?>/assets/js/admin.js?v=<?= $jsV ?>"></script>

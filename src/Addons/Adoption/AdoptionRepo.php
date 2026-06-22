@@ -342,7 +342,7 @@ final class AdoptionRepo
             "SELECT
                 fanlisting_id,
                 COUNT(*)                    AS total,
-                SUM(status = 'pending')     AS cnt_pending,
+                SUM(status IN ('pending','new')) AS cnt_pending,
                 SUM(status = 'reviewed')    AS cnt_reviewed,
                 SUM(status = 'approved')    AS cnt_approved,
                 SUM(status = 'granted')     AS cnt_granted

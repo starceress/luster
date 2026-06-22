@@ -250,8 +250,8 @@ $snip = static function(string $file, bool $withId = false) use ($ep): string {
         <div class="es-item-row">
           <span class="es-item-icon"><?= View::icon('updates', ['width' => 15, 'height' => 15]) ?></span>
           <div class="es-item-meta">
-            <span class="es-item-label">Updates Feed</span>
-            <span class="es-item-desc">Site-wide updates feed. Requires the Updates Feed add-on.</span>
+            <span class="es-item-label">News Feed</span>
+            <span class="es-item-desc">Site-wide updates feed. Requires the News Feed add-on.</span>
           </div>
           <span class="badge badge-upcoming">Add-on</span> ✦
           <button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>

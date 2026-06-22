@@ -32,7 +32,7 @@ use Luster\Core\View;
         <div class="pc-head-sub">Report bugs, ask questions, or suggest features.</div>
       </div>
     </div>
-    <div class="listing-field-section">
+    <div class="pc-section">
 
       <!-- Contact name -->
       <div class="listing-field-row<?= isset($field_errors['contact_name']) ? ' has-error' : '' ?>">
@@ -165,7 +165,7 @@ use Luster\Core\View;
 
 <?php if ($send_failed && $composed_body !== ''): ?>
 <div class="gradient-card mt-lg">
-  <div class="listing-field-section">
+  <div class="pc-section">
     <div class="listing-field-row listing-field-row--top">
       <label class="listing-field-label">Copy report</label>
       <div>

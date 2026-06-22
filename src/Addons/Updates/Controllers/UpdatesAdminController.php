@@ -80,7 +80,7 @@ final class UpdatesAdminController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/index.php', 'Updates Feed', 'updates', [
+        return $this->adminLayout('admin/addons/updates/index.php', 'News Feed', 'updates', [
             'listings'        => $listings,
             'latest_per_fl'   => $latestPerFl,
             'latest_coll'     => $latestColl,
@@ -122,18 +122,18 @@ final class UpdatesAdminController extends AdminController
             $perPage = max(5, min(25, (int) $request->post('updates_per_page', 10)));
             $settingsRepo->set('updates_per_page', (string) $perPage);
 
-            $session->set('lstr_flash_success', 'Updates display settings saved.');
+            $session->set('lstr_flash_success', 'News feed display settings saved.');
             return Response::redirect($this->app->getBaseUrl() . '/admin/updates/settings');
         }
 
         $perPage = max(1, min(100, (int) ($settingsRepo->get('updates_per_page', '10') ?? '10')));
 
-        return $this->adminLayout('admin/addons/updates/settings.php', 'Updates Settings', 'updates', [
+        return $this->adminLayout('admin/addons/updates/settings.php', 'News Feed Settings', 'updates', [
             'updates_per_page' => $perPage,
             'success'          => $success,
             'error'            => $error,
         ], '', [
-            $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
         ]);
     }
 
@@ -164,7 +164,7 @@ final class UpdatesAdminController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/list.php', 'Updates Feed', 'updates', [
+        return $this->adminLayout('admin/addons/updates/list.php', 'News Feed', 'updates', [
             'updates'          => $updates,
             'total'            => $total,
             'page'             => $page,
@@ -179,7 +179,7 @@ final class UpdatesAdminController extends AdminController
             'success'          => $success,
             'error'            => $error,
         ], '', [
-            $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
             $this->crumb($siteName),
         ]);
     }
@@ -232,7 +232,7 @@ final class UpdatesAdminController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/list.php', 'Updates Feed', 'updates', [
+        return $this->adminLayout('admin/addons/updates/list.php', 'News Feed', 'updates', [
             'updates'          => $updates,
             'total'            => $total,
             'page'             => $page,
@@ -247,7 +247,7 @@ final class UpdatesAdminController extends AdminController
             'success'          => $success,
             'error'            => $error,
         ], '', [
-            $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
             $this->crumb($listing->subject),
         ]);
     }
@@ -494,7 +494,7 @@ final class UpdatesAdminController extends AdminController
             'author'           => (string) $session->get('lstr_admin_username', ''),
             'error'            => $error,
         ], '', [
-            $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
             $this->crumb($contextLabel),
         ]);
     }
@@ -596,7 +596,7 @@ final class UpdatesAdminController extends AdminController
                 'Collective',
                 $this->adminUrl('/admin/updates/collective'),
                 [
-                    $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+                    $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
                     $this->crumb('Collective'),
                 ],
             ];
@@ -609,7 +609,7 @@ final class UpdatesAdminController extends AdminController
             $name,
             $this->adminUrl('/admin/updates/' . $update->fanlistingId),
             [
-                $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+                $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
                 $this->crumb($name),
             ],
         ];

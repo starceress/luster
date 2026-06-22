@@ -17,7 +17,7 @@ use Luster\Core\View;
 
 $b              = rtrim(View::e($base_url), '/');
 $listingId      = (int) $application['fanlisting_id'];
-$backUrl        = $b . '/admin/adoptions/' . $listingId;
+$backUrl        = $b . '/admin/adoptions?listing_id=' . $listingId;
 $isReviewMode   = $is_review_mode ?? false;
 $currentStatus  = $application['status'] ?? 'pending';
 

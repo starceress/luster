@@ -385,12 +385,21 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
   </div>
 </form>
 
+<?php
+  $_delReturn = $b . '/admin/adoptions?' . http_build_query(array_filter([
+      'listing_id' => $listing_id ?? '',
+      'tab'        => $tab ?? '',
+      'search'     => $search ?? '',
+      'page'       => ($page ?? 1) > 1 ? (string) $page : '',
+  ], static fn(string $v): bool => $v !== ''));
+?>
 <?php foreach ($applications as $app): ?>
 <form id="del-adopt-<?= (int) $app['id'] ?>" method="POST"
       action="<?= $b ?>/admin/adoptions/<?= (int) $app['id'] ?>/delete"
       data-del-modal data-del-entity="adoption_application"
       data-del-name="<?= View::e($app['name']) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_return" value="<?= View::e($_delReturn) ?>">
 </form>
 <?php endforeach; ?>
 

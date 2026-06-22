@@ -36,7 +36,7 @@ $fe = $field_errors ?? [];
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="pc-section-label">Account Details</div>
 
       <div class="listing-field-row<?= !empty($fe['username']) ? ' has-error' : '' ?>">

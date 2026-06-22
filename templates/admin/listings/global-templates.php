@@ -16,7 +16,6 @@ $d  = [
     'listing_default_reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
     'listing_default_codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
     'listing_default_contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
-    'listing_default_contact_sent_template'         => ListingSettingsRepo::defaultContactSentTemplate(),
 ];
 
 // Resolve display value: prefer stored global, otherwise fall through to built-in
@@ -48,36 +47,36 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
 
 <?php
 $activeGroup = (string) ($_GET['group'] ?? 'all');
-$_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'contact-form', 'contact-sent', 'affiliates', 'affiliate-form', 'updates'];
+$_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'contact-form', 'affiliates', 'affiliate-form', 'updates'];
 if (!in_array($activeGroup, $_validGroups, true)) { $activeGroup = 'all'; }
 $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) ? 'hidden' : '';
 ?>
 
-<div class="form-group" style="max-width:340px;margin-bottom:1rem">
-  <div class="select-wrap">
-    <select id="tpl-group-select" class="form">
-      <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
-      <option value="members"<?= $activeGroup === 'members' ? ' selected' : '' ?>>Members List</option>
-      <optgroup label="Membership Forms">
+<div class="tpl-filter-panel">
+  <div class="filter-row" id="tpl-filter-row">
+    <label for="tpl-group-select" style="font-weight:600; white-space:nowrap">Select Template:</label>
+    <div class="select-wrap">
+      <select id="tpl-group-select" class="form">
+        <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
+        <option value="members"<?= $activeGroup === 'members' ? ' selected' : '' ?>>Members List</option>
         <option value="join-form"<?= $activeGroup === 'join-form' ? ' selected' : '' ?>>Join Form</option>
         <option value="update-form"<?= $activeGroup === 'update-form' ? ' selected' : '' ?>>Update Membership Form</option>
         <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Lost Password Form</option>
-      </optgroup>
-      <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Statistics</option>
-      <optgroup label="Codes &amp; Donation Form">
+        <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Statistics</option>
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
         <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
-      </optgroup>
-      <optgroup label="Affiliates">
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
         <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
-      </optgroup>
-      <optgroup label="Contact Form">
         <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
-        <option value="contact-sent"<?= $activeGroup === 'contact-sent' ? ' selected' : '' ?>>Contact Confirmation</option>
-      </optgroup>
-      <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>Updates Feed</option>
-    </select>
+        <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>News Feed</option>
+      </select>
+    </div>
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="search" id="tpl-group-search" class="form" placeholder="Search templates&hellip;" autocomplete="off">
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm" id="tpl-group-search-btn">Search</button>
+    <button type="button" class="btn btn-quaternary btn-sm" id="tpl-group-search-reset">Reset</button>
   </div>
 </div>
 
@@ -97,6 +96,16 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </div>
 
+      <div class="tpl-reset-all-row pc-section" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
+        <div style="text-align:center; padding: 0.75rem 0;">
+          <button type="button" class="btn btn-quaternary btn-block-center"
+                  id="fl-reset-all-templates"
+                  data-action="<?= $b ?>/admin/listings/global-templates/reset-all"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>"
+                  data-confirm="Reset all global listing templates to the Luster built-in defaults?&#10;&#10;Any global customisations will be lost. Per-listing overrides are not affected.">Reset All Templates to Default</button>
+        </div>
+      </div>
+
       <div class="pc-section">
 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
@@ -106,7 +115,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_members_template" id="listing_default_members_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_members_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="members" data-textarea="listing_default_members_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
@@ -118,7 +127,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_join_form_template" id="listing_default_join_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_join_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_join_form_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_join_form_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="join_form" data-textarea="listing_default_join_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
@@ -130,7 +139,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_update_form_template" id="listing_default_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_update_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_update_form_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_update_form_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="update_form" data-textarea="listing_default_update_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
@@ -142,7 +151,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_reset_form_template" id="listing_default_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_reset_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_reset_form_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_reset_form_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="reset_form" data-textarea="listing_default_reset_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
@@ -165,7 +174,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_stats_template" id="listing_default_stats_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_stats_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_stats_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_stats_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="listing_default_stats_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
@@ -177,19 +186,19 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_codes_template" id="listing_default_codes_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_codes_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_codes_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes" data-textarea="listing_default_codes_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-          <div class="pc-section-label">Code Donation Form</div>
+          <div class="pc-section-label">Codes Donation Form</div>
           <p class="form-hint mb-sm">Default layout for the code donation form.</p>
           <div class="form-group">
             <textarea name="listing_default_codes_submit_form_template" id="listing_default_codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_submit_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_codes_submit_form_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_codes_submit_form_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes_submit_form" data-textarea="listing_default_codes_submit_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
@@ -201,7 +210,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_affiliates_section_template" id="listing_default_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliates_section_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliates_section_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliates_section_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="listing_default_affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
@@ -213,7 +222,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliate_apply_form_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliate_apply_form_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="listing_default_affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
@@ -225,31 +234,19 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_contact_form_template" id="listing_default_contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_contact_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_contact_form_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_contact_form_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="contact_form" data-textarea="listing_default_contact_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
-        <div class="tpl-group-section" data-tpl-group="contact-sent" <?= $_grp('contact-sent') ?>>
-          <div class="pc-section-label">Contact Confirmation</div>
-          <p class="form-hint mb-sm">Default confirmation message shown after a visitor submits a listing contact form.</p>
-          <div class="form-group">
-            <textarea name="listing_default_contact_sent_template" id="listing_default_contact_sent_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_contact_sent_template')) ?></textarea>
-          </div>
-          <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_contact_sent_template">Reset to Built-in Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="contact_sent" data-textarea="listing_default_contact_sent_template"><?= View::icon('eye-on') ?> Preview</button>
-          </div>
-        </div>
-
         <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
-          <div class="pc-section-label">Updates Feed</div>
-          <p class="form-hint mb-sm">Default for listings with the Updates Feed add-on. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
+          <div class="pc-section-label">News Feed</div>
+          <p class="form-hint mb-sm">Default for listings with the News Feed add-on. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
           <div class="form-group">
             <textarea name="listing_default_updates_template" id="listing_default_updates_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_updates_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_updates_template">Reset to Built-in Default</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_updates_template">Reset to Luster Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="listing_default_updates_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
@@ -265,22 +262,24 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
     <!-- ── Right column: token reference ─────────────────────────────────── -->
     <div class="composer-side composer-side--sticky">
 
-      <div class="search-field-wrap token-search-wrap">
-        <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
-        <input type="search"
-               id="global-token-search"
-               data-token-search
-               class="form"
-               placeholder="Search embed tokens"
-               autocomplete="off"
-               aria-label="Search embed tokens">
-        <button type="button"
-                id="global-token-search-clear"
-                data-token-search-clear
-                class="token-search-clear"
-                aria-label="Clear embed token search"
-                title="Clear search"
-                hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+      <div class="tpl-filter-panel token-search-wrap">
+        <div class="search-field-wrap">
+          <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+          <input type="search"
+                 id="global-token-search"
+                 data-token-search
+                 class="form"
+                 placeholder="Search embed tokens"
+                 autocomplete="off"
+                 aria-label="Search embed tokens">
+          <button type="button"
+                  id="global-token-search-clear"
+                  data-token-search-clear
+                  class="token-search-clear"
+                  aria-label="Clear embed token search"
+                  title="Clear search"
+                  hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+        </div>
       </div>
 
       <p id="global-token-search-empty" data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
@@ -459,7 +458,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
       <!-- Code Donation Form -->
       <details class="card chevron" data-token-card data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-        <summary class="chevron-head">Code Donation Form Tokens</summary>
+        <summary class="chevron-head">Codes Donation Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the code donation form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -560,26 +559,11 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
-      <!-- Contact Sent -->
-      <details class="card chevron" data-token-card data-tpl-group="contact-sent" <?= $_grp('contact-sent') ?>>
-        <summary class="chevron-head">Contact Sent Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Shown after a visitor submits a listing contact form.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_contact_sent_template', '{sender_name}',   '{sender_name}',   'The name the visitor entered on the contact form.') ?>
-            <?= $tok('listing_default_contact_sent_template', '{sender_email}',  '{sender_email}',  'The email address the visitor entered.') ?>
-            <?= $tok('listing_default_contact_sent_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
-            <?= $tok('listing_default_contact_sent_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
-            <?= $tok('listing_default_contact_sent_template', '{site_name}',     '{site_name}',     'The site/collective name.') ?>
-          </tbody></table>
-        </div>
-      </details>
-
-      <!-- Updates Feed -->
+      <!-- News Feed -->
       <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
-        <summary class="chevron-head">Updates Feed Tokens</summary>
+        <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry. Requires the Updates Feed add-on.</p>
+          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry. Requires the News Feed add-on.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_updates_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_updates_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>

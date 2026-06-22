@@ -665,7 +665,10 @@ final class KimAdminController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_email_old');
 
-        $referer = $request->header('referer') ?? $baseUrl . '/admin/kim/' . $member->fanlistingId . '/show';
+        $rawReferer = $request->header('referer') ?? '';
+        $referer = ($rawReferer !== '' && \Luster\Core\UrlGuard::isSameOriginUrl($rawReferer, $baseUrl))
+            ? $rawReferer
+            : $baseUrl . '/admin/kim/' . $member->fanlistingId . '/show';
 
         return $this->adminLayout('admin/addons/kim/email-member.php', 'Email Keep In Mind Member', 'kim', [
             'member'       => $member,

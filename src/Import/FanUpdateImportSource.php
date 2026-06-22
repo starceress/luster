@@ -17,7 +17,7 @@ use PDO;
  *   'fanupdate_blog' — standard table name matches and entry_id column present
  *
  * What this adapter imports into Luster's lstr_* tables:
- *   - lstr_updates ← {prefix} entries (requires Updates Feed add-on to be installed)
+ *   - lstr_updates ← {prefix} entries (requires News Feed add-on to be installed)
  *
  * Fanlisting association: FanUpdate links entries to fanlistings via
  * {prefix}_category (fl_id, fl_subject) and {prefix}_catjoin (entry_id, cat_id).
@@ -149,7 +149,7 @@ final class FanUpdateImportSource implements ImportSourceInterface
         $warns = [];
 
         if (!$this->tableExists($target, 'lstr_updates')) {
-            $warns[] = 'Updates Feed add-on is not installed — lstr_updates table not found. Updates will be skipped.';
+            $warns[] = 'News Feed add-on is not installed — lstr_updates table not found. Updates will be skipped.';
         }
 
         if (!$this->tableExists($source, $prefix)) {
@@ -186,14 +186,14 @@ final class FanUpdateImportSource implements ImportSourceInterface
         $errors    = 0;
         $warnings  = [];
 
-        // Gate: lstr_updates must exist (requires Updates Feed add-on)
+        // Gate: lstr_updates must exist (requires News Feed add-on)
         $chk = $target->query("SHOW TABLES LIKE 'lstr_updates'");
         if (!$chk || $chk->fetchColumn() === false) {
             return [
                 'type'     => 'Updates (blog entries)',
                 'imported' => 0,
                 'skipped'  => 0,
-                'warnings' => ['Updates Feed add-on is not installed — lstr_updates table not found.'],
+                'warnings' => ['News Feed add-on is not installed — lstr_updates table not found.'],
                 'errors'   => 1,
             ];
         }

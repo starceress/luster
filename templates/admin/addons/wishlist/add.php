@@ -91,7 +91,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="pc-section-label">Subject Details</div>
 
       <div class="listing-field-row">

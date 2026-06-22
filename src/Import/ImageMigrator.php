@@ -123,6 +123,10 @@ final class ImageMigrator
             ],
         ]);
 
+        if (NetworkAddressGuard::validatePublicHost($host) !== null) {
+            return null;
+        }
+
         $data = @file_get_contents($url, false, $context, 0, 10 * 1024 * 1024);
         if ($data === false || $data === '') {
             return null;

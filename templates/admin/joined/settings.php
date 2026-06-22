@@ -34,7 +34,7 @@ $b = rtrim(View::e($base_url), '/');
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="pc-section-label">Display Preferences</div>
 
       <!-- Sort order -->
@@ -64,7 +64,7 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-    </div><!-- /.listing-field-section -->
+    </div><!-- /.pc-section -->
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>

@@ -54,7 +54,7 @@ $defaultGateLabel = $currentGateType === 'button'
           <div class="pc-head-title">Global Join Rules HTML Template</div>
           <div class="pc-head-sub">Choose the HTML Luster prints for your Global Join Rules. These rules are applied as the default template throughout your entire collective unless overrided by custom per-listing join rules.</div>
           </div></div>
-        <div class="listing-field-section">
+        <div class="pc-section">
 
           <div class="listing-field-row listing-field-row--top">
             <label class="listing-field-label" for="global-rules-body">
@@ -65,7 +65,7 @@ $defaultGateLabel = $currentGateType === 'button'
                         rows="16"
                         maxlength="10000"
                         spellcheck="false"><?= View::e($bodyVal) ?></textarea>
-              <p class="form-hint">Shown on listings that have no per-listing rules configured. HTML is allowed. Use tokens like <code>{subject}</code>, <code>{gate_checkbox}</code>, and <code>{gate_button}</code> to insert dynamic content. Editing this text will increment the version number and require all fans using this template to agree again on their next visit.</p>
+              <p class="form-hint">This is the default rules page fans see before they can join. It applies to every listing unless that listing has its own custom rules. You can use HTML and tokens like <code>{subject}</code> or <code>{gate_button}</code> to fill in listing details automatically. If you change this text, fans who already agreed will need to agree again next time they visit.</p>
               <div class="tpl-reset-row">
                 <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="rules" data-textarea="global-rules-body"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
                 <button type="button" class="btn btn-quaternary btn-xs" data-textarea="global-rules-body">Reset to Luster Rules</button>
@@ -81,7 +81,7 @@ $defaultGateLabel = $currentGateType === 'button'
                        <?= $gateIsEnabled ? 'checked' : '' ?>>
                 <span class="toggle-label">Show rules gate on listings using this template</span>
               </label>
-              <p class="form-hint">When disabled, the gate is hidden and fans can join without agreeing. The rules template is preserved.</p>
+              <p class="form-hint">When turned off, fans can join without seeing or agreeing to rules. Your rules text is kept safe &mdash; just not shown.</p>
             </div>
           </div>
 
@@ -94,7 +94,7 @@ $defaultGateLabel = $currentGateType === 'button'
                   <option value="button"   <?= $currentGateType === 'button'   ? 'selected' : '' ?>>Single Button</option>
                 </select>
               </div>
-              <p class="form-hint">"Checkbox + Button" — <code>{gate_checkbox}</code> renders a required checkbox; <code>{gate_button}</code> renders the submit button. "Single Button" — <code>{gate_checkbox}</code> renders as empty; <code>{gate_button}</code> renders a button that submits the agreement directly.</p>
+              <p class="form-hint">&ldquo;Checkbox + Button&rdquo; shows a checkbox fans must tick before clicking the button. &ldquo;Single Button&rdquo; skips the checkbox &mdash; fans just click a button to agree and continue.</p>
             </div>
           </div>
 
@@ -105,11 +105,11 @@ $defaultGateLabel = $currentGateType === 'button'
                      maxlength="255"
                      value="<?= View::e($global_gate_label) ?>"
                      placeholder="<?= View::e($defaultGateLabel) ?>">
-              <p class="form-hint">Text shown on the <code>{gate_button}</code> button, used for both gate styles. <code>{gate_checkbox}</code> renders an unlabeled checkbox &mdash; add your own label text in the template body next to it. Leave blank to use the default for the selected gate type. Only takes effect while the gate is enabled above.</p>
+              <p class="form-hint">The text on the agree button (e.g. &ldquo;I agree&rdquo; or &ldquo;Proceed&rdquo;). Leave blank to use the default. Only matters when the gate is turned on above.</p>
             </div>
           </div>
 
-        </div><!-- /.listing-field-section -->
+        </div><!-- /.pc-section -->
 
         <div class="composer-footer">
           <button type="submit" class="btn btn-primary">Save Global Rules</button>

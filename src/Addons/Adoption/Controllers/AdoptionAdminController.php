@@ -10,6 +10,7 @@ use Luster\Core\Config;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\UrlGuard;
 use Luster\Models\Listing;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
@@ -43,6 +44,13 @@ final class AdoptionAdminController
     private const VALID_STATUSES  = ['pending', 'reviewed', 'approved', 'rejected', 'granted'];
 
     public function __construct(private readonly Application $app) {}
+
+    private function safeReturn(string $candidate, string $fallback): string
+    {
+        return ($candidate !== '' && UrlGuard::isSameOriginUrl($candidate, $this->app->getBaseUrl()))
+            ? $candidate
+            : $fallback;
+    }
 
     // -----------------------------------------------------------------------
     // GET /admin/adoptions
@@ -195,7 +203,10 @@ final class AdoptionAdminController
         $action  = trim((string) $request->post('bulk_action', ''));
         $ids     = array_map('intval', (array) $request->post('ids', []));
         $ids     = array_filter($ids, static fn(int $id): bool => $id > 0);
-        $returnUrl = (string) $request->post('_return', $baseUrl . '/admin/adoptions');
+        $returnUrl = $this->safeReturn(
+            (string) $request->post('_return', ''),
+            $baseUrl . '/admin/adoptions',
+        );
 
         if (empty($ids) || !in_array($action, ['approve', 'reject', 'delete', 'email'], true)) {
             $session->set('lstr_flash_error', 'No action or applications selected.');
@@ -561,7 +572,10 @@ final class AdoptionAdminController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $returnUrl = (string) $request->query('_return', $this->app->getBaseUrl() . '/admin/adoptions');
+        $returnUrl = $this->safeReturn(
+            (string) $request->query('_return', ''),
+            $this->app->getBaseUrl() . '/admin/adoptions',
+        );
 
         $adoptionRepo = new AdoptionRepo($db);
         $listingRepo  = new ListingRepo($db, $config);
@@ -662,7 +676,10 @@ final class AdoptionAdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $returnUrl = trim((string) $request->post('_return', $baseUrl . '/admin/adoptions'));
+        $returnUrl = $this->safeReturn(
+            trim((string) $request->post('_return', '')),
+            $baseUrl . '/admin/adoptions',
+        );
 
         $ids = array_filter(
             array_map('intval', (array) $request->post('ids', [])),
@@ -852,6 +869,10 @@ final class AdoptionAdminController
 
     private function redirectAfterAction(Request $request, string $baseUrl): Response
     {
+        $returnUrl = trim((string) $request->post('_return', ''));
+        if ($returnUrl !== '' && UrlGuard::isSameOriginUrl($returnUrl, $baseUrl)) {
+            return Response::redirect($returnUrl);
+        }
         $adoptionRepo = new AdoptionRepo($this->app->getDatabase());
         $tab = ($adoptionRepo->queryCounts(0, '')['pending'] ?? 0) > 0 ? 'pending' : 'all';
         return Response::redirect($baseUrl . '/admin/adoptions?tab=' . $tab);

@@ -101,7 +101,7 @@ $id = (int) $listing->id;
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="af-name">Field Name <span class="req">*</span></label>
         <div>

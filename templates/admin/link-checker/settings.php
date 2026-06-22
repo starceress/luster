@@ -97,7 +97,7 @@ $b = rtrim(View::e($base_url), '/');
         $cronLastTs = $cron_last_run !== '' ? (int) strtotime($cron_last_run) : null;
         $cronIsDue  = $cronLastTs !== null && ($cronLastTs + 30 * 24 * 3600) <= time();
       ?>
-      <div class="listing-field-section">
+      <div class="pc-section">
         <div class="listing-field-row">
           <label class="listing-field-label">Last Run</label>
           <div>

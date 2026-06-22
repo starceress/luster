@@ -88,7 +88,8 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       </div>
     </div>
 
-    <div class="search-field-wrap token-search-wrap">
+      <div class="tpl-filter-panel token-search-wrap">
+    <div class="search-field-wrap">
       <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
       <input type="search"
              data-token-search
@@ -102,7 +103,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
               aria-label="Clear search"
               title="Clear search"
               hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
-    </div>
+    </div></div>
 
     <p data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
 

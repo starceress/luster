@@ -50,7 +50,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
 <?php endif; ?>
 
 <div class="page-topbar">
-  <a href="<?= View::e($back_url) ?>" class="link">&larr; Back to <?= View::e($backLabel) ?> Update Feed</a>
+  <a href="<?= View::e($back_url) ?>" class="link">&larr; Back to <?= View::e($backLabel) ?> News Feed</a>
 </div>
 
 <form method="POST" action="<?= View::e($formAction) ?>">
@@ -66,7 +66,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         <span class="badge badge-info-pink pc-head-badge"><?= View::e($ctxDisplay) ?></span>
       </div>
 
-      <div class="listing-field-section">
+      <div class="pc-section">
         <div class="listing-field-row">
           <label class="listing-field-label" for="upd-title">Title <span class="req">*</span></label>
           <div>
@@ -112,7 +112,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         </div>
       </div>
 
-      <div class="listing-field-section">
+      <div class="pc-section">
         <div class="listing-field-row">
           <label class="listing-field-label">Posted by</label>
           <div>

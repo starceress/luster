@@ -95,11 +95,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <div class="actions-row">
     <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $listing->id ?>&status=all" class="btn btn-quaternary btn-sm">Member List</a>
     <a href="<?= $b ?>/admin/emails?tab=bulk&listing=<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Bulk Email</a>
-    <?php if (in_array('Kim', $nav_installed_addons ?? [], true)): ?>
-      <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="btn btn-quaternary btn-sm">KIM List</a>
-    <?php endif; ?>
     <?php if (in_array('Updates', $nav_installed_addons ?? [], true)): ?>
-      <a href="<?= $b ?>/admin/updates/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Updates Feed</a>
+      <a href="<?= $b ?>/admin/updates/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">News Feed</a>
     <?php endif; ?>
     <form method="post"
           action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
@@ -293,6 +290,24 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             </div>
           </div>
         </div>
+
+        <?php $lt = $listing_type ?? 'listing'; ?>
+        <div class="listing-field-row">
+          <label class="listing-field-label" for="fl-listing-type">Listing Type</label>
+          <div>
+            <div class="select-wrap select-auto">
+              <select id="fl-listing-type" name="listing_type">
+                <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Fanlisting</option>
+                <option value="clique"     <?= $lt === 'clique'     ? 'selected' : '' ?>>Clique</option>
+                <option value="collective" <?= $lt === 'collective' ? 'selected' : '' ?>>Collective</option>
+                <option value="shrine"     <?= $lt === 'shrine'     ? 'selected' : '' ?>>Shrine</option>
+                <option value="webring"    <?= $lt === 'webring'    ? 'selected' : '' ?>>Webring</option>
+                <option value="other"      <?= $lt === 'other'      ? 'selected' : '' ?>>Other</option>
+              </select>
+            </div>
+            <p class="form-hint">Helps categorize your listings according to its type (e.g. fanlisting, clique, shrine, etc...).</p>
+          </div>
+        </div>
       </div>
 
 
@@ -328,19 +343,24 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 
       <div class="pc-section">
-        <div class="pc-section-label">Preferences</div>
-        <?php $lt = $listing_type ?? 'listing'; ?>
-        <div class="listing-field-row">
-          <label class="listing-field-label" for="fl-listing-type">Listing Type</label>
-          <div class="select-wrap select-auto">
-            <select id="fl-listing-type" name="listing_type" >
-              <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Fanlisting</option>
-              <option value="clique"     <?= $lt === 'clique'     ? 'selected' : '' ?>>Clique</option>
-              <option value="collective" <?= $lt === 'collective' ? 'selected' : '' ?>>Collective</option>
-              <option value="shrine"     <?= $lt === 'shrine'     ? 'selected' : '' ?>>Shrine</option>
-              <option value="webring"    <?= $lt === 'webring'    ? 'selected' : '' ?>>Webring</option>
-              <option value="other"      <?= $lt === 'other'      ? 'selected' : '' ?>>Other</option>
-            </select>
+        <div class="pc-section-label">Public Display Preferences</div>
+         <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="fl-members-per-page">Members Per Page</label>
+          <div>
+            <input id="fl-members-per-page" type="number" name="members_per_page" class="form form--compact"
+                   min="10" max="100" value="<?= (int) ($members_per_page ?? 25) ?>">
+            <p class="form-hint">How many members to show per page on the public members list. Default is 25. Choose 10&ndash;100.</p>
+          </div>
+        </div>
+
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="fl-newmembers-limit">How Many Newest Member Names Shown</label>
+          <div>
+            <input id="fl-newmembers-limit" type="number" name="stat_newmembers_limit" class="form form--compact"
+                   min="0" max="255"
+                   value="<?= ($stat_newmembers_limit ?? '') !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : '' ?>"
+                   placeholder="Use default">
+            <p class="form-hint">How many names appear in the <code>{stat_newmembers}</code> stats token. Default is 5. If there are more members than this limit, the list ends with &ldquo;&hellip;and more.&rdquo; Leave blank to use the global default. Set to 0 to show all members.</p>
           </div>
         </div>
 
@@ -360,77 +380,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-members-per-page">Members Shown Per Page</label>
-          <div>
-            <input id="fl-members-per-page" type="number" name="members_per_page" class="form form--compact"
-                   min="5" max="200" value="<?= (int) ($members_per_page ?? 25) ?>">
-            <p class="form-hint">How many members to show on each admin members page for this listing. Choose 5&ndash;200.</p>
-          </div>
-        </div>
-
-        <div class="listing-field-row">
-          <label class="listing-field-label">Contact Form</label>
-          <div>
-            <label class="toggle-wrap">
-              <input type="checkbox" name="contact_enabled" value="1"
-                     <?= ($contact_enabled ?? true) ? 'checked' : '' ?>>
-              <span class="toggle-label">Enable contact form for this listing</span>
-            </label>
-          </div>
-        </div>
-
-
-        <?php if ($adoption_addon_installed ?? false): ?>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Adoption</label>
-          <div>
-            <label class="toggle-wrap">
-              <input type="checkbox" name="for_adoption" value="1" id="fl-for-adoption"
-                     <?= ($for_adoption ?? false) ? 'checked' : '' ?>>
-              <span class="toggle-label">Accept adoption applications</span>
-            </label>
-            <p class="form-hint">Make this listing available in the collective adoption form and collect applications in the admin panel.</p>
-            <?php if (($for_adoption ?? false) && ($adoption_count ?? 0) > 0): ?>
-            <p class="form-hint">
-              <a href="<?= $b ?>/admin/adoptions/<?= (int) $listing->id ?>" class="link">
-                View <?= (int) $adoption_count ?> application<?= $adoption_count !== 1 ? 's' : '' ?> &rarr;
-              </a>
-            </p>
-            <?php endif; ?>
-          </div>
-        </div>
-        <?php endif; ?>
-
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Codes Donations</label>
-          <div>
-            <label class="toggle-wrap">
-              <input type="checkbox" name="codes_submit_enabled" value="1" id="fl-codes-submit-enabled"
-                     <?= ($embed_settings['codes_submit_enabled'] ?? true) ? 'checked' : '' ?>>
-              <span class="toggle-label">Allow fans to donate codes for this listing</span>
-            </label>
-            <p class="form-hint">Enables the public code submission form. Submissions appear in the Codes tab for review.</p>
-            <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
-            <div style="margin-top:.75rem">
-              <?php
-                $_cae = $code_approval_email ?? null;
-                $_caeVal = $_cae === null ? '' : ($_cae ? '1' : '0');
-              ?>
-              <div class="select-wrap select-auto">
-                <select name="code_approval_email">
-                  <option value=""  <?= $_caeVal === ''  ? 'selected' : '' ?>>Follow global setting (email donor on approval)</option>
-                  <option value="1" <?= $_caeVal === '1' ? 'selected' : '' ?>>Always email donor on approval</option>
-                  <option value="0" <?= $_caeVal === '0' ? 'selected' : '' ?>>Never email donor on approval</option>
-                </select>
-              </div>
-              <p class="form-hint">Controls the <em>Codes Donation Approved</em> email for this listing. The global setting is configured in Settings &rarr; General.</p>
-            </div>
-            <?php endif; ?>
-          </div>
-        </div>
-
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Affiliate Applications</label>
+          <label class="listing-field-label">Allow Affiliate Applications</label>
           <div>
             <input type="hidden" name="affiliate_apply_enabled" value="0">
             <label class="toggle-wrap">
@@ -454,18 +404,68 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-newmembers-limit">Newest members shown</label>
+          <label class="listing-field-label">Allow Codes Donations</label>
           <div>
-            <input id="fl-newmembers-limit" type="number" name="stat_newmembers_limit" class="form form--compact"
-                   min="0" max="255"
-                   value="<?= ($stat_newmembers_limit ?? '') !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : '' ?>"
-                   placeholder="Use default">
-            <p class="form-hint">How many names appear in the <code>{stat_newmembers}</code> stats token. Leave blank to use the global default. Set to 0 to show all members.</p>
+            <label class="toggle-wrap">
+              <input type="checkbox" name="codes_submit_enabled" value="1" id="fl-codes-submit-enabled"
+                     <?= ($embed_settings['codes_submit_enabled'] ?? true) ? 'checked' : '' ?>>
+              <span class="toggle-label">Allow fans to donate codes for this listing</span>
+            </label>
+            <p class="form-hint">Enables the public code submission form. Submissions appear in the <a href="#" class="link" onclick="document.querySelector('[data-tab=codes]').click(); return false;">Codes tab</a> for review.</p>
+            <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
+            <div style="margin-top:.75rem">
+              <?php
+                $_cae = $code_approval_email ?? null;
+                $_caeVal = $_cae === null ? '' : ($_cae ? '1' : '0');
+              ?>
+              <div class="select-wrap select-auto">
+                <select name="code_approval_email">
+                  <option value=""  <?= $_caeVal === ''  ? 'selected' : '' ?>>Follow global setting (email donor on approval)</option>
+                  <option value="1" <?= $_caeVal === '1' ? 'selected' : '' ?>>Always email donor on approval</option>
+                  <option value="0" <?= $_caeVal === '0' ? 'selected' : '' ?>>Never email donor on approval</option>
+                </select>
+              </div>
+              <p class="form-hint">Whether to email the donor when their submitted code is approved for this listing.</p>
+            </div>
+            <?php endif; ?>
           </div>
         </div>
 
+        <div class="listing-field-row">
+          <label class="listing-field-label">Enable Contact Form</label>
+          <div>
+            <label class="toggle-wrap">
+              <input type="checkbox" name="contact_enabled" value="1"
+                     <?= ($contact_enabled ?? true) ? 'checked' : '' ?>>
+              <span class="toggle-label">Enable contact form for this listing</span>
+            </label>
+          </div>
+        </div>
+
+
+        <?php if ($adoption_addon_installed ?? false): ?>
         <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Join Settings</label>
+          <label class="listing-field-label">Put Up For Adoption</label>
+          <div>
+            <label class="toggle-wrap">
+              <input type="checkbox" name="for_adoption" value="1" id="fl-for-adoption"
+                     <?= ($for_adoption ?? false) ? 'checked' : '' ?>>
+              <span class="toggle-label">Accept adoption applications</span>
+            </label>
+            <p class="form-hint">Make this listing available in the collective adoption form and collect applications in <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $listing->id ?>" class="link">Adoptions</a>.</p>
+            <?php if (($for_adoption ?? false) && ($adoption_count ?? 0) > 0): ?>
+            <p class="form-hint">
+              <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $listing->id ?>" class="link">
+                View <?= (int) $adoption_count ?> application<?= $adoption_count !== 1 ? 's' : '' ?> &rarr;
+              </a>
+            </p>
+            <?php endif; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label">Auto Approve Joins</label>
           <div>
             <label class="toggle-wrap">
               <input type="checkbox" name="auto_approve_joins" value="1" id="fl-auto-approve-joins"
@@ -477,22 +477,21 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <div class="listing-field-row">
-          <label class="listing-field-label">Update Settings</label>
+          <label class="listing-field-label">Queue Member Updates for Review</label>
           <div>
             <label class="toggle-wrap">
               <input type="checkbox" name="queue_updates" value="1" id="fl-queue-updates"
                      <?= ($queue_updates ?? false) ? 'checked' : '' ?>>
               <span class="toggle-label">Hold updates for review</span>
             </label>
-            <p class="form-hint">Name, email, URL, country, and custom field changes wait for admin approval. Password changes always apply immediately. Review pending updates in the Members page.</p>
+            <p class="form-hint">Name, email, URL, country, and custom field changes wait for admin approval. Password changes always apply immediately. Review pending updates in the <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $listing->id ?>&amp;status=pending" class="link">Members page</a>.</p>
           </div>
         </div>
       </div>
 
       <div class="composer-footer">
         <button type="submit" class="btn btn-primary">Save Changes</button>
-      <button type="button" class="btn btn-ghost js-form-reset">Reset</button>
-        <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
+      <button type="button" class="btn btn-quaternary js-form-reset">Reset</button>
       </div>
     </div>
   </form>
@@ -563,10 +562,9 @@ $tplCodesVal        = ($templates['codes_template']                  ?? '') ?: $
 $tplUpdateFormVal   = ($templates['update_form_template']             ?? '') ?: $_gFallback(ListingSettingsRepo::defaultUpdateFormTemplate(), 'listing_default_update_form_template');
 $tplResetFormVal    = ($templates['reset_form_template']              ?? '') ?: $_gFallback(ListingSettingsRepo::defaultResetFormTemplate(),  'listing_default_reset_form_template');
 $tplContactFormVal  = ($templates['contact_form_template']           ?? '') ?: $_gFallback(ListingSettingsRepo::defaultContactFormTemplate(), 'listing_default_contact_form_template');
-$tplContactSentVal  = ($templates['contact_sent_template']           ?? '') ?: $_gFallback(ListingSettingsRepo::defaultContactSentTemplate(), 'listing_default_contact_sent_template');
 
 $activeGroup = (string) ($_GET['group'] ?? 'all');
-$_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'updates', 'contact-form', 'contact-sent'];
+$_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'updates', 'contact-form'];
 if (!in_array($activeGroup, $_validGroups, true)) { $activeGroup = 'all'; }
 $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) ? 'hidden' : '';
 
@@ -608,8 +606,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
         <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
         <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
-        <option value="contact-sent"<?= $activeGroup === 'contact-sent' ? ' selected' : '' ?>>Contact Confirmation</option>
-        <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>Updates Feed</option>
+        <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>News Feed</option>
       </select>
     </div>
     <div class="search-field-wrap">
@@ -642,7 +639,8 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           <button type="button" class="btn btn-quaternary btn-block-center"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates/reset-all"
-                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Reset All Templates to Default</button>
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>"
+                  data-confirm="Reset every template for this listing to the global default?&#10;&#10;Any per-listing customisations will be lost.">Reset All Templates to Default</button>
         </div>
       </div>
 
@@ -774,21 +772,9 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           </div>
         </div>
 
-        <div class="tpl-group-section" data-tpl-group="contact-sent" <?= $_grp('contact-sent') ?>>
-          <div class="pc-section-label">Contact Sent Message <?= $srcBadge('contact_sent_template') ?></div>
-          <p class="form-hint mb-sm">The confirmation message shown after a visitor submits the contact form.</p>
-          <div class="form-group">
-            <textarea id="contact_sent_template" name="contact_sent_template" class="form form-mono" spellcheck="false"><?= View::e($tplContactSentVal) ?></textarea>
-          </div>
-          <div class="tpl-reset-row">
-            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="contact_sent" data-textarea="contact_sent_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="contact_sent_template">Reset to Default</button>
-          </div>
-        </div>
-
         <?php if ($hasUpdatesAddon): ?>
         <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
-          <div class="pc-section-label">Updates Feed <?= $srcBadge('updates_template') ?></div>
+          <div class="pc-section-label">News Feed <?= $srcBadge('updates_template') ?></div>
           <p class="form-hint mb-sm">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
           <div class="form-group">
             <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
@@ -806,14 +792,13 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
       <div class="composer-footer">
         <button type="submit" class="btn btn-primary">Save Templates</button>
-        <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>" class="btn btn-ghost">Cancel</a>
       </div>
     </div>
 
     <!-- ── Right column: token reference ──────────────────────────────── -->
     <div class="composer-side composer-side--sticky">
-
-      <div class="search-field-wrap token-search-wrap">
+    <div class="tpl-filter-panel token-search-wrap">
+      <div class="search-field-wrap">
         <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
         <input type="search"
                id="collective-token-search"
@@ -827,9 +812,10 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
                 data-token-search-clear
                 class="token-search-clear"
                 aria-label="Clear embed token search"
-                title="Clear search"
+                title="Clear Search"
                 hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
       </div>
+    </div>
 
       <p id="collective-token-search-empty" data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
 
@@ -916,7 +902,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('update_form_template', '{field_email}',      '{field_email}',      'Update step: the authenticated member\'s email address (display only, not editable).') ?>
             <?= $ltok('update_form_template', '{sign_out_url}',     '{sign_out_url}',     'Update step: URL for the "Sign out" link.') ?>
             <?= $ltok('update_form_template', '{submit_button}',    '{submit_button}',    'The submit button.') ?>
-            <?= $ltok('update_form_template', '{clear_button}',     '{clear_button}',     'The "Clear" reset button.') ?>
+            <?= $ltok('update_form_template', '{clear_button}',     '{clear_button}',     'The "Clear Form" reset button.') ?>
             <?= $ltok('update_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('update_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
             <?= $ltok('update_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
@@ -940,7 +926,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('reset_form_template', '{field_new_password_confirm}', '{field_new_password_confirm}', 'Confirm step: the Confirm New Password field, with label and wrapper.') ?>
             <?= $ltok('reset_form_template', '{reset_request_url}',         '{reset_request_url}',         'URL of the email-entry form. Use inside {if_token_invalid} for a "request a new one" link.') ?>
             <?= $ltok('reset_form_template', '{submit_button}',             '{submit_button}',             'The submit button (label changes per step).') ?>
-            <?= $ltok('reset_form_template', '{clear_button}',              '{clear_button}',              'The "Clear" reset button.') ?>
+            <?= $ltok('reset_form_template', '{clear_button}',              '{clear_button}',              'The "Clear Form" reset button.') ?>
             <?= $ltok('reset_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('reset_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
             <?= $ltok('reset_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
@@ -1029,7 +1015,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('codes_submit_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
             <?= $ltok('codes_submit_form_template', '{captcha_question}', '{captcha_question}', 'The captcha question text on its own, e.g. for use inside a custom label.') ?>
             <?= $ltok('codes_submit_form_template', '{submit_button}', '{submit_button}', 'The "Submit Code" submit button.') ?>
-            <?= $ltok('codes_submit_form_template', '{clear_button}',  '{clear_button}',  'The "Clear" reset button.') ?>
+            <?= $ltok('codes_submit_form_template', '{clear_button}',  '{clear_button}',  'The "Clear Form" reset button.') ?>
           </tbody></table>
         </div>
       </details>
@@ -1080,7 +1066,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('affiliate_apply_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
             <?= $ltok('affiliate_apply_form_template', '{captcha_question}', '{captcha_question}', 'The captcha question text on its own, e.g. for use inside a custom label.') ?>
             <?= $ltok('affiliate_apply_form_template', '{submit_button}', '{submit_button}', 'The "Submit Application" submit button.') ?>
-            <?= $ltok('affiliate_apply_form_template', '{clear_button}',  '{clear_button}',  'The "Clear" reset button.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{clear_button}',  '{clear_button}',  'The "Clear Form" reset button.') ?>
           </tbody></table>
         </div>
       </details>
@@ -1109,30 +1095,15 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('contact_form_template', '{captcha_block_input}',   '{captcha_block_input}',   'Just the captcha answer input, no label or wrapper.') ?>
             <?= $ltok('contact_form_template', '{captcha_question}',      '{captcha_question}',      'The captcha question text on its own.') ?>
             <?= $ltok('contact_form_template', '{submit_button}',         '{submit_button}',         'The "Send Message" submit button.') ?>
-            <?= $ltok('contact_form_template', '{clear_button}',          '{clear_button}',          'The "Clear" reset button.') ?>
-          </tbody></table>
-        </div>
-      </details>
-
-      <!-- Contact Sent -->
-      <details class="card chevron" data-token-card data-tpl-group="contact-sent" <?= $_grp('contact-sent') ?>>
-        <summary class="chevron-head">Contact Sent Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Shown after a visitor submits the contact form.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('contact_sent_template', '{sender_name}',   '{sender_name}',   'The name the visitor entered on the contact form.') ?>
-            <?= $ltok('contact_sent_template', '{sender_email}',  '{sender_email}',  'The email address the visitor entered.') ?>
-            <?= $ltok('contact_sent_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
-            <?= $ltok('contact_sent_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
-            <?= $ltok('contact_sent_template', '{site_name}',     '{site_name}',     'The site/collective name.') ?>
+            <?= $ltok('contact_form_template', '{clear_button}',          '{clear_button}',          'The "Clear Form" reset button.') ?>
           </tbody></table>
         </div>
       </details>
 
       <?php if ($hasUpdatesAddon): ?>
-      <!-- Updates Feed -->
+      <!-- News Feed -->
       <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
-        <summary class="chevron-head">Updates Feed Tokens</summary>
+        <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -1173,7 +1144,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     'affiliate_apply_form_template' => $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),  'listing_default_affiliate_apply_form_template'),
     'codes_template'                => $_gFallback(ListingSettingsRepo::defaultCodesTemplate(),               'listing_default_codes_template'),
     'contact_form_template'         => $_gFallback(ListingSettingsRepo::defaultContactFormTemplate(),         'listing_default_contact_form_template'),
-    'contact_sent_template'         => $_gFallback(ListingSettingsRepo::defaultContactSentTemplate(),         'listing_default_contact_sent_template'),
     'rules-body'                    => RulesBodyRenderer::defaultBody(),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
@@ -1207,14 +1177,15 @@ $_rules_embedded = true;
 include LUSTER_BASE . '/templates/admin/addons/rules/edit.php';
 unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $defaultGateLabel);
 ?>
-</div><!-- /#tab-rules -->
+</div>
+
 <?php endif; ?>
 <!-- ──── TAB: ADDITIONAL FIELDS ─────────────────────────────────────── -->
 <div id="tab-fields" class="tabs-panel">
 
   <?php if ($listing->dbprefix === ''): ?>
   <div class="card">
-    <p class="text-muted">Additional fields can be added after Luster creates the member storage for this listing.</p>
+    <div class="pc-section"><p>Additional fields can be added after Luster creates the member storage for this listing.</p></div>
   </div>
   <?php else: ?>
 
@@ -1223,15 +1194,13 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
     <input type="hidden" name="from_edit" value="1">
     <div class="gradient-card">
       <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('add') ?></div>
+        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('form') ?></div>
         <div class="pc-head-meta">
           <div class="pc-head-title">Add New Field</div>
           <div class="pc-head-sub">Create an extra member field for this listing.</div>
         </div>
       </div>
-      <div class="listing-field-section">
-        <div class="callout callout-info"><?= View::icon('notes') ?><div><strong>Rules:</strong> Use letters, numbers, and underscores only. No spaces. Keep it under 30 characters, and choose a name this listing does not already use.</div></div>
-
+      <div class="pc-section">
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="af-name">Field Name <span class="req">*</span></label>
           <div>
@@ -1239,7 +1208,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
                    maxlength="30" pattern="[a-zA-Z0-9_]+"
                    placeholder="e.g. fave_song" required
                    title="Letters, numbers and underscores only">
-            <p class="form-hint">Short internal name for this field. Members will not see this exact name; they see the label below.</p>
+            <p class="form-hint">Use letters, numbers, and underscores only. <strong>No spaces - use underscores instead</strong> (e.g. "fave movie" becomes <code>fav_movie</code>). Each additional field <em>for this listing</em> must have a unique field name. Members will not see this.</p>
           </div>
         </div>
         <div class="listing-field-row listing-field-row--top">
@@ -1272,7 +1241,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
           </div>
         </div>
         <div class="listing-field-row listing-field-row--top">
-          <span class="listing-field-label">Required</span>
+          <span class="listing-field-label">Required?</span>
           <div>
             <div class="flex-row">
               <label class="form-check">
@@ -1290,7 +1259,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
       </div>
       <div class="composer-footer">
         <button type="submit" class="btn btn-primary">Add Field</button>
-        <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
+        <button type="button" class="btn btn-ghost js-form-reset">Clear Form</button>
       </div>
     </div>
   </form>
@@ -1299,8 +1268,8 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
     <div class="card-head">Current Fields</div>
     <?php if (empty($fields)): ?>
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('tag', ['width' => 32, 'height' => 32]) ?></span>
-        No additional fields defined yet.
+        <span class="empty-icon"><?= View::icon('form', ['width' => 32, 'height' => 32]) ?></span>
+        No additional fields defined yet. Add one above!
       </div>
     <?php else: ?>
       <div class="table-wrap">
@@ -1375,21 +1344,6 @@ if ($_hasCats || $_hasDonors) {
 }
 $_settingsOpen = $_hasCats || $_hasDonors;
 ?>
-
-<?php if ($_pendingCount > 0): ?>
-<div class="reminder-banner banner-spaced" data-codes-pending-banner>
-  <div class="reminder-banner-head">
-    <div class="reminder-banner-left">
-      <span class="reminder-banner-icon"><?= View::icon('bell') ?></span>
-      <div>
-        <span class="reminder-banner-title" data-codes-pending-title><?= $code_status_filter === 'pending' ? 'Showing pending codes' : 'Codes awaiting review' ?></span>
-        <span class="reminder-banner-msg" data-codes-pending-msg"><?= $_pendingCount ?> code<?= $_pendingCount !== 1 ? 's are' : ' is' ?> pending approval</span>
-      </div>
-    </div>
-    <a href="<?= $code_status_filter === 'pending' ? $_tabBase . '&status_filter=approved' : $_tabBase . '&status_filter=pending' ?>" class="btn btn-tertiary btn-sm" data-code-filter="<?= $code_status_filter === 'pending' ? 'approved' : 'pending' ?>" data-codes-pending-action><?= $code_status_filter === 'pending' ? '&larr; Show approved' : 'Review pending &rarr;' ?></a>
-  </div>
-</div>
-<?php endif; ?>
 
 <details class="card chevron is-hidden" id="settingsBand">
   <summary class="card-head">Code Categories & Donors</summary>
@@ -1469,7 +1423,6 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                     </div>
                   </div>
                   <button class="btn btn-primary btn-sm">Save</button>
-                  <a href="<?= $_tabBase ?>" class="btn btn-quaternary btn-sm">Cancel</a>
                 </form>
               </td>
             </tr>
@@ -1523,7 +1476,6 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                   <div class="codes-form-grow-sm"><input class="form" type="email" name="email" value="<?= View::e($dn->email ?? '') ?>" placeholder="Email"></div>
                   <div class="codes-form-grow-sm"><input class="form" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL"></div>
                   <button class="btn btn-primary btn-sm">Save</button>
-                  <a href="<?= $_tabBase ?>" class="btn btn-quaternary btn-sm">Cancel</a>
                 </form>
               </td>
             </tr>
@@ -1551,8 +1503,8 @@ $_codeCats         = $code_cats;
 $_uploadSubmitters = $code_submitter_names ?? [];
 require LUSTER_BASE . '/templates/admin/codes/_listing_panel.php';
 ?>
-
 </div>
+
 <!-- ──── TAB: AFFILIATES ────────────────────────────────────────────── -->
 <div id="tab-affiliates" class="tabs-panel">
 <div class="toolbar" style="justify-content:flex-end;margin-bottom:1rem">
@@ -1602,20 +1554,20 @@ $installPath    = rtrim((string) ($cfg['install_path']   ?? ''), '/');
 $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((string) ($cfg['site_url'] ?? ''), '/');
 ?>
 
+<div class="embed-grid">
+
 <div class="gradient-card">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
     <div class="pc-head-meta">
       <div class="pc-head-title">Embed Settings</div>
-      <div class="pc-head-sub">Tell Luster which public pages hold this listing's forms, and get the include snippets for your site.</div>
+      <div class="pc-head-sub">Tell Luster which public pages hold this listing's forms.</div>
     </div>
   </div>
   
     <div class="pc-section">
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-
-      <div class="pc-section-label">Form Page URLs</div>
 
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-form-join">Join Form</label>
@@ -1638,7 +1590,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       </div>
 
       <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-form-reset">Password Reset</label>
+        <label class="listing-field-label" for="fl-form-reset">Lost Password Form</label>
         <div>
           <input id="fl-form-reset" type="text" name="form_url_reset" class="form"
                  maxlength="200"
@@ -1647,16 +1599,25 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         </div>
       </div>
 
-      <!-- Affiliate application URL row hidden — backend preserved, UI deferred -->
-
       <div class="listing-field-row" id="fl-codes-submit-embed-row"
            <?= ($embedSettings['codes_submit_enabled'] ?? true) ? '' : 'style="display:none"' ?>>
-        <label class="listing-field-label" for="fl-form-codes-submit">Codes Donation</label>
+        <label class="listing-field-label" for="fl-form-codes-submit">Codes Donation Form</label>
         <div>
           <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_codes_submit'] !== '' ? $embedSettings['form_url_codes_submit'] : 'codes-submit.php') ?>">
           <p class="form-hint">The public page where visitors can donate codes for this listing.</p>
+        </div>
+      </div>
+
+      <div class="listing-field-row" id="fl-aff-form-url-row"
+           <?= ($affiliate_apply_enabled ?? false) ? '' : 'style="display:none"' ?>>
+        <label class="listing-field-label" for="fl-form-aff-apply">Affiliate Application</label>
+        <div>
+          <input id="fl-form-aff-apply" type="text" name="form_url_affiliate_apply" class="form"
+                 maxlength="200"
+                 value="<?= View::e(($form_url_affiliate_apply ?? '') !== '' ? $form_url_affiliate_apply : 'affiliate-apply.php') ?>">
+          <p class="form-hint">The public page where other sites can apply to affiliate with this listing.</p>
         </div>
       </div>
 
@@ -1673,66 +1634,64 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
   <div class="composer-footer">
     <button type="submit" class="btn btn-primary">Save Embed Settings</button>
-    <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
   </div>
   </form>
   </div>
 
 <!-- ──── EMBED SNIPPETS ───────────────────────────────────────────── -->
-<details class="chevron card" style="margin-bottom:1.75rem">
-  <summary class="card-head">Embed Snippets</summary>
-  <div class="card-body">
+<div class="gradient-card">
+  <div class="pc-head">
+    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
+    <div class="pc-head-meta">
+      <div class="pc-head-title">Embed Snippets</div>
+      <div class="pc-head-sub">Ready-to-use PHP include snippets for your site pages.</div>
+    </div>
+  </div>
+  <div class="pc-section">
     <?php if ($installPath !== ''): ?>
       <?php
         $_es = $embedSettings ?? [];
-        $_snipPath = View::e($installPath);
-        $_snipId   = (int) $listing->id;
+        $_snipPathRaw = $installPath;
+        $_snipPath    = View::e($installPath);
+        $_snipId      = (int) $listing->id;
         // Helper to render one snippet row
-        $snip = static function (string $label, string $file) use ($_snipPath, $_snipId, $b): void {
+        $snip = static function (string $label, string $file) use ($_snipPathRaw, $_snipPath, $_snipId, $b): void {
+            $plain = "<?php\n\$luster_fanlisting_id = {$_snipId};\nrequire '{$_snipPathRaw}/public/embed/{$file}';\n?>";
             echo '<div class="listing-field-row listing-field-row--top">';
             echo '<span class="listing-field-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
-            echo '<div><div class="ro-field embed-snippet">';
+            echo '<div class="embed-snippet-wrap">';
+            echo '<div class="ro-field embed-snippet">';
+            echo '&lt;?php<br>';
             echo '$luster_fanlisting_id = ' . $_snipId . ';<br>';
             echo "require '" . $_snipPath . '/public/embed/' . htmlspecialchars($file, ENT_QUOTES, 'UTF-8') . "';";
-            echo '</div></div></div>';
+            echo '<br>?&gt;';
+            echo '</div>';
+            echo '<button type="button" class="btn btn-ghost btn-xs embed-copy-btn" data-copy="' . htmlspecialchars($plain, ENT_QUOTES, 'UTF-8') . '">Copy</button>';
+            echo '</div></div>';
         };
       ?>
 
-      <details class="snip-section" open>
-        <summary class="pc-section-label snip-section-summary">Member Pages</summary>
-        <?php $snip('Join', 'join.php') ?>
-        <?php $snip('Members list', 'members.php') ?>
-        <?php $snip('Update membership', 'update.php') ?>
-        <?php $snip('Password reset', 'reset.php') ?>
-      </details>
-
-      <details class="snip-section" open>
-        <summary class="pc-section-label snip-section-summary">Stats &amp; Extras</summary>
-        <?php $snip('Stats', 'stats.php') ?>
-        <?php $snip('Codes', 'codes.php') ?>
-        <?php $snip('Affiliates', 'affiliates.php') ?>
-        <?php if ($contact_enabled ?? false): ?>
-          <?php $snip('Contact form', 'contact.php') ?>
-        <?php endif; ?>
-      </details>
-
+      <?php $snip('Members List', 'members.php') ?>
+      <?php if (($rules_addon_installed ?? false) && ($rules_enabled_for_listing ?? false)): ?>
+        <?php $snip('Rules', 'rules-gate.php') ?>
+      <?php endif; ?>
+      <?php $snip('Join Form', 'join.php') ?>
+      <?php $snip('Update Form', 'update.php') ?>
+      <?php $snip('Password Reset Form', 'reset.php') ?>
+      <?php $snip('Listing Statistics', 'stats.php') ?>
+      <?php $snip('Codes Display', 'codes.php') ?>
+      <?php $snip('Codes Donation Form', 'codes-submit.php') ?>
+      <?php $snip('Affiliates Section', 'affiliates.php') ?>
+      <?php if ($affiliate_apply_enabled ?? false): ?>
+        <?php $snip('Affiliate Application Form', 'affiliate-apply.php') ?>
+      <?php endif; ?>
+      <?php if ($contact_enabled ?? false): ?>
+        <?php $snip('Contact Form', 'contact.php') ?>
+      <?php endif; ?>
       <?php if (in_array('Updates', $nav_installed_addons ?? [], true)): ?>
-      <details class="snip-section" open>
-        <summary class="pc-section-label snip-section-summary">Updates Feed</summary>
-        <?php $snip('Updates feed', 'updates.php') ?>
-      </details>
+        <?php $snip('News Feed', 'updates.php') ?>
       <?php endif; ?>
 
-
-      <?php if (in_array('Kim', $nav_installed_addons ?? [], true)): ?>
-      <details class="snip-section" open>
-        <summary class="pc-section-label snip-section-summary">Keep In Mind</summary>
-        <?php $snip('KIM sign-up', 'kim-signup.php') ?>
-        <?php $snip('KIM member list', 'kim-list.php') ?>
-        <?php $snip('KIM update', 'kim-update.php') ?>
-        <?php $snip('KIM password reset', 'kim-reset.php') ?>
-      </details>
-      <?php endif; ?>
 
     <?php else: ?>
       <p class="form-hint">
@@ -1742,21 +1701,11 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       </p>
     <?php endif; ?>
   </div>
-</details>
-
-
-<!-- ──── COMPAT WRAPPERS ──────────────────────────────────────────── -->
-<details class="chevron card" style="margin-bottom:1.75rem" id="compat-wrappers">
-  <summary class="card-head">Compatibility Wrappers</summary>
-  <div class="card-body">
-    <p class="form-hint mb-md">
-      To migrate your existing fanlisting pages to Luster, download a compatibility bridge
-      from the <a href="<?= $b ?>/admin/collective" class="link">Collective</a> page.
-      Bridges are available for Enthusiast, Listing Admin, and CodeSort.
-    </p>
-  </div>
-</details>
 </div>
+
+</div><!-- /.embed-grid -->
+</div><!-- /#tab-embed -->
+
 
 <!-- ──── TAB: ADVANCED ──────────────────────────────────────────────── -->
 <div id="tab-advanced" class="tabs-panel">
@@ -1794,7 +1743,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       /** @var array $cfg */
       $advEmbedSettings = $embed_settings ?? [];
       ?>
-      <div class="listing-field-section">
+      <div class="pc-section">
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="adv-db-host">DB Host</label>
           <div>
@@ -1840,8 +1789,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       </div>
       <div class="composer-footer">
         <button type="submit" class="btn btn-primary">Save Settings</button>
-        <button type="reset" class="btn btn-ghost">Reset to Default</button>
-        <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
+        <button type="reset" class="btn btn-quaternary">Reset to Default</button>
       </div>
     </form>
   </details>

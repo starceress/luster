@@ -748,7 +748,7 @@ final class ListingController extends AdminController
             $forAdoptionInput = $this->app->isAddonInstalled('Adoption')
                              && $request->post('for_adoption') === '1';
 
-            $membersPerPage   = max(5, min(200, (int) $request->post('members_per_page', 25)));
+            $membersPerPage   = max(10, min(100, (int) $request->post('members_per_page', 25)));
             $contactEnabled   = $request->post('contact_enabled') === '1';
             $contactRecipient = trim((string) $request->post('contact_recipient', ''));
             if ($contactRecipient !== '' && !filter_var($contactRecipient, FILTER_VALIDATE_EMAIL)) {
@@ -756,8 +756,9 @@ final class ListingController extends AdminController
             }
 
             $affiliateApplyEnabled = $request->post('affiliate_apply_enabled') === '1';
-            $affiliateApplyFormUrl = trim((string) $request->post('form_url_affiliate_apply', ''));
-            $affiliateApplyRedirectUrl = trim((string) $request->post('redirect_url_affiliate_apply', ''));
+            $existingAffApplySettings = $settingsRepo->getAffiliateApplySettings($id);
+            $affiliateApplyFormUrl = $existingAffApplySettings['form_url'];
+            $affiliateApplyRedirectUrl = $existingAffApplySettings['redirect_url'];
 
             $affiliateApplyStylePost = trim((string) $request->post('affiliate_apply_style', 'link'));
             $affiliateApplyStyle = in_array($affiliateApplyStylePost, ['link', 'button'], true) ? $affiliateApplyStylePost : 'link';
@@ -1014,7 +1015,6 @@ final class ListingController extends AdminController
             'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
             'update_form_template'          => ListingSettingsRepo::defaultUpdateFormTemplate(),
             'reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
-            'contact_sent_template'         => ListingSettingsRepo::defaultContactSentTemplate(),
         ];
         $tplGlobalKeyMap = [
             'stats_template'                => 'listing_default_stats_template',
@@ -1028,7 +1028,6 @@ final class ListingController extends AdminController
             'codes_template'                => 'listing_default_codes_template',
             'update_form_template'          => 'listing_default_update_form_template',
             'reset_form_template'           => 'listing_default_reset_form_template',
-            'contact_sent_template'         => 'listing_default_contact_sent_template',
         ];
         $templateSources = [];
         foreach ($tplBuiltIns as $tplKey => $builtIn) {
@@ -1425,7 +1424,6 @@ final class ListingController extends AdminController
             'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
             'update_form_template'          => ListingSettingsRepo::defaultUpdateFormTemplate(),
             'reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
-            'contact_sent_template'         => ListingSettingsRepo::defaultContactSentTemplate(),
         ];
         $globalMap = [
             'stats_template'                => 'listing_default_stats_template',
@@ -1439,7 +1437,6 @@ final class ListingController extends AdminController
             'codes_template'                => 'listing_default_codes_template',
             'update_form_template'          => 'listing_default_update_form_template',
             'reset_form_template'           => 'listing_default_reset_form_template',
-            'contact_sent_template'         => 'listing_default_contact_sent_template',
         ];
         $globalDefaults = (new SiteSettingsRepo($db))->getGlobalTemplates();
         $normalize = static fn(string $v): string => trim(str_replace("\r\n", "\n", $v));
@@ -1468,7 +1465,6 @@ final class ListingController extends AdminController
         $joinFormTemplate           = $nil((string) $request->post('join_form_template',              ''), 'join_form_template');
         $affiliateApplyFormTemplate = $nil((string) $request->post('affiliate_apply_form_template',   ''), 'affiliate_apply_form_template');
         $contactFormTemplate        = $nil((string) $request->post('contact_form_template',           ''), 'contact_form_template');
-        $contactSentTemplate        = $nil((string) $request->post('contact_sent_template',           ''), 'contact_sent_template');
         $updateFormTemplate         = $nil((string) $request->post('update_form_template',            ''), 'update_form_template');
         $resetFormTemplate          = $nil((string) $request->post('reset_form_template',             ''), 'reset_form_template');
         $codesTemplate              = $nil((string) $request->post('codes_template',                  ''), 'codes_template');
@@ -1488,12 +1484,11 @@ final class ListingController extends AdminController
             $updateFormTemplate, $resetFormTemplate,
         );
         $settingsRepo->saveCodesTemplate($id, $codesTemplate);
-        $settingsRepo->saveContactSentTemplate($id, $contactSentTemplate);
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 
         $returnGroup = (string) $request->post('return_group', 'all');
-        $validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'updates', 'contact-form', 'contact-sent'];
+        $validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'updates', 'contact-form'];
         if (!in_array($returnGroup, $validGroups, true)) {
             $returnGroup = 'all';
         }
@@ -1523,7 +1518,6 @@ final class ListingController extends AdminController
             $id, null, null, null, null, null, null, null, null, null, null, null, null,
         );
         $settingsRepo->saveCodesTemplate($id, null);
-        $settingsRepo->saveContactSentTemplate($id, null);
 
         $session->set('lstr_flash_success', 'All templates reset to global defaults.');
         return Response::redirect($baseUrl . '/admin/listings/' . $id . '/edit#tab-templates');
@@ -1552,7 +1546,7 @@ final class ListingController extends AdminController
             return $this->previewWrap('<p style="color:#c00">Listing not found.</p>', $appUrl);
         }
 
-        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'codes', 'codes_submit_form', 'rules', 'join_form', 'affiliate_apply_form', 'contact_form', 'contact_sent', 'update_form', 'reset_form'];
+        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'codes', 'codes_submit_form', 'rules', 'join_form', 'affiliate_apply_form', 'contact_form', 'update_form', 'reset_form'];
         if (!in_array($type, $allowed, true)) {
             return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
         }
@@ -1579,7 +1573,6 @@ final class ListingController extends AdminController
                 'codes_submit_form'    => $this->ltplPreviewCodesSubmitForm($tpl, $listing),
                 'affiliate_apply_form' => $this->ltplPreviewAffiliateApplyForm($tpl, $listing),
                 'contact_form'         => $this->ltplPreviewContactForm($tpl, $listing),
-                'contact_sent'         => $this->ltplPreviewContactSent($tpl, $listing),
                 'update_form'          => $this->ltplPreviewUpdateForm($tpl, $listing),
                 'reset_form'           => $this->ltplPreviewResetForm($tpl, $listing),
                 default                => throw new \LogicException("Unhandled preview type: {$type}"),
@@ -1930,11 +1923,12 @@ final class ListingController extends AdminController
             return '<p style="color:#c00">Template must include an {each_code} or {each_size_group} block.</p>';
         }
 
-        if (trim($html) === '' && empty($codes)) {
-            return '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>';
-        }
+        $empty = CodesTemplateRenderer::render(
+            $tpl, [], [], [], $uploadsUrl, [], [], $listing->title ?? '',
+        );
 
-        return $html;
+        return $this->previewSectionLabel(empty($codes) ? 'Empty State' : 'Active Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>')
+            . (empty($codes) ? '' : $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>'));
     }
 
     private function ltplPreviewRules(string $tpl, object $listing, string $gateLabel = '', bool $gateEnabled = true, string $gateType = ''): string
@@ -2311,8 +2305,17 @@ final class ListingController extends AdminController
             $dbPass,
         );
 
-        $formUrlContact = ltrim(trim((string) $request->post('form_url_contact', '')), '/');
+        $formUrlContact        = ltrim(trim((string) $request->post('form_url_contact',        '')), '/');
+        $formUrlAffiliateApply = ltrim(trim((string) $request->post('form_url_affiliate_apply', '')), '/');
         $settingsRepo->saveFormUrlContact($id, $formUrlContact);
+
+        $existingAffApply = $settingsRepo->getAffiliateApplySettings($id);
+        $settingsRepo->saveAffiliateApplySettings(
+            $id,
+            $existingAffApply['enabled'],
+            $formUrlAffiliateApply,
+            $existingAffApply['redirect_url'],
+        );
 
         $activityRepo = new ActivityRepo($db);
         $session      = $this->app->getSession();
@@ -2405,7 +2408,6 @@ final class ListingController extends AdminController
             'listing_default_reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
             'listing_default_codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
             'listing_default_contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
-            'listing_default_contact_sent_template'         => ListingSettingsRepo::defaultContactSentTemplate(),
         ];
 
         $siteRepo = new SiteSettingsRepo($db);
@@ -2427,6 +2429,40 @@ final class ListingController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // POST /admin/listings/global-templates/reset-all
+    // -----------------------------------------------------------------------
+
+    public function resetAllGlobalTemplates(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $siteRepo = new SiteSettingsRepo($db);
+        $keys = [
+            'listing_default_members_template',
+            'listing_default_stats_template',
+            'listing_default_affiliates_section_template',
+            'listing_default_updates_template',
+            'listing_default_join_form_template',
+            'listing_default_codes_submit_form_template',
+            'listing_default_affiliate_apply_form_template',
+            'listing_default_update_form_template',
+            'listing_default_reset_form_template',
+            'listing_default_codes_template',
+            'listing_default_contact_form_template',
+            'listing_default_contact_sent_template',
+        ];
+        foreach ($keys as $key) {
+            $siteRepo->set($key, null);
+        }
+        $siteRepo->set('stat_newmembers_limit', null);
+
+        $session->set('lstr_flash_success', 'All global templates reset to Luster defaults.');
+        return Response::redirect($baseUrl . '/admin/listings/global-templates');
+    }
+
+    // -----------------------------------------------------------------------
     // POST /admin/listings/global-templates/preview
     // -----------------------------------------------------------------------
 
@@ -2440,7 +2476,7 @@ final class ListingController extends AdminController
         $type = (string) $request->post('template_type', '');
         $tpl  = (string) $request->post('template_html', '');
 
-        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'join_form', 'update_form', 'reset_form', 'codes', 'codes_submit_form', 'affiliate_apply_form', 'contact_form', 'contact_sent'];
+        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'join_form', 'update_form', 'reset_form', 'codes', 'codes_submit_form', 'affiliate_apply_form', 'contact_form'];
         if (!in_array($type, $allowed, true)) {
             return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
         }
@@ -2461,7 +2497,6 @@ final class ListingController extends AdminController
                 'reset_form'           => $this->gtplPreviewResetForm($tpl),
                 'codes'                => $this->gtplPreviewCodes($tpl),
                 'contact_form'         => $this->gtplPreviewContactForm($tpl),
-                'contact_sent'         => $this->gtplPreviewContactSent($tpl),
             };
         } catch (\Throwable $e) {
             $html = '<p style="color:#c00;font-family:monospace">Preview error: '
@@ -2814,11 +2849,13 @@ final class ListingController extends AdminController
         if ($html === null) {
             return '<p style="color:#c00">Template must include an {each_code} or {each_size_group} block.</p>';
         }
-        if (trim($html) === '' && empty($codes)) {
-            return '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>';
-        }
 
-        return $html;
+        $empty = CodesTemplateRenderer::render(
+            $tpl, [], [], [], $uploadsUrl, [], [], 'Sample Fanlisting',
+        );
+
+        return $this->previewSectionLabel(empty($codes) ? 'Empty State' : 'Sample Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>')
+            . (empty($codes) ? '' : $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>'));
     }
 
     /**

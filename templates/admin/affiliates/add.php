@@ -59,7 +59,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
 
       <!-- Listing -->
       <?php if ($contextFid === 0): ?>
@@ -215,7 +215,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
         </div>
       </div>
 
-    </div><!-- /.listing-field-section -->
+    </div><!-- /.pc-section -->
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Add Affiliate' ?></button>

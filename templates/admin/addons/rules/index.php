@@ -79,7 +79,7 @@ $rangeLast  = min($page * $per_page, $total);
     </button>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/rules/global" class="btn btn-primary btn-sm">Global Rules Template</a>
+    <a href="<?= $b ?>/admin/rules/global" class="btn btn-primary btn-sm"><?= View::icon('template') ?> Global Rules Template</a>
     <a href="<?= $b ?>/admin/rules/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Join Rules Settings</a>
   </div>
 </div>

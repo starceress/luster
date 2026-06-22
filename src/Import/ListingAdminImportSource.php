@@ -24,7 +24,7 @@ use PDO;
  *   - `lstr_categories`               ← `categories`
  *   - `lstr_affiliates`               ← `affiliates`
  *   - `lstr_joined`                   ← `joined`
- *   - `lstr_updates`                  ← `updates` (requires Updates Feed add-on)
+ *   - `lstr_updates`                  ← `updates` (requires News Feed add-on)
  *   - `lstr_email_templates`          ← Not applicable (LA uses its own template system)
  *
  * Member table creation:
@@ -155,7 +155,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $sreg   = $tp . $laReg;  // full source registry table name
         $rows   = [];
 
-        // Add-on availability (Updates Feed, Wishlist, KIM, Rules) must be checked against
+        // Add-on availability (News Feed, Wishlist, KIM, Rules) must be checked against
         // the Luster target DB, not the foreign LA source.
         $addonCheckPdo = $target;
 
@@ -185,7 +185,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 ]);
             } else {
                 $rows[] = ['type' => 'Updates', 'found' => 0, 'import' => 0, 'skip' => 0,
-                           'warnings' => ['Updates Feed add-on is not installed — updates will be skipped.']];
+                           'warnings' => ['News Feed add-on is not installed — updates will be skipped.']];
             }
         }
         if ($options->importWishlist) {
@@ -1269,7 +1269,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
     {
         if (!$this->updatesAddonInstalled($target)) {
             return ['type' => 'Updates', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => ['Updates Feed add-on is not installed — skipped.'], 'errors' => [],
+                    'warnings' => ['News Feed add-on is not installed — skipped.'], 'errors' => [],
                     'skipped_items' => []];
         }
 

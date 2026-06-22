@@ -36,7 +36,7 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
   <input type="hidden" name="current_source" value="<?= View::e($currentSource) ?>">
 
   <div class="gradient-card">
-    <div class="listing-field-section">
+    <div class="pc-section">
 
       <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="cat-name">

@@ -21,7 +21,7 @@ $fe = $field_errors ?? [];
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="gradient-card">
-    <div class="listing-field-section">
+    <div class="pc-section">
 
       <div class="listing-field-row listing-field-row--top<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="cat-name">

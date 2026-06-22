@@ -622,7 +622,7 @@ $sumCell = static function (?array $ms, string $key): string {
           <thead>
             <tr>
               <th><a href="<?= View::e($lcAffSortUrl('name')) ?>" class="sort-th<?= $aff_sort === 'name' ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $aff_sort, $aff_dir) ?></a></th>
-              <?php if ($listing_id_filter === null): ?><th>Listing</th><?php endif; ?>
+              <?php if ($listing_id_filter === null): ?><th><a href="<?= View::e($lcAffSortUrl('listing')) ?>" class="sort-th<?= $aff_sort === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $aff_sort, $aff_dir) ?></a></th><?php endif; ?>
               <th>URL</th>
               <th><a href="<?= View::e($lcAffSortUrl('link_status')) ?>" class="sort-th<?= $aff_sort === 'link_status' ? ' sort-active' : '' ?>">Link Status <?= View::sortIcon('link_status', $aff_sort, $aff_dir) ?></a></th>
               <th><a href="<?= View::e($lcAffSortUrl('reciprocal')) ?>" class="sort-th<?= $aff_sort === 'reciprocal' ? ' sort-active' : '' ?>">Reciprocal <?= View::sortIcon('reciprocal', $aff_sort, $aff_dir) ?></a></th>
@@ -647,7 +647,10 @@ $sumCell = static function (?array $ms, string $key): string {
                     <?php endif; ?>
                   </div>
                 <?php else: ?>
-                  <span class="text-muted">Collective</span>
+                  <div class="subject-title-stack">
+                    <a href="<?= $b ?>/admin/collective" class="link"><b><?= View::e($site_name ?? 'Collective') ?></b></a>
+                    <span class="mem-url">Collective</span>
+                  </div>
                 <?php endif; ?>
               </td>
               <?php endif; ?>

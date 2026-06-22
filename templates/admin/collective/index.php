@@ -34,7 +34,7 @@ $quickActions = [
     'add_update' => [
         'href'  => $hasUpdates ? "$b/admin/updates/collective/add" : "$b/admin/addons",
         'icon'  => 'updates',
-        'label' => 'Add Collective Update',
+        'label' => 'Add Collective News',
         'muted' => !$hasUpdates,
     ],
     'add_wishlist' => [
@@ -211,26 +211,26 @@ foreach (array_keys($quickActions) as $qaKey) {
     </div>
 
     <div class="card" style="margin-top:1rem">
-      <div class="card-head">Migration &amp; Bridges</div>
+      <div class="card-head">Migration & Bridges</div>
       <div class="collective-action-grid">
         <a href="<?= $b ?>/admin/import" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></span>
           <span class="collective-action-label">Import Data</span>
         </a>
         <a href="<?= $b ?>/admin/import-members" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('members') ?></span>
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('importmembers') ?></span>
           <span class="collective-action-label">Import Members</span>
         </a>
         <a href="<?= $b ?>/admin/compat-bridge/enthusiast" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">Enthusiast Bridge</span>
         </a>
         <a href="<?= $b ?>/admin/compat-bridge/listing-admin" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">Listing Admin Bridge</span>
         </a>
         <a href="<?= $b ?>/admin/compat-bridge/codesort" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('download') ?></span>
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">CodeSort Bridge</span>
         </a>
       </div>
@@ -243,7 +243,7 @@ foreach (array_keys($quickActions) as $qaKey) {
 
       <a href="<?= $b ?>/admin/collective/snippets" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></span>
-        <span class="collective-action-label">Collective Embed Snippets</span>
+        <span class="collective-action-label">Collective Embed SnipCodesets</span>
       </a>
 
       <a href="<?= $b ?>/admin/affiliates?tab=approved&amp;scope=collective" class="collective-action-item">
@@ -271,11 +271,32 @@ foreach (array_keys($quickActions) as $qaKey) {
       <a href="<?= $b ?>/admin/updates/collective" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('updates') ?></span>
         <span>
-          <span class="collective-action-label">Collective Updates</span>
+          <span class="collective-action-label">Collective News Index</span>
           <?php if ($addons['updates'] !== null): ?>
             <span class="badge badge-info-gold badge-inline-sm"><?= (int) $addons['updates'] ?> <?= (int) $addons['updates'] === 1 ? 'Update' : 'Updates' ?></span>
           <?php endif; ?>
         </span>
+      </a>
+      <?php endif; ?>
+
+      <?php if ($hasAdoption): ?>
+      <a href="<?= $b ?>/admin/adoptions" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('adoptions') ?></span>
+        <span class="collective-action-label">Adoptions Index</span>
+      </a>
+      <?php endif; ?>
+
+      <?php if ($hasRules): ?>
+      <a href="<?= $b ?>/admin/rules" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('rules') ?></span>
+        <span class="collective-action-label">Join Rules Index</span>
+      </a>
+      <?php endif; ?>
+
+      <?php if ($hasKim): ?>
+      <a href="<?= $b ?>/admin/kim" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></span>
+        <span class="collective-action-label">Keep In Mind Index<?php if (($addons['kim'] ?? null) !== null): ?> <span class="badge badge-info-gold badge-inline-sm"><?= (int) $addons['kim'] ?> sign-up<?= (int) $addons['kim'] !== 1 ? 's' : '' ?></span><?php endif; ?></span>
       </a>
       <?php endif; ?>
 
@@ -288,27 +309,6 @@ foreach (array_keys($quickActions) as $qaKey) {
             <span class="badge badge-info-gold badge-inline-sm"><?= (int) $addons['wishlist'] ?> <?= (int) $addons['wishlist'] === 1 ? 'Entry' : 'Entries' ?></span>
           <?php endif; ?>
         </span>
-      </a>
-      <?php endif; ?>
-
-      <?php if ($hasKim): ?>
-      <a href="<?= $b ?>/admin/kim" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></span>
-        <span class="collective-action-label">Keep In Mind Index<?php if (($addons['kim'] ?? null) !== null): ?> <span class="badge badge-info-gold badge-inline-sm"><?= (int) $addons['kim'] ?> sign-up<?= (int) $addons['kim'] !== 1 ? 's' : '' ?></span><?php endif; ?></span>
-      </a>
-      <?php endif; ?>
-
-      <?php if ($hasRules): ?>
-      <a href="<?= $b ?>/admin/rules" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('rules') ?></span>
-        <span class="collective-action-label">Join Rules Index</span>
-      </a>
-      <?php endif; ?>
-
-      <?php if ($hasAdoption): ?>
-      <a href="<?= $b ?>/admin/adoptions" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('adoptions') ?></span>
-        <span class="collective-action-label">Manage Adoptions</span>
       </a>
       <?php endif; ?>
 

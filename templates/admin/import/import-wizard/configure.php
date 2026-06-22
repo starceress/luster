@@ -236,12 +236,12 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <label class="form-check">
           <input type="checkbox" name="import_members" value="1" <?= importChecked($old, 'import_members') ?>>Members <span class="text-muted">(requires owned listings to be imported first)</span></label>
         <label class="form-check">
-          <input type="checkbox" name="import_updates" value="1" <?= importChecked($old, 'import_updates', false) ?>>Updates <span class="text-muted">(requires Updates Feed add-on to be installed)</span></label>
+          <input type="checkbox" name="import_updates" value="1" <?= importChecked($old, 'import_updates', false) ?>>Updates <span class="text-muted">(requires News Feed add-on to be installed)</span></label>
         <?php endif; ?>
         <?php if ($source === 'fanupdate'): ?>
         <label class="form-check">
           <input type="checkbox" name="import_updates" value="1" <?= importChecked($old, 'import_updates') ?>>
-          Blog entries &rarr; Updates Feed (requires Updates Feed add-on)
+          Blog entries &rarr; News Feed (requires News Feed add-on)
         </label>
         <?php endif; ?>
         <?php if ($source === 'codesort'): ?>

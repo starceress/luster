@@ -20,6 +20,23 @@ $setupLine2 = "<?php require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.p
 $setupLine3 = "<?php if (isset(\$_GET['luster_css'])) { Luster\\Core\\View::serveCss(); exit; } ?>";
 $setupLine4 = '<link rel="stylesheet" href="?luster_css">';
 
+$hlPhp = static function (string $code): string {
+    $e = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return (string) preg_replace_callback(
+        '/(\/\/[^\n]*)|(&#039;(?:[^&]|&(?!#039;))*&#039;)|(&lt;\?php|\?&gt;)|(\b(?:require_once|require|defined|define|isset|exit|true|false|null|if)\b)|(\$\w+)|(\b\d+\b)/',
+        static function (array $m): string {
+            if ($m[1] !== '') return '<span class="ec-hl-c">' . $m[0] . '</span>';
+            if ($m[2] !== '') return '<span class="ec-hl-s">' . $m[0] . '</span>';
+            if ($m[3] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
+            if ($m[4] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
+            if ($m[5] !== '') return '<span class="ec-hl-v">' . $m[0] . '</span>';
+            if ($m[6] !== '') return '<span class="ec-hl-n">' . $m[0] . '</span>';
+            return $m[0];
+        },
+        $e,
+    );
+};
+
 // ── icon + badge maps ─────────────────────────────────────────────────────
 $iconMap = [
     'join'         => 'add',
@@ -124,10 +141,10 @@ $items = [
         'desc'  => 'A contact form for this listing. Messages are sent to the listing owner\'s email address. ',
     ],
     'updates' => [
-        'label' => 'Updates Feed',
+        'label' => 'News Feed',
         'badge' => 'Addon',
         'file'  => 'updates.php',
-        'desc'  => 'Displays the updates feed for this listing. Requires the Updates Feed add-on to be installed.',
+        'desc'  => 'Displays the updates feed for this listing. Requires the News Feed add-on to be installed.',
     ],
     'adopt' => [
         'label' => 'Adoption Form',
@@ -232,10 +249,10 @@ $items = [
         'desc'  => 'Form for fans to submit collective codes. Submissions are reviewed in Admin → Codes.',
     ],
     'col-updates' => [
-        'label' => 'Updates Feed',
+        'label' => 'News Feed',
         'badge' => 'Addon',
         'file'  => 'collective-updates.php',
-        'desc'  => 'Displays the site-wide collective updates feed. Requires the Updates Feed add-on to be installed.',
+        'desc'  => 'Displays the site-wide collective updates feed. Requires the News Feed add-on to be installed.',
     ],
     'col-contact' => [
         'label' => 'Contact Form',
@@ -305,16 +322,16 @@ $epSafe = View::e($ep);
                   data-setup-text="<?= htmlspecialchars($setupLine1 . "\n" . $setupLine2 . "\n" . $setupLine3 . "\n\n" . $setupLine4, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
         </div>
 
-        <p class="form-hint" style="margin:0.75em 0 0.25em">Paste this before your HTML begins (above <code>&lt;!doctype&gt;</code>):</p>
+        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>): <span class="ec-setup-help" data-desc="These three lines set up your page to work with Luster. The first line tells your page where Luster is installed. The second loads the tools Luster needs to run. The third lets your page serve Luster&rsquo;s stylesheet without showing visitors where Luster lives on your server.">?</span></p>
         <div class="ec-setup-snip">
-          <div class="ec-setup-snip-line"><code><?= View::e($setupLine1) ?></code></div>
-          <div class="ec-setup-snip-line"><code><?= View::e($setupLine2) ?></code></div>
-          <div class="ec-setup-snip-line"><code><?= View::e($setupLine3) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine1) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine2) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine3) ?></code></div>
         </div>
 
-        <p class="form-hint" style="margin:0.75em 0 0.25em">Paste this inside <code>&lt;head&gt;</code>, before your own stylesheets:</p>
+        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked: <span class="ec-setup-help" data-desc="This loads Luster&rsquo;s default styles for embeds so they're styled automatically. It uses ?luster_css instead of a direct file path so visitors can&rsquo;t see where Luster is installed on your server. Placing it before your own stylesheets lets your CSS override Luster&rsquo;s default.">?</span></p>
         <div class="ec-setup-snip">
-          <div class="ec-setup-snip-line"><code><?= View::e($setupLine4) ?></code></div>
+          <div class="ec-setup-snip-line"><code>&lt;<span class="ec-hl-k">link</span> <span class="ec-hl-v">rel</span>=<span class="ec-hl-s">&quot;stylesheet&quot;</span> <span class="ec-hl-v">href</span>=<span class="ec-hl-s">&quot;?luster_css&quot;</span>&gt;</code></div>
         </div>
       </div>
 
@@ -418,26 +435,26 @@ $epSafe = View::e($ep);
     <div class="ec-ref-layout">
 <!-- ──── REF NAV ──────────────────────────────────────────────────────────── -->
       <nav class="ec-ref-nav" aria-label="Reference sections">
-        <span class="ec-ref-nav-group">Snippet settings</span>
+        <span class="ec-ref-nav-group">Embed Settings</span>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-general">Basics</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-members">Members and passwords</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-listings">Listing pages</button>
-        <span class="ec-ref-nav-group">Template words</span>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-stat-tokens">Listing stats</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-row-tokens">Member list</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-owned-tokens">Owned listings</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-joined-tokens">Joined listings</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-members">Members & passwords</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-listings">Listing Pages</button>
+        <span class="ec-ref-nav-group">Embed Tokens</span>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-stat-tokens">Listing Statistics</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-row-tokens">Member Lists</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-owned-tokens">Owned Listings</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-joined-tokens">Joined Listings</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-aff-tokens">Affiliates</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-cstat-tokens">Collective stats template</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-cstat-tokens">Collective Statistics</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-pagination-tokens">Pagination</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-form-tokens">Form fields</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-form-tokens">Form Fields</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-success-tokens">Success messages</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-codes-tokens">Codes</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-updates-tokens">Updates</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-updates-tokens">News Feed</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-wishlist-tokens">Wishlist</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-kim-tokens">KIM members</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-kim-tokens">KIM List</button>
         <span class="ec-ref-nav-group">Advanced</span>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-cstat-vars">Stats for custom PHP</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-cstat-vars">Statistics</button>
       </nav>
 <!-- ──── REF PANELS ───────────────────────────────────────────────────────── -->
       <div>
@@ -548,7 +565,7 @@ $epSafe = View::e($ep);
               </div>
             </div>
           </details>
-          <p class="text-muted" style="margin-top:.875rem">Settings for updates feeds.</p>
+          <p class="text-muted" style="margin-top:.875rem">Settings for news feeds.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -677,7 +694,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{stat_approved}</code></td><td>Number of approved members. <span class="ec-ex">e.g. <em>33</em></span></td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_pending}</code></td><td>Number of members waiting for approval.</td></tr>
@@ -709,7 +726,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_member}&hellip;{/each_member}</code></td><td>Repeat box for one member row. Luster repeats the text inside once for each approved member.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{fan_name}</code></td><td>Member&rsquo;s name. <span class="ec-ex">e.g. <em>Alexia</em></span></td></tr>
@@ -735,7 +752,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_listing}&hellip;{/each_listing}</code></td><td>The normal repeat box. Put one listing row inside it, and Luster repeats that row once for each listing. This is what the built-in default uses.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{each_current}&hellip;{/each_current}</code>, <code class="ec-tk">{each_upcoming}&hellip;{/each_upcoming}</code>, <code class="ec-tk">{each_pending}&hellip;{/each_pending}</code></td><td>Optional separate repeat boxes for Current, Upcoming, and Pending sections. Use these instead of <code>{each_listing}</code> when you want headings like &ldquo;Current&rdquo; and &ldquo;Upcoming&rdquo;. This same owned-listings template is reused by owned, latest, and random listing embeds, so a sectioned layout will show everywhere that template is used.</td></tr>
@@ -770,7 +787,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{current_owned_count}</code></td><td>Number of current listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{upcoming_owned_count}</code></td><td>Number of upcoming listings.</td></tr>
@@ -792,7 +809,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_joined}&hellip;{/each_joined}</code></td><td>Wrap your row markup in this. Luster repeats what&rsquo;s inside once per joined listing (flat list).</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{each_current_joined}&hellip;{/each_current_joined}</code></td><td>A repeat box for approved joined listings, ordered by category. It works for one selected category or all categories, but it reads best on a page that shows all joined listings.</td></tr>
@@ -811,7 +828,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{current_count}</code></td><td>Number of active joined listings shown.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{total_count}</code></td><td>Total number of active joined listings.</td></tr>
@@ -829,7 +846,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_affiliate}&hellip;{/each_affiliate}</code></td><td>Wrap your affiliate row in this. Luster repeats what&rsquo;s inside once per affiliate.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{aff_name}</code></td><td>Affiliate site&rsquo;s name.</td></tr>
@@ -845,7 +862,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{affiliates_count}</code></td><td>Number of active affiliates.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{affiliate_apply_url}</code></td><td>Link to the matching affiliate application form. Listing affiliates point to that listing; collective affiliates point to the collective application form.</td></tr>
@@ -865,7 +882,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{owned_active}</code></td><td>Number of current owned listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{owned_upcoming}</code></td><td>Number of upcoming owned listings.</td></tr>
@@ -898,7 +915,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{if_pages}&hellip;{/if_pages}</code></td><td>Shows the pagination block only when there is more than one page.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{current_page}</code></td><td>The page the visitor is on right now.</td></tr>
@@ -925,7 +942,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{input}</code></td><td>The actual form control, such as a text box, dropdown, checkbox group, textarea, or file upload.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{label}</code></td><td>The field label, such as Name, Email, or Country.</td></tr>
@@ -945,7 +962,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{listing_title}</code>, <code class="ec-tk">{listing_url}</code></td><td>The listing or collective name and URL for the form.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{site_name}</code></td><td>The site name in KIM sign-up templates.</td></tr>
@@ -970,7 +987,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{action}</code></td><td>The kind of completed action, such as <code>joined</code>, <code>updated</code>, or <code>contact-sent</code>.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{fan_name}</code></td><td>The member or applicant name, when that form has one.</td></tr>
@@ -998,7 +1015,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_code}&hellip;{/each_code}</code></td><td>Repeat box for one code image.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{each_size_group}&hellip;{/each_size_group}</code></td><td>Repeat box for one size group, such as 50x50 or 100x35. Put another <code>{each_code}</code> inside it for the codes in that group.</td></tr>
@@ -1022,11 +1039,11 @@ $epSafe = View::e($ep);
         <!-- UPDATES TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-updates-tokens">
           <h3 class="pc-head-title">Updates</h3>
-          <p class="text-muted">These words are for updates feed row templates. Design one update inside <code>{each_update}</code>, and Luster repeats it for each update post.</p>
+          <p class="text-muted">These words are for news feed row templates. Design one update inside <code>{each_update}</code>, and Luster repeats it for each update post.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_update}&hellip;{/each_update}</code></td><td>Repeat box for one update post.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{update_title}</code></td><td>Update title.</td></tr>
@@ -1048,7 +1065,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_wishlist_item}&hellip;{/each_wishlist_item}</code></td><td>Repeat box for one wishlist item.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{item_subject}</code></td><td>The thing you want, love, or have been granted.</td></tr>
@@ -1069,7 +1086,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_wishlist_item_top}&hellip;{/each_wishlist_item_top}</code></td><td>Repeat box for one Top Wanted item. Same words as the main repeat box above, but only for Top Wanted entries on this page.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{each_wishlist_item_wanted}&hellip;{/each_wishlist_item_wanted}</code></td><td>Repeat box for one Wanted item, only for Wanted entries on this page.</td></tr>
@@ -1090,7 +1107,7 @@ $epSafe = View::e($ep);
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <thead><tr><th class="act-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_kim_member}&hellip;{/each_kim_member}</code></td><td>Repeat box for one approved KIM member.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{kim_name}</code></td><td>KIM member&rsquo;s name.</td></tr>

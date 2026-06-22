@@ -43,7 +43,7 @@ $id = (int) $listing->id;
         <div class="pc-head-sub">Editing member &mdash; <?= View::e($listing->subject) ?></div>
       </div>
     </div>
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="pc-section-label">General Information</div>
 
       <div class="listing-field-row listing-field-row--top">
@@ -113,7 +113,7 @@ $id = (int) $listing->id;
     </div>
 
     <?php if (!empty($fields)): ?>
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="pc-section-label">Additional Fields</div>
 
       <?php foreach ($fields as $field):

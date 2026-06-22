@@ -109,6 +109,11 @@ final class LinkChecker
      */
     private static function singleGet(string $url): array
     {
+        $host = parse_url($url, PHP_URL_HOST);
+        if (is_string($host) && $host !== '' && NetworkAddressGuard::validatePublicHost($host) !== null) {
+            return [0, '', null];
+        }
+
         $context = stream_context_create([
             'http' => [
                 'method'          => 'GET',

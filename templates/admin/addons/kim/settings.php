@@ -67,7 +67,7 @@ $_defaults = [
       <div class="pc-section-label">Embed URLs</div>
       <p class="text-dim">Enter the <strong>page filename</strong> of each KIM page on your site. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
 
-      <div class="listing-field-section">
+      <div class="pc-section">
         <div class="listing-field-row">
           <label class="listing-field-label" for="kim-url-signup">Sign Up page</label>
           <input id="kim-url-signup" type="text" name="signup" class="form"

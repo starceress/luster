@@ -59,7 +59,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
 <?php endif; ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/updates" class="link">&larr; Back to Updates Feed</a>
+  <a href="<?= $b ?>/admin/updates" class="link">&larr; Back to News Feed</a>
 </div>
 
 <!-- ──── TOOLBAR ─────────────────────────────────────────────────────── -->

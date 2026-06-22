@@ -96,6 +96,7 @@ $displayCount = $selectedOnly ? $totalCount : (int) ($scope_counts[$oldScope] ??
       </div>
     </div>
 
+      <div class="tpl-filter-panel">
     <div class="search-field-wrap token-search-wrap">
       <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
       <input type="search"
@@ -110,7 +111,7 @@ $displayCount = $selectedOnly ? $totalCount : (int) ($scope_counts[$oldScope] ??
               aria-label="Clear search"
               title="Clear search"
               hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
-    </div>
+    </div></div>
 
     <p data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
 

@@ -37,7 +37,6 @@ use Luster\Support\SuccessRenderer;
  * Security properties:
  *  - CSRF token on all POST forms (validated by CsrfMiddleware)
  *  - Honeypot on the email entry form
- *  - Arithmetic CAPTCHA on the email entry form
  *  - Rate-limited per IP (5/hr) on both POST actions
  *  - Token: bin2hex(random_bytes(32)) — 256 bits of entropy
  *  - Only the SHA-256 hash is stored in the DB; the raw token travels only in email

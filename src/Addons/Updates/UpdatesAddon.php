@@ -25,7 +25,7 @@ final class UpdatesAddon implements AddonInterface
 
     public function getName(): string
     {
-        return 'Updates Feed';
+        return 'News Feed';
     }
 
     public function getDescription(): string

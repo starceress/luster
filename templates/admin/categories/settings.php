@@ -26,7 +26,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
 
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="per_page">Items Per Page</label>

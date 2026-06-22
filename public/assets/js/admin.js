@@ -1864,7 +1864,7 @@ document.addEventListener('drop', function (e) {
     if (needsId.indexOf(type) !== -1) {
       var lid = parseInt(vals.lid || (listings.length ? listings[0].id : 1), 10) || 1;
       if (type === 'aff-apply') lines.push('// Enable in Admin → Listings → Edit → Affiliates');
-      if (type === 'updates')   lines.push('// Requires Updates Feed add-on (Admin → Add-ons)');
+      if (type === 'updates')   lines.push('// Requires News Feed add-on (Admin → Add-ons)');
       lines.push('$luster_fanlisting_id = ' + lid + ';');
     } else if (type === 'affiliates') {
       var aid = (vals.lid === '0' || vals.lid === '') ? 0 : (parseInt(vals.lid, 10) || (listings.length ? listings[0].id : 1));
@@ -1946,7 +1946,7 @@ document.addEventListener('drop', function (e) {
     // Require line
     if (type === 'kim' || type === 'kim-list' || type === 'kim-update' || type === 'kim-reset')
                                 lines.push('// Requires KIM List add-on (Admin → Add-ons)');
-    if (type === 'col-updates') lines.push('// Requires Updates Feed add-on (Admin → Add-ons)');
+    if (type === 'col-updates') lines.push('// Requires News Feed add-on (Admin → Add-ons)');
     if (type === 'wishlist')    lines.push('// Requires Wishlist add-on (Admin → Add-ons)');
     if (type === 'latest')      lines.push('// Renders the listing with the most recent open date.');
     if (type === 'random-joined') lines.push('// Renders one active, approved joined listing at random.');
@@ -4294,7 +4294,8 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     var btn = document.getElementById('fl-reset-all-templates');
     if (!btn) return;
     btn.addEventListener('click', function () {
-      if (!confirm('Reset every template for this listing to the global default?\n\nAny per-listing customisations will be lost.')) return;
+      var msg = btn.getAttribute('data-confirm') || 'Reset all templates to their defaults?\n\nAny customisations will be lost.';
+      if (!confirm(msg)) return;
       var f = document.createElement('form');
       f.method = 'POST';
       f.action = btn.getAttribute('data-action');
@@ -4365,20 +4366,19 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     'random-joined': 'Random Joined Listing Preview', 'latest-joined': 'Latest Joined Listing Preview',
     collective_affiliates_section: 'Affiliates Preview', collective_stats: 'Statistics Preview',
     members: 'Members List Preview', affiliates_section: 'Affiliates Section Preview',
-    stats: 'Statistics Preview', updates: 'Updates Feed Preview',
+    stats: 'Statistics Preview', updates: 'News Feed Preview',
     codes_submit_form: 'Code Donation Form Preview', rules_intro: 'Join Rules Intro Preview',
     rules: 'Join Rules Preview',
     join_form: 'Join Form Preview', update_form: 'Update Membership Form Preview', reset_form: 'Lost Password Form Preview',
     affiliate_apply_form: 'Affiliate Application Form Preview',
-    contact_form: 'Contact Form Preview', contact_sent: 'Contact Sent Preview',
+    contact_form: 'Contact Form Preview',
     collective_affiliate_apply_form: 'Collective Affiliate Apply Form Preview',
     collective_adopt_form: 'Collective Adoption Form Preview',
     kim_signup_form: 'KIM Sign-Up Form Preview',
-    wishlist: 'Wishlist Preview', collective_updates: 'Collective Updates Feed Preview',
+    wishlist: 'Wishlist Preview', collective_updates: 'Collective News Feed Preview',
     codes: 'Codes Display Preview', collective_codes: 'Collective Codes Display Preview',
     collective_codes_submit_form: 'Collective Codes Donation Form Preview',
     collective_contact_form: 'Contact Form Preview',
-    collective_contact_sent: 'Contact Sent Message Preview',
     collective_kim_list_overview: 'KIM List Overview Preview',
     collective_kim_list_subject: 'KIM Subject View Preview',
     kim_update_form: 'KIM Update Form Preview',
@@ -6633,3 +6633,36 @@ document.addEventListener('click', function (e) {
     });
   });
 }());
+
+// ── Scroll-to-top button ──────────────────────────────────────────────────────
+(function () {
+  var btn = document.getElementById('scroll-to-top');
+  if (!btn) return;
+
+  var threshold = 400;
+  var visible   = false;
+
+  window.addEventListener('scroll', function () {
+    var shouldShow = window.scrollY > threshold;
+    if (shouldShow !== visible) {
+      visible = shouldShow;
+      btn.classList.toggle('is-visible', visible);
+    }
+  }, { passive: true });
+
+  btn.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}());
+
+// ── Embed snippet copy buttons ────────────────────────────────────────────────
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.embed-copy-btn');
+  if (!btn) return;
+  var text = btn.getAttribute('data-copy') || '';
+  navigator.clipboard.writeText(text).then(function () {
+    var orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(function () { btn.textContent = orig; }, 1500);
+  });
+});

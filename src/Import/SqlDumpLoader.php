@@ -385,10 +385,10 @@ final class SqlDumpLoader
         // Replace `original` anywhere it appears as a quoted identifier.
         $sql = preg_replace('/`' . $orig . '`/', $repl, $sql);
 
-        // Replace unquoted occurrence right after TABLE, INTO, FROM, JOIN, UPDATE
+        // Replace unquoted occurrence right after TABLE [IF NOT EXISTS], INTO, FROM, JOIN, UPDATE
         // followed by whitespace — avoids replacing column names.
         $sql = preg_replace(
-            '/\b(TABLE\s+|INTO\s+|FROM\s+|JOIN\s+|UPDATE\s+)' . $orig . '\b/i',
+            '/\b(TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?|INTO\s+|FROM\s+|JOIN\s+|UPDATE\s+)' . $orig . '\b/i',
             '$1' . $repl,
             $sql
         );

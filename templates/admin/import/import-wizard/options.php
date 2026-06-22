@@ -278,7 +278,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
             <input type="checkbox" name="import_updates" value="1" <?= scopeChecked($old, 'import_updates') ?>>
             <div class="import-chk-body">
               <label class="import-chk-lbl">Updates</label>
-              <div class="import-chk-sub">Requires the Updates Feed add-on to be installed.</div>
+              <div class="import-chk-sub">Requires the News Feed add-on to be installed.</div>
             </div>
           </div>
           <div class="import-chk">
@@ -312,8 +312,8 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
           <div class="import-chk">
             <input type="checkbox" name="import_updates" value="1" <?= scopeChecked($old, 'import_updates') ?>>
             <div class="import-chk-body">
-              <label class="import-chk-lbl">Blog entries &rarr; Updates Feed</label>
-              <div class="import-chk-sub">Requires the Updates Feed add-on to be installed.</div>
+              <label class="import-chk-lbl">Blog entries &rarr; News Feed</label>
+              <div class="import-chk-sub">Requires the News Feed add-on to be installed.</div>
             </div>
           </div>
         <?php endif; ?>
@@ -389,7 +389,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
           If the old site is on another server, enter its public URL so Luster can download images.
           If your host blocks remote downloads, upload a ZIP of the image folder instead. Luster matches files by filename.
         </p>
-        <div class="listing-field-section">
+        <div class="pc-section">
           <div class="listing-field-row listing-field-row--top">
             <label class="listing-field-label" for="img-path">Server Path</label>
             <div>
@@ -443,7 +443,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
           </label>
         </div>
         <div id="js-image-options"<?= $imagesOn ? '' : ' class="is-hidden"' ?>>
-          <div class="listing-field-section" style="margin-top:.625rem">
+          <div class="pc-section" style="margin-top:.625rem">
             <div class="listing-field-row listing-field-row--top">
               <label class="listing-field-label" for="img-path">Server Path</label>
               <div>

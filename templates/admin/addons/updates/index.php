@@ -79,7 +79,7 @@ $collLastDate = $latest_coll !== null
     </button>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/updates/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Updates Feed Settings</a>
+    <a href="<?= $b ?>/admin/updates/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>News Feed Settings</a>
   </div>
 </div>
 
@@ -100,7 +100,7 @@ $collLastDate = $latest_coll !== null
 
 <!-- ──── TABLE ───────────────────────────────────────────────────────── -->
 <div class="card">
-  <div class="card-head">Updates Index
+  <div class="card-head">News Feed Index
     <span class="row-sub">Showing <?= $rangeFirst ?>–<?= $rangeLast ?> of <?= $total_listings ?> Listing<?= $total_listings === 1 ? '' : 's' ?></span>
   </div>
   <div class="table-wrap">

@@ -57,7 +57,7 @@ $defaultGateLabel = $currentGateType === 'button'
           <div class="pc-head-title">Global Join Rules HTML Template</div>
           <div class="pc-head-sub">Choose the HTML Luster prints for your Per-Listing Join Rules. This template will override the Global Join Rules template for this specific listing only.</div>
           </div></div>
-        <div class="listing-field-section">
+        <div class="pc-section">
 
           <div class="listing-field-row listing-field-row--top">
             <label class="listing-field-label" for="rules-body">
@@ -112,7 +112,7 @@ $defaultGateLabel = $currentGateType === 'button'
             </div>
           </div>
 
-        </div><!-- /.listing-field-section -->
+        </div><!-- /.pc-section -->
 
         <div class="composer-footer">
           <button type="submit" class="btn btn-primary">Save Rules</button>
