@@ -23,30 +23,6 @@ final class LinkCheckerTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // parseStatusCode
-    // -----------------------------------------------------------------------
-
-    public function testParseStatusCodeHttp11(): void
-    {
-        self::assertSame(200, self::call('parseStatusCode', 'HTTP/1.1 200 OK'));
-        self::assertSame(301, self::call('parseStatusCode', 'HTTP/1.1 301 Moved Permanently'));
-        self::assertSame(404, self::call('parseStatusCode', 'HTTP/1.0 404 Not Found'));
-        self::assertSame(500, self::call('parseStatusCode', 'HTTP/1.1 500 Internal Server Error'));
-    }
-
-    public function testParseStatusCodeHttp2(): void
-    {
-        self::assertSame(200, self::call('parseStatusCode', 'HTTP/2 200'));
-        self::assertSame(301, self::call('parseStatusCode', 'HTTP/2 301'));
-    }
-
-    public function testParseStatusCodeReturnsZeroOnEmpty(): void
-    {
-        self::assertSame(0, self::call('parseStatusCode', ''));
-        self::assertSame(0, self::call('parseStatusCode', 'not a status line'));
-    }
-
-    // -----------------------------------------------------------------------
     // parseLocation
     // -----------------------------------------------------------------------
 

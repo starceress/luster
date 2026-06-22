@@ -103,52 +103,78 @@ final class LinkChecker
     // -----------------------------------------------------------------------
 
     /**
-     * Makes a single non-redirecting GET request with TLS verification enabled.
+     * Makes a single non-redirecting GET request with TLS verification and
+     * DNS-pinned connection via CURLOPT_RESOLVE to prevent rebinding.
      *
      * @return array{int, string, ?string}  [http_code, body, location_header_value]
      */
     private static function singleGet(string $url): array
     {
         $host = parse_url($url, PHP_URL_HOST);
-        if (is_string($host) && $host !== '' && NetworkAddressGuard::validatePublicHost($host) !== null) {
+        if (!is_string($host) || $host === '') {
             return [0, '', null];
         }
 
-        $context = stream_context_create([
-            'http' => [
-                'method'          => 'GET',
-                'timeout'         => self::TIMEOUT,
-                'follow_location' => 0,
-                'ignore_errors'   => true,
-                'header'          => "User-Agent: Mozilla/5.0 (compatible; LusterLinkChecker/1.0)\r\n",
-            ],
-            'ssl'  => [
-                'verify_peer'      => true,
-                'verify_peer_name' => true,
-            ],
+        $result = NetworkAddressGuard::validateAndResolve($host);
+        if ($result['error'] !== null || $result['ips'] === []) {
+            return [0, '', null];
+        }
+
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return [0, '', null];
+        }
+
+        $responseHeaders = [];
+        $bodyParts       = [];
+        $bodyLen         = 0;
+        $maxBody         = self::MAX_BODY_BYTES;
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_TIMEOUT        => self::TIMEOUT,
+            CURLOPT_CONNECTTIMEOUT => self::TIMEOUT,
+            CURLOPT_MAXREDIRS      => 0,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; LusterLinkChecker/1.0)',
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_HEADERFUNCTION => static function ($ch, string $header) use (&$responseHeaders): int {
+                $responseHeaders[] = $header;
+                return strlen($header);
+            },
+            CURLOPT_WRITEFUNCTION  => static function ($ch, string $chunk) use (&$bodyParts, &$bodyLen, $maxBody): int {
+                $len = strlen($chunk);
+                if ($bodyLen + $len > $maxBody) {
+                    $bodyParts[] = substr($chunk, 0, $maxBody - $bodyLen);
+                    $bodyLen = $maxBody;
+                    return 0;
+                }
+                $bodyParts[] = $chunk;
+                $bodyLen += $len;
+                return $len;
+            },
         ]);
 
-        $http_response_header = null;
-        $body = @file_get_contents($url, false, $context, 0, self::MAX_BODY_BYTES);
-        $body = is_string($body) ? $body : '';
+        $port    = parse_url($url, PHP_URL_PORT) ?: (parse_url($url, PHP_URL_SCHEME) === 'https' ? 443 : 80);
+        $resolve = [];
+        foreach ($result['ips'] as $ip) {
+            $resolve[] = $host . ':' . $port . ':' . $ip;
+        }
+        curl_setopt($ch, CURLOPT_RESOLVE, $resolve);
 
-        if (!is_array($http_response_header)) {
+        curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $body = implode('', $bodyParts);
+
+        if ($code === 0) {
             return [0, '', null];
         }
 
-        $code     = self::parseStatusCode($http_response_header[0] ?? '');
-        $location = self::parseLocation($http_response_header);
-
+        $location = self::parseLocation($responseHeaders);
         return [$code, $body, $location];
-    }
-
-    private static function parseStatusCode(string $statusLine): int
-    {
-        // Handles "HTTP/1.1 200 OK", "HTTP/1.0 301 Moved", "HTTP/2 404", etc.
-        if (preg_match('/HTTP\/\S+\s+(\d{3})/', $statusLine, $m)) {
-            return (int) $m[1];
-        }
-        return 0;
     }
 
     /**

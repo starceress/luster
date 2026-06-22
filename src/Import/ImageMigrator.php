@@ -89,10 +89,6 @@ final class ImageMigrator
      */
     public function fetchFromUrl(string $url, string $targetSubDir, string $prefix): ?string
     {
-        if (!function_exists('file_get_contents')) {
-            return null;
-        }
-
         $parts = parse_url($url);
         if (!is_array($parts)) {
             return null;
@@ -104,31 +100,53 @@ final class ImageMigrator
         }
 
         $host = NetworkAddressGuard::normalizeHost((string) ($parts['host'] ?? ''));
-        if ($host === '' || NetworkAddressGuard::validatePublicHost($host) !== null) {
+        $guardResult = NetworkAddressGuard::validateAndResolve($host);
+        if ($guardResult['error'] !== null || $guardResult['ips'] === []) {
             return null;
         }
 
-        $context = stream_context_create([
-            'http' => [
-                'timeout'         => 10,
-                'follow_location' => false,
-                'max_redirects'   => 0,
-                'user_agent'      => 'Luster-Import/1.0',
-            ],
-            'https' => [
-                'timeout'         => 10,
-                'follow_location' => false,
-                'max_redirects'   => 0,
-                'user_agent'      => 'Luster-Import/1.0',
-            ],
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return null;
+        }
+
+        $maxBytes  = 10 * 1024 * 1024;
+        $bodyParts = [];
+        $bodyLen   = 0;
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_MAXREDIRS      => 0,
+            CURLOPT_USERAGENT      => 'Luster-Import/1.0',
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_WRITEFUNCTION  => static function ($ch, string $chunk) use (&$bodyParts, &$bodyLen, $maxBytes): int {
+                $len = strlen($chunk);
+                if ($bodyLen + $len > $maxBytes) {
+                    return 0;
+                }
+                $bodyParts[] = $chunk;
+                $bodyLen += $len;
+                return $len;
+            },
         ]);
 
-        if (NetworkAddressGuard::validatePublicHost($host) !== null) {
-            return null;
+        $port    = ($parts['port'] ?? null) ?: ($scheme === 'https' ? 443 : 80);
+        $resolve = [];
+        foreach ($guardResult['ips'] as $ip) {
+            $resolve[] = $host . ':' . $port . ':' . $ip;
         }
+        curl_setopt($ch, CURLOPT_RESOLVE, $resolve);
 
-        $data = @file_get_contents($url, false, $context, 0, 10 * 1024 * 1024);
-        if ($data === false || $data === '') {
+        curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $data = implode('', $bodyParts);
+        if ($data === '' || $code < 200 || $code >= 400) {
             return null;
         }
 

@@ -12,33 +12,43 @@ final class NetworkAddressGuard
      */
     public static function validatePublicHost(string $host): ?string
     {
+        return self::validateAndResolve($host)['error'];
+    }
+
+    /**
+     * Validates a host and returns the resolved public IPs.
+     *
+     * @return array{error: ?string, ips: list<string>}
+     */
+    public static function validateAndResolve(string $host): array
+    {
         $normalizedHost = self::normalizeHost($host);
         if ($normalizedHost === '') {
-            return 'Host is required.';
+            return ['error' => 'Host is required.', 'ips' => []];
         }
 
         if (self::isBlockedHostname($normalizedHost)) {
-            return 'Connection to private or loopback addresses is not permitted.';
+            return ['error' => 'Connection to private or loopback addresses is not permitted.', 'ips' => []];
         }
 
         if (self::isIpAddress($normalizedHost)) {
             return self::isPublicIpAddress($normalizedHost)
-                ? null
-                : 'Connection to private or loopback addresses is not permitted.';
+                ? ['error' => null, 'ips' => [$normalizedHost]]
+                : ['error' => 'Connection to private or loopback addresses is not permitted.', 'ips' => []];
         }
 
         $resolvedIps = self::resolveHost($normalizedHost);
         if ($resolvedIps === []) {
-            return null;
+            return ['error' => null, 'ips' => []];
         }
 
         foreach ($resolvedIps as $ip) {
             if (!self::isPublicIpAddress($ip)) {
-                return 'Connection to private or loopback addresses is not permitted.';
+                return ['error' => 'Connection to private or loopback addresses is not permitted.', 'ips' => []];
             }
         }
 
-        return null;
+        return ['error' => null, 'ips' => $resolvedIps];
     }
 
     public static function normalizeHost(string $host): string

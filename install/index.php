@@ -1148,6 +1148,11 @@ function checkRequirements(): array
             'status' => $status(extension_loaded('pdo_mysql')),
         ],
         [
+            'label'  => 'cURL Extension',
+            'detail' => $detail(extension_loaded('curl'), 'cURL is enabled.', 'Enable the PHP cURL extension (ext-curl).'),
+            'status' => $status(extension_loaded('curl')),
+        ],
+        [
             'label'  => 'Root Directory Access',
             'detail' => $detail($rootWritable, 'Root directory is writable.', 'Make your root directory writable before continuing.'),
             'status' => $status($rootWritable),
