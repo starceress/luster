@@ -68,7 +68,7 @@ if (isset($form_html)) {
   </form>
 
   <?php if (($lost_password_url ?? '') !== ''): ?>
-    <p class="fl-hint" style="text-align:center"><a href="<?= View::e($lost_password_url) ?>">Forgot your password?</a></p>
+    <p class="fl-lost-password"><a href="<?= View::e($lost_password_url) ?>">Forgot your password?</a></p>
   <?php endif; ?>
 
 <?php else: ?>

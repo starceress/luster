@@ -52,6 +52,12 @@
   text-align: center;
 }
 
+.fl-lost-password {
+  font-size: 0.9em;
+  text-align: center;
+  margin: 0.5em 0;
+}
+
 .fl-pagination-wrap {
   margin-top: 0.75em;
 }
