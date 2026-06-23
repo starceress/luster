@@ -1,10 +1,12 @@
 <?php
-/**
- * Sample listing — members list.
- *
- * Sort (?sort=name or ?sort=country) and pagination (?page=N) work automatically
- * and always link back to this page.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample members list page for a fanlisting. Embeds the Luster members list with
+ sorting and pagination that link back to this page automatically. Customize the
+ surrounding HTML to match your fanlisting's design.
+*/
 
 $page_title = 'Members';
 require 'header.php';

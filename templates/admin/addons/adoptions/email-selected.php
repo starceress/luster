@@ -1,7 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Adoptions admin bulk email composer for selected applicants. Renders the standard
+ composer grid layout with a recipient count summary, subject/body fields, and saved
+ template loading. Supports per-recipient token substitution on send.
+*/
+
 /**
- * Adoptions admin — bulk email selected applicants (composer layout).
- *
  * Variables:
  *   $applications    array[]               Selected application rows
  *   $applicant_names array<string,string>  email => name

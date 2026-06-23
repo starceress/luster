@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ The main application bootstrap and service container. This class wires up
+ all core services (database, session, router, views, CSRF, rate limiting),
+ loads route definitions, and runs the middleware pipeline before dispatching
+ each request to the appropriate controller. It also catches unhandled
+ exceptions and renders error pages. Think of it as the central hub that
+ coordinates everything when a request comes in.
+*/
 
 declare(strict_types=1);
 

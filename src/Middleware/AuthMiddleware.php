@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin authentication middleware. Checks every admin route for an
+ active session before the request reaches the controller. A small
+ set of exempt paths (login, forgot-password, reset) bypass the
+ check. When no session exists but a remember-me cookie is present,
+ the middleware validates it against the database, rotates the token,
+ and restores the session transparently.
+*/
 
 declare(strict_types=1);
 
@@ -8,17 +19,6 @@ use Luster\Core\Database;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Session;
-
-/**
- * Enforces admin authentication for all admin routes.
- *
- * Exempt paths bypass the auth check (login page, forgot, reset).
- * Paths ending in '/' are matched as prefixes (e.g. '/admin/reset/').
- *
- * If no session exists and a remember-me cookie is present, the middleware
- * validates the token against lstr_admin_remember_tokens and auto-logs the
- * user in for the current request.
- */
 final class AuthMiddleware
 {
     public function __construct(

@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample affiliates page for a fanlisting. Displays the listing's approved
+ affiliates and links to the affiliate application form. Customize the HTML
+ to match your fanlisting's design.
+*/
+
 $page_title = 'Affiliates';
 require 'header.php';
 ?>

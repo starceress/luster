@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sends security response headers (CSP, X-Frame-Options, X-Content-Type-Options,
+ etc.) via PHP as a fallback for non-Apache deployments. On Apache, the same
+ headers are set by .htaccess via mod_headers, so running both is idempotent.
+ Called once per request from Application::boot().
+*/
 
 declare(strict_types=1);
 

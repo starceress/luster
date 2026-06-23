@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders owned-listing rows by substituting tokens in the admin-defined
+ owned_template string from the Collective Templates page. Handles tokens for
+ title, subject, URL, status, member counts, category, image, dates, network
+ approval status, and description, plus conditional blocks for each. Shared by
+ the owned embed (multiple rows), random-listing, and latest-listing (single row)
+ to centralise all token logic and HTML-escaping.
+*/
 
 declare(strict_types=1);
 
@@ -8,16 +19,6 @@ use Luster\Core\TemplateEngine;
 use Luster\Models\Listing;
 use Luster\Support\DateFormatter;
 
-/**
- * Renders owned-listing rows by substituting tokens in the owned_template
- * string from Admin → Collective.
- *
- * Shared by owned.php (multiple rows, flat or grouped via renderGroup()),
- * random-listing.php, and latest-listing.php (single row via render()) to
- * keep token/escaping logic in one place. Built on TemplateEngine so the
- * loop → conditionals → flat-token processing order matches every other
- * template surface in the Public Template System.
- */
 final class ListingRowRenderer
 {
     /**

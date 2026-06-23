@@ -1,11 +1,13 @@
-/* =============================================================================
-   admin.js -- Luster admin panel interactive layer
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
 
-   Replaces all inline <script> blocks and inline event handlers across the
-   admin template set. Loaded at the bottom of layout.php and all standalone
-   auth pages (login, forgot, reset). Every function guards against missing
-   DOM elements so it is safe to load unconditionally on every admin page.
-   ============================================================================= */
+ Admin panel JavaScript. Handles theme toggling, toast notifications,
+ nav search, confirmation dialogs, and all other interactive behavior
+ across the admin panel. Loaded at the bottom of layout.php and all
+ standalone auth pages. Every function guards against missing DOM
+ elements so it's safe to load unconditionally on every admin page.
+*/
 
 'use strict';
 

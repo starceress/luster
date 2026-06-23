@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Master layout wrapper for all authenticated admin pages. Outputs the full HTML
+ document structure including the sidebar navigation, topbar, theme toggle, mobile
+ menu, flash messages, and the content area where page-specific templates are injected.
+ Filter-panel FOUC prevention and admin CSS/JS assets are loaded here.
+*/
 use Luster\Core\View;
 use Luster\Core\SkinCatalog;
 require_once __DIR__ . '/_css_assets.php';

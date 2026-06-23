@@ -1,4 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Global listing template defaults page. Lets the admin edit the default templates that
+ new listings inherit for members row, stats, affiliates section, codes display, news
+ feed, join form, update form, reset form, codes-submit form, affiliate-apply form,
+ and contact form. Each template can be reset to its built-in default individually.
+*/
+declare(strict_types=1);
 use Luster\Core\View;
 use Luster\Repositories\ListingSettingsRepo;
 

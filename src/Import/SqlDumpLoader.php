@@ -1,28 +1,19 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Loads a mysqldump .sql file into temporary tables so import
+ adapters can run against the dump data without a live source
+ database. Only CREATE TABLE and INSERT statements are executed;
+ all other SQL (DROP, ALTER, SET, GRANT, etc.) is silently
+ discarded for security. Table names are prefixed to avoid
+ collisions, and cleanup() drops them all after the import.
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Import;
-
-/**
- * Loads a mysqldump .sql file into a live database under a temporary table prefix,
- * so existing import adapters can run against the dump data without a live source DB.
- *
- * Security model:
- *   - Only CREATE TABLE and INSERT [IGNORE] INTO statements are executed.
- *   - All other statement types (DROP, TRUNCATE, ALTER, SET, GRANT, etc.) are silently
- *     discarded, so a malicious dump cannot affect anything outside the temp tables.
- *   - All created table names are prefixed with $tempPrefix to avoid collisions.
- *   - Call cleanup() after the import run to drop every temp table, whether or not
- *     the run succeeded.
- *
- * Usage:
- *   $loader  = new SqlDumpLoader();
- *   $tables  = $loader->load($filePath, $pdo, 'lstr_tmp_abc123_');
- *   $variant = SqlDumpLoader::inferSchemaVariant($tables);
- *   // ... run import adapters ...
- *   $loader->cleanup($tables, $pdo);
- */
 final class SqlDumpLoader
 {
     /** Maximum allowed file size in bytes (50 MB). */

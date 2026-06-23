@@ -1,22 +1,18 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Immutable value object returned by ImportSourceInterface::run()
+ after an import completes. Holds per-data-type counts of rows
+ imported, skipped, and errored, plus a separate image-row tally.
+ Also provides a toText() method that produces a plain-text
+ report the user can download from the result page.
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Import;
-
-/**
- * Value object returned by ImportSourceInterface::run().
- *
- * Records final counts and any per-record errors encountered during the import.
- *
- * Each item in $rows has the same shape as ImportPreview $rows, plus:
- *   'imported'   => int,      // rows actually inserted
- *   'skipped'    => int,      // rows skipped (already existed)
- *   'errors'     => string[], // per-record error messages
- *
- * $imageRows follows the same shape with type = image sub-type
- * (e.g. 'Images (affiliates)').
- */
 final class ImportResult
 {
     /**

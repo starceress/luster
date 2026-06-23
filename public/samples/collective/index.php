@@ -1,11 +1,12 @@
 <?php
-/**
- * Sample collective — home page.
- *
- * SETUP
- *   Edit _config.php — set $luster_root and your collective details.
- *   Then copy this folder to your collective's web root.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample home page for a fanlisting collective. Displays a welcome message,
+ collective-wide stats, and an optional news feed. Copy this file into your
+ collective's web root and customize the HTML to match your own design.
+*/
 
 $page_title = 'Home';
 require 'header.php';

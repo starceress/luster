@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles approve and reject actions for pending member update requests. When a
+ fan submits changes through the public update form and the listing has hold-update
+ enabled, the changes are queued in lstr_pending_updates. This controller applies
+ the queued changes to the member record on approval (sending a notification email
+ if configured) or silently discards them on rejection. Both actions redirect back
+ to the Members overview.
+*/
 
 declare(strict_types=1);
 
@@ -15,16 +26,6 @@ use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 
-/**
- * Handles approve/reject POST actions for pending member update requests.
- *
- * The list and inline detail view live in the Members overview page
- * (templates/admin/members/overview.php). These handlers redirect back there.
- *
- * Routes:
- *   POST /admin/pending-updates/{id}/approve — apply changes + delete record
- *   POST /admin/pending-updates/{id}/reject  — delete record without applying
- */
 final class PendingUpdateController
 {
     public function __construct(private readonly Application $app) {}

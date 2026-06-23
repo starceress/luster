@@ -1,12 +1,13 @@
 <?php
-/**
- * Sample listing — affiliate application form.
- *
- * SETUP
- *   In Admin → Listings → Edit → Affiliates, enable affiliate applications and set:
- *     Application form URL:  https://yourdomain.com/fanlisting/affiliate-apply.php
- *     After-submit redirect: https://yourdomain.com/fanlisting/affiliate-apply.php
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample affiliate application page for a fanlisting. Embeds the Luster affiliate
+ application form so other site owners can request to exchange links. Enable
+ affiliate applications and set the Form URL in Admin before using this page.
+ Customize the HTML to match your design.
+*/
 
 $page_title = 'Affiliate Application';
 require 'header.php';

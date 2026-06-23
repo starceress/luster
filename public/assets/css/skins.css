@@ -1,6 +1,16 @@
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Bundled admin skin overrides. Each [data-skin] block redefines CSS
+ custom properties and adds class-level tweaks to give the admin
+ panel a different look. Loaded after admin.css so overrides win
+ on specificity. Community skins live in skins/ as separate files.
+*/
+
 /* ========================================================================
 
-  LUSTER SKINS & SLUGS
+  SKINS & SLUGS
     1. Prism Power (prism-power)
     2. Victory Road (victory-road)
     3. The Force (the-force)

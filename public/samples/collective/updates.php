@@ -1,8 +1,12 @@
 <?php
-/**
- * Sample collective — updates feed.
- * Requires the Updates add-on to be installed.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample news feed page for a fanlisting collective. Displays all collective-wide
+ news and update entries, with optional category tags on each post. Requires the
+ News Feed add-on to be installed. Customize the HTML to match your design.
+*/
 
 $page_title = 'Updates';
 require 'header.php';

@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Public read-only controller for the News Feed add-on. Serves the
+ per-fanlisting feed (GET /updates/{id}) and the collective feed
+ (GET /updates). Both routes are GET-only, require no authentication,
+ and support pagination and optional category filtering.
+*/
 
 declare(strict_types=1);
 

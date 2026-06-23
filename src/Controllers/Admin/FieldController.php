@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages additional (custom) field definitions for a single listing. Lets the
+ admin add, edit, and delete extra member fields like "Favourite character" or
+ "Favourite episode". Adding a field creates the database column via ALTER TABLE;
+ deleting one drops the column. Field metadata (label, type, required) is stored
+ in the listing registry table and read dynamically by FieldRepo.
+*/
 
 declare(strict_types=1);
 
@@ -11,24 +21,6 @@ use Luster\Core\Validator;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\FieldRepo;
 
-/**
- * Manages additional field definitions for a single listing.
- *
- * Routes (all scoped under /admin/listings/{fid}/fields):
- *   GET  /                  → index()   — field list + add form
- *   POST /add               → add()     — create field + ALTER TABLE column
- *   GET  /edit?name={name}  → edit()    — edit form for one field
- *   POST /edit              → edit()    — save label / type / required changes
- *   POST /delete            → delete()  — drop column + remove from definition
- *
- * Feedback is passed via ?success= / ?error= query params so no session
- * flash storage is required.
- *
- * NOTE: Constructor accepts Application (not the four individual deps) because
- * the router resolver always passes Application to every controller via
- *   new $class($this)
- * Changing the signature here would require updating the resolver closure.
- */
 final class FieldController extends AdminController
 {
 

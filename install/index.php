@@ -1,10 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Install wizard. Walks a new user through database connection, table
+ creation, and admin account setup. Completely standalone — it doesn't
+ use bootstrap.php or Composer, so it works on a fresh upload before
+ anything else is configured.
+*/
 
 declare(strict_types=1);
-
-// -------------------------------------------------------------------------
-// Bootstrap
-// -------------------------------------------------------------------------
 
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');

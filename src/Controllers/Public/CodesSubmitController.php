@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles public fan code image submissions for both per-listing and collective
+ contexts. On GET, renders the submission form with CAPTCHA and submitter info
+ fields. On POST, validates the uploaded image (MIME type via finfo, max 500 KB,
+ JPEG/PNG/GIF/WebP only), stores it with a randomized filename, and inserts a
+ pending code record for admin review. Includes rate limiting, honeypot, and
+ blacklist checks.
+*/
 
 declare(strict_types=1);
 

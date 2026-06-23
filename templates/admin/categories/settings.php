@@ -1,4 +1,12 @@
-<?php declare(strict_types=1);
+<?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin category display settings page. Controls how categories are paginated
+ in the admin table, including items-per-page configuration.
+*/
+declare(strict_types=1);
 use Luster\Core\View;
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>

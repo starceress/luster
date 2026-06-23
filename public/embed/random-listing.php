@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable random owned listing widget. Picks one active listing at random
+ from the selected status pool and renders it using the admin-editable Random
+ Listing template from Collective Templates. No $luster_fanlisting_id is
+ required. Outputs a harmless HTML comment when the pool is empty so the host
+ page never breaks.
+*/
 
 declare(strict_types=1);
 
@@ -7,23 +17,6 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingRowRenderer;
-
-/**
- * Luster embed — random single owned listing.
- *
- * Picks one active listing at random from the selected pool and renders it
- * using the Random Listing template from Admin → Collective → Templates.
- * Outputs an HTML comment when the pool is empty so the host page never breaks.
- *
- * Usage:
- *   require '/absolute/path/to/luster/public/embed/random-listing.php';
- *
- * Optional variables:
- *   $luster_status   string  Pool to draw from: 'current' | 'upcoming' | 'all'
- *                            Default: 'current'
- *   $luster_return   bool    true = return HTML string, false = echo
- *                            Default: false
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

@@ -1,16 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin link checker settings page. Controls default sort order, page size for link
+ checker result tables, and optional cron-based automated checking configuration.
+*/
 declare(strict_types=1);
 use Luster\Core\View;
-/** @var string $lc_default_sort */
-/** @var int    $lc_per_page */
-/** @var bool   $cron_enabled */
-/** @var string $cron_token */
-/** @var string $cron_last_run */
-/** @var string $cron_url */
-/** @var string $success */
-/** @var string $error */
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b = rtrim(View::e($base_url), '/');
 ?>
 

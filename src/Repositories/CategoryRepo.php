@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages listing categories in lstr_categories. Categories are organized by
+ source (TFL, TAFL, or custom) and support one level of parent-child nesting.
+ Includes slug generation for URL-safe category links, seed health checking
+ against the canonical TFL/TAFL category lists, and idempotent backfill for
+ missing seed categories. Also handles the multi-category junction table
+ (lstr_listing_categories) and provides paginated, filterable queries for
+ the admin categories page.
+*/
 
 declare(strict_types=1);
 

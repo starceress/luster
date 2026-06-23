@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles the public contact form for both per-listing and collective contexts.
+ On GET, renders the form with name, email, subject selector, message, and
+ CAPTCHA fields. On POST, validates all input, checks the blacklist, and sends
+ the message to the listing owner (or collective recipient) via Mailer with a
+ Reply-To header set to the fan's email. Rate limiting, honeypot, and CAPTCHA
+ are enforced on all submissions.
+*/
 
 declare(strict_types=1);
 

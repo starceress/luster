@@ -1,16 +1,15 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin user add form. Provides fields for creating a new admin account,
+ including username, email, display name, and password.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * @var string $error
- * @var array  $old          ['username', 'email', 'display_name']
- * @var array  $field_errors
- * @var string $base_url
- * @var string $csrf_token
- */
 
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $fe = $field_errors ?? [];

@@ -1,11 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import wizard legacy configure step. An older-style step 2 configuration page
+ used during early import development. Provides import option fields and
+ conflict strategy selection.
+*/
 use Luster\Core\View;
-/** @var string $source */
-/** @var string $source_name */
-/** @var string $error */
-/** @var array  $old */
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b   = rtrim(View::e($base_url), '/');
 $src = View::e($source);
 

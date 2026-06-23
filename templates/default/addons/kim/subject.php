@@ -1,18 +1,15 @@
 <?php
-/**
- * KIM List subject page — approved members for one fanlisting.
- *
- * Variables:
- *   $listing      Listing
- *   $members      KimMember[]
- *   $base_url     string
- *   $link_list    string|null  override URL for "Back to KIM List" link (optional)
- *   $link_signup  string|null  override URL for the sign-up link (optional)
- *   $pagination   string       pre-built pagination HTML, or ''
- *   $page         int
- *   $pages        int
- *   $total        int          total approved members across all pages
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ KIM List subject page content fragment (Keep In Mind add-on). Shows approved
+ KIM members for a single fanlisting, with interest count, member names/URLs,
+ pagination, and links back to the overview and sign-up pages. Served as a full
+ page via View::renderPublic() or as an embeddable fragment via
+ View::renderFragment() from embed/kim-list.php. Supports custom member and
+ subject templates.
+*/
 
 declare(strict_types=1);
 

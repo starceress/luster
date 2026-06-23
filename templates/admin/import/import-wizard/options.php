@@ -1,13 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import wizard step 3 -- import options for SQL-based sources. Presents
+ checkboxes for each data type (categories, affiliates, joined listings,
+ settings, email templates, codes) and image migration settings.
+*/
 use Luster\Core\View;
-/** @var string $source */
-/** @var string $source_name */
-/** @var array  $old */
-/** @var bool   $zip_ready */
-/** @var string $zip_url */
-/** @var array  $enth_networks */
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b   = rtrim(View::e($base_url), '/');
 $src = View::e($source);
 

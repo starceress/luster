@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Join Rules admin per-listing editor. Allows configuring the rules page body content
+ (with token placeholders), the gate type (checkbox or single button), gate label,
+ and enabled/disabled toggle for a specific listing. Falls back to the default body
+ template when no custom content has been set.
+*/
 
 declare(strict_types=1);
 

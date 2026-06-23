@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders the unified Emails admin page, which combines three tabs into a single
+ view: transactional email templates (global and per-listing), the bulk email
+ compose form, and saved custom email templates. All tab data is loaded eagerly
+ so tab switching is instant. POST actions are delegated to BulkEmailController
+ and EmailTemplatesController.
+*/
 
 declare(strict_types=1);
 
@@ -11,17 +21,6 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SavedEmailRepo;
 
-/**
- * Unified Emails admin page.
- *
- * GET /admin/emails  — unified tabbed page for all email management:
- *   ?tab=templates   — Email Templates
- *   ?tab=bulk        — Bulk Email (compose form)
- *   ?tab=custom      — Custom Templates (saved email templates)
- *
- * All data for all tabs is loaded eagerly on every GET.
- * POST actions are handled by their original controllers.
- */
 final class EmailsController extends AdminController
 {
     private const VALID_TABS = ['templates', 'bulk', 'custom'];

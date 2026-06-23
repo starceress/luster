@@ -1,8 +1,12 @@
 <?php
-/**
- * Sample collective — KIM List update entry.
- * Requires the KIM List add-on to be installed.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample KIM List update page for a fanlisting collective. Lets KIM members
+ update their name, URL, or email address. Requires the KIM List add-on to be
+ installed. Customize the HTML to match your design.
+*/
 
 $page_title = 'Keep In Mind — Update';
 require 'header.php';

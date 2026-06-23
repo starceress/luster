@@ -1,20 +1,19 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Reads a legacy fanlisting script's config.php as plain text and
+ extracts database credentials via regex. The file is never
+ require()'d or eval()'d -- only string matching is used. Covers
+ variable naming conventions from Enthusiast, Listing Admin,
+ FanUpdate, CodeSort, and Fanatically so the import wizard can
+ pre-fill the connection form automatically.
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Import;
-
-/**
- * Reads a legacy fanlisting-script config.php as plain text and extracts
- * database credentials via regex.  The file is NEVER require()d or eval()d.
- *
- * Recognised patterns
- *   - PHP variable assignment : $varname = 'value';  or  $varname = "value";
- *   - PHP define() call       : define('CONST_NAME', 'value');
- *
- * Variable-name conventions covered: Enthusiast, Listing Admin,
- * FanUpdate, CodeSort, and Fanatically.
- */
 final class LegacyConfigReader
 {
     /** Refuse files larger than this; config.php files are always tiny. */

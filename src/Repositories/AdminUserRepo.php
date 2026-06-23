@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages admin user accounts in lstr_admin_users. Covers lookup by ID,
+ username, or email; CRUD operations for creating, updating, and deleting
+ accounts; and login-related bookkeeping like stamping last_login times,
+ incrementing failed-attempt counters, and resetting them on success.
+ Passwords are always stored as Argon2id hashes.
+*/
 
 declare(strict_types=1);
 

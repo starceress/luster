@@ -1,33 +1,17 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Shared per-listing codes panel partial. Included by both the standalone codes
+ page and the listing edit page's Codes tab. Renders the code grid, upload
+ form, status filter tabs, and bulk action controls for a single listing's
+ codes.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/*
- * Shared per-listing codes panel.
- * Included by templates/admin/codes/index.php and templates/admin/listings/edit.php.
- *
- * Required variables set by caller:
- *   $b, $csrf_token, $codes, $uploads_url
- *   $_fid              int     listing ID
- *   $_from             string  'codes' (standalone) | 'edit' (listing edit tab)
- *   $_codesBaseUrl     ?string non-null = standalone mode URL; null = edit-tab mode
- *   $_hasCats          bool
- *   $_hasDonors        bool
- *   $_codeDonors       array   donor objects
- *   $_codeCats         array   category objects
- *   $_codeDonorMap     array   id => donor object
- *   $_codeCatIds       array   code_id => int[]
- *   $_codeStatusFilter string
- *   $_totalCodes       int
- *   $_approvedCount    int
- *   $_pendingCount     int
- *   $_rejectedCount    int
- *   $_groupedCodes     array
- *   $_groupCount       int
- *   $_uploadSubmitters array   past submitter name strings
- */
 
 // Precompute tab URLs so HTML stays clean
 $_tabApproved = $_codesBaseUrl !== null

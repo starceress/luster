@@ -1,12 +1,19 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Adoptions admin overview. Displays adoption applications across all listings in a
+ tabbed interface (all, pending, reviewed, approved, rejected, granted). Includes
+ per-listing filtering, search, sortable columns, and bulk actions for managing
+ adoption requests.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
 
 /**
- * Adoptions admin — overview.
- *
  * @var string                    $tab              'all'|'pending'|'approved'|'rejected'|'granted'|'listings'|'settings'
  * @var array[]                   $applications     Filtered + sorted applications (app view)
  * @var array                     $counts           {all, pending, approved, rejected, granted}

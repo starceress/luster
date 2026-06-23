@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ The single authoritative list of canonical TFL and TAFL category names.
+ Migrations, the installer, and all import adapters pull from here so
+ category names are never duplicated across the codebase. Also provides
+ a normalizer that resolves legacy misspellings and variant prefixes
+ back to their current canonical form during imports.
+*/
 
 declare(strict_types=1);
 

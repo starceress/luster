@@ -1,19 +1,15 @@
 <?php
-/**
- * KIM List password reset — new password form.
- *
- * Variables:
- *   $form_action  string
- *   $csrf_token   string
- *   $errors       string  pre-escaped HTML error string, or ''
- *   $token        string  raw token (empty when invalid)
- *   $token_valid  bool
- *   $f            array<string,string>  keys: new_password, new_password_confirm
- *   $form_html          string|null  custom form template HTML (both valid/invalid states), or null
- *   $form_marker        string  embed form identity marker, or ''
- *   $reset_request_url  string  URL for the "request a new link" recovery link
- *   $base_url           string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ KIM List password reset confirmation content fragment (Keep In Mind add-on,
+ step 2 of 2). Validates the reset token from the emailed link and presents a
+ new-password form. Shows an expired/invalid message with a recovery link when
+ the token is no longer valid. Served as a full page via View::renderPublic()
+ or as an embeddable fragment via View::renderFragment() from
+ embed/kim-reset.php. Supports custom form templates.
+*/
 
 declare(strict_types=1);
 

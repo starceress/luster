@@ -1,4 +1,15 @@
-<?php declare(strict_types=1);
+<?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin collective overview page. Shows a dashboard of collective-wide
+ features and statistics, including quick-action buttons, pending items,
+ owned and joined listing counts, affiliate and code counts, and add-on
+ status indicators.
+*/
+
+declare(strict_types=1);
 use Luster\Core\View;
 $b         = rtrim(View::e($base_url ?? ''), '/');
 $installed = array_map('strtolower', array_map('strval', $nav_installed_addons ?? []));

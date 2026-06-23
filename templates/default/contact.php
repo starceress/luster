@@ -1,17 +1,14 @@
 <?php
-/**
- * Contact form — content fragment.
- *
- * Variables injected by ContactController / embed/contact.php:
- *   $listing      Listing|null  null for collective form
- *   $listing_title string
- *   $form_action  string
- *   $csrf_token   string
- *   $errors       string  pre-escaped HTML error block, or ''
- *   $f            array<string,string>  keys: 'name', 'email', 'url', 'subject', 'message', 'captcha_answer'
- *   $form_html    ?string  pre-rendered <form> HTML when a custom contact_form_template is set;
- *                          bypasses the markup below when present
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Contact form content fragment. Provides a per-listing or collective contact
+ form with name, email, URL, subject, message, and CAPTCHA fields. Served as a
+ full page via View::renderPublic() or as an embeddable fragment via
+ View::renderFragment() from embed/contact.php or embed/collective-contact.php.
+ Supports custom form templates.
+*/
 
 declare(strict_types=1);
 

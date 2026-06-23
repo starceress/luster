@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable KIM (Keep In Mind) List password reset form. Handles both steps
+ of the reset flow inline: the initial email-entry form and the new-password
+ confirmation form (triggered automatically when a ?token= query parameter is
+ present). Requires the KIM add-on to be installed. The form self-posts to the
+ host page and redirects back after each step with flash messages.
+*/
 
 declare(strict_types=1);
 
@@ -6,26 +16,6 @@ use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
-
-/**
- * Luster embed — KIM List password reset form fragment.
- *
- * Handles both the email-entry step and the confirm-new-password step.
- * The confirm step is triggered automatically when ?token= is present in the URL.
- *
- * Usage:
- *   $luster_return = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/kim-reset.php';
- *
- * The form self-posts to the host page URL. After every outcome (success or
- * validation error) the user is redirected back to this same host page, where
- * the embed re-renders with a flash success or error message inline.
- *
- * Reset emails link back to this host page with ?token= appended so the confirm
- * step is rendered inline here, not on the backend /kim/reset/confirm route.
- *
- * To override the redirect target, set $luster_redirect_url before require.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

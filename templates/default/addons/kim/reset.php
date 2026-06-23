@@ -1,16 +1,14 @@
 <?php
-/**
- * KIM List password reset — email entry form.
- *
- * Variables:
- *   $form_action  string
- *   $csrf_token   string
- *   $errors       string  pre-escaped HTML error string, or ''
- *   $success_html string  pre-rendered success HTML, or ''
- *   $f            array<string,string>  keys: email
- *   $form_html    string|null  custom form template HTML, or null to use hardcoded form
- *   $base_url     string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ KIM List password reset content fragment (Keep In Mind add-on, step 1 of 2).
+ Presents a form where the visitor enters their email address to receive a
+ time-limited reset link for their KIM entries. Served as a full page via
+ View::renderPublic() or as an embeddable fragment via View::renderFragment()
+ from embed/kim-reset.php. Supports custom form templates.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import adapter for Fanatically 1.x databases. Fanatically is a newer fanlisting
+ management script with a central member table, JSON-encoded affiliate mappings,
+ and a configurable table prefix (default fanatic_). This adapter imports
+ listings, members, categories, affiliates, joined listings, codes, site
+ settings, and (when the corresponding add-ons are installed) wishlist entries,
+ KIM sign-ups, and adoption applications. Custom member fields are parsed from
+ the Fanatically JSON field definitions.
+*/
 
 declare(strict_types=1);
 
@@ -6,26 +18,6 @@ namespace Luster\Import;
 
 use PDO;
 
-/**
- * Import adapter for Fanatically 1.0.x databases.
- *
- * Schema key points:
- *   {p}settings            — key/value store (collective_name, owner_email, etc.)
- *   {p}listings            — owned fanlistings registry (one row per listing)
- *   {p}members             — central member table (listing_id FK)
- *   {p}categories          — categories (parent_id = 0 for top-level)
- *   {p}listing_categories  — owned listing ↔ category junction
- *   {p}joined              — joined fanlistings
- *   {p}joined_categories   — joined listing ↔ category junction
- *   {p}affiliates          — affiliates (listing_ids JSON)
- *   {p}codes               — fan codes (flat; size_label, donor fields inline)
- *   {p}wishlist            — owner wishlist (requires Wishlist add-on)
- *   {p}kim                 — KIM entries (requires KIM add-on; no password column)
- *   {p}adoption_applications — adoption requests (requires Adoption add-on)
- *
- * All tables use the configurable prefix (default fanatic_).
- * Only {p}categories.parent_id is a confirmed lazy migration.
- */
 final class FanaticallyImportSource implements ImportSourceInterface
 {
     private const CHUNK = 500;

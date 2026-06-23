@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders an admin-defined codes display template against a set of code records.
+ Supports two layout modes: grouped (codes organized by dimensions inside
+ {each_size_group} blocks) and flat (a single {each_code} loop with
+ {if_size_changed} markers). Handles per-code tokens for URL, dimensions, donor
+ info, and category, plus page-level conditionals for empty/non-empty states.
+ Shared by the public codes embed and the admin Templates-tab preview.
+*/
 
 declare(strict_types=1);
 
@@ -6,37 +17,6 @@ namespace Luster\Support;
 
 use Luster\Core\TemplateEngine;
 
-/**
- * Renders a custom codes_template / collective_codes_template string against a
- * set of code records.
- *
- * Two layout modes, detected by which loop token the template contains:
- *   Grouped: {each_size_group}...{/each_size_group} wraps an inner
- *     {each_code}...{/each_code} — codes are grouped by detected dimensions.
- *   Flat: a single {each_code}...{/each_code} loop over all codes with
- *     {if_size_changed} available per row.
- *
- * Per-code tokens (inside {each_code}):
- *   {code_url}, {code_width}, {code_height}, {code_size},
- *   {code_name}, {code_donor_name}, {code_donor_url}
- *
- * Per-code conditionals:
- *   {if_size}...{/if_size}, {if_size_changed}...{/if_size_changed},
- *   {if_donor}...{/if_donor}, {if_no_donor}...{/if_no_donor},
- *   {if_donor_url}...{/if_donor_url}, {if_no_donor_url}...{/if_no_donor_url},
- *   {if_code_name}...{/if_code_name}
- *
- * Per-group tokens (grouped mode only, inside {each_size_group}):
- *   {group_size}, {group_code_count}
- *
- * Page-level conditionals:
- *   {if_codes}...{/if_codes} — shown when at least one code is present
- *   {if_no_codes}...{/if_no_codes} — shown when there are no codes
- *
- * Shared by public/embed/codes.php (live rendering, per-listing and
- * collective) and ListingController's Templates-tab preview, so the preview
- * always matches the live page.
- */
 final class CodesTemplateRenderer
 {
     /**

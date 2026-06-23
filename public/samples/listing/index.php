@@ -1,11 +1,13 @@
 <?php
-/**
- * Sample listing — home page.
- *
- * SETUP
- *   1. Edit _config.php — set $luster_root, $listing_id, and your listing details.
- *   2. Copy this folder to your listing's web root.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample home page for a fanlisting site. This is the landing page visitors see
+ when they arrive at the fanlisting. It displays a welcome message, the listing's
+ live stats block, and an optional news feed. Copy this file into your fanlisting's
+ web root and customize the HTML to match your own design.
+*/
 
 $page_title = 'Fanlisting Demo ✦ Luster';
 

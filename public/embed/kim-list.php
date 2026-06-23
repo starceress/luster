@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable KIM (Keep In Mind) List display. Has two modes: overview mode
+ shows all fanlistings that have KIM sign-ups, with links to drill into each
+ one; subject mode shows the approved KIM members for a single fanlisting.
+ Requires the KIM add-on to be installed. Supports configurable URLs for the
+ sign-up form and list base, and pagination in subject mode.
+*/
 
 declare(strict_types=1);
 
@@ -7,25 +17,6 @@ use Luster\Core\Pagination;
 use Luster\Core\TemplateEngine;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
-
-/**
- * Luster embed — KIM List overview or per-fanlisting subject fragment.
- *
- * Overview mode (default):
- *   $luster_kim_list_base        = 'https://example.com/kim-list.php'; // optional — base for per-fanlisting links
- *   $luster_kim_signup_url       = 'https://example.com/kim.php';      // optional — sign-up link override
- *   $luster_kim_only_with_signups = true;                              // optional — false = show all listings even with no sign-ups
- *   $luster_return               = false;
- *   require '/absolute/path/to/luster/public/embed/kim-list.php';
- *
- * Subject mode (per-fanlisting approved members):
- *   $luster_kim_subject_id = (int) ($_GET['id'] ?? 0);           // listing ID to show members for
- *   $luster_kim_list_base  = 'https://example.com/kim-list.php'; // optional — "Back to KIM List" URL
- *   $luster_kim_signup_url = 'https://example.com/kim.php';      // optional — sign-up link override
- *   $luster_per_page       = 25;                                 // optional — approved members per page
- *   $luster_return         = false;
- *   require '/absolute/path/to/luster/public/embed/kim-list.php';
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

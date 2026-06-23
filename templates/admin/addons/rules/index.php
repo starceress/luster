@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Join Rules admin overview. Lists all listings with their rules status (enabled,
+ disabled, or not configured) in a sortable, paginated table with search and type
+ filtering. Each row links to the per-listing rules editor. Also provides access
+ to the global fallback rules and settings.
+*/
 
 declare(strict_types=1);
 

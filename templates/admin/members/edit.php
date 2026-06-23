@@ -1,16 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Edit member page. Provides a form to update a single member's name, email, URL,
+ country, password, approval status, and any additional custom fields defined for
+ the listing. Includes a danger zone for permanent member deletion.
+*/
 
 use Luster\Core\View;
-
-/** @var \Luster\Models\Listing           $listing */
-/** @var \Luster\Models\Member            $member */
-/** @var \Luster\Models\AdditionalField[] $fields */
-/** @var string $error */
-/** @var string $success */
-/** @var array  $old */
-/** @var array  $field_errors */
-/** @var string $base_url */
-/** @var string $csrf_token */
 
 $b  = rtrim(View::e($base_url), '/');
 $fe = $field_errors ?? [];

@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders the public members list for a listing. Supports three display modes:
+ a country summary showing countries with member counts, a filtered view showing
+ members from a specific country, and an alphabetical name listing. Sort and
+ pagination links keep the visitor on the same page. When a custom members
+ template is configured, the output is rendered through the template engine.
+*/
 
 declare(strict_types=1);
 

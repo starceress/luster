@@ -1,35 +1,14 @@
 <?php
-use Luster\Core\View;
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
 
-/**
- * Unified members page — single tabbed view.
- *
- * @var \Luster\Models\Listing|null           $listing         Selected listing, null = all
- * @var int                                    $listing_id
- * @var \Luster\Models\Listing[]               $all_listings
- * @var array<int,\Luster\Models\Listing>      $fl_by_id
- * @var string                                 $status          all|pending|approved
- * @var array{all:int,pending:int,approved:int} $tab_counts
- * @var string                                 $search
- * @var string                                 $sort
- * @var string                                 $dir
- * @var int                                    $page
- * @var int                                    $per_page
- * @var bool                                   $filters_active
- * @var \Luster\Models\Member[]                $members
- * @var \Luster\Models\AdditionalField[]       $fields
- * @var int                                    $total
- * @var int                                    $pages
- * @var object[]                               $listing_pending_updates
- * @var array<string,\Luster\Models\Member>    $pending_member_data
- * @var array[]                                $grouped
- * @var object[]                               $pending_updates
- * @var array[]                                $cross_listing_search
- * @var string                                 $success
- * @var string                                 $error
- * @var string                                 $base_url
- * @var string                                 $csrf_token
- */
+ Unified members page. Serves three view modes from a single template: overview
+ (all listings with member/pending counts), per-listing member table (sortable,
+ filterable, with status tabs and bulk actions), and cross-listing search results.
+ Also shows pending member updates when viewing a specific listing.
+*/
+use Luster\Core\View;
 
 $b      = rtrim(View::e($base_url), '/');
 $lid    = (int) ($listing_id ?? 0);

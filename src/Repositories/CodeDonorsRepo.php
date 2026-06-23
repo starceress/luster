@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages code donors in lstr_code_donors. A donor is someone who contributed
+ fan graphic codes to a listing. Each donor has a name, optional email, and
+ optional URL. Codes reference their donor via lstr_codes.donor_id, and
+ deleting a donor automatically nulls that FK via ON DELETE SET NULL.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Public controller for the KIM update flow. Fans sign in with their email
+ and password to reach a dashboard showing all their KIM entries across
+ every fanlisting. From there they can update their details, change their
+ password, or remove individual entries. Session-based authentication
+ persists across requests until the fan signs out.
+*/
 
 declare(strict_types=1);
 

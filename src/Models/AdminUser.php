@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Value object for an admin account from the lstr_admin_users table.
+ Holds the username, email, optional display name, and Argon2id password
+ hash — never a plaintext password. Also tracks failed login attempts
+ (for brute-force protection) and the last-login timestamp. Hydrated by
+ AdminUserRepo and consumed by auth middleware and the settings page.
+*/
 
 declare(strict_types=1);
 

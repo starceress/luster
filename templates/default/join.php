@@ -1,19 +1,13 @@
 <?php
-/**
- * Join form — content fragment.
- *
- * Variables injected by JoinController / embed/join.php:
- *   $listing_title           string
- *   $form_action            string
- *   $csrf_token             string
- *   $errors                 string  pre-escaped HTML error block, or ''
- *   $fields                 AdditionalField[]  used to echo additional fields in order
- *   $f                      array<string,string>  wrapped field HTML keyed by field name
- *   $base_url               string
- *   $country_field_enabled  bool  whether to render the country field
- *   $form_html              ?string  pre-rendered <form> HTML when a custom
- *                           join_form_template is set; bypasses the markup below
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Join form content fragment. Renders the public "Join this listing" form with
+ name, email, URL, country, additional fields, password, and CAPTCHA. Served as
+ a full page via View::renderPublic() or as an embeddable fragment via
+ View::renderFragment() from embed/join.php. Supports custom form templates.
+*/
 
 declare(strict_types=1);
 

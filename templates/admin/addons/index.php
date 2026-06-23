@@ -1,4 +1,12 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Add-on manager overview. Lists all discovered add-ons with their install status and
+ provides install/uninstall actions. Each add-on card shows the name, description, and
+ a "Manage" link for installed add-ons that have an admin interface.
+*/
 
 declare(strict_types=1);
 

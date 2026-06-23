@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Route definitions. Maps URL paths to controller classes and methods
+ for both the public frontend and the admin panel. Loaded by
+ Application during bootstrap — add-on routes are registered
+ separately via each addon's registerRoutes() method.
+*/
 
 declare(strict_types=1);
 

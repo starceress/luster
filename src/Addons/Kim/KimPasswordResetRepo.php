@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Repository for KIM password reset tokens (lstr_kim_password_resets).
+ Stores only the SHA-256 hash of each token, never the raw value. Enforces
+ one-token-at-a-time per member by deleting existing tokens before creating
+ a new one, and cleans up expired tokens opportunistically on lookup.
+*/
 
 declare(strict_types=1);
 

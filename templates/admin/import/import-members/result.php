@@ -1,7 +1,12 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import members result page. Displays the outcome of a member-only import,
+ showing how many members were imported and how many were skipped as duplicates.
+*/
 use Luster\Core\View;
-/** @var array  $result  listing_id, listing_title, imported, skipped */
-/** @var string $base_url */
 $b          = rtrim(View::e($base_url), '/');
 $imported   = (int) ($result['imported']     ?? 0);
 $skipped    = (int) ($result['skipped']      ?? 0);

@@ -1,4 +1,12 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin login page. Renders the standalone sign-in form with username and password
+ fields, a "Forgot your password?" link, flash error/success messages, and the
+ theme toggle. This is a full-document template (not wrapped by layout.php).
+*/
 use Luster\Core\View;
 require_once __DIR__ . '/../_css_assets.php';
 ?>

@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Produces the success/confirmation HTML shown to visitors after a public
+ form submission (join, update, reset, codes-submit, contact, etc.). Every
+ public controller stores the rendered HTML in a flash session key so it
+ survives the POST-redirect-GET cycle. When no custom template is configured,
+ a sensible hardcoded default is returned for each action type.
+*/
 
 declare(strict_types=1);
 

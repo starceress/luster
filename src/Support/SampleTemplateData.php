@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Provides realistic but fictional sample data (members, affiliates, updates,
+ additional fields) for the admin template preview screens. This lets admins
+ see how a template renders without needing a real listing or any database
+ records. All data is static and deterministic so previews are consistent.
+*/
 
 declare(strict_types=1);
 

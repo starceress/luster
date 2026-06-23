@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Abstract base class that every admin controller extends. Provides the
+ adminLayout() method, which renders a page inside the Velvet Geode admin
+ shell (layout.php) with sidebar highlighting, breadcrumbs, and flash
+ messages. Also supplies shared helpers for building admin URLs, breadcrumb
+ arrays, and config lookups so subclasses stay focused on their own logic.
+*/
 
 declare(strict_types=1);
 

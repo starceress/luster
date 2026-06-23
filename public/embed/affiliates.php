@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable affiliates list. Renders the approved affiliates for a single
+ fanlisting (when $luster_fanlisting_id is set) or the collective/site-wide
+ affiliates (when set to 0). Supports pagination, an admin-editable section
+ template with per-affiliate row rendering, and an optional link to the
+ affiliate application form.
+*/
 
 declare(strict_types=1);
 
@@ -10,27 +20,6 @@ use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\AffiliateRowRenderer;
 use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\ListingTemplateResolver;
-
-/**
- * Luster embed — affiliates fragment.
- *
- * Outputs the active affiliates list for a listing (or site-wide collective)
- * using the same HTML structure as GET /affiliates/{id}.
- *
- * Usage — per-fanlisting:
- *   $luster_fanlisting_id = 1;     // required: listing ID (int)
- *   $luster_return        = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/affiliates.php';
- *
- * Usage — collective / site-wide (fanlisting_id IS NULL):
- *   $luster_fanlisting_id = 0;     // 0 = collective mode
- *   $luster_return        = false;
- *   require '/absolute/path/to/luster/public/embed/affiliates.php';
- *
- * Optional variables:
- *   $luster_per_page   int   affiliates per page (default 50)
- *   $luster_page       int   current page number (default: reads $_GET['page'])
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

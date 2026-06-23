@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages user-defined reusable email templates in lstr_saved_emails. These
+ are the admin's personal library of saved email drafts used when composing
+ single-member or bulk emails. They are separate from the system transactional
+ templates (join confirmation, approval, etc.) stored in lstr_email_templates.
+*/
 
 declare(strict_types=1);
 

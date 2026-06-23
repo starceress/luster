@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Immutable value object representing a single wishlist entry from the
+ lstr_wishlist table. Holds the subject, URL, optional image, category,
+ type (wanted/top/granted), description, date added, sort order, and
+ active status. The fromRow() factory hydrates from a database row and
+ typeLabel() returns the human-readable type name.
+*/
 
 declare(strict_types=1);
 

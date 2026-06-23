@@ -1,4 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Keep In Mind (KIM) admin manual add form. Allows the admin to manually create a
+ KIM entry on behalf of a fan, selecting the target listing and entering the
+ member's name, email, and URL.
+*/
+
+declare(strict_types=1);
 use Luster\Core\View;
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>

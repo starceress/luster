@@ -1,10 +1,13 @@
 <?php
-/**
- * Luster compatibility wrapper — Listing Admin show-reset.php
- *
- * Drop this + luster-bridge.php into your Listing Admin folder.
- * The listing is auto-detected from Listing Admin's $listid variable.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Compatibility shim for Listing Admin's show-reset.php. Drop this file and
+ luster-bridge.php into your Listing Admin folder to replace the original
+ password reset form. The listing is auto-detected from Listing Admin's
+ $listid variable and the reset form is rendered by Luster's reset embed.
+*/
 
 require_once __DIR__ . '/luster-bridge.php';
 

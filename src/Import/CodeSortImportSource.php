@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import adapter for CodeSort databases. CodeSort manages fan codes (small web
+ graphics) across multiple fanlistings with global size/donor tables. This
+ adapter auto-detects the two CodeSort table naming variants (bare and prefixed),
+ matches CodeSort fanlistings to Luster listings by subject name, and imports
+ code categories, sizes, donors, and code images into Luster's per-listing code
+ tables. Global CodeSort sizes and donors are expanded to per-listing rows in
+ Luster's schema.
+*/
 
 declare(strict_types=1);
 
@@ -6,37 +18,6 @@ namespace Luster\Import;
 
 use PDO;
 
-/**
- * Import adapter for CodeSort databases.
- *
- * CodeSort manages fan codes (small web graphics) across multiple fanlistings.
- * Two table naming variants are auto-detected:
- *
- *   'codesort_bare'     — bare table names: codes, cat, sizes, donors, collective
- *   'codesort_prefixed' — prefixed names: codes_codes, codes_cat, codes_sizes,
- *                         codes_donors, codes_collective
- *
- * What this adapter imports into Luster's lstr_* tables:
- *   - lstr_code_categories ← cat
- *   - lstr_code_sizes      ← sizes (global in CodeSort → per-listing in Luster)
- *   - lstr_code_donors     ← donors (global in CodeSort → per-listing in Luster)
- *   - lstr_codes           ← codes (with optional image file migration)
- *   - lstr_code_category_map ← one row per code that has a non-zero code_cat
- *
- * Fanlisting matching: CodeSort's `collective` table (fl_id, fl_subject) is matched
- * case-insensitively against Luster's listing titles. Codes for unmatched fanlistings
- * are skipped with a warning.
- *
- * Sizes in CodeSort are global (not per-fanlisting). This adapter creates one
- * lstr_code_sizes row per Luster listing for each CodeSort size.
- *
- * Donors in CodeSort are global. This adapter creates per-listing donor rows only
- * for listings that actually have codes from that donor.
- *
- * Image migration: code_image filenames are resolved under the `codes/` subdirectory
- * of the CodeSort install root. Width/height are taken from getimagesize() when
- * image migration is enabled, falling back to the mapped size's dimensions.
- */
 final class CodeSortImportSource implements ImportSourceInterface
 {
     private const CHUNK = 500;

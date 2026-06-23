@@ -1,10 +1,17 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ News Feed admin add/edit form. Used for creating new update entries or editing
+ existing ones, for both per-listing and collective contexts. Includes fields for
+ title, body, category (with datalist suggestions from existing categories),
+ author, and posted-at date.
+*/
 
 declare(strict_types=1);
 
 /**
- * Updates add-on — add / edit form.
- *
  * @var \Luster\Addons\Updates\Update|null $update           null when adding
  * @var int|null                           $fanlisting_id    null for collective
  * @var string[]                           $known_categories for datalist

@@ -1,10 +1,13 @@
 <?php
-/**
- * Luster compatibility wrapper — Enthusiast show_affiliates.php
- *
- * Drop this + luster-bridge.php into your Enthusiast folder.
- * The listing is auto-detected from Enthusiast's $listing variable.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Compatibility shim for Enthusiast's show_affiliates.php. Drop this file and
+ luster-bridge.php into your Enthusiast folder to replace the original
+ affiliates display. The listing is auto-detected from Enthusiast's $listing
+ variable and the affiliates are rendered by Luster's affiliates embed.
+*/
 
 require_once __DIR__ . '/luster-bridge.php';
 

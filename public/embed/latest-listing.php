@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable latest owned listing widget. Renders the most recently opened
+ listing using the admin-editable Latest Listing template from Collective
+ Templates. No $luster_fanlisting_id is required. Falls back to the most
+ recently inserted listing when the schema has no opened-date column. Outputs
+ a harmless HTML comment when no listings exist.
+*/
 
 declare(strict_types=1);
 
@@ -7,24 +17,6 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingRowRenderer;
-
-/**
- * Luster embed — most recently opened owned listing.
- *
- * Returns the listing with the latest open date, rendered using the
- * Latest Listing template from Admin → Collective → Templates.
- * Outputs an HTML comment when no listings are found so the host page never breaks.
- *
- * For the unprefixed (Enthusiast-compatible) schema, which has no `opened`
- * column, falls back to the most recently inserted listing instead.
- *
- * Usage:
- *   require '/absolute/path/to/luster/public/embed/latest-listing.php';
- *
- * Optional variables:
- *   $luster_return   bool    true = return HTML string, false = echo
- *                            Default: false
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

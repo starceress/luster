@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable member list for a single fanlisting. Renders the approved member
+ roster as an HTML fragment with pagination, sort controls, and country
+ filtering. Supports a configurable per-page count, forced sort order, and
+ toggling the search/filter UI. Sort and pagination links target the host page
+ so visitors never leave the embedding site.
+*/
 
 declare(strict_types=1);
 
@@ -10,29 +20,6 @@ use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingTemplateResolver;
 use Luster\Support\MembersTemplateRenderer;
-
-/**
- * Luster embed — members list fragment.
- *
- * Usage:
- *   $luster_fanlisting_id = 1;     // required: listing ID (int)
- *   $luster_return        = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/members.php';
- *
- * Optional variables:
- *   $luster_per_page    int   Members per page. Overrides the config per_page value.
- *                             Default: reads config per_page (typically 50).
- *   $luster_sort_by     string  Force a default sort: 'name', 'country', or 'added'.
- *                             When set, $_GET['sort'] is ignored unless you also
- *                             want visitors to be able to switch — omit this variable
- *                             if you want the user-facing sort links to work normally.
- *                             Default: reads $_GET['sort'] (falls back to 'country').
- *   $luster_show_search bool  Show or hide the sort links and filter controls.
- *                             Default: true (controls visible).
- *
- * Reads country/page from $_GET the same way MembersController does.
- * Renders the member list or country summary as a content fragment with no layout wrapper.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable

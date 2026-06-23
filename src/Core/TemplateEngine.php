@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Centralised {token} template processor for the public template system.
+ Handles flat token replacement, conditional {if_*}...{/if_*} blocks, and
+ {each_*}...{/each_*} loops in a single stateless utility. Enforces an
+ escaping contract where values are auto-escaped via View::e() unless
+ explicitly passed as trusted raw HTML through a separate parameter map.
+*/
 
 declare(strict_types=1);
 

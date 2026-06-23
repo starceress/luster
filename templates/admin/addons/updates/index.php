@@ -1,10 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ News Feed admin overview. Lists all listings with their update entry counts and
+ most recent post date, plus a collective news section. Supports search, sortable
+ columns, and pagination. Each row links to the per-listing or collective update list.
+*/
 
 declare(strict_types=1);
 
 /**
- * Updates add-on - admin overview.
- *
  * @var \Luster\Models\Listing[]                                                    $listings
  * @var array<int, array{count: int, latest: \Luster\Addons\Updates\Update|null}>  $latest_per_fl
  * @var \Luster\Addons\Updates\Update|null                                          $latest_coll

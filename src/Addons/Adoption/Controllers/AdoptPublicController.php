@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Public-facing controller for adoption applications. Renders the per-listing
+ and collective adoption forms, validates submissions with captcha and rate
+ limiting, checks the blacklist and duplicate guard, inserts the application
+ into the database, and sends an admin notification email.
+*/
 
 declare(strict_types=1);
 

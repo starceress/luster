@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Repository for the lstr_rules table. Each listing has at most one rule
+ set (enforced by a UNIQUE key on fanlisting_id). Provides reads for the
+ admin index (listings joined with rule status), upsert with automatic
+ version bumping when the body changes, bulk enable/disable/delete, and
+ hydration of RuleSet value objects.
+*/
 
 declare(strict_types=1);
 

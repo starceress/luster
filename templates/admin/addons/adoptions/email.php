@@ -1,7 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Adoptions admin email composer for a single applicant. Uses the standard
+ composer grid layout with subject/body fields, saved template loading,
+ and a recipient summary showing the applicant name and listing context.
+*/
+
 /**
- * Adoptions admin — email individual applicant (composer layout).
- *
  * Variables:
  *   $application   array   Application row from lstr_adoption_applications
  *   $listing       ?Listing

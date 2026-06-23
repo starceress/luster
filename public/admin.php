@@ -1,15 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin front controller. All /admin/* requests are routed here by
+ .htaccess. Works just like index.php but for the admin panel —
+ bootstraps the app, checks that the user is logged in via
+ AuthMiddleware, then hands off to the matching admin controller.
+*/
 
 declare(strict_types=1);
-
-/**
- * Luster — admin front controller.
- *
- * All /admin/* requests are routed here by public/.htaccess.
- * AuthMiddleware enforces authentication before any admin controller action runs.
- *
- * WEB ROOT: Only the public/ directory is web-accessible.
- */
 
 define('LUSTER_BASE', dirname(__DIR__));
 

@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Value object for a fanlisting from the listing registry table. This is
+ the central model — every listing has a title, subject, URL, email, and
+ a member table reference (dbprefix). The fromRow() factory handles both
+ Enthusiast schema variants transparently: the standard enth_fanlistings
+ layout and the unprefixed "owned" table layout, mapping their different
+ column names and status representations into a single consistent object.
+*/
 
 declare(strict_types=1);
 

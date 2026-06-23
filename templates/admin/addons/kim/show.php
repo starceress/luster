@@ -1,7 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Keep In Mind (KIM) admin per-listing detail page. Shows pending and approved KIM
+ members for a single listing with bulk approve, email, and delete actions for
+ each section. Pending members appear first with individual review controls.
+*/
+
 /**
- * KIM List admin - show members for one fanlisting.
- *
  * Variables:
  *   $listing           Listing
  *   $pending_members   KimMember[]

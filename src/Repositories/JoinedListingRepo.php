@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages the site owner's joined-listing tracker in lstr_joined. Each row
+ represents a fanlisting the owner has joined as a member, with category
+ metadata stored as both a legacy string and a structured JSON column.
+ Supports paginated display, search, category/network filtering, status
+ tabs, bulk operations, link checking with redirect-URL application, and
+ the latest/random joined-listing embed queries.
+*/
 
 declare(strict_types=1);
 

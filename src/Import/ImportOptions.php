@@ -1,15 +1,19 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Immutable value object that carries every option chosen in the
+ import wizard's configure step. Built from POST data by
+ ImportController via the fromPost() factory and passed through
+ to ImportSourceInterface methods. Covers all six import sources
+ and their source-specific settings (BellaBuffs file paths,
+ Fanatically table prefix, CodeSort image paths, etc.).
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Import;
-
-/**
- * Value object carrying all options chosen in the import wizard configure step.
- *
- * Created from POST data by ImportController and passed to ImportSourceInterface
- * methods. Immutable after construction.
- */
 final class ImportOptions
 {
     /**
@@ -24,7 +28,7 @@ final class ImportOptions
      * @param bool   $importSavedTemplates Saved/reusable email templates (lstr_saved_emails) — Erin's-fork Enthusiast only
      * @param bool   $importListings      Listing Admin / Fanatically: create owned rows + member tables
      * @param bool   $importMembers       Listing Admin / Fanatically: migrate members into per-listing tables
-     * @param bool   $importUpdates       LA / FanUpdate: requires Updates Feed add-on
+     * @param bool   $importUpdates       LA / FanUpdate: requires News Feed add-on
      * @param bool   $importWishlist       LA / Fanatically: owner's wishlist → lstr_wishlist (requires Wishlist add-on)
      * @param bool   $importKim           LA / Fanatically: fan adoption interest → lstr_kim_members (requires KIM add-on)
      * @param bool   $importRules         LA only: per-listing join rules → lstr_rules (requires Rules add-on)

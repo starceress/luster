@@ -1,22 +1,18 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Fan code submission form content fragment. Allows visitors to upload a graphic
+ code image for review, with submitter name/email/URL fields and CAPTCHA
+ validation. Served as a full page via View::renderPublic() or as an embeddable
+ fragment via View::renderFragment() from embed/codes-submit.php. Supports
+ custom form templates.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * Fan code submission form — content fragment.
- *
- * Variables injected:
- *   $listing_title  string
- *   $listing_url   string
- *   $form_action   string
- *   $csrf_token    string
- *   $errors        string  (pre-escaped HTML or empty string)
- *   $f             array<string,string>  keys: code_image, submitter_name, submitter_email, submitter_url, captcha
- *   $base_url      string
- *   $form_html     string|null  pre-rendered custom form; when set, default markup is skipped
- */
 
 ?>
 <?php if (isset($form_html)): ?>

@@ -1,17 +1,15 @@
-<?php declare(strict_types=1);
+<?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin categories index page. Lists all listing categories in a sortable,
+ filterable, paginated table with source badges (TFL, TAFL, custom). Includes
+ category seed health status and controls for seeding canonical TFL/TAFL
+ categories.
+*/
+declare(strict_types=1);
 use Luster\Core\View;
-/** @var array  $items */
-/** @var int    $total */
-/** @var int    $page */
-/** @var int    $total_pages */
-/** @var string $source */
-/** @var string $search */
-/** @var array  $custom_sources */
-/** @var string $success */
-/** @var string $error */
-/** @var string $base_url */
-/** @var string $csrf_token */
-/** @var array  $seed_health */
 $b = rtrim(View::e($base_url ?? ''), '/');
 
 $sourceBadge = static function (string $s): string {

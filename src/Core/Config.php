@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Loads the config/app.php configuration file and provides simple key-based
+ access to its values. The config file must return a plain PHP array. Every
+ other class that needs a setting (database credentials, SMTP config, base
+ URL, etc.) reads it through this class rather than touching the file directly.
+*/
 
 declare(strict_types=1);
 

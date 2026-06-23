@@ -1,26 +1,18 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Fan codes list content fragment. Displays approved graphic codes grouped by
+ size, with donor attribution and category tags. Supports a custom codes display
+ template; when one is set, the pre-rendered HTML is output directly. Served as
+ a full page via View::renderPublic() or as an embeddable fragment via
+ View::renderFragment() from embed/codes.php.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * Codes list — content fragment.
- *
- * Variables injected by embed/codes.php:
- *   $listing_title  string
- *   $listing_url   string
- *   $codes         object[]     all approved codes
- *   $grouped       array        ['WxH' => ['label' => string, 'codes' => object[]]]
- *   $categories    object[]
- *   $cat_map       array        [code_id => [cat_id, ...]]
- *   $category_map  array        [cat_id => category object]
- *   $donors        object[]
- *   $donor_map     array        [donor_id => donor object]
- *   $uploads_url   string
- *   $join_url      string
- *   $base_url      string
- */
 
 // When a custom codes_template has been applied in the embed, use it directly.
 if (isset($codes_template_html) && $codes_template_html !== null) {

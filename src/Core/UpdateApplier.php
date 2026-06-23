@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles the file-system side of applying Luster updates. Downloads the
+ release archive from GitHub, verifies its SHA-256 checksum, creates a
+ backup of the current installation, and extracts the new files with
+ explicit skip rules for user-modified config and uploads. The controller
+ owns the UI workflow; this class owns the risky disk operations.
+*/
 
 declare(strict_types=1);
 

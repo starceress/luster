@@ -1,7 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Keep In Mind (KIM) admin overview. Displays all KIM members across listings in a
+ unified tabbed view (all, pending, approved, granted) with per-listing filtering,
+ search, sortable columns, pagination, and bulk actions for approving, emailing,
+ or deleting entries.
+*/
+
 /**
- * KIM List admin — unified tabbed member view.
- *
  * Variables:
  *   $members          KimMember[]
  *   $fanlistings      Listing[]

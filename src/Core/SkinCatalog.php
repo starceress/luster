@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Canonical registry of the bundled admin panel skins. Each entry defines
+ the skin's slug, display name, description, and preview colours used by
+ the Settings appearance panel. Adding a new bundled skin requires one PHP
+ entry here and one CSS block in skins.css. Community drop-in skins are
+ detected at runtime and do not appear in this registry.
+*/
 
 declare(strict_types=1);
 

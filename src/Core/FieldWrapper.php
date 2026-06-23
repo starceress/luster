@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Wraps a rendered input element from FieldRenderer in its surrounding
+ label, hint text, error message, and required-marker markup. The wrapper
+ layout is driven by an admin-editable {token} template, so site owners
+ can customise the HTML structure of every public form field without
+ touching PHP code.
+*/
 
 declare(strict_types=1);
 

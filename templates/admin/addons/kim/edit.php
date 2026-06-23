@@ -1,7 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Keep In Mind (KIM) admin member edit form. Allows editing a single KIM member's
+ name, email, URL, and associated listing. Used for correcting details or
+ reassigning an entry to a different listing.
+*/
+
 /**
- * KIM List admin - edit a KIM member.
- *
  * Variables:
  *   $member          KimMember
  *   $fanlistings     Listing[]

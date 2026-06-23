@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Displays the paginated error log and provides actions to export it as a
+ downloadable text file or flush all entries. Errors are stored in the
+ lstr_error_log table and are written by the global exception handler whenever
+ an unhandled exception occurs in production mode.
+*/
 
 declare(strict_types=1);
 
@@ -8,13 +17,6 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ErrorLogRepo;
 
-/**
- * Admin error log viewer.
- *
- * Routes:
- *   GET  /admin/errorlog        — paginated list of log entries
- *   POST /admin/errorlog/flush  — delete all entries
- */
 final class ErrorLogController extends AdminController
 {
 

@@ -1,21 +1,19 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable collective-level contact form. Renders a general-purpose contact
+ form that sends messages to the site owner's email address. Unlike the
+ per-listing contact embed, this form does not require a $luster_fanlisting_id
+ and operates at the collective/site-wide level. Includes CAPTCHA validation.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
-
-/**
- * Luster embed — collective contact form fragment.
- *
- * Usage:
- *   $luster_return = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/collective-contact.php';
- *
- * Override variables (set before require):
- *   $luster_contact_action  — override the form POST URL
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

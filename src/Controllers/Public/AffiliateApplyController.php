@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles the public affiliate application form for both per-listing and
+ collective (site-wide) contexts. Fans submit their site name, URL, optional
+ email, optional image, and a message. The controller validates all input,
+ checks for duplicate applications, handles image uploads with finfo MIME
+ validation, inserts the application as pending, and sends an admin
+ notification email. Rate limiting, honeypot, CAPTCHA, and blacklist checks
+ are all enforced.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable per-fanlisting news feed. Renders news/update entries for a single
+ fanlisting with pagination, using the admin-editable news template. Requires
+ the News Feed add-on to be installed. Each entry can optionally show category
+ tags.
+*/
 
 declare(strict_types=1);
 
@@ -10,20 +19,6 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingTemplateResolver;
-
-/**
- * Luster embed — per-fanlisting updates feed.
- *
- * Drop this into any PHP page to embed the updates feed for one fanlisting.
- * Requires the Updates add-on to be installed.
- *
- * Usage:
- *   $luster_fanlisting_id = 1;    // required (int) — fanlisting ID
- *   $luster_per_page      = 5;    // optional; default from config per_page
- *   $luster_show_cats     = true; // optional bool; show category tags per entry
- *   $luster_return        = true; // optional bool; true = return string, false = echo
- *   echo require '/absolute/path/to/luster/public/embed/updates.php';
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

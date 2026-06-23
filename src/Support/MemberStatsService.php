@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Batch member statistics fetcher that efficiently gathers approved/pending counts,
+ distinct country counts, and newest-member dates across many listings in a single
+ pass. Replaces N individual queries with chunked UNION ALL queries (up to 100
+ tables per chunk), keeping the database round-trip count low even for large
+ collectives. Handles both unprefixed and enth_-prefixed schema variants.
+*/
 
 declare(strict_types=1);
 
@@ -8,14 +18,6 @@ use Luster\Core\Config;
 use Luster\Core\Database;
 use Luster\Models\Listing;
 
-/**
- * Batch member statistics fetcher.
- *
- * Replaces N individual getMemberStats() calls with ceil(N/100) chunked
- * UNION ALL queries, one aggregate per member table arm. Each arm runs its
- * own COUNT(*) and COUNT(DISTINCT country) independently, so the query is
- * correct and still index-efficient despite combining multiple tables.
- */
 final class MemberStatsService
 {
     private string $approvedWhere;

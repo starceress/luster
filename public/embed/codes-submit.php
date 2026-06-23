@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable fan code donation/submission form. Allows visitors to upload
+ graphic codes (buttons/banners) for a specific fanlisting or for the
+ collective. Submitted codes go into a pending queue for admin review.
+ Includes CAPTCHA validation and MIME/size checks on the uploaded image file.
+*/
 
 declare(strict_types=1);
 
@@ -10,19 +19,6 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
-
-/**
- * Luster embed — fan code submission form fragment.
- *
- * Drop into any PHP page:
- *   $luster_fanlisting_id = 1;      // listing ID; omit or set to 0 for collective codes
- *   $luster_return        = true;   // true = return string, false/omit = echo
- *   echo require '/path/to/luster/public/embed/codes-submit.php';
- *
- * The form self-posts to the host page URL. On success, the embed redirects
- * back to this page and automatically shows the confirmation message from the
- * session flash.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Resolve listing ID / collective mode

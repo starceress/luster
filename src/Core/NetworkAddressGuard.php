@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ SSRF protection guard for all outbound HTTP requests. Validates that a
+ hostname resolves to a public IP address before allowing a connection,
+ blocking private, loopback, and reserved ranges. Used by LinkChecker and
+ NetworkDirectoryService to ensure server-side fetches never reach internal
+ network resources.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ HTTP link checker for affiliate and joined-listing URLs. Classifies each
+ URL as ok, dead, or redirect and can optionally perform a reciprocal check
+ to verify that the target page links back to the owner's site. All outbound
+ requests are routed through NetworkAddressGuard to prevent SSRF against
+ private/loopback addresses.
+*/
 
 declare(strict_types=1);
 

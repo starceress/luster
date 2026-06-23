@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Checks the GitHub Releases API for newer Luster versions and caches the
+ result in lstr_site_settings so the API is not contacted on every page
+ load. Returns an UpdateStatus value object with the installed version,
+ latest available version, release URL, and whether an update is available.
+*/
 
 declare(strict_types=1);
 

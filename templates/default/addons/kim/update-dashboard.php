@@ -1,22 +1,15 @@
 <?php
-/**
- * KIM List update dashboard — step 2.
- *
- * Variables:
- *   $auth_email     string  signed-in email
- *   $entries        array   [{id, fanlisting_id, listing_name, name, url, email, pending}]
- *   $save_action    string  POST URL for the main save form
- *   $sign_out_url   string
- *   $csrf_token     string
- *   $errors         string  pre-escaped HTML, or ''
- *   $success_html   string  pre-rendered success HTML, or ''
- *   $f              array<string,string>  keys: new_name, new_email, new_url,
- *                                               new_password, new_password_confirm (and *_input variants)
- *   $save_form_marker string  embed POST marker — optional
- *   $link_reset     string|null
- *   $link_list      string|null
- *   $base_url       string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ KIM List update dashboard content fragment (Keep In Mind add-on, step 2 of 2).
+ Displays a table of the authenticated user's KIM entries across all
+ fanlistings, with checkboxes to select entries for bulk update or removal.
+ Includes fields for changing name, email, URL, and password. Served as a full
+ page via View::renderPublic() or as an embeddable fragment via
+ View::renderFragment() from embed/kim-update.php.
+*/
 
 declare(strict_types=1);
 

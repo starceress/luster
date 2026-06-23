@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable per-listing contact form. Renders a contact form that sends
+ messages to the listing owner's email address. Requires a
+ $luster_fanlisting_id to identify which listing's contact address to use.
+ Includes CAPTCHA validation and redirects back to the host page with a flash
+ message after submission. The form POST URL can be overridden via
+ $luster_contact_action.
+*/
 
 declare(strict_types=1);
 
@@ -9,18 +20,6 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
-
-/**
- * Luster embed — per-listing contact form fragment.
- *
- * Usage:
- *   $luster_fanlisting_id = 1;     // required: listing ID (int)
- *   $luster_return        = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/contact.php';
- *
- * Override variables (set before require):
- *   $luster_contact_action  — override the form POST URL (useful when embedding on an external page)
- */
 
 // ---------------------------------------------------------------------------
 // 1. Validate required variable

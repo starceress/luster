@@ -1,10 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ News Feed admin update list for a single listing or the collective. Shows all
+ update entries in a paginated table with search, category filtering, and inline
+ delete. Each row links to the edit form. The "Add Update" button creates a new entry.
+*/
 
 declare(strict_types=1);
 
 /**
- * Updates add-on - update list (per-fanlisting or collective).
- *
  * @var \Luster\Addons\Updates\Update[] $updates
  * @var int                             $total
  * @var int                             $page

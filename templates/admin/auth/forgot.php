@@ -1,4 +1,12 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Forgot password page. Renders a standalone form where an admin enters their email
+ address to receive a time-limited password reset link. Shows flash messages for
+ errors and success confirmations. Full-document template, not wrapped by layout.php.
+*/
 use Luster\Core\View;
 require_once __DIR__ . '/../_css_assets.php';
 ?>

@@ -1,10 +1,13 @@
 <?php
-/**
- * Sample collective — adoption application form.
- *
- * SETUP
- *   Enable "Available for adoption" on one or more listings in Admin → Listings → Edit.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample adoption application page for a fanlisting collective. Lets visitors
+ apply to take over a fanlisting that the owner has marked as available for
+ adoption. Requires the Adoption add-on to be installed and at least one listing
+ flagged for adoption. Customize the HTML to match your design.
+*/
 
 $page_title = 'Adopt a Fanlisting';
 require 'header.php';

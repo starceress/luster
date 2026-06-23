@@ -1,13 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Members display settings. Configures default sort order, items per page, and
+ other member-list display preferences that apply across all listing member views
+ in the admin panel.
+*/
 use Luster\Core\View;
-/**
- * Admin — Members display settings.
- * @var array  $cfg
- * @var string $success
- * @var string $error
- * @var string $base_url
- * @var string $csrf_token
- */
 $b = rtrim(View::e($base_url), '/');
 ?>
 

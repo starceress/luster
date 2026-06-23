@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Drives the five-step database import wizard that migrates data from legacy
+ fanlisting scripts (Enthusiast, Listing Admin, FanUpdate, CodeSort, BellaBuffs,
+ Fanatically) into Luster. Each step has its own GET/POST route pair: source
+ selection, credential entry and connection testing, scope/options configuration,
+ dry-run preview with counts and warnings, and the final execution run with a
+ downloadable report. Credentials live in the session for the wizard's duration
+ and are cleared after the import completes.
+*/
 
 declare(strict_types=1);
 
@@ -21,25 +33,6 @@ use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use ZipArchive;
 
-/**
- * Drives the import wizard UI.
- *
- * Routes:
- *   GET  /admin/import                            — step 1: source selection
- *   GET  /admin/import/{source}/connect           — step 2: connect form
- *   POST /admin/import/{source}/connect           — validate + save credentials, redirect to scope
- *   POST /admin/import/{source}/test-connection   — AJAX; JSON response
- *   GET  /admin/import/{source}/options             — step 3: scope form
- *   POST /admin/import/{source}/options             — save scope options, redirect to preview
- *   POST /admin/import/{source}/zip-upload        — AJAX/form: upload pre-import ZIP
- *   POST /admin/import/{source}/preview           — step 4: dry-run summary
- *   POST /admin/import/{source}/run               — step 5: execute import
- *   GET  /admin/import/{source}/result            — step 5 result page
- *   GET  /admin/import/{source}/report            — download text report
- *
- * Credentials are stored in $_SESSION['lstr_import_credentials'] for the
- * duration of the wizard and cleared after run() completes.
- */
 final class ImportController extends AdminController
 {
     private const SESSION_CREDS       = 'lstr_import_credentials';

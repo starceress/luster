@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample affiliates page for a fanlisting collective. Displays the collective's
+ site-wide affiliates and links to the affiliate application form. Customize
+ the HTML to match your collective's design.
+*/
+
 $page_title = 'Affiliates';
 require 'header.php';
 ?>

@@ -1,14 +1,14 @@
 <?php
-/**
- * KIM List overview — all fanlistings with interest counts.
- *
- * Variables:
- *   $fanlistings_with_counts  array        [{listing: Listing, count: int}]
- *   $base_url                 string
- *   $link_signup              string|null  override URL for the sign-up link (optional)
- *   $link_list_base           string|null  base URL for per-fanlisting links; embed appends ?id={id}
- *                                          when null, links go to Luster's own /kim/list/{id} route
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ KIM List overview content fragment (Keep In Mind add-on). Displays all
+ fanlistings that have KIM sign-ups, with interest counts per listing and links
+ to each fanlisting's subject page. Served as a full page via
+ View::renderPublic() or as an embeddable fragment via View::renderFragment()
+ from embed/kim-list.php. Supports custom overview templates.
+*/
 
 declare(strict_types=1);
 

@@ -1,11 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import wizard step 2 -- BellaBuffs file connection. Provides two modes for
+ accessing BellaBuffs data: a server folder path or direct file upload of
+ members.txt and newbies.txt.
+*/
 use Luster\Core\View;
-/** @var string $source */
-/** @var string $source_name */
-/** @var string $error */
-/** @var string $conn_mode */
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b       = rtrim(View::e($base_url), '/');
 $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
 ?>

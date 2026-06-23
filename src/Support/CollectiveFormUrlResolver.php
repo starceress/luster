@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Resolves the URL for collective-level form pages like code donation and
+ affiliate application. When the admin has configured a custom page path on
+ their own site to host the embedded form, this builds a full URL relative
+ to the site URL. Otherwise it returns the caller's fallback (one of
+ Luster's built-in routes). Pure function with no DB calls.
+*/
 
 declare(strict_types=1);
 

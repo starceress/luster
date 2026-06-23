@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Immutable value object representing a single KIM member row. Each member
+ is associated with one fanlisting and tracks their name, email, URL,
+ hashed password, pending/granted status, and sign-up date. The fromRow()
+ factory hydrates an instance from an associative database row.
+*/
 
 declare(strict_types=1);
 

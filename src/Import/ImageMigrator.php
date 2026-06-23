@@ -1,27 +1,22 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles image file migration for the import wizard across three
+ modes: same-server path copy, remote URL fetch (SSRF-safe via
+ NetworkAddressGuard), and ZIP archive extraction. Every mode
+ validates the MIME type with finfo, generates a randomised
+ filename, and writes to the appropriate uploads/ subdirectory.
+ This class has no database access -- callers persist the returned
+ filename themselves.
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Import;
 
 use Luster\Core\NetworkAddressGuard;
-
-/**
- * Handles all three image migration modes for the import wizard.
- *
- * Mode 1 (path): copy() from an absolute path on the same server.
- * Mode 2 (url):  fetch via file_get_contents() from a remote URL.
- * Mode 3 (zip):  extract a matching entry from an already-open ZipArchive.
- *
- * All modes:
- *  - Validate MIME with finfo (jpeg/png/gif/webp only)
- *  - Generate a new randomised Luster filename
- *  - Ensure the target directory exists and has a protective .htaccess
- *  - Return the new filename on success, or null on failure
- *
- * This class is intentionally free of any database access. The caller is
- * responsible for persisting the returned filename.
- */
 final class ImageMigrator
 {
     private const ALLOWED_MIMES = [

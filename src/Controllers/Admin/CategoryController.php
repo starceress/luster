@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages the category list used to organize owned and joined listings. Provides
+ the sortable/searchable category index, add/edit/delete actions, and the seed
+ health card that shows how many TFL/TAFL canonical categories are present.
+ The backfill action can insert missing canonical categories in one click.
+*/
 
 declare(strict_types=1);
 
@@ -9,14 +18,6 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\CategoryRepo;
 
-/**
- * Manages categories for joined listings.
- *
- * Routes:
- *   GET  /admin/categories          — list all categories
- *   POST /admin/categories/add      — insert new category
- *   POST /admin/categories/{id}/delete — delete category
- */
 final class CategoryController extends AdminController
 {
 

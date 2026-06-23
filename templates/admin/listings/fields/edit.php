@@ -1,20 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Edit a single additional field for a listing. Allows changing the field's label,
+ type (text, textarea, select), required status, and select options. The field name
+ itself cannot be changed because it corresponds to a database column.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * Admin - Edit a single additional field.
- *
- * Variables provided by FieldController::edit() via layout():
- * @var \Luster\Models\Listing $listing
- * @var \Luster\Models\AdditionalField $field
- * @var string $options
- * @var string $error
- * @var string $base_url
- * @var string $csrf_token
- */
 
 $b       = rtrim(View::e($base_url), '/');
 $id      = (int) $listing->id;

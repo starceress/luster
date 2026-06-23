@@ -1,14 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Add new listing form. Provides fields for title, subject, URL, email, status, date
+ opened, category selection (TFL/TAFL/custom networks), database table prefix, and
+ optional image upload. Validates and repopulates on error.
+*/
 use Luster\Core\View;
-/** @var array  $tfl_cats        [{id: int, name: string}] */
-/** @var array  $tafl_cats       [{id: int, name: string}] */
-/** @var array  $custom_networks string[] */
-/** @var array  $old */
-/** @var string $error */
-/** @var array  $field_errors */
-/** @var string $default_date */
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b  = rtrim(View::e($base_url), '/');
 $fe = $field_errors ?? [];
 

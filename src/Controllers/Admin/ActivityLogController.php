@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Displays the admin activity log in a paginated, newest-first table. Every
+ admin action (member approvals, listing edits, imports, etc.) is recorded in
+ lstr_activity_log and shown here. Also provides a CSV export download and
+ a flush action to clear all entries at once.
+*/
 
 declare(strict_types=1);
 
@@ -8,15 +17,6 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
 
-/**
- * Paginated activity log viewer.
- *
- * Routes:
- *   GET  /admin/activitylog        — all entries, newest first
- *   GET  /admin/activitylog?page=N — pagination
- *   GET  /admin/activitylog/export — download CSV
- *   POST /admin/activitylog/flush  — delete all entries
- */
 final class ActivityLogController extends AdminController
 {
 

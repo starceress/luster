@@ -1,4 +1,12 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Password reset page. Renders a standalone form where an admin sets a new password
+ after following a time-limited reset link from email. Validates the token and
+ displays error or success feedback. Full-document template, not wrapped by layout.php.
+*/
 use Luster\Core\View;
 require_once __DIR__ . '/../_css_assets.php';
 ?>

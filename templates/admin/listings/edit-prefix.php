@@ -1,11 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Edit database table prefix page for a single listing. Allows changing the member
+ table name (dbtable) with validation, and shows whether the target table already
+ exists in the database. This is a rarely used maintenance operation.
+*/
 use Luster\Core\View;
-/** @var \Luster\Models\Listing $listing */
-/** @var bool                   $table_exists */
-/** @var string                 $error */
-/** @var string                 $success */
-/** @var string                 $base_url */
-/** @var string                 $csrf_token */
 $b = rtrim(View::e($base_url), '/');
 ?>
 

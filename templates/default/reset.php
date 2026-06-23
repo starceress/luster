@@ -1,14 +1,13 @@
 <?php
-/**
- * Password reset — email entry form fragment.
- *
- * Variables injected by ResetController / embed/reset.php:
- *   $form_action  string
- *   $csrf_token   string
- *   $errors       string  pre-escaped HTML error block, or ''
- *   $f            array<string,string>  keys: 'email'
- *   $base_url     string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Password reset content fragment (step 1 of 2). Presents a form where the fan
+ enters their email address to receive a time-limited password reset link.
+ Served as a full page via View::renderPublic() or as an embeddable fragment
+ via View::renderFragment() from embed/reset.php. Supports custom form templates.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ The biggest admin controller. Handles the listings index (sortable, filterable,
+ with status tabs), listing add/edit forms, per-listing settings (templates,
+ join rules, codes, affiliates section), and the tabbed detail view that ties
+ together members, codes, affiliates, additional fields, and email templates
+ for a single listing. Also renders template previews with sample data.
+*/
 
 declare(strict_types=1);
 
@@ -35,12 +45,6 @@ use Luster\Support\RulesBodyRenderer;
 use Luster\Support\SampleTemplateData;
 use Luster\Support\SuccessRenderer;
 
-/**
- * Manages the listing list and per-listing settings.
- *
- * Listings are created/deleted in Enthusiast; Luster only edits
- * metadata (name, URL, email, status) and Luster-specific settings.
- */
 final class ListingController extends AdminController
 {
 
@@ -635,7 +639,7 @@ final class ListingController extends AdminController
                 $db->prepare('DELETE FROM lstr_code_donors WHERE fanlisting_id = :id')
                    ->execute(['id' => $id]);
 
-                // Updates Feed addon — silent if not installed
+                // News Feed addon — silent if not installed
                 try {
                     $db->prepare('DELETE FROM lstr_updates WHERE fanlisting_id = :id')
                        ->execute(['id' => $id]);
@@ -1216,7 +1220,7 @@ final class ListingController extends AdminController
         $db->prepare('DELETE FROM lstr_code_donors WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);
 
-        // Updates Feed addon — silent if not installed
+        // News Feed addon — silent if not installed
         try {
             $db->prepare('DELETE FROM lstr_updates WHERE fanlisting_id = :id')
                ->execute(['id' => $id]);
@@ -2641,7 +2645,7 @@ final class ListingController extends AdminController
     }
 
     /**
-     * Updates Feed preview using generic sample updates, plus an empty-state
+     * News Feed preview using generic sample updates, plus an empty-state
      * render with zero updates.
      */
     private function gtplPreviewUpdates(string $tpl): string

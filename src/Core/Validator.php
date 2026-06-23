@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Fluent input validator. Controllers create a Validator with the submitted
+ POST data, then chain rules on each field (required, email, maxLength, etc.)
+ via the field() method. After all rules are declared, fails() returns
+ whether any validation errors were recorded, and errors() returns the
+ per-field error messages for display.
+*/
 
 declare(strict_types=1);
 

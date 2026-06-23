@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin controller for the KIM (Keep In Mind) add-on. Provides the unified
+ tabbed member index, per-fanlisting member views, approve/reject/edit/delete
+ actions, bulk operations, individual and mass email composers, manual member
+ creation, a listings overview page, and the KIM settings panel.
+*/
 
 declare(strict_types=1);
 

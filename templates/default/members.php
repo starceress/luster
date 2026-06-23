@@ -1,21 +1,14 @@
 <?php
-/**
- * Members list — content fragment.
- *
- * Variables injected by MembersController:
- *   $listing_title   string
- *   $listing_url    string
- *   $join_url          string
- *   $members_base      string  base URL for sort/filter links
- *   $sort              string  'name', 'country', or 'added'
- *   $country           string  active country filter, or ''
- *   $members           Member[]  current page members (empty for country summary)
- *   $country_summary   array   [{country, fan_count, url}, ...] (empty for member lists)
- *   $fields            AdditionalField[]
- *   $pagination        string  pre-built pagination HTML, or ''
- *   $stats_line        string
- *   $base_url          string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Members list content fragment. Displays approved members for a listing with
+ sort-by controls (name, country, added), a country summary view, additional
+ field values, and pagination. Served as a full page via View::renderPublic()
+ or as an embeddable fragment via View::renderFragment() from embed/members.php.
+ Supports custom member row templates.
+*/
 
 declare(strict_types=1);
 

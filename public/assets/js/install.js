@@ -1,3 +1,11 @@
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Install wizard JavaScript. Provides theme toggling and password
+ show/hide for the standalone install page.
+*/
+
 // Theme toggle
 var lstrThemeBtn = document.querySelector('.theme-toggle');
 if (lstrThemeBtn) {

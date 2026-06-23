@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ CSRF token manager. Generates a cryptographically secure random token per
+ session and stores it under a namespaced session key. Every POST form
+ includes this token in a hidden field named "_csrf", and CsrfMiddleware
+ validates it automatically on every POST request using a timing-safe
+ comparison.
+*/
 
 declare(strict_types=1);
 

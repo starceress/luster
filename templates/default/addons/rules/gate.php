@@ -1,23 +1,19 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Rules gate content fragment (Rules add-on). Displays the per-listing joining
+ rules that a visitor must agree to before accessing the join form. Renders
+ either a "you have already agreed" message or the rules body with an agreement
+ form (checkbox + button or single button, depending on gate style). Served as
+ a full page via View::renderPublic() or as an embeddable fragment via
+ View::renderFragment() from embed/rules-gate.php.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * Rules gate — content fragment.
- *
- * Used by both View::renderPublic() (standalone page) and
- * View::renderFragment() (embed/rules-gate.php).
- *
- * Variables injected by RulesPublicController / embed/rules-gate.php:
- *   $rules             \Luster\Addons\Rules\RuleSet
- *   $already_agreed    bool
- *   $form_action       string   POST URL for the agree form
- *   $return_to         string   hidden field value — redirect destination after agree
- *   $csrf_token        string
- *   $rules_body_html   string   pre-rendered HTML (template body with tokens substituted)
- */
 ?>
 <?php if ($already_agreed ?? false): ?>
 

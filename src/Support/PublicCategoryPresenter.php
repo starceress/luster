@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders the public-facing category navigation UI for the owned and joined
+ listing embeds. Supports multiple presentation modes: bulleted link lists,
+ dropdown selects, and browse-by-category index pages. All output uses
+ fl-category-* CSS classes and avoids the HTML nav element so it embeds
+ cleanly into any host page without style collisions.
+*/
 
 declare(strict_types=1);
 

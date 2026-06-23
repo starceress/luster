@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Immutable value object representing a per-listing rule set. Holds the
+ rule body text, enabled state, gate type (checkbox or button), gate
+ label, and a version number that increments whenever the body changes.
+ The fingerprint() method produces a stable identity string used by the
+ session to track whether a fan has agreed to the current version.
+*/
 
 declare(strict_types=1);
 

@@ -1,19 +1,14 @@
 <?php
-/**
- * Affiliates list — content fragment.
- *
- * Variables injected by AffiliatesController:
- *   $listing_title  string   listing name (or site name for collective)
- *   $listing_url   string
- *   $affiliates       Affiliate[]  active affiliates for this page
- *   $total            int      total active affiliate count
- *   $pagination       string   pre-built pagination HTML, or ''
- *   $is_collective    bool     true when showing site-wide collective affiliates
- *   $join_url         string   URL of the join form (empty for collective view)
- *   $uploads_url      string   base URL for affiliate images (e.g. /luster/public/uploads)
- *   $base_url         string
- *   $section_html     string|null  pre-rendered section from page-level template (null = use default output)
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Affiliates list content fragment. Displays approved affiliates for a listing
+ or collective, with image buttons or text-link fallbacks and pagination. Served
+ as a full page via View::renderPublic() or as an embeddable fragment via
+ View::renderFragment() from embed/affiliates.php. Supports custom affiliates
+ section templates.
+*/
 
 declare(strict_types=1);
 

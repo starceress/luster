@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Fluent per-field validator instantiated by Validator::field(). Chains
+ validation rules (required, minLength, maxLength, email, url, etc.) and
+ writes errors back to the parent Validator. When a required check fails,
+ subsequent rules on the same field are skipped since format checks are
+ meaningless on an absent value.
+*/
 
 declare(strict_types=1);
 

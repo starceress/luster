@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample codes page for a fanlisting collective. Displays fan-made graphics
+ (buttons, banners, etc.) for the collective as a whole. Links to the code
+ donation page so fans can submit their own designs. Customize the HTML to
+ match your collective's design.
+*/
+
 $page_title = 'Codes';
 require 'header.php';
 ?>

@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages the add-on system from the admin panel. Discovers add-on packages under
+ src/Addons/, displays their install status, and handles one-click install and
+ uninstall actions. Each add-on implements AddonInterface and manages its own
+ database tables during install/uninstall.
+*/
 
 declare(strict_types=1);
 
@@ -12,13 +21,6 @@ use Luster\Repositories\ActivityRepo;
 use PDOException;
 use Throwable;
 
-/**
- * Admin add-ons management — discover, install, and uninstall add-ons.
- *
- * GET  /admin/addons           → index()    list discovered add-ons
- * POST /admin/addons/install   → install()  install a single add-on
- * POST /admin/addons/uninstall → uninstall() uninstall a single add-on
- */
 final class AddonsController
 {
     public function __construct(private readonly Application $app) {}

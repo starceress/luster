@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles fan (member) password reset tokens stored in lstr_fan_password_resets.
+ Only the SHA-256 hash of each token is persisted, never the raw token itself.
+ Expired tokens are cleaned up opportunistically whenever a lookup occurs.
+ Existing tokens for the same email + listing are deleted before a new one
+ is created, enforcing a one-active-token-at-a-time policy.
+*/
 
 declare(strict_types=1);
 

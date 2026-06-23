@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ HTTP response builder returned by every controller action. Provides static
+ factory methods for common response types (HTML, JSON, redirect, error
+ pages) and a send() method that emits headers and body. The front
+ controllers call send() after Application::run() returns -- no controller
+ or core code calls exit() directly.
+*/
 
 declare(strict_types=1);
 

@@ -1,10 +1,13 @@
 <?php
-/**
- * Luster compatibility wrapper — Enthusiast show_update.php
- *
- * Drop this + luster-bridge.php into your Enthusiast folder.
- * The listing is auto-detected from Enthusiast's $listing variable.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Compatibility shim for Enthusiast's show_update.php. Drop this file and
+ luster-bridge.php into your Enthusiast folder to replace the original member
+ update form. The listing is auto-detected from Enthusiast's $listing variable
+ and the update form is rendered by Luster's update embed.
+*/
 
 require_once __DIR__ . '/luster-bridge.php';
 

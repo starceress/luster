@@ -1,19 +1,21 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Contract that every import adapter must implement. Each adapter
+ connects to a foreign script's database, previews what would be
+ imported (dry run), and then executes the actual import into
+ Luster's tables. Adapters are stateless -- all context flows
+ through method arguments, and the source and target PDO
+ connections may point to the same database.
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Import;
 
 use PDO;
-
-/**
- * Contract that every import adapter must implement.
- *
- * Adapters are stateless: all context is passed as arguments.
- * $source is a PDO connected to the foreign database.
- * $target is Luster's own PDO (from Database::getPdo()).
- * They may be the same connection object (Enthusiast on same DB as Luster).
- */
 interface ImportSourceInterface
 {
     /**
@@ -50,7 +52,7 @@ interface ImportSourceInterface
      * and warnings without writing anything to either database.
      *
      * $target may be used to check whether Luster add-ons (Wishlist, KIM,
-     * Updates Feed, Rules, Adoption) are installed, so the preview accurately
+     * News Feed, Rules, Adoption) are installed, so the preview accurately
      * reports what will be imported vs. skipped.
      */
     public function preview(PDO $source, PDO $target, ImportOptions $options): ImportPreview;

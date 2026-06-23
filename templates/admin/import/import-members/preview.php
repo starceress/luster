@@ -1,12 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import members preview page. Shows a summary of the parsed member file,
+ including detected format, column mapping, row counts, and a sample of the
+ data before the admin confirms the import.
+*/
 use Luster\Core\View;
-/** @var \Luster\Models\Listing $listing */
-/** @var string                  $format   'enthusiast'|'listing_admin'|'unknown' */
-/** @var array                   $mapping  source to target column map */
-/** @var array                   $counts   total/approved/pending */
-/** @var array[]                 $samples  up to 5 sample rows */
-/** @var string                  $base_url */
-/** @var string                  $csrf_token */
 $b      = rtrim(View::e($base_url), '/');
 $total   = (int) ($counts['total']    ?? 0);
 $approved = (int) ($counts['approved'] ?? 0);

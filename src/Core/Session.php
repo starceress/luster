@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Secure session wrapper that enforces httponly, secure, and SameSite=Strict
+ cookie flags before starting the PHP session. Provides typed get/set/flash
+ helpers and handles session regeneration on login. Called once at application
+ bootstrap; subsequent calls are safe no-ops.
+*/
 
 declare(strict_types=1);
 

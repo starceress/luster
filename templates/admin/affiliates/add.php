@@ -1,14 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Add or edit affiliate form. Provides fields for name, URL, email, image upload,
+ listing assignment (collective-wide or per-listing), and approval status. Used for
+ both creating new affiliates and editing existing ones, determined by whether
+ the $affiliate variable is null.
+*/
 use Luster\Core\View;
-/** @var \Luster\Models\Listing[]   $listings */
-/** @var \Luster\Models\Affiliate|null $affiliate   null = add mode */
-/** @var int    $context_fid  non-zero = came from a specific listing */
-/** @var string $error */
-/** @var array  $old */
-/** @var array  $field_errors */
-/** @var string $base_url */
-/** @var string $csrf_token */
-/** @var string $site_name */
 $b          = rtrim(View::e($base_url), '/');
 $fe         = $field_errors ?? [];
 $isEdit     = $affiliate !== null;

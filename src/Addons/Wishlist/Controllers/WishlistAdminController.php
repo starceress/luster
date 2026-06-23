@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin controller for the Wishlist add-on. Provides the paginated index
+ with type/category filters, add/edit/delete entry forms, bulk actions
+ (delete, show, hide, change type), drag-and-drop sort order persistence,
+ and the wishlist settings page.
+*/
 
 declare(strict_types=1);
 

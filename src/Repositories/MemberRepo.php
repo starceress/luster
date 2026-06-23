@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Reads and writes fan members from per-listing member tables. Each listing
+ has its own table whose name comes from the listing's dbtable/dbprefix
+ value. Handles both Enthusiast schema variants (unprefixed "pending" column
+ vs. standard "approved" column), paginated and filtered queries, country
+ breakdowns, newest-member lookups, status transitions (approve/reject/
+ pending), and dynamic column insertion for additional fields.
+*/
 
 declare(strict_types=1);
 

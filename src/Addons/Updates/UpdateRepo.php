@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Repository for the lstr_updates table. Provides paginated reads for both
+ per-fanlisting and collective (fanlisting_id IS NULL) feeds, category
+ filtering, CRUD operations for individual entries, the latest-per-fanlisting
+ aggregation used by the admin index, and category tag autocomplete data.
+*/
 
 declare(strict_types=1);
 

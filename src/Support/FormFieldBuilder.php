@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Builds the HTML for every field on every public-facing form (join, update,
+ reset, codes-submit, contact, KIM, etc.). Controllers describe their fields
+ as simple descriptor arrays, and this class turns each one into a fully
+ rendered, wrapper-enclosed HTML string. It also converts dynamic additional
+ fields from the database into the same descriptor format so they can be
+ mixed into any form seamlessly.
+*/
 
 declare(strict_types=1);
 

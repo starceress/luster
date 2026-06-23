@@ -1,40 +1,18 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin unified emails page. Combines email template editing, bulk member email
+ composition, and saved template management into a single tabbed interface. The
+ templates tab shows per-listing and global email templates with token
+ reference; the bulk tab provides a composer for sending mass emails.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
 use Luster\Repositories\EmailTemplateRepo;
-
-/**
- * Unified Emails page - four tabs.
- *
- * @var string                            $active_tab      'templates'|'bulk'|'custom'
- * @var string                            $success
- * @var string                            $error
- * @var string                            $base_url
- * @var string                            $csrf_token
- *
- * Templates tab:
- * @var \Luster\Models\Listing[]         $all_listings
- * @var string                            $scope            'global' or listing ID as string
- * @var \Luster\Models\Listing|null       $listing
- * @var array<string, array>              $cards
- * @var string                            $owner_name
- * @var string                            $owner_email
- * @var string                            $site_name_val
- *
- * Bulk email tab:
- * @var \Luster\Models\Listing[]         $listings
- * @var array<int, int>                   $listing_counts
- * @var int                               $deduplicated_total
- * @var object[]                          $saved_emails
- * @var object[]                          $global_email_templates
- * @var int                               $old_listing_id
- * @var string                            $old_subject
- * @var string                            $old_body
- * @var string                            $from_name_val
- * @var string                            $from_email_val
- */
 
 $b = rtrim(View::e($base_url), '/');
 

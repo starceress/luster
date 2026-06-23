@@ -1,10 +1,13 @@
 <?php
-/**
- * Luster compatibility wrapper — Listing Admin show-codes-form.php
- *
- * Drop this + luster-bridge.php into your Listing Admin folder.
- * The listing is auto-detected from Listing Admin's $listid variable.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Compatibility shim for Listing Admin's show-codes-form.php. Drop this file
+ and luster-bridge.php into your Listing Admin folder to replace the original
+ fan code submission form. The listing is auto-detected from Listing Admin's
+ $listid variable and the form is rendered by Luster's codes-submit embed.
+*/
 
 require_once __DIR__ . '/luster-bridge.php';
 

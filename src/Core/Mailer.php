@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Transactional email delivery backed by PHPMailer. When SMTP is enabled in
+ config it sends through the configured SMTP server; otherwise it falls back
+ to PHP's built-in mail() function. Used by all email paths in the application
+ including join confirmations, password resets, admin notifications, and
+ bulk email operations.
+*/
 
 declare(strict_types=1);
 

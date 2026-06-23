@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin controller for the News Feed add-on. Provides the listings overview
+ with latest-post dates, per-fanlisting and collective entry lists, the
+ add/edit/delete entry forms, bulk delete, and the News Feed settings page.
+ All state-changing actions are CSRF-protected and logged to the activity log.
+*/
 
 declare(strict_types=1);
 

@@ -1,123 +1,21 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable collective statistics. Renders an HTML stats block using the
+ admin-editable template (or a built-in default) AND exposes every stat as a
+ $luster_* PHP variable so the host page can echo individual values wherever
+ it likes. Covers owned/joined listing counts, member totals, country counts,
+ growth rates, newest and random listings, and category breakdowns. Supports
+ optional result caching to reduce database load on high-traffic pages.
+*/
 
 declare(strict_types=1);
 
 use Luster\Repositories\CollectiveStatsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\DateFormatter;
-
-/**
- * Luster embed — collective statistics.
- *
- * Always renders an HTML block (from the admin template or a built-in
- * default) AND exposes every stat as a PHP variable the host page can
- * echo wherever it likes. Drop-in compatible with Enthusiast's
- * show_collective_stats.php — all the old variable names work.
- *
- * ──────────────────────────────────────────────────────────────────────
- * Basic usage:
- *
- *   require '/absolute/path/to/luster/public/embed/collective-stats.php';
- *   // The rendered stats block is echoed automatically.
- *
- *   // You can also use the individual variables anywhere on the page:
- *   echo $luster_owned_active;        // e.g. 24
- *   echo $luster_owned_newest[0]->title; // e.g. "Always – Amy and Rory"
- *   echo $luster_attribution;         // "Powered by Luster" footer
- *
- * ──────────────────────────────────────────────────────────────────────
- * Optional variables (set before require):
- *
- *   $luster_count     int   How many listings to fetch for newest/random
- *                           arrays. Default: 3. Affects both owned and joined.
- *
- *   $luster_cache_ttl int   Cache lifetime in seconds. Default: 0 (disabled).
- *                           When > 0, serialised stats are written to
- *                           storage/cache/collective_stats.json and re-used
- *                           within the TTL. Newest/random listings are NOT
- *                           cached (they are always fetched fresh so random
- *                           actually rotates).
- *
- *   $luster_return    bool  When true, returns a pre-rendered HTML string
- *                           instead of echoing it. Default: false (echo).
- *
- * ──────────────────────────────────────────────────────────────────────
- * Variables exposed after require (always available):
- *
- *  Counts
- *   $luster_owned               int   Total owned listings
- *   $luster_owned_active        int   Open / active owned (not upcoming/pending)
- *   $luster_owned_upcoming      int   Upcoming owned listings
- *   $luster_owned_pending       int   Pending / inactive owned listings
- *   $luster_joined              int   Total joined listings
- *   $luster_joined_active       int   Active joined listings (any status, active=1)
- *   $luster_joined_approved     int   Approved joined listings (active, not upcoming/pending)
- *   $luster_joined_upcoming     int   Upcoming joined listings
- *   $luster_joined_pending      int   Pending joined listings
- *   $luster_affiliates          int   Active collective affiliates
- *   $luster_members_approved    int   Approved members across all listings
- *   $luster_members_pending     int   Pending members across all listings
- *   $luster_members_total       int   Total members across all listings
- *
- *  Last collective update
- *   $luster_collective_last_updated string  Date the most recently added owned
- *                                            listing was opened, formatted
- *                                            "Month Dth Year" (e.g. "March 1st 2026"),
- *                                            or "Never" if no owned listing has an
- *                                            opened date set.
- *
- *  Growth rates (formatted to 2 decimal places)
- *   $luster_owned_growth_rate   string  Active owned listings per year
- *   $luster_joined_growth_rate  string  Active joined listings per year
- *   $luster_members_growth_rate string  Approved members per day (all listings)
- *
- *  Object arrays (Luster models — full property access, not flat arrays)
- *   $luster_owned_newest        Listing[]        Newest $luster_count active owned
- *   $luster_joined_newest       JoinedListing[]  Newest $luster_count active joined
- *   $luster_owned_random        ?Listing         One random active owned, or null
- *   $luster_joined_random       ?JoinedListing   One random active joined, or null
- *
- *  Category breakdown
- *   $luster_categories  array  [{id, name, source, count}, ...]
- *                              count = active owned listings in that category
- *
- *  Category count
- *   $luster_total_cats          int   count($luster_categories)
- *
- * ──────────────────────────────────────────────────────────────────────
- * Accessing newest/random listing properties:
- *
- *   // Owned Listing object properties:
- *   $luster_owned_newest[0]->title       // listing title
- *   $luster_owned_newest[0]->subject     // subject / topic
- *   $luster_owned_newest[0]->url         // listing URL
- *   $luster_owned_newest[0]->listingtype // e.g. 'listing'
- *   $luster_owned_newest[0]->joined      // opened date string (nullable)
- *   $luster_owned_newest[0]->id          // listing ID
- *
- *   // Joined JoinedListing object properties:
- *   $luster_joined_newest[0]->name       // listing name
- *   $luster_joined_newest[0]->url        // listing URL
- *   $luster_joined_newest[0]->category   // category string
- *   $luster_joined_newest[0]->dateJoined // date joined (nullable)
- *   $luster_joined_newest[0]->image      // image filename (nullable)
- *   $luster_joined_newest[0]->status     // 'joined', 'upcoming', etc.
- *
- * ──────────────────────────────────────────────────────────────────────
- * Example usage (newest owned link):
- *
- *   Newest listing:
- *   <a href="<?= htmlspecialchars($luster_owned_newest[0]->url ?? '#', ENT_QUOTES, 'UTF-8') ?>">
- *     <?= htmlspecialchars($luster_owned_newest[0]->title ?? '', ENT_QUOTES, 'UTF-8') ?>
- *   </a>
- *
- * Example (category list):
- *
- *   <?php foreach ($luster_categories as $cat): ?>
- *     <a href="..."><?= htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8') ?></a>
- *     (<?= $cat['count'] ?> listings)<br>
- *   <?php endforeach; ?>
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

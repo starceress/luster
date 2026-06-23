@@ -1,30 +1,17 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Affiliates index page. Displays all affiliates in a filterable, paginated table
+ with status tabs (all, pending, approved, rejected), scope filtering (all,
+ collective, per-listing), search, and bulk actions for approving, rejecting, or
+ deleting affiliates. Highlights pending affiliates with duplicate URLs.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * @var \Luster\Models\Affiliate[]         $affiliates
- * @var array<int,\Luster\Models\Listing>  $listing_map
- * @var \Luster\Models\Listing[]           $listings
- * @var string  $tab           all|pending|approved|rejected
- * @var string  $scope         all|collective|{listing id}
- * @var string  $search
- * @var string  $sort
- * @var string  $dir
- * @var int     $page
- * @var int     $per_page
- * @var int     $total_pages
- * @var int     $total
- * @var array   $counts        {all,pending,approved,rejected}
- * @var array   $conflict_ids  set of pending affiliate IDs with duplicate URLs
- * @var bool    $filters_active
- * @var string  $success
- * @var string  $error
- * @var string  $base_url
- * @var string  $csrf_token
- */
 
 $b = rtrim(View::e($base_url), '/');
 

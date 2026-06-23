@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages fan graphic codes in lstr_codes. Each code is an uploaded image
+ associated with a listing (or the collective when fanlisting_id is NULL),
+ with optional size, donor, and submitter metadata. Supports an approval
+ workflow (approved/pending/rejected), filtered queries for admin and
+ public display, bulk status changes, drag-and-drop sort ordering, and
+ per-listing or cross-listing paginated pending queues.
+*/
 
 declare(strict_types=1);
 

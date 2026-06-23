@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable wishlist page. Renders the collective-wide fanlisting wishlist
+ (not per-listing) with optional type filtering (wanted/top/granted) and
+ pagination. Requires the Wishlist add-on to be installed. When showing all
+ types, entries are grouped by type with section headers.
+*/
 
 declare(strict_types=1);
 
@@ -6,27 +15,6 @@ use Luster\Addons\Wishlist\WishlistRepo;
 use Luster\Core\Pagination;
 use Luster\Core\TemplateEngine;
 use Luster\Repositories\SiteSettingsRepo;
-
-/**
- * Luster embed — wishlist.
- *
- * Drop this into any PHP page to embed your fanlisting wishlist.
- * The wishlist is collective-wide (not per-listing).
- *
- * Usage:
- *   $luster_return         = false;    // optional: true = return string, false = echo
- *   $luster_wishlist_type  = 'all';    // optional: filter by type (see below)
- *   $luster_per_page       = 25;       // optional: entries per page
- *   require '/absolute/path/to/luster/public/embed/wishlist.php';
- *
- * Optional variables:
- *   $luster_wishlist_type  string  Filter displayed entries by type.
- *                                  Accepted values: 'all', 'wanted', 'top', 'granted'
- *                                  'all' (default) shows every active entry grouped by type.
- *                                  Any unrecognized value silently falls back to 'all'.
- *   $luster_per_page       int     Entries per page, counted across all categories
- *                                  combined even when showing 'all'. Default 25.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Expands {token} placeholders in admin-defined form templates and wraps the
+ resulting HTML in a <form> element with CSRF protection and a honeypot field.
+ Used by public form controllers and embeds (join, codes-submit, affiliate-apply,
+ adopt, kim-signup, etc.) when a custom form template is configured. When no
+ template is set, controllers fall back to the built-in PHP fragment templates.
+*/
 
 declare(strict_types=1);
 
@@ -6,18 +16,6 @@ namespace Luster\Support;
 
 use Luster\Core\View;
 
-/**
- * Expands {token} placeholders in an admin-defined form template and wraps
- * the resulting HTML in a <form> element with CSRF protection and the
- * standard honeypot field.
- *
- * Used by public form controllers/embeds (join, codes-submit, affiliate-apply,
- * adopt, kim-signup, ...) when a per-listing or global form template is set.
- * When no template is configured, controllers fall back to the existing
- * hardcoded PHP templates and never call this class.
- *
- * @see docs/FORM-TEMPLATES-PLAN.md
- */
 final class FormTemplateRenderer
 {
     /**

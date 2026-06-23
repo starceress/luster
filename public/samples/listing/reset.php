@@ -1,15 +1,13 @@
 <?php
-/**
- * Sample listing — password reset.
- *
- * Handles both steps of the reset flow automatically:
- *   Step 1 — Visitor enters their email. Luster emails them a link back to this page.
- *   Step 2 — Visitor arrives via reset.php?token=… and sets a new password.
- *
- * SETUP
- *   In Admin → Listings → Edit → Embed, set:
- *     Form URL — Reset:  https://yourdomain.com/fanlisting/reset.php
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample password reset page for a fanlisting. Handles both steps of the reset
+ flow: the visitor enters their email to receive a reset link, then returns via
+ that link to set a new password. Set the Form URL for the reset form in Admin
+ before using this page. Customize the HTML to match your design.
+*/
 
 $page_title = 'Reset Password';
 require 'header.php';

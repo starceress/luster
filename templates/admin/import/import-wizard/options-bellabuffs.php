@@ -1,15 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import wizard step 3 -- BellaBuffs import options. Provides a target listing
+ selector and checkboxes for importing approved members, pending members,
+ affiliates, and codes from BellaBuffs flat files.
+*/
 use Luster\Core\View;
-/** @var string $source */
-/** @var string $source_name */
-/** @var array  $listings        list of ['listingid'=>int, 'dbtable'=>string, 'label'=>string] */
-/** @var string $bb_mode         'path' | 'upload' */
-/** @var bool   $has_newbies     newbies.txt is available */
-/** @var bool   $has_affiliates  affiliates.txt is available (path mode only) */
-/** @var bool   $has_buttons     buttons.txt is available (path mode only) */
-/** @var array  $old             previously submitted scope values (for back-navigation) */
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b   = rtrim(View::e($base_url), '/');
 $src = View::e($source);
 

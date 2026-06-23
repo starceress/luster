@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Read-only reference page that generates copyable PHP embed snippets for every
+ embed entry point. Snippets are pre-filled with the selected listing's ID and
+ the configured install path. Also provides the compat-test renderer, which
+ smoke-tests legacy compatibility wrappers (Enthusiast, Listing Admin, CodeSort)
+ by rendering their output inline for visual verification.
+*/
 
 declare(strict_types=1);
 
@@ -12,15 +22,7 @@ use Luster\Models\Member;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
-/**
- * Read-only reference page showing copyable PHP embed snippets, and the
- * compat wrapper smoke-test renderer.
- *
- * Routes:
- *   GET  /admin/embed-codes
- *   GET  /admin/compat-test
- *   POST /admin/compat-test
- */
+
 final class EmbedCodesController
 {
     public function __construct(private readonly Application $app) {}

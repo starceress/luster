@@ -1,7 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Keep In Mind (KIM) admin listings overview. Displays all listings with their KIM
+ member counts (pending, approved, granted) in a sortable, paginated table. Each
+ row links to the per-listing KIM detail page.
+*/
+
 /**
- * KIM List admin — listings overview.
- *
  * Variables:
  *   $fanlistings_data  array  [{listing: Listing, pending: int, approved: int, granted: int}]
  *   $total_listings    int

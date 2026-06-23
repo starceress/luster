@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Addon entry point for KIM (Keep In Mind). Implements AddonInterface to
+ create the lstr_kim_members and lstr_kim_password_resets tables, and
+ registers all public and admin routes for the KIM sign-up, update,
+ reset, list, and management workflows.
+*/
 
 declare(strict_types=1);
 

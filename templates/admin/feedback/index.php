@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin feedback and bug report page. Provides a form for reporting bugs, asking
+ questions, or suggesting features directly to the Luster developer. Includes
+ automatic system information attachment and a copyable fallback for when email
+ delivery fails.
+*/
 use Luster\Core\Version;
 use Luster\Core\View;
 ?>

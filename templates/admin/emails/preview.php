@@ -1,19 +1,16 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin bulk email preview page. Shows a confirmation screen before sending a
+ bulk email, displaying recipient count, subject, body preview, and a sample
+ of recipient addresses.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * @var int    $listing_id
- * @var string $listing_title
- * @var string $subject
- * @var string $body
- * @var int    $total          recipient count
- * @var array  $sample         up to 5 email addresses
- * @var string $base_url
- * @var string $csrf_token
- */
 
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>

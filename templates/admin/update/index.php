@@ -1,25 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin update page. Shows the current Luster version, checks for
+ available updates from GitHub releases, and walks the admin through
+ the download-stage-preflight-apply workflow. Handles both automatic
+ and manual update paths.
+*/
 use Luster\Core\Version;
 use Luster\Core\View;
-
-/**
- * @var string $base_url
- * @var string $csrf_token
- * @var string $success
- * @var string $error
- * @var \Luster\Core\UpdateStatus $update_status
- * @var bool $staging_valid
- * @var string $update_version
- * @var string $release_url
- * @var string $release_title
- * @var array $preflight
- * @var bool $preflight_ok
- * @var bool $backup_downloaded
- * @var string $manual_reason
- * @var string $manual_version
- * @var string $manual_url
- * @var bool $lock_exists
- */
 
 $b = rtrim(View::e($base_url), '/');
 $current = Version::CURRENT;

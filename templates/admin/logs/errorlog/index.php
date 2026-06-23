@@ -1,13 +1,12 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin error log page. Displays a paginated table of application errors with
+ timestamps, messages, and stack trace details. Supports CSV export and log flushing.
+*/
 use Luster\Core\View;
-/** @var array<int,array<string,mixed>> $rows */
-/** @var int    $total */
-/** @var int    $page */
-/** @var int    $pages */
-/** @var int    $per_page */
-/** @var string $success */
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b = rtrim(View::e($base_url), '/');
 $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
 ?>

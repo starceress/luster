@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Translates Enthusiast-era category IDs (stored in the owned.catid column) to
+ their corresponding lstr_categories.id values in Luster. This is needed by
+ Migration 51 because old Enthusiast installs used a different category table
+ whose auto-increment IDs don't match Luster's. The mapper probes for the
+ legacy table, builds a name-based crosswalk, and returns the ID map.
+*/
 
 declare(strict_types=1);
 

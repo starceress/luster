@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Simple arithmetic CAPTCHA for public-facing forms. Generates a math question,
+ stores the expected answer in the session, and validates the visitor's
+ response. Each form type uses a separate session key so multiple open forms
+ or tabs do not interfere with each other.
+*/
 
 declare(strict_types=1);
 

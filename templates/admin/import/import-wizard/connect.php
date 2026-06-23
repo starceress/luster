@@ -1,15 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import wizard step 2 -- database connection for SQL-based sources. Provides
+ credential fields for connecting to the source database, with optional SQL
+ dump upload and legacy config file auto-detection.
+*/
 use Luster\Core\View;
-/** @var string $source */
-/** @var string $source_name */
-/** @var string $error */
-/** @var array  $saved_creds */
-/** @var string $saved_fn_prefix     Saved Fanatically table prefix (from session credentials) */
-/** @var bool   $dump_active         true when a SQL dump has already been uploaded this session */
-/** @var bool   $config_reader_enabled  true when admin has enabled config auto-detect in Settings */
-/** @var array  $enth_networks */
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b   = rtrim(View::e($base_url), '/');
 $src = View::e($source);
 $connectUrl = $b . '/admin/import/' . $src . '/connect';

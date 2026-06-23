@@ -1,23 +1,17 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ News Feed public feed content fragment (News Feed add-on). Displays
+ per-listing or collective news/update entries with title, date, author,
+ category tags, body text, and pagination. Served as a full page via
+ View::renderPublic() or as an embeddable fragment via View::renderFragment()
+ from embed/updates.php or embed/collective-updates.php. Supports custom
+ updates templates.
+*/
 
 declare(strict_types=1);
-
-/**
- * Updates add-on — public feed fragment.
- *
- * Used by both the full-page public controller (via renderPublic) and embed
- * files (via renderFragment). The layout wrapper is added by renderPublic only.
- *
- * @var \Luster\Addons\Updates\Update[] $updates
- * @var bool                            $is_collective
- * @var bool                            $show_cats
- * @var string                          $owner_name
- * @var string                          $active_cat    currently filtered category ('' = none)
- * @var string                          $feed_url      base URL for category filter links
- * @var string                          $pagination    pre-rendered pagination HTML ('' = none)
- * @var string                          $base_url
- * @var string                          $theme_path
- */
 
 use Luster\Core\View;
 

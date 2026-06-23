@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Value object for a fan/member from a per-listing member table. Each
+ listing has its own member table, and this model normalizes the two
+ Enthusiast schema variants into one object. The additionalFields map
+ holds any custom field values (like "Favorite song") keyed by bare
+ field name, regardless of whether the DB column uses an additional_
+ prefix or not. Approval status is derived from either the "approved"
+ column (standard schema) or the inverted "pending" column (unprefixed).
+*/
 
 declare(strict_types=1);
 

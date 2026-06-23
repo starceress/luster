@@ -1,4 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin collective settings page. Provides toggles and configuration for
+ site-wide collective features such as the contact form, codes submission,
+ affiliate applications, and adoption form settings.
+*/
+
+declare(strict_types=1);
 use Luster\Core\View;
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>

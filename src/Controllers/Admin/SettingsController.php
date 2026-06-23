@@ -1,4 +1,17 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ The central settings controller. Renders the multi-panel Settings page (admin
+ profile, admin accounts, appearance/skin selection, general/SMTP config,
+ embed URL/path settings, blacklist, and system details) and handles all the
+ POST save actions for each panel. Also manages collective-level templates
+ (owned rows, joined rows, stats, affiliates, codes, updates), skin
+ selection, stale-listing threshold, and import source visibility toggles.
+ Config values are written to config/app.php via a safe temp-file-then-rename
+ pattern, and only keys on the ALLOWED_KEYS whitelist are accepted.
+*/
 
 declare(strict_types=1);
 

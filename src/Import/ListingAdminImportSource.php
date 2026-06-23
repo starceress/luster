@@ -1,42 +1,21 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import adapter for Listing Admin (v3.x) databases. Creates owned
+ listing rows and per-listing member tables in Luster from LA's
+ central registry and member store. Also imports categories,
+ affiliates, joined listings, updates (when the News Feed add-on
+ is installed), wishlist, and KIM entries. Custom field values
+ stored in LA's mExtra blob are parsed on a best-effort basis.
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Import;
 
 use PDO;
-
-/**
- * Import adapter for Listing Admin (v3.x) databases.
- *
- * Listing Admin schema key points:
- *   - `main`      — central listing registry (one row per fanlisting)
- *   - `members`   — all fan members across all listings, joined by fNiq → main.id
- *   - `categories`— collective categories (catid, catname, parent)
- *   - `affiliates`— affiliate sites (aID, fNiq, aSubject, aURL, aImage, aEmail)
- *   - `joined`    — joined fanlistings (jID, jSubject, jURL, jImage, jCategory, jStatus, jAdd)
- *   - `updates`   — news/update entries (uID, fNiq, uTitle, uEntry, uAdded)
- *
- * What this adapter imports into Luster:
- *   - `owned` (or `enth_fanlistings`)  ← `main`
- *   - Per-listing member tables        ← `members` partitioned by fNiq
- *   - `lstr_fanlisting_settings`       ← `main` (per-listing settings)
- *   - `lstr_categories`               ← `categories`
- *   - `lstr_affiliates`               ← `affiliates`
- *   - `lstr_joined`                   ← `joined`
- *   - `lstr_updates`                  ← `updates` (requires News Feed add-on)
- *   - `lstr_email_templates`          ← Not applicable (LA uses its own template system)
- *
- * Member table creation:
- *   For each row in `main`, a new per-listing member table is created in
- *   Luster's target database using Enthusiast's standard member table structure.
- *   The `dbtable` slug is generated from `main.subject` and stored in `owned.dbtable`.
- *
- * Additional fields (mExtra):
- *   LA stores custom field values in `members.mExtra` as a delimited text blob.
- *   The field names come from `main.fave_fields`. Parsing is best-effort;
- *   members are still imported if parsing fails (without custom field data).
- */
 final class ListingAdminImportSource implements ImportSourceInterface
 {
     private const CHUNK    = 500;

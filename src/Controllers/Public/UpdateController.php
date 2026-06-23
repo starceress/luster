@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles the two-step fan update form. Step 1 asks the fan to sign in with
+ their email and password. Step 2 shows the pre-filled update form where they
+ can change their name, email, URL, country, additional fields, or password.
+ Members can also permanently delete their membership from this form. Updates
+ can be applied immediately or queued for admin review depending on per-listing
+ settings. Legacy MD5 passwords are detected and upgraded to Argon2id on login.
+*/
 
 declare(strict_types=1);
 

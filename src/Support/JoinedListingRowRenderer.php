@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders joined-listing rows by substituting tokens in the admin-defined
+ joined_template string from the Collective Templates page. Handles tokens like
+ {listing_subject}, {listing_url}, {listing_image_url}, and {date_joined}, plus
+ conditional blocks for image presence. Shared by the joined embed (multiple
+ rows), random-joined-listing, and latest-joined-listing (single row) to keep
+ all token logic and HTML-escaping in one place.
+*/
 
 declare(strict_types=1);
 
@@ -8,16 +19,6 @@ use Luster\Core\TemplateEngine;
 use Luster\Models\JoinedListing;
 use Luster\Support\DateFormatter;
 
-/**
- * Renders joined-listing rows by substituting tokens in the joined_template
- * string from Admin → Collective.
- *
- * Shared by joined.php (multiple rows, flat or grouped via renderGroup()),
- * random-joined-listing.php, and latest-joined-listing.php (single row via
- * render()) to keep token/escaping logic in one place. Built on TemplateEngine
- * so the loop → conditionals → flat-token processing order matches every
- * other template surface in the Public Template System.
- */
 final class JoinedListingRowRenderer
 {
     /**

@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable join form for a single fanlisting. Drop this file into any external
+ PHP page to render the join form as an HTML fragment, without Luster's own
+ layout wrapper. The form self-posts to the host page URL and redirects back
+ after submission, re-rendering with a flash success or error message inline.
+ Supports CAPTCHA, additional fields, country selection, and the Rules gate.
+*/
 
 declare(strict_types=1);
 
@@ -12,24 +22,6 @@ use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
-
-/**
- * Luster embed — join form fragment.
- *
- * Drop this into any PHP page to embed the join form without Luster's layout.
- * The surrounding HTML (header, footer, nav) comes from your own page.
- *
- * Usage:
- *   $luster_fanlisting_id = 1;     // required: listing ID (int)
- *   $luster_return        = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/join.php';
- *
- * The form self-posts to the host page URL. After every outcome (success or
- * error) the user is redirected back to this same page, where the embed
- * re-renders with a flash success or error message inline.
- *
- * To override the redirect target, set $luster_redirect_url before require.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable

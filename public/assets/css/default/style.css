@@ -1,14 +1,13 @@
-/* ========================================================================
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
 
-  LUSTER - Public Embed Stylesheet (fl-* classes)
-
-  Canonical baseline for all public embeds. Provides layout, spacing,
-  and structure. No hardcoded colors except success/error messages.
-
-  Include once in <head> before your own stylesheet:
-  <link rel="stylesheet" href="/path/to/luster/public/assets/css/default/style.css">
-
-========================================================================= */
+ Public embed stylesheet (fl-* classes). Provides baseline layout,
+ spacing, and structure for all public-facing embeds — join forms,
+ member lists, stats blocks, etc. No hardcoded colors except
+ success/error messages. Include once in your page's <head> before
+ your own stylesheet.
+*/
 
 
 /* ------------------------------------------------------------------------

@@ -1,17 +1,16 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin bulk email result page. Shows the outcome after a bulk email send,
+ including how many messages were delivered successfully and which addresses
+ (if any) failed.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * @var string $listing_title
- * @var string $subject
- * @var int    $sent
- * @var int    $total
- * @var array  $failed    email addresses that failed
- * @var string $base_url
- */
 
 $b = rtrim(View::e($base_url ?? ''), '/');
 $allOk = empty($failed);

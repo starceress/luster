@@ -1,25 +1,20 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable random joined listing widget. Picks one active, approved joined
+ listing at random and renders it using the admin-editable Random Joined
+ Listing template from Collective Templates. No $luster_fanlisting_id is
+ required. Outputs a harmless HTML comment when the pool is empty so the host
+ page never breaks.
+*/
 
 declare(strict_types=1);
 
 use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\JoinedListingRowRenderer;
-
-/**
- * Luster embed — random single joined listing.
- *
- * Picks one active, approved joined listing at random and renders it using
- * the Random Joined Listing template from Admin → Collective → Templates.
- * Outputs an HTML comment when the pool is empty so the host page never breaks.
- *
- * Usage:
- *   require '/absolute/path/to/luster/public/embed/random-joined-listing.php';
- *
- * Optional variables:
- *   $luster_return   bool    true = return HTML string, false = echo
- *                            Default: false
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

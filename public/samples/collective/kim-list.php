@@ -1,12 +1,13 @@
 <?php
-/**
- * Sample collective — KIM List overview and per-fanlisting subject view.
- * Requires the KIM List add-on to be installed.
- *
- * This single page handles both modes:
- *   kim-list.php         — overview: all fanlistings with interest counts
- *   kim-list.php?id=N    — subject: approved KIM members for fanlisting N
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample KIM List page for a fanlisting collective. Handles two modes on a single
+ page: the overview (all fanlistings with interest counts) and the per-fanlisting
+ subject view (approved KIM members for one listing, via ?id=N). Requires the
+ KIM List add-on to be installed. Customize the HTML to match your design.
+*/
 
 $page_title = 'Keep In Mind — List';
 require 'header.php';

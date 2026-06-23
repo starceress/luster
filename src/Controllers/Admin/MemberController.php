@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages members for individual listings. Provides the unified members page
+ (overview across all listings, per-listing member list, and search), plus
+ member editing, approval/rejection, bulk actions, CSV export, and the
+ compose-and-send flow for emailing selected members. Each member action
+ logs to the activity log and sends email notifications where configured.
+*/
 
 declare(strict_types=1);
 
@@ -17,22 +27,6 @@ use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 
-/**
- * Manages members for a specific listing.
- *
- * Routes:
- *   GET  /admin/members/{id}             — list with search + status filter
- *   GET  /admin/members/{id}/edit        — edit form (?email=...)
- *   POST /admin/members/{id}/edit        — save edits
- *   POST /admin/members/{id}/approve     — approve one member
- *   POST /admin/members/{id}/reject      — reject one member
- *   POST /admin/members/{id}/delete      — delete one member
- *   POST /admin/members/{id}/bulk                 — bulk approve / reject / delete / email_selected
- *   POST /admin/members/{id}/approve-all-pending  — approve every pending member in one click
- *   GET  /admin/members/{id}/email-selected       — compose form for emailing selected members
- *   POST /admin/members/{id}/email-selected/send  — send the composed email to selected members
- *   GET  /admin/members/{id}/export      — CSV download of approved members
- */
 final class MemberController extends AdminController
 {
 

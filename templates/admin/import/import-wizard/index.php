@@ -1,7 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import wizard step 1 -- source selection. Displays cards for each supported
+ import source (Enthusiast, Listing Admin, FanUpdate, CodeSort, BellaBuffs,
+ Fanatically) so the admin can choose which legacy script to import data from.
+*/
 use Luster\Core\View;
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b = rtrim(View::e($base_url), '/');
 ?>
 

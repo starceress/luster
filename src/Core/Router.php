@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Minimal request router that matches GET and POST requests to controller
+ actions. Supports path parameters via {braces} syntax and delegates
+ controller instantiation to a resolver closure set by the Application.
+ No external routing library is used -- this is the only routing code in
+ the project.
+*/
 
 declare(strict_types=1);
 

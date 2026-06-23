@@ -1,4 +1,12 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ News Feed admin settings page. Configures the number of update entries displayed
+ per page in the admin panel's News Feed listing views.
+*/
+
 declare(strict_types=1);
 use Luster\Core\View;
 /** @var int    $updates_per_page */

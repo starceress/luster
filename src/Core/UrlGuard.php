@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ URL origin validator used to prevent open-redirect attacks. Compares a
+ candidate URL against the application's base URL and returns true only
+ when the scheme, host, and port match exactly. Used by redirect targets
+ throughout the admin and public request flows.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Reads and writes the custom additional field definitions that each listing
+ can have (like "Favorite Color" or "Favorite Song"). Handles both Enthusiast
+ schema variants: the unprefixed format (comma-separated bare names in the
+ `owned.additional` column) and the standard prefixed format (pipe-delimited
+ or PHP-serialized definitions in `enth_fanlistings.additional_info`). Also
+ manages adding and dropping the corresponding columns on member tables.
+*/
 
 declare(strict_types=1);
 

@@ -1,12 +1,13 @@
 <?php
-/**
- * Generic error page — content fragment.
- *
- * Variables injected by Application::handleException() or controllers:
- *   $error_title    string  heading text
- *   $error_message  string  body text
- *   $base_url       string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Generic error page content fragment. Displays an error title and message when
+ an unrecoverable error occurs (e.g. listing not found, invalid request). Served
+ as a full page via View::renderPublic() from the application exception handler
+ or from controllers.
+*/
 
 declare(strict_types=1);
 

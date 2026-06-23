@@ -1,22 +1,15 @@
-<?php declare(strict_types=1);
-use Luster\Core\View;
+<?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
 
-/**
- * @var \Luster\Models\Listing  $listing
- * @var string[]                $selected_emails
- * @var array<string,string>    $member_names      email → name
- * @var object[]                $saved_emails
- * @var string                  $from_name
- * @var string                  $from_email
- * @var string                  $owner_name
- * @var string                  $owner_email
- * @var string                  $site_name
- * @var string                  $error
- * @var string                  $success
- * @var array                   $old               ['subject'=>..., 'body'=>...]
- * @var string                  $base_url
- * @var string                  $csrf_token
- */
+ Email selected members composer. Similar to the bulk email form, but sends only
+ to a specific set of members chosen from the member list via checkboxes. Shows
+ the recipient list in the sidebar alongside the token reference and saved
+ template loader.
+*/
+declare(strict_types=1);
+use Luster\Core\View;
 
 $b          = rtrim(View::e($base_url ?? ''), '/');
 $listingId  = (int) ($listing->id ?? 0);

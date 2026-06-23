@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable affiliate application form for a single fanlisting. Renders a form
+ where other site owners can apply to be listed as an affiliate. Submitted
+ applications go into the pending queue for admin review. Includes CAPTCHA
+ validation and redirects back to the host page with a flash message after
+ submission.
+*/
 
 declare(strict_types=1);
 
@@ -9,18 +19,6 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
-
-/**
- * Luster embed — affiliate application form fragment.
- *
- * Renders the affiliate application form for a specific listing.
- * Applications are reviewed in Admin → Affiliates → Pending.
- *
- * Usage:
- *   $luster_fanlisting_id = 1;     // required: listing ID (int)
- *   $luster_return        = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/affiliate-apply.php';
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

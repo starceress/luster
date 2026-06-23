@@ -1,30 +1,18 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Joined listings content fragment. Displays the collective's joined fanlistings
+ with category navigation (selector, browse-by-category, or grouped-all modes),
+ image thumbnails or text-link fallbacks, and status filtering. Supports custom
+ joined-listing row templates. Rendered as an embeddable fragment via
+ View::renderFragment() from embed/joined.php.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * Joined listings list — content fragment.
- *
- * Variables injected by embed/joined.php:
- *   $category_html       string      pre-rendered category navigator (from PublicCategoryPresenter)
- *   $show_listings       bool        false when browse-index is rendered (no listing rows)
- *   $listings            JoinedListing[]              flat list (single-category or selector mode)
- *   $grouped             array<string, JoinedListing[]>  category-keyed list (show-all mode fallback)
- *   $listing_html        string|null  pre-rendered HTML from joined_template — fully self-contained,
- *                                     including its own wrapper markup; null = use fallback loop below
- *   $categories          string[]     all available category names
- *   $category_counts     array<string, int>
- *   $total_count         int
- *   $current_category    string       '' | 'all' | exact name
- *   $view                string       '' | 'pending' — active pseudo-view
- *   $browse_by_category  bool
- *   $uploads_url         string
- *   $form_action         string
- *   $base_url            string
- *   $theme_path          string
- */
 
 /** Renders one JoinedListing item (plain link or image) */
 $_renderItem = static function ($fl) use ($uploads_url): void {

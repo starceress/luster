@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Addon entry point for the Wishlist. Implements AddonInterface to create
+ the lstr_wishlist table and register the admin routes. The Wishlist lets
+ the site owner maintain a categorised list of fanlistings they would
+ like to open, with type grouping (Wanted, Top Wanted, Granted) and a
+ public embed for display on any page.
+*/
 
 declare(strict_types=1);
 

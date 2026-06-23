@@ -1,49 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin dashboard. Displays a welcome block with a live greeting and quick-action
+ buttons, danger/warning banners for pending items, the "Collective at a Glance"
+ summary card with listing counts, member stats, growth indicators, top countries,
+ recent members, recent activity, and stale-listing alerts.
+*/
 use Luster\Core\UpdateStatus;
 use Luster\Core\View;
-/**
- * @var string        $admin_username
- * @var string        $welcome_greeting
- * @var string        $site_name
- * @var int           $total_listings
- * @var int           $fan_current
- * @var int           $fan_pending
- * @var int           $fan_upcoming
- * @var int           $total_joined
- * @var int           $total_joined_active
- * @var int           $total_joined_inactive
- * @var int           $total_joined_categories
- * @var int           $total_members
- * @var int           $member_countries
- * @var int           $total_pending
- * @var int           $total_affiliates
- * @var int           $total_affiliates_collective
- * @var int           $total_affiliates_per_fl
- * @var int           $total_categories
- * @var string|null   $newest_owned_name
- * @var string|null   $newest_owned_opened
- * @var string|null   $newest_joined_name
- * @var string|null   $newest_joined_date
- * @var string|null   $most_active_listing_name
- * @var int|null      $most_active_listing_id
- * @var int           $most_active_listing_count
- * @var array         $top_countries        [name => count, ...]
- * @var int           $growth_this_month
- * @var int           $growth_last_month
- * @var int           $opened_this_year
- * @var int           $joined_this_year
- * @var int           $listings_up_to_date
- * @var array[]       $recent_members       [{member: Member, listing_title: string, listing_id: int}]
- * @var array[]       $recent_activity
- * @var array[]       $stale_listings
- * @var int           $stale_threshold_days
- * @var int           $overdue_threshold_days
- * @var string             $base_url
- * @var string             $csrf_token
- * @var \Luster\Core\UpdateStatus $update_status
- * @var bool               $show_update_banner
- * @var bool               $show_http_warning
- */
 $b = rtrim(View::e($base_url), '/');
 
 if (!function_exists('dashTimeAgo')) {

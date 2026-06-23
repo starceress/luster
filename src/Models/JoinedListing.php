@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Value object for a joined listing — a fanlisting the site owner has joined
+ as a member (as opposed to one they run). Each row comes from the
+ lstr_joined table and tracks the listing name, URL, category, join date,
+ active/inactive status, and link-checker results. Used by the Joined
+ Listings admin page, the public joined-listings embed, and the link
+ checker feature.
+*/
 
 declare(strict_types=1);
 

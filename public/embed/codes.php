@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable fan codes (graphics/buttons) display. Renders approved codes for a
+ single fanlisting or for the collective (when $luster_fanlisting_id is 0 or
+ omitted). Codes are displayed using the admin-editable codes template, which
+ supports both grouped-by-size and flat layout modes, with donor attribution
+ and category filtering.
+*/
 
 declare(strict_types=1);
 
@@ -10,19 +20,6 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CodesTemplateRenderer;
-
-/**
- * Luster embed — codes fragment.
- *
- * Usage in your own page:
- *   $luster_fanlisting_id = 1;     // listing ID; omit or set to 0 for collective codes
- *   $luster_return        = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/codes.php';
- *
- * Renders the codes as a content fragment grouped by detected dimensions,
- * with no layout wrapper. Set $luster_fanlisting_id = 0 (or leave unset) for
- * collective-wide codes where fanlisting_id IS NULL in lstr_codes.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Resolve listing ID / collective mode

@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Provides read and write access to the lstr_error_log table, which stores
+ application error entries with a severity level, message, and optional
+ source identifier. Supports paginated retrieval for the admin error log
+ viewer and a flush operation to clear all entries at once.
+*/
 
 declare(strict_types=1);
 

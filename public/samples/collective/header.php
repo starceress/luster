@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample header for a fanlisting collective. Loads configuration from Luster,
+ reads the collective name from config, and outputs the opening HTML with a
+ navigation bar and demo-site switcher. Every other sample collective page
+ includes this file at the top. Customize the HTML, navigation links, and
+ styling to match your own design.
+*/
+
 // The only line you need to change.
 $site_tagline = 'A fanlisting collective';
 

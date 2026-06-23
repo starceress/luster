@@ -1,17 +1,14 @@
 <?php
-/**
- * Password reset confirmation — new password form fragment.
- *
- * Variables injected by ResetController / embed/reset.php (confirm step):
- *   $form_action  string
- *   $csrf_token   string
- *   $errors       string  pre-escaped HTML error block, or ''
- *   $token        string  raw reset token (placed in hidden field)
- *   $token_valid  bool    false = show expired/invalid message, no form
- *   $reset_url    string  URL of the email-entry form (for "request a new one" link)
- *   $f            array<string,string>  keys: 'new_password', 'new_password_confirm'
- *   $base_url     string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Password reset confirmation content fragment (step 2 of 2). Validates the
+ reset token from the emailed link and presents a new-password form. Shows an
+ expired/invalid message with a "request a new one" link when the token is no
+ longer valid. Served as a full page via View::renderPublic() or as an
+ embeddable fragment via View::renderFragment() from embed/reset.php.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ URL utility helpers for resolving relative redirect Location headers into
+ absolute URLs and for producing scheme/www-agnostic search needles. Extracted
+ from LinkChecker so the normalisation logic is reusable across the codebase
+ without pulling in HTTP client dependencies.
+*/
 
 declare(strict_types=1);
 

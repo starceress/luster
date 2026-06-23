@@ -1,7 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Keep In Mind (KIM) admin cross-listing email composer for selected members.
+ Renders the standard composer grid layout for emailing KIM members selected from
+ the unified overview (spanning multiple listings). Shows a recipient count summary
+ and supports saved template loading.
+*/
+
 /**
- * KIM List admin — cross-listing email-selected compose form.
- *
  * Variables:
  *   $id_email_map    array<int, array{id:int, fanlisting_id:int, name:string, email:string, url:string, added_at:string}>
  *   $listing_map     array<int, Listing>   fanlisting_id => Listing

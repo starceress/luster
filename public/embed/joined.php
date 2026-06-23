@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable joined listings page. Renders the list of fanlistings you have
+ joined as a member, with category filtering via dropdown or browse-by-
+ category index. Supports showing all listings grouped by category, filtering
+ to a single category, and an admin-editable row template with token
+ substitution for each joined listing entry.
+*/
 
 declare(strict_types=1);
 
@@ -6,30 +16,6 @@ use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\JoinedListingRowRenderer;
 use Luster\Support\PublicCategoryPresenter;
-
-/**
- * Luster embed — joined listings list.
- *
- * Drop this into any PHP page to embed the list of listings you have joined.
- * Supports category filtering and two selector display modes.
- *
- * Usage:
- *   $luster_return = false;                  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/joined.php';
- *
- * Optional variables:
- *   $luster_category    string  Controls what is displayed:
- *                               ''    — show the category selector; visitor picks a category
- *                               'all' — show ALL active listings grouped by category
- *                               other — exact category name; show only that category's listings
- *                               Default: '' (reads $_GET['cat'])
- *   $luster_browse_by_category  bool    Browse-by-category mode: index view when no category selected.
- *                                       Default: false
- *   $luster_show_all_by_default bool    Show grouped listings AND the selector initially.
- *                                       Default: false
- *   $luster_show_pending        bool    Show "All Pending (N)" entry in the category nav
- *                                       when pending joined listings exist. Default: true
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

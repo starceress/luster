@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Formats admin feedback reports as plain text for email delivery. Assembles
+ system info, error log excerpts, and the admin's message into a single
+ structured report. Has no DB or session dependencies -- accepts pre-assembled
+ data arrays and returns formatted strings.
+*/
 
 declare(strict_types=1);
 

@@ -1,18 +1,27 @@
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin panel stylesheet. Covers layout, shell, components, forms,
+ and every feature page in the admin panel. Loaded on all admin
+ and auth pages via the _css_assets.php manifest helper. Skin
+ overrides live in skins.css (loaded after this file).
+*/
+
 /* ========================================================================
 
-  LUSTER - Admin Panel Stylesheet
-
-  0. Reset & Base Elements
-  1. Shell & Auth
-  2. Core Components
-  3. Forms
-  4. Settings & Panel Navigation
-  5. Dashboard
-  6. Collective
-  7. Email, Codes & Embeds
-  8. Import Wizard
-  9. Appearance, Add-Ons & Admin Tools
- 10. Responsive Overrides
+  TABLE OF CONTENTS
+    0. Reset & Base Elements
+    1. Shell & Auth
+    2. Core Components
+    3. Forms
+    4. Settings & Panel Navigation
+    5. Dashboard
+    6. Collective
+    7. Email, Codes & Embeds
+    8. Import Wizard
+    9. Appearance, Add-Ons & Admin Tools
+    10. Responsive Overrides
 
 ========================================================================= */
 

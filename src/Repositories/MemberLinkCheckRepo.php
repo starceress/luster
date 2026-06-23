@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Tracks URL link-check state for fan members in lstr_member_link_checks.
+ Because member URLs live in per-listing dynamic tables whose names are
+ only known at runtime, this repo maintains a snapshot table: one row per
+ (listing_id, member_email) with the member's URL and link-check state.
+ The sync step must run before any checking starts for a given listing.
+ Supports per-listing and cross-listing paginated views, redirect-URL
+ application back to the source member table, and per-listing summaries.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders the raw HTML input element for a single form field (text, email,
+ URL, textarea, select, etc.). Produces only the bare <input> or equivalent
+ element -- surrounding label, hint, and error markup is handled by
+ FieldWrapper. All output values are escaped via View::e().
+*/
 
 declare(strict_types=1);
 

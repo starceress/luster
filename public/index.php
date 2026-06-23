@@ -1,16 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Public front controller. All visitor-facing page requests are routed
+ here by .htaccess — join forms, member lists, updates, resets, and
+ stats. This file bootstraps the app, matches the URL to a controller,
+ and sends back the response.
+*/
 
 declare(strict_types=1);
-
-/**
- * Luster — public front controller.
- *
- * Every public request (join, members list, update, remove) is routed
- * through this file by public/.htaccess.
- *
- * WEB ROOT: Only the public/ directory is web-accessible.
- *           No files outside public/ can be requested directly.
- */
 
 define('LUSTER_BASE', dirname(__DIR__));
 

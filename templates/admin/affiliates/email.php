@@ -1,28 +1,13 @@
 <?php
-/**
- * Affiliate bulk email compose form.
- *
- * Variables:
- *   $listings       Listing[]
- *   $scope_counts   array<string, int>  'all'|'collective'|'{id}' → count (empty when selected_only)
- *   $selected_scope string              pre-selected scope value
- *   $selected_only  bool                true when opened from bulk "Email Selected"
- *   $id_recip_map   array<int, array{id: int, name: string, email: string, url: string, listing_id: ?int}>
- *                   ID-keyed map; populated only when selected_only = true
- *   $aff_ids        int[]               IDs of selected affiliates (empty when not selected_only)
- *   $saved_emails   object[]
- *   $from_name      string
- *   $from_email     string
- *   $owner_name     string
- *   $owner_email    string
- *   $site_name      string
- *   $site_url       string
- *   $old            array{subject: string, body: string, scope: string}
- *   $base_url       string
- *   $csrf_token     string
- *   $error          string
- *   $success        string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Affiliate bulk email composer. Provides a compose form for emailing affiliates with
+ scope selection (all, collective, or per-listing), token reference sidebar, saved
+ template loading, and per-recipient token substitution. Also supports an "email
+ selected" mode when opened from the affiliates list with checkboxes.
+*/
 
 declare(strict_types=1);
 

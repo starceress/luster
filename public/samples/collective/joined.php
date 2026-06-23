@@ -1,11 +1,12 @@
 <?php
-/**
- * Sample collective — joined listings.
- *
- * Options (set before the embed require):
- *   $luster_category            = '';    // '' = selector, 'all' = grouped, or exact category name
- *   $luster_browse_by_category  = true;  // show category index first, then filter
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample joined listings page for a fanlisting collective. Shows the fanlistings
+ you have joined on other sites, organized by category with a browse-by-category
+ index. Customize the HTML to match your collective's design.
+*/
 
 $page_title = 'Joined';
 require 'header.php';

@@ -1,13 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Compat wrapper test page. Lets the admin select a listing and embed type, then
+ renders the resulting embed output inline so legacy compatibility wrappers can
+ be verified before deploying to a live site.
+*/
 use Luster\Core\View;
-/** @var \Luster\Models\Listing[] $listings */
-/** @var string[]                 $embed_types */
-/** @var int                      $selected_listing_id */
-/** @var string                   $selected_type */
-/** @var string|null              $output */
-/** @var string|null              $error */
-/** @var string                   $base_url */
-/** @var string                   $csrf_token */
 $b = rtrim(View::e($base_url), '/');
 ?>
 

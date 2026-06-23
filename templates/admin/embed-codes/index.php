@@ -1,16 +1,16 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin embed codes wizard page. Generates ready-to-copy PHP embed code snippets
+ for all Luster features, with per-listing selection, syntax-highlighted previews,
+ and customisation options for each embed type.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * @var string  $embed_path  Absolute server path to public/embed/
- * @var int     $example_id  A real listing ID to use in snippets
- * @var array   $listings    All Listing objects
- * @var string  $base_url
- * @var string  $csrf_token
- */
 
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $ep = rtrim($embed_path ?? '/path/to/luster/public/embed', '/');

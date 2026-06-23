@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Static list of world countries used by public join and update forms. Provides
+ a sorted array of country names and an HTML <select> builder. The list is
+ intentionally hardcoded rather than pulled from the database so it remains
+ available even when the DB is unreachable.
+*/
 
 declare(strict_types=1);
 

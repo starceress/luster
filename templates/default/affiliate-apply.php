@@ -1,17 +1,18 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Affiliate application form content fragment. Allows visitors to apply to
+ become an affiliate of a listing or collective, with name, email, URL, image
+ upload, message, and CAPTCHA fields. Served as a full page via
+ View::renderPublic() or as an embeddable fragment via View::renderFragment()
+ from embed/affiliate-apply.php. Supports custom form templates.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/** @var object|null             $listing */
-/** @var string                  $listing_title */
-/** @var string                  $listing_url */
-/** @var string                  $form_action */
-/** @var string                  $csrf_token */
-/** @var string                  $errors */
-/** @var array<string,string>    $f  keys: name, url, email, image, message, captcha_answer */
-/** @var string|null             $form_html  Non-null when a custom affiliate-apply form template is active */
 
 ?>
 <?php if (isset($form_html)): ?>

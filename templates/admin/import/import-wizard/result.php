@@ -1,11 +1,14 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import wizard step 5 -- results. Displays the final import report with counts
+ of imported, skipped, and failed records per data type, along with any
+ warnings or errors encountered during the run.
+*/
 use Luster\Core\View;
 use Luster\Import\ImportResult;
-/** @var string       $source */
-/** @var string       $source_name */
-/** @var ImportResult $result */
-/** @var string       $base_url */
-/** @var string       $csrf_token */
 $b       = rtrim(View::e($base_url), '/');
 $src     = View::e($source);
 $srcName = View::e($source_name);

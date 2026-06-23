@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders the joining rules body for the public rules gate page. Automatically
+ detects whether the body is an HTML template (contains tags or {gate_button})
+ or legacy plain text (numbered lines become an ordered list, others become
+ paragraphs). Substitutes tokens like {subject}, {gate_button}, and
+ {gate_checkbox}, and processes the {if_gate_checkbox} conditional block based
+ on the configured gate style. Also provides the built-in default rules template
+ used to pre-fill new rule sets.
+*/
 
 declare(strict_types=1);
 
@@ -6,29 +18,6 @@ namespace Luster\Support;
 
 use Luster\Core\View;
 
-/**
- * Renders a rule set body for the public gate.
- *
- * Two rendering paths are chosen automatically:
- *
- *   HTML template  — body contains a tag-like `<` (e.g. `<p>`, `</div>`, `<!--`) or
- *                    `{gate_button}` (new-style admin-authored HTML). Text tokens are
- *                    HTML-escaped; raw gate tokens inserted verbatim.
- *
- *   Legacy plain text — body has no tag-like `<` and no {gate_button} (created before
- *                    the HTML template system). Lines beginning with "N. " become <li>
- *                    items in an <ol>; other non-blank lines become <p> blocks. Text and
- *                    token values are HTML-escaped — including bare `<`/`>` characters,
- *                    e.g. "Score < 10" renders as "Score &lt; 10".
- *
- *                    Note: a stray `<` immediately followed by a letter (e.g. "Use <em>
- *                    sparingly") is indistinguishable from a real tag and is treated as
- *                    HTML. This is a rare edge case for admin-authored content.
- *
- * {if_gate_checkbox}...{/if_gate_checkbox} is resolved before token substitution in
- * both paths: the enclosed content is kept only when $raw['gate_checkbox'] is non-empty
- * (checkbox gate type), otherwise the block (including its tags) is removed.
- */
 final class RulesBodyRenderer
 {
     /**

@@ -1,12 +1,14 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
 
+ Import wizard settings page. Controls which import source cards are visible on
+ the wizard's first step, letting admins hide sources they have already finished
+ migrating from.
+*/
 declare(strict_types=1);
 use Luster\Core\View;
-
-/** @var array  $settings     Keyed by setting name to string value */
-/** @var string $success */
-/** @var string $base_url */
-/** @var string $csrf_token */
 
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>

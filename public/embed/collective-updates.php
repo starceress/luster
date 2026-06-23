@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable collective news feed. Renders the site-wide news/updates feed
+ with pagination, using the admin-editable collective news template. Requires
+ the News Feed add-on to be installed. Each entry can optionally show category
+ tags. The feed only includes entries where fanlisting_id IS NULL (collective
+ scope).
+*/
 
 declare(strict_types=1);
 
@@ -7,19 +17,6 @@ use Luster\Core\Pagination;
 use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Repositories\SiteSettingsRepo;
-
-/**
- * Luster embed — collective updates feed.
- *
- * Drop this into any PHP page to embed the site-wide updates feed.
- * Requires the Updates add-on to be installed.
- *
- * Usage:
- *   $luster_per_page  = 5;    // optional; default from config per_page
- *   $luster_show_cats = true; // optional bool; show category tags per entry
- *   $luster_return    = true; // optional bool; true = return string, false = echo
- *   echo require '/absolute/path/to/luster/public/embed/collective-updates.php';
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

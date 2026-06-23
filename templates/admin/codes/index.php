@@ -1,28 +1,17 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin codes management page. Displays fan-submitted graphic codes in a tabbed
+ view (pending, approved, rejected) with global and per-listing filtering.
+ Supports bulk approve, reject, and delete actions along with individual code
+ upload.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * Global Codes admin page.
- *
- * @var string       $view_mode      'global' | 'listing'
- * @var int          $listing_id     0 = global
- * @var ?\Luster\Models\Listing  $listing
- * @var \Luster\Models\Listing[] $all_listings
- * @var array        $listing_map    [id => Listing]  (global mode)
- * @var object[]     $codes
- * @var string       $tab            pending|all|approved|rejected
- * @var int          $pending_count
- * @var int          $total
- * @var int          $page
- * @var int          $total_pages
- * @var string       $success
- * @var string       $error
- * @var string       $base_url
- * @var string       $csrf_token
- */
 
 $b          = rtrim(View::e($base_url), '/');
 $lid        = (int) ($listing_id ?? 0);

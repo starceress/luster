@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ The main listing registry repository. Reads and writes listings from
+ either the unprefixed "owned" table or the standard "enth_fanlistings"
+ table, depending on the Enthusiast schema variant in use. Handles
+ status filtering, category assignment (including the multi-category
+ junction table), member-table prefix renaming, stale-listing detection,
+ and latest/random listing queries for the public embeds.
+*/
 
 declare(strict_types=1);
 

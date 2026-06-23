@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Lazy PDO wrapper that only opens a database connection on the first actual
+ query, so constructing it in tests or bootstrap code costs nothing. All
+ database access goes through this class, and all queries must use prepared
+ statements. The only interpolation ever allowed in SQL is a validated table
+ prefix, checked by validatePrefix() before use.
+*/
 
 declare(strict_types=1);
 

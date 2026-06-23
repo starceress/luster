@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Template renderer for both public and admin views. Public templates are PHP
+ fragments rendered inside a layout wrapper via renderPublic(), or standalone
+ via renderFragment() for embed mode. Admin templates use PHP includes with
+ extracted data arrays. The static e() method is the project-wide HTML
+ escaping shorthand used in every template.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,17 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages per-listing settings in lstr_fanlisting_settings. This table holds
+ everything Luster needs that has no equivalent column in the Enthusiast
+ schema: template overrides (stats, members, affiliates, codes, updates,
+ join form, etc.), embed URL paths, per-listing DB credentials, image
+ filenames, last-updated dates, TFL/TAFL approval status, join settings
+ (auto-approve, confirmation email), contact form settings, adoption flags,
+ affiliate application settings, and listing descriptions. Also provides
+ the built-in default templates used as fallbacks when no override is stored.
+*/
 
 declare(strict_types=1);
 

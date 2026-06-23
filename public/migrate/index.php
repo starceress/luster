@@ -1,16 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Database migration runner. Open this in a browser after updating Luster
+ to apply any new database changes. Each migration runs once and is
+ tracked in lstr_migrations, so it's safe to re-run at any time.
+ Requires an active admin session — you must be logged in first.
+*/
 
 declare(strict_types=1);
-
-/**
- * Luster Database Migration Runner
- *
- * Run via the browser AFTER logging into the admin panel.
- * URL: http://your-site/luster/public/migrate/
- *
- * Applies all pending migrations in sequence. Safe to re-run — each migration
- * is tracked in lstr_migrations and skipped if already applied.
- */
 
 // Composer autoloader — makes Luster classes (e.g. SkinCatalog) available
 // to _css_assets.php so bundled-skin detection uses the live catalog rather

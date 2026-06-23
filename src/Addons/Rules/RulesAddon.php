@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Addon entry point for the Join Rules system. Implements AddonInterface
+ to create the lstr_rules table and register public and admin routes.
+ When installed, listing owners can define per-listing rules that fans
+ must read and agree to before joining. Rule body edits bump the version
+ number, automatically invalidating prior session-based agreements.
+*/
 
 declare(strict_types=1);
 

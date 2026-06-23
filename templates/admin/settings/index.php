@@ -1,20 +1,13 @@
 <?php
-/** @var array  $cfg          Current config values */
-/** @var string $success */
-/** @var string $error */
-/** @var array  $field_errors */
-/** @var string $base_url */
-/** @var string $csrf_token */
-/** @var \Luster\Models\AdminUser|null $admin_user */
-/** @var \Luster\Models\AdminUser[]    $users */
-/** @var int    $current_admin_id */
-/** @var array  $blacklist_entries */
-/** @var string $php_version */
-/** @var string $db_version */
-/** @var int    $error_log_count */
-/** @var \Luster\Core\UpdateStatus $update_status */
-/** @var string|null $htaccess_base_actual   Active RewriteBase found; null = no mismatch */
-/** @var string|null $htaccess_base_expected Expected path from app_url; set when mismatch exists */
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin settings page. A multi-panel page using CSS :target panel switching
+ for profile and password management, admin user accounts, appearance and
+ skin selection, general configuration including SMTP, embed URL and path
+ settings, blacklist management, and system details.
+*/
 
 use Luster\Core\SkinCatalog;
 use Luster\Core\UpdateStatus;

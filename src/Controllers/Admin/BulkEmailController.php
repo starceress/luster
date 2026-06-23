@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sends bulk announcements to approved members of one or all listings. Handles
+ the preview step (validation and recipient count) and the send step (per-recipient
+ token substitution and delivery loop). Also manages saved email templates (create,
+ update, delete) that can be loaded into the compose form. When sending to all
+ listings, recipients are deduplicated by email address.
+*/
 
 declare(strict_types=1);
 
@@ -14,26 +24,6 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SavedEmailRepo;
 
-/**
- * Bulk email — send an announcement to approved members of one or all listings.
- *
- * POST /admin/emails/preview             → preview()        — validate + show recipient count
- * POST /admin/emails/send                → send()           — perform the send loop + results
- * GET  /admin/new-email-template                   → savedEmailsRedirect() — redirect to /admin/emails?tab=custom
- * POST /admin/new-email-template/save              → saveTemplate()   — create a saved template
- * POST /admin/new-email-template/{id}/update       → updateTemplate() — update a saved template
- * POST /admin/new-email-template/{id}/delete       → deleteTemplate() — delete a saved template
- *
- * The compose form and saved-template list are rendered by EmailsController::index()
- * (?tab=bulk and ?tab=custom respectively).
- *
- * Listing ID = 0 means "all listings" (recipients are deduplicated by email).
- *
- * Supported body tokens (per-recipient substitution):
- *   {fan_name}, {fan_email}, {fan_url}, {fan_country}
- *   {listing_title}, {listing_subject}, {listing_url}
- *   {site_name}, {owner_name}, {owner_email}
- */
 final class BulkEmailController extends AdminController
 {
 

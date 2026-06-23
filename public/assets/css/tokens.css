@@ -1,3 +1,13 @@
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Design tokens and font declarations. Defines @font-face rules for
+ self-hosted fonts (DM Sans, DM Mono, Playfair Display), :root base
+ tokens, and [data-theme] light/dark overrides. Loaded on every page
+ before admin.css — contains no layout or component styles.
+*/
+
 /* -- SELF-HOSTED FONTS --------------------------------------- */
 @font-face {
   font-family: 'Playfair Display';

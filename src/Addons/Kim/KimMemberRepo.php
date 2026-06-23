@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Repository for the lstr_kim_members table. Provides CRUD operations,
+ filtered/paginated queries, bulk approve/delete, per-fanlisting counts,
+ and email recipient lookups for the KIM add-on. The unique key on
+ (email, fanlisting_id) prevents duplicate sign-ups at the database level.
+*/
 
 declare(strict_types=1);
 

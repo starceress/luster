@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders an admin-defined members list template against a set of member records.
+ Supports two modes: new-style templates with an {each_member} loop block and
+ page-level tokens (member count, sort links, stats line), and legacy templates
+ where the entire string is repeated per member for backward compatibility.
+ Per-member tokens cover name, URL, email, country, and any dynamic additional
+ fields. Shared by the public members embed and the admin Templates-tab preview.
+*/
 
 declare(strict_types=1);
 
@@ -7,37 +18,6 @@ namespace Luster\Support;
 use Luster\Models\AdditionalField;
 use Luster\Models\Member;
 
-/**
- * Renders the members_template string against a set of members.
- *
- * Two modes:
- *   New-style: template contains {each_member}...{/each_member} — the block
- *     is extracted and repeated per member; the outer wrapper renders once.
- *   Legacy: no {each_member} block — the entire template is treated as the
- *     per-row template and concatenated once per member (backward compat).
- *
- * Per-member tokens (inside {each_member}, or anywhere in a legacy template):
- *   {fan_name}, {fan_url}, {fan_email}, {fan_country}, {fan_FIELDNAME}
- *
- * Per-member conditionals:
- *   {if_fan_url}...{/if_fan_url}             — member has a URL
- *   {if_no_fan_url}...{/if_no_fan_url}       — member has no URL
- *   {if_fan_country}...{/if_fan_country}     — member has a country
- *   {if_no_fan_country}...{/if_no_fan_country} — member has no country
- *   {if_fan_FIELDNAME}...{/if_fan_FIELDNAME} — additional field has a value
- *   {if_no_fan_FIELDNAME}...{/if_no_fan_FIELDNAME} — additional field is empty
- *
- * Page-level conditionals (new-style only):
- *   {if_members}...{/if_members}       — shown when total > 0
- *   {if_no_members}...{/if_no_members} — shown when total = 0
- *
- * Page-level tokens (new-style only):
- *   {join_url}, {member_count}, {stats_line},
- *   {sort_link_all}, {sort_link_name}, {sort_link_country}
- *
- * Shared by MembersController (real members pages) and ListingController's
- * Templates-tab preview, so the preview always matches the live page.
- */
 final class MembersTemplateRenderer
 {
     private function __construct()

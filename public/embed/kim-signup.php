@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable KIM (Keep In Mind) List sign-up form. Allows visitors to register
+ their interest in joining fanlistings that are not yet open. Renders a form
+ with a fanlisting selector, name, email, URL, and password fields. Requires
+ the KIM add-on to be installed. The form self-posts to the host page and
+ handles submission inline.
+*/
 
 declare(strict_types=1);
 
@@ -7,19 +17,6 @@ use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
-
-/**
- * Luster embed — KIM List sign-up form fragment.
- *
- * Drop this into any PHP page to embed the KIM sign-up form without Luster's layout.
- * The surrounding HTML (header, footer, nav) comes from your own page.
- *
- * Usage:
- *   $luster_return = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/kim-signup.php';
- *
- * The form self-posts to the host page; the embed handles the POST inline.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

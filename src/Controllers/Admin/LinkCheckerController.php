@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Link checker admin page. Scans affiliate and joined-listing URLs for dead links
+ and redirects, displaying results across Active, Moved Links, and Dead Links
+ tabs. Moved Links offers one-click "Update URL" to apply the redirect target.
+ Runs checks via the LinkChecker service with SSRF protection from
+ NetworkAddressGuard. Also supports per-listing member URL checking with
+ paginated summary and detail views.
+*/
 
 declare(strict_types=1);
 

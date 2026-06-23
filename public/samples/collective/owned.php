@@ -1,15 +1,13 @@
 <?php
-/**
- * Sample collective — owned listings.
- *
- * Options (set before the embed require):
- *   $luster_status             = 'current';  // current | upcoming | pending | all
- *   $luster_category_id        = 0;          // 0 = reads $_GET['cat'] automatically
- *   $luster_hide_dropdown      = false;      // suppress the category selector
- *   $luster_show_list          = true;       // overview: true = link list (default), false = dropdown
- *   $luster_show_cat_switcher  = true;       // per-category: true = dropdown switcher (default), false = none
- *   $luster_browse_by_category = true;       // show category index first, then filter
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample owned listings page for a fanlisting collective. Shows the fanlistings
+ you own, organized by category with a browse-by-category index. Several
+ display options can be set before the embed (status filter, category browsing
+ mode, dropdown vs. list). Customize the HTML to match your collective's design.
+*/
 
 $page_title = 'Owned';
 require 'header.php';

@@ -1,20 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Additional fields index for a single listing. Shows all custom fields defined for
+ the listing (name, label, type, required status) with links to edit each field.
+ Fields are read dynamically from the database and are never hardcoded.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * Admin - Additional Fields index for one listing.
- *
- * Variables provided by FieldController::index() via layout():
- * @var \Luster\Models\Listing $listing
- * @var \Luster\Models\AdditionalField[] $fields
- * @var string $success
- * @var string $error
- * @var string $base_url
- * @var string $csrf_token
- */
 
 $b  = rtrim(View::e($base_url), '/');
 $id = (int) $listing->id;

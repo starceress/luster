@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ CRUD controller for admin user accounts. Provides add, edit, and delete actions
+ for the admin accounts list on the Settings page. Passwords are hashed with
+ Argon2id. Safety guards prevent deleting your own account or the last remaining
+ admin account.
+*/
 
 declare(strict_types=1);
 
@@ -10,22 +19,6 @@ use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AdminUserRepo;
 
-/**
- * Admin user management — add, edit, delete.
- *
- * The account list lives in the Settings page (Admin Details tab).
- * These handlers cover the add/edit sub-pages and the delete POST action.
- *
- * GET  /admin/admin-users/add          → addForm()
- * POST /admin/admin-users/add          → add()
- * GET  /admin/admin-users/{id}/edit    → editForm()
- * POST /admin/admin-users/{id}/edit    → edit()
- * POST /admin/admin-users/{id}/delete  → delete()
- *
- * Guards:
- *  - Cannot delete your own account
- *  - Cannot delete the last remaining admin account
- */
 final class AdminUsersController extends AdminController
 {
 

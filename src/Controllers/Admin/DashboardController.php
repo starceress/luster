@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders the admin dashboard, which is the first page you see after logging in.
+ Aggregates collective-wide statistics (listing counts, member totals, top
+ countries, month-over-month growth), recent activity entries, and any pending
+ items that need attention. Also handles the "touch all updated dates" maintenance
+ action and the update-banner dismiss action.
+*/
 
 declare(strict_types=1);
 
@@ -18,9 +28,6 @@ use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
-/**
- * Admin dashboard — shows aggregate stats and recent activity.
- */
 final class DashboardController
 {
     public function __construct(private readonly Application $app) {}

@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import adapter for Enthusiast databases. Supports two schema
+ variants (unprefixed "owned" and enth_-prefixed), auto-detected
+ from the live connection. Imports categories, affiliates, joined
+ listings, per-listing settings, and email templates into Luster's
+ lstr_* tables. Member tables are read natively when the source
+ database is the same as Luster's; otherwise they are copied in
+ chunks. Image migration is delegated to ImageMigrator.
+*/
 
 declare(strict_types=1);
 
@@ -6,35 +18,6 @@ namespace Luster\Import;
 
 use PDO;
 use RuntimeException;
-
-/**
- * Import adapter for Enthusiast databases.
- *
- * Supports two schema variants, auto-detected from the live connection:
- *
- *   'enthusiast_unprefixed'
- *     Registry table: `owned`
- *     Additional field columns in member tables: bare name (e.g. `favorite`)
- *     Categories/affiliates/joined: no prefix (e.g. `category`, `affiliates`)
- *
- *   'enthusiast_enth'
- *     Registry table: `enth_fanlistings`
- *     Additional field columns: `additional_{name}` (e.g. `additional_fave_song`)
- *     Categories/affiliates/joined: `enth_category`, `enth_affiliates`, `enth_joined`
- *
- * What this adapter imports into Luster's lstr_* tables:
- *   - lstr_categories          ← categories / enth_category
- *   - lstr_affiliates          ← affiliates / enth_affiliates
- *   - lstr_joined              ← joined / enth_joined
- *   - lstr_fanlisting_settings ← owned / enth_fanlistings (per-listing settings rows)
- *   - lstr_email_templates     ← emailsignup/emailapproved/emailupdate/emaillostpass columns
- *
- * Member data: Luster reads Enthusiast's per-listing member tables natively.
- * Same DB: tables are already accessible; nothing is copied — user removes the Enthusiast PHP files to decommission.
- * Different DB: runMembers() creates each per-listing table in the target and copies all rows in chunks.
- *
- * Image migration is delegated to ImageMigrator.
- */
 final class EnthusiastImportSource implements ImportSourceInterface
 {
     private const CHUNK    = 500;

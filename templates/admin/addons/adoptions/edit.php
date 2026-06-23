@@ -1,12 +1,19 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Adoptions admin review and edit form. Displays the details of a single adoption
+ application and allows the admin to change its status (pending, reviewed, approved,
+ rejected, granted) along with optional admin notes. In review mode, the status
+ defaults to "reviewed" for quick triage.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
 
 /**
- * Adoptions admin — review / edit an application.
- *
  * @var array                         $application   Row from lstr_adoption_applications
  * @var \Luster\Models\Listing|null   $listing
  * @var bool                          $is_review_mode  True when status is pending/new

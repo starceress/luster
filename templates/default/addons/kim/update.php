@@ -1,19 +1,15 @@
 <?php
-/**
- * KIM List update — sign-in form (step 1).
- *
- * Variables:
- *   $form_action  string
- *   $csrf_token   string
- *   $errors       string  pre-escaped HTML error string, or ''
- *   $success_html string  pre-rendered success HTML, or ''
- *   $f            array<string,string>  keys: email, email_input, password, password_input
- *   $form_html    string|null  custom form template HTML, or null to use hardcoded form
- *   $form_marker  string  embed POST marker — optional; only set by embed file
- *   $link_reset   string|null
- *   $link_list    string|null
- *   $base_url     string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ KIM List update sign-in form content fragment (Keep In Mind add-on, step 1 of
+ 2). Presents an email + password form so the visitor can authenticate before
+ managing their KIM entries in the dashboard (step 2). Served as a full page
+ via View::renderPublic() or as an embeddable fragment via
+ View::renderFragment() from embed/kim-update.php. Supports custom form
+ templates.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages transactional email templates in lstr_email_templates. Each template
+ has a type (join, approve, reset, affiliate_applied, etc.) and can exist at
+ three levels: per-listing override, global override (fanlisting_id = 0), or
+ built-in hardcoded default. The resolve() method walks this inheritance chain
+ to produce the final subject and body, applying {token} substitution along
+ the way. Also provides static token-map builders for each email category.
+*/
 
 declare(strict_types=1);
 

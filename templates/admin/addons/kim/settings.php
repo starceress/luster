@@ -1,4 +1,11 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Keep In Mind (KIM) admin settings page. Configures the public KIM page URLs
+ (sign-up, update, reset, list) and the admin display pagination setting.
+*/
 
 declare(strict_types=1);
 

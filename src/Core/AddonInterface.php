@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Interface that every Luster add-on must implement. Defines the lifecycle
+ contract for install, uninstall, and route registration. Add-ons are
+ auto-discovered from src/Addons/ at boot time and must follow the naming
+ convention {Key}Addon.php inside a matching directory.
+*/
 
 declare(strict_types=1);
 

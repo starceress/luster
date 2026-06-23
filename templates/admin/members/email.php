@@ -1,4 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Member bulk email composer. Provides a full-width compose form for sending email
+ to all members of a specific listing, with subject/body fields, token reference
+ sidebar, saved template loading, and from-address display. Supports per-recipient
+ token substitution.
+*/
+declare(strict_types=1);
 use Luster\Core\View;
 $b          = rtrim(View::e($base_url ?? ''), '/');
 $flName     = View::e($listing->subject ?? '');

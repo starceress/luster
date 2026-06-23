@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin controller for the Adoption add-on. Provides the tabbed overview of
+ all adoption applications, per-listing and per-application detail views,
+ bulk actions (approve/reject/delete), individual and bulk email composers,
+ and the adoption settings page. All state changes are CSRF-protected and
+ logged to the activity log.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Key-value store for site-wide settings backed by lstr_site_settings. Stores
+ collective-level template overrides (owned, joined, stats, affiliates, codes,
+ updates, contact, KIM, wishlist, adoption, etc.), import visibility flags,
+ and the selected admin skin. Also holds the built-in default HTML for every
+ collective template, so both the admin template editor and the public embed
+ files share the same canonical fallback markup.
+*/
 
 declare(strict_types=1);
 

@@ -1,17 +1,20 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Resolves a template string through the three-level cascade used by all embed
+ template surfaces: per-listing override, site-wide global default, then built-in
+ code default. Returns the resolved value, which level it came from, and whether
+ the template engine should render it (custom and global templates are rendered;
+ built-in defaults are handled by the hardcoded PHP fragments instead). Pure
+ function with no DB calls, making it trivially unit-testable.
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Support;
 
-/**
- * Resolves a per-listing template through the three-level cascade:
- *   1. Per-listing override  (lstr_fanlisting_settings column — custom)
- *   2. Site-wide global default (lstr_site_settings key — global)
- *   3. Built-in code default  (ListingSettingsRepo::default*() — built_in)
- *
- * Pure function — no DB calls, trivially unit-testable.
- */
 final class ListingTemplateResolver
 {
     /**

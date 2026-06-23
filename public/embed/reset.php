@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable password reset form for a single fanlisting. Handles both steps of
+ the reset flow inline: the initial email-entry form and the new-password
+ confirmation form (triggered automatically when a ?token= query parameter is
+ present in the URL). The form self-posts to the host page and redirects back
+ after each step, rendering flash messages inline.
+*/
 
 declare(strict_types=1);
 
@@ -10,29 +20,6 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
-
-/**
- * Luster embed — password reset fragment.
- *
- * Handles both the email-entry step and the confirm-new-password step.
- * If the URL has ?token=..., the embed shows the new-password form automatically.
- *
- * Usage:
- *   $luster_fanlisting_id = 1;        // required: listing ID (int)
- *   $luster_return        = false;     // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/reset.php';
- *
- * If the URL contains ?token=..., the embed shows the new-password form
- * automatically. Otherwise it shows the email-entry form.
- *
- * The form self-posts to the host page URL. After every outcome
- * (success or error) the user is redirected back to this same host page, where
- * the embed re-renders with a flash success or error message inline.
- *
- * To override the redirect target, set $luster_redirect_url before require.
- *
- * The ?token= query parameter is read automatically from $_GET.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable

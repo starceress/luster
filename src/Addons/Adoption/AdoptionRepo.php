@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Repository for the lstr_adoption_applications table. Handles all database
+ reads and writes for adoption applications: querying by status, listing,
+ or search term, inserting new applications, updating status, and returning
+ per-status counts for the admin overview.
+*/
 
 declare(strict_types=1);
 

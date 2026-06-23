@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Value object representing a single custom field definition for a listing's
+ member table. Listings can define extra fields like "Favorite song" or
+ "Favorite character" beyond the standard name/email/country. FieldRepo
+ parses the raw field config from the database and returns an array of
+ these objects, which templates then loop over to build form inputs and
+ member display rows dynamically.
+*/
 
 declare(strict_types=1);
 

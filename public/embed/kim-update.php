@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable KIM (Keep In Mind) List update/management form. Uses a two-step
+ flow: visitors first sign in with their email and password, then see a
+ dashboard of all their KIM entries across every fanlisting where they can
+ update details or remove entries. Requires the KIM add-on to be installed.
+ Sign-out is handled via a ?kim_signout=1 query parameter on the host page.
+*/
 
 declare(strict_types=1);
 
@@ -9,20 +19,6 @@ use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
-
-/**
- * Luster embed — KIM List update / management fragment.
- *
- * Usage:
- *   $luster_return = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/kim-update.php';
- *
- * Two-step flow:
- *   Step 1 — sign-in form (email + password)
- *   Step 2 — dashboard: update or remove KIM entries across all fanlistings
- *
- * Sign-out: the sign-out link appends ?kim_signout=1 to the host page URL.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles admin-panel password reset tokens stored in lstr_password_resets.
+ Only the SHA-256 hash of each token is persisted; expired and already-used
+ tokens are cleaned up opportunistically on lookup. One active token per
+ admin user is enforced by deleting previous tokens before creating a new one.
+*/
 
 declare(strict_types=1);
 

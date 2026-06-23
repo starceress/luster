@@ -1,7 +1,12 @@
 <?php
-/**
- * Sample collective — owned listings (legacy filename; use owned.php instead).
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Legacy filename for the owned listings page. This file is kept for backward
+ compatibility with existing links. Use owned.php instead for new setups.
+ Customize the HTML to match your collective's design.
+*/
 
 $page_title = 'Owned';
 require 'header.php';

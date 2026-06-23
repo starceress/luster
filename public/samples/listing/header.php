@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample header for a fanlisting site. Loads configuration from Luster, fetches
+ the listing's name and subject from the database, and outputs the opening HTML
+ with a navigation bar. Every other sample page includes this file at the top.
+ Customize the HTML, navigation links, and styling to match your own design.
+*/
+
 // Edit this line to match your listing's ID (Admin → Listings).
 $listing_id = 1;
 

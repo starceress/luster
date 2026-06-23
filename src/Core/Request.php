@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Immutable wrapper around the HTTP request superglobals ($_GET, $_POST,
+ $_SERVER, $_FILES, $_COOKIE). Constructed once at bootstrap and passed into
+ controllers so they never touch superglobals directly. All accessors return
+ raw values -- callers are responsible for validation and escaping.
+*/
 
 declare(strict_types=1);
 

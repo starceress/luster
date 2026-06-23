@@ -1,15 +1,12 @@
 <?php
-/**
- * Shared admin pagination partial.
- *
- * Required variables (set before including):
- *   $pg_current  (int)      — current page number
- *   $pg_total    (int)      — total number of pages
- *   $pg_url      (callable) — fn(int $page): string — returns URL for that page
- *
- * Pattern: 1 page before current · current · 1 page after current
- *          with leading "1 …" and trailing "… last" when there is a gap.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Shared pagination partial included by admin list pages. Renders a compact numbered
+ page navigator with previous/next links and an ellipsis window around the current page.
+ Expects $pg_current, $pg_total, and a $pg_url callable to be set before inclusion.
+*/
 
 if (($pg_total ?? 1) <= 1) return;
 

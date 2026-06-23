@@ -1,18 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Wishlist content fragment (Wishlist add-on). Displays the collective owner's
+ wishlist entries grouped by type (top wanted, wanted, granted) or filtered to
+ a single type, with images, descriptions, and pagination. Rendered as an
+ embeddable fragment via View::renderFragment() from embed/wishlist.php.
+ Supports custom wishlist templates.
+*/
+
 use Luster\Core\View;
-/**
- * Public wishlist fragment template.
- *
- * Variables (injected via extract($data) by View::renderFragment):
- * @var \Luster\Models\Wishlist[] $entries
- * @var string $filter_type   'all' | 'wanted' | 'top' | 'granted'
- * @var string $base_url
- * @var string|null $wishlist_template_html  pre-rendered HTML from embed (null = use default)
- * @var string $pagination  pre-built pagination HTML, or ''
- * @var int $page
- * @var int $pages
- * @var int $total
- */
 
 // When a custom wishlist_template has been rendered by the embed, use it directly.
 if (isset($wishlist_template_html) && $wishlist_template_html !== null) {

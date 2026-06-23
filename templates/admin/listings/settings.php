@@ -1,14 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Owned listings display settings. Configures how the listings index page behaves,
+ including default sort order, items per page, and other listing-level display
+ preferences that apply across the admin panel.
+*/
 use Luster\Core\View;
-/**
- * Admin - Owned Listings display settings.
- *
- * @var array  $cfg
- * @var string $success
- * @var string $error
- * @var string $base_url
- * @var string $csrf_token
- */
 $b = rtrim(View::e($base_url), '/');
 function flsCfgVal(array $cfg, string $key, $default = ''): string {
     return (string) ($cfg[$key] ?? $default);

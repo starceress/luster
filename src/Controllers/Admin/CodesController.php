@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Per-listing codes management. Handles uploading fan graphic codes (with MIME
+ validation and dimension detection), organizing them into size groups,
+ categories, and donors, and managing approval status. Also supports bulk
+ operations (delete, reassign), drag-drop reordering, single-code metadata
+ edits, and ZIP export of all approved codes for a listing.
+*/
 
 declare(strict_types=1);
 
@@ -12,32 +22,6 @@ use Luster\Repositories\CodeDonorsRepo;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\CodeSizesRepo;
 use Luster\Repositories\ListingRepo;
-
-/**
- * Admin CRUD for per-fanlisting codes and code sizes.
- *
- * Routes:
- *   POST /admin/listings/{fid}/codes/upload                    — multi-file upload
- *   POST /admin/listings/{fid}/codes/sizes/add                 — add a size group
- *   POST /admin/listings/{fid}/codes/sizes/{sid}/edit          — update a size group
- *   POST /admin/listings/{fid}/codes/sizes/{sid}/delete        — delete a size group
- *   POST /admin/listings/{fid}/codes/categories/add            — add a category
- *   POST /admin/listings/{fid}/codes/categories/{cid}/edit     — update a category
- *   POST /admin/listings/{fid}/codes/categories/{cid}/delete   — delete a category
- *   POST /admin/listings/{fid}/codes/donors/add                — add a donor
- *   POST /admin/listings/{fid}/codes/donors/{did}/edit         — update a donor
- *   POST /admin/listings/{fid}/codes/donors/{did}/delete       — delete a donor
- *   POST /admin/listings/{fid}/codes/bulk                      — bulk delete / bulk reassign
- *   POST /admin/listings/{fid}/codes/{id}/delete               — single code delete
- *   POST /admin/listings/{fid}/codes/{id}/size                 — reassign single code to a size
- *   POST /admin/listings/{fid}/codes/{id}/categories           — set category assignments for a code
- *   POST /admin/listings/{fid}/codes/{id}/donor                — set donor for a code
- *   POST /admin/listings/{fid}/codes/{id}/status               — set approval status for a code
- *   POST /admin/listings/{fid}/codes/{id}/name                 — set or clear the per-code label
- *   POST /admin/listings/{fid}/codes/{id}/update               — consolidated update (name, size, categories, donor, status)
- *   GET  /admin/listings/{fid}/codes/export                    — ZIP download of all approved codes
- *   POST /admin/listings/{fid}/codes/reorder                   — drag-drop sort order save
- */
 final class CodesController extends AdminController
 {
     /** Allowed MIME types for uploaded code images. */

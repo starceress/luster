@@ -1,4 +1,15 @@
-<?php declare(strict_types=1);
+<?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin collective embed snippets page. Shows ready-to-copy PHP embed code
+ snippets for all collective-level features, including owned listings,
+ joined listings, statistics, affiliates, codes, contact form, and add-on
+ embeds.
+*/
+
+declare(strict_types=1);
 use Luster\Core\View;
 
 $b  = rtrim(View::e($base_url ?? ''), '/');

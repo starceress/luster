@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Immutable value object returned by UpdateChecker. Carries the installed
+ version, the latest available version from GitHub, the release page URL,
+ and flags indicating whether an update is available, whether the last
+ check failed, and whether a check has ever been attempted.
+*/
 
 declare(strict_types=1);
 

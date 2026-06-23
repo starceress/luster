@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Repository for the lstr_wishlist table. Provides filtered and paginated
+ reads, CRUD operations, type/category counts, sort-order reordering,
+ and bulk status toggling. Supports filtering by type, active status,
+ category, and search term across both the admin panel and public embed.
+*/
 
 declare(strict_types=1);
 

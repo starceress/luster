@@ -1,26 +1,19 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable latest joined listing widget. Renders the most recently joined
+ listing (by date_joined) using the admin-editable Latest Joined Listing
+ template from Collective Templates. No $luster_fanlisting_id is required.
+ Outputs a harmless HTML comment when no active joined listings exist.
+*/
 
 declare(strict_types=1);
 
 use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\JoinedListingRowRenderer;
-
-/**
- * Luster embed — most recently joined listing.
- *
- * Returns the active, approved joined listing with the most recent
- * date_joined, rendered using the Latest Joined Listing template from
- * Admin → Collective → Templates.
- * Outputs an HTML comment when no listings are found so the host page never breaks.
- *
- * Usage:
- *   require '/absolute/path/to/luster/public/embed/latest-joined-listing.php';
- *
- * Optional variables:
- *   $luster_return   bool    true = return HTML string, false = echo
- *                            Default: false
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

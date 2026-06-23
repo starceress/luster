@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable statistics block for a single fanlisting. Renders the stats
+ snippet using the admin-editable template stored in the database, with
+ {token} placeholders replaced by live data (member counts, newest members,
+ growth rate, network approval status, etc.). The output is identical to the
+ built-in GET /stats route but available as a server-side PHP include.
+*/
 
 declare(strict_types=1);
 
@@ -8,23 +18,6 @@ use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\DateFormatter;
 use Luster\Support\ListingTemplateResolver;
-
-/**
- * Luster embed — stats fragment.
- *
- * Outputs the listing stats snippet using the template stored in
- * lstr_fanlisting_settings.stats_template, with {token} placeholders
- * replaced with live data. Identical output to GET /stats/{listingId}
- * but available as a server-side PHP include.
- *
- * Usage:
- *   $luster_fanlisting_id = 1;     // required: listing ID (int)
- *   $luster_return        = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/stats.php';
- *
- * See ListingSettingsRepo::defaultStatsTemplate()
- * "Per-listing stats template" for the full token reference.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable

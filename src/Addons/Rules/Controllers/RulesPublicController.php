@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Public controller for the rules gate page. Shows the listing's rules to
+ the fan and records their agreement in the session keyed by listing ID
+ and rule-set fingerprint. When the admin edits the rule body, the version
+ increments and the fingerprint changes, requiring fans to re-agree.
+*/
 
 declare(strict_types=1);
 

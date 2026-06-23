@@ -1,23 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Owned listings index. Displays a filterable, paginated table of all owned fanlistings
+ with status tabs, search, network/category/type filters, member counts, and bulk
+ actions. Each row links to the listing's edit page.
+*/
 use Luster\Core\View;
-/** @var \Luster\Models\Listing[] $listings */
-/** @var array<int,int>         $member_counts */
-/** @var array<int,int>         $pending_counts */
-/** @var array<int,string|null> $images */
-/** @var array<int,string>      $listing_types */
-/** @var array<int,string>      $category_names */
-/** @var array<int,array<array{network:string,name:string}>> $category_data */
-/** @var array                  $cfg */
-/** @var string                 $base_url */
-/** @var string                 $csrf_token */
-/** @var string                 $success */
-/** @var string                 $search */
-/** @var string                 $filter_network */
-/** @var string                 $filter_cat */
-/** @var array                  $tfl_cats */
-/** @var array                  $tafl_cats */
-/** @var string[]               $custom_networks */
-/** @var array<string,array>    $custom_cats */
 /** @var string                 $filter_type */
 /** @var string[]               $type_options */
 /** @var int                    $page */

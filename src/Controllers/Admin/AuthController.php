@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles all admin authentication flows: login, logout, remember-me cookie,
+ forgot-password (email a time-limited reset token), and password reset.
+ Rate-limiting, session regeneration, and Argon2id hashing are enforced here.
+ Legacy MD5 password hashes are auto-upgraded on successful login.
+*/
 
 declare(strict_types=1);
 

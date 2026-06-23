@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Wishlist admin add/edit form. Used for creating new wishlist entries or editing
+ existing ones. Includes fields for subject, URL, description, type (wanted, top
+ priority, granted), status, and category selection with network-aware category
+ dropdowns (TFL, TAFL, custom).
+*/
+
 use Luster\Core\View;
 /** @var \Luster\Addons\Wishlist\Wishlist|null $entry   null = add mode */
 /** @var array  $old     re-population on validation failure */

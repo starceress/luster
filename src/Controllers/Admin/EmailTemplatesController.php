@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ POST-only controller for transactional email template management. Handles saving
+ all six template types (join, approve, update, remove, reset, notify_join) for a
+ given scope (global or per-listing), resetting a single type back to its parent
+ level, and toggling the enabled flag via AJAX. The GET index redirects to the
+ unified Emails page served by EmailsController.
+*/
 
 declare(strict_types=1);
 
@@ -10,14 +20,6 @@ use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 
-/**
- * Email template management (POST handlers only — GET now served by EmailsController).
- *
- * GET  /admin/email-templates          — 302 redirect to /admin/emails?tab=templates
- * POST /admin/email-templates/save     — save all 6 types for scope
- * POST /admin/email-templates/reset    — reset one type to next level
- * POST /admin/email-templates/toggle   — AJAX toggle enabled flag
- */
 final class EmailTemplatesController extends AdminController
 {
 

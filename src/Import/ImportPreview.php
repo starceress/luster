@@ -1,24 +1,19 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Immutable value object returned by ImportSourceInterface::preview().
+ It carries per-data-type row counts (found, would-import, would-skip)
+ and informational warnings from the read-only dry-run pass. No
+ writes have been performed when this object exists. The result page
+ in the import wizard renders these counts so the user can review
+ before committing the import.
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Import;
-
-/**
- * Value object returned by ImportSourceInterface::preview().
- *
- * Carries read-only counts and informational warnings from the dry-run pass.
- * No writes have been performed when this object is produced.
- *
- * Each item in $rows has shape:
- *   [
- *     'type'    => string,   // e.g. 'Categories', 'Affiliates', 'Members (listing 1)'
- *     'found'   => int,      // rows found in source
- *     'import'  => int,      // rows that would be inserted
- *     'skip'    => int,      // rows that would be skipped (already exist)
- *     'warnings'=> string[], // informational notes (not errors)
- *   ]
- */
 final class ImportPreview
 {
     /** @param list<array{type:string,found:int,import:int,skip:int,warnings:string[]}> $rows */

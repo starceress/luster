@@ -1,4 +1,12 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Legacy redirect controller for the system information page. The system details
+ content now lives on the Settings page under the System tab, so this controller
+ simply redirects GET /admin/sysinfo to the appropriate Settings panel anchor.
+*/
 
 declare(strict_types=1);
 
@@ -8,12 +16,6 @@ use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 
-/**
- * Displays system information for the current installation.
- *
- * Routes:
- *   GET /admin/sysinfo
- */
 final class SysInfoController
 {
     public function __construct(private readonly Application $app) {}

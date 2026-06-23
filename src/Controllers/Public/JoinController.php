@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles the public join form where fans sign up to be members of a listing.
+ On GET, it renders the form with CAPTCHA, country selector, and any additional
+ fields configured for the listing. On POST, it validates all input (including
+ honeypot, rate limiting, blacklist, and duplicate checks), inserts the new
+ member, sends confirmation and admin notification emails, and redirects back.
+ Also integrates with the Rules add-on gate when installed.
+*/
 
 declare(strict_types=1);
 

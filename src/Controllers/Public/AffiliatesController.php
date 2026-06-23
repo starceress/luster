@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders the public affiliates page showing active affiliates for a specific
+ listing or for the collective (site-wide). Supports pagination and custom
+ section templates with per-row loops, conditional blocks, and an inline
+ affiliate application form toggle. When a section template is configured, the
+ output is rendered through the template engine with {aff_*} row tokens.
+*/
 
 declare(strict_types=1);
 

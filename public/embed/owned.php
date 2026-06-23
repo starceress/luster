@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable owned listings page. Renders the list of fanlistings you own,
+ with support for status filtering (current/upcoming/pending/all), category
+ filtering via dropdown or browse-by-category index, and an admin-editable
+ row template with token substitution. Each row can include member counts,
+ country counts, and network approval status, which are only queried when
+ the template actually uses those tokens.
+*/
 
 declare(strict_types=1);
 
@@ -8,38 +19,6 @@ use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingRowRenderer;
 use Luster\Support\MemberStatsService;
 use Luster\Support\PublicCategoryPresenter;
-
-/**
- * Luster embed — owned listings list.
- *
- * Drop this into any PHP page to embed the list of listings you own.
- * Supports status filtering, category filtering, and two selector display modes.
- *
- * Usage:
- *   $luster_return = false;                  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/owned.php';
- *
- * Optional variables:
- *   $luster_status            string  'current' | 'upcoming' | 'pending' | 'all'
- *                                     Default: 'current'
- *   $luster_exclude_pending   bool    When true and $luster_status is 'all', pending /
- *                                     inactive listings are silently omitted.
- *                                     Default: true
- *   $luster_category_id       int     Luster category ID to pre-filter to (0 = all).
- *                                     When 0, reads $_GET['cat'] — accepts both numeric
- *                                     IDs and slugs (e.g. ?cat=anime-manga).
- *                                     Default: 0 (reads $_GET['cat'])
- *   $luster_hide_dropdown       bool    Set true to suppress the category selector entirely.
- *                                       Default: false
- *   $luster_browse_by_category  bool    Set true to enable browse-by-category mode.
- *                                       Default: false
- *   $luster_show_pending        bool    Show "All Pending (N)" entry in the category nav
- *                                       when pending listings exist (status='current' only).
- *                                       Default: true
- *   $luster_show_upcoming       bool    Show "All Upcoming (N)" entry in the category nav
- *                                       when upcoming listings exist (status='current' only).
- *                                       Default: true
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

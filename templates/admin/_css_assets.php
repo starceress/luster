@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ CSS asset manifest helper shared by all admin-facing pages. Provides helper functions
+ that return the ordered list of CSS files to load (tokens, admin, skins, community skin)
+ and generate the corresponding link tags with cache-busting timestamps. Used by
+ layout.php, auth templates, the migration runner, and the install wizard.
+*/
 
 declare(strict_types=1);
 

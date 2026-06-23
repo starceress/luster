@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable membership update form for a single fanlisting. Uses a two-step
+ flow: visitors first sign in with their email and password, then the form
+ re-renders pre-filled with their current member data for editing. Also
+ supports permanent membership deletion via a checkbox. Includes a "Forgot
+ your password?" link that can be overridden to point at the host site's
+ own reset page.
+*/
 
 declare(strict_types=1);
 
@@ -13,23 +24,6 @@ use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
-
-/**
- * Luster embed — update membership form fragment.
- *
- * Two-step flow: shows a sign-in form first; after authentication (handled by
- * POST /update/{id}/sign-in in the controller) the session key
- * lstr_update_authed_{id} is set and this embed renders the full update form
- * pre-filled with the member's current values.
- *
- * Usage:
- *   $luster_fanlisting_id = 1;     // required: listing ID (int)
- *   $luster_return        = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/update.php';
- *
- * Override variables:
- *   $luster_lost_password_url  — override the "Forgot your password?" link URL
- */
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable

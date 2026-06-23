@@ -1,30 +1,18 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Owned listings content fragment. Displays the collective's owned fanlistings
+ with category navigation, browse-by-category mode, and status filtering
+ (current, upcoming, pending, all). Supports custom owned-listing row templates
+ via ListingRowRenderer. Rendered as an embeddable fragment via
+ View::renderFragment() from embed/owned.php.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * Owned listings list — content fragment.
- *
- * Variables injected by embed/owned.php:
- *   $category_html       string      pre-rendered category navigator (from PublicCategoryPresenter)
- *   $show_listings       bool        false when the presenter is showing a browse-index (no rows)
- *   $listings            Listing[]   filtered list of owned listings
- *   $listing_html        string|null pre-rendered HTML from owned_template — fully self-contained,
- *                                    including its own wrapper markup (e.g. <ul>/<li> or grouped
- *                                    <h3>/<ul> sections); null = use fallback loop
- *   $categories          array       [{id, name, slug, source, parent_id, parent_name, listing_count}]
- *   $current_category    int         selected category ID (0 = all)
- *   $browse_show_all     bool        true when ?cat=all shows all listings in browse mode
- *   $total_count         int         total listing count across all categories
- *   $status              string      active status filter: current|upcoming|pending|all
- *   $view                string      pseudo-view active: '' | 'pending' | 'upcoming'
- *   $form_action         string      URL the category filter form/links point to
- *   $uploads_url         string      base URL for listing images
- *   $base_url            string
- *   $theme_path          string
- */
 ?>
 <?= $category_html ?? '' ?>
 

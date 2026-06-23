@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Addon entry point for the Adoption System. Implements AddonInterface to
+ register the adoption database table, admin routes, and public routes.
+ When installed, it adds a per-listing "for adoption" toggle and lets
+ visitors submit adoption applications through a public form.
+*/
 
 declare(strict_types=1);
 

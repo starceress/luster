@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages the site owner's "joined" listings -- fanlistings the owner has joined
+ as a member elsewhere. Provides the joined index (grouped by category with
+ search and pagination), add/edit forms, delete, and active/inactive toggling.
+ These entries appear on the public collective page when visitors browse the
+ owner's joined fanlistings.
+*/
 
 declare(strict_types=1);
 
@@ -10,18 +20,6 @@ use Luster\Core\Validator;
 use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\JoinedListingRepo;
 
-/**
- * Manages the site owner's joined listings list.
- *
- * Routes:
- *   GET  /admin/joined              — list, grouped by category
- *   GET  /admin/joined/add          — add form
- *   POST /admin/joined/add          — insert
- *   GET  /admin/joined/{id}/edit    — edit form
- *   POST /admin/joined/{id}/edit    — update
- *   POST /admin/joined/{id}/delete  — delete
- *   POST /admin/joined/{id}/toggle  — toggle active/inactive
- */
 final class JoinedController extends AdminController
 {
 

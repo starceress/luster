@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages affiliates (link exchange partners) across all listings and at the
+ collective level. Handles the affiliate index, add/edit/delete/toggle actions,
+ pending affiliate approval with email notifications, bulk operations, and the
+ affiliate bulk email composer. Supports both global and per-listing contexts,
+ redirecting back to the correct page depending on where the action originated.
+*/
 
 declare(strict_types=1);
 
@@ -15,23 +25,6 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SavedEmailRepo;
 
-/**
- * Manages affiliates across all listings.
- *
- * Routes:
- *   GET  /admin/affiliates                           — list all affiliates
- *   GET  /admin/affiliates/add                       — add form (global context)
- *   POST /admin/affiliates/add                       — insert (global context)
- *   POST /admin/listings/{fid}/affiliates/add        — insert (listing context; form is inline in the listing edit tab)
- *   GET  /admin/affiliates/{id}/edit                 — edit form
- *   POST /admin/affiliates/{id}/edit                 — update
- *   POST /admin/affiliates/{id}/toggle               — toggle active/inactive
- *   POST /admin/affiliates/{id}/delete               — delete
- *
- * Listing context: when accessed via /admin/listings/{fid}/affiliates/add,
- * or when from_listing is passed as a query/POST param, save/toggle/delete
- * redirect back to /admin/listings/{fid} instead of /admin/affiliates.
- */
 final class AffiliateController extends AdminController
 {
 

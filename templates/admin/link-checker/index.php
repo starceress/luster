@@ -1,50 +1,16 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin link checker page. Checks affiliate, joined-listing, and member URLs for
+ dead links and redirects. Displays results across tabbed views (Active, Moved,
+ Dead) with one-click URL update for redirected links and bulk re-check controls.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/** @var \Luster\Models\Affiliate[]      $affiliates */
-/** @var \Luster\Models\JoinedListing[]  $joined */
-/** @var object[]                        $members */
-/** @var \Luster\Models\Affiliate[]      $moved_affiliates */
-/** @var \Luster\Models\JoinedListing[]  $moved_joined */
-/** @var object[]                        $moved_members */
-/** @var \Luster\Models\Affiliate[]      $dead_affiliates */
-/** @var \Luster\Models\JoinedListing[]  $dead_joined */
-/** @var object[]                        $dead_members */
-/** @var array{ok:int,dead:int,redirect:int,unchecked:int} $aff_stats */
-/** @var array{ok:int,dead:int,redirect:int,unchecked:int} $joined_stats */
-/** @var array{ok:int,dead:int,redirect:int,unchecked:int} $mem_stats */
-/** @var int    $aff_total */
-/** @var int    $joined_total */
-/** @var int    $mem_total */
-/** @var int    $aff_page */
-/** @var int    $joined_page */
-/** @var int    $mem_page */
-/** @var int    $aff_total_pages */
-/** @var int    $joined_total_pages */
-/** @var int    $mem_total_pages */
-/** @var ?\Luster\Models\Listing        $mem_listing */
-/** @var \Luster\Models\Listing[]        $listings */
-/** @var \Luster\Models\Listing[]        $mem_sum_listings */
-/** @var int                             $mem_sum_page */
-/** @var int                             $mem_sum_total */
-/** @var int                             $mem_sum_total_pages */
-/** @var ?int                            $listing_id_filter */
-/** @var string $owner_url */
-/** @var string $csrf_token */
-/** @var string $base_url */
-/** @var string $status */
-/** @var string $search */
-/** @var string $aff_sort */
-/** @var string $aff_dir */
-/** @var string $joined_sort */
-/** @var string $joined_dir */
-/** @var string $mem_sort */
-/** @var string $mem_dir */
-/** @var string $success */
-/** @var string $error */
 
 $b = rtrim(View::e($base_url), '/');
 

@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Cross-listing admin hub for fan-submitted codes (small web graphics). Shows all
+ pending code submissions across every listing for review, with approve/reject
+ actions for individual codes, bulk selection, and an approve-all shortcut.
+ Approved donor codes optionally trigger a notification email to the submitter.
+ Also serves as the entry point for navigating to per-listing code management.
+*/
 
 declare(strict_types=1);
 
@@ -16,16 +26,6 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
-/**
- * Global Codes admin page — cross-listing pending review and per-listing management hub.
- *
- * Routes:
- *   GET  /admin/codes                  — landing: global pending or empty state
- *   POST /admin/codes/{id}/approve     — approve single code (sends donor email if enabled)
- *   POST /admin/codes/{id}/reject      — reject single code
- *   POST /admin/codes/bulk             — bulk approve / reject
- *   POST /admin/codes/approve-all      — approve all pending (global or scoped to listing)
- */
 final class GlobalCodesController extends AdminController
 {
     private const PER_PAGE = 25;

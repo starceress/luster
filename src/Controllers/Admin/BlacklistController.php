@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages the email/domain blacklist from the Settings panel. Blacklist patterns
+ are either full email addresses or @domain patterns that block matching
+ addresses from joining any listing. Provides add and delete actions, with the
+ index redirecting to the blacklist panel on the Settings page.
+*/
 
 declare(strict_types=1);
 
@@ -10,13 +19,6 @@ use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\BlacklistRepo;
 
-/**
- * Admin blacklist management.
- *
- * GET  /admin/blacklist         → index()  — list all entries + add form
- * POST /admin/blacklist/add     → add()    — insert a new pattern
- * POST /admin/blacklist/{id}/delete → delete() — remove an entry
- */
 final class BlacklistController
 {
     public function __construct(private readonly Application $app) {}

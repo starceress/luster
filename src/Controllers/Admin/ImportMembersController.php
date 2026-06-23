@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Targeted member-only import wizard. Accepts an uploaded SQL dump containing a
+ single member table (Enthusiast or Listing Admin format), loads it into a
+ temporary table, lets the admin select the target listing, previews the row
+ counts and column mapping, then merges the members into the listing's member
+ table. Separate from the main import wizard, which handles full-database
+ migrations.
+*/
 
 declare(strict_types=1);
 
@@ -11,19 +22,6 @@ use Luster\Import\SqlDumpLoader;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ListingRepo;
 
-/**
- * Targeted SQL member import wizard.
- *
- * Imports a single member table (Enthusiast or Listing Admin format) from an
- * uploaded SQL dump directly into a Luster listing's member table.
- *
- * Routes:
- *   GET  /admin/import-members                 landing()
- *   POST /admin/import-members/upload          upload()
- *   GET  /admin/import-members/preview         preview()
- *   POST /admin/import-members/run             run()
- *   GET  /admin/import-members/result          result()
- */
 final class ImportMembersController
 {
     private const SESS_LISTING_ID  = 'lstr_imembers_listing_id';

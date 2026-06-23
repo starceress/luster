@@ -1,29 +1,14 @@
 <?php
-/**
- * Update membership — content fragment (two-step).
- *
- * Variables injected by UpdateController / embed/update.php:
- *   $signed_in      bool    false = step 1 (sign in), true = step 2 (update form)
- *
- * Step 1 ($signed_in = false):
- *   $sign_in_action   string
- *   $csrf_token       string
- *   $errors           string  pre-escaped HTML error block, or ''
- *   $lost_password_url string
- *   $f                array<string,string>  keys: 'email', 'password'
- *
- * Step 2 ($signed_in = true):
- *   $form_action      string
- *   $sign_out_url     string
- *   $csrf_token       string
- *   $errors           string
- *   $field_email      string  authenticated member's current email (display only)
- *   $fields           AdditionalField[]  used to echo additional fields in order
- *   $f                array<string,string>  wrapped field HTML keyed by field name
- *
- *   POST 'delete_membership' = '1' (checkbox): skips field updates and
- *   permanently deletes the membership instead.
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Update membership content fragment (two-step). Step 1 presents a sign-in form
+ (email + password) with a "Forgot password?" link. Step 2 shows the editable
+ profile fields and an option to permanently delete the membership. Served as a
+ full page via View::renderPublic() or as an embeddable fragment via
+ View::renderFragment() from embed/update.php. Supports custom form templates.
+*/
 
 declare(strict_types=1);
 

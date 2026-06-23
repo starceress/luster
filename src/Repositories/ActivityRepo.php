@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Records and retrieves admin activity log entries from lstr_activity_log.
+ Every significant admin action (member approval, listing edit, setting
+ change, etc.) gets an entry here with the acting admin, action key, a
+ human-readable description, and the client IP. The log is displayed as
+ a paginated table in the admin panel and can be exported to CSV.
+*/
 
 declare(strict_types=1);
 

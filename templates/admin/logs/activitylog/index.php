@@ -1,12 +1,12 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin activity log page. Displays a chronological, paginated table of all admin
+ actions recorded in the audit trail. Supports CSV export and log flushing.
+*/
 use Luster\Core\View;
-/** @var array[] $entries */
-/** @var int     $total */
-/** @var int     $page */
-/** @var int     $pages */
-/** @var string  $success */
-/** @var string  $base_url */
-/** @var string  $csrf_token */
 $b = rtrim(View::e($base_url), '/');
 $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
 ?>

@@ -1,16 +1,16 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin user edit form. Provides fields for updating an existing admin
+ account's username, email, display name, and optionally resetting their
+ password.
+*/
 
 declare(strict_types=1);
 
 use Luster\Core\View;
-
-/**
- * @var \Luster\Models\AdminUser $user
- * @var string                   $error
- * @var array                    $field_errors
- * @var string                   $base_url
- * @var string                   $csrf_token
- */
 
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $fe = $field_errors ?? [];

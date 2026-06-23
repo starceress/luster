@@ -1,4 +1,15 @@
-<?php declare(strict_types=1);
+<?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin collective templates editor page. Provides a side-by-side template
+ editor with token reference panel for customising the HTML output of all
+ collective-level embeds, including owned listings, joined listings,
+ affiliates, statistics, codes, and add-on templates.
+*/
+
+declare(strict_types=1);
 use Luster\Core\View;
 use Luster\Repositories\SiteSettingsRepo;
 

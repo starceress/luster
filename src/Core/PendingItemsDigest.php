@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Gathers and formats the weekly pending-items digest email. Aggregates
+ pending counts from all collective data sources -- members, affiliates,
+ code submissions, update requests, and optional add-on queues (KIM and
+ Adoption) -- then renders a plain-text summary suitable for email delivery
+ to the site owner.
+*/
 
 declare(strict_types=1);
 

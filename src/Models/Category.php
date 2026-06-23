@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Value object for a listing category from the lstr_categories table.
+ Categories organize owned and joined listings into groups like "Music",
+ "Anime", or "Movies". Each category has a source indicating where it
+ came from (TFL seed, TAFL seed, or user-created), an auto-generated
+ URL slug, and an optional parent_id for one-level nesting.
+*/
 
 declare(strict_types=1);
 

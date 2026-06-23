@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Formats date and datetime strings for use in embed template tokens. The
+ default format is "Month Dth Year" (e.g. "March 1st 2026") with correct
+ English ordinal suffixes. Also provides a configurable format mode and a
+ helper that picks the most recent of two nullable date strings.
+*/
 
 declare(strict_types=1);
 

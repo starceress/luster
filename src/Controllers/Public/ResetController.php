@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles the fan password reset flow. The first step collects the fan's email
+ and sends a reset link containing a one-time token (256 bits of entropy,
+ SHA-256 hashed in the database, 1-hour expiry). The second step validates
+ the token, accepts a new password, applies the password policy, and hashes
+ with Argon2id. The response is always a neutral message regardless of whether
+ the email was found, preventing email enumeration.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable adoption application form. Lists every fanlisting that has
+ "Available for Adoption" enabled in a dropdown so visitors can apply to
+ adopt any of them from a single embedded form. No $luster_fanlisting_id is
+ required. Requires the Adoption add-on to be installed. Includes CAPTCHA
+ validation and redirects back to the host page with a flash message after
+ submission.
+*/
 
 declare(strict_types=1);
 
@@ -8,18 +19,6 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
-
-/**
- * Luster embed — adoption application form fragment.
- *
- * Lists every listing with "Available for Adoption" enabled in a dropdown
- * so visitors can apply to adopt any of them from a single embedded form.
- * No $luster_fanlisting_id is required.
- *
- * Usage:
- *   $luster_return = false;  // optional: true = return string, false = echo
- *   require '/absolute/path/to/luster/public/embed/adopt.php';
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

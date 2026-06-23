@@ -1,17 +1,15 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import wizard step 4 -- dry-run preview. Shows a read-only summary of what
+ the import would do, including row counts, warnings, and connection details,
+ before the admin commits to running the actual import.
+*/
 use Luster\Core\View;
 use Luster\Import\ImportPreview;
 use Luster\Import\ImportOptions;
-/** @var string             $source */
-/** @var string             $source_name */
-/** @var ImportPreview|null $preview */
-/** @var ImportOptions      $options */
-/** @var string             $error */
-/** @var string             $conn_type   'Same database' | 'Live connection' | 'SQL dump' */
-/** @var string             $conn_host */
-/** @var string             $conn_db */
-/** @var string             $base_url */
-/** @var string             $csrf_token */
 $b   = rtrim(View::e($base_url), '/');
 $src = View::e($source);
 ?>

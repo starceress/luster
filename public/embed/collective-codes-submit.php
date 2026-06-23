@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable collective-level code donation form. Unlike the per-listing
+ codes-submit embed, this form does not require a $luster_fanlisting_id and
+ submits codes to the collective-wide pool (fanlisting_id IS NULL). Includes
+ CAPTCHA validation and redirects back to the host page with a flash message
+ after submission.
+*/
 
 declare(strict_types=1);
 
@@ -6,17 +16,6 @@ use Luster\Core\Captcha;
 use Luster\Core\View;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
-
-/**
- * Luster embed — collective code donation form fragment.
- *
- * Usage:
- *   $luster_return = false;  // optional: true = return string, false/omit = echo
- *   require '/absolute/path/to/luster/public/embed/collective-codes-submit.php';
- *
- * Override variables (set before require):
- *   $luster_redirect_url  — override the post-submit redirect URL
- */
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster

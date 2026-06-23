@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Handles the in-app update workflow for Luster itself. Checks the GitHub releases
+ API for newer versions, downloads and stages the release ZIP, runs preflight
+ checks (PHP version, permissions, backup confirmation), and applies the update
+ by swapping files from the staging directory. Session state tracks wizard
+ progress so each step can be resumed if interrupted.
+*/
 
 declare(strict_types=1);
 

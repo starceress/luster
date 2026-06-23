@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders individual affiliate rows by substituting {aff_*} tokens in a
+ user-defined template string. Shared across the public affiliates embed,
+ the admin template preview, and the affiliate section renderer so every
+ surface produces identical output. Supports both single-row rendering
+ and looped group rendering via TemplateEngine.
+*/
 
 declare(strict_types=1);
 

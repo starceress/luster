@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Value object for an affiliate from the lstr_affiliates table. Affiliates
+ are partner sites linked from a specific listing or the collective as a
+ whole (when listingId is null). Tracks approval status, optional image
+ and email, sort order, and link-checker results including both URL
+ reachability and reciprocal-link verification. Pending affiliates
+ represent applications that haven't been approved yet.
+*/
 
 declare(strict_types=1);
 

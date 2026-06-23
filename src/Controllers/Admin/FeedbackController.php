@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Provides the admin feedback form for sending bug reports, feature requests, and
+ questions to the Luster developer. Gathers diagnostic information (PHP version,
+ database driver, Luster version, recent error log entries) and composes a
+ structured email via FeedbackReport. The form shows a preview of the diagnostic
+ data before sending.
+*/
 
 declare(strict_types=1);
 
@@ -11,13 +21,6 @@ use Luster\Core\Response;
 use Luster\Core\Version;
 use Luster\Repositories\ErrorLogRepo;
 
-/**
- * Admin feedback form — sends a report to the Luster developer.
- *
- * Routes:
- *   GET  /admin/feedback — show the form with diagnostic previews
- *   POST /admin/feedback — validate, compose, and send the report
- */
 final class FeedbackController extends AdminController
 {
     private const ALLOWED_TYPES = ['bug', 'question', 'feature', 'other'];

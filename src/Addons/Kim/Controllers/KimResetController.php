@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Public controller for KIM password resets. A two-step flow: the fan enters
+ their email to receive a time-limited reset link (1 hour TTL), then follows
+ the link to set a new password. The response is always the same regardless
+ of whether the email exists, to prevent account enumeration.
+*/
 
 declare(strict_types=1);
 

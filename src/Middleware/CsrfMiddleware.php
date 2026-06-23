@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ CSRF protection middleware. Runs on every POST request and checks
+ the _csrf token field against the session-stored token. If the
+ token is missing or invalid, it throws a CsrfException which the
+ application converts into a 403 Forbidden response. GET requests
+ pass through untouched.
+*/
 
 declare(strict_types=1);
 
@@ -8,16 +18,6 @@ use Luster\Core\CSRF;
 use Luster\Core\CsrfException;
 use Luster\Core\Request;
 use Luster\Core\Response;
-
-/**
- * Validates the CSRF token on every POST request.
- *
- * The token is read from $_POST['_csrf']. On failure a CsrfException is
- * thrown, which Application::handleException() catches and converts to a
- * 403 Forbidden response.
- *
- * Returns null when the request should continue through the pipeline.
- */
 final class CsrfMiddleware
 {
     public function __construct(private readonly CSRF $csrf) {}

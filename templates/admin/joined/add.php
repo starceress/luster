@@ -1,14 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin joined fanlisting add/edit form. Provides fields for adding or editing
+ a joined fanlisting entry, including subject, URL, image, category
+ assignment, status, and sort order. Shared by both add and edit routes.
+*/
 use Luster\Core\View;
-/** @var \Luster\Models\JoinedListing|null $joined  null = add mode */
-/** @var string $error */
-/** @var array  $old */
-/** @var array  $field_errors */
-/** @var string $base_url */
-/** @var string $csrf_token */
-/** @var array  $tfl_cats         [{id: int, name: string}] */
-/** @var array  $tafl_cats        [{id: int, name: string}] */
-/** @var array  $custom_networks  string[] */
 
 $b      = rtrim(View::e($base_url), '/');
 $fe     = $field_errors ?? [];

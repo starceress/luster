@@ -1,4 +1,16 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages affiliates in lstr_affiliates. Affiliates can be scoped to a
+ specific listing or to the collective (fanlisting_id IS NULL). Supports
+ a full pending/approved/rejected workflow for affiliate applications,
+ paginated admin views with scope and status filtering, drag-and-drop
+ sort ordering, link checking with redirect-URL application, reciprocal
+ link verification, bulk email recipient queries, and duplicate detection
+ for incoming applications.
+*/
 
 declare(strict_types=1);
 

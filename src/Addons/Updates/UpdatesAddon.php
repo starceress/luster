@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Addon entry point for the News Feed (internally "Updates"). Implements
+ AddonInterface to create the lstr_updates table and register public
+ and admin routes. Provides a blogging-style news system for both
+ individual fanlistings and the collective as a whole.
+*/
 
 declare(strict_types=1);
 

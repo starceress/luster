@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin controller for the Join Rules add-on. Provides the paginated listing
+ index showing each listing's rule status, the rule editor with live preview,
+ bulk enable/disable/delete operations, per-listing toggle and delete actions,
+ the global fallback rules editor, and the rules settings page.
+*/
 
 declare(strict_types=1);
 

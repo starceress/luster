@@ -1,9 +1,13 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import members tool landing page. A standalone tool for importing members from
+ a CSV or SQL dump into an existing Luster listing, separate from the full
+ import wizard.
+*/
 use Luster\Core\View;
-/** @var \Luster\Models\Listing[] $listings */
-/** @var string                   $error */
-/** @var string                   $base_url */
-/** @var string                   $csrf_token */
 $b = rtrim(View::e($base_url), '/');
 ?>
 

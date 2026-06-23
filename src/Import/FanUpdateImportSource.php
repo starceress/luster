@@ -1,32 +1,22 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Import adapter for FanUpdate databases. Imports blog/update
+ entries into Luster's lstr_updates table (requires the Updates
+ Feed add-on). FanUpdate links entries to fanlistings via category
+ tables; this adapter matches those subjects case-insensitively to
+ Luster listing titles. Non-public entries are skipped, and
+ comments, smilies, and display options are dropped since Luster
+ has no equivalent.
+*/
 
 declare(strict_types=1);
 
 namespace Luster\Import;
 
 use PDO;
-
-/**
- * Import adapter for FanUpdate databases.
- *
- * FanUpdate stores update entries in a `blog` table whose name is configurable
- * via blog-config.php. The table prefix is provided as $options->fanUpdatePrefix
- * (default 'blog').
- *
- * Schema detected:
- *   'fanupdate_blog' — standard table name matches and entry_id column present
- *
- * What this adapter imports into Luster's lstr_* tables:
- *   - lstr_updates ← {prefix} entries (requires News Feed add-on to be installed)
- *
- * Fanlisting association: FanUpdate links entries to fanlistings via
- * {prefix}_category (fl_id, fl_subject) and {prefix}_catjoin (entry_id, cat_id).
- * fl_subject values are matched case-insensitively against Luster's listing titles.
- * Unmatched entries are imported with fanlisting_id = NULL (collective-level).
- *
- * Non-public entries (is_public = 0) are skipped.
- * Comments, smilies, and display options have no Luster equivalent and are dropped.
- */
 final class FanUpdateImportSource implements ImportSourceInterface
 {
     private const CHUNK = 500;

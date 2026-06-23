@@ -1,30 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Public layout template. This file wraps every fan-facing page rendered via
+ View::renderPublic() — join, members, update, reset, codes, affiliates, and
+ all other public content fragments. Site owners customise this file for their
+ own branding. The inner page content is injected as trusted HTML via $content.
+*/
 
 declare(strict_types=1);
-
-/**
- * Luster — Public layout template.
- *
- * Edit this file to customise the look of your listing pages.
- * This file wraps every fan-facing page (join, members, update, remove, etc.).
- *
- * Available variables:
- *   $listing      — Listing model object (->name, ->url, ->subject, ->email)
- *                      May be null on error pages — always use ?? fallbacks.
- *   $listing_title — string, listing name (pre-sanitised)
- *   $listing_url  — string, listing URL
- *   $page_title      — string, page-specific title (e.g. "Join", "Members")
- *   $base_url        — string, Luster base URL (no trailing slash)
- *   $theme_path      — string, web-accessible path to this theme's assets, trailing slash
- *                      e.g. http://localhost/luster/public/assets/css/default/
- *   $content         — string, rendered page content — output with <?= $content ?>
- *                      This is trusted server-rendered HTML; do NOT escape it.
- *
- * CSS classes available (from style.css):
- *   .fl-field, .fl-label, .fl-input, .fl-select, .fl-btn, .fl-btn-secondary,
- *   .fl-errors, .fl-form-actions, .fl-member-list, .fl-member-item,
- *   .fl-pagination-nav, .fl-page-link, .fl-page-current, .fl-empty
- */
 
 use Luster\Core\View;
 ?>

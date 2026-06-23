@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Generates pagination navigation HTML from a {token} template. Computes a
+ windowed page list (current page plus or minus two, with gap markers) and
+ renders it through TemplateEngine so the output markup is fully customisable
+ by site owners. Used by member lists, updates feeds, and any other paginated
+ public view.
+*/
 
 declare(strict_types=1);
 

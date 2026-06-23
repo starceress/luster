@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Wishlist admin overview. Displays all wishlist entries in a sortable, paginated
+ table with type filtering (wanted, top priority, granted), category filtering,
+ search, and inline status/type editing. Supports bulk delete and drag-and-drop
+ sort ordering.
+*/
+
 use Luster\Core\View;
 /** @var \Luster\Addons\Wishlist\Wishlist[] $entries */
 /** @var string   $filter_type */

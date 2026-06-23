@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages pending member update requests in lstr_pending_updates. When a
+ listing has update queuing enabled, fan-submitted profile changes are
+ stored here as JSON instead of being applied immediately. The admin can
+ then review, approve, or reject each pending update from the admin panel.
+ Password changes are never queued -- they are applied right away.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,12 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Join Rules admin settings page. Configures the number of listings displayed per
+ page in the admin panel's Join Rules overview table.
+*/
+
 declare(strict_types=1);
 use Luster\Core\View;
 /** @var int    $rules_per_page */

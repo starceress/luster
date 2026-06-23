@@ -1,7 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Keep In Mind (KIM) admin single-member email composer. Renders the standard
+ composer grid layout for emailing one KIM member, with saved template loading
+ and the recipient's name and listing context displayed in the sidebar.
+*/
+
 /**
- * KIM List admin - email individual member (composer layout).
- *
  * Variables:
  *   $member        KimMember
  *   $listing       Listing|null

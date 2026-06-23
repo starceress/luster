@@ -1,7 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Keep In Mind (KIM) admin bulk email composer. Renders the standard composer grid
+ layout for emailing all approved KIM members of a listing, or a selected subset.
+ Supports saved template loading and shows a recipient count summary.
+*/
+
 /**
- * KIM List admin - bulk email / email-selected compose form.
- *
  * Variables:
  *   $listing          Listing
  *   $id_email_map     array<int, array{id: int, name: string, email: string, url: string, added_at: string}>

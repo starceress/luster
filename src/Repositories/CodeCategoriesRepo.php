@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages code categories and their assignments to individual codes. Code
+ categories are per-listing, support one level of parent/child nesting,
+ and are linked to codes through the lstr_code_category_map junction table
+ (many-to-many). Provides CRUD for categories and set/add/get operations
+ for the code-to-category assignments.
+*/
 
 declare(strict_types=1);
 

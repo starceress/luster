@@ -1,4 +1,12 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Wishlist admin settings page. Configures the number of wishlist entries displayed
+ per page in the admin panel's Wishlist view.
+*/
+
 declare(strict_types=1);
 use Luster\Core\View;
 /** @var int    $wishlist_per_page */

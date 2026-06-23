@@ -1,23 +1,14 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin joined fanlistings index page. Lists all joined fanlistings in a
+ sortable, filterable, paginated table with status tabs (all, approved,
+ pending, hidden). Supports inline editing of status, category, and sort
+ order.
+*/
 use Luster\Core\View;
-/** @var \Luster\Models\JoinedListing[] $joined */
-/** @var string[] $categories */
-/** @var string   $filter_cat */
-/** @var string   $filter_network */
-/** @var string   $search */
-/** @var int      $per_page */
-/** @var int      $page */
-/** @var int      $total_pages */
-/** @var int      $total */
-/** @var string   $status_tab */
-/** @var array{all:int,approved:int,pending:int,hidden:int} $tab_counts */
-/** @var array    $network_categories */
-/** @var string   $sort */
-/** @var string   $dir */
-/** @var string   $success */
-/** @var string   $error */
-/** @var string   $base_url */
-/** @var string   $csrf_token */
 
 $b         = rtrim(View::e($base_url), '/');
 $statusTab = $status_tab ?? 'all';

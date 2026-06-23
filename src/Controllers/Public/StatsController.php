@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Renders the public statistics page for a listing. Loads the stats template
+ from the database (or falls back to the built-in default), then replaces
+ token placeholders with live data: member counts, country count, newest
+ members, growth rate, opened/updated dates, and network approval status.
+ Conditional blocks like {if_approved_by} are processed before flat tokens.
+*/
 
 declare(strict_types=1);
 

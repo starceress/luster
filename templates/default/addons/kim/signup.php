@@ -1,16 +1,15 @@
 <?php
-/**
- * KIM List sign-up form — content fragment.
- *
- * Variables:
- *   $form_action  string
- *   $csrf_token   string
- *   $errors       string  pre-escaped HTML error string, or ''
- *   $old          array
- *   $f            array<string,string>  keys: name, url, email, fanlisting_id, password,
- *                                             password_confirm
- *   $base_url     string
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ KIM List sign-up form content fragment (Keep In Mind add-on). Presents the
+ public form for visitors to register their interest in adopting a fanlisting,
+ with name, email, URL, fanlisting selector, password, and CAPTCHA fields.
+ Served as a full page via View::renderPublic() or as an embeddable fragment
+ via View::renderFragment() from embed/kim-signup.php. Supports custom form
+ templates.
+*/
 
 declare(strict_types=1);
 

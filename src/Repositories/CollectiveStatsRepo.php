@@ -1,4 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Computes collective-wide (site-level) statistics by aggregating data
+ across all owned listings, joined listings, and their member tables.
+ Provides owned/joined status counts, total approved/pending member
+ tallies, distinct country counts, newest and random listing picks,
+ growth rate calculations, category breakdowns, and network-level
+ counts (TFL/TAFL). Handles both Enthusiast schema variants.
+*/
 
 declare(strict_types=1);
 

@@ -1,37 +1,20 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Embeddable rules gate fragment. Place this BEFORE the join embed on your
+ page to enforce a "read and agree to the rules" step. Returns the rules
+ gate HTML (checkbox or button) if the fan has not yet agreed to the current
+ rule version, or an empty string if no gate is needed (rules disabled, no
+ rules set, or already agreed this session). Requires the Rules add-on to be
+ installed.
+*/
 
 declare(strict_types=1);
 
 use Luster\Addons\Rules\RuleSet;
 use Luster\Addons\Rules\RulesRepo;
-
-/**
- * Luster embed — rules gate fragment.
- *
- * Returns the rules gate HTML if the fan has not yet agreed to the current
- * rule version, or an empty string if no action is needed (no rules, rules
- * disabled, or already agreed this session).
- *
- * Usage on your join page, placed BEFORE the join embed:
- *
- *   $luster_fanlisting_id = 1;
- *   $luster_return        = true;   // optional; default false (echo)
- *   // optional: $luster_redirect_url = 'https://yoursite.com/join';
- *
- *   $gate = require '/absolute/path/to/luster/public/embed/rules-gate.php';
- *   if ($gate !== '') {
- *       echo $gate;
- *       return; // Stop rendering — fan must agree before seeing the join form
- *   }
- *
- *   // Fan has agreed — show the join form
- *   $luster_return = false;
- *   require '/absolute/path/to/luster/public/embed/join.php';
- *
- * After agreement, the fan is redirected back to the host page (determined
- * from $luster_redirect_url or the current REQUEST_URI automatically).
- * The embed then re-renders as empty string and the join form is shown.
- */
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable

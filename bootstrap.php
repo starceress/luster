@@ -1,21 +1,15 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Shared bootstrap file. Both front controllers (index.php, admin.php) and
+ every embed file require this to get a ready-to-use Application instance.
+ It wires up the autoloader, loads config/app.php, and returns the app
+ object — callers just do `$app = require 'bootstrap.php';`.
+*/
 
 declare(strict_types=1);
-
-/**
- * Luster — shared application bootstrap.
- *
- * Creates and returns a fully initialised Application instance.
- * Used by public/index.php, public/admin.php, and public/embed/*.php.
- *
- * Expects LUSTER_BASE to be defined before this file is required.
- * If not defined, defaults to __DIR__ (the project root).
- *
- * Usage:
- *   defined('LUSTER_BASE') || define('LUSTER_BASE', dirname(__DIR__));
- *   /** @var \Luster\Core\Application $app {@*}
- *   $app = require LUSTER_BASE . '/bootstrap.php';
- */
 
 defined('LUSTER_BASE')  || define('LUSTER_BASE',  __DIR__);
 defined('LUSTER_EMBED') || define('LUSTER_EMBED', rtrim(str_replace('\\', '/', LUSTER_BASE), '/') . '/public/embed');

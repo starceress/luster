@@ -1,12 +1,14 @@
 <?php
+/*
+ Luster -- https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Admin joined fanlistings display settings page. Controls how joined
+ fanlistings are grouped and paginated in the admin table, including display
+ mode and items-per-page configuration.
+*/
 declare(strict_types=1);
 use Luster\Core\View;
-/** @var string $display_mode */
-/** @var int    $per_page */
-/** @var string $success */
-/** @var string $error */
-/** @var string $base_url */
-/** @var string $csrf_token */
 $b = rtrim(View::e($base_url), '/');
 ?>
 

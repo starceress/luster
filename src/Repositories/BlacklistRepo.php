@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages the email/domain blacklist stored in lstr_blacklist. Entries are
+ either exact email addresses or domain blocks (prefixed with "@"). The
+ isBlocked() method checks incoming emails against both types using fast
+ indexed lookups rather than loading the entire table into memory.
+*/
 
 declare(strict_types=1);
 

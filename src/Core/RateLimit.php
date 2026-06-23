@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Database-backed rate limiter that protects public forms and admin login
+ against brute-force abuse. Tracks attempt counts per (IP, action) pair in
+ the lstr_rate_limits table and enforces configurable thresholds with
+ time-based expiry windows. Predefined limits cover admin login, public
+ join, update, reset, contact, and other form submission endpoints.
+*/
 
 declare(strict_types=1);
 

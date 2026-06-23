@@ -1,16 +1,14 @@
 <?php
-/**
- * Adoption application form — content fragment.
- *
- * Variables injected by AdoptPublicController / embed/adopt.php:
- *   $listing_title  string
- *   $form_action   string
- *   $csrf_token    string
- *   $errors        string  pre-escaped HTML error block, or ''
- *   $f             array<string,string>  keys: 'name', 'email', 'url', 'message', 'captcha_answer'
- *   $form_html     string|null  when set, renders custom template and short-circuits default
- *   $success_html  string|null  when set, renders the success block and short-circuits the form
- */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Adoption application form content fragment (Adoption add-on). Allows visitors
+ to submit an application expressing interest in adopting a fanlisting, with
+ name, email, URL, message, and CAPTCHA fields. Served as a full page via
+ View::renderPublic() or as an embeddable fragment via View::renderFragment()
+ from embed/adopt.php. Supports custom form templates.
+*/
 
 declare(strict_types=1);
 

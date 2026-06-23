@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Manages the per-listing code size definitions in lstr_code_sizes. Each row
+ represents a named size group like "50x50" or "88x31" that codes can be
+ assigned to. Sizes are scoped to individual listings and support custom
+ sort ordering for display purposes.
+*/
 
 declare(strict_types=1);
 

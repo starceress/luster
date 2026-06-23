@@ -1,4 +1,12 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Join Rules admin global fallback editor. Configures the collective-wide default
+ rules page body, gate type, and gate label that apply to any listing without its
+ own per-listing rules. Also controls whether the global gate is enabled by default.
+*/
 
 declare(strict_types=1);
 

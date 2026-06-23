@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Public controller for KIM sign-up. Renders the sign-up form where fans
+ choose a fanlisting and provide their contact details. Validates input
+ with captcha and rate limiting, hashes the password with Argon2id, inserts
+ a pending KIM member row, and sends a confirmation email to the admin.
+*/
 
 declare(strict_types=1);
 

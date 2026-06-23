@@ -1,23 +1,17 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Edit listing page. A multi-tab view for managing a single owned listing, with tabs
+ for details (title, subject, URL, categories, image), additional fields, affiliates,
+ per-listing templates (members row, stats, affiliates section, codes, forms),
+ joining rules, and a danger zone for deletion. Also shows member/affiliate counts
+ and quick links.
+*/
 use Luster\Core\View;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Support\RulesBodyRenderer;
-/** @var \Luster\Models\Listing    $listing */
-/** @var string                       $error */
-/** @var string                       $success */
-/** @var array                        $old */
-/** @var array                        $field_errors */
-/** @var array                        $cfg */
-/** @var string|null                  $current_image */
-/** @var int                          $approved */
-/** @var int                          $pending */
-/** @var \Luster\Models\Affiliate[]        $affiliates */
-/** @var \Luster\Models\AdditionalField[]  $fields */
-/** @var array                        $templates */
-/** @var \Luster\Models\Category[]    $categories */
-/** @var int|null                     $current_category_id */
-/** @var string                       $base_url */
-/** @var string                       $csrf_token */
 $b  = rtrim(View::e($base_url), '/');
 $fe = $field_errors ?? [];
 

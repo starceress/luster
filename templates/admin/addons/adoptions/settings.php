@@ -1,4 +1,11 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Adoptions admin settings page. Configures the default view mode and pagination
+ for the Adoptions admin panel.
+*/
 
 declare(strict_types=1);
 

@@ -1,4 +1,13 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Public controller for the KIM list browser. The overview page shows all
+ fanlistings that have at least one approved KIM member, along with their
+ interest counts. The subject page shows the approved KIM members for a
+ single fanlisting. Both views are read-only and require no authentication.
+*/
 
 declare(strict_types=1);
 

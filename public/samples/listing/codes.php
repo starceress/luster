@@ -1,4 +1,14 @@
 <?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Sample codes page for a fanlisting. Displays the fan-made graphics (buttons,
+ banners, etc.) that visitors can save and use to link back to the listing. If
+ code donations are enabled, a link to the submission page is shown. Customize
+ the HTML to match your fanlisting's design.
+*/
+
 $page_title = 'Codes';
 require 'header.php';
 ?>
