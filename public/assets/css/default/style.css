@@ -11,7 +11,11 @@
 ========================================================================= */
 
 
-/* ---- CSS CUSTOM PROPERTIES ------------------------------- */
+/* ------------------------------------------------------------------------
+   CSS CUSTOM PROPERTIES
+   Override these in your own stylesheet to change spacing, shape, and fonts.
+   All fl-* classes reference these variables with fallback defaults.
+------------------------------------------------------------------------ */
 
 :root {
   /* Typography - inherit from host */
@@ -29,7 +33,10 @@
   --fl-input-radius:  3px;
 }
 
-/* ---- GLOBAL UTILITIES ------------------------------------ */
+/* ------------------------------------------------------------------------
+   GLOBAL UTILITIES
+   Shared helper classes used across multiple embeds.
+------------------------------------------------------------------------ */
 
 .fl-empty {
   font-style: italic;
@@ -61,7 +68,10 @@
   margin-top: 0.75em;
 }
 
-/* ---- CATEGORY NAVIGATOR ---------------------------------- */
+/* ------------------------------------------------------------------------
+   CATEGORY NAVIGATOR
+   Browse-by-category mode: list view, dropdown, and back links. Used by owned listings and joined listings embeds.
+------------------------------------------------------------------------ */
 
 .fl-category-nav {
   margin-bottom: 1em;
@@ -123,7 +133,10 @@
   margin: 0.5em 0 0.75em;
 }
 
-/* ---- PAGINATION ------------------------------------------ */
+/* ------------------------------------------------------------------------
+   PAGINATION
+   Page number links rendered below member lists, updates, and affiliates.
+------------------------------------------------------------------------ */
 
 .fl-pagination-nav {
   display: flex;
@@ -150,7 +163,10 @@
   opacity: 0.65;
 }
 
-/* ---- FORMS ----------------------------------------------- */
+/* ------------------------------------------------------------------------
+   FORMS
+   Join, update, reset, contact, code donation, and affiliate application forms. All form embeds share these classes.
+------------------------------------------------------------------------ */
 
 .fl-form {
   --fl: ; /* Intentionally empty - inherits from host */
@@ -265,7 +281,10 @@
   --fl: ; /* Secondary ghost button variant - host can style */
 }
 
-/* ---- FILE UPLOAD DROP ZONE ------------------------------- */
+/* ------------------------------------------------------------------------
+   FILE UPLOAD DROP ZONE
+   Drag-and-drop file input used by code donation forms.
+------------------------------------------------------------------------ */
 
 .fl-file-zone {
   --fl: ; /* Host can style: border, background, padding, cursor, etc. */
@@ -276,7 +295,10 @@
   --fl: ; /* Host can style: text color, font, display block/inline, etc. */
 }
 
-/* ---- SUCCESS / RESULT MESSAGES --------------------------- */
+/* ------------------------------------------------------------------------
+   SUCCESS / RESULT MESSAGES
+   Shown after a successful form submission (join, update, reset, etc.).
+------------------------------------------------------------------------ */
 
 .fl-success {
   background: #f0fff4;
@@ -295,7 +317,10 @@
   margin-top: 0.5em;
 }
 
-/* ---- RULES GATE ------------------------------------------ */
+/* ------------------------------------------------------------------------
+   RULES GATE
+   Join Rules add-on: shows rules and an agreement checkbox before the join form.
+------------------------------------------------------------------------ */
 
 .fl-rules-gate {
   margin-top: 1.25em;
@@ -360,7 +385,10 @@
   margin-top: 0.2em;
 }
 
-/* ---- MEMBER LIST ----------------------------------------- */
+/* ------------------------------------------------------------------------
+   MEMBER LIST
+   Approved member list with sort controls, country filter, and pagination. Supports both list layout (ul/li) and table layout (fl-member-table).
+------------------------------------------------------------------------ */
 
 .fl-member-controls {
   margin-bottom: 0.75em;
@@ -497,7 +525,10 @@
   --fl: ; /* TFL/TAFL badge */
 }
 
-/* ---- AFFILIATES ------------------------------------------ */
+/* ------------------------------------------------------------------------
+   AFFILIATES
+   Per-listing and collective affiliate display, usually as linked images.
+------------------------------------------------------------------------ */
 
 .fl-affiliate-list {
   display: flex;
@@ -530,7 +561,10 @@
   font-style: italic;
 }
 
-/* ---- COLLAPSIBLE AFFILIATE APPLICATION ------------------- */
+/* ------------------------------------------------------------------------
+   COLLAPSIBLE AFFILIATE APPLICATION
+   Inline affiliate application form toggled by a link or button.
+------------------------------------------------------------------------ */
 
 .fl-affiliate-apply-collapsible {
   margin-top: 1em;
@@ -555,7 +589,10 @@
   margin-top: 1em;
 }
 
-/* ---- OWNED LISTINGS -------------------------------------- */
+/* ------------------------------------------------------------------------
+   OWNED LISTINGS
+   Collective owned-listings page. Each listing shows title, subject, image, category, member count, and dates.
+------------------------------------------------------------------------ */
 
 .fl-listing-list {
   list-style: none;
@@ -629,7 +666,10 @@
   opacity: 0.7;
 }
 
-/* ---- RANDOM LISTING -------------------------------------- */
+/* ------------------------------------------------------------------------
+   RANDOM LISTING
+   Displays one randomly chosen active owned listing.
+------------------------------------------------------------------------ */
 
 .fl-random-listing-item {
   display: flex;
@@ -662,7 +702,10 @@
   font-style: italic;
 }
 
-/* ---- LATEST LISTING -------------------------------------- */
+/* ------------------------------------------------------------------------
+   LATEST LISTING
+   Displays the most recently opened owned listing.
+------------------------------------------------------------------------ */
 
 .fl-latest-listing-item {
   display: flex;
@@ -701,7 +744,10 @@
   margin-top: 0.25em;
 }
 
-/* ---- JOINED LISTINGS ------------------------------------- */
+/* ------------------------------------------------------------------------
+   JOINED LISTINGS
+   Collective joined-listings page. Shows linked images or text by category.
+------------------------------------------------------------------------ */
 
 .fl-joined-list {
   list-style: none;
@@ -748,7 +794,10 @@
   margin: 0 0 0.4em;
 }
 
-/* ---- RANDOM JOINED LISTING ------------------------------- */
+/* ------------------------------------------------------------------------
+   RANDOM JOINED LISTING
+   Displays one randomly chosen active joined listing.
+------------------------------------------------------------------------ */
 
 .fl-random-joined-listing-item {
   display: flex;
@@ -781,7 +830,10 @@
   font-size: 0.85em;
 }
 
-/* ---- LATEST JOINED LISTING ------------------------------- */
+/* ------------------------------------------------------------------------
+   LATEST JOINED LISTING
+   Displays the most recently joined listing.
+------------------------------------------------------------------------ */
 
 .fl-latest-joined-listing-item {
   display: flex;
@@ -815,7 +867,10 @@
   font-size: 0.85em;
 }
 
-/* ---- COLLECTIVE STATS ------------------------------------ */
+/* ------------------------------------------------------------------------
+   COLLECTIVE STATS
+   Site-wide statistics block: owned/joined counts, members, growth, etc.
+------------------------------------------------------------------------ */
 
 .fl-cstats {
   --fl: ; /* Outer wrapper */
@@ -847,7 +902,10 @@
   margin-top: 1em;
 }
 
-/* ---- FAN CODES ------------------------------------------- */
+/* ------------------------------------------------------------------------
+   FAN CODES
+   Fan graphic codes grouped by size, with optional donor credit.
+------------------------------------------------------------------------ */
 
 .fl-codes {
   --fl: ; /* Outermost codes container */
@@ -892,7 +950,10 @@
   text-align: center;
 }
 
-/* ---- UPDATES FEED ---------------------------------------- */
+/* ------------------------------------------------------------------------
+   UPDATES FEED
+   News/updates feed for per-listing and collective update posts.
+------------------------------------------------------------------------ */
 
 .fl-updates {
   --fl: ; /* Outer container */
@@ -944,7 +1005,10 @@
   margin-right: 0.3em;
 }
 
-/* ---- KIM LIST -------------------------------------------- */
+/* ------------------------------------------------------------------------
+   KIM LIST
+   Keep In Mind add-on: sign-up interest list for fanlistings up for adoption.
+------------------------------------------------------------------------ */
 
 .fl-kim {
   --fl: ; /* KIM outer wrapper */
@@ -1004,7 +1068,10 @@
   font-weight: 500;
 }
 
-/* ---- KIM UPDATE DASHBOARD TABLE -------------------------- */
+/* ------------------------------------------------------------------------
+   KIM UPDATE DASHBOARD TABLE
+   Table shown when a KIM member signs in to update their entries.
+------------------------------------------------------------------------ */
 
 .fl-kim-table-wrap {
   overflow-x: auto;
@@ -1051,7 +1118,10 @@
   margin-left: 0.35em;
 }
 
-/* ---- WISHLIST -------------------------------------------- */
+/* ------------------------------------------------------------------------
+   WISHLIST
+   Wishlist add-on: top wanted, wanted, and granted fanlisting entries.
+------------------------------------------------------------------------ */
 
 .fl-wishlist-group {
   margin-bottom: 1.25em;
