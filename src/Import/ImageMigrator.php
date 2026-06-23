@@ -77,10 +77,11 @@ final class ImageMigrator
     // -----------------------------------------------------------------------
 
     /**
-     * Downloads an image from a remote URL.
+     * Downloads an image from a remote URL via cURL with DNS-pinned connection.
      *
-     * Returns null if file_get_contents() is disabled, the request times out,
-     * or the response is not a valid image. Failures are non-fatal.
+     * Returns null if cURL is unavailable, the host resolves to a private IP,
+     * the request times out, or the response is not a valid image. Failures
+     * are non-fatal.
      *
      * @param string $url           Full URL to the image.
      * @param string $targetSubDir  Subdirectory under uploads/
@@ -89,6 +90,10 @@ final class ImageMigrator
      */
     public function fetchFromUrl(string $url, string $targetSubDir, string $prefix): ?string
     {
+        if (!function_exists('curl_init')) {
+            return null;
+        }
+
         $parts = parse_url($url);
         if (!is_array($parts)) {
             return null;

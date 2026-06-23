@@ -5320,6 +5320,11 @@ document.addEventListener('click', function (e) {
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
+        if (data && data.error) {
+          if (row) row.classList.remove('lc-busy');
+          window.lstrToast('error', data.error);
+          return;
+        }
         if (row) applyResult(row, data, panelId);
         if (onDone) onDone();
       })

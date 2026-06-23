@@ -365,6 +365,9 @@ final class LinkCheckerController extends AdminController
         if (!$this->validCsrf($request)) {
             return Response::json(['error' => 'Invalid CSRF token'], 403);
         }
+        if (!function_exists('curl_init')) {
+            return Response::json(['error' => 'The link checker requires the PHP cURL extension. Enable cURL on your server and try again.'], 503);
+        }
 
         $id      = (int) ($request->post('id') ?? 0);
         $db      = $this->app->getDatabase();
@@ -401,6 +404,9 @@ final class LinkCheckerController extends AdminController
     {
         if (!$this->validCsrf($request)) {
             return Response::json(['error' => 'Invalid CSRF token'], 403);
+        }
+        if (!function_exists('curl_init')) {
+            return Response::json(['error' => 'The link checker requires the PHP cURL extension. Enable cURL on your server and try again.'], 503);
         }
 
         $id     = (int) ($request->post('id') ?? 0);
@@ -634,6 +640,9 @@ final class LinkCheckerController extends AdminController
     {
         if (!$this->validCsrf($request)) {
             return Response::json(['error' => 'Invalid CSRF token'], 403);
+        }
+        if (!function_exists('curl_init')) {
+            return Response::json(['error' => 'The link checker requires the PHP cURL extension. Enable cURL on your server and try again.'], 503);
         }
 
         $id     = (int) ($request->post('id') ?? 0);

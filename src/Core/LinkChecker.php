@@ -110,6 +110,10 @@ final class LinkChecker
      */
     private static function singleGet(string $url): array
     {
+        if (!function_exists('curl_init')) {
+            return [0, '', null];
+        }
+
         $host = parse_url($url, PHP_URL_HOST);
         if (!is_string($host) || $host === '') {
             return [0, '', null];
