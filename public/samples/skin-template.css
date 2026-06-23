@@ -1,0 +1,175 @@
+/*
+ * Luster Community Skin Template
+ * ================================
+ * Copy this file, rename it to your-skin-name.css, and drop it into
+ * public/assets/css/skins/. It will appear automatically in
+ * Settings → Appearance on the next page load.
+ *
+ * File name rules: lowercase letters, digits, hyphens only.
+ * Example: my-cool-skin.css → slug "my-cool-skin"
+ *
+ * How it works: Luster loads CSS in this order:
+ *   tokens.css → admin.css → skins.css → your-skin.css
+ * Your file wins at equal specificity, so just set variables.
+ *
+ * TIP: Start by changing the 6 "Essential" colors below.
+ * That alone transforms the entire look. Fine-tune the rest later.
+ */
+
+
+/* =====================================================================
+   ESSENTIAL — Change these 6 colors first
+   ===================================================================== */
+
+/* Theme-independent brand palette.
+   These three colors drive gradients, glows, and accents site-wide.
+   --ch-brand-* MUST be the R G B values of the matching --brand-* hex. */
+
+[data-skin="RENAME-ME"] {
+  --brand-primary:        #ff7eb3;       /* Main brand color */
+  --brand-secondary:      #78e8d8;       /* Secondary brand color */
+  --brand-tertiary:       #ffd166;       /* Tertiary brand color */
+  --ch-brand-primary:     255 126 179;   /* R G B of --brand-primary */
+  --ch-brand-secondary:   120 232 216;   /* R G B of --brand-secondary */
+  --ch-brand-tertiary:    255 209 102;   /* R G B of --brand-tertiary */
+  --gradient:             #ff7eb3, #78e8d8, #ffd166;
+  --gradient-bar:         linear-gradient(90deg, #ff7eb3, #78e8d8, #ffd166);
+}
+
+
+/* =====================================================================
+   DARK THEME — Colors when the user is in dark mode
+   ===================================================================== */
+
+[data-skin="RENAME-ME"][data-theme="dark"] {
+
+  /* ── Surfaces ────────────────────────────────────────────── */
+  /* --bg:              #121020;    /* Page background */
+  /* --bg-card:         #1a1830;    /* Card/panel background */
+  /* --bg-sidebar:      #0c0b1c;    /* Sidebar background */
+  /* --bg-subtle:       #211e38;    /* Subtle tinted background */
+  /* --bg-elevated:     #1d1b34;    /* Table headers, elevated areas */
+  /* --bg-code:         #07040f;    /* Code block / textarea background */
+  /* --border:          #2a2648;    /* Primary border color */
+  /* --border-soft:     #1e1c40;    /* Softer border for dividers */
+
+  /* ── Text ────────────────────────────────────────────────── */
+  /* --text:            #e7deff;    /* Primary text */
+  /* --text-muted:      #9587c4;    /* Secondary text */
+  /* --text-dim:        #675e8b;    /* Dimmed text, placeholders */
+  /* --text-sidebar:    #b8b0d8;    /* Sidebar text */
+
+  /* ── Accents ─────────────────────────────────────────────── */
+  /* --accent:          #8fdcff;    /* Primary interactive color (links, buttons, focus rings) */
+  /* --ch-accent:       143 220 255; /* R G B of --accent */
+  /* --accent2:         #b34774;    /* Secondary interactive color */
+  /* --accent3:         #ffd166;    /* Tertiary accent (gold tone) */
+
+  /* ── Status (uncomment only if you need non-default status colors) ── */
+  /* --success:         #2ecc71; */
+  /* --danger:          #f87171; */
+  /* --warn:            #ffd166; */
+
+  /* ── Effects ─────────────────────────────────────────────── */
+  /* --shadow:          0 4px 24px rgba(0,0,0,0.55); */
+  /* --shadow-lg:       0 16px 56px rgba(0,0,0,0.65); */
+  /* --glow:            0 0 0 3px rgb(var(--ch-brand-primary)/0.15); */
+  /* --blush:           radial-gradient(ellipse at 110% -10%, rgb(var(--ch-brand-primary)/0.06) 0%, transparent 60%); */
+
+  /* ── Card borders (stat card top accents) ────────────────── */
+  /* --card-border-1:   var(--brand-primary); */
+  /* --card-border-2:   var(--brand-secondary); */
+  /* --card-border-3:   var(--brand-quaternary); */
+  /* --card-border-4:   var(--brand-tertiary); */
+
+  /* ── Component surfaces ──────────────────────────────────── */
+  /* --topbar-bg:           var(--bg-card); */
+  /* --card-head-bg:        var(--bg-subtle); */
+  /* --card-head-color:     var(--text-muted); */
+  /* --welcome-bg:          var(--bg-card); */
+  /* --brand-gradient:      linear-gradient(90deg, var(--gradient)); */
+  /* --btn-primary-bg:      #60a5fa; */
+  /* --btn-primary-color:   #fff; */
+
+  /* ── Fine-tuning (optional) ──────────────────────────────── */
+  /* --nav-hover-bg:           rgb(var(--ch-brand-primary)/0.09); */
+  /* --nav-hover-color:        var(--accent); */
+  /* --link-hover-color:       var(--accent3); */
+  /* --sidebar-label-color:    rgb(var(--ch-brand-primary)/0.35); */
+  /* --card-head-sub-color:    var(--text-dim); */
+  /* --btn-secondary-bg:       var(--accent2); */
+  /* --btn-tertiary-bg:        var(--text-dim); */
+  /* --btn-preview-color:      #a5b4fc; */
+  /* --badge-info-bg:          rgb(var(--ch-brand-secondary)/.12); */
+  /* --badge-info-color:       var(--brand-secondary); */
+  /* --table-head-bg:          var(--bg-elevated); */
+  /* --table-head-color:       var(--text-muted); */
+  /* --filter-input-bg:        #322e4d; */
+  /* --code-color:             var(--accent2); */
+  /* --code-bg:                rgb(var(--ch-brand-secondary)/0.08); */
+  /* --strong-color:           var(--accent); */
+  /* --scrollbar-thumb:        rgb(var(--ch-brand-primary)/.2); */
+  /* --scrollbar-thumb-hover:  rgb(var(--ch-brand-primary)/.45); */
+  /* --scrollbar-arrow:        rgb(var(--ch-brand-primary)/.5); */
+}
+
+
+/* =====================================================================
+   LIGHT THEME — Colors when the user is in light mode
+   ===================================================================== */
+
+[data-skin="RENAME-ME"][data-theme="light"] {
+
+  /* ── Surfaces ────────────────────────────────────────────── */
+  /* --bg:              #f0edf8; */
+  /* --bg-card:         #faf9ff; */
+  /* --bg-sidebar:      #121020;    /* Sidebar stays dark in light mode */
+  /* --bg-subtle:       #e2ddf0; */
+  /* --bg-elevated:     #f0ecfa; */
+  /* --bg-code:         var(--bg-subtle); */
+  /* --border:          #d0c8e8; */
+  /* --border-soft:     #dcd8f0; */
+
+  /* ── Text ────────────────────────────────────────────────── */
+  /* --text:            #372c70; */
+  /* --text-muted:      #64599b; */
+  /* --text-dim:        #8878b8; */
+  /* --text-sidebar:    #b8b0d8; */
+
+  /* ── Accents ─────────────────────────────────────────────── */
+  /* --accent:          #d4006a; */
+  /* --ch-accent:       212 0 106; */
+  /* --accent2:         #27b1a5; */
+  /* --accent3:         var(--brand-quinary); */
+
+  /* ── Component surfaces ──────────────────────────────────── */
+  /* --topbar-bg:           var(--bg-card); */
+  /* --card-head-bg:        var(--bg-subtle); */
+  /* --card-head-color:     var(--text-muted); */
+  /* --brand-gradient:      linear-gradient(90deg, var(--gradient)); */
+  /* --btn-primary-bg:      var(--accent); */
+
+  /* ── Fine-tuning (optional) ──────────────────────────────── */
+  /* --nav-hover-bg:           rgb(var(--ch-brand-primary)/0.09); */
+  /* --nav-hover-color:        var(--accent); */
+  /* --link-hover-color:       var(--accent3); */
+  /* --btn-secondary-bg:       var(--accent2); */
+  /* --btn-tertiary-bg:        var(--text-sidebar); */
+  /* --btn-preview-color:      #3730a3; */
+  /* --filter-input-bg:        var(--bg-elevated); */
+  /* --code-color:             var(--accent2); */
+  /* --scrollbar-thumb:        rgb(var(--ch-brand-primary)/.35); */
+  /* --scrollbar-thumb-hover:  rgb(var(--ch-brand-primary)/.6); */
+  /* --scrollbar-arrow:        rgb(var(--ch-brand-primary)/.65); */
+}
+
+
+/* =====================================================================
+   SIDEBAR — The sidebar is always dark, even in light mode.
+   Repeat your dark accent values here so they look right.
+   ===================================================================== */
+
+/* [data-skin="RENAME-ME"][data-theme="light"] .sidebar { */
+/*   --accent:           #8fdcff; */
+/*   --accent3:          #ffd166; */
+/* } */
