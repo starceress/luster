@@ -1,18 +1,17 @@
-/*
- * Luster - public fl-* embed stylesheet
- *
- * This is Luster's canonical baseline stylesheet for all public embeds.
- * It provides layout, spacing, and structure - NO hardcoded colors (other than for
- * success and error messages).
- *
- * How to include:
- *   Add the following <link> tag once in your <head>, BEFORE your own stylesheet links:
- *   <link rel="stylesheet" href="/path/to/luster/public/assets/css/default/style.css">
- *
- */
+/* ========================================================================
+
+  LUSTER - Public Embed Stylesheet (fl-* classes)
+
+  Canonical baseline for all public embeds. Provides layout, spacing,
+  and structure. No hardcoded colors except success/error messages.
+
+  Include once in <head> before your own stylesheet:
+  <link rel="stylesheet" href="/path/to/luster/public/assets/css/default/style.css">
+
+========================================================================= */
 
 
-/* -- CSS custom properties ---------------------------------------------------- */
+/* ---- CSS CUSTOM PROPERTIES ------------------------------- */
 
 :root {
   /* Typography - inherit from host */
@@ -30,7 +29,7 @@
   --fl-input-radius:  3px;
 }
 
-/* -- Global utilities ---------------------------------------------------------- */
+/* ---- GLOBAL UTILITIES ------------------------------------ */
 
 .fl-empty {
   font-style: italic;
@@ -62,7 +61,7 @@
   margin-top: 0.75em;
 }
 
-/* -- Category navigator -------------------------------------------------------- */
+/* ---- CATEGORY NAVIGATOR ---------------------------------- */
 
 .fl-category-nav {
   margin-bottom: 1em;
@@ -124,7 +123,7 @@
   margin: 0.5em 0 0.75em;
 }
 
-/* -- Pagination ---------------------------------------------------------------- */
+/* ---- PAGINATION ------------------------------------------ */
 
 .fl-pagination-nav {
   display: flex;
@@ -151,7 +150,7 @@
   opacity: 0.65;
 }
 
-/* -- Forms --------------------------------------------------------------------- */
+/* ---- FORMS ----------------------------------------------- */
 
 .fl-form {
   --fl: ; /* Intentionally empty - inherits from host */
@@ -266,7 +265,7 @@
   --fl: ; /* Secondary ghost button variant - host can style */
 }
 
-/* -- File upload drop zone ----------------------------------------------------- */
+/* ---- FILE UPLOAD DROP ZONE ------------------------------- */
 
 .fl-file-zone {
   --fl: ; /* Host can style: border, background, padding, cursor, etc. */
@@ -277,7 +276,7 @@
   --fl: ; /* Host can style: text color, font, display block/inline, etc. */
 }
 
-/* -- Success / result messages ------------------------------------------------- */
+/* ---- SUCCESS / RESULT MESSAGES --------------------------- */
 
 .fl-success {
   background: #f0fff4;
@@ -296,7 +295,7 @@
   margin-top: 0.5em;
 }
 
-/* -- Rules gate ----------------------------------------------------------------- */
+/* ---- RULES GATE ------------------------------------------ */
 
 .fl-rules-gate {
   margin-top: 1.25em;
@@ -361,7 +360,7 @@
   margin-top: 0.2em;
 }
 
-/* -- Member list --------------------------------------------------------------- */
+/* ---- MEMBER LIST ----------------------------------------- */
 
 .fl-member-controls {
   margin-bottom: 0.75em;
@@ -498,7 +497,7 @@
   --fl: ; /* TFL/TAFL badge */
 }
 
-/* -- Affiliates ---------------------------------------------------------------- */
+/* ---- AFFILIATES ------------------------------------------ */
 
 .fl-affiliate-list {
   display: flex;
@@ -531,7 +530,7 @@
   font-style: italic;
 }
 
-/* -- Collapsible affiliate application ---------------------------------------- */
+/* ---- COLLAPSIBLE AFFILIATE APPLICATION ------------------- */
 
 .fl-affiliate-apply-collapsible {
   margin-top: 1em;
@@ -556,7 +555,7 @@
   margin-top: 1em;
 }
 
-/* -- Owned listings ------------------------------------------------------------ */
+/* ---- OWNED LISTINGS -------------------------------------- */
 
 .fl-listing-list {
   list-style: none;
@@ -630,7 +629,7 @@
   opacity: 0.7;
 }
 
-/* -- Random listing ------------------------------------------------------------ */
+/* ---- RANDOM LISTING -------------------------------------- */
 
 .fl-random-listing-item {
   display: flex;
@@ -663,7 +662,7 @@
   font-style: italic;
 }
 
-/* -- Latest listing ------------------------------------------------------------ */
+/* ---- LATEST LISTING -------------------------------------- */
 
 .fl-latest-listing-item {
   display: flex;
@@ -702,7 +701,7 @@
   margin-top: 0.25em;
 }
 
-/* -- Joined listings ----------------------------------------------------------- */
+/* ---- JOINED LISTINGS ------------------------------------- */
 
 .fl-joined-list {
   list-style: none;
@@ -749,7 +748,7 @@
   margin: 0 0 0.4em;
 }
 
-/* -- Random joined listing ----------------------------------------------------- */
+/* ---- RANDOM JOINED LISTING ------------------------------- */
 
 .fl-random-joined-listing-item {
   display: flex;
@@ -782,7 +781,7 @@
   font-size: 0.85em;
 }
 
-/* -- Latest joined listing ----------------------------------------------------- */
+/* ---- LATEST JOINED LISTING ------------------------------- */
 
 .fl-latest-joined-listing-item {
   display: flex;
@@ -816,7 +815,7 @@
   font-size: 0.85em;
 }
 
-/* -- Collective stats ---------------------------------------------------------- */
+/* ---- COLLECTIVE STATS ------------------------------------ */
 
 .fl-cstats {
   --fl: ; /* Outer wrapper */
@@ -848,7 +847,7 @@
   margin-top: 1em;
 }
 
-/* -- Fan codes ----------------------------------------------------------------- */
+/* ---- FAN CODES ------------------------------------------- */
 
 .fl-codes {
   --fl: ; /* Outermost codes container */
@@ -893,7 +892,7 @@
   text-align: center;
 }
 
-/* -- Updates feed -------------------------------------------------------------- */
+/* ---- UPDATES FEED ---------------------------------------- */
 
 .fl-updates {
   --fl: ; /* Outer container */
@@ -945,7 +944,7 @@
   margin-right: 0.3em;
 }
 
-/* -- KIM List ------------------------------------------------------------------ */
+/* ---- KIM LIST -------------------------------------------- */
 
 .fl-kim {
   --fl: ; /* KIM outer wrapper */
@@ -1005,7 +1004,7 @@
   font-weight: 500;
 }
 
-/* -- KIM update dashboard table ----------------------------------------------- */
+/* ---- KIM UPDATE DASHBOARD TABLE -------------------------- */
 
 .fl-kim-table-wrap {
   overflow-x: auto;
@@ -1052,7 +1051,7 @@
   margin-left: 0.35em;
 }
 
-/* -- Wishlist ------------------------------------------------------------------ */
+/* ---- WISHLIST -------------------------------------------- */
 
 .fl-wishlist-group {
   margin-bottom: 1.25em;
