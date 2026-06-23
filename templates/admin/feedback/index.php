@@ -25,11 +25,11 @@ use Luster\Core\View;
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('report') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Report Form</div>
-        <div class="pc-head-sub">Report bugs, ask questions, or suggest features.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('report') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Report Form</div>
+        <div class="panel-header-sub">Report bugs, ask questions, or suggest features.</div>
       </div>
     </div>
     <div class="card-body">

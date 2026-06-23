@@ -18,11 +18,11 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Display Settings</div>
-        <div class="pc-head-sub">Controls how categories are paginated in the admin table.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('gear') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Display Settings</div>
+        <div class="panel-header-sub">Controls how categories are paginated in the admin table.</div>
       </div>
     </div>
 

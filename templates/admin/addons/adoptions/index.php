@@ -272,7 +272,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col"><input type="checkbox" class="sel-all" data-fid="adopt-apps"></th>
+            <th class="checkbox-col"><input type="checkbox" class="sel-all" data-fid="adopt-apps"></th>
             <th>
               <a href="<?= View::e($sortUrl('name')) ?>"
                  class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">
@@ -307,7 +307,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
                 Applied <?= View::sortIcon('applied_at', $sort, $dir) ?>
               </a>
             </th>
-            <th class="act-col"></th>
+            <th class="actions-col"></th>
           </tr>
         </thead>
         <tbody>
@@ -319,7 +319,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
             $isRejected = $app['status'] === 'rejected';
           ?>
           <tr<?= $isRejected ? ' class="row-inactive"' : '' ?>>
-            <td class="cb-col">
+            <td class="checkbox-col">
               <input type="checkbox" class="row-cb-adopt-apps"
                      name="ids[]" value="<?= $appId ?>"
                      data-name="<?= View::e($app['name']) ?>">
@@ -366,7 +366,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
               <?= View::e(date($admin_date_format, strtotime((string) $app['applied_at']))) ?>
             </td>
 
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <?php if ($isPending): ?>
                   <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="btn btn-primary btn-xs">Review</a>
@@ -438,7 +438,7 @@ endif; ?>
             <th class="table-num">Approved</th>
             <th class="table-num">Granted</th>
             <th class="table-num">Total</th>
-            <th class="act-col"></th>
+            <th class="actions-col"></th>
           </tr>
         </thead>
         <tbody>
@@ -479,7 +479,7 @@ endif; ?>
               <?php endif; ?>
             </td>
             <td class="table-num text-dim" data-label="Total"><?= (int) $item['count_all'] ?></td>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $fl->id ?>" class="btn btn-primary btn-xs">View</a>
                 <?php if ($emailAllN > 0): ?>

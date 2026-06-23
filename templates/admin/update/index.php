@@ -34,11 +34,11 @@ $current = Version::CURRENT;
 
 <div class="update-flow">
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('updatesparkle') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Luster Update Wizard</div>
-        <div class="pc-head-sub">This wizard will help you transition to the new Luster update automatically with just a few clicks!
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('updatesparkle') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Luster Update Wizard</div>
+        <div class="panel-header-sub">This wizard will help you transition to the new Luster update automatically with just a few clicks!
         </div>
       </div>
     </div>
@@ -61,7 +61,7 @@ $current = Version::CURRENT;
 
     <?php if ($staging_valid): ?>
       <div class="card-body">
-        <div class="pc-section-label">Prepared Package</div>
+        <div class="section-label">Prepared Package</div>
         <div class="update-stage-summary">
         <?php if ($release_title !== ''): ?>
           <h2><?= View::e($release_title) ?></h2>
@@ -83,7 +83,7 @@ $current = Version::CURRENT;
       </div>
 
       <div class="card-body">
-        <div class="pc-section-label">Pre-flight Checks</div>
+        <div class="section-label">Pre-flight Checks</div>
         <div class="update-check-list">
           <?php foreach ($preflight as $check): ?>
             <?php $ok = ($check['ok'] ?? false) === true; ?>
@@ -107,7 +107,7 @@ $current = Version::CURRENT;
       </div>
 
       <div class="card-body">
-        <div class="pc-section-label">Backup And Apply</div>
+        <div class="section-label">Backup And Apply</div>
         <div class="update-action-grid">
           <form method="POST" action="<?= $b ?>/admin/update/backup" class="update-action-card">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
@@ -141,7 +141,7 @@ $current = Version::CURRENT;
       </div>
     <?php else: ?>
       <div class="card-body update-version-section">
-        <div class="pc-section-label">Version Check</div>
+        <div class="section-label">Version Check</div>
           <p><strong>Installed Version:</strong> <?= View::e($current) ?></p>
 
           <p><strong>Latest Version:</strong>

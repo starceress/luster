@@ -51,11 +51,11 @@ $statusLabels = [
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('adoptions') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title"><?= View::e($application['name']) ?></div>
-        <div class="pc-head-sub">
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('adoptions') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title"><?= View::e($application['name']) ?></div>
+        <div class="panel-header-sub">
           <?= $isReviewMode ? 'Reviewing' : 'Editing' ?> adoption application
           <?php if ($listing !== null): ?>
             &mdash; <?= View::e($listing->title) ?>
@@ -65,7 +65,7 @@ $statusLabels = [
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Applicant</div>
+      <div class="section-label">Applicant</div>
 
       <div class="field-row">
         <label class="field-label" for="adopt-name">Name <span class="req">*</span></label>
@@ -119,7 +119,7 @@ $statusLabels = [
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Status</div>
+      <div class="section-label">Status</div>
 
       <div class="field-row field-row--top">
         <label class="field-label">Status</label>

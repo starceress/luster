@@ -35,11 +35,11 @@ $b = rtrim(View::e($base_url), '/');
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Rename Member Storage</div>
-        <div class="pc-head-sub">Changes the internal name Luster uses for this listing's member records.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('database') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Rename Member Storage</div>
+        <div class="panel-header-sub">Changes the internal name Luster uses for this listing's member records.</div>
       </div>
     </div>
 
@@ -51,7 +51,7 @@ $b = rtrim(View::e($base_url), '/');
       <div class="field-row field-row--top">
         <span class="field-label">Current Prefix</span>
         <div>
-          <div class="ro-field"><?= View::e($listing->dbprefix) ?></div>
+          <div class="readonly-field"><?= View::e($listing->dbprefix) ?></div>
           <p class="form-hint">The current internal name for this listing's member records.</p>
         </div>
       </div>

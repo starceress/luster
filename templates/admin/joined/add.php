@@ -62,10 +62,10 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('add') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title"><?= $isEdit ? 'Edit Joined Listing' : 'Add Joined Listing' ?></div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('add') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title"><?= $isEdit ? 'Edit Joined Listing' : 'Add Joined Listing' ?></div>
       </div>
     </div>
 

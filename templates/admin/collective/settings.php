@@ -18,16 +18,16 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('general') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Collective Settings</div>
-        <div class="pc-head-sub">Turn site-wide collective features on or off, and choose where their messages go.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('general') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Collective Settings</div>
+        <div class="panel-header-sub">Turn site-wide collective features on or off, and choose where their messages go.</div>
       </div>
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Contact Form</div>
+      <div class="section-label">Contact Form</div>
 
       <div class="field-row field-row--top">
         <label class="field-label">Contact Form</label>
@@ -54,7 +54,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Affiliate Applications</div>
+      <div class="section-label">Affiliate Applications</div>
 
       <div class="field-row field-row--top">
         <label class="field-label">Applications</label>
@@ -70,7 +70,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Form Page URLs</div>
+      <div class="section-label">Form Page URLs</div>
 
       <div class="field-row field-row--top">
         <label class="field-label" for="s-form-url-codes-submit">Code Donation Form</label>

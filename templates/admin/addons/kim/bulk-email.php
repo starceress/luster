@@ -140,17 +140,17 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
         <?php endif; ?>
       </div>
 
-      <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
-        <div class="pc-head-title"><?= $selected_only ? 'Email Selected Members' : 'Bulk Email' ?></div>
-        <span class="badge badge-info2 pc-head-badge">
+      <div class="panel-header">
+        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-title"><?= $selected_only ? 'Email Selected Members' : 'Bulk Email' ?></div>
+        <span class="badge badge-info2 panel-header-badge">
           <?= $flSubject ?> &middot; <span id="es-count-label"><?= $count ?> member<?= $count !== 1 ? 's' : '' ?></span>
         </span>
       </div>
 
       <div class="composer-block">
         <div class="composer-row">
-          <span class="composer-lbl">From</span>
+          <span class="composer-label">From</span>
           <div>
             <?php if ($from_name !== ''): ?>
               <span class="composer-name"><?= View::e($from_name) ?></span>
@@ -159,7 +159,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
           </div>
         </div>
         <div class="composer-row">
-          <span class="composer-lbl">To</span>
+          <span class="composer-label">To</span>
           <div id="es-chip" class="es-chip">
             <?php if ($selected_only): ?>
               <?php foreach ($id_email_map as $memberId => $memberData): ?>
@@ -190,7 +190,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
           </div>
         </div>
         <div class="composer-row">
-          <span class="composer-lbl">Subject</span>
+          <span class="composer-label">Subject</span>
           <div class="flex-fill">
             <input class="subj-input" type="text" name="subject" id="es-subject"
                    maxlength="255" required placeholder="Enter subject&hellip;"
@@ -231,18 +231,18 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
     <div class="modal-body">
       <div class="composer-block">
         <div class="composer-row">
-          <span class="composer-lbl">From</span>
+          <span class="composer-label">From</span>
           <div>
             <span class="composer-name" id="es-preview-from-name"></span>
             <span class="composer-email" id="es-preview-from-email"></span>
           </div>
         </div>
         <div class="composer-row">
-          <span class="composer-lbl">To</span>
+          <span class="composer-label">To</span>
           <span class="composer-val" id="es-preview-to"></span>
         </div>
         <div class="composer-row">
-          <span class="composer-lbl">Subject</span>
+          <span class="composer-label">Subject</span>
           <span class="composer-val" id="es-modal-subject"></span>
         </div>
       </div>

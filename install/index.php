@@ -1196,10 +1196,10 @@ function renderAlreadyInstalled(): void
 
     <div class="alert alert-warning" style="margin-bottom: 2rem;">Luster is already installed on this server. The admin panel is available <a href="<?= e($_adminUrl) ?>" class="link">here</a>.</div>
 
-    <div class="pc-section-label">Updating to a new version?</div>
+    <div class="section-label">Updating to a new version?</div>
     <p class="onboard-callout-body">Use the <a href="<?= e($_migrateUrl) ?>" class="link">migration wizard</a> to apply missing database changes. It only runs migrations that have not been applied yet and does not affect your existing data.</p>
 
-    <div class="pc-section-label">Reinstalling from scratch?</div>
+    <div class="section-label">Reinstalling from scratch?</div>
     <p class="onboard-callout-body">A full reinstall requires all three of the following steps. <strong>Back up your data first!</strong> After completing all three steps, reload this page to start the installer again.</p>
     <ul class="star-list">
       <li>Drop all <code>lstr_*</code> tables from the database.</li>
@@ -1347,11 +1347,11 @@ function renderStep1(string $csrf): void
     $canContinue = requirementsPass($checks);
     ?>
 <div class="main-card">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></div>
-    <div class="pc-head-meta">
-      <h2 class="pc-head-title">System Requirements</h2>
-      <div class="pc-head-sub">Luster needs these checks to pass before installation can begin.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></div>
+    <div class="panel-header-meta">
+      <h2 class="panel-header-title">System Requirements</h2>
+      <div class="panel-header-sub">Luster needs these checks to pass before installation can begin.</div>
     </div>
   </div>
   <div class="card-body">
@@ -1401,11 +1401,11 @@ function renderStep2(string $csrf, array $stored, array $errors = []): void
   <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
   <input type="hidden" name="install_step" value="2">
   <input type="hidden" name="db_port" value="<?= e((string) ($db['port'] ?? '3306')) ?>">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-icon lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
-    <div class="pc-head-meta">
-      <h2 class="pc-head-title">Database Configuration</h2>
-      <div class="pc-head-sub">Luster will test the connection before continuing.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-icon lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
+    <div class="panel-header-meta">
+      <h2 class="panel-header-title">Database Configuration</h2>
+      <div class="panel-header-sub">Luster will test the connection before continuing.</div>
     </div>
   </div>
   <div class="card-body">
@@ -1476,11 +1476,11 @@ function renderDatabaseCheck(string $csrf, array $stored): void
     $schemaStatus = (string) ($check['schema_status'] ?? 'fresh');
     ?>
 <div class="main-card">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
-    <div class="pc-head-meta">
-      <h2 class="pc-head-title">Database Configuration</h2>
-      <div class="pc-head-sub">Results of your database connection.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
+    <div class="panel-header-meta">
+      <h2 class="panel-header-title">Database Configuration</h2>
+      <div class="panel-header-sub">Results of your database connection.</div>
     </div>
   </div>
   <div class="card-body">
@@ -1566,15 +1566,15 @@ function renderStep3(string $csrf, array $stored): void
 <form method="post" action="./" class="main-card">
   <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
   <input type="hidden" name="install_step" value="3">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></div>
-    <div class="pc-head-meta">
-      <h2 class="pc-head-title">Site Settings & Admin Account</h2>
-      <div class="pc-head-sub">Set your public site details and create the first administrator.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></div>
+    <div class="panel-header-meta">
+      <h2 class="panel-header-title">Site Settings & Admin Account</h2>
+      <div class="panel-header-sub">Set your public site details and create the first administrator.</div>
     </div>
   </div>
   <div class="card-body">
-    <div class="pc-section-label">Site Settings</div>
+    <div class="section-label">Site Settings</div>
 
       <div class="field-group">
       <label class="field-label" for="app_url">Luster Install URL <span class="req">*</span></label>
@@ -1617,7 +1617,7 @@ function renderStep3(string $csrf, array $stored): void
           </div>
 
   <div class="card-body">
-    <div class="pc-section-label">Administrator Account</div>
+    <div class="section-label">Administrator Account</div>
     <p class="form-hint" style="font-size:.875rem;margin-bottom:1.25rem">
       This account is for logging into the Luster admin panel. You can add more admin users after installation.
     </p>
@@ -1681,18 +1681,18 @@ function renderStep4(string $csrf, array $stored): void
     $site = $stored['site'] ?? [];
     ?>
 <div class="main-card">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-check-icon lucide-clipboard-check"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div>
-    <div class="pc-head-meta">
-      <h2 class="pc-head-title">Review &amp; Install</h2>
-      <div class="pc-head-sub">Confirm everything before installing.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-check-icon lucide-clipboard-check"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div>
+    <div class="panel-header-meta">
+      <h2 class="panel-header-title">Review &amp; Install</h2>
+      <div class="panel-header-sub">Confirm everything before installing.</div>
     </div>
   </div>
 
   <div class="card-body">
     <p class="form-hint" style="font-size:.875rem;margin-bottom:1.25rem">Please confirm the details below. If you need to change anything, click the <strong>Back</strong> button. Otherwise, click <strong>Install Luster</strong> to proceed with the installation.</p>
 
-    <div class="pc-section-label">Site</div>
+    <div class="section-label">Site</div>
     <div class="sysinfo-row"><span class="field-label">Luster Install URL</span><?= e((string) ($site['app_url'] ?? '')) ?></div>
     <div class="sysinfo-row"><span class="field-label">Site Name</span><?= e((string) ($site['site_name'] ?? '')) ?></div>
     <div class="sysinfo-row"><span class="field-label">Site URL</span><?= e((string) ($site['site_url'] ?? $site['app_url'] ?? '')) ?></div>
@@ -1705,7 +1705,7 @@ function renderStep4(string $csrf, array $stored): void
   </div>
   
   <div class="card-body">
-    <div class="pc-section-label">Admin Account</div>
+    <div class="section-label">Admin Account</div>
     <div class="sysinfo-row"><span class="field-label">Username</span><?= e((string) ($site['admin_username'] ?? '')) ?></div>
     <div class="sysinfo-row"><span class="field-label">Email</span><?= e((string) ($site['admin_email'] ?? '')) ?></div>
   </div>
@@ -1734,7 +1734,7 @@ function renderDone(string $appUrl): void
 
         <p class="onboard-callout-body">Luster has been installed successfully and is ready for your first listing! <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></p>
         <div class="alert alert-warning" style="margin-bottom: 2rem;"><strong>ATTENTION:</strong> For your security, delete the <code>install/</code> folder now that installation is complete.</div>
-        <div class="pc-section-label">Next Steps</div>
+        <div class="section-label">Next Steps</div>
         <ul class="star-list" style="margin-bottom: 1.25rem;">
           <li>Migrating from another script? Use <a href="<?= e($appUrl) ?>/admin/import" class="link"><strong>Import Data</strong></a> in the admin panel sidebar.</li>
           <li>Confirm your email <a href="<?= e($appUrl) ?>/admin/settings#panel-general" class="link"><strong>Settings &rarr; General</strong></a> so email notifications and password resets work.</li>

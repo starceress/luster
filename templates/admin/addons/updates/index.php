@@ -126,7 +126,7 @@ $collLastDate = $latest_coll !== null
             </a>
           </th>
           <th>Total Updates</th>
-          <th class="act-col">Actions</th>
+          <th class="actions-col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -150,7 +150,7 @@ $collLastDate = $latest_coll !== null
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
           </td>
-          <td class="act-col" data-label="">
+          <td class="actions-col" data-label="">
             <div class="actions-row">
               <a href="<?= $b ?>/admin/updates/collective" class="btn btn-primary btn-sm">View</a>
               <a href="<?= $b ?>/admin/updates/collective/add" class="btn btn-secondary btn-sm">Add</a>
@@ -189,7 +189,7 @@ $collLastDate = $latest_coll !== null
                 <span class="text-dim">&mdash;</span>
               <?php endif; ?>
             </td>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <a href="<?= $b ?>/admin/updates/<?= $fid ?>" class="btn btn-primary btn-sm">View</a>
                 <a href="<?= $b ?>/admin/updates/<?= $fid ?>/add" class="btn btn-secondary btn-sm">Add</a>

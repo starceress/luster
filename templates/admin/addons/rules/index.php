@@ -154,7 +154,7 @@ $rangeLast  = min($page * $per_page, $total);
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col">
+            <th class="checkbox-col">
               <input type="checkbox" id="rules-sel-all" title="Select all">
             </th>
             <th style="width:3.5rem">
@@ -176,7 +176,7 @@ $rangeLast  = min($page * $per_page, $total);
                 Last Updated <?= View::sortIcon('updated_at', $sort, $dir) ?>
               </a>
             </th>
-            <th class="act-col">Action</th>
+            <th class="actions-col">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -189,7 +189,7 @@ $rangeLast  = min($page * $per_page, $total);
           <?php endif; ?>
           <?php foreach ($rows as $row): ?>
           <tr>
-            <td class="cb-col" data-label="">
+            <td class="checkbox-col" data-label="">
               <?php if ($row['rules_id'] !== null): ?>
                 <input type="checkbox" class="rules-row-cb" name="ids[]" value="<?= (int) $row['listing_id'] ?>"
                        data-name="<?= View::e($row['listing_subject']) ?>">
@@ -230,7 +230,7 @@ $rangeLast  = min($page * $per_page, $total);
               <?php endif; ?>
             </td>
 
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <a href="<?= $b ?>/admin/rules/<?= (int) $row['listing_id'] ?>/edit"
                    class="btn btn-tertiary btn-xs">Edit</a>

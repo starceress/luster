@@ -25,11 +25,11 @@ $b = rtrim(View::e($base_url), '/');
   <input type="hidden" name="settings_action" value="" id="rules-settings-action">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Display Settings</div>
-        <div class="pc-head-sub">Controls how many listings are shown per page on the Join Rules index.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('gear') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Display Settings</div>
+        <div class="panel-header-sub">Controls how many listings are shown per page on the Join Rules index.</div>
       </div>
     </div>
 

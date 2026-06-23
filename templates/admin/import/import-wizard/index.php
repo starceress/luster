@@ -45,7 +45,7 @@ $b = rtrim(View::e($base_url), '/');
   <?php if ($import_show_enthusiast ?? true): ?>
   <a href="<?= $b ?>/admin/import/enthusiast/connect" class="import-source-card">
     <div class="import-source-header" style="color:var(--card-border-1)">
-      <span class="pc-head-title">Enthusiast</span>
+      <span class="panel-header-title">Enthusiast</span>
     </div>
 
     <ul class="import-source-list">
@@ -67,7 +67,7 @@ $b = rtrim(View::e($base_url), '/');
   <?php if ($import_show_listing_admin ?? true): ?>
   <a href="<?= $b ?>/admin/import/listing-admin/connect" class="import-source-card">
     <div class="import-source-header" style="color:var(--card-border-2)">
-      <span class="pc-head-title">Listing Admin</span>
+      <span class="panel-header-title">Listing Admin</span>
     </div>
     <ul class="import-source-list">
       <li><?= View::icon('check') ?> Owned listings</li>
@@ -90,7 +90,7 @@ $b = rtrim(View::e($base_url), '/');
   <?php if ($import_show_bellabuffs ?? true): ?>
   <a href="<?= $b ?>/admin/import/bellabuffs/connect" class="import-source-card">
     <div class="import-source-header" style="color:var(--card-border-3)">
-      <span class="pc-head-title">BellaBuffs</span>
+      <span class="panel-header-title">BellaBuffs</span>
     </div>
     <ul class="import-source-list">
       <li><?= View::icon('check') ?> Members</li>
@@ -107,7 +107,7 @@ $b = rtrim(View::e($base_url), '/');
   <?php if ($import_show_fanatically ?? true): ?>
   <a href="<?= $b ?>/admin/import/fanatically/connect" class="import-source-card">
     <div class="import-source-header" style="color:var(--card-border-1)">
-      <span class="pc-head-title">Fanatically</span>
+      <span class="panel-header-title">Fanatically</span>
     </div>
     <ul class="import-source-list">
       <li><?= View::icon('check') ?> Owned listings</li>
@@ -130,7 +130,7 @@ $b = rtrim(View::e($base_url), '/');
   <?php if ($import_show_codesort ?? true): ?>
   <a href="<?= $b ?>/admin/import/codesort/connect" class="import-source-card">
     <div class="import-source-header" style="color:var(--card-border-4)">
-      <span class="pc-head-title">CodeSort</span>
+      <span class="panel-header-title">CodeSort</span>
     </div>
     <ul class="import-source-list">
       <li><?= View::icon('check') ?> Codes, code categories, sizes & donors</li>
@@ -146,7 +146,7 @@ $b = rtrim(View::e($base_url), '/');
   <?php if ($import_show_fanupdate ?? true): ?>
   <a href="<?= $b ?>/admin/import/fanupdate/connect" class="import-source-card">
     <div class="import-source-header" style="color:var(--card-border-3)">
-      <span class="pc-head-title">FanUpdate</span>
+      <span class="panel-header-title">FanUpdate</span>
       <span class="badge badge-pending">Beta</span>
     </div>
     <ul class="import-source-list">

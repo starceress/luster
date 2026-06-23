@@ -96,7 +96,7 @@ $pageUrl = static function (int $p) use ($b, $sort, $dir): string {
           </th>
           <th>Approved</th>
           <th>Granted</th>
-          <th class="act-col"></th>
+          <th class="actions-col"></th>
         </tr>
       </thead>
       <tbody>
@@ -141,7 +141,7 @@ $pageUrl = static function (int $p) use ($b, $sort, $dir): string {
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
           </td>
-          <td class="act-col" data-label="">
+          <td class="actions-col" data-label="">
             <a href="<?= $b ?>/admin/kim?listing_id=<?= (int) $listing->id ?>"
                class="btn btn-primary btn-xs">View</a>
             <?php if ($canEmail): ?>

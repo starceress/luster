@@ -55,17 +55,17 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">BellaBuffs Import Options</div>
-        <div class="pc-head-sub">Choose the Luster listing that should receive this BellaBuffs data.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">BellaBuffs Import Options</div>
+        <div class="panel-header-sub">Choose the Luster listing that should receive this BellaBuffs data.</div>
       </div>
     </div>
 
     <!-- ── Target listing ───────────────────────────────────────────── -->
     <div class="card-body">
-      <div class="pc-section-label">Target Luster Listing <span class="req">*</span></div>
+      <div class="section-label">Target Luster Listing <span class="req">*</span></div>
       
       <div class="card-body">
       <div class="field-group">
@@ -91,7 +91,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
 
     <!-- ── Data to import ──────────────────────────────────────────── -->
     <div class="card-body">
-      <div class="pc-section-label">Data to Import</div>
+      <div class="section-label">Data to Import</div>
 
       <?php if ($bb_mode === 'upload'): ?>
       <div class="callout callout-warn">

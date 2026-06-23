@@ -35,7 +35,7 @@ $b = rtrim(View::e($base_url), '/');
     <div class="import-source-card<?= $isInstalled ? ' addon-card--installed' : '' ?>">
 
       <div class="import-source-header">
-        <span class="pc-head-title"><?= View::e($addon->getName()) ?></span>
+        <span class="panel-header-title"><?= View::e($addon->getName()) ?></span>
         <?php if ($isInstalled): ?>
           <span class="badge badge-current">Installed</span>
         <?php else: ?>

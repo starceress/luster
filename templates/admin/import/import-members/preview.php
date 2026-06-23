@@ -21,16 +21,16 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
 </div>
 
 <div class="card card--gradient" style="margin-bottom:1.5rem">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Ready to Import</div>
-      <div class="pc-head-sub">Check what Luster found before it adds members.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Ready to Import</div>
+      <div class="panel-header-sub">Check what Luster found before it adds members.</div>
     </div>
   </div>
 
   <div class="card-body">
-    <div class="pc-section-label">Summary</div>
+    <div class="section-label">Summary</div>
 
     <div class="stat-row">
       <div class="stat-tile">
@@ -62,7 +62,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
   </div>
 
   <div class="card-body">
-    <div class="pc-section-label">Column Matching</div>
+    <div class="section-label">Column Matching</div>
     <p class="form-hint">This shows which old file column will fill each Luster member field.</p>
     <table class="data-table" style="max-width:480px">
       <thead><tr><th>Source column</th><th>Luster column</th></tr></thead>
@@ -81,7 +81,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
 
   <?php if (!empty($samples)): ?>
   <div class="card-body">
-    <div class="pc-section-label">Sample Rows</div>
+    <div class="section-label">Sample Rows</div>
     <p class="form-hint">A small peek at the uploaded data so you can confirm this is the right file.</p>
     <div style="overflow-x:auto">
       <table class="data-table">

@@ -16,11 +16,11 @@ $b = rtrim(View::e($base_url), '/');
 </div>
 
 <div class="card card--gradient" style="margin-bottom:1.5rem">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Compat Wrapper Test</div>
-      <div class="pc-head-sub">
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('embed') ?></div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Compat Wrapper Test</div>
+      <div class="panel-header-sub">
         Render any embed output here to verify your compat wrapper setup before deploying.
       </div>
     </div>
@@ -77,10 +77,10 @@ $b = rtrim(View::e($base_url), '/');
 
 <?php if ($output !== null && $error === null): ?>
 <div class="card card--gradient" style="margin-bottom:1.5rem">
-  <div class="pc-head">
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Rendered Output &mdash; <?= View::e(ucfirst($selected_type)) ?></div>
-      <div class="pc-head-sub">Listing #<?= (int) $selected_listing_id ?></div>
+  <div class="panel-header">
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Rendered Output &mdash; <?= View::e(ucfirst($selected_type)) ?></div>
+      <div class="panel-header-sub">Listing #<?= (int) $selected_listing_id ?></div>
     </div>
   </div>
   <div class="card-body">

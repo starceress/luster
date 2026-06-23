@@ -287,7 +287,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                     data-et-nav-label="<?= View::e(strtolower($navLabels[$type])) ?>">
               <?= View::e($navLabels[$type]) ?>
               <?php if (!$isGlobal && isset($cards[$type]) && $cards[$type]['isCustomised']): ?>
-                <span class="pc-head-badge">&#x2726;</span>
+                <span class="panel-header-badge">&#x2726;</span>
               <?php endif; ?>
             </button>
           <?php endforeach; ?>
@@ -304,12 +304,12 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
           <div class="card card--gradient<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>">
 
             <!-- Card header -->
-            <div class="pc-head">
-              <div class="pc-head-meta">
-                <div class="pc-head-title"><?= View::e($typeLabels[$type]) ?></div>
-                <div class="pc-head-sub"><?= View::e($typeHints[$type]) ?></div>
+            <div class="panel-header">
+              <div class="panel-header-meta">
+                <div class="panel-header-title"><?= View::e($typeLabels[$type]) ?></div>
+                <div class="panel-header-sub"><?= View::e($typeHints[$type]) ?></div>
               </div>
-              <div class="pc-head-actions">
+              <div class="panel-header-actions">
                 <?php if (!$isGlobal): ?>
                   <?php if ($card['isCustomised']): ?>
                     <span class="badge badge-info">Custom</span>
@@ -539,17 +539,17 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       <form method="POST" action="<?= $b ?>/admin/emails/preview" id="compose-form">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-        <div class="pc-head">
-          <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
-          <div class="pc-head-title">Bulk Email</div>
-          <span class="badge badge-info2 pc-head-badge" id="me-listing-chip">
+        <div class="panel-header">
+          <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+          <div class="panel-header-title">Bulk Email</div>
+          <span class="badge badge-info2 panel-header-badge" id="me-listing-chip">
             <span id="me-chip-label">All Listings</span>
           </span>
         </div>
 
         <div class="composer-block">
           <div class="composer-row">
-            <span class="composer-lbl">From</span>
+            <span class="composer-label">From</span>
             <div>
               <?php if (($from_name_val ?? '') !== ''): ?>
                 <span class="composer-name"><?= View::e($from_name_val) ?></span>
@@ -562,7 +562,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             </div>
           </div>
           <div class="composer-row">
-            <label class="composer-lbl" for="me-listing">Send To</label>
+            <label class="composer-label" for="me-listing">Send To</label>
             <div class="flex-fill">
               <div class="select-wrap">
                 <select name="listing_id" id="me-listing" >
@@ -588,7 +588,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             </div>
           </div>
           <div class="composer-row">
-            <label class="composer-lbl" for="me-subject">Subject</label>
+            <label class="composer-label" for="me-subject">Subject</label>
             <div class="flex-fill">
               <input class="subj-input" id="me-subject" type="text" name="subject"
                      maxlength="255" required placeholder="Enter subject&hellip;"
@@ -629,21 +629,21 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       <div class="modal-body">
         <div class="composer-block">
           <div class="composer-row">
-            <span class="composer-lbl">To</span>
+            <span class="composer-label">To</span>
             <div>
               <span class="composer-name" id="me-preview-to-label"></span>
               <span class="composer-email" id="me-preview-to-count"></span>
             </div>
           </div>
           <div class="composer-row">
-            <span class="composer-lbl">From</span>
+            <span class="composer-label">From</span>
             <div>
               <span class="composer-name" id="me-preview-from-name"></span>
               <span class="composer-email" id="me-preview-from-email"></span>
             </div>
           </div>
           <div class="composer-row">
-            <span class="composer-lbl">Subject</span>
+            <span class="composer-label">Subject</span>
             <span class="composer-val" id="me-preview-subject"></span>
           </div>
         </div>
@@ -666,12 +666,12 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 <div id="tab-custom" class="tabs-panel<?= $active_tab === 'custom' ? ' active' : '' ?>">
   <div class="composer-grid">
     <div class="card card--gradient">
-      <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
+      <div class="panel-header">
+        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
         
-    <div class="pc-head-meta">
-        <div class="pc-head-title">Add New Template</div>
-        <div class="pc-head-sub">Reusable email starting points for bulk messages.</div>
+    <div class="panel-header-meta">
+        <div class="panel-header-title">Add New Template</div>
+        <div class="panel-header-sub">Reusable email starting points for bulk messages.</div>
     </div>
       </div>
 
@@ -793,7 +793,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
               <th>Template Name</th>
               <th>Subject</th>
               <th>Created On</th>
-              <th class="act-col">Actions</th>
+              <th class="actions-col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -804,7 +804,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
               <td class="text-muted cell-meta-nowrap">
                 <?= View::e(date($admin_date_format, strtotime($t->created_at))) ?>
               </td>
-              <td class="act-col">
+              <td class="actions-col">
                 <div class="actions-row">
                   <a href="<?= $b ?>/admin/emails?tab=bulk&load=<?= (int) $t->id ?>"
                      class="btn btn-secondary btn-sm">Use</a>

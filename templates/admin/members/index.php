@@ -231,20 +231,20 @@ $pendingNewCnt = count($pendingNew);
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col"><input type="checkbox" id="new-join-check-all"></th>
+            <th class="checkbox-col"><input type="checkbox" id="new-join-check-all"></th>
             <th><a href="<?= View::e($sortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('email')) ?>" class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">Email <?= View::sortIcon('email', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('country')) ?>" class="sort-th<?= $sort === 'country' ? ' sort-active' : '' ?>">Country <?= View::sortIcon('country', $sort, $dir) ?></a></th>
             <?php foreach ($fields as $field): ?>
               <th><?= View::e($field->label) ?></th>
             <?php endforeach; ?>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($pendingNew as $m): ?>
           <tr>
-            <td class="cb-col" data-label=""><input type="checkbox" name="emails[]" value="<?= View::e($m->email) ?>" data-name="<?= View::e($m->name) ?>"></td>
+            <td class="checkbox-col" data-label=""><input type="checkbox" name="emails[]" value="<?= View::e($m->email) ?>" data-name="<?= View::e($m->name) ?>"></td>
             <td data-label="Name">
               <div class="subject-title-stack">
                 <b><?= View::e($m->name) ?></b>
@@ -258,7 +258,7 @@ $pendingNewCnt = count($pendingNew);
             <?php foreach ($fields as $field): ?>
               <td class="text-muted" data-label="<?= View::e($field->label) ?>"><?= View::e($m->additionalFields[$field->name] ?? '') ?></td>
             <?php endforeach; ?>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-sm">Approve</button>
                 <button type="submit" form="reject-member-<?= md5($m->email) ?>" class="btn btn-warning btn-sm">Reject</button>
@@ -334,10 +334,10 @@ $pendingNewCnt = count($pendingNew);
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col"><input type="checkbox" class="sel-all" data-fid="pu" title="Select all"></th>
+            <th class="checkbox-col"><input type="checkbox" class="sel-all" data-fid="pu" title="Select all"></th>
             <th>Member</th>
             <th>Changes</th>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -345,7 +345,7 @@ $pendingNewCnt = count($pendingNew);
             $puMember = $puMemberMap[$pu->member_email] ?? null;
           ?>
           <tr>
-            <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
+            <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
             <td data-label="Member">
               <span class="text-strong"><?= View::e($puMember ? $puMember->name : $pu->member_email) ?></span>
               <?= View::emailWrap($pu->member_email) ?>
@@ -387,7 +387,7 @@ $pendingNewCnt = count($pendingNew);
                 </div>
               <?php endif; ?>
             </td>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
@@ -477,7 +477,7 @@ endif;
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col"><input type="checkbox" id="check-all"></th>
+            <th class="checkbox-col"><input type="checkbox" id="check-all"></th>
             <th><a href="<?= View::e($sortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('email')) ?>" class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">Email <?= View::sortIcon('email', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('country')) ?>" class="sort-th<?= $sort === 'country' ? ' sort-active' : '' ?>">Country <?= View::sortIcon('country', $sort, $dir) ?></a></th>
@@ -487,13 +487,13 @@ endif;
             <?php if ($status === 'all'): ?>
               <th><a href="<?= View::e($sortUrl('status')) ?>" class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('status', $sort, $dir) ?></a></th>
             <?php endif; ?>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($members as $m): ?>
           <tr>
-            <td class="cb-col" data-label=""><input type="checkbox" name="emails[]" value="<?= View::e($m->email) ?>" data-name="<?= View::e($m->name) ?>"></td>
+            <td class="checkbox-col" data-label=""><input type="checkbox" name="emails[]" value="<?= View::e($m->email) ?>" data-name="<?= View::e($m->name) ?>"></td>
             <td data-label="Name">
               <div class="subject-title-stack">
                 <b><?= View::e($m->name) ?></b>
@@ -518,7 +518,7 @@ endif;
                 <?php endif; ?>
               </td>
             <?php endif; ?>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <?php if (!$m->approved): ?>
                   <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-sm">Approve</button>
@@ -593,7 +593,7 @@ include LUSTER_BASE . '/templates/admin/_pagination.php';
           <th>Country</th>
           <th>Status</th>
           <th>Joined</th>
-          <th class="act-col">Actions</th>
+          <th class="actions-col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -627,7 +627,7 @@ include LUSTER_BASE . '/templates/admin/_pagination.php';
           <td data-label="Joined" class="cell-meta-nowrap">
             <?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?>
           </td>
-          <td class="act-col" data-label="">
+          <td class="actions-col" data-label="">
             <div class="actions-row">
               <?php if (!$m->approved): ?>
                 <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
@@ -712,12 +712,12 @@ $_newTo         = min($_totalNew, $page * $per_page);
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col"><input type="checkbox" id="pending-check-all"></th>
+            <th class="checkbox-col"><input type="checkbox" id="pending-check-all"></th>
             <th><a href="<?= View::e($sortUrl('listing')) ?>" class="sort-th<?= $sort === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('name')) ?>"    class="sort-th<?= $sort === 'name'    ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
             <th>Email</th>
             <th><a href="<?= View::e($sortUrl('country')) ?>" class="sort-th<?= $sort === 'country' ? ' sort-active' : '' ?>">Country <?= View::sortIcon('country', $sort, $dir) ?></a></th>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -728,7 +728,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
             // cross-listing pending: member is a Member object inside the 'member' key
           ?>
           <tr>
-            <td class="cb-col" data-label="">
+            <td class="checkbox-col" data-label="">
               <input type="checkbox" name="items[]"
                      value="<?= $flId ?>:<?= View::e($m->email) ?>"
                      data-name="<?= View::e($m->name) ?>">
@@ -752,7 +752,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
             </td>
             <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
             <td data-label="Country"><?= View::e($m->country) ?></td>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
@@ -832,13 +832,13 @@ endif;
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col"><input type="checkbox" class="sel-all" data-fid="pu"></th>
+            <th class="checkbox-col"><input type="checkbox" class="sel-all" data-fid="pu"></th>
             <th><a href="<?= View::e($sortUrl('listing')) ?>" class="sort-th<?= $sort === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('name')) ?>"    class="sort-th<?= $sort === 'name'    ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
             <th>Email</th>
             <th>Fields Changed</th>
             <th>Submitted</th>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -864,7 +864,7 @@ endif;
             $puMember  = ($pending_member_data ?? [])[$pu->member_email] ?? null;
           ?>
           <tr>
-            <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
+            <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
             <td data-label="Listing">
               <?php if ($puListing !== null): ?>
                 <div class="subject-title-stack">
@@ -902,7 +902,7 @@ endif;
               <?php endif; ?>
             </td>
             <td data-label="Submitted" class="cell-meta-nowrap"><?= View::e($pu->submitted_at) ?></td>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -988,7 +988,7 @@ $_ovSortUrl = static function (string $col) use ($buildUrl, $_ovSort, $_ovDir): 
               <th style="text-align:center;white-space:nowrap;width:7rem"><a href="<?= View::e($_ovSortUrl('pending')) ?>" class="sort-th<?= $_ovSort === 'pending' ? ' sort-active' : '' ?>">Pending <?= View::sortIcon('pending', $_ovSort, $_ovDir) ?></a></th>
               <th style="text-align:center;white-space:nowrap;width:7rem"><a href="<?= View::e($_ovSortUrl('rejected')) ?>" class="sort-th<?= $_ovSort === 'rejected' ? ' sort-active' : '' ?>">Rejected <?= View::sortIcon('rejected', $_ovSort, $_ovDir) ?></a></th>
             <?php endif; ?>
-            <th class="act-col"></th>
+            <th class="actions-col"></th>
           </tr>
         </thead>
         <tbody>
@@ -1026,7 +1026,7 @@ $_ovSortUrl = static function (string $col) use ($buildUrl, $_ovSort, $_ovDir): 
                 <?php endif; ?>
               </td>
             <?php endif; ?>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <a href="<?= $b ?>/admin/members?listing_id=<?= $_flId ?>&status=<?= View::e($status) ?>" class="btn btn-primary btn-sm">View Members</a>
             </td>
           </tr>

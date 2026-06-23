@@ -194,20 +194,20 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
     <table class="data-table mem-table">
       <thead>
         <tr>
-          <th class="cb-col"><input type="checkbox" id="sel-all" title="Select all"></th>
+          <th class="checkbox-col"><input type="checkbox" id="sel-all" title="Select all"></th>
           <th><a href="<?= View::e($catSortUrl('source')) ?>" class="sort-th<?= $sort === 'source' ? ' sort-active' : '' ?>">Network <?= View::sortIcon('source', $sort, $dir) ?></a></th>
           <th><a href="<?= View::e($catSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Category Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
-          <th class="act-col">Actions</th>
+          <th class="actions-col">Actions</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach ($items ?? [] as $cat): ?>
         <tr>
-          <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $cat->id ?>"
+          <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $cat->id ?>"
                data-name="<?= View::e($cat->name ?? '') ?>"></td>
           <td data-label="Network"><?= $sourceBadge($cat->source ?? 'custom') ?></td>
           <td data-label="Name"><?= View::e($cat->name ?? '') ?></td>
-          <td class="act-col" data-label="">
+          <td class="actions-col" data-label="">
             <a href="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/edit"
                class="btn btn-tertiary btn-sm">Edit</a>
             <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"

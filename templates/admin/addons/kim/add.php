@@ -15,16 +15,16 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Add KIM Entry</div>
-        <div class="pc-head-sub">Manually add a Keep In Mind entry on behalf of someone.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('kim') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Add KIM Entry</div>
+        <div class="panel-header-sub">Manually add a Keep In Mind entry on behalf of someone.</div>
       </div>
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Member Details</div>
+      <div class="section-label">Member Details</div>
 
       <div class="field-row">
         <label class="field-label" for="kim-name">Name <span class="req">*</span></label>
@@ -68,7 +68,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Status</div>
+      <div class="section-label">Status</div>
 
       <div class="field-row">
         <label class="field-label">Approval</label>
@@ -83,7 +83,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Password <span class="text-dim" style="font-weight:normal">(optional)</span></div>
+      <div class="section-label">Password <span class="text-dim" style="font-weight:normal">(optional)</span></div>
 
       <div class="field-row field-row--top">
         <label class="field-label" for="kim-password">Password</label>

@@ -276,7 +276,7 @@ $rangeEnd   = min($total, $page * $per_page);
       <thead>
         <tr>
           <?php if ($dragEnabled): ?><th class="table-col-xs"></th><?php endif; ?>
-          <th class="cb-col"><input type="checkbox" id="aff-select-all"></th>
+          <th class="checkbox-col"><input type="checkbox" id="aff-select-all"></th>
           <th>Image</th>
           <th>
             <a href="<?= View::e($sortUrl('name')) ?>"
@@ -308,7 +308,7 @@ $rangeEnd   = min($total, $page * $per_page);
               </a>
             </th>
           <?php endif; ?>
-          <th class="act-col">Actions</th>
+          <th class="actions-col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -324,7 +324,7 @@ $rangeEnd   = min($total, $page * $per_page);
             <span class="drag-handle" title="Drag to reorder"><?= View::icon('grip') ?></span>
           </td>
           <?php endif; ?>
-          <td class="cb-col">
+          <td class="checkbox-col">
             <input type="checkbox" name="selected[]" value="<?= (int) $aff->id ?>"
                    class="aff-row-cb" data-name="<?= View::e($aff->name) ?>">
           </td>
@@ -407,7 +407,7 @@ $rangeEnd   = min($total, $page * $per_page);
           <?php endif; ?>
 
           <!-- Actions: Approve / Reject / Edit / Email / Delete -->
-          <td class="act-col" data-label="">
+          <td class="actions-col" data-label="">
             <div class="actions-row">
               <?php if ($aff->status === 'pending'): ?>
                 <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/approve"

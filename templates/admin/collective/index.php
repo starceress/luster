@@ -200,7 +200,7 @@ foreach (array_keys($quickActions) as $qaKey) {
           <?php $qa = $quickActions[$qaKey]; ?>
           <a href="<?= View::e($qa['href']) ?>" class="collective-action-tile<?= !empty($qa['muted']) ? ' is-muted' : '' ?>" data-action-key="<?= View::e($qaKey) ?>" draggable="false">
             <span class="qa-drag-handle" title="Drag to reorder"><?= View::icon('grip') ?></span>
-            <span class="pc-head-icon pc-head-icon-bg"><?= View::icon($qa['icon']) ?></span>
+            <span class="panel-header-icon panel-header-icon--filled"><?= View::icon($qa['icon']) ?></span>
             <span class="collective-action-label"><?= View::e($qa['label']) ?></span>
             <?php if (!empty($qa['muted'])): ?>
               <span class="badge badge-inactive badge-inline-sm">Install add-on</span>
@@ -214,23 +214,23 @@ foreach (array_keys($quickActions) as $qaKey) {
       <div class="card-head">Migration & Bridges</div>
       <div class="collective-action-grid">
         <a href="<?= $b ?>/admin/import" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></span>
+          <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></span>
           <span class="collective-action-label">Import Data</span>
         </a>
         <a href="<?= $b ?>/admin/import-members" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('importmembers') ?></span>
+          <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('importmembers') ?></span>
           <span class="collective-action-label">Import Members</span>
         </a>
         <a href="<?= $b ?>/admin/compat-bridge/enthusiast" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('bridge') ?></span>
+          <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">Enthusiast Bridge</span>
         </a>
         <a href="<?= $b ?>/admin/compat-bridge/listing-admin" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('bridge') ?></span>
+          <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">Listing Admin Bridge</span>
         </a>
         <a href="<?= $b ?>/admin/compat-bridge/codesort" class="collective-action-tile">
-          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('bridge') ?></span>
+          <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">CodeSort Bridge</span>
         </a>
       </div>
@@ -242,12 +242,12 @@ foreach (array_keys($quickActions) as $qaKey) {
     <div class="collective-action-list">
 
       <a href="<?= $b ?>/admin/collective/snippets" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></span>
+        <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('embed') ?></span>
         <span class="collective-action-label">Collective Embed Snippets</span>
       </a>
 
       <a href="<?= $b ?>/admin/affiliates?tab=approved&amp;scope=collective" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('link') ?></span>
+        <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('link') ?></span>
         <span>
           <span class="collective-action-label">Manage Collective Affiliates</span>
           <?php $_affCount = (int) ($total_affiliates_collective ?? 0); ?>
@@ -256,7 +256,7 @@ foreach (array_keys($quickActions) as $qaKey) {
       </a>
 
       <a href="<?= $b ?>/admin/codes?collective=1" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('image') ?></span>
+        <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('image') ?></span>
         <span>
           <span class="collective-action-label">Manage Collective Codes</span>
           <?php $_codeTotal = (int) ($codes['total'] ?? 0); $_codePending = (int) ($codes['pending'] ?? 0); ?>
@@ -269,7 +269,7 @@ foreach (array_keys($quickActions) as $qaKey) {
 
       <?php if ($hasUpdates): ?>
       <a href="<?= $b ?>/admin/updates/collective" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('updates') ?></span>
+        <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('updates') ?></span>
         <span>
           <span class="collective-action-label">Collective News Index</span>
           <?php if ($addons['updates'] !== null): ?>
@@ -281,28 +281,28 @@ foreach (array_keys($quickActions) as $qaKey) {
 
       <?php if ($hasAdoption): ?>
       <a href="<?= $b ?>/admin/adoptions" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('adoptions') ?></span>
+        <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('adoptions') ?></span>
         <span class="collective-action-label">Adoptions Index</span>
       </a>
       <?php endif; ?>
 
       <?php if ($hasRules): ?>
       <a href="<?= $b ?>/admin/rules" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('rules') ?></span>
+        <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('rules') ?></span>
         <span class="collective-action-label">Join Rules Index</span>
       </a>
       <?php endif; ?>
 
       <?php if ($hasKim): ?>
       <a href="<?= $b ?>/admin/kim" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></span>
+        <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('kim') ?></span>
         <span class="collective-action-label">Keep In Mind Index<?php if (($addons['kim'] ?? null) !== null): ?> <span class="badge badge-info3 badge-inline-sm"><?= (int) $addons['kim'] ?> sign-up<?= (int) $addons['kim'] !== 1 ? 's' : '' ?></span><?php endif; ?></span>
       </a>
       <?php endif; ?>
 
       <?php if ($hasWishlist): ?>
       <a href="<?= $b ?>/admin/wishlist" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('wishlist') ?></span>
+        <span class="panel-header-icon panel-header-icon--filled"><?= View::icon('wishlist') ?></span>
         <span>
           <span class="collective-action-label">Wishlist Index</span>
           <?php if ($addons['wishlist'] !== null): ?>

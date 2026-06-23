@@ -36,20 +36,20 @@ $id = (int) $listing->id;
   <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('members') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title"><?= View::e($member->name) ?></div>
-        <div class="pc-head-sub">Editing member &mdash; <?= View::e($listing->subject) ?></div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('members') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title"><?= View::e($member->name) ?></div>
+        <div class="panel-header-sub">Editing member &mdash; <?= View::e($listing->subject) ?></div>
       </div>
     </div>
     <div class="card-body">
-      <div class="pc-section-label">General Information</div>
+      <div class="section-label">General Information</div>
 
       <div class="field-row field-row--top">
         <span class="field-label">Email</span>
         <div>
-          <div class="ro-field"><?= View::e($member->email) ?></div>
+          <div class="readonly-field"><?= View::e($member->email) ?></div>
           <p class="form-hint">Email is the member identifier and cannot be changed here.</p>
         </div>
       </div>
@@ -114,7 +114,7 @@ $id = (int) $listing->id;
 
     <?php if (!empty($fields)): ?>
     <div class="card-body">
-      <div class="pc-section-label">Additional Fields</div>
+      <div class="section-label">Additional Fields</div>
 
       <?php foreach ($fields as $field):
         $fKey     = 'field_' . $field->name;

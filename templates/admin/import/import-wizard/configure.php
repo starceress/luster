@@ -51,11 +51,11 @@ function importChecked(array $old, string $key, bool $default = true): string {
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Connection Method</div>
-        <div class="pc-head-sub">Connect to the source database directly, or upload a <code>.sql</code> dump file.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('database') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Connection Method</div>
+        <div class="panel-header-sub">Connect to the source database directly, or upload a <code>.sql</code> dump file.</div>
       </div>
     </div>
     <div class="card-body">
@@ -74,11 +74,11 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
   <div id="js-live-db-section">
     <div class="card card--gradient">
-      <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
-        <div class="pc-head-meta">
-          <div class="pc-head-title">Source Database</div>
-          <div class="pc-head-sub">
+      <div class="panel-header">
+        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('database') ?></div>
+        <div class="panel-header-meta">
+          <div class="panel-header-title">Source Database</div>
+          <div class="panel-header-sub">
             Use <b>"Test Connection"</b> to confirm the correct database credentials before continuing.<br>
             <?php if ($source === 'enthusiast'): ?>
             If Enthusiast is installed in the <b>same MySQL database</b> as Luster, leave all fields blank. If it is in a <b>separate database</b>, enter those credentials here.<br>
@@ -130,11 +130,11 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
   <div id="js-dump-section" class="is-hidden">
     <div class="card card--gradient">
-      <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
-        <div class="pc-head-meta">
-          <div class="pc-head-title">Upload SQL Dump</div>
-          <div class="pc-head-sub">Upload a <code>.sql</code> file exported by <code>mysqldump</code>. Only <code>CREATE TABLE</code> and <code>INSERT INTO</code> statements are executed; all other SQL is ignored for safety.</div>
+      <div class="panel-header">
+        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+        <div class="panel-header-meta">
+          <div class="panel-header-title">Upload SQL Dump</div>
+          <div class="panel-header-sub">Upload a <code>.sql</code> file exported by <code>mysqldump</code>. Only <code>CREATE TABLE</code> and <code>INSERT INTO</code> statements are executed; all other SQL is ignored for safety.</div>
         </div>
       </div>
       <div class="card-body">
@@ -153,17 +153,17 @@ function importChecked(array $old, string $key, bool $default = true): string {
   </div>
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Import Options</div>
-        <div class="pc-head-sub">Choose what data to import and how to handle records that already exist in Luster.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Import Options</div>
+        <div class="panel-header-sub">Choose what data to import and how to handle records that already exist in Luster.</div>
       </div>
     </div>
 
     <?php if ($source === 'fanupdate'): ?>
     <div class="card-body">
-      <div class="pc-section-label">Blog Table Name</div>
+      <div class="section-label">Blog Table Name</div>
       <div class="field-group">
         <input id="fu_prefix" type="text" name="fu_prefix" class="form" style="max-width:220px"
                placeholder="blog"
@@ -175,7 +175,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
     <?php if ($source === 'listing-admin'): ?>
     <div class="card-body">
-      <div class="pc-section-label">Table Prefix</div>
+      <div class="section-label">Table Prefix</div>
       <div class="field-group">
         <input id="la_table_prefix" type="text" name="la_table_prefix" class="form" style="max-width:220px"
                placeholder="(leave blank for default install)"
@@ -186,7 +186,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <?php endif; ?>
 
     <div class="card-body">
-      <div class="pc-section-label">Conflict Strategy</div>
+      <div class="section-label">Conflict Strategy</div>
       <div style="display:flex;flex-direction:column;gap:.75rem">
         <label class="form-check">
           <input type="radio" name="conflict_strategy" value="skip"
@@ -202,7 +202,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Data to Import</div>
+      <div class="section-label">Data to Import</div>
       <div style="display:flex;flex-direction:column;gap:.75rem">
 
 
@@ -279,11 +279,11 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
   <?php if ($source !== 'fanupdate'): ?>
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('image') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Image Migration <span class="badge badge-inactive">Optional</span></div>
-        <div class="pc-head-sub"> Copy affiliate logos, joined listing images, and listing images to Luster's uploads directory. Original files are not deleted.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('image') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Image Migration <span class="badge badge-inactive">Optional</span></div>
+        <div class="panel-header-sub"> Copy affiliate logos, joined listing images, and listing images to Luster's uploads directory. Original files are not deleted.</div>
       </div>
     </div>
     <div class="card-body">

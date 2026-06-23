@@ -23,17 +23,17 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Import Wizard Settings</div>
-        <div class="pc-head-sub">Choose which import options appear on the first wizard screen.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Import Wizard Settings</div>
+        <div class="panel-header-sub">Choose which import options appear on the first wizard screen.</div>
       </div>
     </div>
 
     <!-- ── Source card visibility ──────────────────────────────────── -->
     <div class="card-body">
-      <div class="pc-section-label">Source Card Visibility</div>
+      <div class="section-label">Source Card Visibility</div>
       <p class="form-hint" style="margin-bottom:1rem">
         After you finish moving data from an old script, you can hide that script's card.
         This only hides the card from the wizard; it does not delete any imported data.
@@ -90,7 +90,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
     <!-- ── Config file reader ──────────────────────────────────────── -->
     <div class="card-body">
-      <div class="pc-section-label">Config File Reader</div>
+      <div class="section-label">Config File Reader</div>
 
       <div class="field-row field-row--top">
         <label class="field-label">Auto-detect</label>

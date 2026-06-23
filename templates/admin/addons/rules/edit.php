@@ -49,13 +49,13 @@ $defaultGateLabel = $currentGateType === 'button'
       <?php endif; ?>
 
       <div class="card card--gradient">
-        <div class="pc-head">
-          <div class="pc-head-icon pc-head-icon-bg">
+        <div class="panel-header">
+          <div class="panel-header-icon panel-header-icon--filled">
           <?= View::icon('rules') ?>
           </div>
-          <div class="pc-head-meta">
-          <div class="pc-head-title">Global Join Rules HTML Template</div>
-          <div class="pc-head-sub">Choose the HTML Luster prints for your Per-Listing Join Rules. This template will override the Global Join Rules template for this specific listing only.</div>
+          <div class="panel-header-meta">
+          <div class="panel-header-title">Global Join Rules HTML Template</div>
+          <div class="panel-header-sub">Choose the HTML Luster prints for your Per-Listing Join Rules. This template will override the Global Join Rules template for this specific listing only.</div>
           </div></div>
         <div class="card-body">
 

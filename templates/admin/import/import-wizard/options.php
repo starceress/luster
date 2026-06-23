@@ -55,18 +55,18 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Import Options</div>
-        <div class="pc-head-sub">Pick the old data you want to bring into Luster.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Import Options</div>
+        <div class="panel-header-sub">Pick the old data you want to bring into Luster.</div>
       </div>
     </div>
 
     <!-- ── Source-specific settings ──────────────────────────── -->
     <?php if ($source === 'fanupdate'): ?>
     <div class="card-body">
-      <div class="pc-section-label">Blog Table Name</div>
+      <div class="section-label">Blog Table Name</div>
       <div class="card-body">
         <input id="fu_prefix" type="text" name="fu_prefix" class="form" style="max-width:220px"
                placeholder="blog" value="<?= scopeOld($old, 'fu_prefix', 'blog') ?>">
@@ -77,7 +77,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
 
     <?php if ($source === 'listing-admin'): ?>
     <div class="card-body">
-      <div class="pc-section-label">Table Prefix</div>
+      <div class="section-label">Table Prefix</div>
       <div class="card-body">
         <input id="la_table_prefix" type="text" name="la_table_prefix" class="form" style="max-width:220px"
                placeholder="(leave blank for default install)"
@@ -89,7 +89,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
 
     <!-- ── Conflict strategy ─────────────────────────────────── -->
     <div class="card-body">
-      <div class="pc-section-label">If a record already exists in Luster</div>
+      <div class="section-label">If a record already exists in Luster</div>
       <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
         <label class="import-choice-item">
           <input type="radio" name="conflict_strategy" value="skip"
@@ -112,7 +112,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
 
     <!-- ── Data to import ────────────────────────────────────── -->
     <div class="card-body">
-      <div class="pc-section-label">
+      <div class="section-label">
         Data to Import
         <span style="font-size:var(--fs-sm);text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-dim);margin-left:.4rem">(all selected by default)</span>
       </div>
@@ -343,7 +343,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <!-- ── Fanatically Options ──────────────────────────────────── -->
     <?php if ($source === 'fanatically'): ?>
     <div class="card-body">
-      <div class="pc-section-label">Fanatically Options</div>
+      <div class="section-label">Fanatically Options</div>
       <div class="field-group">
         <label class="field-label" for="fn_kim_status">KIM List Import Status</label>
         <div style="display:flex;flex-direction:column;gap:8px" style="margin-top:.375rem">
@@ -374,7 +374,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <div class="card-body import-image-section">
 
       <?php if ($alwaysAuto): ?>
-        <div class="pc-section-label">
+        <div class="section-label">
           Image Migration
           <span class="badge badge-inactive">Automatic</span>
         </div>
@@ -430,7 +430,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
       <?php else: ?>
         <div class="toolbar" style="margin-bottom:.875rem;align-items:flex-start">
           <div>
-            <div class="pc-section-label">
+            <div class="section-label">
               Image Migration
               <span class="badge badge-inactive">Optional</span>
             </div>

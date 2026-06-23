@@ -325,13 +325,13 @@ $_flTabCounts = $tab_counts ?? [];
     <table class="data-table mem-table">
       <thead>
         <tr>
-          <th class="cb-col"><input type="checkbox" id="fl-select-all"></th>
+          <th class="checkbox-col"><input type="checkbox" id="fl-select-all"></th>
           <th><a href="<?= View::e($flSortUrl('id')) ?>" class="sort-th<?= $flSort === 'id' ? ' sort-active' : '' ?>"># <?= View::sortIcon('id', $flSort, $flDir) ?></a></th>
           <th><a href="<?= View::e($flSortUrl('subject')) ?>" class="sort-th<?= $flSort === 'subject' ? ' sort-active' : '' ?>">Subject / Title <?= View::sortIcon('subject', $flSort, $flDir) ?></a></th>
           <th><a href="<?= View::e($flSortUrl('category')) ?>" class="sort-th<?= $flSort === 'category' ? ' sort-active' : '' ?>">Category <?= View::sortIcon('category', $flSort, $flDir) ?></a></th>
           <th><a href="<?= View::e($flSortUrl('status')) ?>" class="sort-th<?= $flSort === 'status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('status', $flSort, $flDir) ?></a></th>
           <th>Members</th>
-          <th class="act-col">Actions</th>
+          <th class="actions-col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -339,7 +339,7 @@ $_flTabCounts = $tab_counts ?? [];
         <tr>
 
           <!-- Checkbox -->
-          <td class="cb-col" data-label="">
+          <td class="checkbox-col" data-label="">
             <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb" data-name="<?= View::e($fl->title) ?>">
           </td>
 
@@ -403,7 +403,7 @@ $_flTabCounts = $tab_counts ?? [];
             <?php endif; ?>
           </td>
 <!-- ──── ACTIONS ────────────────────────────────────────────────────── -->
-          <td class="act-col" data-label="">
+          <td class="actions-col" data-label="">
             <div class="actions-row">
               <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
                  class="btn btn-tertiary btn-xs">Edit</a>

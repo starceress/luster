@@ -310,7 +310,7 @@ $_tabRejected = $_codesBaseUrl !== null
           $gridMin   = max((int)$firstCode->width + 32, 80) . 'px';
         ?>
         <div class="card-body" data-code-group>
-          <div class="pc-section-label"><?= View::e($group['label']) ?>
+          <div class="section-label"><?= View::e($group['label']) ?>
             <span class="badge badge-inactive" data-code-group-count data-total-count="<?= count($group['codes']) ?>"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
           </div>
           <div class="code-grid" data-code-group-grid style="grid-template-columns:repeat(auto-fill,minmax(<?= $gridMin ?>,1fr))">

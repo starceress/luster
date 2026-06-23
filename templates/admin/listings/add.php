@@ -33,9 +33,9 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
 <?php endif; ?>
 
 <div class="card card--gradient">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('star') ?></div>
-    <div class="pc-head-title">Add New Listing</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('star') ?></div>
+    <div class="panel-header-title">Add New Listing</div>
   </div>
   <form method="POST" action="<?= $b ?>/admin/listings/add" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">

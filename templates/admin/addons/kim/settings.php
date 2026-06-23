@@ -25,17 +25,17 @@ $_defaults = [
 <?php endif; ?>
 
 <div class="card card--gradient">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Display & Embed Settings</div>
-      <div class="pc-head-sub">Configure the display settings of the admin panel & the public page URLs used by the KIM List embed.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('gear') ?></div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Display & Embed Settings</div>
+      <div class="panel-header-sub">Configure the display settings of the admin panel & the public page URLs used by the KIM List embed.</div>
     </div>
   </div>
   <form method="post" action="<?= $b ?>/admin/kim/settings">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <div class="card-body">
-      <div class="pc-section-label">Display Settings</div>
+      <div class="section-label">Display Settings</div>
       <div class="field-row field-row--top">
         <label class="field-label">Default View</label>
         <div>
@@ -64,7 +64,7 @@ $_defaults = [
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Embed URLs</div>
+      <div class="section-label">Embed URLs</div>
       <p class="text-dim">Enter the <strong>page filename</strong> of each KIM page on your site. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
 
       <div class="card-body">

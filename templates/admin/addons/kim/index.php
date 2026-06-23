@@ -231,7 +231,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
   <table class="data-table mem-table">
     <thead>
       <tr>
-        <th class="cb-col">
+        <th class="checkbox-col">
           <input type="checkbox" class="sel-all" data-fid="kim-members">
         </th>
         <th>
@@ -268,13 +268,13 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
             Signed Up <?= View::sortIcon('added_at', $sort, $dir) ?>
           </a>
         </th>
-        <th class="act-col">Actions</th>
+        <th class="actions-col">Actions</th>
       </tr>
     </thead>
     <tbody>
       <?php foreach ($members as $m): ?>
       <tr>
-        <td class="cb-col">
+        <td class="checkbox-col">
           <input type="checkbox" class="row-cb-kim-members"
                  name="ids[]" value="<?= (int) $m->id ?>"
                  data-name="<?= View::e($m->name) ?>">
@@ -326,7 +326,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
           <?= View::e(date($dateFmt, strtotime($m->addedAt))) ?>
         </td>
 
-        <td class="act-col" data-label="">
+        <td class="actions-col" data-label="">
           <div class="actions-row">
             <?php if ($m->pending): ?>
               <button type="submit" form="approve-kim-<?= (int) $m->id ?>"

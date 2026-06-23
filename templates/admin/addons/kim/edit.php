@@ -30,16 +30,16 @@ $b = rtrim(View::e($base_url), '/');
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title"><?= View::e($member->name) ?></div>
-        <div class="pc-head-sub">Editing Keep In Mind member &mdash; <?= View::e($fanlisting_name) ?></div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('kim') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title"><?= View::e($member->name) ?></div>
+        <div class="panel-header-sub">Editing Keep In Mind member &mdash; <?= View::e($fanlisting_name) ?></div>
       </div>
     </div>
     <div class="card-body">
 
-      <div class="pc-section-label">Information</div>
+      <div class="section-label">Information</div>
 
       <div class="field-row">
         <label class="field-label" for="kim-name">Name <span class="req">*</span></label>
@@ -88,7 +88,7 @@ $b = rtrim(View::e($base_url), '/');
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Password</div>
+      <div class="section-label">Password</div>
 
       
       <div class="field-row field-row--top">

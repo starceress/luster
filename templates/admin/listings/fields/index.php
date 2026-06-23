@@ -50,7 +50,7 @@ $id = (int) $listing->id;
             <th>Field Name</th>
             <th>Type</th>
             <th>Required</th>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -67,7 +67,7 @@ $id = (int) $listing->id;
                   <span class="badge badge-inactive">No</span>
                 <?php endif; ?>
               </td>
-              <td class="act-col">
+              <td class="actions-col">
                 <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/edit"
                    class="btn btn-tertiary btn-sm">Edit</a>
 
@@ -93,11 +93,11 @@ $id = (int) $listing->id;
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('add') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Add New Field</div>
-        <div class="pc-head-sub">Add an extra question to this listing's join and update forms.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('add') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Add New Field</div>
+        <div class="panel-header-sub">Add an extra question to this listing's join and update forms.</div>
       </div>
     </div>
 

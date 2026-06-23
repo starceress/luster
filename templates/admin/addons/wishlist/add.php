@@ -83,16 +83,16 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('wishlist') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title"><?= $isEdit ? 'Edit Wishlist Entry' : 'Add Wishlist Entry' ?></div>
-        <div class="pc-head-sub"><?= $isEdit ? 'Update the details for this wishlist entry.' : 'Add a fanlisting subject to your wishlist.' ?></div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('wishlist') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title"><?= $isEdit ? 'Edit Wishlist Entry' : 'Add Wishlist Entry' ?></div>
+        <div class="panel-header-sub"><?= $isEdit ? 'Update the details for this wishlist entry.' : 'Add a fanlisting subject to your wishlist.' ?></div>
       </div>
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Subject Details</div>
+      <div class="section-label">Subject Details</div>
 
       <div class="field-row">
         <label class="field-label" for="wl-subject">
@@ -136,7 +136,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="pc-section-label">Classification</div>
+      <div class="section-label">Classification</div>
 
       <div class="field-row field-row--top">
         <label class="field-label">Network &amp; Category</label>
@@ -173,7 +173,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="pc-section-label">Public Display</div>
+      <div class="section-label">Public Display</div>
 
       <div class="field-row field-row--top">
         <label class="field-label" for="wl-description">Description</label>

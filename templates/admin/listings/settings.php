@@ -32,11 +32,11 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Display Settings</div>
-        <div class="pc-head-sub">Choose how owned listings are shown in the admin area.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('gear') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Display Settings</div>
+        <div class="panel-header-sub">Choose how owned listings are shown in the admin area.</div>
       </div>
     </div>
 

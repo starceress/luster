@@ -28,16 +28,16 @@ $fe = $field_errors ?? [];
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('admins') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Edit Admin Account</div>
-        <div class="pc-head-sub">Update login details or set a new password for this admin.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('admins') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Edit Admin Account</div>
+        <div class="panel-header-sub">Update login details or set a new password for this admin.</div>
       </div>
     </div>
 
     <div class="card-body">
-      <div class="pc-section-label">Account Details</div>
+      <div class="section-label">Account Details</div>
 
       <div class="field-row<?= !empty($fe['username']) ? ' has-error' : '' ?>">
         <label class="field-label" for="au-username">Username <span class="req">*</span></label>
@@ -71,7 +71,7 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="pc-section-label">Password</div>
+      <div class="section-label">Password</div>
 
       <div class="field-row field-row--top<?= !empty($fe['new_password']) ? ' has-error' : '' ?>">
         <label class="field-label" for="au-pass">New Password</label>

@@ -14,11 +14,11 @@ $listingName = (string) ($result['listing_title'] ?? '');
 </div>
 
 <div class="card card--gradient" style="margin-bottom:1.5rem">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('check') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Import Complete</div>
-      <div class="pc-head-sub">Luster finished adding members to <strong><?= View::e($listingName) ?></strong>.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('check') ?></div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Import Complete</div>
+      <div class="panel-header-sub">Luster finished adding members to <strong><?= View::e($listingName) ?></strong>.</div>
     </div>
   </div>
 

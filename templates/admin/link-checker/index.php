@@ -406,7 +406,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <th>Redirect</th>
               <th>Unchecked</th>
               <th><a href="<?= View::e($lcMemSumSortUrl('last_checked')) ?>" class="sort-th<?= $_mss === 'last_checked' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('last_checked', $_mss, $_msd) ?></a></th>
-              <th class="act-col">Actions</th>
+              <th class="actions-col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -432,7 +432,7 @@ $sumCell = static function (?array $ms, string $key): string {
                     ? View::e(date($admin_date_format, strtotime((string) $_ms['last_checked'])))
                     : '<span class="text-dim">&mdash;</span>' ?>
               </td>
-              <td class="act-col" data-label="">
+              <td class="actions-col" data-label="">
                 <div class="actions-row">
                   <button type="button" class="btn btn-secondary btn-xs js-lc-scan-listing"
                           data-listing-id="<?= $_lsid ?>"
@@ -515,7 +515,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <th><a href="<?= View::e($lcMemSortUrl('member_url')) ?>" class="sort-th<?= $mem_sort === 'member_url' ? ' sort-active' : '' ?>">URL <?= View::sortIcon('member_url', $mem_sort, $mem_dir) ?></a></th>
               <th><a href="<?= View::e($lcMemSortUrl('link_status')) ?>" class="sort-th<?= $mem_sort === 'link_status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('link_status', $mem_sort, $mem_dir) ?></a></th>
               <th><a href="<?= View::e($lcMemSortUrl('link_checked_at')) ?>" class="sort-th<?= $mem_sort === 'link_checked_at' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('link_checked_at', $mem_sort, $mem_dir) ?></a></th>
-              <th class="act-col">Actions</th>
+              <th class="actions-col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -542,7 +542,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
-              <td class="act-col" data-label="">
+              <td class="actions-col" data-label="">
                 <button class="btn btn-quaternary btn-xs js-lc-single"
                         data-id="<?= (int) $mem->id ?>"
                         data-type="member"
@@ -627,7 +627,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <th><a href="<?= View::e($lcAffSortUrl('link_status')) ?>" class="sort-th<?= $aff_sort === 'link_status' ? ' sort-active' : '' ?>">Link Status <?= View::sortIcon('link_status', $aff_sort, $aff_dir) ?></a></th>
               <th><a href="<?= View::e($lcAffSortUrl('reciprocal')) ?>" class="sort-th<?= $aff_sort === 'reciprocal' ? ' sort-active' : '' ?>">Reciprocal <?= View::sortIcon('reciprocal', $aff_sort, $aff_dir) ?></a></th>
               <th><a href="<?= View::e($lcAffSortUrl('last_checked')) ?>" class="sort-th<?= $aff_sort === 'last_checked' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('last_checked', $aff_sort, $aff_dir) ?></a></th>
-              <th class="act-col">Actions</th>
+              <th class="actions-col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -677,7 +677,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $aff->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($aff->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
-              <td class="act-col" data-label="">
+              <td class="actions-col" data-label="">
                 <button class="btn btn-quaternary btn-xs js-lc-single"
                         data-id="<?= $aff->id ?>"
                         data-type="affiliate"
@@ -749,7 +749,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <th>URL</th>
               <th><a href="<?= View::e($lcJoinedSortUrl('link_status')) ?>" class="sort-th<?= $joined_sort === 'link_status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('link_status', $joined_sort, $joined_dir) ?></a></th>
               <th><a href="<?= View::e($lcJoinedSortUrl('last_checked')) ?>" class="sort-th<?= $joined_sort === 'last_checked' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('last_checked', $joined_sort, $joined_dir) ?></a></th>
-              <th class="act-col">Actions</th>
+              <th class="actions-col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -774,7 +774,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $jl->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($jl->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
-              <td class="act-col" data-label="">
+              <td class="actions-col" data-label="">
                 <button class="btn btn-quaternary btn-xs js-lc-single"
                         data-id="<?= $jl->id ?>"
                         data-type="joined"
@@ -958,7 +958,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <th>Name</th>
               <th>URL</th>
               <th>Checked</th>
-              <th class="act-col">Actions</th>
+              <th class="actions-col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -972,7 +972,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 </a>
               </td>
               <td class="text-muted" data-label="Checked"><?= $aff->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($aff->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?></td>
-              <td class="act-col" data-label="">
+              <td class="actions-col" data-label="">
                 <a href="<?= $b ?>/admin/affiliates/<?= $aff->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
               </td>
             </tr>
@@ -987,7 +987,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 </a>
               </td>
               <td class="text-muted" data-label="Checked"><?= $jl->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($jl->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?></td>
-              <td class="act-col" data-label="">
+              <td class="actions-col" data-label="">
                 <a href="<?= $b ?>/admin/joined/<?= $jl->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
               </td>
             </tr>
@@ -1002,7 +1002,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 </a>
               </td>
               <td class="text-muted" data-label="Checked"><?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?></td>
-              <td class="act-col" data-label="">&mdash;</td>
+              <td class="actions-col" data-label="">&mdash;</td>
             </tr>
             <?php endforeach; ?>
           </tbody>

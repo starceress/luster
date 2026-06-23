@@ -199,11 +199,11 @@ $src = View::e($source);
 
 
   <div id="js-import-preview-card" class="card card--gradient import-preview-results-card">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Dry Run Results</div>
-        <div class="pc-head-sub">This is a preview only. Nothing has been written yet.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Dry Run Results</div>
+        <div class="panel-header-sub">This is a preview only. Nothing has been written yet.</div>
       </div>
     </div>
     

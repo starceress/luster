@@ -19,11 +19,11 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
 <div class="card card--gradient">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('send') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Confirm Send</div>
-      <div class="pc-head-sub">Review the recipient count and email content before sending this bulk message.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('send') ?></div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Confirm Send</div>
+      <div class="panel-header-sub">Review the recipient count and email content before sending this bulk message.</div>
     </div>
   </div>
 

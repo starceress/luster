@@ -99,15 +99,15 @@ $listingId  = (int) ($listing->id ?? 0);
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= View::e($member_email ?? '') ?>">
 
-      <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
-        <div class="pc-head-title">Compose New Email</div>
-        <span class="badge badge-info2 pc-head-badge"><?= $flName ?></span>
+      <div class="panel-header">
+        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-title">Compose New Email</div>
+        <span class="badge badge-info2 panel-header-badge"><?= $flName ?></span>
       </div>
 
       <div class="composer-block">
         <div class="composer-row">
-          <span class="composer-lbl">From</span>
+          <span class="composer-label">From</span>
           <div>
             <?php if (($from_name ?? '') !== ''): ?>
               <span class="composer-name"><?= View::e($from_name) ?></span>
@@ -116,14 +116,14 @@ $listingId  = (int) ($listing->id ?? 0);
           </div>
         </div>
         <div class="composer-row">
-          <span class="composer-lbl">To</span>
+          <span class="composer-label">To</span>
           <div>
             <span class="composer-name"><?= View::e($member_name ?? '') ?></span><span class="composer-email">&lt;<?= View::e($member_email ?? '') ?>&gt;</span>
           </div>
         </div>
 
         <div class="composer-row">
-          <span class="composer-lbl">Subject</span>
+          <span class="composer-label">Subject</span>
           <span class="badge badge-info2"><?= $flName ?>:</span>
           <div class="flex-fill">
             <input class="subj-input" type="text" name="subject_suffix" id="subject"
@@ -168,21 +168,21 @@ $listingId  = (int) ($listing->id ?? 0);
     <div class="modal-body">
       <div class="composer-block">
         <div class="composer-row">
-          <span class="composer-lbl">From</span>
+          <span class="composer-label">From</span>
           <div>
             <span class="composer-name" id="em-preview-from-name"></span>
             <span class="composer-email" id="em-preview-from-email"></span>
           </div>
         </div>
         <div class="composer-row">
-          <span class="composer-lbl">To</span>
+          <span class="composer-label">To</span>
           <div>
             <span class="composer-name" id="em-preview-to-name"></span>
             <span class="composer-email" id="em-preview-to-email"></span>
           </div>
         </div>
         <div class="composer-row">
-          <span class="composer-lbl">Subject</span>
+          <span class="composer-label">Subject</span>
           <span class="composer-val" id="preview-subject"></span>
         </div>
       </div>

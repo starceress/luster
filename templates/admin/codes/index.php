@@ -384,7 +384,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
         $gridMin   = max((int)$firstCode->width + 32, 80) . 'px';
       ?>
       <div class="card-body" data-code-group>
-        <div class="pc-section-label"><?= View::e($group['label']) ?>
+        <div class="section-label"><?= View::e($group['label']) ?>
           <span class="badge badge-inactive" data-code-group-count data-total-count="<?= count($group['codes']) ?>"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
         </div>
         <div class="code-grid" data-code-group-grid style="grid-template-columns:repeat(auto-fill,minmax(<?= $gridMin ?>,1fr))">
@@ -528,19 +528,19 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col"><input type="checkbox" class="codes-cb-all"></th>
+            <th class="checkbox-col"><input type="checkbox" class="codes-cb-all"></th>
             <th>Image</th>
             <th>Size</th>
             <th>Donor</th>
             <th>Email</th>
             <th>Submitted</th>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($_flCodes as $code): ?>
           <tr>
-            <td class="cb-col"><input type="checkbox" name="code_ids[]" value="<?= (int) $code->id ?>"></td>
+            <td class="checkbox-col"><input type="checkbox" name="code_ids[]" value="<?= (int) $code->id ?>"></td>
             <td data-label="Image">
               <img src="<?= $b ?>/uploads/codes/<?= View::e($code->filename) ?>"
                    alt="" style="max-width:200px;max-height:200px;display:block;border-radius:3px;object-fit:contain">
@@ -563,7 +563,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
             <td class="text-muted" data-label="Submitted">
               <?= ($code->created_at ?? '') !== '' ? View::e(date($admin_date_format, strtotime($code->created_at))) : '&mdash;' ?>
             </td>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/codes/<?= (int) $code->id ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">

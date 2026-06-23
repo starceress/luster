@@ -48,8 +48,8 @@ $hasErr  = $result->hasErrors();
       <?php endif; ?>
     </div>
     <div style="flex:1;min-width:0">
-      <div class="pc-head-title" style="margin-bottom:.25rem"><?= $hasErr ? 'Import Completed with Errors' : 'Import Complete' ?></div>
-      <div class="pc-head-sub">
+      <div class="panel-header-title" style="margin-bottom:.25rem"><?= $hasErr ? 'Import Completed with Errors' : 'Import Complete' ?></div>
+      <div class="panel-header-sub">
         <?= $srcName ?> &middot;
         <?= View::e($result->schemaVariant) ?> &middot;
         Completed in <?= number_format($result->duration, 2) ?>s &middot;
@@ -125,11 +125,11 @@ $hasErr  = $result->hasErrors();
 
 <!-- ──── RESULT TABLE ───────────────────────────────────────────────── -->
 <div class="card card--gradient">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Import Details</div>
-      <div class="pc-head-sub">See what was added, what was skipped, and whether any images or records need attention.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Import Details</div>
+      <div class="panel-header-sub">See what was added, what was skipped, and whether any images or records need attention.</div>
     </div>
   </div>
   <div class="table-wrap">

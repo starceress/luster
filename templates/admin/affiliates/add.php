@@ -51,11 +51,11 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
   <?php endif; ?>
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('wrench') ?></div>
-        <div class="pc-head-meta">
-        <div class="pc-head-title"><?= $isEdit ? View::e($affiliate->name) : 'Add New Affiliate' ?></div>
-        <div class="pc-head-sub"><?= $isEdit ? 'Update this affiliate\'s details.' : 'Add a site to your affiliates list.' ?></div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('wrench') ?></div>
+        <div class="panel-header-meta">
+        <div class="panel-header-title"><?= $isEdit ? View::e($affiliate->name) : 'Add New Affiliate' ?></div>
+        <div class="panel-header-sub"><?= $isEdit ? 'Update this affiliate\'s details.' : 'Add a site to your affiliates list.' ?></div>
       </div>
     </div>
 

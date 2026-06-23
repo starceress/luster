@@ -38,11 +38,11 @@ $encName = urlencode($field->name);
   <input type="hidden" name="field_name" value="<?= View::e($field->name) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('tag') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Edit Field</div>
-        <div class="pc-head-sub">Update the question members see and how they answer it.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('tag') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Edit Field</div>
+        <div class="panel-header-sub">Update the question members see and how they answer it.</div>
       </div>
     </div>
 
@@ -50,7 +50,7 @@ $encName = urlencode($field->name);
       <div class="field-row field-row--top">
         <span class="field-label">Field Name</span>
         <div>
-          <div class="ro-field"><?= View::e($field->name) ?></div>
+          <div class="readonly-field"><?= View::e($field->name) ?></div>
           <p class="form-hint">This internal name cannot be changed because existing member answers are saved under it.</p>
         </div>
       </div>

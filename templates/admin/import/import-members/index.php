@@ -19,11 +19,11 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <div class="card card--gradient">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('importmembers') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Import Members Only</div>
-      <div class="pc-head-sub">
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('importmembers') ?></div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Import Members Only</div>
+      <div class="panel-header-sub">
         Use this smaller tool when you only need to add members to
         an existing Luster listing. For a full site migration,
         use the <a href="<?= $b ?>/admin/import" class="link">Import Data Wizard</a> instead.

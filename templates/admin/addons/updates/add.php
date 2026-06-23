@@ -58,12 +58,12 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
 
 <!-- ──── MAIN CARD ────────────────────────────────────────────────────── -->
     <div class="card card--gradient">
-      <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('updates') ?></div>
-        <div class="pc-head-meta">
-          <div class="pc-head-title"><?= $is_edit ? 'Edit Update' : 'Post Update' ?></div>
+      <div class="panel-header">
+        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('updates') ?></div>
+        <div class="panel-header-meta">
+          <div class="panel-header-title"><?= $is_edit ? 'Edit Update' : 'Post Update' ?></div>
         </div>
-        <span class="badge badge-info2 pc-head-badge"><?= View::e($ctxDisplay) ?></span>
+        <span class="badge badge-info2 panel-header-badge"><?= View::e($ctxDisplay) ?></span>
       </div>
 
       <div class="card-body">
@@ -158,15 +158,15 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
     <div class="modal-body">
       <div class="composer-block">
         <div class="composer-row">
-          <span class="composer-lbl">Title</span>
+          <span class="composer-label">Title</span>
           <span id="upd-preview-title" class="composer-name"></span>
         </div>
         <div class="composer-row">
-          <span class="composer-lbl">Date</span>
+          <span class="composer-label">Date</span>
           <span id="upd-preview-date" class="composer-val"></span>
         </div>
         <div class="composer-row" id="upd-preview-cats-row">
-          <span class="composer-lbl">Category</span>
+          <span class="composer-label">Category</span>
           <span id="upd-preview-cats"></span>
         </div>
       </div>

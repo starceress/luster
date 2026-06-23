@@ -174,15 +174,15 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="card card--gradient">
-      <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('star') ?></div>
-        <div class="pc-head-meta">
-          <div class="pc-head-title">General Details</div>
-          <div class="pc-head-sub">Manage the listing's details, image, status, and public form settings.</div>
+      <div class="panel-header">
+        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('star') ?></div>
+        <div class="panel-header-meta">
+          <div class="panel-header-title">General Details</div>
+          <div class="panel-header-sub">Manage the listing's details, image, status, and public form settings.</div>
         </div>
       </div>
       <div class="card-body">
-        <div class="pc-section-label">Details</div>
+        <div class="section-label">Details</div>
         <div class="field-row field-row--top">
           <label class="field-label">Network &amp; Category</label>
           <div>
@@ -312,7 +312,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 
       <div class="card-body">
-        <div class="pc-section-label">Listing Image</div>
+        <div class="section-label">Listing Image</div>
         <div class="field-row field-row--top">
           <label class="field-label">Image</label>
           <div>
@@ -343,7 +343,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 
       <div class="card-body">
-        <div class="pc-section-label">Public Display Preferences</div>
+        <div class="section-label">Public Display Preferences</div>
          <div class="field-row field-row--top">
           <label class="field-label" for="fl-members-per-page">Members Per Page</label>
           <div>
@@ -626,11 +626,11 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
     <!-- ── Left column: template editors ──────────────────────────────── -->
     <div class="card card--gradient">
-      <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
-        <div class="pc-head-meta">
-          <div class="pc-head-title">Listing HTML Templates</div>
-          <div class="pc-head-sub">HTML that Luster prints for this listing's members, affiliates, stats, and public forms. Badges show whether each template is a custom override, inherited from <a href="<?= $b ?>/admin/listings/global-templates" class="link">global defaults</a>, or the built-in fallback.</div>
+      <div class="panel-header">
+        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('embed') ?></div>
+        <div class="panel-header-meta">
+          <div class="panel-header-title">Listing HTML Templates</div>
+          <div class="panel-header-sub">HTML that Luster prints for this listing's members, affiliates, stats, and public forms. Badges show whether each template is a custom override, inherited from <a href="<?= $b ?>/admin/listings/global-templates" class="link">global defaults</a>, or the built-in fallback.</div>
         </div>
       </div>
 
@@ -647,7 +647,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <div class="card-body">
 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
-          <div class="pc-section-label">Members List <?= $srcBadge('members_template') ?></div>
+          <div class="section-label">Members List <?= $srcBadge('members_template') ?></div>
           <div class="tpl-layout-presets tpl-layout-presets--above">
             <strong>Display Style:</strong>
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__list">List</button>
@@ -663,7 +663,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
 
         <div class="tpl-group-section" data-tpl-group="join-form" <?= $_grp('join-form') ?>>
-          <div class="pc-section-label">Join Form <?= $srcBadge('join_form_template') ?></div>
+          <div class="section-label">Join Form <?= $srcBadge('join_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="join_form_template" name="join_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplJoinFormVal) ?></textarea>
@@ -675,7 +675,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-          <div class="pc-section-label">Update Form <?= $srcBadge('update_form_template') ?></div>
+          <div class="section-label">Update Form <?= $srcBadge('update_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the update form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
           <div class="field-group">
             <textarea id="update_form_template" name="update_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdateFormVal) ?></textarea>
@@ -687,7 +687,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
-          <div class="pc-section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
+          <div class="section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the password reset form. Use <code>{if_step_email}&hellip;{/if_step_email}</code> for the email-entry step and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> for the new-password step.</p>
           <div class="field-group">
             <textarea id="reset_form_template" name="reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplResetFormVal) ?></textarea>
@@ -699,7 +699,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
 
         <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
-          <div class="pc-section-label">Listing Statistics <?= $srcBadge('stats_template') ?></div>
+          <div class="section-label">Listing Statistics <?= $srcBadge('stats_template') ?></div>
           <div class="field-group">
             <textarea id="stats_template" name="stats_template" class="form form-mono" spellcheck="false"><?= View::e($tplStatsVal) ?></textarea>
           </div>
@@ -710,7 +710,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
 
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
-          <div class="pc-section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
+          <div class="section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
           <div class="field-group">
             <textarea id="codes_template" name="codes_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesVal) ?></textarea>
@@ -723,7 +723,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <?php if ($hasCodesSubmit): ?>
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-          <div class="pc-section-label">Codes Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
+          <div class="section-label">Codes Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the Codes Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="codes_submit_form_template" name="codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesFormVal) ?></textarea>
@@ -738,7 +738,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php endif; ?>
 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-          <div class="pc-section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
+          <div class="section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
           <div class="field-group">
             <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
@@ -751,7 +751,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <?php if ($affiliate_apply_enabled ?? false): ?>
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-          <div class="pc-section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
+          <div class="section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="affiliate_apply_form_template" name="affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffApplyFormVal) ?></textarea>
@@ -766,7 +766,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php endif; ?>
 
         <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
-          <div class="pc-section-label">Contact Form <?= $srcBadge('contact_form_template') ?></div>
+          <div class="section-label">Contact Form <?= $srcBadge('contact_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the contact form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="contact_form_template" name="contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplContactFormVal) ?></textarea>
@@ -779,7 +779,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <?php if ($hasUpdatesAddon): ?>
         <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
-          <div class="pc-section-label">News Feed <?= $srcBadge('updates_template') ?></div>
+          <div class="section-label">News Feed <?= $srcBadge('updates_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
           <div class="field-group">
             <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
@@ -1200,11 +1200,11 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
     <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
     <input type="hidden" name="from_edit" value="1">
     <div class="card card--gradient">
-      <div class="pc-head">
-        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('form') ?></div>
-        <div class="pc-head-meta">
-          <div class="pc-head-title">Add New Field</div>
-          <div class="pc-head-sub">Create an extra member field for this listing.</div>
+      <div class="panel-header">
+        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('form') ?></div>
+        <div class="panel-header-meta">
+          <div class="panel-header-title">Add New Field</div>
+          <div class="panel-header-sub">Create an extra member field for this listing.</div>
         </div>
       </div>
       <div class="card-body">
@@ -1304,7 +1304,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
                   <span class="badge badge-inactive">No</span>
                 <?php endif; ?>
               </td>
-              <td class="act-col">
+              <td class="actions-col">
                 <div class="actions-row">
                   <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/edit"
                      class="btn btn-tertiary btn-sm">Edit</a>
@@ -1357,7 +1357,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
 
   <div class="settings-band-grid">
     <div class="settings-band-col">
-      <div class="pc-section-label">Categories</div>
+      <div class="section-label">Categories</div>
       <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/categories/add" class="codes-form-inline">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
         <div class="codes-form-grow">
@@ -1400,7 +1400,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                   <span class="text-dim">&mdash;</span>
                 <?php endif; ?>
               </td>
-              <td class="act-col">
+              <td class="actions-col">
                 <a href="<?= $_tabBase ?>&edit_cat=<?= (int)$cat->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/categories/<?= (int)$cat->id ?>/delete"
                       class="action-form-inline" data-del-modal data-del-entity="code_category" data-del-name="<?= View::e($cat->name) ?>">
@@ -1441,7 +1441,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
     </div>
 
     <div class="settings-band-col">
-      <div class="pc-section-label codes-section-label">Donors</div>
+      <div class="section-label codes-section-label">Donors</div>
       <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/donors/add" class="codes-form-inline">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
         <div class="codes-form-grow-sm"><input type="text" class="form" name="name" placeholder="Display name&hellip;" required></div>
@@ -1466,7 +1466,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                 <?php else: ?>&mdash;<?php endif; ?>
               </td>
               <td><span class="badge badge-info"><?= count(array_filter($codes, fn($c) => $c->donorId === $dn->id)) ?></span></td>
-              <td class="act-col">
+              <td class="actions-col">
                 <a href="<?= $_tabBase ?>&edit_donor=<?= (int)$dn->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/donors/<?= (int)$dn->id ?>/delete"
                       class="action-form-inline" data-del-modal data-del-entity="code_donor" data-del-name="<?= View::e($dn->name) ?>">
@@ -1564,11 +1564,11 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 <div class="embed-grid">
 
 <div class="card card--gradient">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Embed Settings</div>
-      <div class="pc-head-sub">Tell Luster which public pages hold this listing's forms.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('embed') ?></div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Embed Settings</div>
+      <div class="panel-header-sub">Tell Luster which public pages hold this listing's forms.</div>
     </div>
   </div>
   
@@ -1647,11 +1647,11 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
 <!-- ──── EMBED SNIPPETS ───────────────────────────────────────────── -->
 <div class="card card--gradient">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Embed Snippets</div>
-      <div class="pc-head-sub">Ready-to-use PHP include snippets for your site pages.</div>
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('embed') ?></div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Embed Snippets</div>
+      <div class="panel-header-sub">Ready-to-use PHP include snippets for your site pages.</div>
     </div>
   </div>
   <div class="card-body">
@@ -1667,7 +1667,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             echo '<div class="field-row field-row--top">';
             echo '<span class="field-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
             echo '<div class="embed-snippet-wrap">';
-            echo '<div class="ro-field embed-snippet">';
+            echo '<div class="readonly-field embed-snippet">';
             echo '&lt;?php<br>';
             echo '$luster_fanlisting_id = ' . $_snipId . ';<br>';
             echo "require '" . $_snipPath . '/public/embed/' . htmlspecialchars($file, ENT_QUOTES, 'UTF-8') . "';";

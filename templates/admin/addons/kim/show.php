@@ -46,7 +46,7 @@ $fid = (int) $listing->id;
   <div class="overview-section-title">
     <?= View::icon('pending') ?> Pending Sign-Ups
   </div>
-  <div class="pc-head-sub">New sign-up requests awaiting your approval decision.</div>
+  <div class="panel-header-sub">New sign-up requests awaiting your approval decision.</div>
 </div>
 
 <?php if (empty($pending_members)): ?>
@@ -85,18 +85,18 @@ $fid = (int) $listing->id;
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col"><input type="checkbox" class="sel-all" data-fid="kim-p-<?= $fid ?>"></th>
+            <th class="checkbox-col"><input type="checkbox" class="sel-all" data-fid="kim-p-<?= $fid ?>"></th>
             <th>Name</th>
             <th>Email</th>
             <th>URL</th>
             <th>Date</th>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($pending_members as $m): ?>
           <tr>
-            <td class="cb-col">
+            <td class="checkbox-col">
               <input type="checkbox" class="row-cb-kim-p-<?= $fid ?>" name="ids[]" value="<?= (int) $m->id ?>">
             </td>
             <td class="text-strong" data-label="Name"><?= View::e($m->name) ?></td>
@@ -110,7 +110,7 @@ $fid = (int) $listing->id;
               <?php endif; ?>
             </td>
             <td class="text-dim nowrap" data-label="Date"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <button type="submit" form="approve-kim-<?= (int) $m->id ?>" class="btn btn-success btn-xs">Approve</button>
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
@@ -145,7 +145,7 @@ $fid = (int) $listing->id;
     <div class="overview-section-title">
       <?= View::icon('approved') ?> Approved Sign-Ups
     </div>
-    <div class="pc-head-sub">Members who have been approved and are on the list.</div>
+    <div class="panel-header-sub">Members who have been approved and are on the list.</div>
 </div>
 
 <?php if (empty($approved_members)): ?>
@@ -185,18 +185,18 @@ $fid = (int) $listing->id;
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="cb-col"><input type="checkbox" class="sel-all" data-fid="kim-a-<?= $fid ?>"></th>
+            <th class="checkbox-col"><input type="checkbox" class="sel-all" data-fid="kim-a-<?= $fid ?>"></th>
             <th>Name</th>
             <th>Email</th>
             <th>URL</th>
             <th>Date</th>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($approved_members as $m): ?>
           <tr>
-            <td class="cb-col">
+            <td class="checkbox-col">
               <input type="checkbox" class="row-cb-kim-a-<?= $fid ?>" name="ids[]" value="<?= (int) $m->id ?>">
             </td>
             <td class="text-strong" data-label="Name">
@@ -215,7 +215,7 @@ $fid = (int) $listing->id;
               <?php endif; ?>
             </td>
             <td class="text-dim nowrap" data-label="Date"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member" class="btn btn-secondary btn-xs">Email</a>

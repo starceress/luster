@@ -47,11 +47,11 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="card card--gradient">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Connect to BellaBuffs</div>
-        <div class="pc-head-sub">BellaBuffs keeps its data in text files, so no database login is needed.</div>
+    <div class="panel-header">
+      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-meta">
+        <div class="panel-header-title">Connect to BellaBuffs</div>
+        <div class="panel-header-sub">BellaBuffs keeps its data in text files, so no database login is needed.</div>
       </div>
     </div>
 
@@ -78,7 +78,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
 
     <!-- ── Server path section ─────────────────────────────────────── -->
     <div id="js-bb-path-section" class="card-body<?= $bbMode === 'upload' ? ' is-hidden' : '' ?>">
-      <div class="pc-section-label">BellaBuffs Folder Path</div>
+      <div class="section-label">BellaBuffs Folder Path</div>
       <div class="card-body">
       <div class="field-row field-row--top">
         <label class="field-label" for="bb_folder_path">Folder Path</label>
@@ -95,7 +95,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
 
     <!-- ── File upload section ─────────────────────────────────────── -->
     <div id="js-bb-upload-section" class="card-body<?= $bbMode === 'upload' ? '' : ' is-hidden' ?>">
-      <div class="pc-section-label">Upload BellaBuffs Files</div>
+      <div class="section-label">Upload BellaBuffs Files</div>
 
       <div class="callout callout-warn">
         <?= View::icon('alert') ?>

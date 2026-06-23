@@ -306,7 +306,7 @@ $showDragHint = isset($typeTabs[$filter_type])
         <thead>
           <tr>
             <?php if ($dragEnabled): ?><th class="table-col-xs"></th><?php endif; ?>
-            <th class="cb-col"><input type="checkbox" id="wl-select-all" title="Select all"></th>
+            <th class="checkbox-col"><input type="checkbox" id="wl-select-all" title="Select all"></th>
             <th>Image</th>
             <th>
               <a href="<?= View::e($sortUrl('subject')) ?>"
@@ -335,7 +335,7 @@ $showDragHint = isset($typeTabs[$filter_type])
               </a>
             </th>
             <th>Visible</th>
-            <th class="act-col">Actions</th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -348,7 +348,7 @@ $showDragHint = isset($typeTabs[$filter_type])
               <span class="drag-handle" title="Drag to reorder"><?= View::icon('grip') ?></span>
             </td>
             <?php endif; ?>
-            <td class="cb-col" data-label="">
+            <td class="checkbox-col" data-label="">
               <input type="checkbox" name="ids[]"
                      value="<?= (int) $entry->id ?>"
                      data-name="<?= View::e($entry->subject) ?>">
@@ -415,7 +415,7 @@ $showDragHint = isset($typeTabs[$filter_type])
               <?= $entry->active ? 'Public' : '<span class="text-muted">Hidden</span>' ?>
             </td>
 
-            <td class="act-col" data-label="">
+            <td class="actions-col" data-label="">
               <div class="actions-row">
                 <a href="<?= $b ?>/admin/wishlist/<?= (int) $entry->id ?>/edit"
                    class="btn btn-tertiary btn-xs">Edit</a>

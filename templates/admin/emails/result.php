@@ -28,13 +28,13 @@ $allOk = empty($failed);
     </div>
   <?php endif; ?>
 
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg">
+  <div class="panel-header">
+    <div class="panel-header-icon panel-header-icon--filled">
       <?= View::icon($allOk ? 'check-badge' : 'caution') ?>
     </div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Bulk Email Result</div>
-      <div class="pc-head-sub">See how many emails were delivered and whether any addresses failed.</div>
+    <div class="panel-header-meta">
+      <div class="panel-header-title">Bulk Email Result</div>
+      <div class="panel-header-sub">See how many emails were delivered and whether any addresses failed.</div>
     </div>
   </div>
 

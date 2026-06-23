@@ -256,7 +256,7 @@ $bulkOptions = match ($statusTab) {
     <table class="data-table mem-table">
       <thead>
         <tr>
-          <th class="cb-col"><input type="checkbox" id="sel-all" title="Select all"></th>
+          <th class="checkbox-col"><input type="checkbox" id="sel-all" title="Select all"></th>
           <th class="table-col-image">Image</th>
           <th class="table-col-xs">#</th>
           <th><a href="<?= View::e($sortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Subject / URL <?= View::sortIcon('name', $sort, $dir) ?></a></th>
@@ -265,13 +265,13 @@ $bulkOptions = match ($statusTab) {
           <?php if ($statusTab === 'all'): ?>
           <th><a href="<?= View::e($sortUrl('status')) ?>" class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('status', $sort, $dir) ?></a></th>
           <?php endif; ?>
-          <th class="act-col">Actions</th>
+          <th class="actions-col">Actions</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach ($joined as $loop => $jf): ?>
         <tr>
-          <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $jf->id ?>"
+          <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $jf->id ?>"
                data-name="<?= View::e($jf->name) ?>"></td>
           <td data-label="Image">
             <?php if ($jf->image !== null && $jf->image !== ''): ?>
@@ -328,7 +328,7 @@ $bulkOptions = match ($statusTab) {
             </span>
           </td>
           <?php endif; ?>
-          <td class="act-col" data-label="">
+          <td class="actions-col" data-label="">
             <div class="actions-row">
               <a href="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/edit"
                  class="btn btn-tertiary btn-xs">Edit</a>
