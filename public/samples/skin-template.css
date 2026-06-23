@@ -123,7 +123,7 @@
   /* ── Surfaces ────────────────────────────────────────────── */
   /* --bg:              #f0edf8; */
   /* --bg-card:         #faf9ff; */
-  /* --bg-sidebar:      #121020;    /* Sidebar stays dark in light mode */
+  /* --bg-sidebar:      #121020;    /* Sidebar background */
   /* --bg-subtle:       #e2ddf0; */
   /* --bg-elevated:     #f0ecfa; */
   /* --bg-code:         var(--bg-subtle); */
@@ -165,8 +165,9 @@
 
 
 /* =====================================================================
-   SIDEBAR — The sidebar is always dark, even in light mode.
-   Repeat your dark accent values here so they look right.
+   SIDEBAR — The sidebar has its own background (--bg-sidebar) which
+   may differ from the page background. If your light-mode accent
+   colors are hard to read on the sidebar background, override them here.
    ===================================================================== */
 
 /* [data-skin="RENAME-ME"][data-theme="light"] .sidebar { */
