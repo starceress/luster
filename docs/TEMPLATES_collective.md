@@ -198,28 +198,21 @@
 </div>
 ```
 
-# Contact Sent Message:
-```
-<div class="fl-success"><p>Your message has been sent. Thank you for getting in touch, {sender_name}!</p></div>
-```
-
 # Affiliates:
 ```
 <h2>Affiliates</h2>
 <div class="fl-affiliates-section">
 {if_affiliates}
-<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>
-
 {each_affiliate}
 {if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}
 {if_no_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank">{aff_name}</a>{/if_no_aff_image}
 
-{/each_affiliate}
-{/if_affiliates}
+{/each_affiliate}{/if_affiliates}
 
 {if_no_affiliates}
-No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a>
+No affiliates yet.
 {/if_no_affiliates}
+{affiliate_apply_toggle}
 </div>
 ```
 
@@ -415,7 +408,7 @@ No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?
 </div>
 ```
 
-# Updates Feed:
+# News Feed:
 ```
 <h2>{listing_subject} Updates</h2>
 <div class="fl-updates-list">
@@ -467,4 +460,4 @@ No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?
   - KIM Reset Form
 - Adoption Form
 - Wishlist
-- Updates Feed
+- News Feed

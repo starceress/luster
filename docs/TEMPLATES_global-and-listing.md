@@ -145,21 +145,16 @@
 <h2 class="fl-heading">Affiliates</h2>
 <div class="fl-affiliates-section">
 {if_affiliates}
-<p class="fl-hint"><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>
-
-<ul class="fl-affiliate-list">
 {each_affiliate}
-<li class="fl-affiliate-item">
 {if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" alt="{aff_name}" class="fl-affiliate-image"></a>{/if_aff_image}
 {if_no_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank" class="fl-affiliate-name">{aff_name}</a>{/if_no_aff_image}
-</li>
-{/each_affiliate}
-</ul>
-{/if_affiliates}
+
+{/each_affiliate}{/if_affiliates}
 
 {if_no_affiliates}
-<p class="fl-affiliates-empty">No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>
+No affiliates yet.
 {/if_no_affiliates}
+{affiliate_apply_toggle}
 </div>
 ```
 
@@ -296,4 +291,4 @@
 - Contact Form: contains
   - Contact Form
   - Contact Confirmation
-- Updates Feed
+- News Feed

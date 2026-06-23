@@ -663,8 +663,13 @@ Each embed's outermost `<div>` has `fl-embed` plus a type-specific modifier:
 | `fl-affiliate-image` | `<img>` | Affiliate button image |
 | `fl-affiliate-name` | `<span>` | Text fallback name |
 | `fl-affiliates-empty` | `<p>` | "No affiliates" message |
+| `fl-affiliate-apply-collapsible` | `<details>` | Collapsible affiliate application form wrapper |
+| `fl-affiliate-apply-toggle` | `<summary>` | Clickable toggle for the collapsible form |
+| `fl-affiliate-apply-toggle--link` | `<summary>` | Toggle styled as text link |
+| `fl-affiliate-apply-toggle--button` | `<summary>` | Toggle styled as button |
+| `fl-affiliate-apply-form-wrap` | `<div>` | Inner wrapper around the application form |
 
-### Updates Feed
+### News Feed
 | Class | Element | Purpose |
 |---|---|---|
 | `fl-updates` | `<div>` | Updates outer wrapper |

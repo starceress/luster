@@ -1,6 +1,6 @@
 # Luster Embed Tokens and CSS Reference
 
-Last audited: June 17, 2026.
+Last audited: June 22, 2026.
 
 This guide is the public embed reference for Luster. It covers:
 
@@ -143,7 +143,7 @@ Related classes: `.fl-stats`, `.fl-stats-grid`,
 | `{stat_approved}` | Number of approved members. |
 | `{stat_pending}` | Number of pending members. |
 | `{stat_countries}` | Number of distinct countries represented by approved members. |
-| `{stat_newmembers}` | Up to 5 newest approved members, hyperlinked to their websites when available (respects the member's show-URL preference). Appends ", and more..." when total approved members exceeds 5. Raw HTML. |
+| `{stat_newmembers}` | Newest approved members, hyperlinked to their websites when available (respects the member's show-URL preference). Count is configurable per listing or globally (default 5). Appends ", and more..." when total approved members exceeds the limit. Set limit to 0 to show all. Raw HTML. |
 | `{stat_growth}` | Average approved members per day since the listing opened, with unit (e.g. `0.15 members/day`). |
 | `{stat_growth_rate}` | Numeric growth rate only (e.g. `0.15`). Use to build your own formatting. |
 | `{listing_title}` | Listing title. |
@@ -337,7 +337,10 @@ Used by per-listing `affiliates_section_template` and collective
 
 Related classes: `.fl-affiliate-list`, `.fl-affiliate-item`,
 `.fl-affiliate-image`, `.fl-affiliate-name`, `.fl-affiliates-section`,
-`.fl-affiliates-heading`, `.fl-affiliates-empty`.
+`.fl-affiliates-heading`, `.fl-affiliates-empty`,
+`.fl-affiliate-apply-collapsible`, `.fl-affiliate-apply-toggle`,
+`.fl-affiliate-apply-toggle--link`, `.fl-affiliate-apply-toggle--button`,
+`.fl-affiliate-apply-form-wrap`.
 
 | Token | What it means |
 | --- | --- |
@@ -346,6 +349,7 @@ Related classes: `.fl-affiliate-list`, `.fl-affiliate-item`,
 | `{aff_url}` | Affiliate site URL. |
 | `{aff_image_url}` | Full affiliate image URL, or empty string when the affiliate has no image. Use inside `{if_aff_image}` to avoid broken `<img>` tags. |
 | `{affiliate_apply_url}` | URL to the affiliate application form for this listing. |
+| `{affiliate_apply_toggle}` | Collapsible inline affiliate application form. Renders a `<details>/<summary>` element wrapping the full application form. Toggle style (text link or button) is set per listing in Preferences. Empty when affiliate applications are disabled. |
 | `{affiliates_count}` | Total active affiliate count for this embed. |
 | `{if_affiliates}...{/if_affiliates}` | Shows only when at least one affiliate exists. |
 | `{if_no_affiliates}...{/if_no_affiliates}` | Shows only when no affiliates exist. |
@@ -961,6 +965,11 @@ apply, and KIM forms.
 | `.fl-affiliates-section` | Custom affiliate section wrapper. |
 | `.fl-affiliates-heading` | Custom affiliate section heading. |
 | `.fl-affiliates-empty` | Custom affiliate empty-state text. |
+| `.fl-affiliate-apply-collapsible` | `<details>` wrapper for the collapsible affiliate application form. |
+| `.fl-affiliate-apply-toggle` | `<summary>` element — the clickable toggle text/button. |
+| `.fl-affiliate-apply-toggle--link` | Modifier: toggle styled as an underlined text link. |
+| `.fl-affiliate-apply-toggle--button` | Modifier: toggle styled as a button. |
+| `.fl-affiliate-apply-form-wrap` | Inner wrapper around the application form inside the collapsible. |
 
 ## Owned Listing Classes
 
