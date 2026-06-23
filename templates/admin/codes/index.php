@@ -272,7 +272,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
   <div class="card-head">Upload Codes</div>
   <form method="POST" action="<?= $b ?>/admin/codes/collective-upload" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <div class="pc-section">
+    <div class="card-body">
       <div class="file-drop-zone">
         <input type="file" id="codes-input" name="codes[]" multiple accept="image/jpeg,image/png,image/gif,image/webp">
         <span class="file-drop-icon"><?= View::icon('image') ?></span>
@@ -282,7 +282,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
       <p class="panel-hint" style="margin-top:.5rem">Multiple files allowed. Dimensions are detected automatically.</p>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
       <?php $_colSubmitters = $code_submitter_names ?? []; ?>
       <div class="panel-field">
         <label class="panel-label" for="cc-donor">Donor</label>
@@ -383,7 +383,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
         $firstCode = reset($group['codes']);
         $gridMin   = max((int)$firstCode->width + 32, 80) . 'px';
       ?>
-      <div class="pc-section" data-code-group>
+      <div class="card-body" data-code-group>
         <div class="pc-section-label"><?= View::e($group['label']) ?>
           <span class="badge badge-inactive" data-code-group-count data-total-count="<?= count($group['codes']) ?>"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
         </div>

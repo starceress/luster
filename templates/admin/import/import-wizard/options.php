@@ -54,7 +54,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
       action="<?= $b ?>/admin/import/<?= $src ?>/options">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
@@ -65,9 +65,9 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
 
     <!-- ── Source-specific settings ──────────────────────────── -->
     <?php if ($source === 'fanupdate'): ?>
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Blog Table Name</div>
-      <div class="pc-section">
+      <div class="card-body">
         <input id="fu_prefix" type="text" name="fu_prefix" class="form import-input-medium"
                placeholder="blog" value="<?= scopeOld($old, 'fu_prefix', 'blog') ?>">
         <p class="field-hint-sm">The main FanUpdate table name from <code>blog-config.php</code>. Most installs use <code>blog</code>.</p>
@@ -76,9 +76,9 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <?php endif; ?>
 
     <?php if ($source === 'listing-admin'): ?>
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Table Prefix</div>
-      <div class="pc-section">
+      <div class="card-body">
         <input id="la_table_prefix" type="text" name="la_table_prefix" class="form import-input-medium"
                placeholder="(leave blank for default install)"
                value="<?= scopeOld($old, 'la_table_prefix') ?>">
@@ -88,9 +88,9 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <?php endif; ?>
 
     <!-- ── Conflict strategy ─────────────────────────────────── -->
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">If a record already exists in Luster</div>
-      <div class="import-choice pc-section">
+      <div class="import-choice card-body">
         <label class="import-choice-item">
           <input type="radio" name="conflict_strategy" value="skip"
                  <?= $conflictMode === 'skip' ? 'checked' : '' ?>>
@@ -111,7 +111,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     </div>
 
     <!-- ── Data to import ────────────────────────────────────── -->
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">
         Data to Import
         <span style="font-size:var(--fs-sm);text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-dim);margin-left:.4rem">(all selected by default)</span>
@@ -132,7 +132,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
         <p>Fanlistings are matched by title between CodeSort and Luster. Codes for unmatched fanlistings are skipped with a warning.</p>
       <?php endif; ?>
 
-      <div class="import-chk-list pc-section">
+      <div class="import-chk-list card-body">
 
         <?php if ($source === 'enthusiast'): ?>
           <div class="import-chk">
@@ -342,7 +342,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
 
     <!-- ── Fanatically Options ──────────────────────────────────── -->
     <?php if ($source === 'fanatically'): ?>
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Fanatically Options</div>
       <div class="field-group">
         <label class="field-label" for="fn_kim_status">KIM List Import Status</label>
@@ -371,7 +371,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
   <!-- ── Image Migration ──────────────────────────────────────────── -->
   <?php if ($source !== 'fanupdate'): ?>
     <?php $alwaysAuto = in_array($source, ['enthusiast', 'listing-admin', 'fanatically', 'codesort']); ?>
-    <div class="pc-section import-image-section">
+    <div class="card-body import-image-section">
 
       <?php if ($alwaysAuto): ?>
         <div class="pc-section-label import-section-label-inline">
@@ -389,7 +389,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
           If the old site is on another server, enter its public URL so Luster can download images.
           If your host blocks remote downloads, upload a ZIP of the image folder instead. Luster matches files by filename.
         </p>
-        <div class="pc-section">
+        <div class="card-body">
           <div class="field-row field-row--top">
             <label class="field-label" for="img-path">Server Path</label>
             <div>
@@ -443,7 +443,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
           </label>
         </div>
         <div id="js-image-options"<?= $imagesOn ? '' : ' class="is-hidden"' ?>>
-          <div class="pc-section" style="margin-top:.625rem">
+          <div class="card-body" style="margin-top:.625rem">
             <div class="field-row field-row--top">
               <label class="field-label" for="img-path">Server Path</label>
               <div>

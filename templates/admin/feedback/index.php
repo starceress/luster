@@ -24,7 +24,7 @@ use Luster\Core\View;
 <form method="POST" action="<?= View::e($base_url) ?>/admin/feedback">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('report') ?></div>
       <div class="pc-head-meta">
@@ -32,7 +32,7 @@ use Luster\Core\View;
         <div class="pc-head-sub">Report bugs, ask questions, or suggest features.</div>
       </div>
     </div>
-    <div class="pc-section">
+    <div class="card-body">
 
       <!-- Contact name -->
       <div class="field-row<?= isset($field_errors['contact_name']) ? ' has-error' : '' ?>">
@@ -164,8 +164,8 @@ use Luster\Core\View;
 </form>
 
 <?php if ($send_failed && $composed_body !== ''): ?>
-<div class="gradient-card mt-lg">
-  <div class="pc-section">
+<div class="card--gradient mt-lg">
+  <div class="card-body">
     <div class="field-row field-row--top">
       <label class="field-label">Copy report</label>
       <div>

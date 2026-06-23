@@ -24,7 +24,7 @@ $_defaults = [
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="gradient-card">
+<div class="card card--gradient">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
     <div class="pc-head-meta">
@@ -34,7 +34,7 @@ $_defaults = [
   </div>
   <form method="post" action="<?= $b ?>/admin/kim/settings">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Display Settings</div>
       <div class="field-row field-row--top">
         <label class="field-label">Default View</label>
@@ -63,11 +63,11 @@ $_defaults = [
       </div>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Embed URLs</div>
       <p class="text-dim">Enter the <strong>page filename</strong> of each KIM page on your site. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
 
-      <div class="pc-section">
+      <div class="card-body">
         <div class="field-row">
           <label class="field-label" for="kim-url-signup">Sign Up page</label>
           <input id="kim-url-signup" type="text" name="signup" class="form"

@@ -18,7 +18,7 @@ $b = rtrim(View::e($base_url), '/');
 </div>
 <?php endif; ?>
 
-<div class="gradient-card">
+<div class="card card--gradient">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('importmembers') ?></div>
     <div class="pc-head-meta">
@@ -34,7 +34,7 @@ $b = rtrim(View::e($base_url), '/');
   <form id="im-upload-form" method="POST" action="<?= $b ?>/admin/import-members/upload" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="callout callout-info">
         <?= View::icon('notes') ?>
         <div>

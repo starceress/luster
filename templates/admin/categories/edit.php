@@ -35,8 +35,8 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="current_source" value="<?= View::e($currentSource) ?>">
 
-  <div class="gradient-card">
-    <div class="pc-section">
+  <div class="card card--gradient">
+    <div class="card-body">
 
       <div class="field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="field-label" for="cat-name">

@@ -24,7 +24,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
 
 <!-- ── Listings & Data ──────────────────────────────────────────────────── -->
 <section class="es-section">
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="card-head">Listings &amp; Data</div>
     <ul class="es-list" role="list">
 

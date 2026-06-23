@@ -1354,7 +1354,7 @@ function renderStep1(string $csrf): void
       <div class="pc-head-sub">Luster needs these checks to pass before installation can begin.</div>
     </div>
   </div>
-  <div class="pc-section">
+  <div class="card-body">
     <p class="text-dim-copy">
       Before we begin, Luster will make sure your server has the essentials needed to run the installer.
     </p>
@@ -1408,7 +1408,7 @@ function renderStep2(string $csrf, array $stored, array $errors = []): void
       <div class="pc-head-sub">Luster will test the connection before continuing.</div>
     </div>
   </div>
-  <div class="pc-section">
+  <div class="card-body">
     <?php if (!empty($errors)): ?>
     <div class="alert alert-error" role="alert"><strong>Please fix the following:</strong><ul class="star-list" style="color: var(--danger)"><?php foreach ($errors as $err): ?><li><?= e($err) ?></li><?php endforeach; ?></ul></div>
     <?php endif; ?>
@@ -1483,7 +1483,7 @@ function renderDatabaseCheck(string $csrf, array $stored): void
       <div class="pc-head-sub">Results of your database connection.</div>
     </div>
   </div>
-  <div class="pc-section">
+  <div class="card-body">
     <div class="alert <?= $isError ? 'alert-error' : 'alert-success' ?>" style="margin-bottom: <?= ($isError && $detail !== '') ? '1rem' : '0' ?>;">
       <?= $isError
           ? '<span class="results-icon results-icon-err" aria-label="Needs attention">&#10005;</span> &nbsp;  '
@@ -1573,7 +1573,7 @@ function renderStep3(string $csrf, array $stored): void
       <div class="pc-head-sub">Set your public site details and create the first administrator.</div>
     </div>
   </div>
-  <div class="pc-section">
+  <div class="card-body">
     <div class="pc-section-label">Site Settings</div>
 
       <div class="field-group">
@@ -1616,7 +1616,7 @@ function renderStep3(string $csrf, array $stored): void
 
           </div>
 
-  <div class="pc-section">
+  <div class="card-body">
     <div class="pc-section-label">Administrator Account</div>
     <p class="text-dim-copy">
       This account is for logging into the Luster admin panel. You can add more admin users after installation.
@@ -1689,7 +1689,7 @@ function renderStep4(string $csrf, array $stored): void
     </div>
   </div>
 
-  <div class="pc-section">
+  <div class="card-body">
     <p class="text-dim-copy">Please confirm the details below. If you need to change anything, click the <strong>Back</strong> button. Otherwise, click <strong>Install Luster</strong> to proceed with the installation.</p>
 
     <div class="pc-section-label">Site</div>
@@ -1704,7 +1704,7 @@ function renderStep4(string $csrf, array $stored): void
     <?php endif; ?>
   </div>
   
-  <div class="pc-section">
+  <div class="card-body">
     <div class="pc-section-label">Admin Account</div>
     <div class="sysinfo-row"><span class="field-label">Username</span><?= e((string) ($site['admin_username'] ?? '')) ?></div>
     <div class="sysinfo-row"><span class="field-label">Email</span><?= e((string) ($site['admin_email'] ?? '')) ?></div>

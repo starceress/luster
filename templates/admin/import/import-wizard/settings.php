@@ -22,7 +22,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 <form method="POST" action="<?= $b ?>/admin/import/settings" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
@@ -32,7 +32,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     </div>
 
     <!-- ── Source card visibility ──────────────────────────────────── -->
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Source Card Visibility</div>
       <p class="form-hint" style="margin-bottom:1rem">
         After you finish moving data from an old script, you can hide that script's card.
@@ -89,7 +89,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     </div>
 
     <!-- ── Config file reader ──────────────────────────────────────── -->
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Config File Reader</div>
 
       <div class="field-row field-row--top">

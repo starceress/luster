@@ -38,7 +38,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 <div class="mini-nav-layout">
 
-  <nav class="panel-card">
+  <nav class="card">
     <div class="card-head">Settings</div>
     <div class="panel-body">
       <a href="#panel-general" class="mini-nav-item"><?= View::icon('general') ?> General</a>
@@ -70,7 +70,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 <!-- ──── PANEL: ACCOUNT DETAILS ─────────────────────────────────────── -->
     <div id="panel-admin" class="mini-nav-panel">
-      <div class="gradient-card">
+      <div class="card card--gradient">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('account') ?>
@@ -84,7 +84,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <form method="POST" action="<?= $b ?>/admin/settings/profile" class="js-warn-unsaved">
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="pc-section-label">Login Details</div>
             <div class="field-row field-row--top<?= !empty($fe['username']) ? ' has-error' : '' ?>">
               <label class="field-label" for="p-username">Username <span class="req">*</span></label>
@@ -119,7 +119,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="pc-section-label">Change Password</div>
             <div class="field-group<?= !empty($fe['admin_current_password']) ? ' has-error' : '' ?>">
               <label class="field-label" for="p-current-pass">Current Password <em class="opt">(required to set a new password)</em></label>
@@ -176,7 +176,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 <!-- ──── PANEL: ADMIN ACCOUNTS ──────────────────────────────────────── -->
     <div id="panel-accounts" class="mini-nav-panel">
-      <div class="gradient-card gradient-card--plain">
+      <div class="card--gradient card--gradient--plain">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('admins') ?>
@@ -185,7 +185,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="pc-head-title">Admin Accounts &nbsp; <span class="badge badge-info2" style="font-family: var(--font-sans);"><?= count($users ?? []) ?> Total</span></div>
             <div class="pc-head-sub">All accounts with admin panel access. Each logs in independently.</div>
           </div>
-          <a href="<?= $b ?>/admin/admin-users/add" class="btn btn-primary btn-sm pc-head-cta">
+          <a href="<?= $b ?>/admin/admin-users/add" class="btn btn-primary btn-sm pc-head-actions">
             <?= View::icon('add') ?> Add Account
           </a>
         </div>
@@ -245,7 +245,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 <!-- ──── PANEL: APPEARANCE ──────────────────────────────────────────── -->
     <div id="panel-appearance" class="mini-nav-panel">
-      <div class="gradient-card">
+      <div class="card card--gradient">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('palette') ?></div>
           <div class="pc-head-meta">
@@ -254,7 +254,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
         </div>
 
-        <div class="pc-section">
+        <div class="card-body">
           <div class="pc-section-label">Default Mode</div>
           <?php $activeDefaultTheme = $site_settings['admin_default_theme'] ?? 'light'; ?>
           <div class="field-row">
@@ -283,7 +283,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
         </div>
 
-        <div class="pc-section">
+        <div class="card-body">
           <div class="pc-section-label">Active Skin</div>
           <?php
             $activeSkin   = $site_settings['selected_skin'] ?? '';
@@ -362,7 +362,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <form method="POST" action="<?= $b ?>/admin/settings" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <div id="panel-general" class="mini-nav-panel">
-        <div class="gradient-card">
+        <div class="card card--gradient">
           <div class="pc-head">
             <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('general') ?>
@@ -373,7 +373,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="pc-section-label">Site Information</div>
             <div class="field-group<?= !empty($fe['site_name']) ? ' has-error' : '' ?>">
               <label class="field-label" for="s-site-name">Site Name <span class="req">*</span></label>
@@ -392,7 +392,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="pc-section-label">Owner Information</div>
             <div class="field-grid">
               <div class="field-group">
@@ -411,7 +411,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="pc-section-label">Display & Locale</div>
             <div class="field-grid field-grid--3">
               <div class="field-group">
@@ -517,7 +517,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <form method="POST" action="<?= $b ?>/admin/settings/smtp" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <div id="panel-smtp" class="mini-nav-panel">
-        <div class="gradient-card">
+        <div class="card card--gradient">
           <div class="pc-head">
             <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('email') ?>
@@ -528,7 +528,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="pc-section-label">SMTP Email</div>
             <div class="field-group">
               <label class="toggle-wrap">
@@ -603,7 +603,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="pc-section-label">Test Email</div>
               <p>Send a test message to your admin account email to confirm your mail settings are working. Sends to <strong><?= View::e($admin_user->email ?? '') ?></strong>.
 
@@ -630,7 +630,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <form method="POST" action="<?= $b ?>/admin/settings/paths" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <div id="panel-embed" class="mini-nav-panel">
-        <div class="gradient-card">
+        <div class="card card--gradient">
           <div class="pc-head">
             <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('paths') ?>
@@ -641,7 +641,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="callout callout-warn"><?= View::icon('caution') ?> 
               <div>These settings tell copied embed snippets where Luster lives. Most sites can keep the detected values. Edit them only when embedded forms submit to the wrong place or link checks look for the wrong URL.</div>
             </div>
@@ -690,7 +690,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 <!-- ──── PANEL: NOTIFICATIONS ────────────────────────────────────── -->
     <div id="panel-notifications" class="mini-nav-panel">
-      <div class="gradient-card">
+      <div class="card card--gradient">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('email') ?>
@@ -704,7 +704,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <form method="POST" action="<?= $b ?>/admin/settings/notifications">
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="pc-section-label">Admin Alerts</div>
 
             <div class="field-row">
@@ -734,7 +734,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="pc-section-label">Overdue Notifications</div>
 
             <div class="field-row">
@@ -816,7 +816,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 <!-- ──── PANEL: BLACKLIST ───────────────────────────────────────────── -->
     <div id="panel-blacklist" class="mini-nav-panel">
-      <div class="gradient-card">
+      <div class="card card--gradient">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('blacklist') ?>
@@ -830,7 +830,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <form method="POST" action="<?= $b ?>/admin/blacklist/add">
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-          <div class="pc-section">
+          <div class="card-body">
             <div class="field-grid">
               <div class="field-group">
                 <label class="field-label" for="bl-pattern">Email Pattern <span class="req">*</span></label>
@@ -904,7 +904,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 <!-- ──── PANEL: SYSTEM ──────────────────────────────────────────────── -->
     <div id="panel-system" class="mini-nav-panel">
-      <div class="gradient-card">
+      <div class="card card--gradient">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('wrench') ?>
@@ -933,7 +933,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 
         <!-- Script -->
-        <div class="pc-section">
+        <div class="card-body">
           <div class="pc-section-label">Script</div>
             <div class="sysinfo-row">
               <span class="field-label">Name</span> Luster
@@ -1005,7 +1005,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
 
         <!-- Server -->
-        <div class="pc-section">
+        <div class="card-body">
           <div class="pc-section-label">Server</div>
             <div class="sysinfo-row">
               <span class="field-label">PHP Version</span> <?= View::e($php_version) ?>
@@ -1016,7 +1016,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
 
         <!-- Database Connection -->
-        <div class="pc-section">
+        <div class="card-body">
           <div class="pc-section-label">
             Database Connection
           </div>

@@ -135,7 +135,7 @@ $displayCount = $selectedOnly ? $totalCount : (int) ($scope_counts[$oldScope] ??
 
   </div><!-- /.composer-side -->
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <form method="POST" action="<?= $b ?>/admin/affiliates/email" id="es-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <?php if ($selectedOnly): ?>
@@ -230,7 +230,7 @@ $displayCount = $selectedOnly ? $totalCount : (int) ($scope_counts[$oldScope] ??
         <a href="<?= $b ?>/admin/affiliates" class="btn btn-danger">Cancel</a>
       </div>
     </form>
-  </div><!-- /.gradient-card -->
+  </div><!-- /.card--gradient -->
 
 </div><!-- /.composer-grid -->
 

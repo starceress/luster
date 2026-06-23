@@ -198,7 +198,7 @@ $src = View::e($source);
       <div class="overview-section-divider"></div>
 
 
-  <div id="js-import-preview-card" class="gradient-card import-preview-results-card">
+  <div id="js-import-preview-card" class="card--gradient import-preview-results-card">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
@@ -234,7 +234,7 @@ $src = View::e($source);
         </tbody>
       </table>
     </div>
-    <div class="pc-section"><div class="callout callout-warn">
+    <div class="card-body"><div class="callout callout-warn">
       <?= View::icon('alert') ?>
       <span>Running the import will write <strong><?= number_format($totalImport) ?> record(s)</strong> to Luster. The old source files and old database are not modified.</span>
     </div></div>

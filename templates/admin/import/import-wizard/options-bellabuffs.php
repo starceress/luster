@@ -54,7 +54,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
       action="<?= $b ?>/admin/import/bellabuffs/options">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
@@ -64,10 +64,10 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
     </div>
 
     <!-- ── Target listing ───────────────────────────────────────────── -->
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Target Luster Listing <span class="req">*</span></div>
       
-      <div class="pc-section">
+      <div class="card-body">
       <div class="field-group">
         <div class="select-wrap">
           <select name="bb_target_listing_id" id="bb-target-listing" required>
@@ -90,7 +90,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
             </div>
 
     <!-- ── Data to import ──────────────────────────────────────────── -->
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Data to Import</div>
 
       <?php if ($bb_mode === 'upload'): ?>
@@ -100,7 +100,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
       </div>
       <?php endif; ?>
 
-      <div class="import-chk-list pc-section">
+      <div class="import-chk-list card-body">
 
         <div class="import-chk">
           <input type="checkbox" name="bb_import_pending" value="1" id="ck-bb-pending"

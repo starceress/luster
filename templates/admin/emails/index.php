@@ -271,7 +271,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     <input type="hidden" name="scope"  value="<?= View::e($scope) ?>">
 
     <div class="mini-nav-layout">
-      <nav class="panel-card">
+      <nav class="card">
         <div class="card-head">Template Name</div>
         <div class="panel-body">
           <div class="search-field-wrap" style="margin:.25rem 0 .5rem">
@@ -301,7 +301,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         <div class="et-panel<?= $i === 0 ? ' active' : '' ?>"
              id="et-tab-<?= View::e($type) ?>">
 
-          <div class="gradient-card<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>">
+          <div class="card--gradient<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>">
 
             <!-- Card header -->
             <div class="pc-head">
@@ -332,7 +332,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 </div>
 
             <!-- Fields -->
-            <div class="pc-section">
+            <div class="card-body">
               <div class="field-group field-group-preview-gap">
                 <label class="field-label" for="et-subject-<?= View::e($type) ?>">Subject</label>
                 <input class="form et-subject"
@@ -535,7 +535,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     </div>
     
 <!-- ──── MAIN COMPOSE AREA ──────────────────────────────────────────── -->
-    <div class="gradient-card ">
+    <div class="card--gradient ">
       <form method="POST" action="<?= $b ?>/admin/emails/preview" id="compose-form">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
@@ -665,7 +665,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
 <div id="tab-custom" class="tabs-panel<?= $active_tab === 'custom' ? ' active' : '' ?>">
   <div class="composer-grid">
-    <div class="gradient-card">
+    <div class="card card--gradient">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         

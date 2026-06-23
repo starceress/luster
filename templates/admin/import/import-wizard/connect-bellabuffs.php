@@ -46,7 +46,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
       enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
@@ -56,9 +56,9 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
     </div>
 
     <!-- ── Source mode selection ─────────────────────────────────────── -->
-    <div class="pc-section">
+    <div class="card-body">
       <p>Luster only reads the BellaBuffs files. It does not edit or delete anything in the old install.</p>
-      <div class="import-choice pc-section">
+      <div class="import-choice card-body">
         <label class="import-choice-item">
           <input type="radio" name="bb_conn_mode" value="path" id="js-bb-mode-path"<?= $bbMode === 'path' ? ' checked' : '' ?>>
           <div>
@@ -77,9 +77,9 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
     </div>
 
     <!-- ── Server path section ─────────────────────────────────────── -->
-    <div id="js-bb-path-section" class="pc-section<?= $bbMode === 'upload' ? ' is-hidden' : '' ?>">
+    <div id="js-bb-path-section" class="card-body<?= $bbMode === 'upload' ? ' is-hidden' : '' ?>">
       <div class="pc-section-label">BellaBuffs Folder Path</div>
-      <div class="pc-section">
+      <div class="card-body">
       <div class="field-row field-row--top">
         <label class="field-label" for="bb_folder_path">Folder Path</label>
         <div>
@@ -94,9 +94,9 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
     </div>
 
     <!-- ── File upload section ─────────────────────────────────────── -->
-    <div id="js-bb-upload-section" class="pc-section<?= $bbMode === 'upload' ? '' : ' is-hidden' ?>">
+    <div id="js-bb-upload-section" class="card-body<?= $bbMode === 'upload' ? '' : ' is-hidden' ?>">
       <div class="pc-section-label">Upload BellaBuffs Files</div>
-      <div class="pc-section">
+      <div class="card-body">
             <div class="callout callout-warn">
         <?= View::icon('alert') ?>
         <div><strong>Upload mode imports members only.</strong> To migrate affiliates and fan codes, use the server folder path instead.</div>

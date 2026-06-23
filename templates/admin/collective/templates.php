@@ -101,7 +101,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
   <div class="composer-grid">
 
     <!-- ── Left column: template editors ─────────────────────────────────── -->
-    <div class="gradient-card">
+    <div class="card card--gradient">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
         <div class="pc-head-meta">
@@ -110,7 +110,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         </div>
       </div>
 
-      <div class="tpl-reset-all-row pc-section" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
+      <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
         <div style="text-align:center; padding: 0.75rem 0;">
           <button type="button" class="btn btn-tertiary btn-block-center"
                   id="fl-reset-all-templates"
@@ -120,7 +120,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         </div>
       </div>
 
-      <div class="pc-section">
+      <div class="card-body">
 
         <!-- ── Owned Listings ── -->
         <div class="tpl-group-section" data-tpl-group="owned" <?= $_grp('owned') ?>>

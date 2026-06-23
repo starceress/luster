@@ -20,7 +20,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
   <a href="<?= $b ?>/admin/import-members" class="link">&larr; Back</a>
 </div>
 
-<div class="gradient-card" style="margin-bottom:1.5rem">
+<div class="card card--gradient" style="margin-bottom:1.5rem">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
     <div class="pc-head-meta">
@@ -29,7 +29,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
     </div>
   </div>
 
-  <div class="pc-section">
+  <div class="card-body">
     <div class="pc-section-label">Summary</div>
 
     <div class="stat-row">
@@ -61,7 +61,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
     </div>
   </div>
 
-  <div class="pc-section">
+  <div class="card-body">
     <div class="pc-section-label">Column Matching</div>
     <p class="form-hint">This shows which old file column will fill each Luster member field.</p>
     <table class="data-table" style="max-width:480px">
@@ -80,7 +80,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
   </div>
 
   <?php if (!empty($samples)): ?>
-  <div class="pc-section">
+  <div class="card-body">
     <div class="pc-section-label">Sample Rows</div>
     <p class="form-hint">A small peek at the uploaded data so you can confirm this is the right file.</p>
     <div style="overflow-x:auto">
@@ -106,7 +106,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
   </div>
   <?php endif; ?>
 
-  <form method="POST" action="<?= $b ?>/admin/import-members/run" class="pc-section">
+  <form method="POST" action="<?= $b ?>/admin/import-members/run" class="card-body">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Import <?= number_format($total) ?> Members &rarr;</button>

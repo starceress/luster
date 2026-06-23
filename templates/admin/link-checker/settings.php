@@ -29,7 +29,7 @@ $b = rtrim(View::e($base_url), '/');
 <form method="POST" action="<?= $b ?>/admin/link-checker/settings" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
       <div class="pc-head-meta">
@@ -97,7 +97,7 @@ $b = rtrim(View::e($base_url), '/');
         $cronLastTs = $cron_last_run !== '' ? (int) strtotime($cron_last_run) : null;
         $cronIsDue  = $cronLastTs !== null && ($cronLastTs + 30 * 24 * 3600) <= time();
       ?>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="field-row">
           <label class="field-label">Last Run</label>
           <div>

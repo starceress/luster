@@ -15,7 +15,7 @@ $b = rtrim(View::e($base_url), '/');
   <a href="<?= $b ?>/admin/embed-codes" class="link">&larr; Back to Embed Codes</a>
 </div>
 
-<div class="gradient-card" style="margin-bottom:1.5rem">
+<div class="card card--gradient" style="margin-bottom:1.5rem">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
     <div class="pc-head-meta">
@@ -26,7 +26,7 @@ $b = rtrim(View::e($base_url), '/');
     </div>
   </div>
 
-  <form method="POST" action="<?= $b ?>/admin/compat-test" class="pc-section">
+  <form method="POST" action="<?= $b ?>/admin/compat-test" class="card-body">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
     <div class="field-row">
@@ -76,14 +76,14 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <?php if ($output !== null && $error === null): ?>
-<div class="gradient-card" style="margin-bottom:1.5rem">
+<div class="card card--gradient" style="margin-bottom:1.5rem">
   <div class="pc-head">
     <div class="pc-head-meta">
       <div class="pc-head-title">Rendered Output &mdash; <?= View::e(ucfirst($selected_type)) ?></div>
       <div class="pc-head-sub">Listing #<?= (int) $selected_listing_id ?></div>
     </div>
   </div>
-  <div class="pc-section">
+  <div class="card-body">
     <?php if (trim($output) === ''): ?>
       <p class="form-hint">Embed returned empty output.</p>
     <?php else: ?>

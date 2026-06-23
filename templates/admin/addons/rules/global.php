@@ -45,7 +45,7 @@ $defaultGateLabel = $currentGateType === 'button'
     <form method="POST" action="<?= $b ?>/admin/rules/global">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-      <div class="gradient-card">
+      <div class="card card--gradient">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
           <?= View::icon('rules') ?>
@@ -54,7 +54,7 @@ $defaultGateLabel = $currentGateType === 'button'
           <div class="pc-head-title">Global Join Rules HTML Template</div>
           <div class="pc-head-sub">Choose the HTML Luster prints for your Global Join Rules. These rules are applied as the default template throughout your entire collective unless overrided by custom per-listing join rules.</div>
           </div></div>
-        <div class="pc-section">
+        <div class="card-body">
 
           <div class="field-row field-row--top">
             <label class="field-label" for="global-rules-body">
@@ -109,13 +109,13 @@ $defaultGateLabel = $currentGateType === 'button'
             </div>
           </div>
 
-        </div><!-- /.pc-section -->
+        </div><!-- /.card-body -->
 
         <div class="composer-footer">
           <button type="submit" class="btn btn-primary">Save Global Rules</button>
           <button type="button" class="btn btn-quaternary js-rules-reset-defaults" data-form-reset="global-rules-body">Reset Form to Default</button>
         </div>
-      </div><!-- /.gradient-card -->
+      </div><!-- /.card--gradient -->
     </form>
 
     <!-- ── Sidebar ────────────────────────────────────────────────────── -->

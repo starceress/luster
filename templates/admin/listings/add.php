@@ -32,7 +32,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="gradient-card">
+<div class="card card--gradient">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('star') ?></div>
     <div class="pc-head-title">Add New Listing</div>
@@ -40,7 +40,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
   <form method="POST" action="<?= $b ?>/admin/listings/add" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="field-row">
         <span class="field-label">Network & Category</span>
         <div>

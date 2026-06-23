@@ -126,7 +126,7 @@ $returnSafe = View::e($return_url);
 
   </div><!-- /.composer-side -->
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <form method="POST" action="<?= $b ?>/admin/kim/email-selected" id="es-form">
       <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
       <input type="hidden" name="_return"  value="<?= $returnSafe ?>">
@@ -202,7 +202,7 @@ $returnSafe = View::e($return_url);
         <a href="<?= $returnSafe ?>" class="btn btn-danger">Cancel</a>
       </div>
     </form>
-  </div><!-- /.gradient-card -->
+  </div><!-- /.card--gradient -->
 
 </div><!-- /.composer-grid -->
 

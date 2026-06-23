@@ -173,7 +173,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-    <div class="gradient-card">
+    <div class="card card--gradient">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('star') ?></div>
         <div class="pc-head-meta">
@@ -181,7 +181,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <div class="pc-head-sub">Manage the listing's details, image, status, and public form settings.</div>
         </div>
       </div>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">Details</div>
         <div class="field-row field-row--top">
           <label class="field-label">Network &amp; Category</label>
@@ -311,7 +311,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       </div>
 
 
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">Listing Image</div>
         <div class="field-row field-row--top">
           <label class="field-label">Image</label>
@@ -342,7 +342,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       </div>
 
 
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">Public Display Preferences</div>
          <div class="field-row field-row--top">
           <label class="field-label" for="fl-members-per-page">Members Per Page</label>
@@ -625,7 +625,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
   <div class="composer-grid">
 
     <!-- ── Left column: template editors ──────────────────────────────── -->
-    <div class="gradient-card">
+    <div class="card card--gradient">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
         <div class="pc-head-meta">
@@ -634,7 +634,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
       </div>
 
-      <div class="tpl-reset-all-row pc-section" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
+      <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
         <div style="text-align:center; padding: 0.75rem 0;">
           <button type="button" class="btn btn-tertiary btn-block-center"
                   id="fl-reset-all-templates"
@@ -644,7 +644,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
       </div>
 
-      <div class="pc-section">
+      <div class="card-body">
 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
           <div class="pc-section-label">Members List <?= $srcBadge('members_template') ?></div>
@@ -1192,14 +1192,14 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
 
   <?php if ($listing->dbprefix === ''): ?>
   <div class="card">
-    <div class="pc-section"><p>Additional fields can be added after Luster creates the member storage for this listing.</p></div>
+    <div class="card-body"><p>Additional fields can be added after Luster creates the member storage for this listing.</p></div>
   </div>
   <?php else: ?>
 
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/add" id="fields-add-form" class="js-warn-unsaved">
     <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
     <input type="hidden" name="from_edit" value="1">
-    <div class="gradient-card">
+    <div class="card card--gradient">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('form') ?></div>
         <div class="pc-head-meta">
@@ -1207,7 +1207,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
           <div class="pc-head-sub">Create an extra member field for this listing.</div>
         </div>
       </div>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="field-row field-row--top">
           <label class="field-label" for="af-name">Field Name <span class="req">*</span></label>
           <div>
@@ -1563,7 +1563,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
 <div class="embed-grid">
 
-<div class="gradient-card">
+<div class="card card--gradient">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
     <div class="pc-head-meta">
@@ -1572,7 +1572,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     </div>
   </div>
   
-    <div class="pc-section">
+    <div class="card-body">
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
@@ -1646,7 +1646,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   </div>
 
 <!-- ──── EMBED SNIPPETS ───────────────────────────────────────────── -->
-<div class="gradient-card">
+<div class="card card--gradient">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
     <div class="pc-head-meta">
@@ -1654,7 +1654,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       <div class="pc-head-sub">Ready-to-use PHP include snippets for your site pages.</div>
     </div>
   </div>
-  <div class="pc-section">
+  <div class="card-body">
     <?php if ($installPath !== ''): ?>
       <?php
         $_es = $embedSettings ?? [];
@@ -1750,7 +1750,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       /** @var array $cfg */
       $advEmbedSettings = $embed_settings ?? [];
       ?>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="field-row field-row--top">
           <label class="field-label" for="adv-db-host">DB Host</label>
           <div>

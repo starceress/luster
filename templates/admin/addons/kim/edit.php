@@ -29,7 +29,7 @@ $b = rtrim(View::e($base_url), '/');
 <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $member->id ?>/edit">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></div>
       <div class="pc-head-meta">
@@ -37,7 +37,7 @@ $b = rtrim(View::e($base_url), '/');
         <div class="pc-head-sub">Editing Keep In Mind member &mdash; <?= View::e($fanlisting_name) ?></div>
       </div>
     </div>
-    <div class="pc-section">
+    <div class="card-body">
 
       <div class="pc-section-label">Information</div>
 
@@ -87,7 +87,7 @@ $b = rtrim(View::e($base_url), '/');
       </div>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Password</div>
 
       

@@ -18,7 +18,7 @@ $b = rtrim(View::e($base_url), '/');
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="gradient-card">
+<div class="card card--gradient">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
     <div class="pc-head-meta">
@@ -28,7 +28,7 @@ $b = rtrim(View::e($base_url), '/');
   </div>
   <form method="POST" action="<?= $b ?>/admin/adoptions/settings">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <div class="pc-section">
+    <div class="card-body">
       <div class="field-row field-row--top">
         <label class="field-label">Default View</label>
         <div>

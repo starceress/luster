@@ -37,7 +37,7 @@ $encName = urlencode($field->name);
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
   <input type="hidden" name="field_name" value="<?= View::e($field->name) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('tag') ?></div>
       <div class="pc-head-meta">
@@ -46,7 +46,7 @@ $encName = urlencode($field->name);
       </div>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="field-row field-row--top">
         <span class="field-label">Field Name</span>
         <div>

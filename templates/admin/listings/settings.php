@@ -31,7 +31,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
 <form method="POST" action="<?= $b ?>/admin/listings/settings" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
       <div class="pc-head-meta">
@@ -40,7 +40,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
       </div>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="field-row">
         <label class="field-label" for="fl-sort">Sort listings by</label>
         <div>
@@ -66,7 +66,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
       </div>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="field-row">
         <label class="field-label" for="fl-per-page">Listings per page</label>
         <div>

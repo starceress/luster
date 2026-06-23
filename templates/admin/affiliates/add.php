@@ -50,7 +50,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
     <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
   <?php endif; ?>
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('wrench') ?></div>
         <div class="pc-head-meta">
@@ -59,7 +59,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       </div>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
 
       <!-- Listing -->
       <?php if ($contextFid === 0): ?>
@@ -215,7 +215,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
         </div>
       </div>
 
-    </div><!-- /.pc-section -->
+    </div><!-- /.card-body -->
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Add Affiliate' ?></button>

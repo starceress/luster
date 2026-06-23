@@ -34,7 +34,7 @@ $b = rtrim(View::e($base_url), '/');
       data-del-context-from="new_prefix">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
       <div class="pc-head-meta">

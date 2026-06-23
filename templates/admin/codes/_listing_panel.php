@@ -164,7 +164,7 @@ $_tabRejected = $_codesBaseUrl !== null
   <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/upload" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <input type="hidden" name="_from" value="<?= View::e($_from) ?>">
-    <div class="pc-section">
+    <div class="card-body">
       <div class="file-drop-zone">
         <input type="file" id="codes-input" name="codes[]" multiple accept="image/jpeg,image/png,image/gif,image/webp">
         <span class="file-drop-icon"><?= View::icon('image') ?></span>
@@ -174,7 +174,7 @@ $_tabRejected = $_codesBaseUrl !== null
       <p class="panel-hint" style="margin-top:.5rem">Multiple files allowed. Dimensions are detected automatically.</p>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="panel-field">
         <label class="panel-label" for="upload-donor">Donor</label>
         <div class="select-wrap">
@@ -309,7 +309,7 @@ $_tabRejected = $_codesBaseUrl !== null
           $firstCode = reset($group['codes']);
           $gridMin   = max((int)$firstCode->width + 32, 80) . 'px';
         ?>
-        <div class="pc-section" data-code-group>
+        <div class="card-body" data-code-group>
           <div class="pc-section-label"><?= View::e($group['label']) ?>
             <span class="badge badge-inactive" data-code-group-count data-total-count="<?= count($group['codes']) ?>"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
           </div>

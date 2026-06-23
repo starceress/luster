@@ -33,7 +33,7 @@ $current = Version::CURRENT;
 <?php endif; ?>
 
 <div class="update-flow">
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('updatesparkle') ?></div>
       <div class="pc-head-meta">
@@ -44,7 +44,7 @@ $current = Version::CURRENT;
     </div>
 
     <?php if ($manual_reason !== ''): ?>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="callout callout-warn">
           <?= View::icon('caution') ?>
           <div>
@@ -60,7 +60,7 @@ $current = Version::CURRENT;
     <?php endif; ?>
 
     <?php if ($staging_valid): ?>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">Prepared Package</div>
         <div class="update-stage-summary">
         <?php if ($release_title !== ''): ?>
@@ -68,7 +68,7 @@ $current = Version::CURRENT;
         <?php endif; ?>
 
         <?php if ($release_url !== ''): ?>
-            <p class="pc-section"><a href="<?= View::e($release_url) ?>" class="btn btn-tertiary btn-sm" target="_blank" rel="noopener noreferrer">Release Notes &rarr;</a></p>
+            <p class="card-body"><a href="<?= View::e($release_url) ?>" class="btn btn-tertiary btn-sm" target="_blank" rel="noopener noreferrer">Release Notes &rarr;</a></p>
           <?php endif; ?>
 
           <span class="badge badge-info">Version <?= View::e($update_version) ?></span>
@@ -82,7 +82,7 @@ $current = Version::CURRENT;
         </div>
       </div>
 
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">Pre-flight Checks</div>
         <div class="update-check-list">
           <?php foreach ($preflight as $check): ?>
@@ -106,7 +106,7 @@ $current = Version::CURRENT;
         </div>
       </div>
 
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">Backup And Apply</div>
         <div class="update-action-grid">
           <form method="POST" action="<?= $b ?>/admin/update/backup" class="update-action-card">
@@ -140,7 +140,7 @@ $current = Version::CURRENT;
         </form>
       </div>
     <?php else: ?>
-      <div class="pc-section update-version-section">
+      <div class="card-body update-version-section">
         <div class="pc-section-label">Version Check</div>
           <p><strong>Installed Version:</strong> <?= View::e($current) ?></p>
 
@@ -175,7 +175,7 @@ $current = Version::CURRENT;
       </div>
 
       <?php if ($lock_exists): ?>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="callout callout-warn">
           <?= View::icon('caution') ?>
           <div>

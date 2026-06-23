@@ -57,7 +57,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
 <!-- ──── MAIN CARD ────────────────────────────────────────────────────── -->
-    <div class="gradient-card">
+    <div class="card card--gradient">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('updates') ?></div>
         <div class="pc-head-meta">
@@ -66,7 +66,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         <span class="badge badge-info2 pc-head-badge"><?= View::e($ctxDisplay) ?></span>
       </div>
 
-      <div class="pc-section">
+      <div class="card-body">
         <div class="field-row">
           <label class="field-label" for="upd-title">Title <span class="req">*</span></label>
           <div>
@@ -112,7 +112,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         </div>
       </div>
 
-      <div class="pc-section">
+      <div class="card-body">
         <div class="field-row">
           <label class="field-label">Posted by</label>
           <div>

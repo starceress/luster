@@ -116,7 +116,7 @@ $flName     = View::e($listing->subject ?? '');
   </div>
 
 <!-- ──── MAIN COMPOSE AREA ──────────────────────────────────────────── -->
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <form method="POST" action="<?= $b ?>/admin/members/<?= $listingId ?>/email-selected/send"
           id="es-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">

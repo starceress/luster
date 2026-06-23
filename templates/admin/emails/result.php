@@ -17,7 +17,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 $allOk = empty($failed);
 ?>
 
-<div class="gradient-card summary-card">
+<div class="card--gradient">
   <?php if ($allOk): ?>
     <div class="alert alert-success">
       Bulk email sent successfully.

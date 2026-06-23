@@ -13,7 +13,7 @@ $listingName = (string) ($result['listing_title'] ?? '');
   <a href="<?= $b ?>/admin/import-members" class="link">&larr; Import Members</a>
 </div>
 
-<div class="gradient-card" style="margin-bottom:1.5rem">
+<div class="card card--gradient" style="margin-bottom:1.5rem">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('check') ?></div>
     <div class="pc-head-meta">
@@ -22,7 +22,7 @@ $listingName = (string) ($result['listing_title'] ?? '');
     </div>
   </div>
 
-  <div class="pc-section">
+  <div class="card-body">
     <div class="stat-row">
       <div class="stat-tile stat-tile--success">
         <span class="stat-label">Imported</span>

@@ -53,7 +53,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
       enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
       <div class="pc-head-meta">
@@ -63,10 +63,10 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
     </div>
 
     <!-- ── Connection method ──────────────────────────────────────── -->
-    <div class="pc-section">
+    <div class="card-body">
       <p>Luster can either log into the old database for this import, or read a SQL export file you upload. Login details and uploads are temporary and are cleared after the import finishes.</p>
 
-      <div class="import-choice pc-section">
+      <div class="import-choice card-body">
         <label class="import-choice-item">
           <input type="radio" name="_conn_mode" value="live" id="js-mode-live" checked>
           <div>
@@ -91,9 +91,9 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
 
     <?php if ($source === 'fanatically'): ?>
     <!-- ── Fanatically table prefix ─────────────────────────────── -->
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Database Table Prefix</div>
-      <div class="pc-section">
+      <div class="card-body">
       <div class="field-row field-row--top">
         <label class="field-label" for="fn_table_prefix">Table Prefix</label>
         <div>
@@ -112,9 +112,9 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
 
 <?php if ($config_reader_enabled): ?>
       <!-- ── Auto-detect credentials (opt-in) ──────────────────── -->
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">Auto-detect Credentials</div>
-        <div class="pc-section">
+        <div class="card-body">
           <div class="field-row field-row--top">
             <label class="field-label" for="js-config-path">Config file path</label>
             <div>
@@ -137,9 +137,9 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
       </div>
 <?php endif; ?>
 
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">Database Credentials</div>
-        <div class="pc-section">
+        <div class="card-body">
         <div class="field-grid">
           <div class="field-group">
             <label class="field-label" for="db_host">Host</label>
@@ -188,7 +188,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
 
     <!-- ── SQL dump upload ──────────────────────────────────────── -->
     <div id="js-dump-section"<?= $dump_active ? '' : ' class="is-hidden"' ?>>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">SQL Dump File</div>
         <?php if ($dump_active): ?>
           <div class="callout callout-info" style="margin-bottom:1rem">
@@ -197,7 +197,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
           </div>
         <?php endif; ?>
         
-      <div class="pc-section">
+      <div class="card-body">
         <div class="field-row field-row--top">
           <label class="field-label" for="sql_dump">Upload File <span class="req">*</span></label>
           <div>

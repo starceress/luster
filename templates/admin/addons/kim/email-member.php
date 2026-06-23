@@ -123,7 +123,7 @@ $backUrl    = $listing !== null
 
   </div><!-- /.composer-side -->
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <form method="POST" id="email-form">
       <input type="hidden" name="_csrf"          value="<?= View::e($csrf_token) ?>">
       <input type="hidden" name="member_email"   value="<?= View::e($member->email) ?>">
@@ -179,7 +179,7 @@ $backUrl    = $listing !== null
         <a href="<?= View::e($referer) ?>" class="btn btn-danger">Cancel</a>
       </div>
     </form>
-  </div><!-- /.gradient-card -->
+  </div><!-- /.card--gradient -->
 
 </div><!-- /.composer-grid -->
 

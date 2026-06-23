@@ -1330,7 +1330,7 @@ document.addEventListener('drop', function (e) {
 
 (function () {
   document.querySelectorAll('.et-enabled-cb').forEach(function (cb) {
-    var card   = cb.closest('.gradient-card');
+    var card   = cb.closest('.card--gradient');
     var banner = card ? card.querySelector('.modal-warning') : null;
     var label  = cb.parentElement ? cb.parentElement.querySelector('.et-toggle-label') : null;
     function sync() {

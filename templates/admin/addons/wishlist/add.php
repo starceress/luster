@@ -82,7 +82,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <form method="POST" action="<?= View::e($action) ?>" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('wishlist') ?></div>
       <div class="pc-head-meta">
@@ -91,7 +91,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       </div>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Subject Details</div>
 
       <div class="field-row">

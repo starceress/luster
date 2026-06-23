@@ -128,7 +128,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 
   </div><!-- /.composer-side -->
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <form method="POST" action="<?= $b ?>/admin/kim/<?= $fid ?>/bulk-email" id="es-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <div id="es-email-inputs">
@@ -218,7 +218,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
         <a href="<?= $b ?>/admin/kim/<?= $fid ?>/show" class="btn btn-danger">Cancel</a>
       </div>
     </form>
-  </div><!-- /.gradient-card -->
+  </div><!-- /.card--gradient -->
 
 </div><!-- /.composer-grid -->
 <!-- ──── PREVIEW / CONFIRM MODAL ────────────────────────────────────── -->

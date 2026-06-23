@@ -50,7 +50,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
       enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
       <div class="pc-head-meta">
@@ -58,7 +58,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <div class="pc-head-sub">Connect to the source database directly, or upload a <code>.sql</code> dump file.</div>
       </div>
     </div>
-    <div class="pc-section">
+    <div class="card-body">
       <div class="import-choice-list">
         <label class="form-check">
           <input type="radio" name="_conn_mode" value="live" id="js-mode-live" checked>
@@ -73,7 +73,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
   </div>
 
   <div id="js-live-db-section">
-    <div class="gradient-card">
+    <div class="card card--gradient">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
         <div class="pc-head-meta">
@@ -86,7 +86,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
           </div>
         </div>
       </div>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="field-grid">
           <div class="field-group">
             <label class="field-label" for="db_host">Database Host</label>
@@ -129,7 +129,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
   </div>
 
   <div id="js-dump-section" class="is-hidden">
-    <div class="gradient-card">
+    <div class="card card--gradient">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
         <div class="pc-head-meta">
@@ -137,7 +137,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
           <div class="pc-head-sub">Upload a <code>.sql</code> file exported by <code>mysqldump</code>. Only <code>CREATE TABLE</code> and <code>INSERT INTO</code> statements are executed; all other SQL is ignored for safety.</div>
         </div>
       </div>
-      <div class="pc-section">
+      <div class="card-body">
         <div class="field-group">
           <label class="field-label" for="sql_dump">SQL File <span class="text-muted">(max 50 MB)</span></label>
           <label class="file-drop-zone" for="sql_dump">
@@ -152,7 +152,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     </div>
   </div>
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
@@ -162,7 +162,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     </div>
 
     <?php if ($source === 'fanupdate'): ?>
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Blog Table Name</div>
       <div class="field-group">
         <input id="fu_prefix" type="text" name="fu_prefix" class="form import-input-medium"
@@ -174,7 +174,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <?php endif; ?>
 
     <?php if ($source === 'listing-admin'): ?>
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Table Prefix</div>
       <div class="field-group">
         <input id="la_table_prefix" type="text" name="la_table_prefix" class="form import-input-medium"
@@ -185,7 +185,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     </div>
     <?php endif; ?>
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Conflict Strategy</div>
       <div class="import-choice-list">
         <label class="form-check">
@@ -201,7 +201,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
       </div>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Data to Import</div>
       <div class="import-choice-list">
 
@@ -278,7 +278,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
   </div>
 
   <?php if ($source !== 'fanupdate'): ?>
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('image') ?></div>
       <div class="pc-head-meta">
@@ -286,7 +286,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <div class="pc-head-sub"> Copy affiliate logos, joined listing images, and listing images to Luster's uploads directory. Original files are not deleted.</div>
       </div>
     </div>
-    <div class="pc-section">
+    <div class="card-body">
       <label class="form-check">
         <input type="checkbox" name="import_images" value="1" id="js-images-toggle"
                <?= importChecked($old, 'import_images', true) ?>>Migrate image files

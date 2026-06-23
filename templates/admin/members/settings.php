@@ -25,7 +25,7 @@ $b = rtrim(View::e($base_url), '/');
 <form method="POST" action="<?= $b ?>/admin/members/settings" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
 
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
@@ -35,7 +35,7 @@ $b = rtrim(View::e($base_url), '/');
       </div>
     </div>
 
-    <div class="pc-section">
+    <div class="card-body">
 
       <div class="field-row field-row--top">
         <label class="field-label" for="m-per-page">Members Per Page</label>
@@ -47,7 +47,7 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-    </div><!-- /.pc-section -->
+    </div><!-- /.card-body -->
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>

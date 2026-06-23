@@ -35,7 +35,7 @@ $id = (int) $listing->id;
   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
 
-  <div class="gradient-card">
+  <div class="card card--gradient">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('members') ?></div>
       <div class="pc-head-meta">
@@ -43,7 +43,7 @@ $id = (int) $listing->id;
         <div class="pc-head-sub">Editing member &mdash; <?= View::e($listing->subject) ?></div>
       </div>
     </div>
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">General Information</div>
 
       <div class="field-row field-row--top">
@@ -113,7 +113,7 @@ $id = (int) $listing->id;
     </div>
 
     <?php if (!empty($fields)): ?>
-    <div class="pc-section">
+    <div class="card-body">
       <div class="pc-section-label">Additional Fields</div>
 
       <?php foreach ($fields as $field):

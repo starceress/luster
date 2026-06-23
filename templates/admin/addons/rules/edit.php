@@ -48,7 +48,7 @@ $defaultGateLabel = $currentGateType === 'button'
       <input type="hidden" name="_redirect_to_listing" value="<?= (int) $listing_id ?>">
       <?php endif; ?>
 
-      <div class="gradient-card">
+      <div class="card card--gradient">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
           <?= View::icon('rules') ?>
@@ -57,7 +57,7 @@ $defaultGateLabel = $currentGateType === 'button'
           <div class="pc-head-title">Global Join Rules HTML Template</div>
           <div class="pc-head-sub">Choose the HTML Luster prints for your Per-Listing Join Rules. This template will override the Global Join Rules template for this specific listing only.</div>
           </div></div>
-        <div class="pc-section">
+        <div class="card-body">
 
           <div class="field-row field-row--top">
             <label class="field-label" for="rules-body">
@@ -112,7 +112,7 @@ $defaultGateLabel = $currentGateType === 'button'
             </div>
           </div>
 
-        </div><!-- /.pc-section -->
+        </div><!-- /.card-body -->
 
         <div class="composer-footer">
           <button type="submit" class="btn btn-primary">Save Rules</button>
@@ -122,7 +122,7 @@ $defaultGateLabel = $currentGateType === 'button'
           <button type="submit" form="rules-delete-form" class="btn btn-danger">Delete</button>
           <?php endif; ?>
         </div>
-      </div><!-- /.gradient-card -->
+      </div><!-- /.card--gradient -->
     </form>
 
     <?php if ($rules !== null): ?>

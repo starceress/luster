@@ -124,7 +124,7 @@ $hasErr  = $result->hasErrors();
 <div class="overview-section-divider"></div>
 
 <!-- ──── RESULT TABLE ───────────────────────────────────────────────── -->
-<div class="gradient-card import-stack-gap">
+<div class="card--gradient import-stack-gap">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
     <div class="pc-head-meta">

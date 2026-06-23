@@ -20,8 +20,8 @@ $fe = $field_errors ?? [];
 <form method="POST" id="add-form" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="gradient-card">
-    <div class="pc-section">
+  <div class="card card--gradient">
+    <div class="card-body">
 
       <div class="field-row field-row--top<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="field-label" for="cat-name">
