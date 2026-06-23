@@ -1,12 +1,4 @@
-/* =============================================================
-   Luster — Design Tokens
-   Loaded on every page: admin panel, login, install, migrate.
-
-   Contains fonts, base variables, and theme overrides.
-   Skin overrides live in skins.css (bundled) and skins/*.css (community).
-   ============================================================= */
-
-/* ── Self-hosted fonts ─────────────────────────────────────── */
+/* ── SELF-HOSTED FONTS ─────────────────────────────────────── */
 @font-face {
   font-family: 'Playfair Display';
   font-style: normal;
@@ -40,13 +32,13 @@
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* ── BASE TOKENS (ALL THEMES) ──────────────────────────────── */
+/* ── BASE TOKENS ──────────────────────────────────────────── */
 :root {
   --brand-primary: #ff7eb3;
   --brand-secondary: #78e8d8;
+  --brand-tertiary: #ffd166;
   --brand-quaternary: #60a5fa;
   --brand-quinary: #ad4cfb;
-  --brand-tertiary: #ffd166;
   --danger: #dc2626;
   --pending: #f97316;
   --radius: 16px;
@@ -62,27 +54,24 @@
   --font-sans: 'DM Sans', sans-serif;
   --font-serif: 'Playfair Display', serif;
   --font-mono: 'DM Mono', monospace;
-  /* ── Palette channel tokens (R G B, no commas) ───────────────
-     Used with modern rgb(var(--ch-foo)/alpha) syntax so skins
-     can change the base hue and all alpha variants update too.  */
-  --ch-brand-primary: 255 126 179;   /* Velvet Geode pink - primary accent family  */
-  --ch-brand-secondary: 120 232 216;   /* Velvet Geode teal - secondary accent family */
-  --ch-brand-tertiary: 255 209 102;   /* Velvet Geode gold - tertiary accent family  */
-  --ch-preview: 129 140 248;/* Indigo — embed-codes preview accent   */
-  --ch-highlight: 125 211 252;    /* Sky blue — nav hover, badge-tfl       */
-  --ch-upcoming: 99 102 241;  /* Purple-indigo — badge-upcoming        */
-  --ch-brand-muted: 255 170 204; /* Pale pink — sidebar brand/role text */
-  --ch-pending: 249 115 22; /* Orange — pending badge, status pill   */
+  --ch-brand-primary: 255 126 179;
+  --ch-brand-secondary: 120 232 216;
+  --ch-brand-tertiary: 255 209 102;
+  --ch-preview: 129 140 248;
+  --ch-highlight: 125 211 252;
+  --ch-upcoming: 99 102 241;
+  --ch-brand-muted: 255 170 204;
+  --ch-pending: 249 115 22;
 }
 
-/* ── LIGHT THEME ───────────────────────────────────────────── */
+/* ── LIGHT THEME ──────────────────────────────────────────── */
 [data-theme="light"] {
   --bg: #f0edf8;
   --bg-card: #faf9ff;
   --bg-sidebar: #121020;
   --bg-subtle: #e2ddf0;
-  --bg-elevated: #f0ecfa;         /* table headers, elevated surfaces   */
-  --bg-code: var(--bg-subtle);    /* textarea / code block background   */
+  --bg-elevated: #f0ecfa;
+  --bg-code: var(--bg-subtle);
   --border: #d0c8e8;
   --border-soft: #dcd8f0;
   --hairline: rgba(0,0,0,0.05);
@@ -91,15 +80,15 @@
   --text-dim: #8878b8;
   --text-sidebar: #b8b0d8;
   --accent: #d4006a;
-  --ch-accent: 212 0 106;         /* accent channel — rgb(var(--ch-accent)/alpha) */
+  --ch-accent: 212 0 106;
   --accent-glow: rgb(var(--ch-accent)/0.1);
   --accent2: #27b1a5;
   --accent3: var(--brand-quinary);
   --success: #27ae60;
-  --ch-success: 5 150 105;        /* success green channel (light)      */
+  --ch-success: 5 150 105;
   --success-bg: rgb(var(--ch-success)/0.08);
   --danger: #dc2626;
-  --ch-danger: 220 38 38;         /* danger red channel (light)         */
+  --ch-danger: 220 38 38;
   --danger-bg: rgb(var(--ch-danger)/0.08);
   --warn: #c9580a;
   --warn-bg: rgba(201,88,10,0.08);
@@ -112,8 +101,8 @@
   --card-border-3: #1d6fe8;
   --card-border-4: #e8ac10;
   --ch-preview: 79 70 229;
-  --preview-hover-text: #1e1a70;     /* preview button hover/focus text    */
-  /* ── Skin-tokenized surface properties ────────────────────── */
+  --preview-hover-text: #1e1a70;
+  /* ── Surfaces ───────────────────────────────────────────── */
   --topbar-bg:            var(--bg-card);
   --topbar-shadow:        0 4px 16px rgba(0,0,0,0.08), 0 1px 0 rgb(var(--ch-brand-primary)/.12);
   --card-head-bg:         var(--bg-subtle);
@@ -127,7 +116,7 @@
   --btn-primary-hover-bg: color-mix(in srgb, var(--accent) 75%, #fff);
   --sidebar-active-rail:  linear-gradient(180deg, var(--gradient));
   --stat-hover-shadow:    var(--shadow-lg);
-  /* ── Component skin hooks (new) ──────────────────────────── */
+  /* ── Components ─────────────────────────────────────────── */
   --nav-hover-bg:         rgb(var(--ch-brand-primary)/0.09);
   --nav-hover-color:      var(--accent);
   --nav-hover-icon-color: var(--accent);
@@ -158,14 +147,15 @@
   --scrollbar-thumb-hover: rgb(var(--ch-brand-primary)/.6);
   --scrollbar-arrow:      rgb(var(--ch-brand-primary)/.65);
 }
-/* ── DARK THEME (DEFAULT) ──────────────────────────────────── */
+
+/* ── DARK THEME ───────────────────────────────────────────── */
 [data-theme="dark"] {
   --bg: #121020;
   --bg-card: #1a1830;
   --bg-sidebar: #0c0b1c;
   --bg-subtle: #211e38;
-  --bg-elevated: #1d1b34;         /* table headers, elevated surfaces   */
-  --bg-code: #07040f;             /* textarea / code block background   */
+  --bg-elevated: #1d1b34;
+  --bg-code: #07040f;
   --border: #2a2648;
   --border-soft: #1e1c40;
   --hairline: rgba(255,255,255,0.04);
@@ -174,15 +164,15 @@
   --text-dim: #675e8b;
   --text-sidebar: #b8b0d8;
   --accent: #8fdcff;
-  --ch-accent: 143 220 255;       /* accent channel — rgb(var(--ch-accent)/alpha) */
+  --ch-accent: 143 220 255;
   --accent-glow: rgb(var(--ch-brand-primary)/0.15);
   --accent2: #b34774;
   --accent3: #ffd166;
   --success: #2ecc71;
-  --ch-success: 52 211 153;       /* success green channel (dark)       */
+  --ch-success: 52 211 153;
   --success-bg: rgb(var(--ch-success)/0.1);
   --danger: #f87171;
-  --ch-danger: 248 113 113;       /* danger red channel (dark)          */
+  --ch-danger: 248 113 113;
   --danger-bg: rgb(var(--ch-danger)/0.1);
   --warn: #ffd166;
   --warn-bg: rgb(var(--ch-brand-tertiary)/0.1);
@@ -194,8 +184,8 @@
   --card-border-2: var(--brand-secondary);
   --card-border-3: var(--brand-quaternary);
   --card-border-4: var(--brand-tertiary);
-  --preview-hover-text: #c7d2fe;     /* preview button hover/focus text    */
-  /* ── Skin-tokenized surface properties ────────────────────── */
+  --preview-hover-text: #c7d2fe;
+  /* ── Surfaces ───────────────────────────────────────────── */
   --topbar-bg:            var(--bg-card);
   --topbar-shadow:        0 4px 24px rgba(0,0,0,0.35), 0 1px 0 rgb(var(--ch-brand-primary)/.08);
   --card-head-bg:         var(--bg-subtle);
@@ -209,7 +199,7 @@
   --btn-primary-hover-bg: color-mix(in srgb, #60a5fa 75%, #fff);
   --sidebar-active-rail:  linear-gradient(180deg, var(--gradient));
   --stat-hover-shadow:    var(--shadow-lg);
-  /* ── Component skin hooks (new) ──────────────────────────── */
+  /* ── Components ─────────────────────────────────────────── */
   --nav-hover-bg:         rgb(var(--ch-brand-primary)/0.09);
   --nav-hover-color:      var(--accent);
   --nav-hover-icon-color: var(--accent);
