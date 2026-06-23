@@ -124,7 +124,7 @@ $defaultGateLabel = $currentGateType === 'button'
       <details class="card chevron">
         <summary class="chevron-head">Available Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm">Use these in your rules template &mdash; they're replaced when shown to fans.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Use these in your rules template &mdash; they're replaced when shown to fans.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <tr><td><code>{subject}</code></td><td>Listing subject name</td></tr>
             <tr><td><code>{listing_title}</code></td><td>Listing title</td></tr>

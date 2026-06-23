@@ -20,7 +20,7 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <?php if (!$table_exists): ?>
-  <div class="alert alert-error mb-section">
+  <div class="alert alert-error" style="margin-bottom:1.25rem">
     <strong>Warning:</strong> the current member storage
     <code><?= View::e($listing->dbprefix) ?></code>
     could not be found. Changing this now may cause more problems.

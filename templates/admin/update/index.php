@@ -99,7 +99,7 @@ $current = Version::CURRENT;
 
           
         <?php if (!$preflight_ok): ?>
-          <p style="color: var(--warn); text-align: center; font-size: var(--fs-lg);" class="mt-md">
+          <p style="color: var(--warn); text-align: center; font-size: var(--fs-lg);" style="margin-top:1rem">
             Refresh this page after fixing the blocked checks. Luster will re-run pre-flight checks without re-downloading the package.
           </p>
         <?php endif; ?>

@@ -46,7 +46,7 @@ $fid = (int) $listing->id;
   <div class="overview-section-title">
     <?= View::icon('pending') ?> Pending Sign-Ups
   </div>
-  <div class="overview-section-sub">New sign-up requests awaiting your approval decision.</div>
+  <div class="pc-head-sub">New sign-up requests awaiting your approval decision.</div>
 </div>
 
 <?php if (empty($pending_members)): ?>
@@ -145,7 +145,7 @@ $fid = (int) $listing->id;
     <div class="overview-section-title">
       <?= View::icon('approved') ?> Approved Sign-Ups
     </div>
-    <div class="overview-section-sub">Members who have been approved and are on the list.</div>
+    <div class="pc-head-sub">Members who have been approved and are on the list.</div>
 </div>
 
 <?php if (empty($approved_members)): ?>

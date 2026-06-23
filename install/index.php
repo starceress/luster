@@ -1355,7 +1355,7 @@ function renderStep1(string $csrf): void
     </div>
   </div>
   <div class="card-body">
-    <p class="text-dim-copy">
+    <p class="form-hint" style="font-size:.875rem;margin-bottom:1.25rem">
       Before we begin, Luster will make sure your server has the essentials needed to run the installer.
     </p>
     <ul class="install-req-list">
@@ -1618,7 +1618,7 @@ function renderStep3(string $csrf, array $stored): void
 
   <div class="card-body">
     <div class="pc-section-label">Administrator Account</div>
-    <p class="text-dim-copy">
+    <p class="form-hint" style="font-size:.875rem;margin-bottom:1.25rem">
       This account is for logging into the Luster admin panel. You can add more admin users after installation.
     </p>
 
@@ -1690,7 +1690,7 @@ function renderStep4(string $csrf, array $stored): void
   </div>
 
   <div class="card-body">
-    <p class="text-dim-copy">Please confirm the details below. If you need to change anything, click the <strong>Back</strong> button. Otherwise, click <strong>Install Luster</strong> to proceed with the installation.</p>
+    <p class="form-hint" style="font-size:.875rem;margin-bottom:1.25rem">Please confirm the details below. If you need to change anything, click the <strong>Back</strong> button. Otherwise, click <strong>Install Luster</strong> to proceed with the installation.</p>
 
     <div class="pc-section-label">Site</div>
     <div class="sysinfo-row"><span class="field-label">Luster Install URL</span><?= e((string) ($site['app_url'] ?? '')) ?></div>

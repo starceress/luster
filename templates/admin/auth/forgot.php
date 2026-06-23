@@ -43,7 +43,7 @@ require_once __DIR__ . '/../_css_assets.php';
     <?php endif; ?>
 
     <?php if ($success === '') : ?>
-    <p class="text-dim-copy">
+    <p class="form-hint" style="font-size:.875rem;margin-bottom:1.25rem">
       Enter your username or email address and we'll send you a link to reset your password.
     </p>
 

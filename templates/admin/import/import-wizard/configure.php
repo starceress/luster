@@ -146,7 +146,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
             <strong>Drag &amp; drop or click to browse</strong>
             <span class="form-hint">mysqldump export &mdash; max 50 MB</span>
           </label>
-          <p class="field-hint-sm">Export your source database with <code>mysqldump --no-tablespaces &lt;dbname&gt; &gt; export.sql</code> and upload the resulting file. The source schema is detected automatically.</p>
+          <p class="form-hint" style="margin-top:.35rem">Export your source database with <code>mysqldump --no-tablespaces &lt;dbname&gt; &gt; export.sql</code> and upload the resulting file. The source schema is detected automatically.</p>
         </div>
       </div>
     </div>
@@ -168,7 +168,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <input id="fu_prefix" type="text" name="fu_prefix" class="form" style="max-width:220px"
                placeholder="blog"
                value="<?= importOld($old, 'fu_prefix', 'blog') ?>">
-        <p class="help-text">The main FanUpdate table name from <code>blog-config.php</code>. Most installs use <code>blog</code>. If you enter <code>blog</code>, Luster looks for <code>blog</code>, <code>blog_category</code>, and <code>blog_catjoin</code>.</p>
+        <p class="form-hint" style="margin-top:.35rem">The main FanUpdate table name from <code>blog-config.php</code>. Most installs use <code>blog</code>. If you enter <code>blog</code>, Luster looks for <code>blog</code>, <code>blog_category</code>, and <code>blog_catjoin</code>.</p>
       </div>
     </div>
     <?php endif; ?>
@@ -180,7 +180,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <input id="la_table_prefix" type="text" name="la_table_prefix" class="form" style="max-width:220px"
                placeholder="(leave blank for default install)"
                value="<?= importOld($old, 'la_table_prefix') ?>">
-        <p class="help-text">Leave blank for a normal Listing Admin install. If your table names start with extra text, like <code>trex_members</code>, enter that extra text here: <code>trex_</code>. Luster also uses that prefix to find the registry table.</p>
+        <p class="form-hint" style="margin-top:.35rem">Leave blank for a normal Listing Admin install. If your table names start with extra text, like <code>trex_members</code>, enter that extra text here: <code>trex_</code>. Luster also uses that prefix to find the registry table.</p>
       </div>
     </div>
     <?php endif; ?>
@@ -300,7 +300,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
           <input type="text" name="image_path" class="form" style="max-width:420px"
                  placeholder="/absolute/path/to/old-install"
                  value="<?= importOld($old, 'image_path') ?>">
-          <p class="field-hint-sm">Absolute server path to the root of your old installation (no trailing slash).
+          <p class="form-hint" style="margin-top:.35rem">Absolute server path to the root of your old installation (no trailing slash).
             <?php if ($source === 'codesort'): ?>Code images are expected in the <code>codes/</code> subdirectory.<?php else: ?>Enthusiast images are expected under <code>images/</code>.<?php endif; ?>
           </p>
         </div>
@@ -313,7 +313,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
           <input type="url" name="image_url" class="form" style="max-width:420px"
                  placeholder="https://example.com/old-install"
                  value="<?= importOld($old, 'image_url') ?>">
-          <p class="field-hint-sm">Base URL of your old installation (no trailing slash). Luster adds the needed image path after it.
+          <p class="form-hint" style="margin-top:.35rem">Base URL of your old installation (no trailing slash). Luster adds the needed image path after it.
             <?php if ($source === 'codesort'): ?>For CodeSort, that means <code>/codes/</code> plus the code image filename.<?php else: ?>For other imports, Luster uses the standard image subfolders.<?php endif; ?></p>
         </div>
         <label class="form-check">

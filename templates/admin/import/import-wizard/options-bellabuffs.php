@@ -81,7 +81,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
             <?php endforeach; ?>
           </select>
         </div>
-        <p class="field-hint-sm">
+        <p class="form-hint" style="margin-top:.35rem">
           BellaBuffs manages one fanlisting per install. Pick the matching Luster listing here.
           Imported members, affiliates, and codes will be attached to this listing.
         </p>

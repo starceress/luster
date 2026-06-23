@@ -92,7 +92,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="p-username" type="text" name="admin_username" class="form"
                        maxlength="50" required
                        value="<?= View::e($admin_user->username ?? '') ?>">
-                <p class="form-hint form-hint-inline">The name you type on the admin login screen.</p>
+                <p class="form-hint">The name you type on the admin login screen.</p>
                 <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
               </div>
             </div>
@@ -103,7 +103,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="p-email" type="email" name="admin_email" class="form"
                        maxlength="255" required
                        value="<?= View::e($admin_user->email ?? '') ?>">
-                <p class="form-hint form-hint-inline">Used for admin account messages, including admin password resets.</p>
+                <p class="form-hint">Used for admin account messages, including admin password resets.</p>
                 <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
               </div>
             </div>
@@ -114,7 +114,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="p-owner-name" type="text" name="admin_display_name" class="form"
                        maxlength="100" required
                        value="<?= View::e($admin_user->displayName ?? '') ?>">
-                <p class="form-hint form-hint-inline">The friendly name shown inside the admin panel for this account.</p>
+                <p class="form-hint">The friendly name shown inside the admin panel for this account.</p>
               </div>
             </div>
           </div>
@@ -336,7 +336,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         
           <?php if (!SkinCatalog::isBundled($activeSkin)): ?>
           <?php $activeSkinHash = $site_settings['selected_skin_hash'] ?? null; ?>
-          <div class="callout callout-warn mt-md">
+          <div class="callout callout-warn" style="margin-top:1rem">
             <?= View::icon('alert') ?>
             <div>
               <strong>Community skin active.</strong>
@@ -611,7 +611,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               
             <button type="submit" form="settings-test-email-form" class="btn btn-secondary btn-sm">Send Test Email</button>
             <?php if (($cfg['owner_email'] ?? '') === ''): ?>
-              <p class="form-hint form-hint--warn mt-sm">
+              <p class="form-hint form-hint--warn" style="margin-top:.75rem">
                 Please set a Contact Email under the "General" tab before sending a test email.
               </p>
             <?php endif; ?>
@@ -1020,7 +1020,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="pc-section-label">
             Database Connection
           </div>
-          <p class="mb-section text-dim">
+          <p class="text-dim" style="margin-bottom:1.25rem">
             These values come from <code>config/app.php</code>. Luster shows them here so you can verify what database this install is using.
           </p>
             <div class="sysinfo-row">

@@ -110,7 +110,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
           <div class="pc-section-label">Members List</div>
-          <p class="form-hint mb-sm">Default for all listings. Wrap your row design in <code>{each_member}&hellip;{/each_member}</code>.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Default for all listings. Wrap your row design in <code>{each_member}&hellip;{/each_member}</code>.</p>
           <div class="tpl-layout-presets tpl-layout-presets--above">
             <strong style="color: var(--accent2); text-transform: uppercase; letter-spacing: .08em;">Choose Display Style:</strong>
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template">List</button>
@@ -127,7 +127,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="join-form" <?= $_grp('join-form') ?>>
           <div class="pc-section-label">Join Form</div>
-          <p class="form-hint mb-sm">Default join form layout. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Default join form layout. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields.</p>
           <div class="field-group">
             <textarea name="listing_default_join_form_template" id="listing_default_join_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_join_form_template')) ?></textarea>
           </div>
@@ -139,7 +139,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
           <div class="pc-section-label">Update Membership Form</div>
-          <p class="form-hint mb-sm">Default layout for the update (edit membership) form. Two steps: sign-in and edit fields.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Default layout for the update (edit membership) form. Two steps: sign-in and edit fields.</p>
           <div class="field-group">
             <textarea name="listing_default_update_form_template" id="listing_default_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_update_form_template')) ?></textarea>
           </div>
@@ -151,7 +151,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
           <div class="pc-section-label">Lost Password Form</div>
-          <p class="form-hint mb-sm">Default layout for the password reset form. Two steps: email entry and new password.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Default layout for the password reset form. Two steps: email entry and new password.</p>
           <div class="field-group">
             <textarea name="listing_default_reset_form_template" id="listing_default_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_reset_form_template')) ?></textarea>
           </div>
@@ -186,7 +186,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
           <div class="pc-section-label">Codes Display</div>
-          <p class="form-hint mb-sm">Default layout for the codes/buttons gallery. Use <code>{each_size_group}</code> for grouped mode or <code>{each_code}</code> for flat mode.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Default layout for the codes/buttons gallery. Use <code>{each_size_group}</code> for grouped mode or <code>{each_code}</code> for flat mode.</p>
           <div class="field-group">
             <textarea name="listing_default_codes_template" id="listing_default_codes_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_template')) ?></textarea>
           </div>
@@ -198,7 +198,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
           <div class="pc-section-label">Codes Donation Form</div>
-          <p class="form-hint mb-sm">Default layout for the code donation form.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Default layout for the code donation form.</p>
           <div class="field-group">
             <textarea name="listing_default_codes_submit_form_template" id="listing_default_codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_submit_form_template')) ?></textarea>
           </div>
@@ -210,7 +210,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
           <div class="pc-section-label">Affiliates Display</div>
-          <p class="form-hint mb-sm">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
           <div class="field-group">
             <textarea name="listing_default_affiliates_section_template" id="listing_default_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliates_section_template')) ?></textarea>
           </div>
@@ -222,7 +222,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
           <div class="pc-section-label">Affiliate Application</div>
-          <p class="form-hint mb-sm">Default layout for affiliate application forms.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Default layout for affiliate application forms.</p>
           <div class="field-group">
             <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
           </div>
@@ -234,7 +234,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
           <div class="pc-section-label">Contact Form</div>
-          <p class="form-hint mb-sm">Default layout for the contact form (name, email, subject, message).</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Default layout for the contact form (name, email, subject, message).</p>
           <div class="field-group">
             <textarea name="listing_default_contact_form_template" id="listing_default_contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_contact_form_template')) ?></textarea>
           </div>
@@ -246,7 +246,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
           <div class="pc-section-label">News Feed</div>
-          <p class="form-hint mb-sm">Default for listings with the News Feed add-on. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Default for listings with the News Feed add-on. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
           <div class="field-group">
             <textarea name="listing_default_updates_template" id="listing_default_updates_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_updates_template')) ?></textarea>
           </div>
@@ -293,7 +293,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="members" <?= $_grp('members') ?>>
         <summary class="chevron-head">Members List Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap your row design in {each_member}...{/each_member}. Use {if_no_members} outside the loop for an empty state.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Wrap your row design in {each_member}...{/each_member}. Use {if_no_members} outside the loop for an empty state.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_members_template', '{each_member}{/each_member}',   '{each_member}...{/each_member}',   'Repeats the HTML inside it once for each approved member shown.') ?>
             <?= $tok('listing_default_members_template', '{fan_name}',    '{fan_name}',    'The member\'s display name.') ?>
@@ -321,7 +321,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="join-form" <?= $_grp('join-form') ?>>
         <summary class="chevron-head">Join Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the join form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Arrange and label every field of the join form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_join_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_join_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -353,7 +353,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="update-form" <?= $_grp('update-form') ?>>
         <summary class="chevron-head">Update Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {if_not_signed_in}...{/if_not_signed_in} for the sign-in step and {if_signed_in}...{/if_signed_in} for the update fields step.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {if_not_signed_in}...{/if_not_signed_in} for the sign-in step and {if_signed_in}...{/if_signed_in} for the update fields step.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_update_form_template', '{if_not_signed_in}{/if_not_signed_in}', '{if_not_signed_in}...{/if_not_signed_in}', 'Shows the sign-in step (email + password).') ?>
             <?= $tok('listing_default_update_form_template', '{if_signed_in}{/if_signed_in}',         '{if_signed_in}...{/if_signed_in}',         'Shows the update form step.') ?>
@@ -382,7 +382,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
         <summary class="chevron-head">Lost Password Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {if_step_email} for the email-entry step and {if_step_confirm} for the new-password step. Use {if_token_valid} or {if_token_invalid} inside the confirm step.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {if_step_email} for the email-entry step and {if_step_confirm} for the new-password step. Use {if_token_valid} or {if_token_invalid} inside the confirm step.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_reset_form_template', '{if_step_email}{/if_step_email}',     '{if_step_email}...{/if_step_email}',     'Shows the email-entry step.') ?>
             <?= $tok('listing_default_reset_form_template', '{if_step_confirm}{/if_step_confirm}', '{if_step_confirm}...{/if_step_confirm}', 'Shows the new-password step.') ?>
@@ -406,7 +406,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="statistics" <?= $_grp('statistics') ?>>
         <summary class="chevron-head">Statistics Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for a listing.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>These tokens fill in the public stats block for a listing.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_stats_template', '{stat_opened}',       '{stat_opened}',       'The date the listing opened.') ?>
             <?= $tok('listing_default_stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date you set. Shows &ldquo;N/A&rdquo; if neither is set.') ?>
@@ -435,7 +435,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="codes" <?= $_grp('codes') ?>>
         <summary class="chevron-head">Codes Display Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_codes_template', '{each_size_group}{/each_size_group}', '{each_size_group}...{/each_size_group}', 'Repeats the HTML inside it once per group of same-sized codes. Wrap an {each_code}...{/each_code} loop inside it.') ?>
             <?= $tok('listing_default_codes_template', '{group_size}',       '{group_size}',       'The group label, e.g. &ldquo;88&times;31px&rdquo; or &ldquo;Other&rdquo;. Use inside {each_size_group}.') ?>
@@ -465,7 +465,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
         <summary class="chevron-head">Codes Donation Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the code donation form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Arrange and label every field of the code donation form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_codes_submit_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_codes_submit_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -491,7 +491,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
         <summary class="chevron-head">Affiliates Section Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
@@ -512,7 +512,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
         <summary class="chevron-head">Affiliate Application Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the affiliate application form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Arrange and label every field of the affiliate application form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_affiliate_apply_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_affiliate_apply_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -540,7 +540,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
         <summary class="chevron-head">Contact Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the contact form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Arrange and label every field of the contact form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_contact_form_template', '{listing_title}',         '{listing_title}',         'The listing\'s display name.') ?>
             <?= $tok('listing_default_contact_form_template', '{listing_subject}',       '{listing_subject}',       'What this fanlisting is about (e.g. &ldquo;Archeology&rdquo;, &ldquo;Marilyn Monroe&rdquo;).') ?>
@@ -568,7 +568,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
         <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry. Requires the News Feed add-on.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry. Requires the News Feed add-on.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_updates_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_updates_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>

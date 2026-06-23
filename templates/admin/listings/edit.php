@@ -204,7 +204,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <div>
             <input id="fl-subject" type="text" name="subject" class="form"
                    value="<?= View::e($listing->subject ?? '') ?>" maxlength="255">
-            <p class="form-hint form-hint-inline">The subject of your listing (e.g. character name, show title).</p>
+            <p class="form-hint">The subject of your listing (e.g. character name, show title).</p>
           </div>
         </div>
 
@@ -235,7 +235,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <input id="fl-email" type="email" name="email" class="form"
                    value="<?= View::e((string) $oldEmail) ?>"
                    maxlength="255" required>
-            <p class="form-hint form-hint-inline">Luster uses this address as the sender for emails from this listing.</p>
+            <p class="form-hint">Luster uses this address as the sender for emails from this listing.</p>
             <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
           </div>
         </div>
@@ -664,7 +664,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="join-form" <?= $_grp('join-form') ?>>
           <div class="pc-section-label">Join Form <?= $srcBadge('join_form_template') ?></div>
-          <p class="form-hint mb-sm">Controls the full layout of the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="join_form_template" name="join_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplJoinFormVal) ?></textarea>
           </div>
@@ -676,7 +676,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
           <div class="pc-section-label">Update Form <?= $srcBadge('update_form_template') ?></div>
-          <p class="form-hint mb-sm">Controls the full layout of the update form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the update form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
           <div class="field-group">
             <textarea id="update_form_template" name="update_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdateFormVal) ?></textarea>
           </div>
@@ -688,7 +688,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
           <div class="pc-section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
-          <p class="form-hint mb-sm">Controls the full layout of the password reset form. Use <code>{if_step_email}&hellip;{/if_step_email}</code> for the email-entry step and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> for the new-password step.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the password reset form. Use <code>{if_step_email}&hellip;{/if_step_email}</code> for the email-entry step and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> for the new-password step.</p>
           <div class="field-group">
             <textarea id="reset_form_template" name="reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplResetFormVal) ?></textarea>
           </div>
@@ -711,7 +711,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
           <div class="pc-section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
-          <p class="form-hint mb-sm">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
           <div class="field-group">
             <textarea id="codes_template" name="codes_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesVal) ?></textarea>
           </div>
@@ -724,7 +724,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php if ($hasCodesSubmit): ?>
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
           <div class="pc-section-label">Codes Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
-          <p class="form-hint mb-sm">Controls the full layout of the Codes Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the Codes Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="codes_submit_form_template" name="codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesFormVal) ?></textarea>
           </div>
@@ -739,7 +739,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
           <div class="pc-section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
-          <p class="form-hint mb-sm">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
           <div class="field-group">
             <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
           </div>
@@ -752,7 +752,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php if ($affiliate_apply_enabled ?? false): ?>
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
           <div class="pc-section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
-          <p class="form-hint mb-sm">Controls the full layout of the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="affiliate_apply_form_template" name="affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffApplyFormVal) ?></textarea>
           </div>
@@ -767,7 +767,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
           <div class="pc-section-label">Contact Form <?= $srcBadge('contact_form_template') ?></div>
-          <p class="form-hint mb-sm">Controls the full layout of the contact form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the full layout of the contact form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="contact_form_template" name="contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplContactFormVal) ?></textarea>
           </div>
@@ -780,7 +780,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php if ($hasUpdatesAddon): ?>
         <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
           <div class="pc-section-label">News Feed <?= $srcBadge('updates_template') ?></div>
-          <p class="form-hint mb-sm">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
           <div class="field-group">
             <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
           </div>
@@ -828,7 +828,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="members" <?= $_grp('members') ?>>
         <summary class="chevron-head">Members List Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap your row design in {each_member}...{/each_member}. Use {if_no_members} outside the loop for an empty state.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Wrap your row design in {each_member}...{/each_member}. Use {if_no_members} outside the loop for an empty state.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('members_template', '{each_member}{/each_member}',   '{each_member}...{/each_member}',   'Repeats the HTML inside it once for each approved member shown.') ?>
             <?= $ltok('members_template', '{fan_name}',    '{fan_name}',    'The member\'s display name.') ?>
@@ -856,7 +856,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="join-form" <?= $_grp('join-form') ?>>
         <summary class="chevron-head">Join Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the join form, and write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Arrange and label every field of the join form, and write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('join_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('join_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -888,7 +888,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="update-form" <?= $_grp('update-form') ?>>
         <summary class="chevron-head">Update Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {if_not_signed_in}...{/if_not_signed_in} for the sign-in step and {if_signed_in}...{/if_signed_in} for the update fields step. Both conditionals can share the same template.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {if_not_signed_in}...{/if_not_signed_in} for the sign-in step and {if_signed_in}...{/if_signed_in} for the update fields step. Both conditionals can share the same template.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('update_form_template', '{if_not_signed_in}{/if_not_signed_in}', '{if_not_signed_in}...{/if_not_signed_in}', 'Shows the sign-in step (email + password). Shown on first visit before authentication.') ?>
             <?= $ltok('update_form_template', '{if_signed_in}{/if_signed_in}',         '{if_signed_in}...{/if_signed_in}',         'Shows the update form step. Shown after the member signs in.') ?>
@@ -919,7 +919,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
         <summary class="chevron-head">Lost Password Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {if_step_email}...{/if_step_email} for the email-entry step and {if_step_confirm}...{/if_step_confirm} for the new-password step. Use {if_token_valid} or {if_token_invalid} to handle expired links.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {if_step_email}...{/if_step_email} for the email-entry step and {if_step_confirm}...{/if_step_confirm} for the new-password step. Use {if_token_valid} or {if_token_invalid} to handle expired links.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('reset_form_template', '{if_step_email}{/if_step_email}',     '{if_step_email}...{/if_step_email}',     'Shows when the visitor is on the email-entry step.') ?>
             <?= $ltok('reset_form_template', '{if_step_confirm}{/if_step_confirm}', '{if_step_confirm}...{/if_step_confirm}', 'Shows when the visitor has clicked a reset link and is setting a new password.') ?>
@@ -943,7 +943,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="statistics" <?= $_grp('statistics') ?>>
         <summary class="chevron-head">Listing Statistics Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for this listing.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>These tokens fill in the public stats block for this listing.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('stats_template', '{stat_opened}',       '{stat_opened}',       'The date you opened the listing.') ?>
             <?= $ltok('stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date you set. Shows &ldquo;N/A&rdquo; if neither is set.') ?>
@@ -972,7 +972,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="codes" <?= $_grp('codes') ?>>
         <summary class="chevron-head">Codes Display Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('codes_template', '{each_size_group}{/each_size_group}', '{each_size_group}...{/each_size_group}', 'Repeats the HTML inside it once per group of same-sized codes. Wrap an {each_code}...{/each_code} loop inside it.') ?>
             <?= $ltok('codes_template', '{group_size}',       '{group_size}',       'The group label, e.g. "88×31px" or "Other". Use inside {each_size_group}.') ?>
@@ -1003,7 +1003,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
         <summary class="chevron-head">Codes Donation Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the Codes Donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Arrange and label every field of the Codes Donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('codes_submit_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('codes_submit_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -1030,7 +1030,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
         <summary class="chevron-head">Affiliates Section Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
             <?= $ltok('affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
@@ -1052,7 +1052,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
         <summary class="chevron-head">Affiliate Application Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the affiliate application form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Arrange and label every field of the affiliate application form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('affiliate_apply_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('affiliate_apply_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -1081,7 +1081,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
         <summary class="chevron-head">Contact Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the contact form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Arrange and label every field of the contact form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('contact_form_template', '{listing_title}',         '{listing_title}',         'The listing\'s display name.') ?>
             <?= $ltok('contact_form_template', '{listing_subject}',       '{listing_subject}',       'What this fanlisting is about (e.g. "Archeology", "Marilyn Monroe").') ?>
@@ -1110,7 +1110,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
         <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('updates_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('updates_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>

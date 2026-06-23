@@ -93,7 +93,7 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
           <?php if ($currentSource !== 'custom'): ?>
             <div class="current-network-row">
               <span class="badge badge-<?= View::e(strtolower($currentSource)) ?>"><?= View::e(strtoupper($currentSource)) ?></span>
-              <span class="text-dim-copy-sm">Currently assigned to network: <?= View::e($currentSource) ?></span>
+              <span class="form-hint" style="margin:0">Currently assigned to network: <?= View::e($currentSource) ?></span>
             </div>
           <?php endif; ?>
         </div>

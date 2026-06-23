@@ -164,7 +164,7 @@ use Luster\Core\View;
 </form>
 
 <?php if ($send_failed && $composed_body !== ''): ?>
-<div class="card card--gradient mt-lg">
+<div class="card card--gradient" style="margin-top:1.5rem">
   <div class="card-body">
     <div class="field-row field-row--top">
       <label class="field-label">Copy report</label>

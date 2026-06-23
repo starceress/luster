@@ -159,10 +159,10 @@ $hasErr  = $result->hasErrors();
           <td class="table-num<?= $hasSkipDetail ? ' skip-summary-cell' : '' ?>"><?= (int)$totalSkipped  === 0 ? '<span class="text-dim">' . number_format($totalSkipped)  . '</span>' : number_format($totalSkipped) ?></td>
           <td class="table-cell-notes">
             <?php foreach ($row['warnings'] as $w): ?>
-              <span class="table-note-muted"><?= View::e($w) ?></span><br>
+              <span class="text-muted"><?= View::e($w) ?></span><br>
             <?php endforeach; ?>
             <?php foreach ($row['errors'] as $e): ?>
-              <span class="table-note-danger"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
+              <span style="color:var(--danger);display:inline-flex;align-items:center;gap:.3rem"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
             <?php endforeach; ?>
             <?php if ($hasSkipDetail): ?>
               <?php if (!empty($row['warnings']) || !empty($row['errors'])): ?><br><?php endif; ?>
@@ -228,7 +228,7 @@ $hasErr  = $result->hasErrors();
           <td class="table-num"><?= number_format($row['skipped']) ?></td>
           <td class="table-cell-notes">
             <?php foreach ($row['errors'] as $e): ?>
-              <span class="table-note-danger"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
+              <span style="color:var(--danger);display:inline-flex;align-items:center;gap:.3rem"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
             <?php endforeach; ?>
             <?php if (empty($row['errors'])): ?>
               <span class="table-note-empty">&mdash;</span>

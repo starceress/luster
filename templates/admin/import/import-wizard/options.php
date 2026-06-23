@@ -70,7 +70,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
       <div class="card-body">
         <input id="fu_prefix" type="text" name="fu_prefix" class="form" style="max-width:220px"
                placeholder="blog" value="<?= scopeOld($old, 'fu_prefix', 'blog') ?>">
-        <p class="field-hint-sm">The main FanUpdate table name from <code>blog-config.php</code>. Most installs use <code>blog</code>.</p>
+        <p class="form-hint" style="margin-top:.35rem">The main FanUpdate table name from <code>blog-config.php</code>. Most installs use <code>blog</code>.</p>
       </div>
     </div>
     <?php endif; ?>
@@ -82,7 +82,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
         <input id="la_table_prefix" type="text" name="la_table_prefix" class="form" style="max-width:220px"
                placeholder="(leave blank for default install)"
                value="<?= scopeOld($old, 'la_table_prefix') ?>">
-        <p class="field-hint-sm">Leave blank for a normal Listing Admin install. If your table names start with extra text, like <code>trex_members</code>, enter that extra text here: <code>trex_</code>.</p>
+        <p class="form-hint" style="margin-top:.35rem">Leave blank for a normal Listing Admin install. If your table names start with extra text, like <code>trex_members</code>, enter that extra text here: <code>trex_</code>.</p>
       </div>
     </div>
     <?php endif; ?>

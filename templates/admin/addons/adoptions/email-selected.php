@@ -101,7 +101,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
     <details class="card chevron" data-token-card>
       <summary class="chevron-head">Available Tokens</summary>
       <div class="chevron-body">
-        <p class="form-hint mb-sm" data-token-search-help>Tokens are replaced per recipient using each applicant's own data.</p>
+        <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Tokens are replaced per recipient using each applicant's own data.</p>
         <table class="et-token-table et-token-table--compact">
           <tbody>
             <tr class="tok-row" tabindex="0" role="button" title="Applicant's name"            aria-label="Insert {app_name}. Applicant's name"             data-textarea="es-body" data-token="{app_name}">       <td class="token-cell" data-desc="Applicant's name">            <code>{app_name}</code></td></tr>

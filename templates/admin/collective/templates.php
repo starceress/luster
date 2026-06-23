@@ -137,7 +137,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Latest Owned ── -->
         <div class="tpl-group-section" data-tpl-group="latest-owned" <?= $_grp('latest-owned') ?>>
           <div class="pc-section-label">Latest Owned</div>
-          <p class="form-hint mb-sm">Used by the Latest Owned embed. Styles the most recently opened listing.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the Latest Owned embed. Styles the most recently opened listing.</p>
           <div class="field-group">
             <textarea name="latest_listing_template" id="latest_listing_template" class="form form-mono" spellcheck="false"><?= View::e($latestVal) ?></textarea>
           </div>
@@ -150,7 +150,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Random Owned ── -->
         <div class="tpl-group-section" data-tpl-group="random-owned" <?= $_grp('random-owned') ?>>
           <div class="pc-section-label">Random Owned</div>
-          <p class="form-hint mb-sm">Used by the Random Owned embed. Styles one listing chosen at random from your active pool.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the Random Owned embed. Styles one listing chosen at random from your active pool.</p>
           <div class="field-group">
             <textarea name="random_listing_template" id="random_listing_template" class="form form-mono" spellcheck="false"><?= View::e($randomVal) ?></textarea>
           </div>
@@ -175,7 +175,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Latest Joined ── -->
         <div class="tpl-group-section" data-tpl-group="latest-joined" <?= $_grp('latest-joined') ?>>
           <div class="pc-section-label">Latest Joined</div>
-          <p class="form-hint mb-sm">Used by the Latest Joined Listing embed. Styles the most recently joined active, approved listing.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the Latest Joined Listing embed. Styles the most recently joined active, approved listing.</p>
           <div class="field-group">
             <textarea name="latest_joined_listing_template" id="latest_joined_listing_template" class="form form-mono" spellcheck="false"><?= View::e($latestJoinedVal) ?></textarea>
           </div>
@@ -188,7 +188,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Random Joined ── -->
         <div class="tpl-group-section" data-tpl-group="random-joined" <?= $_grp('random-joined') ?>>
           <div class="pc-section-label">Random Joined</div>
-          <p class="form-hint mb-sm">Used by the Random Joined Listing embed. Styles one joined listing chosen at random from your active, approved pool.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the Random Joined Listing embed. Styles one joined listing chosen at random from your active, approved pool.</p>
           <div class="field-group">
             <textarea name="random_joined_listing_template" id="random_joined_listing_template" class="form form-mono" spellcheck="false"><?= View::e($randomJoinedVal) ?></textarea>
           </div>
@@ -213,7 +213,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Codes Display ── -->
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
           <div class="pc-section-label">Codes Display</div>
-          <p class="form-hint mb-sm">Controls how collective-wide fan codes (codes with no fanlisting assigned) are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls how collective-wide fan codes (codes with no fanlisting assigned) are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
           <div class="field-group">
             <textarea name="collective_codes_template" id="collective_codes_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveCodesVal) ?></textarea>
           </div>
@@ -226,7 +226,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Codes Donation Form ── -->
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
           <div class="pc-section-label">Codes Donation Form</div>
-          <p class="form-hint mb-sm">Controls the layout of the code donation form shown by the collective Codes Donation embed. Use the tokens on the right to arrange fields. Leave blank to use the built-in form.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the code donation form shown by the collective Codes Donation embed. Use the tokens on the right to arrange fields. Leave blank to use the built-in form.</p>
           <div class="field-group">
             <textarea name="collective_codes_submit_form_template" id="collective_codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveCodesSubmitFormVal) ?></textarea>
           </div>
@@ -239,7 +239,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Affiliates Display ── -->
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
           <div class="pc-section-label">Affiliates Section</div>
-          <p class="form-hint mb-sm">Controls the full affiliates section on <code>/affiliates</code> and the collective affiliates embed. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row yourself.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the full affiliates section on <code>/affiliates</code> and the collective affiliates embed. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row yourself.</p>
           <div class="field-group">
             <textarea name="collective_affiliates_section_template" id="collective_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($affSectionVal) ?></textarea>
           </div>
@@ -252,7 +252,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Affiliate Application ── -->
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
           <div class="pc-section-label">Affiliate Application Form</div>
-          <p class="form-hint mb-sm">Controls the layout of the collective affiliate application form. Use the tokens on the right to arrange fields. This template is used by the affiliate-apply embed in collective mode.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the collective affiliate application form. Use the tokens on the right to arrange fields. This template is used by the affiliate-apply embed in collective mode.</p>
           <div class="field-group">
             <textarea name="collective_affiliate_apply_form_template" id="collective_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($affApplyFormVal) ?></textarea>
           </div>
@@ -265,7 +265,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Contact Form ── -->
         <div class="tpl-group-section" data-tpl-group="contact" <?= $_grp('contact') ?>>
           <div class="pc-section-label">Contact Form</div>
-          <p class="form-hint mb-sm">Controls the layout of the collective contact form. Use the tokens on the right to arrange fields. Leave blank to use the built-in form.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the collective contact form. Use the tokens on the right to arrange fields. Leave blank to use the built-in form.</p>
           <div class="field-group">
             <textarea name="collective_contact_form_template" id="collective_contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($contactFormVal) ?></textarea>
           </div>
@@ -278,7 +278,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── KIM List Overview ── -->
         <div class="tpl-group-section" data-tpl-group="kim-overview" <?= $_grp('kim-overview') ?>>
           <div class="pc-section-label">KIM List Overview</div>
-          <p class="form-hint mb-sm">Controls the layout of the public KIM list overview (<code>/kim/list</code>). Use <code>{each_kim_listing}&hellip;{/each_kim_listing}</code> to design each fanlisting row.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the public KIM list overview (<code>/kim/list</code>). Use <code>{each_kim_listing}&hellip;{/each_kim_listing}</code> to design each fanlisting row.</p>
           <div class="field-group">
             <textarea name="collective_kim_list_overview_template" id="collective_kim_list_overview_template" class="form form-mono" spellcheck="false"><?= View::e($kimListOverviewVal) ?></textarea>
           </div>
@@ -291,7 +291,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── KIM Listing View ── -->
         <div class="tpl-group-section" data-tpl-group="kim-subject" <?= $_grp('kim-subject') ?>>
           <div class="pc-section-label">KIM List &mdash; Subject View</div>
-          <p class="form-hint mb-sm">Controls the layout of the KIM member list for a single fanlisting (<code>/kim/list/{id}</code>). Use <code>{each_kim_member}&hellip;{/each_kim_member}</code> to design each member row.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the KIM member list for a single fanlisting (<code>/kim/list/{id}</code>). Use <code>{each_kim_member}&hellip;{/each_kim_member}</code> to design each member row.</p>
           <div class="field-group">
             <textarea name="collective_kim_list_subject_template" id="collective_kim_list_subject_template" class="form form-mono" spellcheck="false"><?= View::e($kimListSubjectVal) ?></textarea>
           </div>
@@ -304,7 +304,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── KIM Sign-Up Form ── -->
         <div class="tpl-group-section" data-tpl-group="kim-signup" <?= $_grp('kim-signup') ?>>
           <div class="pc-section-label">KIM Sign-Up Form</div>
-          <p class="form-hint mb-sm">Controls the layout of the KIM (Keep In Mind) sign-up form. Use the tokens on the right to arrange fields.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the KIM (Keep In Mind) sign-up form. Use the tokens on the right to arrange fields.</p>
           <div class="field-group">
             <textarea name="kim_signup_form_template" id="kim_signup_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimSignupFormVal) ?></textarea>
           </div>
@@ -317,7 +317,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── KIM Update Form ── -->
         <div class="tpl-group-section" data-tpl-group="kim-update" <?= $_grp('kim-update') ?>>
           <div class="pc-section-label">KIM Update Form</div>
-          <p class="form-hint mb-sm">Controls the layout of the KIM update form. Use the tokens on the right to arrange fields. Leave blank to use the built-in form.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the KIM update form. Use the tokens on the right to arrange fields. Leave blank to use the built-in form.</p>
           <div class="field-group">
             <textarea name="kim_update_form_template" id="kim_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimUpdateFormVal) ?></textarea>
           </div>
@@ -330,7 +330,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── KIM Reset Form ── -->
         <div class="tpl-group-section" data-tpl-group="kim-reset" <?= $_grp('kim-reset') ?>>
           <div class="pc-section-label">KIM Reset Form</div>
-          <p class="form-hint mb-sm">Controls the layout of the KIM password reset form &mdash; both the email-entry step and the new-password step. Use <code>{if_step_email}&hellip;{/if_step_email}</code> and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> to separate the two steps. Leave blank to use the built-in form.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the KIM password reset form &mdash; both the email-entry step and the new-password step. Use <code>{if_step_email}&hellip;{/if_step_email}</code> and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> to separate the two steps. Leave blank to use the built-in form.</p>
           <div class="field-group">
             <textarea name="kim_reset_form_template" id="kim_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimResetFormVal) ?></textarea>
           </div>
@@ -343,7 +343,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Adoption ── -->
         <div class="tpl-group-section" data-tpl-group="adoption" <?= $_grp('adoption') ?>>
           <div class="pc-section-label">Collective Adoption Form</div>
-          <p class="form-hint mb-sm">Controls the layout of the collective adoption application form. Use the tokens on the right to arrange fields. Requires the Adoption add-on.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the collective adoption application form. Use the tokens on the right to arrange fields. Requires the Adoption add-on.</p>
           <div class="field-group">
             <textarea name="collective_adoption_form_template" id="collective_adoption_form_template" class="form form-mono" spellcheck="false"><?= View::e($adoptionFormVal) ?></textarea>
           </div>
@@ -356,7 +356,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── Wishlist ── -->
         <div class="tpl-group-section" data-tpl-group="wishlist" <?= $_grp('wishlist') ?>>
           <div class="pc-section-label">Wishlist</div>
-          <p class="form-hint mb-sm">Used by the Wishlist embed. This template is self-contained &mdash; include your own wrapper element.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the Wishlist embed. This template is self-contained &mdash; include your own wrapper element.</p>
           <div class="field-group">
             <textarea name="wishlist_template" id="wishlist_template" class="form form-mono" spellcheck="false"><?= View::e($wishlistVal) ?></textarea>
           </div>
@@ -369,7 +369,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── News Feed ── -->
         <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
           <div class="pc-section-label">News Feed</div>
-          <p class="form-hint mb-sm">Used by the collective News Feed embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code> &mdash; the outer wrapper and pagination are added automatically.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the collective News Feed embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code> &mdash; the outer wrapper and pagination are added automatically.</p>
           <div class="field-group">
             <textarea name="collective_updates_template" id="collective_updates_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveUpdatesVal) ?></textarea>
           </div>
@@ -416,7 +416,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="owned" <?= $_grp('owned') ?>>
         <summary class="chevron-head">Owned Listings Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_listing}...{/each_listing} for a flat list. Switch to {each_current}, {each_upcoming}, and {each_pending} for separate sections.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {each_listing}...{/each_listing} for a flat list. Switch to {each_current}, {each_upcoming}, and {each_pending} for separate sections.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('owned_template', '{site_name}',                      '{site_name}',                      'The collective/site name.') ?>
             <?= $tok('owned_template', '{each_listing}{/each_listing}',   '{each_listing}...{/each_listing}',   'Repeats the HTML inside it once for each owned listing shown.') ?>
@@ -468,7 +468,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="latest-owned" <?= $_grp('latest-owned') ?>>
         <summary class="chevron-head">Latest Owned Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Always renders one listing. Wrap your row design in {each_listing}...{/each_listing} — it is required for tokens to be replaced.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Always renders one listing. Wrap your row design in {each_listing}...{/each_listing} — it is required for tokens to be replaced.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('latest_listing_template', '{site_name}',                      '{site_name}',                      'The collective/site name.') ?>
             <?= $tok('latest_listing_template', '{each_listing}{/each_listing}',   '{each_listing}...{/each_listing}',   'Wrap your row design inside this. Required for token replacement.') ?>
@@ -508,7 +508,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="random-owned" <?= $_grp('random-owned') ?>>
         <summary class="chevron-head">Random Owned Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Always renders one listing. Wrap your row design in {each_listing}...{/each_listing} — it is required for tokens to be replaced.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Always renders one listing. Wrap your row design in {each_listing}...{/each_listing} — it is required for tokens to be replaced.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('random_listing_template', '{site_name}',                      '{site_name}',                      'The collective/site name.') ?>
             <?= $tok('random_listing_template', '{each_listing}{/each_listing}',   '{each_listing}...{/each_listing}',   'Wrap your row design inside this. Required for token replacement.') ?>
@@ -548,7 +548,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="joined" <?= $_grp('joined') ?>>
         <summary class="chevron-head">Joined Listings Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_joined}...{/each_joined} for a flat list. Use {each_current_joined}...{/each_current_joined} when you want the list to follow category order.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {each_joined}...{/each_joined} for a flat list. Use {each_current_joined}...{/each_current_joined} when you want the list to follow category order.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('joined_template', '{site_name}',                                  '{site_name}',                                  'The collective/site name.') ?>
             <?= $tok('joined_template', '{each_joined}{/each_joined}',                 '{each_joined}...{/each_joined}',                 'Repeats the HTML inside it once for each joined listing. Use this for a simple list.') ?>
@@ -572,7 +572,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="latest-joined" <?= $_grp('latest-joined') ?>>
         <summary class="chevron-head">Latest Joined Listing Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Always renders one joined listing. Wrap your row design in {each_joined}...{/each_joined} — it is required for tokens to be replaced.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Always renders one joined listing. Wrap your row design in {each_joined}...{/each_joined} — it is required for tokens to be replaced.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('latest_joined_listing_template', '{site_name}',                  '{site_name}',                  'The collective/site name.') ?>
             <?= $tok('latest_joined_listing_template', '{each_joined}{/each_joined}', '{each_joined}...{/each_joined}', 'Wrap your row design inside this. Required for token replacement.') ?>
@@ -592,7 +592,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="random-joined" <?= $_grp('random-joined') ?>>
         <summary class="chevron-head">Random Joined Listing Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Always renders one joined listing. Wrap your row design in {each_joined}...{/each_joined} — it is required for tokens to be replaced.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Always renders one joined listing. Wrap your row design in {each_joined}...{/each_joined} — it is required for tokens to be replaced.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('random_joined_listing_template', '{site_name}',                  '{site_name}',                  'The collective/site name.') ?>
             <?= $tok('random_joined_listing_template', '{each_joined}{/each_joined}', '{each_joined}...{/each_joined}', 'Wrap your row design inside this. Required for token replacement.') ?>
@@ -612,7 +612,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="stats" <?= $_grp('stats') ?>>
         <summary class="chevron-head">Statistics Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Summary numbers for the whole collective. These are template tokens, not PHP variables for sample pages.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Summary numbers for the whole collective. These are template tokens, not PHP variables for sample pages.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_stats_template', '{site_name}',         '{site_name}',         'The collective/site name.') ?>
             <?= $tok('collective_stats_template', '{owned_active}',      '{owned_active}',      'How many owned listings are currently open.') ?>
@@ -649,7 +649,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="codes" <?= $_grp('codes') ?>>
         <summary class="chevron-head">Codes Display Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery. Renders codes with no fanlisting assigned.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery. Renders codes with no fanlisting assigned.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_codes_template', '{site_name}',                          '{site_name}',                          'The collective/site name.') ?>
             <?= $tok('collective_codes_template', '{each_size_group}{/each_size_group}', '{each_size_group}...{/each_size_group}', 'Repeats the HTML inside it once per group of same-sized codes. Wrap an {each_code}...{/each_code} loop inside it.') ?>
@@ -680,7 +680,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
         <summary class="chevron-head">Codes Donation Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Controls the layout of the collective code donation form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls the layout of the collective code donation form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_codes_submit_form_template', '{site_name}',                    '{site_name}',                    'The collective/site name.') ?>
             <?= $tok('collective_codes_submit_form_template', '{field_code_image}',             '{field_code_image}',             'Full label + input block for the code image upload field.') ?>
@@ -704,7 +704,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
         <summary class="chevron-head">Affiliates Section Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_affiliates_section_template', '{site_name}',                          '{site_name}',                          'The collective/site name.') ?>
             <?= $tok('collective_affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
@@ -726,7 +726,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
         <summary class="chevron-head">Affiliate Application Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Controls the layout of the collective affiliate application form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls the layout of the collective affiliate application form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_affiliate_apply_form_template', '{site_name}',      '{site_name}',      'The collective/site name.') ?>
             <?= $tok('collective_affiliate_apply_form_template', '{listing_title}', '{listing_title}', 'The collective/site name (alias for {site_name}).') ?>
@@ -754,7 +754,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="contact" <?= $_grp('contact') ?>>
         <summary class="chevron-head">Contact Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Controls the layout of the collective contact form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls the layout of the collective contact form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_contact_form_template', '{site_name}',           '{site_name}',           'The collective/site name.') ?>
             <?= $tok('collective_contact_form_template', '{field_name}',          '{field_name}',          'The Name field, with label and wrapper.') ?>
@@ -780,7 +780,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="kim-overview" <?= $_grp('kim-overview') ?>>
         <summary class="chevron-head">KIM List Overview Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Shown on the public KIM list overview. Wrap each fanlisting row in {each_kim_listing}...{/each_kim_listing}.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Shown on the public KIM list overview. Wrap each fanlisting row in {each_kim_listing}...{/each_kim_listing}.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_kim_list_overview_template', '{site_name}',                              '{site_name}',                              'The collective/site name.') ?>
             <?= $tok('collective_kim_list_overview_template', '{each_kim_listing}{/each_kim_listing}', '{each_kim_listing}...{/each_kim_listing}', 'Repeats the HTML inside it once for each fanlisting that has KIM sign-ups.') ?>
@@ -799,7 +799,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="kim-subject" <?= $_grp('kim-subject') ?>>
         <summary class="chevron-head">KIM Subject View Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Shown when a visitor views KIM members for a single fanlisting. Wrap each member in {each_kim_member}...{/each_kim_member}.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Shown when a visitor views KIM members for a single fanlisting. Wrap each member in {each_kim_member}...{/each_kim_member}.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_kim_list_subject_template', '{site_name}',                    '{site_name}',                    'The collective/site name.') ?>
             <?= $tok('collective_kim_list_subject_template', '{listing_title}',                '{listing_title}',                'Fanlisting display name.') ?>
@@ -825,7 +825,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="kim-signup" <?= $_grp('kim-signup') ?>>
         <summary class="chevron-head">KIM Sign-Up Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Controls the layout of the KIM sign-up form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls the layout of the KIM sign-up form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('kim_signup_form_template', '{site_name}',                   '{site_name}',                   'The collective/site name.') ?>
             <?= $tok('kim_signup_form_template', '{field_name}',                  '{field_name}',                  'Full label + input block for the name field.') ?>
@@ -853,7 +853,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="kim-update" <?= $_grp('kim-update') ?>>
         <summary class="chevron-head">KIM Update Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Controls the KIM update form layout. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls the KIM update form layout. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('kim_update_form_template', '{site_name}',                       '{site_name}',                       'The collective/site name.') ?>
             <?= $tok('kim_update_form_template', '{field_email}',                     '{field_email}',                     'Full label + input for the sign-in email field.') ?>
@@ -872,7 +872,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="kim-reset" <?= $_grp('kim-reset') ?>>
         <summary class="chevron-head">KIM Reset Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Controls both steps of the KIM password reset form. Use <code>{if_step_email}</code> and <code>{if_step_confirm}</code> to separate the two flows in a single template.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls both steps of the KIM password reset form. Use <code>{if_step_email}</code> and <code>{if_step_confirm}</code> to separate the two flows in a single template.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('kim_reset_form_template', '{site_name}',                        '{site_name}',                        'The collective/site name.') ?>
             <?= $tok('kim_reset_form_template', '{if_step_email}{/if_step_email}',   '{if_step_email}...{/if_step_email}',   'Shows only on the email-entry step (the first step).') ?>
@@ -896,7 +896,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="adoption" <?= $_grp('adoption') ?>>
         <summary class="chevron-head">Adoption Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Controls the layout of the collective adoption application form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts. Requires the Adoption add-on.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls the layout of the collective adoption application form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts. Requires the Adoption add-on.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_adoption_form_template', '{site_name}',              '{site_name}',              'The collective / site name.') ?>
             <?= $tok('collective_adoption_form_template', '{field_listing_id}',       '{field_listing_id}',       'The Listing selector field, with label and wrapper.') ?>
@@ -922,7 +922,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="wishlist" <?= $_grp('wishlist') ?>>
         <summary class="chevron-head">Wishlist Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap your row design in {each_wishlist_item}...{/each_wishlist_item}. This template is self-contained — include your own wrapper element.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Wrap your row design in {each_wishlist_item}...{/each_wishlist_item}. This template is self-contained — include your own wrapper element.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('wishlist_template', '{site_name}',                                '{site_name}',                                'The collective/site name.') ?>
             <?= $tok('wishlist_template', '{each_wishlist_item}{/each_wishlist_item}', '{each_wishlist_item}...{/each_wishlist_item}', 'Repeats the HTML inside it once for each active wishlist entry.') ?>
@@ -955,7 +955,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
         <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry and adds the wrapper and pagination automatically.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry and adds the wrapper and pagination automatically.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_updates_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one update on the current page.') ?>
             <?= $tok('collective_updates_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no updates (use for an empty state message).') ?>

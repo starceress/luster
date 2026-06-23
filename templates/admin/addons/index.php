@@ -87,7 +87,7 @@ $b = rtrim(View::e($base_url), '/');
       </div>
       <div class="modal-body">
         <p>You are about to disable <strong id="addon-modal-name"></strong>.</p>
-        <div class="callout callout-warn" style="margin-top:.5rem">The add-on will be removed from the admin panel and its public routes will stop working. All data is kept &mdash; reinstalling it later will restore full access.</p>
+        <div class="callout callout-warn" style="margin-top:.5rem">The add-on will be removed from the admin panel and its public routes will stop working. All data is kept &mdash; reinstalling it later will restore full access.</div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-danger" id="addon-modal-confirm">Disable</button>
