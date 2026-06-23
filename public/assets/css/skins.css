@@ -1,4 +1,4 @@
-/* =============================================================
+/* ========================================================================
 
   LUSTER SKINS & SLUGS
     1. Prism Power (prism-power)
@@ -6,19 +6,17 @@
     3. The Force (the-force)
     4. Floating Lights (floating-lights)
 
-  IMPLEMENTATION
+  EXPLANATION
     1. Load order: base tokens / theme CSS  ->  admin.css  ->  THIS FILE.
        These rules must come AFTER admin.css so the class-level overrides
-       (.topbar, .card-head, .btn-primary, .data-table th, etc.) win on
-       specificity. Variable-only blocks ([data-skin="x"] { --... }) can
-       sit anywhere after the base tokens.
+       win on specificity.
     2. Activate by setting attributes on <html> (or any wrapper):
           Example: <html data-skin="prism-power" data-theme="dark">
        Combine with data-theme="light" | "dark". With no data-skin, the
        default Luster skin (Velvet Geode) and palette applies.
     3. Each block only overrides what differs from base.
 
-============================================================= */
+========================================================================= */
 
 
 /* ──────────────────────────────────────────────────────────────────────── 
@@ -26,68 +24,67 @@
 ───────────────────────────────────────────────────────────────────────── */
 
 [data-skin="prism-power"] {
-  --brand-primary:      #ee5e9e;
-  --brand-secondary:      #1ba6d8;
-  --brand-tertiary:      #f7d440;
-  --ch-brand-primary:      238 94 158;
-  --ch-brand-secondary:      74 109 214;
-  --ch-brand-tertiary:      247 212 64;
-  --gradient:     #ee5e9e, #1ba6d8, #f7d440;
+  --brand-primary: #ee5e9e;
+  --brand-secondary: #1ba6d8;
+  --brand-tertiary: #f7d440;
+  --ch-brand-primary: 238 94 158;
+  --ch-brand-secondary: 74 109 214;
+  --ch-brand-tertiary: 247 212 64;
+  --gradient: #ee5e9e, #1ba6d8, #f7d440;
   --gradient-bar: linear-gradient(90deg, #ee5e9e, #1ba6d8, #f7d440);
   --hairline: #fff;
 }
 
 [data-skin="prism-power"][data-theme="light"] {
-  --bg:            #d8e4f5;
-  --bg-card:       #ffffff;
-  --bg-sidebar:    #1c3478;
-  --bg-subtle:     #ffeef4;
-  --bg-elevated:   #ecf0fa;
-  --bg-code:       #f0e2ea;
-  --border:        #c8d8ec;
-  --border-soft:   #dde6f1;
-  --hairline:      rgba(74, 109, 214, 0.08);
-  --text:          #1c1d4a;
-  --text-muted:    #4a5d8a;
-  --text-dim:      #7a8ab5;
-  --text-sidebar:  #e0e0f5;
-  --accent:        #d83e8a;
-  --ch-accent:     216 62 138;
-  --accent-glow:   rgb(216 62 138 / 0.1);
-  --accent2:       #4a6dd6;
-  --accent3:       #c8950a;
-  --success:       #2e7d4f;
-  --ch-success:    46 125 79;
-  --success-bg:    rgb(46 125 79 / 0.08);
-  --danger:        #c43030;
-  --ch-danger:     196 48 48;
-  --danger-bg:     rgb(196 48 48 / 0.08);
-  --warn:          #c8950a;
-  --warn-bg:       rgba(200, 149, 10, 0.1);
-  --shadow:        0 4px 24px rgba(216, 62, 138, 0.1), 0 1px 4px rgba(28, 29, 74, 0.06);
-  --shadow-lg:     0 16px 56px rgba(216, 62, 138, 0.14), 0 4px 12px rgba(28, 29, 74, 0.08);
-  --glow:          0 0 0 3px rgb(216 62 138 / 0.14);
+  --bg: #d8e4f5;
+  --bg-card: #ffffff;
+  --bg-sidebar: #1c3478;
+  --bg-subtle: #ffeef4;
+  --bg-elevated: #ecf0fa;
+  --bg-code: #f0e2ea;
+  --border: #c8d8ec;
+  --border-soft: #dde6f1;
+  --hairline: rgba(74, 109, 214, 0.08);
+  --text: #1c1d4a;
+  --text-muted: #4a5d8a;
+  --text-dim: #7a8ab5;
+  --text-sidebar: #e0e0f5;
+  --accent: #d83e8a;
+  --ch-accent: 216 62 138;
+  --accent-glow: rgb(216 62 138 / 0.1);
+  --accent2: #4a6dd6;
+  --accent3: #c8950a;
+  --success: #2e7d4f;
+  --ch-success: 46 125 79;
+  --success-bg: rgb(46 125 79 / 0.08);
+  --danger: #c43030;
+  --ch-danger: 196 48 48;
+  --danger-bg: rgb(196 48 48 / 0.08);
+  --warn: #c8950a;
+  --warn-bg: rgba(200, 149, 10, 0.1);
+  --shadow: 0 4px 24px rgba(216, 62, 138, 0.1), 0 1px 4px rgba(28, 29, 74, 0.06);
+  --shadow-lg: 0 16px 56px rgba(216, 62, 138, 0.14), 0 4px 12px rgba(28, 29, 74, 0.08);
+  --glow: 0 0 0 3px rgb(216 62 138 / 0.14);
   --card-border-1: #f0a8c8;
   --card-border-2: #1ba6d8;
   --card-border-3: #f7d440;
   --card-border-4: #4a6dd6;
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(216 62 138 / 0.12) 0%, rgb(74 109 214 / 0.06) 50%, transparent 70%);
-  --preview-hover-text:  #2c3784;
-  --ch-preview:       74 109 214;
-  /* surface tokens */
-  --topbar-bg:       linear-gradient(180deg, #ffffff 0%, #e2ebf7 100%);
-  --topbar-shadow:   0 4px 16px rgba(42, 59, 168, 0.1), 0 1px 0 rgba(216, 62, 138, 0.22);
-  --card-head-bg:    #ffb2d3;
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(216 62 138 / 0.12) 0%, rgb(74 109 214 / 0.06) 50%, transparent 70%);
+  --preview-hover-text: #2c3784;
+  --ch-preview: 74 109 214;
+  --topbar-bg: linear-gradient(180deg, #ffffff 0%, #e2ebf7 100%);
+  --topbar-shadow: 0 4px 16px rgba(42, 59, 168, 0.1), 0 1px 0 rgba(216, 62, 138, 0.22);
+  --card-head-bg: #ffb2d3;
   --card-head-color: #8c2b56;
-  --welcome-bg:      linear-gradient(135deg, #ffffff 0%, #fce6ee 100%);
-  --welcome-border:  #f0c8d9;
-  --welcome-blush:   radial-gradient(circle at top right, rgb(216 62 138 / 0.16) 0%, rgb(74 109 214 / 0.1) 50%, transparent 70%);
-  --brand-gradient:  linear-gradient(90deg, #f7d440 0%, #d83e8a 70%);
+  --welcome-bg: linear-gradient(135deg, #ffffff 0%, #fce6ee 100%);
+  --welcome-border: #f0c8d9;
+  --welcome-blush: radial-gradient(circle at top right, rgb(216 62 138 / 0.16) 0%, rgb(74 109 214 / 0.1) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(90deg, #f7d440 0%, #d83e8a 70%);
   --brand-sub-color: #ec9bc3;
-  --nav-hover-bg:    rgb(79 201 240 / 0.14);
+  --nav-hover-bg: rgb(79 201 240 / 0.14);
   --nav-hover-color: #4fc9f0;
   --nav-hover-icon-color: var(--brand-tertiary);
-  --nav-hover-icon-glow:  drop-shadow(0 0 5px rgb(79 201 240 / 0.55));
+  --nav-hover-icon-glow: drop-shadow(0 0 5px rgb(79 201 240 / 0.55));
   --link-hover-color: #1ba6d8;
   --card-head-sub-color: #d83e8a;
   --section-divider-color: #a6b7e7;
@@ -101,7 +98,7 @@
 }
 
 [data-skin="prism-power"] .sidebar {
-  --pending:    #fbd30b;
+  --pending: #fbd30b;
   --ch-pending: 251 211 11;
 }
 
@@ -111,72 +108,72 @@
 [data-skin="prism-power"] .sidebar-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, color-mix(in srgb, var(--accent3) 58%, transparent), transparent); }
 
 [data-skin="prism-power"][data-theme="dark"] {
-  --bg:            #0f1838;
-  --bg-card:       #1e2f5e;
-  --bg-sidebar:    #571026;
-  --bg-subtle:     #172445;
-  --bg-elevated:   #2a3d75;
-  --bg-code:       #0c0a18;
-  --border:        #314272;
-  --border-soft:   #223158;
-  --hairline:      rgba(238, 94, 158, 0.06);
-  --text:          #fce0ed;
-  --text-muted:    #cbb9dd;
-  --text-dim:      #9583ab;
-  --text-sidebar:  #f0c8e0;
-  --accent:        #fbd30b;
-  --ch-accent:     238 94 158;
-  --accent-glow:   rgb(238 94 158 / 0.22);
-  --accent2:       #ee5e9e;
-  --accent3:       #1ba6d8;
-  --success:       #5dd599;
-  --ch-success:    93 213 153;
-  --success-bg:    rgb(93 213 153 / 0.1);
-  --danger:        #ff7090;
-  --ch-danger:     255 112 144;
-  --danger-bg:     rgb(255 112 144 / 0.12);
-  --warn:          #f7d440;
-  --warn-bg:       rgb(247 212 64 / 0.12);
-  --shadow:        0 4px 24px rgba(0, 0, 0, 0.65), 0 0 28px rgb(238 94 158 / 0.08);
-  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.75), 0 0 48px rgb(238 94 158 / 0.1), 0 0 32px rgb(74 109 214 / 0.06);
-  --glow:          0 0 0 3px rgb(238 94 158 / 0.25);
+  --bg: #0f1838;
+  --bg-card: #1e2f5e;
+  --bg-sidebar: #571026;
+  --bg-subtle: #172445;
+  --bg-elevated: #2a3d75;
+  --bg-code: #0c0a18;
+  --border: #314272;
+  --border-soft: #223158;
+  --hairline: rgba(238, 94, 158, 0.06);
+  --text: #fce0ed;
+  --text-muted: #cbb9dd;
+  --text-dim: #9583ab;
+  --text-sidebar: #f0c8e0;
+  --accent: #fbd30b;
+  --ch-accent: 238 94 158;
+  --accent-glow: rgb(238 94 158 / 0.22);
+  --accent2: #ee5e9e;
+  --accent3: #1ba6d8;
+  --success: #5dd599;
+  --ch-success: 93 213 153;
+  --success-bg: rgb(93 213 153 / 0.1);
+  --danger: #ff7090;
+  --ch-danger: 255 112 144;
+  --danger-bg: rgb(255 112 144 / 0.12);
+  --warn: #f7d440;
+  --warn-bg: rgb(247 212 64 / 0.12);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.65), 0 0 28px rgb(238 94 158 / 0.08);
+  --shadow-lg: 0 16px 56px rgba(0, 0, 0, 0.75), 0 0 48px rgb(238 94 158 / 0.1), 0 0 32px rgb(74 109 214 / 0.06);
+  --glow: 0 0 0 3px rgb(238 94 158 / 0.25);
   --card-border-1: #ee5e9e;
   --card-border-2: #4a6dd6;
   --card-border-3: #d63152;
   --card-border-4: #f7d440;
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(238 94 158 / 0.16) 0%, rgb(214 49 82 / 0.08) 50%, transparent 70%);
-  --preview-hover-text:  #f0a8c5;
-  --ch-preview:       238 94 158;
-  --topbar-bg:            linear-gradient(180deg, #26396f 0%, #131f44 100%);
-  --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(238 94 158 / 0.35);
-  --card-head-bg:         #2f4a99;
-  --card-head-color:      #fbd30b;
-  --welcome-bg:           linear-gradient(135deg, #26396f 0%, #1e2f5e 100%);
-  --welcome-border:       #34487f;
-  --welcome-blush:        radial-gradient(circle at top right, rgb(238 94 158 / 0.22) 0%, rgb(214 49 82 / 0.14) 50%, transparent 70%);
-  --brand-gradient:       linear-gradient(120deg, #fbd30b 0%, #ffe89a 26%, #24cbf7 66%, #1f9fe0 100%);
-  --btn-primary-bg:       var(--accent);
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(238 94 158 / 0.16) 0%, rgb(214 49 82 / 0.08) 50%, transparent 70%);
+  --preview-hover-text: #f0a8c5;
+  --ch-preview: 238 94 158;
+  --topbar-bg: linear-gradient(180deg, #26396f 0%, #131f44 100%);
+  --topbar-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(238 94 158 / 0.35);
+  --card-head-bg: #2f4a99;
+  --card-head-color: #fbd30b;
+  --welcome-bg: linear-gradient(135deg, #26396f 0%, #1e2f5e 100%);
+  --welcome-border: #34487f;
+  --welcome-blush: radial-gradient(circle at top right, rgb(238 94 158 / 0.22) 0%, rgb(214 49 82 / 0.14) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(120deg, #fbd30b 0%, #ffe89a 26%, #24cbf7 66%, #1f9fe0 100%);
+  --btn-primary-bg: var(--accent);
   --btn-primary-hover-bg: color-mix(in srgb, #ee5e9e 78%, #fff);
-  --sidebar-active-rail:  linear-gradient(180deg, #ee5e9e 0%, #d63152 50%, #4a6dd6 100%);
-  --stat-hover-shadow:    0 16px 56px rgba(0, 0, 0, 0.75), 0 0 32px rgb(238 94 158 / 0.2), 0 0 48px rgb(74 109 214 / 0.12);
-  --strong-color:         var(--accent);
-  --nav-hover-bg:         #2f4a99;
-  --nav-hover-color:      #fff;
+  --sidebar-active-rail: linear-gradient(180deg, #ee5e9e 0%, #d63152 50%, #4a6dd6 100%);
+  --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.75), 0 0 32px rgb(238 94 158 / 0.2), 0 0 48px rgb(74 109 214 / 0.12);
+  --strong-color: var(--accent);
+  --nav-hover-bg: #2f4a99;
+  --nav-hover-color: #fff;
   --nav-hover-icon-color: #fbd30b;
-  --nav-hover-icon-glow:  drop-shadow(0 0 6px rgb(241 63 114 / 0.55));
-  --card-head-sub-color:  #d8d0a5;
-  --table-head-color:     #99b3ff;
-  --btn-primary-bg:       #0f9bdf;
+  --nav-hover-icon-glow: drop-shadow(0 0 6px rgb(241 63 114 / 0.55));
+  --card-head-sub-color: #d8d0a5;
+  --table-head-color: #99b3ff;
+  --btn-primary-bg: #0f9bdf;
   --btn-primary-hover-bg: color-mix(in srgb, #0f9bdf 80%, #fff);
-  --code-color:           #fbd30b;
-  --code-bg:              rgb(247 212 64 / 0.08);
-  --scrollbar-thumb:      rgb(238 94 158 / .5);
+  --code-color: #fbd30b;
+  --code-bg: rgb(247 212 64 / 0.08);
+  --scrollbar-thumb: rgb(238 94 158 / .5);
   --scrollbar-thumb-hover: rgb(238 94 158 / .78);
-  --scrollbar-arrow:      rgb(238 94 158 / .62);
+  --scrollbar-arrow: rgb(238 94 158 / .62);
 }
 
 [data-skin="prism-power"][data-theme="dark"] .sidebar {
-  --accent:  #4a6dd6;
+  --accent: #4a6dd6;
   --accent3: #ee5e9e;
   --sidebar-active-rail: linear-gradient(180deg, #fbd30b 0%, #24cbf7 55%, #4a6dd6 100%);
   background: linear-gradient(172deg, #8e1843 0%, #571026 100%);
@@ -188,138 +185,137 @@
   VICTORY ROAD - Pokemon Center (Light) / Elite Four (Dark)
 ───────────────────────────────────────────────────────────────────────── */
 [data-skin="victory-road"] {
-  --brand-primary:      #e3350d;
-  --brand-secondary:      #4dad5b;
-  --brand-tertiary:      #316cd9;
-  --ch-brand-primary:      227 53 13;
-  --ch-brand-secondary:      77 173 91;
-  --ch-brand-tertiary:      49 108 217;
-  --gradient:     #e3350d, #4dad5b, #316cd9;
+  --brand-primary: #e3350d;
+  --brand-secondary: #4dad5b;
+  --brand-tertiary: #316cd9;
+  --ch-brand-primary: 227 53 13;
+  --ch-brand-secondary: 77 173 91;
+  --ch-brand-tertiary: 49 108 217;
+  --gradient: #e3350d, #4dad5b, #316cd9;
   --gradient-bar: linear-gradient(90deg, #e3350d, #4dad5b, #316cd9);
 }
 
 [data-skin="victory-road"][data-theme="light"] {
-  --bg:            #f0f3f7;
-  --bg-card:       #ffffff;
-  --bg-sidebar:    #7a0d0d;
-  --bg-subtle:     #e4e9f2;
-  --bg-elevated:   #e4e9f2;
-  --bg-code:       #e9edf5;
-  --border:        #d4d4d4;
-  --border-soft:   #e7e7e7;
-  --hairline:      rgba(0, 0, 0, 0.05);
-  --text:          #161d2b;
-  --text-muted:    #495b7a;
-  --text-dim:      #7b8ea8;
-  --text-sidebar:  #ffffff;
-  --accent:        #316cd9;
-  --ch-accent:     209 43 8;
-  --accent-glow:   rgb(209 43 8 / 0.1);
-  --accent2:       #e3350d;
-  --accent3:       #b38c00;
-  --success:       #228c39;
-  --ch-success:    34 140 57;
-  --success-bg:    rgb(34 140 57 / 0.08);
-  --danger:        #df0000;
-  --ch-danger:     196 48 48;
-  --danger-bg:     rgb(196 48 48 / 0.08);
-  --warn:          #d18e00;
-  --warn-bg:       rgb(209 142 0 / 0.1);
-  --shadow:        0 4px 24px rgba(209, 43, 8, 0.1), 0 1px 4px rgba(22, 29, 43, 0.06);
-  --shadow-lg:     0 16px 56px rgba(209, 43, 8, 0.12), 0 4px 12px rgba(22, 29, 43, 0.08);
-  --glow:          0 0 0 3px rgb(209 43 8 / 0.12);
+  --bg: #f0f3f7;
+  --bg-card: #ffffff;
+  --bg-sidebar: #7a0d0d;
+  --bg-subtle: #e4e9f2;
+  --bg-elevated: #e4e9f2;
+  --bg-code: #e9edf5;
+  --border: #d4d4d4;
+  --border-soft: #e7e7e7;
+  --hairline: rgba(0, 0, 0, 0.05);
+  --text: #161d2b;
+  --text-muted: #495b7a;
+  --text-dim: #7b8ea8;
+  --text-sidebar: #ffffff;
+  --accent: #316cd9;
+  --ch-accent: 209 43 8;
+  --accent-glow: rgb(209 43 8 / 0.1);
+  --accent2: #e3350d;
+  --accent3: #b38c00;
+  --success: #228c39;
+  --ch-success: 34 140 57;
+  --success-bg: rgb(34 140 57 / 0.08);
+  --danger: #df0000;
+  --ch-danger: 196 48 48;
+  --danger-bg: rgb(196 48 48 / 0.08);
+  --warn: #d18e00;
+  --warn-bg: rgb(209 142 0 / 0.1);
+  --shadow: 0 4px 24px rgba(209, 43, 8, 0.1), 0 1px 4px rgba(22, 29, 43, 0.06);
+  --shadow-lg: 0 16px 56px rgba(209, 43, 8, 0.12), 0 4px 12px rgba(22, 29, 43, 0.08);
+  --glow: 0 0 0 3px rgb(209 43 8 / 0.12);
   --card-border-1: #e3350d;
   --card-border-2: #4dad5b;
   --card-border-3: #316cd9;
   --card-border-4: #ffcb05;
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(209 43 8 / 0.08) 0%, transparent 60%);
-  --preview-hover-text:  #1e3d8a;
-  --ch-preview:       49 108 217;
-  --topbar-bg:            linear-gradient(180deg, #ffffff 0%, #f0f3f7 100%);
-  --topbar-shadow:        0 4px 16px rgba(22, 29, 43, 0.1), 0 1px 0 rgba(227, 53, 13, 0.2);
-  --card-head-bg:         linear-gradient(180deg, #efd62e 0%, #e6c900 100%);
-  --card-head-color:      #1d2c5e;
-  --welcome-bg:           linear-gradient(135deg, #ffffff 0%, #f0f3f7 100%);
-  --welcome-border:       #c9d3e2;
-  --welcome-blush:        radial-gradient(circle at top right, rgb(227 53 13 / 0.12) 0%, rgb(49 108 217 / 0.06) 50%, transparent 70%);
-  --brand-gradient:       linear-gradient(135deg, #ffcb05 0%, #4dad5b 50%, #316cd9 100%);
-  --btn-primary-bg:       #ee7b00;
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(209 43 8 / 0.08) 0%, transparent 60%);
+  --preview-hover-text: #1e3d8a;
+  --ch-preview: 49 108 217;
+  --topbar-bg: linear-gradient(180deg, #ffffff 0%, #f0f3f7 100%);
+  --topbar-shadow: 0 4px 16px rgba(22, 29, 43, 0.1), 0 1px 0 rgba(227, 53, 13, 0.2);
+  --card-head-bg: linear-gradient(180deg, #efd62e 0%, #e6c900 100%);
+  --card-head-color: #1d2c5e;
+  --welcome-bg: linear-gradient(135deg, #ffffff 0%, #f0f3f7 100%);
+  --welcome-border: #c9d3e2;
+  --welcome-blush: radial-gradient(circle at top right, rgb(227 53 13 / 0.12) 0%, rgb(49 108 217 / 0.06) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(135deg, #ffcb05 0%, #4dad5b 50%, #316cd9 100%);
+  --btn-primary-bg: #ee7b00;
   --btn-primary-hover-bg: color-mix(in srgb, #ee7b00 80%, #fff);
-  --brand-sub-color:      #fbd30b;
-  --btn-secondary-bg:     #0f9bdf;
-  --btn-secondary-color:  #fff;
-  --link-hover-color:     #0f9bdf;
-  --sidebar-label-color:  #e6c900;
-  --table-head-bg:        #fff7bc;
-  --table-head-color:     #1d2c5e;
-  --strong-color:         #35ac35;
-  --todo-toggle-bg:       #fff4ad;
-  --bulk-bg:              #fff4ad;
-  --card-head-sub-color:  var(--text-muted);
-  --filter-input-bg:      #fff;
-  --filter-input-color:   var(--text);
+  --brand-sub-color: #fbd30b;
+  --btn-secondary-bg: #0f9bdf;
+  --btn-secondary-color: #fff;
+  --link-hover-color: #0f9bdf;
+  --sidebar-label-color: #e6c900;
+  --table-head-bg: #fff7bc;
+  --table-head-color: #1d2c5e;
+  --strong-color: #35ac35;
+  --todo-toggle-bg: #fff4ad;
+  --bulk-bg: #fff4ad;
+  --card-head-sub-color: var(--text-muted);
+  --filter-input-bg: #fff;
+  --filter-input-color: var(--text);
 }
 
 [data-skin="victory-road"][data-theme="light"] .sidebar {
-  --accent:           #ffcb05;
-  --text-dim:         #cc9999;
-  --danger:           #ffb3c1;
-  --danger-bg:        rgba(255, 179, 193, 0.1);
-  --ch-danger:        255 179 193;
-  --pending:          #fbd30b;
-  --ch-pending:       255 244 190;
+  --accent: #ffcb05;
+  --text-dim: #cc9999;
+  --danger: #ffb3c1;
+  --danger-bg: rgba(255, 179, 193, 0.1);
+  --ch-danger: 255 179 193;
+  --pending: #fbd30b;
+  --ch-pending: 255 244 190;
 }
 
 [data-skin="victory-road"][data-theme="dark"] {
-  --bg:            #11141a;
-  --bg-card:       #191d26;
-  --bg-sidebar:    #0a0d12;
-  --bg-subtle:     #222836;
-  --bg-elevated:   #1f2430;
-  --bg-code:       #141821;
-  --border:        #2c3445;
-  --border-soft:   #222838;
-  --hairline:      rgba(227, 53, 13, 0.06);
-  --text:          #e8edf5;
-  --text-muted:    #90a0b8;
-  --text-dim:      #5f728f;
-  --text-sidebar:  #cbd6e6;
-  --accent:        #f15532;
-  --ch-accent:     227 53 13;
-  --accent-glow:   rgb(227 53 13 / 0.22);
-  --accent2:       #316cd9;
-  --accent3:       #ffcb05;
-  --success:       #4dad5b;
-  --ch-success:    77 173 91;
-  --success-bg:    rgb(77 173 91 / 0.1);
-  --danger:        #f87171;
-  --ch-danger:     248 113 113;
-  --danger-bg:     rgb(248 113 113 / 0.1);
-  --warn:          #ffcb05;
-  --warn-bg:       rgb(255 203 5 / 0.12);
-  --shadow:        0 4px 24px rgba(0, 0, 0, 0.6), 0 0 28px rgb(227 53 13 / 0.08);
-  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.7), 0 0 48px rgb(227 53 13 / 0.1), 0 0 32px rgb(49 108 217 / 0.06);
-  --glow:          0 0 0 3px rgb(227 53 13 / 0.25);
+  --bg: #11141a;
+  --bg-card: #191d26;
+  --bg-sidebar: #0a0d12;
+  --bg-subtle: #222836;
+  --bg-elevated: #1f2430;
+  --bg-code: #141821;
+  --border: #2c3445;
+  --border-soft: #222838;
+  --hairline: rgba(227, 53, 13, 0.06);
+  --text: #e8edf5;
+  --text-muted: #90a0b8;
+  --text-dim: #5f728f;
+  --text-sidebar: #cbd6e6;
+  --accent: #f15532;
+  --ch-accent: 227 53 13;
+  --accent-glow: rgb(227 53 13 / 0.22);
+  --accent2: #316cd9;
+  --accent3: #ffcb05;
+  --success: #4dad5b;
+  --ch-success: 77 173 91;
+  --success-bg: rgb(77 173 91 / 0.1);
+  --danger: #f87171;
+  --ch-danger: 248 113 113;
+  --danger-bg: rgb(248 113 113 / 0.1);
+  --warn: #ffcb05;
+  --warn-bg: rgb(255 203 5 / 0.12);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 0 28px rgb(227 53 13 / 0.08);
+  --shadow-lg: 0 16px 56px rgba(0, 0, 0, 0.7), 0 0 48px rgb(227 53 13 / 0.1), 0 0 32px rgb(49 108 217 / 0.06);
+  --glow: 0 0 0 3px rgb(227 53 13 / 0.25);
   --card-border-1: #e3350d;
   --card-border-2: #4dad5b;
   --card-border-3: #316cd9;
   --card-border-4: #ffcb05;
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(227 53 13 / 0.15) 0%, transparent 60%);
-  --preview-hover-text:  #c8d6f5;
-  --ch-preview:       49 108 217;
-  /* surface tokens */
-  --topbar-bg:            linear-gradient(180deg, #1f2430 0%, #11141a 100%);
-  --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(227 53 13 / 0.3);
-  --card-head-bg:         linear-gradient(180deg, #1f2430 0%, #191d26 100%);
-  --welcome-bg:           linear-gradient(135deg, #1f2430 0%, #191d26 100%);
-  --welcome-border:       #2c3445;
-  --welcome-blush:        radial-gradient(circle at top right, rgb(227 53 13 / 0.2) 0%, rgb(49 108 217 / 0.1) 50%, transparent 70%);
-  --brand-gradient:       linear-gradient(135deg, #f0f4fa 0%, #e3350d 55%, #4dad5b 100%);
-  --btn-primary-bg:       #3ea64d;
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(227 53 13 / 0.15) 0%, transparent 60%);
+  --preview-hover-text: #c8d6f5;
+  --ch-preview: 49 108 217;
+  --topbar-bg: linear-gradient(180deg, #1f2430 0%, #11141a 100%);
+  --topbar-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(227 53 13 / 0.3);
+  --card-head-bg: linear-gradient(180deg, #1f2430 0%, #191d26 100%);
+  --welcome-bg: linear-gradient(135deg, #1f2430 0%, #191d26 100%);
+  --welcome-border: #2c3445;
+  --welcome-blush: radial-gradient(circle at top right, rgb(227 53 13 / 0.2) 0%, rgb(49 108 217 / 0.1) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(135deg, #f0f4fa 0%, #e3350d 55%, #4dad5b 100%);
+  --btn-primary-bg: #3ea64d;
   --btn-primary-hover-bg: color-mix(in srgb, #3ea64d 80%, #000);
-  --stat-hover-shadow:    0 16px 56px rgba(0, 0, 0, 0.7), 0 0 32px rgb(227 53 13 / 0.2), 0 0 48px rgb(49 108 217 / 0.1);
-  --filter-input-bg:      #414752;
-  --filter-input-color:   var(--text);
+  --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.7), 0 0 32px rgb(227 53 13 / 0.2), 0 0 48px rgb(49 108 217 / 0.1);
+  --filter-input-bg: #414752;
+  --filter-input-color: var(--text);
 }
 
 
@@ -328,18 +324,16 @@
   THE FORCE - Jedi Knight (Light) / Sith Lord (Dark)
 ───────────────────────────────────────────────────────────────────────── */
 [data-skin="the-force"] {
-  --brand-primary:      #c42020;
-  --brand-secondary:      #7a0000;
-  --brand-tertiary:      #444444;
-  --ch-brand-primary:      196 32 32;
-  --ch-brand-secondary:      122 0 0;
-  --ch-brand-tertiary:      68 68 68;
-  --gradient:     #c42020, #7a0000, #444444;
+  --brand-primary: #c42020;
+  --brand-secondary: #7a0000;
+  --brand-tertiary: #444444;
+  --ch-brand-primary: 196 32 32;
+  --ch-brand-secondary: 122 0 0;
+  --ch-brand-tertiary: 68 68 68;
+  --gradient: #c42020, #7a0000, #444444;
   --gradient-bar: linear-gradient(90deg, #c42020, #7a0000, #444444);
 }
 
-/* To Do List badge: the tinted badge-error fill barely differs from this skin's
-   reddish/earthy card-head bar in either theme, so give it a solid fill instead. */
 [data-skin="the-force"] .todo-head-badge {
   background:   var(--danger);
   color:        #ffffff;
@@ -347,125 +341,125 @@
 }
 
 [data-skin="the-force"][data-theme="light"] {
-  --brand-primary:       #0077ff;
-  --brand-secondary:       #15b053;
-  --brand-tertiary:       #e0a843;
-  --ch-brand-primary:       0 119 255;
-  --ch-brand-secondary:       21 176 83;
-  --ch-brand-tertiary:       224 168 67;
-  --gradient:      #0077ff, #15b053, #e0a843;
-  --gradient-bar:  linear-gradient(90deg, #0077ff, #15b053, #e0a843);
-  --bg:            #eceadd;
-  --bg-card:       #ffffff;
-  --bg-sidebar:    #3d312a;
-  --bg-subtle:     #f5f4ef;
-  --bg-elevated:   #f5f4ef;
-  --bg-code:       #eceadd;
-  --border:        #d6cfc1;
-  --border-soft:   #e0dbd3;
-  --hairline:      rgba(0, 0, 0, 0.05);
-  --text:          #2b2521;
-  --text-muted:    #61554c;
-  --text-dim:      #8a7a6e;
-  --text-sidebar:  #e0dcd9;
-  --accent:        #0077ff;
-  --ch-accent:     0 119 255;
-  --accent-glow:   rgb(0 119 255 / 0.12);
-  --accent2:       #15b053;
-  --accent3:       #b87a14;
-  --success:       #228c39;
-  --ch-success:    34 140 57;
-  --success-bg:    rgb(34 140 57 / 0.08);
-  --danger:        #c43030;
-  --ch-danger:     196 48 48;
-  --danger-bg:     rgb(196 48 48 / 0.08);
-  --warn:          #e0a843;
-  --warn-bg:       rgb(224 168 67 / 0.12);
-  --shadow:        0 4px 24px rgba(43, 37, 33, 0.1), 0 1px 4px rgba(43, 37, 33, 0.06);
-  --shadow-lg:     0 16px 56px rgba(43, 37, 33, 0.14), 0 4px 12px rgba(43, 37, 33, 0.08);
-  --glow:          0 0 0 3px rgb(0 119 255 / 0.12);
+  --brand-primary: #0077ff;
+  --brand-secondary: #15b053;
+  --brand-tertiary: #e0a843;
+  --ch-brand-primary: 0 119 255;
+  --ch-brand-secondary: 21 176 83;
+  --ch-brand-tertiary: 224 168 67;
+  --gradient: #0077ff, #15b053, #e0a843;
+  --gradient-bar: linear-gradient(90deg, #0077ff, #15b053, #e0a843);
+  --bg: #eceadd;
+  --bg-card: #ffffff;
+  --bg-sidebar: #3d312a;
+  --bg-subtle: #f5f4ef;
+  --bg-elevated: #f5f4ef;
+  --bg-code: #eceadd;
+  --border: #d6cfc1;
+  --border-soft: #e0dbd3;
+  --hairline: rgba(0, 0, 0, 0.05);
+  --text: #2b2521;
+  --text-muted: #61554c;
+  --text-dim: #8a7a6e;
+  --text-sidebar: #e0dcd9;
+  --accent: #0077ff;
+  --ch-accent: 0 119 255;
+  --accent-glow: rgb(0 119 255 / 0.12);
+  --accent2: #15b053;
+  --accent3: #b87a14;
+  --success: #228c39;
+  --ch-success: 34 140 57;
+  --success-bg: rgb(34 140 57 / 0.08);
+  --danger: #c43030;
+  --ch-danger: 196 48 48;
+  --danger-bg: rgb(196 48 48 / 0.08);
+  --warn: #e0a843;
+  --warn-bg: rgb(224 168 67 / 0.12);
+  --shadow: 0 4px 24px rgba(43, 37, 33, 0.1), 0 1px 4px rgba(43, 37, 33, 0.06);
+  --shadow-lg: 0 16px 56px rgba(43, 37, 33, 0.14), 0 4px 12px rgba(43, 37, 33, 0.08);
+  --glow: 0 0 0 3px rgb(0 119 255 / 0.12);
   --card-border-1: #0077ff;
   --card-border-2: #15b053;
   --card-border-3: #e0a843;
   --card-border-4: #8bc34a;
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(0 119 255 / 0.08) 0%, transparent 60%);
-  --preview-hover-text:  #1e3d8a;
-  --ch-preview:       0 119 255;
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(0 119 255 / 0.08) 0%, transparent 60%);
+  --preview-hover-text: #1e3d8a;
+  --ch-preview: 0 119 255;
   /* surface tokens */
-  --topbar-bg:      linear-gradient(180deg, #ffffff 0%, #eceadd 100%);
-  --topbar-shadow:  0 4px 16px rgba(43, 37, 33, 0.1), 0 1px 0 rgba(0, 119, 255, 0.2);
-  --card-head-bg:   #a7978b;
-  --welcome-bg:     linear-gradient(135deg, #ffffff 0%, #f5f4ef 100%);
+  --topbar-bg: linear-gradient(180deg, #ffffff 0%, #eceadd 100%);
+  --topbar-shadow: 0 4px 16px rgba(43, 37, 33, 0.1), 0 1px 0 rgba(0, 119, 255, 0.2);
+  --card-head-bg: #a7978b;
+  --welcome-bg: linear-gradient(135deg, #ffffff 0%, #f5f4ef 100%);
   --welcome-border: #d6cfc1;
-  --welcome-blush:  radial-gradient(circle at top right, rgb(0 119 255 / 0.12) 0%, rgb(21 176 83 / 0.06) 50%, transparent 70%);
+  --welcome-blush: radial-gradient(circle at top right, rgb(0 119 255 / 0.12) 0%, rgb(21 176 83 / 0.06) 50%, transparent 70%);
   --brand-gradient: linear-gradient(135deg, #e0a843 20%, #0077ff 50%, #15b053 100%);
   --card-head-sub-color: var(--text-muted);
 }
 
 [data-skin="the-force"][data-theme="light"] .sidebar {
-  --accent:           #66b3ff;
-  --accent3:          #e0a843;
-  --text-dim:         #9b8878;
-  --danger:           #ffb3c1;
-  --danger-bg:        rgba(255, 179, 193, 0.1);
-  --ch-danger:        255 179 193;
+  --accent: #66b3ff;
+  --accent3: #e0a843;
+  --text-dim: #9b8878;
+  --danger: #ffb3c1;
+  --danger-bg: rgba(255, 179, 193, 0.1);
+  --ch-danger: 255 179 193;
 }
 
 
 [data-skin="the-force"][data-theme="dark"] {
-  --bg:            #0a0a0c;
-  --bg-card:       #121214;
-  --bg-sidebar:    #000000;
-  --bg-subtle:     #1f1010;
-  --bg-elevated:   #1a1a1c;
-  --bg-code:       #050505;
-  --border:        #331515;
-  --border-soft:   #251010;
-  --hairline:      rgba(196, 32, 32, 0.06);
-  --text:          #f0e6e6;
-  --text-muted:    #a69999;
-  --text-dim:      #736666;
-  --text-sidebar:  #d9cccc;
-  --accent:        #d94545;
-  --ch-accent:     217 69 69;
-  --accent-glow:   rgb(217 69 69 / 0.2);
-  --accent2:       #8a0000;
-  --accent3:       #ffffff;
-  --success:       #5dd599;
-  --ch-success:    93 213 153;
-  --success-bg:    rgb(93 213 153 / 0.1);
-  --danger:        #d05050;
-  --ch-danger:     208 80 80;
-  --danger-bg:     rgb(208 80 80 / 0.1);
-  --warn:          #e05c00;
-  --warn-bg:       rgb(224 92 0 / 0.12);
-  --shadow:        0 4px 24px rgba(0, 0, 0, 0.85), 0 0 28px rgb(196 32 32 / 0.05);
-  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.9), 0 0 48px rgb(196 32 32 / 0.08);
-  --glow:          0 0 0 3px rgb(217 69 69 / 0.22);
+  --bg: #0a0a0c;
+  --bg-card: #121214;
+  --bg-sidebar: #000000;
+  --bg-subtle: #1f1010;
+  --bg-elevated: #1a1a1c;
+  --bg-code: #050505;
+  --border: #331515;
+  --border-soft: #251010;
+  --hairline: rgba(196, 32, 32, 0.06);
+  --text: #f0e6e6;
+  --text-muted: #a69999;
+  --text-dim: #736666;
+  --text-sidebar: #d9cccc;
+  --accent: #d94545;
+  --ch-accent: 217 69 69;
+  --accent-glow: rgb(217 69 69 / 0.2);
+  --accent2: #8a0000;
+  --accent3: #ffffff;
+  --success: #5dd599;
+  --ch-success: 93 213 153;
+  --success-bg: rgb(93 213 153 / 0.1);
+  --danger: #d05050;
+  --ch-danger: 208 80 80;
+  --danger-bg: rgb(208 80 80 / 0.1);
+  --warn: #e05c00;
+  --warn-bg: rgb(224 92 0 / 0.12);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.85), 0 0 28px rgb(196 32 32 / 0.05);
+  --shadow-lg: 0 16px 56px rgba(0, 0, 0, 0.9), 0 0 48px rgb(196 32 32 / 0.08);
+  --glow: 0 0 0 3px rgb(217 69 69 / 0.22);
   --card-border-1: #c42020;
   --card-border-2: #900000;
   --card-border-3: #666666;
   --card-border-4: #c42020;
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(196 32 32 / 0.08) 0%, transparent 60%);
-  --preview-hover-text:  #aaaaaa;
-  --ch-preview:       150 150 150;
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(196 32 32 / 0.08) 0%, transparent 60%);
+  --preview-hover-text: #aaaaaa;
+  --ch-preview: 150 150 150;
   /* surface tokens */
-  --topbar-bg:            linear-gradient(180deg, #1a1a1c 0%, #0a0a0c 100%);
-  --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.9), 0 1px 0 rgb(196 32 32 / 0.3);
-  --card-head-bg:         #331515;
-  --welcome-bg:           linear-gradient(135deg, #1a1a1c 0%, #121214 100%);
-  --welcome-border:       #331515;
-  --welcome-blush:        radial-gradient(circle at top right, rgb(196 32 32 / 0.13) 0%, rgb(122 0 0 / 0.07) 50%, transparent 70%);
-  --brand-gradient:       linear-gradient(135deg, #fff0f0 0%, #c42020 45%, #7a0000 100%);
-  --btn-primary-bg:       #b02828;
+  --topbar-bg: linear-gradient(180deg, #1a1a1c 0%, #0a0a0c 100%);
+  --topbar-shadow: 0 4px 24px rgba(0, 0, 0, 0.9), 0 1px 0 rgb(196 32 32 / 0.3);
+  --card-head-bg: #331515;
+  --welcome-bg: linear-gradient(135deg, #1a1a1c 0%, #121214 100%);
+  --welcome-border: #331515;
+  --welcome-blush: radial-gradient(circle at top right, rgb(196 32 32 / 0.13) 0%, rgb(122 0 0 / 0.07) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(135deg, #fff0f0 0%, #c42020 45%, #7a0000 100%);
+  --btn-primary-bg: #b02828;
   --btn-primary-hover-bg: color-mix(in srgb, #b02828 82%, #fff);
-  --stat-hover-shadow:    0 16px 56px rgba(0, 0, 0, 0.9), 0 0 32px rgb(196 32 32 / 0.18), 0 0 64px rgb(122 0 0 / 0.08);
-  --badge-info-bg:        rgb(196 32 32 / 0.18);
-  --badge-info-color:     #e05555;
-  --badge-info-border:    rgb(196 32 32 / 0.42);
-  --card-head-sub-color:  #d6cfc1;
-  --filter-input-bg:      #414752;
-  --filter-input-color:   var(--text);
+  --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.9), 0 0 32px rgb(196 32 32 / 0.18), 0 0 64px rgb(122 0 0 / 0.08);
+  --badge-info-bg: rgb(196 32 32 / 0.18);
+  --badge-info-color: #e05555;
+  --badge-info-border: rgb(196 32 32 / 0.42);
+  --card-head-sub-color: #d6cfc1;
+  --filter-input-bg: #414752;
+  --filter-input-color: var(--text);
 }
 [data-skin="the-force"][data-theme="dark"] .badge-info2 {
   background:   rgb(196 32 32 / 0.15);
@@ -481,60 +475,59 @@
   FLOATING LIGHTS - Flower Gleam (Light) / Lantern Glow (Dark)
 ───────────────────────────────────────────────────────────────────────── */
 [data-skin="floating-lights"] {
-  --brand-primary:      #ffca28;
-  --brand-secondary:      #d884cb;
-  --brand-tertiary:      #4cb951;
-  --ch-brand-primary:      255 202 40;
-  --ch-brand-secondary:      216 132 203;
-  --ch-brand-tertiary:      255 119 168;
-  --gradient:     #ffca28, #d884cb, #ff77a8;
+  --brand-primary: #ffca28;
+  --brand-secondary: #d884cb;
+  --brand-tertiary: #4cb951;
+  --ch-brand-primary: 255 202 40;
+  --ch-brand-secondary: 216 132 203;
+  --ch-brand-tertiary: 255 119 168;
+  --gradient: #ffca28, #d884cb, #ff77a8;
   --gradient-bar: linear-gradient(90deg, #ffca28, #d884cb, #ff77a8, #4cb951);
 }
 
 [data-skin="floating-lights"][data-theme="light"] {
-  --bg:            #fcf9f2;
-  --bg-card:       #ffffff;
-  --bg-sidebar:    #6a3b79;
-  --bg-subtle:     #f5effe;
-  --bg-elevated:   #f5effe;
-  --bg-code:       #ede0f8;
-  --border:        #d9c8e6;
-  --border-soft:   #e6d8f0;
-  --hairline:      rgba(0, 0, 0, 0.05);
-  --text:          #1e0a2e;
-  --text-muted:    #63476e;
-  --text-dim:      #9472a0;
-  --text-sidebar:  #f0e0ff;
-  --accent:        #d64a78;
-  --ch-accent:     214 74 120;
-  --accent-glow:   rgb(214 74 120 / 0.12);
-  --accent2:       #8a3b9e;
-  --accent3:       #c8860a;
-  --success:       #228c39;
-  --ch-success:    34 140 57;
-  --success-bg:    rgb(34 140 57 / 0.08);
-  --danger:        #c43030;
-  --ch-danger:     196 48 48;
-  --danger-bg:     rgb(196 48 48 / 0.08);
-  --warn:          #b38c00;
-  --warn-bg:       rgb(179 140 0 / 0.1);
-  --shadow:        0 4px 24px rgba(30, 10, 46, 0.1), 0 1px 4px rgba(30, 10, 46, 0.06);
-  --shadow-lg:     0 16px 56px rgba(30, 10, 46, 0.14), 0 4px 12px rgba(30, 10, 46, 0.08);
-  --glow:          0 0 0 3px rgb(214 74 120 / 0.12);
+  --bg: #fcf9f2;
+  --bg-card: #ffffff;
+  --bg-sidebar: #6a3b79;
+  --bg-subtle: #f5effe;
+  --bg-elevated: #f5effe;
+  --bg-code: #ede0f8;
+  --border: #d9c8e6;
+  --border-soft: #e6d8f0;
+  --hairline: rgba(0, 0, 0, 0.05);
+  --text: #1e0a2e;
+  --text-muted: #63476e;
+  --text-dim: #9472a0;
+  --text-sidebar: #f0e0ff;
+  --accent: #d64a78;
+  --ch-accent: 214 74 120;
+  --accent-glow: rgb(214 74 120 / 0.12);
+  --accent2: #8a3b9e;
+  --accent3: #c8860a;
+  --success: #228c39;
+  --ch-success: 34 140 57;
+  --success-bg: rgb(34 140 57 / 0.08);
+  --danger: #c43030;
+  --ch-danger: 196 48 48;
+  --danger-bg: rgb(196 48 48 / 0.08);
+  --warn: #b38c00;
+  --warn-bg: rgb(179 140 0 / 0.1);
+  --shadow: 0 4px 24px rgba(30, 10, 46, 0.1), 0 1px 4px rgba(30, 10, 46, 0.06);
+  --shadow-lg: 0 16px 56px rgba(30, 10, 46, 0.14), 0 4px 12px rgba(30, 10, 46, 0.08);
+  --glow: 0 0 0 3px rgb(214 74 120 / 0.12);
   --card-border-1: #d64a78;
   --card-border-2: #8a65c9;
   --card-border-3: #fca311;
   --card-border-4: #4caf50;
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(214 74 120 / 0.08) 0%, transparent 60%);
-  --preview-hover-text:  #5a2a70;
-  --ch-preview:       106 59 121;
-  /* surface tokens */
-  --topbar-bg:      linear-gradient(180deg, #ffffff 0%, #fcf9f2 100%);
-  --topbar-shadow:  0 4px 16px rgba(30, 10, 46, 0.1), 0 1px 0 rgba(214, 74, 120, 0.2);
-  --card-head-bg:   linear-gradient(135deg, #e5d4ff 0%, #eeccf1 100%);
-  --welcome-bg:     linear-gradient(135deg, #ffffff 0%, #fcf9f2 100%);
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(214 74 120 / 0.08) 0%, transparent 60%);
+  --preview-hover-text: #5a2a70;
+  --ch-preview: 106 59 121;
+  --topbar-bg: linear-gradient(180deg, #ffffff 0%, #fcf9f2 100%);
+  --topbar-shadow: 0 4px 16px rgba(30, 10, 46, 0.1), 0 1px 0 rgba(214, 74, 120, 0.2);
+  --card-head-bg: linear-gradient(135deg, #e5d4ff 0%, #eeccf1 100%);
+  --welcome-bg: linear-gradient(135deg, #ffffff 0%, #fcf9f2 100%);
   --welcome-border: #d9c8e6;
-  --welcome-blush:  radial-gradient(circle at top right, rgb(214 74 120 / 0.1) 0%, rgb(138 59 158 / 0.06) 50%, transparent 70%);
+  --welcome-blush: radial-gradient(circle at top right, rgb(214 74 120 / 0.1) 0%, rgb(138 59 158 / 0.06) 50%, transparent 70%);
   --brand-gradient: linear-gradient(135deg, #4cb951 0%, #ff9abc 50%, #fca311 100%);
   --btn-preview-color: #8a65c9;
   --btn-tertiary-bg: #ffbc7f;
@@ -550,64 +543,62 @@
 }
 
 [data-skin="floating-lights"][data-theme="light"] .sidebar {
-  --accent:           #ffd166;
-  --text-dim:         #c8a0d4;
-  --danger:           #ffb3c1;
-  --danger-bg:        rgba(255, 179, 193, 0.1);
-  --ch-danger:        255 179 193;
-  --pending:          #ffd166;
-  --ch-pending:       255 209 102;
+  --accent: #ffd166;
+  --text-dim: #c8a0d4;
+  --danger: #ffb3c1;
+  --danger-bg: rgba(255, 179, 193, 0.1);
+  --ch-danger: 255 179 193;
+  --pending: #ffd166;
+  --ch-pending: 255 209 102;
 }
 
-
-
 [data-skin="floating-lights"][data-theme="dark"] {
-  --bg:            #0d0a17;
-  --bg-card:       #15112a;
-  --bg-sidebar:    #1a1433;
-  --bg-subtle:     #221940;
-  --bg-elevated:   #1c1835;
-  --bg-code:       #0f0c1f;
-  --border:        #2e2550;
-  --border-soft:   #231c3f;
-  --hairline:      rgba(255, 202, 40, 0.06);
-  --text:          #f5e8f8;
-  --text-muted:    #bda8cc;
-  --text-dim:      #8070a0;
-  --text-sidebar:  #e0d0ec;
-  --accent:        #ffca28;
-  --ch-accent:     255 202 40;
-  --accent-glow:   rgb(255 202 40 / 0.22);
-  --accent2:       #d884cb;
-  --accent3:       #ff77a8;
-  --success:       #6dd896;
-  --ch-success:    109 216 150;
-  --success-bg:    rgb(109 216 150 / 0.1);
-  --danger:        #f87171;
-  --ch-danger:     248 113 113;
-  --danger-bg:     rgb(248 113 113 / 0.1);
-  --warn:          #ffca28;
-  --warn-bg:       rgb(255 202 40 / 0.12);
-  --shadow:        0 4px 24px rgba(0, 0, 0, 0.7), 0 0 28px rgb(255 202 40 / 0.08);
-  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.8), 0 0 48px rgb(255 202 40 / 0.1), 0 0 32px rgb(216 132 203 / 0.06);
-  --glow:          0 0 0 3px rgb(255 202 40 / 0.25);
+  --bg: #0d0a17;
+  --bg-card: #15112a;
+  --bg-sidebar: #1a1433;
+  --bg-subtle: #221940;
+  --bg-elevated: #1c1835;
+  --bg-code: #0f0c1f;
+  --border: #2e2550;
+  --border-soft: #231c3f;
+  --hairline: rgba(255, 202, 40, 0.06);
+  --text: #f5e8f8;
+  --text-muted: #bda8cc;
+  --text-dim: #8070a0;
+  --text-sidebar: #e0d0ec;
+  --accent: #ffca28;
+  --ch-accent: 255 202 40;
+  --accent-glow: rgb(255 202 40 / 0.22);
+  --accent2: #d884cb;
+  --accent3: #ff77a8;
+  --success: #6dd896;
+  --ch-success: 109 216 150;
+  --success-bg: rgb(109 216 150 / 0.1);
+  --danger: #f87171;
+  --ch-danger: 248 113 113;
+  --danger-bg: rgb(248 113 113 / 0.1);
+  --warn: #ffca28;
+  --warn-bg: rgb(255 202 40 / 0.12);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 0 28px rgb(255 202 40 / 0.08);
+  --shadow-lg: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 48px rgb(255 202 40 / 0.1), 0 0 32px rgb(216 132 203 / 0.06);
+  --glow: 0 0 0 3px rgb(255 202 40 / 0.25);
   --card-border-1: #ffca28;
   --card-border-2: #d884cb;
   --card-border-3: #ff77a8;
   --card-border-4: #8a65c9;
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(255 202 40 / 0.12) 0%, transparent 60%);
-  --preview-hover-text:  #c060b8;
-  --ch-preview:       216 132 203;
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(255 202 40 / 0.12) 0%, transparent 60%);
+  --preview-hover-text: #c060b8;
+  --ch-preview: 216 132 203;
   /* surface tokens */
-  --topbar-bg:            linear-gradient(180deg, #1c1835 0%, #0d0a17 100%);
-  --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(255 202 40 / 0.3);
-  --card-head-bg:         #0e0c26;
-  --welcome-bg:           linear-gradient(135deg, #1c1835 0%, #15112a 100%);
-  --welcome-border:       #2e2550;
-  --welcome-blush:        radial-gradient(circle at top right, rgb(255 202 40 / 0.18) 0%, rgb(216 132 203 / 0.1) 50%, transparent 70%);
-  --brand-gradient:       linear-gradient(135deg, #fdf8e8 0%, #ffca28 50%, #d884cb 100%);
-  --btn-primary-bg:       var(--accent);
-  --btn-primary-color:    #1a0d00;
+  --topbar-bg: linear-gradient(180deg, #1c1835 0%, #0d0a17 100%);
+  --topbar-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(255 202 40 / 0.3);
+  --card-head-bg: #0e0c26;
+  --welcome-bg: linear-gradient(135deg, #1c1835 0%, #15112a 100%);
+  --welcome-border: #2e2550;
+  --welcome-blush: radial-gradient(circle at top right, rgb(255 202 40 / 0.18) 0%, rgb(216 132 203 / 0.1) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(135deg, #fdf8e8 0%, #ffca28 50%, #d884cb 100%);
+  --btn-primary-bg: var(--accent);
+  --btn-primary-color: #1a0d00;
   --btn-primary-hover-bg: color-mix(in srgb, #ffca28 85%, #fff);
-  --stat-hover-shadow:    0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(255 202 40 / 0.2), 0 0 48px rgb(216 132 203 / 0.1);
+  --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(255 202 40 / 0.2), 0 0 48px rgb(216 132 203 / 0.1);
 }
