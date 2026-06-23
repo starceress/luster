@@ -1,4 +1,4 @@
-/* ── SELF-HOSTED FONTS ─────────────────────────────────────── */
+/* -- SELF-HOSTED FONTS --------------------------------------- */
 @font-face {
   font-family: 'Playfair Display';
   font-style: normal;
@@ -32,7 +32,7 @@
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* ── BASE TOKENS ──────────────────────────────────────────── */
+/* -- BASE TOKENS -------------------------------------------- */
 :root {
   --brand-primary: #ff7eb3;
   --brand-secondary: #78e8d8;
@@ -64,7 +64,7 @@
   --ch-pending: 249 115 22;
 }
 
-/* ── LIGHT THEME ──────────────────────────────────────────── */
+/* -- LIGHT THEME -------------------------------------------- */
 [data-theme="light"] {
   --bg: #f0edf8;
   --bg-card: #faf9ff;
@@ -146,7 +146,7 @@
   --scrollbar-arrow: rgb(var(--ch-brand-primary)/.65);
 }
 
-/* ── DARK THEME ───────────────────────────────────────────── */
+/* -- DARK THEME --------------------------------------------- */
 [data-theme="dark"] {
   --bg: #121020;
   --bg-card: #1a1830;

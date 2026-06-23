@@ -1,6 +1,6 @@
 /* ========================================================================
 
-  LUSTER — Admin Panel Stylesheet
+  LUSTER - Admin Panel Stylesheet
 
   0. Reset & Base Elements
   1. Shell & Auth
@@ -16,12 +16,12 @@
 
 ========================================================================= */
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    0. RESET & BASE ELEMENTS
    Site-wide element defaults, body styles, scrollbar styling, and browser input resets.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── RESET, BODY, SCROLLBARS ────────────────────────── */
+/* ---- RESET, BODY, SCROLLBARS -------------------------- */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -71,12 +71,12 @@ input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; appe
 
 input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    1. SHELL & AUTH
    Admin shell, sidebar, topbar, login screen, and global link styling.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── LOGO AND WORDMARK ──────────────────────────────── */
+/* ---- LOGO AND WORDMARK -------------------------------- */
 
 .luster-logo { width: 50px; height: 50px; flex-shrink: 0; display: block; }
 
@@ -92,7 +92,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .luster-glow::before { content: ''; position: absolute; top: 50%; left: 25px; width: 90px; height: 90px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgb(var(--ch-brand-primary)/0.28) 25%, rgb(var(--ch-brand-secondary)/0.1) 45%, transparent 70%); pointer-events: none; z-index: -1; }
 
-/* ──── THEME TOGGLE ───────────────────────────────────── */
+/* ---- THEME TOGGLE ------------------------------------- */
 
 .theme-toggle { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; background: none; border: none; padding: 0; }
 
@@ -106,7 +106,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 [data-theme="dark"] .toggle-thumb { transform: translateX(18px); background: var(--accent); }
 
-/* ──── SIDEBAR NAVIGATION ─────────────────────────────── */
+/* ---- SIDEBAR NAVIGATION ------------------------------- */
 
 .sidebar { width: 232px; min-height: 100vh; background: var(--bg-sidebar); display: flex; flex-direction: column; padding: 0 0 1.5rem; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; overflow: hidden; transition: background 0.4s; }
 
@@ -228,7 +228,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .sidebar-footer-form { margin-top: 12px; }
 
-/* ──── MAIN LAYOUT ────────────────────────────────────── */
+/* ---- MAIN LAYOUT -------------------------------------- */
 
 main { margin-left: 232px; flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 1; }
 
@@ -258,7 +258,7 @@ main { margin-left: 232px; flex: 1; min-width: 0; display: flex; flex-direction:
 
 .page-content { padding: 1.75rem 2rem 3rem; flex: 1; }
 
-/* ──── MOBILE SIDEBAR ─────────────────────────────────── */
+/* ---- MOBILE SIDEBAR ----------------------------------- */
 
 .hamburger { display: none; flex-direction: column; justify-content: center; align-items: center; gap: 5px; width: 36px; height: 36px; background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0; }
 
@@ -266,7 +266,7 @@ main { margin-left: 232px; flex: 1; min-width: 0; display: flex; flex-direction:
 
 .hamburger:hover span { background: var(--text); }
 
-/* ──── LOGIN PAGE ─────────────────────────────────────── */
+/* ---- LOGIN PAGE --------------------------------------- */
 
 .login-dots { position: fixed; inset: 0; pointer-events: none; z-index: 0; background-image: radial-gradient(circle, rgb(var(--ch-brand-primary)/0.05) 1px, transparent 1px); background-size: 26px 26px; mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(0,0,0,0.5) 0%, transparent 100%); -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(0,0,0,0.5) 0%, transparent 100%); }
 
@@ -304,7 +304,7 @@ main { margin-left: 232px; flex: 1; min-width: 0; display: flex; flex-direction:
 
 [data-theme="light"] .login-luster-sub { color: var(--text-muted); }
 
-/* ──── LINKS ──────────────────────────────────────────── */
+/* ---- LINKS -------------------------------------------- */
 
 a.topbar-crumb:hover { color: var(--accent2); }
 
@@ -316,12 +316,12 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 .link-break { word-break: break-all; }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    2. CORE COMPONENTS
    Shared building blocks used across admin pages.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── BUTTONS ────────────────────────────────────────── */
+/* ---- BUTTONS ------------------------------------------ */
 
 .btn { padding: 0.6875rem 1.5rem; border-radius: 10px; font-size: var(--fs-lg); font-weight: 500; cursor: pointer; border: none; font-family: var(--font-sans); transition: box-shadow 0.15s; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; text-align: center; }
 
@@ -411,7 +411,7 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 .btn-block-center + .btn-block-center { margin-top: .75rem; }
 
-/* ──── CARDS AND PANEL SHELLS ─────────────────────────── */
+/* ---- CARDS AND PANEL SHELLS --------------------------- */
 
 .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 1.75rem; color: var(--text-dim); font-size: var(--fs-md); }
 
@@ -467,7 +467,7 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 .card:has(.mem-table) { overflow-x: auto; }
 
-/* ──── BADGES ─────────────────────────────────────────── */
+/* ---- BADGES ------------------------------------------- */
 
 .growth-pill { display: inline-flex; align-items: center; gap: .2rem; font-size: var(--fs-sm); font-weight: 600; padding: .1rem .4rem; border-radius: 5px; background: rgb(var(--ch-success)/.1); color: var(--success); }
 
@@ -517,7 +517,7 @@ a.badge.badge--active { outline: 2px solid currentColor; outline-offset: 2px; }
 
 .badge-inline-sm { margin-left: .4rem; font-size: .7rem; }
 
-/* ──── ALERTS AND CALLOUTS ────────────────────────────── */
+/* ---- ALERTS AND CALLOUTS ------------------------------ */
 
 .alert { padding: 0.75rem 1rem; border-radius: 10px; font-size: var(--fs-md); margin-bottom: 1.75rem; border: 1px solid transparent; }
 
@@ -557,7 +557,7 @@ a.badge.badge--active { outline: 2px solid currentColor; outline-offset: 2px; }
 
 .results-icon.results-icon-err   { background: rgb(var(--ch-danger)/.2); color: var(--danger); }
 
-/* ──── MODALS ─────────────────────────────────────────── */
+/* ---- MODALS ------------------------------------------- */
 
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1000; display: flex; justify-content: center; align-items: center; padding: 1rem; }
 
@@ -603,7 +603,7 @@ dialog.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
 
 .modal-desc { margin-bottom: .75rem; }
 
-/* ──── TOAST NOTIFICATIONS ────────────────────────────── */
+/* ---- TOAST NOTIFICATIONS ------------------------------ */
 
 .toast-container { position: fixed; top: 20px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
 
@@ -671,7 +671,7 @@ dialog.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
 
 [data-theme="light"] .toast-error .toast-progress { background: linear-gradient(90deg, #dc2626, #f87171); }
 
-/* ──── EMPTY STATES ───────────────────────────────────── */
+/* ---- EMPTY STATES ------------------------------------- */
 
 .empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 2.25rem 1.5rem; font-size: var(--fs-md); color: var(--text-muted); }
 
@@ -681,7 +681,7 @@ dialog.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
 
 .empty-title { font-weight: 600; color: var(--text); }
 
-/* ──── JS CONFIRMATION ────────────────────────────────── */
+/* ---- JS CONFIRMATION ---------------------------------- */
 
 .confirm-bar { display: inline-flex; align-items: center; gap: 0.375rem; vertical-align: middle; opacity: 0; transform: translateX(-6px); transition: opacity 0.08s ease, transform 0.08s ease; }
 
@@ -689,7 +689,7 @@ dialog.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
 
 .confirm-bar-msg { font-size: var(--fs-base); color: var(--text-muted); white-space: nowrap; }
 
-/* ──── PAGINATION ─────────────────────────────────────── */
+/* ---- PAGINATION --------------------------------------- */
 
 .pg { display: flex; gap: 0.375rem; align-items: center; margin-top: 1rem; flex-wrap: wrap; }
 
@@ -703,11 +703,11 @@ dialog.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
 
 .pg-ellipsis { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; font-size: var(--fs-base); color: var(--text-dim); letter-spacing: .05em; user-select: none; }
 
-/* ──── MEDIA THUMBNAILS ───────────────────────────────── */
+/* ---- MEDIA THUMBNAILS --------------------------------- */
 
 .thumbnail { width: auto; display: block; border-radius: 6px; }
 
-/* ──── TOOLBARS AND FILTERS ───────────────────────────── */
+/* ---- TOOLBARS AND FILTERS ----------------------------- */
 
 .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2.25rem; }
 
@@ -759,7 +759,7 @@ html.fp-codes #codes-filter-panel { display: block; }
 .member-results-count { font-size: .8rem; margin-bottom: .75rem; }
 
 
-/* ──── TABS ───────────────────────────────────────────── */
+/* ---- TABS --------------------------------------------- */
 
 .tabs-wrap { position: relative; margin-bottom: 1.5rem; }
 
@@ -799,7 +799,7 @@ html.fp-codes #codes-filter-panel { display: block; }
 
 .table-edit-cell { padding: .6rem .75rem; background: var(--bg-subtle); }
 
-/* ──── TEXT AND LAYOUT UTILITIES ──────────────────────── */
+/* ---- TEXT AND LAYOUT UTILITIES ------------------------ */
 
 .text-dim { color: var(--text-dim); }
 
@@ -837,7 +837,7 @@ html.fp-codes #codes-filter-panel { display: block; }
 
 .text-xs { font-size: var(--fs-xs); }
 
-/* ──── DATA TABLES ────────────────────────────────────── */
+/* ---- DATA TABLES -------------------------------------- */
 
 .toggle-pill { display: inline-block; padding: .2rem .55rem; border-radius: 20px; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); transition: background .15s, color .15s, border-color .15s; }
 
@@ -879,7 +879,7 @@ tr.lc-busy td { opacity: .5; }
 
 tr.lc-busy td:last-child { opacity: 1; }
 
-/* ──── DRAG AND DROP ──────────────────────────────────── */
+/* ---- DRAG AND DROP ------------------------------------ */
 
 .drag-handle        { cursor: grab; color: var(--text-dim); font-size: var(--fs-lg); line-height: 1; padding: 0 4px; user-select: none; }
 
@@ -893,12 +893,12 @@ tr.dnd-over td { background: var(--bg-subtle); box-shadow: inset 0 2px 0 var(--a
 
 div.dnd-over, a.dnd-over { outline: 2px solid var(--accent); border-radius: inherit; }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    3. FORMS
    Inputs, field layouts, uploads, listing edit rows, and form-specific helpers.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── FORM CONTROLS ──────────────────────────────────── */
+/* ---- FORM CONTROLS ------------------------------------ */
 
 .toggle-wrap { display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; user-select: none; }
 
@@ -1059,7 +1059,7 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .field-group--compact { margin-bottom: 0; }
 
-/* ──── UPLOADS AND FILE FIELDS ────────────────────────── */
+/* ---- UPLOADS AND FILE FIELDS -------------------------- */
 
 .file-drop-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; width: 100%; padding: .875rem 1rem; background: var(--bg-subtle); border: 1px dashed var(--border); border-radius: 9px; cursor: pointer; transition: border-color .2s, background .2s; font-size: var(--fs-base); color: var(--text-dim); text-align: center; }
 
@@ -1099,7 +1099,7 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .upload-panel-row { margin-bottom: .625rem; }
 
-/* ──── TEMPLATE FORM HELPERS ──────────────────────────── */
+/* ---- TEMPLATE FORM HELPERS ---------------------------- */
 
 .btn-tpl-reset { font-size: var(--fs-sm); font-weight: 500; color: var(--text-dim); background: none; border: none; padding: 0; cursor: pointer; letter-spacing: .01em; }
 
@@ -1111,7 +1111,7 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .tpl-layout-presets--above { justify-content: center; order: unset; margin: 0 0 .5rem; width: 100%; }
 
-/* ──── INLINE LISTING FIELDS ──────────────────────────── */
+/* ---- INLINE LISTING FIELDS ---------------------------- */
 
 .field-row { display: grid; grid-template-columns: 160px 1fr; align-items: center; gap: .75rem; padding: .6rem 0; }
 
@@ -1137,7 +1137,7 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .tba-note { display: none; font-size: .85rem; color: var(--text-muted); font-style: italic; margin-top: .35rem; }
 
-/* ──── PANEL FORM FIELDS ──────────────────────────────── */
+/* ---- PANEL FORM FIELDS -------------------------------- */
 
 .panel-field { margin-bottom: .75rem; }
 
@@ -1151,7 +1151,7 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .panel-field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgb(var(--ch-brand-secondary)/.1); }
 
-/* ──── CATEGORY WIDGET ────────────────────────────────── */
+/* ---- CATEGORY WIDGET ---------------------------------- */
 
 .cat-widget { display: flex; flex-direction: column; gap: 8px; }
 
@@ -1177,10 +1177,10 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .current-network-row { display: flex; gap: .5rem; align-items: center; margin-top: .5rem; }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    4. SETTINGS & PANEL NAVIGATION
    Mini-nav settings panels plus shared review/diff helpers.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
 /* -- Mini-nav panels -- */
 
@@ -1216,13 +1216,13 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 [data-theme="light"] .mini-nav-item.active { background: rgb(var(--ch-accent)/0.07); }
 
-/* ──── SYSTEM INFORMATION ─────────────────────────────── */
+/* ---- SYSTEM INFORMATION ------------------------------- */
 
 .sysinfo-row { display: grid; grid-template-columns: 140px 1fr; padding: .5em .5rem; border-bottom: 1px solid var(--hairline); align-items: center; gap: 1rem; }
 
 .sysinfo-row:last-child { border-bottom: none; }
 
-/* ──── REVIEW AND DIFF HELPERS ────────────────────────── */
+/* ---- REVIEW AND DIFF HELPERS -------------------------- */
 
 .summary-grid { margin-bottom: 1.25rem; }
 
@@ -1278,12 +1278,12 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .pending-section-divider { border: none; border-top: 2px solid var(--border); margin: 0; }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    5. DASHBOARD
    Dashboard welcome, stats, overview rows, to-do cards, and reminders.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── DASHBOARD ──────────────────────────────────────── */
+/* ---- DASHBOARD ---------------------------------------- */
 
 .welcome-block { margin-bottom: 1.5rem; padding: 1.5rem 1.75rem; background: var(--welcome-bg); border: 1px solid var(--welcome-border); border-radius: var(--radius); position: relative; overflow: hidden; box-shadow: var(--shadow); display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; }
 
@@ -1469,12 +1469,12 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .reminder-banner-msg { font-size: var(--fs-base); color: var(--text-muted); }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    6. COLLECTIVE
    Collective hub, quick-action tiles, and collective snippet lists.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── COLLECTIVE PAGES ───────────────────────────────── */
+/* ---- COLLECTIVE PAGES --------------------------------- */
 
 .collective-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1rem; align-items: start; }
 
@@ -1536,12 +1536,12 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .es-snippet-pre { padding: .7rem 1rem; font-size: .8rem; line-height: 1.65; overflow-x: auto; font-family: var(--font-mono); color: var(--text-muted); margin: 0; white-space: pre; display: block; background: transparent; }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    7. EMAIL, CODES & EMBEDS
    Email tools, token sidebars, codes pages, embed snippets, and embed wizard UI.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── EMAIL TEMPLATES ────────────────────────────────── */
+/* ---- EMAIL TEMPLATES ---------------------------------- */
 
 .composer-footer-spacer { flex: 1; }
 
@@ -1603,7 +1603,7 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .et-card-disabled .card-body { opacity: .5; pointer-events: none; }
 
-/* ──── EMAIL COMPOSER ─────────────────────────────────── */
+/* ---- EMAIL COMPOSER ----------------------------------- */
 
 .composer-side .card.chevron { overflow: visible; margin-bottom: .45rem; }
 
@@ -1639,7 +1639,7 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 [data-theme="light"] .composer-footer { background: rgba(0,0,0,.015); }
 
-/* ──── TEMPLATE TOKEN HELPERS ─────────────────────────── */
+/* ---- TEMPLATE TOKEN HELPERS --------------------------- */
 
 .et-token-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 
@@ -1705,7 +1705,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .chevron[open] summary::before { transform: rotate(90deg); }
 
-/* ──── NEWS FEED ──────────────────────────────────────── */
+/* ---- NEWS FEED ---------------------------------------- */
 
 .ctx-cell { display: flex; align-items: center; gap: .625rem; }
 
@@ -1743,7 +1743,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .tag-chips-list .badge { display: inline-flex; align-items: center; gap: 4px; }
 
-/* ──── CODES PAGE ─────────────────────────────────────── */
+/* ---- CODES PAGE --------------------------------------- */
 
 .codes-page-layout { display: grid; grid-template-columns: minmax(0,3fr) minmax(0,7fr); gap: 1.25rem; align-items: start; }
 
@@ -1800,7 +1800,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .code-tile-img { max-width: 100%; object-fit: contain; }
 
-/* ──── INLINE EMBED SNIPPETS ──────────────────────────── */
+/* ---- INLINE EMBED SNIPPETS ---------------------------- */
 
 .embed-snippet-wrap { position: relative; }
 
@@ -1810,7 +1810,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .embed-snippet-wrap:hover .embed-copy-btn { opacity: 1; }
 
-/* ──── EMBED SNIPPETS REFERENCE ───────────────────────── */
+/* ---- EMBED SNIPPETS REFERENCE ------------------------- */
 
 [data-theme="dark"] { --ec-code-bg: #07040f; --ec-hl-c: var(--text-dim); --ec-hl-s: var(--accent3); --ec-hl-k: var(--accent2); --ec-hl-v: var(--accent); --ec-hl-n: #fb923c; }
 
@@ -1896,7 +1896,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .ec-tok-desc { font-size: .78em; color: var(--text-dim); line-height: 1.3; }
 
-/* ──── EMBED WIZARD ───────────────────────────────────── */
+/* ---- EMBED WIZARD ------------------------------------- */
 
 .ec-wizard-card { margin-bottom: 1rem; --wizard-active: var(--accent); --wizard-active-glow: color-mix(in srgb, var(--wizard-active) 20%, transparent); }
 
@@ -1952,12 +1952,12 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 #ec-reset-btn { flex-shrink: 0; }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    8. IMPORT WIZARD
    Update wizard and import wizard flows, including progress states.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── UPDATE WIZARD ──────────────────────────────────── */
+/* ---- UPDATE WIZARD ------------------------------------ */
 
 .update-flow { max-width: 100%; }
 
@@ -1996,7 +1996,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .update-confirm { align-items: flex-start; }
 
-/* ──── IMPORT WIZARD ──────────────────────────────────── */
+/* ---- IMPORT WIZARD ------------------------------------ */
 
 [data-theme="light"] .import-wizard { --wizard-done: #00b84c; }
 
@@ -2167,18 +2167,18 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .import-processing-note { font-size: var(--fs-sm); color: var(--text-muted); max-width: 420px; line-height: 1.5; }
 
-/* ──── PROGRESS STATE ─────────────────────────────────── */
+/* ---- PROGRESS STATE ----------------------------------- */
 
 @keyframes import-bar-slide { 0% { transform: translateX(-200%); } 100% { transform: translateX(400%); } }
 
 @keyframes lstr-spin { to { transform: rotate(360deg); } }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    9. APPEARANCE, ADD-ONS & ADMIN TOOLS
    Skin picker, theme mode picker, add-on cards, link checker, and scroll helper.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── SKIN AND THEME PICKER ──────────────────────────── */
+/* ---- SKIN AND THEME PICKER ---------------------------- */
 
 .skin-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .75rem; }
 
@@ -2270,7 +2270,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .addon-card-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
 
-/* ──── LINK CHECKER ───────────────────────────────────── */
+/* ---- LINK CHECKER ------------------------------------- */
 
 .lc-filter-form { display: flex; align-items: center; gap: .6rem; flex-wrap: nowrap; }
 
@@ -2295,7 +2295,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .lc-old-url { color: var(--text-muted); }
 
-/* ──── SCROLL HELPER ──────────────────────────────────── */
+/* ---- SCROLL HELPER ------------------------------------ */
 
 .scroll-to-top { position: fixed; bottom: 2rem; right: 2rem; z-index: 900; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgb(var(--ch-preview) / .25); background: rgb(var(--ch-preview) / .08); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s, background .2s, color .2s; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 
@@ -2303,12 +2303,12 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .scroll-to-top:hover { background: rgb(var(--ch-preview) / .18); color: var(--text); }
 
-/* ────────────────────────────────────────────────────────────────────────
+/* ------------------------------------------------------------------------
    10. RESPONSIVE OVERRIDES
    Reduced-motion and viewport-specific overrides.
-──────────────────────────────────────────────────────────────────────── */
+------------------------------------------------------------------------ */
 
-/* ──── MEDIA QUERIES ──────────────────────────────────── */
+/* ---- MEDIA QUERIES ------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
 .sidebar-dots { display: none; }
