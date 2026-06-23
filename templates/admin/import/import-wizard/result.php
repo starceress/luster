@@ -39,17 +39,17 @@ $hasErr  = $result->hasErrors();
   </div>
 </div>
 <!-- ──── RESULT BANNER ──────────────────────────────────────────────── -->
-<div class="import-result-banner import-result-banner--<?= $hasErr ? 'error' : 'success' ?>">
-  <div class="import-result-banner-inner">
-    <div class="import-result-icon import-result-icon--<?= $hasErr ? 'error' : 'success' ?>">
+<div class="card card--gradient">
+  <div class="card-body" style="display:flex;align-items:center;gap:1.375rem;flex-wrap:wrap">
+    <div style="width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center">
       <?php if ($hasErr): ?><?= View::icon('alert') ?>
       <?php else: ?>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="26" height="26"><polyline points="20 6 9 17 4 12"/></svg>
       <?php endif; ?>
     </div>
-    <div class="import-result-text">
-      <div class="import-result-title"><?= $hasErr ? 'Import Completed with Errors' : 'Import Complete' ?></div>
-      <div class="import-result-sub">
+    <div style="flex:1;min-width:0">
+      <div class="pc-head-title" style="margin-bottom:.25rem"><?= $hasErr ? 'Import Completed with Errors' : 'Import Complete' ?></div>
+      <div class="pc-head-sub">
         <?= $srcName ?> &middot;
         <?= View::e($result->schemaVariant) ?> &middot;
         Completed in <?= number_format($result->duration, 2) ?>s &middot;
@@ -64,7 +64,7 @@ $hasErr  = $result->hasErrors();
   </div>
 </div>
 <!-- ──── STAT TILES ─────────────────────────────────────────────────── -->
-<div class="stats-grid stats-grid-row stats-grid-plain import-stack-gap">
+<div class="stats-grid stats-grid-row stats-grid-plain">
   <div class="stat-card">
     <div class="stat-header">
       <span class="stat-icon"><?= View::icon('import') ?></span>
@@ -124,7 +124,7 @@ $hasErr  = $result->hasErrors();
 <div class="overview-section-divider"></div>
 
 <!-- ──── RESULT TABLE ───────────────────────────────────────────────── -->
-<div class="card--gradient import-stack-gap">
+<div class="card card--gradient">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
     <div class="pc-head-meta">
@@ -132,7 +132,7 @@ $hasErr  = $result->hasErrors();
       <div class="pc-head-sub">See what was added, what was skipped, and whether any images or records need attention.</div>
     </div>
   </div>
-  <div class="import-scroll-x">
+  <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>

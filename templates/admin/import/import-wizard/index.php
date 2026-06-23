@@ -44,7 +44,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <?php if ($import_show_enthusiast ?? true): ?>
   <a href="<?= $b ?>/admin/import/enthusiast/connect" class="import-source-card">
-    <div class="import-source-header import-source-header--1">
+    <div class="import-source-header" style="color:var(--card-border-1)">
       <span class="pc-head-title">Enthusiast</span>
     </div>
 
@@ -66,7 +66,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <?php if ($import_show_listing_admin ?? true): ?>
   <a href="<?= $b ?>/admin/import/listing-admin/connect" class="import-source-card">
-    <div class="import-source-header import-source-header--2">
+    <div class="import-source-header" style="color:var(--card-border-2)">
       <span class="pc-head-title">Listing Admin</span>
     </div>
     <ul class="import-source-list">
@@ -89,7 +89,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <?php if ($import_show_bellabuffs ?? true): ?>
   <a href="<?= $b ?>/admin/import/bellabuffs/connect" class="import-source-card">
-    <div class="import-source-header import-source-header--5">
+    <div class="import-source-header" style="color:var(--card-border-3)">
       <span class="pc-head-title">BellaBuffs</span>
     </div>
     <ul class="import-source-list">
@@ -106,7 +106,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <?php if ($import_show_fanatically ?? true): ?>
   <a href="<?= $b ?>/admin/import/fanatically/connect" class="import-source-card">
-    <div class="import-source-header import-source-header--6">
+    <div class="import-source-header" style="color:var(--card-border-1)">
       <span class="pc-head-title">Fanatically</span>
     </div>
     <ul class="import-source-list">
@@ -129,7 +129,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <?php if ($import_show_codesort ?? true): ?>
   <a href="<?= $b ?>/admin/import/codesort/connect" class="import-source-card">
-    <div class="import-source-header import-source-header--4">
+    <div class="import-source-header" style="color:var(--card-border-4)">
       <span class="pc-head-title">CodeSort</span>
     </div>
     <ul class="import-source-list">
@@ -145,7 +145,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <?php if ($import_show_fanupdate ?? true): ?>
   <a href="<?= $b ?>/admin/import/fanupdate/connect" class="import-source-card">
-    <div class="import-source-header import-source-header--3">
+    <div class="import-source-header" style="color:var(--card-border-3)">
       <span class="pc-head-title">FanUpdate</span>
       <span class="badge badge-pending">Beta</span>
     </div>

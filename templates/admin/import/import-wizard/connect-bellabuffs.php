@@ -38,7 +38,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
 </div>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error import-stack-gap"><?= View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <form id="import-bb-connect-form" method="POST"
@@ -62,15 +62,15 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
         <label class="import-choice-item">
           <input type="radio" name="bb_conn_mode" value="path" id="js-bb-mode-path"<?= $bbMode === 'path' ? ' checked' : '' ?>>
           <div>
-            <div class="import-choice-title">Server folder path</div>
-            <div class="import-choice-sub">Use this when BellaBuffs is on the same server. This supports members, affiliates, fan codes, and button images.</div>
+            <strong>Server folder path</strong>
+            <span class="form-hint" style="margin:2px 0 0">Use this when BellaBuffs is on the same server. This supports members, affiliates, fan codes, and button images.</span>
           </div>
         </label>
         <label class="import-choice-item">
           <input type="radio" name="bb_conn_mode" value="upload" id="js-bb-mode-upload"<?= $bbMode === 'upload' ? ' checked' : '' ?>>
           <div>
-            <div class="import-choice-title">Upload files</div>
-            <div class="import-choice-sub">Use this when BellaBuffs is on another server. Upload mode can import approved and pending members only.</div>
+            <strong>Upload files</strong>
+            <span class="form-hint" style="margin:2px 0 0">Use this when BellaBuffs is on another server. Upload mode can import approved and pending members only.</span>
           </div>
         </label>
       </div>
@@ -96,8 +96,8 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
     <!-- ── File upload section ─────────────────────────────────────── -->
     <div id="js-bb-upload-section" class="card-body<?= $bbMode === 'upload' ? '' : ' is-hidden' ?>">
       <div class="pc-section-label">Upload BellaBuffs Files</div>
-      <div class="card-body">
-            <div class="callout callout-warn">
+
+      <div class="callout callout-warn">
         <?= View::icon('alert') ?>
         <div><strong>Upload mode imports members only.</strong> To migrate affiliates and fan codes, use the server folder path instead.</div>
       </div>
@@ -125,7 +125,6 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
         </div>
       </div>
     </div>
-</div>
 
     <div class="composer-footer">
       <a href="<?= $b ?>/admin/import" class="btn btn-quaternary">&#8592; Back</a>

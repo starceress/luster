@@ -2209,7 +2209,7 @@ document.addEventListener('drop', function (e) {
     if (!def || !optsBody) return;
     custVals = {};
     if (!def.fields.length) {
-      optsBody.innerHTML = '<p class="ec-opts-empty">' + (def.note || 'No choices needed. This snippet is ready to copy.') + '</p>';
+      optsBody.innerHTML = '<p class="form-hint">' + (def.note || 'No choices needed. This snippet is ready to copy.') + '</p>';
       return;
     }
     var html = '';

@@ -111,7 +111,7 @@ $current = Version::CURRENT;
         <div class="update-action-grid">
           <form method="POST" action="<?= $b ?>/admin/update/backup" class="update-action-card">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-            <h3>Download Backup <span class="badge badge-info">Important!</badge></h3>
+            <h3>Download Backup <span class="badge badge-info">Important!</span></h3>
             <span>Includes application files, Luster database tables, and all member tables.</span>
             <p class="form-hint">Save this file before applying the update. If anything goes wrong, you can restore your site to exactly how it was. Without a backup, lost data cannot be recovered.</p>
             <button type="submit" class="btn btn-primary"<?= !$preflight_ok ? ' disabled' : '' ?>>
@@ -121,7 +121,7 @@ $current = Version::CURRENT;
 
           <form method="POST" action="<?= $b ?>/admin/update/apply" class="update-action-card">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-            <h3>Apply Update <span class="badge badge-error">Required</badge></h3>
+            <h3>Apply Update <span class="badge badge-error">Required</span></h3>
             <label class="toggle-wrap update-confirm">
               <input type="checkbox" name="backup_confirmed" value="1" required<?= !$preflight_ok ? ' disabled' : '' ?>>
               <span class="toggle-label">I have saved the backup file to my computer.</span>

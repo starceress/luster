@@ -269,7 +269,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       + ($pending_codes ?? 0)
       + ($pending_adoptions ?? 0)
       + ($pending_kim ?? 0); ?>
-  <div class="card todo-card">
+  <div class="card" style="margin-bottom:0">
     <div class="card-head"><?= View::icon('bell') ?> To Do List
       <span class="badge badge-error todo-head-badge" id="todo-total-badge"><?= $todoTotal ?></span>
     </div>
@@ -311,7 +311,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
         </form>
         <div class="todo-maint-header">
-          <label class="todo-select-all">
+          <label class="form-check" style="font-size:var(--fs-sm)">
             <input type="checkbox" id="bulk-select-all" aria-label="Select all neglected listings">
             <span>Select all</span>
           </label>

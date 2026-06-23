@@ -68,7 +68,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <div class="card-body">
       <div class="pc-section-label">Blog Table Name</div>
       <div class="card-body">
-        <input id="fu_prefix" type="text" name="fu_prefix" class="form import-input-medium"
+        <input id="fu_prefix" type="text" name="fu_prefix" class="form" style="max-width:220px"
                placeholder="blog" value="<?= scopeOld($old, 'fu_prefix', 'blog') ?>">
         <p class="field-hint-sm">The main FanUpdate table name from <code>blog-config.php</code>. Most installs use <code>blog</code>.</p>
       </div>
@@ -79,7 +79,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <div class="card-body">
       <div class="pc-section-label">Table Prefix</div>
       <div class="card-body">
-        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form import-input-medium"
+        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form" style="max-width:220px"
                placeholder="(leave blank for default install)"
                value="<?= scopeOld($old, 'la_table_prefix') ?>">
         <p class="field-hint-sm">Leave blank for a normal Listing Admin install. If your table names start with extra text, like <code>trex_members</code>, enter that extra text here: <code>trex_</code>.</p>
@@ -90,21 +90,21 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <!-- ── Conflict strategy ─────────────────────────────────── -->
     <div class="card-body">
       <div class="pc-section-label">If a record already exists in Luster</div>
-      <div class="import-choice card-body">
+      <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
         <label class="import-choice-item">
           <input type="radio" name="conflict_strategy" value="skip"
                  <?= $conflictMode === 'skip' ? 'checked' : '' ?>>
           <div>
-            <div class="import-choice-title">Skip - keep existing</div>
-            <div class="import-choice-sub">Adds new records only. This is the safest choice when you are re-running an import.</div>
+            <strong>Skip - keep existing</strong>
+            <span class="form-hint" style="margin:2px 0 0">Adds new records only. This is the safest choice when you are re-running an import.</span>
           </div>
         </label>
         <label class="import-choice-item">
           <input type="radio" name="conflict_strategy" value="overwrite"
                  <?= $conflictMode === 'overwrite' ? 'checked' : '' ?>>
           <div>
-            <div class="import-choice-title">Overwrite - replace with source values</div>
-            <div class="import-choice-sub">Changes matching Luster records to the old script's values. Use this only when you intentionally want the old data to win.</div>
+            <strong>Overwrite - replace with source values</strong>
+            <span class="form-hint" style="margin:2px 0 0">Changes matching Luster records to the old script's values. Use this only when you intentionally want the old data to win.</span>
           </div>
         </label>
       </div>
@@ -346,21 +346,21 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
       <div class="pc-section-label">Fanatically Options</div>
       <div class="field-group">
         <label class="field-label" for="fn_kim_status">KIM List Import Status</label>
-        <div class="import-choice" style="margin-top:.375rem">
+        <div style="display:flex;flex-direction:column;gap:8px" style="margin-top:.375rem">
           <label class="import-choice-item">
             <input type="radio" name="fn_kim_status" value="active"
                    <?= ($old['fn_kim_status'] ?? 'active') !== 'pending' ? 'checked' : '' ?>>
             <div>
-              <div class="import-choice-title">Active</div>
-              <div class="import-choice-sub">KIM entries are imported as active and visible on the public list. Preserves Fanatically&rsquo;s default behavior.</div>
+              <strong>Active</strong>
+              <span class="form-hint" style="margin:2px 0 0">KIM entries are imported as active and visible on the public list. Preserves Fanatically&rsquo;s default behavior.</span>
             </div>
           </label>
           <label class="import-choice-item">
             <input type="radio" name="fn_kim_status" value="pending"
                    <?= ($old['fn_kim_status'] ?? '') === 'pending' ? 'checked' : '' ?>>
             <div>
-              <div class="import-choice-title">Pending (requires approval)</div>
-              <div class="import-choice-sub">KIM entries need to be approved before appearing publicly. Use if you prefer manual review after import.</div>
+              <strong>Pending (requires approval)</strong>
+              <span class="form-hint" style="margin:2px 0 0">KIM entries need to be approved before appearing publicly. Use if you prefer manual review after import.</span>
             </div>
           </label>
         </div>
@@ -374,7 +374,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <div class="card-body import-image-section">
 
       <?php if ($alwaysAuto): ?>
-        <div class="pc-section-label import-section-label-inline">
+        <div class="pc-section-label">
           Image Migration
           <span class="badge badge-inactive">Automatic</span>
         </div>
@@ -428,15 +428,15 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
         </div>
 
       <?php else: ?>
-        <div class="import-section-topline">
+        <div class="toolbar" style="margin-bottom:.875rem;align-items:flex-start">
           <div>
-            <div class="pc-section-label import-section-label-inline">
+            <div class="pc-section-label">
               Image Migration
-              <span class="badge badge-inactive import-optional-badge">Optional</span>
+              <span class="badge badge-inactive">Optional</span>
             </div>
-            <p class="import-section-sub">Copy code images into Luster&rsquo;s uploads directory. Original files are never deleted.</p>
+            <p class="form-hint" style="max-width:720px;margin:0">Copy code images into Luster&rsquo;s uploads directory. Original files are never deleted.</p>
           </div>
-          <label class="import-section-toggle">
+          <label class="form-check" style="flex-shrink:0;white-space:nowrap">
             <input type="checkbox" name="import_images" value="1" id="js-images-toggle"
                    <?= $imagesOn ? 'checked' : '' ?>>
             Migrate images

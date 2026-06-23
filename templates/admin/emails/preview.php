@@ -18,7 +18,7 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
-<div class="card--gradient">
+<div class="card card--gradient">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('send') ?></div>
     <div class="pc-head-meta">

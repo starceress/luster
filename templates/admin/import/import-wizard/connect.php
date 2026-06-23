@@ -43,7 +43,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
 </div>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error import-stack-gap"><?= View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <form id="import-configure-form" method="POST"
@@ -70,20 +70,20 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
         <label class="import-choice-item">
           <input type="radio" name="_conn_mode" value="live" id="js-mode-live" checked>
           <div>
-            <div class="import-choice-title">Live database connection</div>
-            <div class="import-choice-sub">
+            <strong>Live database connection</strong>
+            <span class="form-hint" style="margin:2px 0 0">
               Type the old database login details below.
               <?php if ($source === 'enthusiast'): ?>
                 Leave the fields blank if Enthusiast uses the same database as Luster.
               <?php endif; ?>
-            </div>
+            </span>
           </div>
         </label>
         <label class="import-choice-item">
           <input type="radio" name="_conn_mode" value="dump" id="js-mode-dump"<?= $dump_active ? ' checked' : '' ?>>
           <div>
-            <div class="import-choice-title">Upload SQL dump</div>
-            <div class="import-choice-sub">Upload a database backup file ending in <code>.sql</code> (max&nbsp;50&nbsp;MB). Luster detects the table layout for you.</div>
+            <strong>Upload SQL dump</strong>
+            <span class="form-hint" style="margin:2px 0 0">Upload a database backup file ending in <code>.sql</code> (max&nbsp;50&nbsp;MB). Luster detects the table layout for you.</span>
           </div>
         </label>
       </div>
@@ -97,7 +97,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
       <div class="field-row field-row--top">
         <label class="field-label" for="fn_table_prefix">Table Prefix</label>
         <div>
-          <input id="fn_table_prefix" type="text" name="fn_table_prefix" class="form import-input-medium"
+          <input id="fn_table_prefix" type="text" name="fn_table_prefix" class="form" style="max-width:220px"
                  placeholder="fanatic_"
                  value="<?= View::e($saved_fn_prefix ?? 'fanatic_') ?>">
           <p class="form-hint">The text Fanatically puts before its table names. Most installs use <code>fanatic_</code>. Check Fanatically's <code>config.php</code> if you are unsure.</p>

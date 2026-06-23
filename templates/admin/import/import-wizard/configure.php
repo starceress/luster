@@ -40,7 +40,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 </div>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error import-stack-gap"><?= View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <form id="import-configure-form" method="POST"
@@ -59,7 +59,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
       </div>
     </div>
     <div class="card-body">
-      <div class="import-choice-list">
+      <div style="display:flex;flex-direction:column;gap:.75rem">
         <label class="form-check">
           <input type="radio" name="_conn_mode" value="live" id="js-mode-live" checked>
           Live database &mdash; <span class="text-muted">Connect directly via credentials</span>
@@ -165,7 +165,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <div class="card-body">
       <div class="pc-section-label">Blog Table Name</div>
       <div class="field-group">
-        <input id="fu_prefix" type="text" name="fu_prefix" class="form import-input-medium"
+        <input id="fu_prefix" type="text" name="fu_prefix" class="form" style="max-width:220px"
                placeholder="blog"
                value="<?= importOld($old, 'fu_prefix', 'blog') ?>">
         <p class="help-text">The main FanUpdate table name from <code>blog-config.php</code>. Most installs use <code>blog</code>. If you enter <code>blog</code>, Luster looks for <code>blog</code>, <code>blog_category</code>, and <code>blog_catjoin</code>.</p>
@@ -177,7 +177,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <div class="card-body">
       <div class="pc-section-label">Table Prefix</div>
       <div class="field-group">
-        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form import-input-medium"
+        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form" style="max-width:220px"
                placeholder="(leave blank for default install)"
                value="<?= importOld($old, 'la_table_prefix') ?>">
         <p class="help-text">Leave blank for a normal Listing Admin install. If your table names start with extra text, like <code>trex_members</code>, enter that extra text here: <code>trex_</code>. Luster also uses that prefix to find the registry table.</p>
@@ -187,7 +187,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
     <div class="card-body">
       <div class="pc-section-label">Conflict Strategy</div>
-      <div class="import-choice-list">
+      <div style="display:flex;flex-direction:column;gap:.75rem">
         <label class="form-check">
           <input type="radio" name="conflict_strategy" value="skip"
                  <?= (($old['conflict_strategy'] ?? 'skip') === 'skip') ? 'checked' : '' ?>>
@@ -203,7 +203,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
     <div class="card-body">
       <div class="pc-section-label">Data to Import</div>
-      <div class="import-choice-list">
+      <div style="display:flex;flex-direction:column;gap:.75rem">
 
 
       <?php if ($source === 'enthusiast'): ?>
@@ -282,7 +282,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('image') ?></div>
       <div class="pc-head-meta">
-        <div class="pc-head-title">Image Migration <span class="badge badge-inactive import-optional-badge">Optional</span></div>
+        <div class="pc-head-title">Image Migration <span class="badge badge-inactive">Optional</span></div>
         <div class="pc-head-sub"> Copy affiliate logos, joined listing images, and listing images to Luster's uploads directory. Original files are not deleted.</div>
       </div>
     </div>
@@ -296,8 +296,8 @@ function importChecked(array $old, string $key, bool $default = true): string {
           <input type="radio" name="image_mode" value="path" id="img-mode-path"
                  <?= (($old['image_mode'] ?? 'path') === 'path') ? 'checked' : '' ?>>Same-server path &mdash; <span class="text-muted">Luster will <code>copy()</code> files directly</span>
         </label>
-        <div id="js-img-path-field" class="import-choice-list--indented<?= (($old['image_mode'] ?? 'path') !== 'path') ? ' is-hidden' : '' ?>">
-          <input type="text" name="image_path" class="form import-input-wide"
+        <div id="js-img-path-field" style="display:flex;flex-direction:column;gap:.75rem;padding-left:1.75rem" class="<?= (($old['image_mode'] ?? 'path') !== 'path') ? ' is-hidden' : '' ?>">
+          <input type="text" name="image_path" class="form" style="max-width:420px"
                  placeholder="/absolute/path/to/old-install"
                  value="<?= importOld($old, 'image_path') ?>">
           <p class="field-hint-sm">Absolute server path to the root of your old installation (no trailing slash).
@@ -309,8 +309,8 @@ function importChecked(array $old, string $key, bool $default = true): string {
                  <?= (($old['image_mode'] ?? '') === 'url') ? 'checked' : '' ?>>
           Remote URL &mdash; <span class="text-muted">Luster will fetch files via HTTP</span>
         </label>
-        <div id="js-img-url-field" class="import-choice-list--indented<?= (($old['image_mode'] ?? '') !== 'url') ? ' is-hidden' : '' ?>">
-          <input type="url" name="image_url" class="form import-input-wide"
+        <div id="js-img-url-field" style="display:flex;flex-direction:column;gap:.75rem;padding-left:1.75rem" class="<?= (($old['image_mode'] ?? '') !== 'url') ? ' is-hidden' : '' ?>">
+          <input type="url" name="image_url" class="form" style="max-width:420px"
                  placeholder="https://example.com/old-install"
                  value="<?= importOld($old, 'image_url') ?>">
           <p class="field-hint-sm">Base URL of your old installation (no trailing slash). Luster adds the needed image path after it.

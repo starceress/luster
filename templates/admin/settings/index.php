@@ -176,7 +176,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 <!-- ──── PANEL: ADMIN ACCOUNTS ──────────────────────────────────────── -->
     <div id="panel-accounts" class="mini-nav-panel">
-      <div class="card--gradient card--gradient--plain">
+      <div class="card card--gradient card--gradient--plain">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('admins') ?>

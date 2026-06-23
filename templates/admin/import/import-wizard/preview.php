@@ -44,10 +44,10 @@ $src = View::e($source);
 </div>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error import-stack-gap"><?= View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
   <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-secondary">&#8592; Back to Options</a>
 <?php elseif ($preview === null): ?>
-  <div class="alert alert-error import-stack-gap">Luster could not build a preview for this import.</div>
+  <div class="alert alert-error">Luster could not build a preview for this import.</div>
   <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-secondary">&#8592; Back to Options</a>
 <?php else: ?>
 
@@ -132,7 +132,7 @@ $src = View::e($source);
     <div class="card-body">
     <div class="field-row field-row--top">
       <div class="field-label">Source</div>
-      <div class="import-review-list-value">
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;color:var(--text);font-size:var(--fs-md)">
         <?= View::e($source_name) ?> &mdash; 
         <?php if ($preview->schemaVariant !== ''): ?>
           <code><?= View::e(strtoupper($preview->schemaVariant)) ?></code>
@@ -140,13 +140,13 @@ $src = View::e($source);
       </div>
 
       <div class="field-label">Connection</div>
-      <div class="import-review-list-value">
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;color:var(--text);font-size:var(--fs-md)">
         <?php if ($conn_type === 'SQL dump'): ?>
           SQL dump
         <?php elseif ($conn_host !== ''): ?>
           <?= View::e($conn_host) ?>
           <?php if ($conn_db !== ''): ?>
-            <span class="import-review-sep">&mdash;</span>
+            <span style="color:var(--text-dim)">&mdash;</span>
             <code><?= View::e($conn_db) ?></code>
           <?php endif; ?>
         <?php else: ?>
@@ -156,7 +156,7 @@ $src = View::e($source);
 
       <?php if (!empty($importChips)): ?>
         <div class="field-label">Importing</div>
-        <div class="import-review-list-value">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;color:var(--text);font-size:var(--fs-md)">
           <?php foreach ($importChips as $chip): ?>
             <span class="badge badge-inactive"><?= View::e($chip) ?></span>
           <?php endforeach; ?>
@@ -164,20 +164,20 @@ $src = View::e($source);
       <?php endif; ?>
 
       <div class="field-label">Conflicts</div>
-      <div class="import-review-list-value"><?= $options->conflictStrategy === 'overwrite' ? 'Overwrite existing records' : 'Skip existing records' ?></div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;color:var(--text);font-size:var(--fs-md)"><?= $options->conflictStrategy === 'overwrite' ? 'Overwrite existing records' : 'Skip existing records' ?></div>
 
       <div class="field-label">Images</div>
-      <div class="import-review-list-value">
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;color:var(--text);font-size:var(--fs-md)">
         <?php if ($options->imageMode === 'path'): ?>
           Same-server path
           <?php if ($options->imagePath !== ''): ?>
-            <span class="import-review-sep">&mdash;</span>
+            <span style="color:var(--text-dim)">&mdash;</span>
             <code><?= View::e($options->imagePath) ?></code>
           <?php endif; ?>
         <?php elseif ($options->imageMode === 'url'): ?>
           Remote URL
           <?php if ($options->imageUrl !== ''): ?>
-            <span class="import-review-sep">&mdash;</span>
+            <span style="color:var(--text-dim)">&mdash;</span>
             <code><?= View::e($options->imageUrl) ?></code>
           <?php endif; ?>
         <?php elseif ($options->imageMode === 'zip'): ?>
@@ -189,7 +189,7 @@ $src = View::e($source);
 
       <?php if ($preview->sameDatabase): ?>
         <div class="field-label">Same database</div>
-        <div class="import-review-list-value">The old member tables are already in Luster's database, so member rows do not need to be copied.</div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;color:var(--text);font-size:var(--fs-md)">The old member tables are already in Luster's database, so member rows do not need to be copied.</div>
       <?php endif; ?>
     </div>
   </div>
@@ -198,7 +198,7 @@ $src = View::e($source);
       <div class="overview-section-divider"></div>
 
 
-  <div id="js-import-preview-card" class="card--gradient import-preview-results-card">
+  <div id="js-import-preview-card" class="card card--gradient import-preview-results-card">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
@@ -208,7 +208,7 @@ $src = View::e($source);
     </div>
     
 
-    <div class="import-scroll-x">
+    <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
