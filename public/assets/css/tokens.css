@@ -127,6 +127,36 @@
   --btn-primary-hover-bg: color-mix(in srgb, var(--accent) 75%, #fff);
   --sidebar-active-rail:  linear-gradient(180deg, var(--gradient));
   --stat-hover-shadow:    var(--shadow-lg);
+  /* ── Component skin hooks (new) ──────────────────────────── */
+  --nav-hover-bg:         rgb(var(--ch-highlight)/0.12);
+  --nav-hover-color:      rgb(var(--ch-highlight)/1);
+  --nav-hover-icon-color: var(--brand-tertiary);
+  --nav-hover-icon-glow:  drop-shadow(0 0 5px rgb(var(--ch-highlight)/0.55));
+  --sidebar-label-color:  var(--accent3);
+  --link-hover-color:     var(--accent);
+  --card-head-sub-color:  var(--text-dim);
+  --section-divider-color: var(--border);
+  --btn-secondary-bg:     var(--accent2);
+  --btn-secondary-color:  #fff;
+  --btn-tertiary-bg:      var(--text-sidebar);
+  --btn-tertiary-color:   #fff;
+  --btn-preview-color:    rgb(var(--ch-preview)/1);
+  --badge-info-bg:        rgb(var(--ch-brand-secondary)/.12);
+  --badge-info-color:     var(--brand-secondary);
+  --badge-info-border:    rgb(var(--ch-brand-secondary)/.25);
+  --table-head-bg:        var(--bg-elevated);
+  --table-head-color:     var(--text-muted);
+  --filter-input-bg:      var(--bg-elevated);
+  --filter-input-color:   inherit;
+  --bulk-bg:              var(--bg-subtle);
+  --todo-toggle-bg:       var(--bg-subtle);
+  --code-color:           var(--accent2);
+  --code-bg:              rgb(var(--ch-brand-secondary)/0.08);
+  --strong-color:         var(--accent);
+  --brand-sub-color:      rgb(var(--ch-brand-muted)/0.45);
+  --scrollbar-thumb:      rgb(var(--ch-brand-primary)/.2);
+  --scrollbar-thumb-hover: rgb(var(--ch-brand-primary)/.45);
+  --scrollbar-arrow:      rgb(var(--ch-brand-primary)/.5);
 }
 /* ── DARK THEME (DEFAULT) ──────────────────────────────────── */
 [data-theme="dark"] {
@@ -179,4 +209,34 @@
   --btn-primary-hover-bg: color-mix(in srgb, #60a5fa 75%, #fff);
   --sidebar-active-rail:  linear-gradient(180deg, var(--gradient));
   --stat-hover-shadow:    var(--shadow-lg);
+  /* ── Component skin hooks (new) ──────────────────────────── */
+  --nav-hover-bg:         rgb(var(--ch-highlight)/0.12);
+  --nav-hover-color:      rgb(var(--ch-highlight)/1);
+  --nav-hover-icon-color: var(--brand-tertiary);
+  --nav-hover-icon-glow:  drop-shadow(0 0 6px rgb(var(--ch-brand-primary)/0.55));
+  --sidebar-label-color:  var(--accent3);
+  --link-hover-color:     var(--accent);
+  --card-head-sub-color:  var(--text-dim);
+  --section-divider-color: var(--border);
+  --btn-secondary-bg:     var(--accent2);
+  --btn-secondary-color:  #fff;
+  --btn-tertiary-bg:      var(--text-sidebar);
+  --btn-tertiary-color:   #fff;
+  --btn-preview-color:    rgb(var(--ch-preview)/1);
+  --badge-info-bg:        rgb(var(--ch-brand-secondary)/.12);
+  --badge-info-color:     var(--brand-secondary);
+  --badge-info-border:    rgb(var(--ch-brand-secondary)/.25);
+  --table-head-bg:        var(--bg-elevated);
+  --table-head-color:     var(--text-muted);
+  --filter-input-bg:      #322e4d;
+  --filter-input-color:   inherit;
+  --bulk-bg:              var(--bg-subtle);
+  --todo-toggle-bg:       var(--bg-subtle);
+  --code-color:           var(--accent2);
+  --code-bg:              rgb(var(--ch-brand-secondary)/0.08);
+  --strong-color:         var(--accent);
+  --brand-sub-color:      rgb(var(--ch-brand-muted)/0.45);
+  --scrollbar-thumb:      rgb(var(--ch-brand-primary)/.2);
+  --scrollbar-thumb-hover: rgb(var(--ch-brand-primary)/.45);
+  --scrollbar-arrow:      rgb(var(--ch-brand-primary)/.5);
 }
