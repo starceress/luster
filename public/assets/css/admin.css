@@ -169,7 +169,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .sidebar-section { padding: 1rem 0.875rem 0.25rem; position: relative; z-index: 1; }
 
-.sidebar-label { display: flex; align-items: center; gap: 0.625rem; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(var(--ch-brand-primary)/0.35); padding: 0 0.5rem; margin-bottom: 0.25rem; }
+.sidebar-label { display: flex; align-items: center; gap: 0.625rem; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sidebar-label-color); padding: 0 0.5rem; margin-bottom: 0.25rem; }
 
 .sidebar-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, rgb(var(--ch-brand-primary)/0.18), transparent); }
 
@@ -344,9 +344,7 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 .btn-tertiary:hover { background: color-mix(in srgb, var(--text-sidebar) 75%, #fff); }
 
-[data-theme="dark"] .btn-tertiary { background: var(--btn-tertiary-bg); color: var(--btn-tertiary-color); border: none; }
-
-[data-theme="dark"] .btn-tertiary:hover { background: color-mix(in srgb, var(--text-dim) 75%, #fff); }
+[data-theme="dark"] .btn-tertiary:hover { background: color-mix(in srgb, var(--btn-tertiary-bg) 75%, #fff); }
 
 .btn-primary:focus-visible, .btn-secondary:focus-visible, .btn-tertiary:focus-visible { box-shadow: 0 0 0 3px var(--accent-glow); }
 

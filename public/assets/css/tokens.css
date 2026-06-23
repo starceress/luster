@@ -128,19 +128,19 @@
   --sidebar-active-rail:  linear-gradient(180deg, var(--gradient));
   --stat-hover-shadow:    var(--shadow-lg);
   /* ── Component skin hooks (new) ──────────────────────────── */
-  --nav-hover-bg:         rgb(var(--ch-highlight)/0.12);
-  --nav-hover-color:      rgb(var(--ch-highlight)/1);
-  --nav-hover-icon-color: var(--brand-tertiary);
-  --nav-hover-icon-glow:  drop-shadow(0 0 5px rgb(var(--ch-highlight)/0.55));
-  --sidebar-label-color:  var(--accent3);
-  --link-hover-color:     var(--accent);
+  --nav-hover-bg:         rgb(var(--ch-brand-primary)/0.09);
+  --nav-hover-color:      var(--accent);
+  --nav-hover-icon-color: var(--accent);
+  --nav-hover-icon-glow:  drop-shadow(0 0 6px rgb(var(--ch-brand-primary)/0.45));
+  --sidebar-label-color:  rgb(var(--ch-brand-primary)/0.35);
+  --link-hover-color:     var(--accent3);
   --card-head-sub-color:  var(--text-dim);
   --section-divider-color: var(--border);
   --btn-secondary-bg:     var(--accent2);
   --btn-secondary-color:  #fff;
   --btn-tertiary-bg:      var(--text-sidebar);
   --btn-tertiary-color:   #fff;
-  --btn-preview-color:    rgb(var(--ch-preview)/1);
+  --btn-preview-color:    #3730a3;
   --badge-info-bg:        rgb(var(--ch-brand-secondary)/.12);
   --badge-info-color:     var(--brand-secondary);
   --badge-info-border:    rgb(var(--ch-brand-secondary)/.25);
@@ -154,9 +154,9 @@
   --code-bg:              rgb(var(--ch-brand-secondary)/0.08);
   --strong-color:         var(--accent);
   --brand-sub-color:      rgb(var(--ch-brand-muted)/0.45);
-  --scrollbar-thumb:      rgb(var(--ch-brand-primary)/.2);
-  --scrollbar-thumb-hover: rgb(var(--ch-brand-primary)/.45);
-  --scrollbar-arrow:      rgb(var(--ch-brand-primary)/.5);
+  --scrollbar-thumb:      rgb(var(--ch-brand-primary)/.35);
+  --scrollbar-thumb-hover: rgb(var(--ch-brand-primary)/.6);
+  --scrollbar-arrow:      rgb(var(--ch-brand-primary)/.65);
 }
 /* ── DARK THEME (DEFAULT) ──────────────────────────────────── */
 [data-theme="dark"] {
@@ -210,19 +210,19 @@
   --sidebar-active-rail:  linear-gradient(180deg, var(--gradient));
   --stat-hover-shadow:    var(--shadow-lg);
   /* ── Component skin hooks (new) ──────────────────────────── */
-  --nav-hover-bg:         rgb(var(--ch-highlight)/0.12);
-  --nav-hover-color:      rgb(var(--ch-highlight)/1);
-  --nav-hover-icon-color: var(--brand-tertiary);
-  --nav-hover-icon-glow:  drop-shadow(0 0 6px rgb(var(--ch-brand-primary)/0.55));
-  --sidebar-label-color:  var(--accent3);
-  --link-hover-color:     var(--accent);
+  --nav-hover-bg:         rgb(var(--ch-brand-primary)/0.09);
+  --nav-hover-color:      var(--accent);
+  --nav-hover-icon-color: var(--accent);
+  --nav-hover-icon-glow:  drop-shadow(0 0 6px rgb(var(--ch-brand-primary)/0.45));
+  --sidebar-label-color:  rgb(var(--ch-brand-primary)/0.35);
+  --link-hover-color:     var(--accent3);
   --card-head-sub-color:  var(--text-dim);
   --section-divider-color: var(--border);
   --btn-secondary-bg:     var(--accent2);
   --btn-secondary-color:  #fff;
-  --btn-tertiary-bg:      var(--text-sidebar);
+  --btn-tertiary-bg:      var(--text-dim);
   --btn-tertiary-color:   #fff;
-  --btn-preview-color:    rgb(var(--ch-preview)/1);
+  --btn-preview-color:    #a5b4fc;
   --badge-info-bg:        rgb(var(--ch-brand-secondary)/.12);
   --badge-info-color:     var(--brand-secondary);
   --badge-info-border:    rgb(var(--ch-brand-secondary)/.25);
