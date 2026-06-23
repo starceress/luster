@@ -70,7 +70,7 @@ $b = rtrim(View::e($base_url), '/');
 </form>
 
 <!-- ── Reset Link Statuses ────────────────────────────────────────────────── -->
-<details class="card chevron" style="margin-top:var(--sp-6)">
+<details class="card chevron" style="margin-top:1.5rem">
   <summary class="card-head">Reset Link Statuses
     <div class="card-head-sub">Clears all stored link check results.</div>
   </summary>
@@ -87,7 +87,7 @@ $b = rtrim(View::e($base_url), '/');
 </details>
 
 <!-- ── Auto Link Check ────────────────────────────────────────────────────── -->
-<details class="card chevron" style="margin-top:var(--sp-6)" <?= $cron_enabled ? 'open' : '' ?>>
+<details class="card chevron" style="margin-top:1.5rem" <?= $cron_enabled ? 'open' : '' ?>>
   <summary class="card-head">Auto Link Check
     <div class="card-head-sub">For technical users: set up a server cron job to run link checks automatically once per month.</div>
   </summary>

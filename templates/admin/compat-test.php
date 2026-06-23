@@ -87,7 +87,7 @@ $b = rtrim(View::e($base_url), '/');
     <?php if (trim($output) === ''): ?>
       <p class="form-hint">Embed returned empty output.</p>
     <?php else: ?>
-      <div style="border:1px solid var(--border);border-radius:6px;padding:1.25rem;background:var(--bg-body)">
+      <div style="border:1px solid var(--border);border-radius:6px;padding:1.25rem;background:var(--bg)">
         <?= $output ?>
       </div>
       <p class="form-hint" style="margin-top:.75rem">
