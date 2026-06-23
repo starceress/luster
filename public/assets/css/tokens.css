@@ -42,11 +42,11 @@
 
 /* ── BASE TOKENS (ALL THEMES) ──────────────────────────────── */
 :root {
-  --va-pink: #ff7eb3;
-  --va-teal: #78e8d8;
-  --va-blue: #60a5fa;
-  --va-purple: #ad4cfb;
-  --va-gold: #ffd166;
+  --brand-primary: #ff7eb3;
+  --brand-secondary: #78e8d8;
+  --brand-quaternary: #60a5fa;
+  --brand-quinary: #ad4cfb;
+  --brand-tertiary: #ffd166;
   --danger: #dc2626;
   --pending: #f97316;
   --radius: 16px;
@@ -57,22 +57,21 @@
   --fs-base: 0.8rem;
   --fs-md: 0.875rem;
   --fs-lg: 1rem;
-  --gradient: var(--va-pink), var(--va-teal), var(--va-gold);
-  --gradient-light: #fd4fb0, #19ded9, #e8ac10;
-  --gradient-bar: linear-gradient(90deg, var(--va-pink), var(--va-teal), var(--va-gold));
+  --gradient: var(--brand-primary), var(--brand-secondary), var(--brand-tertiary);
+  --gradient-bar: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-tertiary));
   --font-sans: 'DM Sans', sans-serif;
   --font-serif: 'Playfair Display', serif;
   --font-mono: 'DM Mono', monospace;
   /* ── Palette channel tokens (R G B, no commas) ───────────────
      Used with modern rgb(var(--ch-foo)/alpha) syntax so skins
      can change the base hue and all alpha variants update too.  */
-  --ch-pink: 255 126 179;   /* Velvet Geode pink - primary accent family  */
-  --ch-teal: 120 232 216;   /* Velvet Geode teal - secondary accent family */
-  --ch-gold: 255 209 102;   /* Velvet Geode gold - tertiary accent family  */
+  --ch-brand-primary: 255 126 179;   /* Velvet Geode pink - primary accent family  */
+  --ch-brand-secondary: 120 232 216;   /* Velvet Geode teal - secondary accent family */
+  --ch-brand-tertiary: 255 209 102;   /* Velvet Geode gold - tertiary accent family  */
   --ch-preview: 129 140 248;/* Indigo — embed-codes preview accent   */
-  --ch-sky: 125 211 252;    /* Sky blue — nav hover, badge-tfl       */
-  --ch-indigo: 99 102 241;  /* Purple-indigo — badge-upcoming        */
-  --ch-pink-pale: 255 170 204; /* Pale pink — sidebar brand/role text */
+  --ch-highlight: 125 211 252;    /* Sky blue — nav hover, badge-tfl       */
+  --ch-upcoming: 99 102 241;  /* Purple-indigo — badge-upcoming        */
+  --ch-brand-muted: 255 170 204; /* Pale pink — sidebar brand/role text */
   --ch-pending: 249 115 22; /* Orange — pending badge, status pill   */
 }
 
@@ -95,7 +94,7 @@
   --ch-accent: 212 0 106;         /* accent channel — rgb(var(--ch-accent)/alpha) */
   --accent-glow: rgb(var(--ch-accent)/0.1);
   --accent2: #27b1a5;
-  --accent3: var(--va-purple);
+  --accent3: var(--brand-quinary);
   --success: #27ae60;
   --ch-success: 5 150 105;        /* success green channel (light)      */
   --success-bg: rgb(var(--ch-success)/0.08);
@@ -113,15 +112,15 @@
   --card-border-3: #1d6fe8;
   --card-border-4: #e8ac10;
   --ch-preview: 79 70 229;
-  --c-preview-hover: #1e1a70;     /* preview button hover/focus text    */
+  --preview-hover-text: #1e1a70;     /* preview button hover/focus text    */
   /* ── Skin-tokenized surface properties ────────────────────── */
   --topbar-bg:            var(--bg-card);
-  --topbar-shadow:        0 4px 16px rgba(0,0,0,0.08), 0 1px 0 rgb(var(--ch-pink)/.12);
+  --topbar-shadow:        0 4px 16px rgba(0,0,0,0.08), 0 1px 0 rgb(var(--ch-brand-primary)/.12);
   --card-head-bg:         var(--bg-subtle);
   --card-head-color:      var(--text-muted);
   --welcome-bg:           var(--bg-card);
   --welcome-border:       var(--border);
-  --welcome-blush:        radial-gradient(circle at top right, rgb(var(--ch-pink)/0.12) 0%, rgb(var(--ch-teal)/0.06) 50%, transparent 70%);
+  --welcome-blush:        radial-gradient(circle at top right, rgb(var(--ch-brand-primary)/0.12) 0%, rgb(var(--ch-brand-secondary)/0.06) 50%, transparent 70%);
   --brand-gradient:       linear-gradient(90deg, var(--gradient));
   --btn-primary-bg:       var(--accent);
   --btn-primary-color:    #fff;
@@ -146,7 +145,7 @@
   --text-sidebar: #b8b0d8;
   --accent: #8fdcff;
   --ch-accent: 143 220 255;       /* accent channel — rgb(var(--ch-accent)/alpha) */
-  --accent-glow: rgb(var(--ch-pink)/0.15);
+  --accent-glow: rgb(var(--ch-brand-primary)/0.15);
   --accent2: #b34774;
   --accent3: #ffd166;
   --success: #2ecc71;
@@ -156,24 +155,24 @@
   --ch-danger: 248 113 113;       /* danger red channel (dark)          */
   --danger-bg: rgb(var(--ch-danger)/0.1);
   --warn: #ffd166;
-  --warn-bg: rgb(var(--ch-gold)/0.1);
+  --warn-bg: rgb(var(--ch-brand-tertiary)/0.1);
   --shadow: 0 4px 24px rgba(0,0,0,0.55);
   --shadow-lg: 0 16px 56px rgba(0,0,0,0.65);
-  --glow: 0 0 0 3px rgb(var(--ch-pink)/0.15);
-  --blush: radial-gradient(ellipse at 110% -10%, rgb(var(--ch-pink)/0.06) 0%, transparent 60%);
-  --card-border-1: var(--va-pink);
-  --card-border-2: var(--va-teal);
-  --card-border-3: var(--va-blue);
-  --card-border-4: var(--va-gold);
-  --c-preview-hover: #c7d2fe;     /* preview button hover/focus text    */
+  --glow: 0 0 0 3px rgb(var(--ch-brand-primary)/0.15);
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(var(--ch-brand-primary)/0.06) 0%, transparent 60%);
+  --card-border-1: var(--brand-primary);
+  --card-border-2: var(--brand-secondary);
+  --card-border-3: var(--brand-quaternary);
+  --card-border-4: var(--brand-tertiary);
+  --preview-hover-text: #c7d2fe;     /* preview button hover/focus text    */
   /* ── Skin-tokenized surface properties ────────────────────── */
   --topbar-bg:            var(--bg-card);
-  --topbar-shadow:        0 4px 24px rgba(0,0,0,0.35), 0 1px 0 rgb(var(--ch-pink)/.08);
+  --topbar-shadow:        0 4px 24px rgba(0,0,0,0.35), 0 1px 0 rgb(var(--ch-brand-primary)/.08);
   --card-head-bg:         var(--bg-subtle);
   --card-head-color:      var(--text-muted);
   --welcome-bg:           var(--bg-card);
   --welcome-border:       var(--border);
-  --welcome-blush:        radial-gradient(circle at top right, rgb(var(--ch-pink)/0.12) 0%, rgb(var(--ch-teal)/0.06) 50%, transparent 70%);
+  --welcome-blush:        radial-gradient(circle at top right, rgb(var(--ch-brand-primary)/0.12) 0%, rgb(var(--ch-brand-secondary)/0.06) 50%, transparent 70%);
   --brand-gradient:       linear-gradient(90deg, var(--gradient));
   --btn-primary-bg:       #60a5fa;
   --btn-primary-color:    #fff;

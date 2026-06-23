@@ -24,8 +24,8 @@
 .install-wrap { max-width: 720px; margin: 0 auto; position: relative; z-index: 1; }
 
 .install-brand { text-align: center; margin-bottom: 2.5rem; position: relative; }
-.install-brand::before { content: ''; position: absolute; top: 50px; left: 50%; width: 220px; height: 220px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgb(var(--ch-pink)/0.28) 0%, rgb(var(--ch-teal)/0.1) 45%, transparent 70%); pointer-events: none; }
-[data-theme="light"] .install-brand::before { background: radial-gradient(circle, rgb(var(--ch-pink)/0.55) 0%, rgb(var(--ch-teal)/0.2) 45%, transparent 70%); }
+.install-brand::before { content: ''; position: absolute; top: 50px; left: 50%; width: 220px; height: 220px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgb(var(--ch-brand-primary)/0.28) 0%, rgb(var(--ch-brand-secondary)/0.1) 45%, transparent 70%); pointer-events: none; }
+[data-theme="light"] .install-brand::before { background: radial-gradient(circle, rgb(var(--ch-brand-primary)/0.55) 0%, rgb(var(--ch-brand-secondary)/0.2) 45%, transparent 70%); }
 .install-logo { width: 100px; height: 100px; display: block; margin: 0 auto 1.1rem; position: relative; }
 
 .install-wordmark {
@@ -37,7 +37,7 @@
   background: linear-gradient(90deg, #ff7eb3 0%, #78e8d8 50%, #ffd166 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-[data-theme="light"] .install-brand-gradient { background: linear-gradient(90deg, var(--gradient-light)); -webkit-background-clip: text; background-clip: text; }
+[data-theme="light"] .install-brand-gradient { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; }
 .install-luster-sub { max-width: 32rem; margin: 0 auto; font-size: var(--fs-lg); line-height: 1.55; color: var(--text-muted); }
 
 /* ── Wizard stepper — installer overrides ──────────────────────────── */
@@ -82,7 +82,7 @@
 .install-req-name { color: var(--text); font-weight: 700; }
 .install-req-detail { color: var(--success); }
 .install-req-row--fail .install-req-detail { color: var(--danger); }
-.req-hint { margin-left: 0; background: rgb(var(--ch-pink)/.08); font-size: var(--fs-sm); font-family: var(--font-mono); padding: 2px 8px; border-radius: 5px; color: var(--text-dim); flex-shrink: 0; }
+.req-hint { margin-left: 0; background: rgb(var(--ch-brand-primary)/.08); font-size: var(--fs-sm); font-family: var(--font-mono); padding: 2px 8px; border-radius: 5px; color: var(--text-dim); flex-shrink: 0; }
 
 
 /* ── Text utilities ────────────────────────────────────────────────── */
@@ -113,7 +113,7 @@ code { font-family: var(--font-mono); font-size: .82em; background: var(--bg-sub
   }
   .install-page .login-theme-corner::after {
     content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgb(var(--ch-pink)/0.4) 40%, rgb(var(--ch-teal)/0.25) 70%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgb(var(--ch-brand-primary)/0.4) 40%, rgb(var(--ch-brand-secondary)/0.25) 70%, transparent 100%);
     pointer-events: none;
   }
   [data-theme="light"] .install-page .login-theme-corner::after {

@@ -5881,13 +5881,13 @@ document.addEventListener('click', function (e) {
     panels.forEach(function (panel) {
       if (slug === '') {
         panel.removeAttribute('data-skin');
-        panel.style.setProperty('--va-pink',      '#ff7eb3');
-        panel.style.setProperty('--ch-pink',      '255 126 179');
+        panel.style.setProperty('--brand-primary',      '#ff7eb3');
+        panel.style.setProperty('--ch-brand-primary',  '255 126 179');
         panel.style.setProperty('--gradient-bar', 'linear-gradient(90deg, #ff7eb3, #78e8d8, #ffd166)');
       } else {
         panel.dataset.skin = slug;
-        panel.style.removeProperty('--va-pink');
-        panel.style.removeProperty('--ch-pink');
+        panel.style.removeProperty('--brand-primary');
+        panel.style.removeProperty('--ch-brand-primary');
         panel.style.removeProperty('--gradient-bar');
       }
     });

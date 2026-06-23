@@ -132,7 +132,7 @@ $collLastDate = $latest_coll !== null
       <tbody>
 <!-- ──── COLLECTIVE ROW ─────────────────────────────────────────────── -->
         <?php if ($search === ''): ?>
-        <tr style="background: rgb(var(--ch-gold)/.06);">
+        <tr style="background: rgb(var(--ch-brand-tertiary)/.06);">
           <td class="text-dim" data-label="#">0</td>
           <td data-label="Listing">
             <div class="ctx-cell">

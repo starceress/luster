@@ -1,11 +1,11 @@
 /* Luster sample demo theme - prototype-inspired dark layout */
 
 :root {
-  --va-pink: #ff7eb3;
-  --va-teal: #78e8d8;
+  --brand-primary: #ff7eb3;
+  --brand-secondary: #78e8d8;
   --va-blue: #60a5fa;
   --va-purple: #ad4cfb;
-  --va-gold: #ffd166;
+  --brand-tertiary: #ffd166;
   --bg: #121020;
   --bg-card: #1a1830;
   --bg-panel: #211e38;
@@ -24,7 +24,7 @@
   --radius: 16px;
   --shadow: 0 16px 56px rgba(0, 0, 0, .65);
   --glow: 0 0 0 3px rgb(255 126 179 / .15);
-  --gradient: linear-gradient(90deg, var(--va-pink), var(--va-teal), var(--va-gold));
+  --gradient: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-tertiary));
 }
 
 *, *::before, *::after {
@@ -74,7 +74,7 @@ a {
 }
 
 a:hover {
-  color: var(--va-gold);
+  color: var(--brand-tertiary);
   text-decoration: none;
 }
 
@@ -167,7 +167,7 @@ img {
 
 .demo-switch.active {
   color: #140f25;
-  background: linear-gradient(135deg, var(--va-pink), var(--va-teal) 63%, var(--va-gold));
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary) 63%, var(--brand-tertiary));
   box-shadow: 0 10px 26px rgb(255 126 179 / .18);
 }
 
@@ -230,7 +230,7 @@ img {
 
 .sample-title a {
   color: transparent;
-  background: linear-gradient(90deg, var(--text), var(--va-pink) 48%, var(--va-teal) 74%, var(--va-gold));
+  background: linear-gradient(90deg, var(--text), var(--brand-primary) 48%, var(--brand-secondary) 74%, var(--brand-tertiary));
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -377,7 +377,7 @@ h3,
   width: 100%;
   gap: .72rem;
   margin: 2rem 0 1rem;
-  color: var(--va-pink);
+  color: var(--brand-primary);
   font-family: var(--font-mono);
   font-size: .95rem;
   font-weight: 800;
@@ -486,7 +486,7 @@ form,
 .form-label,
 .fl-label,
 label {
-  color: var(--va-pink);
+  color: var(--brand-primary);
   font-size: .8rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -500,7 +500,7 @@ label {
 }
 
 .fl-required {
-  color: var(--va-pink);
+  color: var(--brand-primary);
   margin-left: 0.15em;
 }
 
@@ -582,7 +582,7 @@ button,
 .btn,
 .fl-btn {
   color: #140f25;
-  background: linear-gradient(135deg, var(--va-pink), var(--va-teal) 63%, var(--va-gold));
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary) 63%, var(--brand-tertiary));
 }
 
 button:hover,
@@ -632,7 +632,7 @@ button-danger {
 .sort-btn.active,
 .category-btn.active {
   color: #140f25;
-  background: var(--va-teal);
+  background: var(--brand-secondary);
   border-color: transparent;
 }
 
@@ -820,7 +820,7 @@ button-danger {
 
 .update-date,
 .update-tag {
-  color: var(--va-pink);
+  color: var(--brand-primary);
   font-size: .82rem;
   font-weight: 800;
 }
@@ -947,7 +947,7 @@ table:not(.stats-table) tr:last-child td {
 }
 
 .status-pending {
-  color: var(--va-gold);
+  color: var(--brand-tertiary);
   border: 1px solid rgb(255 209 102 / .28);
   background: rgb(255 209 102 / .08);
 }

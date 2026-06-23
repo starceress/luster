@@ -26,12 +26,12 @@
 ───────────────────────────────────────────────────────────────────────── */
 
 [data-skin="prism-power"] {
-  --va-pink:      #ee5e9e;
-  --va-teal:      #1ba6d8;
-  --va-gold:      #f7d440;
-  --ch-pink:      238 94 158;
-  --ch-teal:      74 109 214;
-  --ch-gold:      247 212 64;
+  --brand-primary:      #ee5e9e;
+  --brand-secondary:      #1ba6d8;
+  --brand-tertiary:      #f7d440;
+  --ch-brand-primary:      238 94 158;
+  --ch-brand-secondary:      74 109 214;
+  --ch-brand-tertiary:      247 212 64;
   --gradient:     #ee5e9e, #1ba6d8, #f7d440;
   --gradient-bar: linear-gradient(90deg, #ee5e9e, #1ba6d8, #f7d440);
   --hairline: #fff;
@@ -72,7 +72,7 @@
   --card-border-3: #f7d440;
   --card-border-4: #4a6dd6;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(216 62 138 / 0.12) 0%, rgb(74 109 214 / 0.06) 50%, transparent 70%);
-  --c-preview-hover:  #2c3784;
+  --preview-hover-text:  #2c3784;
   --ch-preview:       74 109 214;
   /* surface tokens */
   --topbar-bg:       linear-gradient(180deg, #ffffff 0%, #e2ebf7 100%);
@@ -92,9 +92,9 @@
 
 [data-skin="prism-power"][data-theme="light"] .luster-sub { color: #ec9bc3; }
 [data-skin="prism-power"][data-theme="light"] .nav-item:hover { background: rgb(79 201 240 / 0.14); color: #4fc9f0; }
-[data-skin="prism-power"][data-theme="light"] .nav-item:hover .nav-icon { color: var(--va-gold); opacity: 1; filter: drop-shadow(0 0 5px rgb(79 201 240 / 0.55)); }
+[data-skin="prism-power"][data-theme="light"] .nav-item:hover .nav-icon { color: var(--brand-tertiary); opacity: 1; filter: drop-shadow(0 0 5px rgb(79 201 240 / 0.55)); }
 [data-skin="prism-power"][data-theme="light"] .link:hover { color: #1ba6d8; border-color: #1ba6d8; }
-[data-skin="prism-power"] .sidebar-label { color: var(--va-gold); }
+[data-skin="prism-power"] .sidebar-label { color: var(--brand-tertiary); }
 [data-skin="prism-power"] .sidebar-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, color-mix(in srgb, var(--accent3) 58%, transparent), transparent); }
 [data-skin="prism-power"][data-theme="light"] .card-head-sub { color: #d83e8a; }
 [data-skin="prism-power"][data-theme="light"] .overview-section-divider { border-top: 1px solid #a6b7e7; }
@@ -144,7 +144,7 @@
   --card-border-3: #d63152;
   --card-border-4: #f7d440;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(238 94 158 / 0.16) 0%, rgb(214 49 82 / 0.08) 50%, transparent 70%);
-  --c-preview-hover:  #f0a8c5;
+  --preview-hover-text:  #f0a8c5;
   --ch-preview:       238 94 158;
   --topbar-bg:            linear-gradient(180deg, #26396f 0%, #131f44 100%);
   --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(238 94 158 / 0.35);
@@ -192,12 +192,12 @@
   VICTORY ROAD - Pokemon Center (Light) / Elite Four (Dark)
 ───────────────────────────────────────────────────────────────────────── */
 [data-skin="victory-road"] {
-  --va-pink:      #e3350d;
-  --va-teal:      #4dad5b;
-  --va-gold:      #316cd9;
-  --ch-pink:      227 53 13;
-  --ch-teal:      77 173 91;
-  --ch-gold:      49 108 217;
+  --brand-primary:      #e3350d;
+  --brand-secondary:      #4dad5b;
+  --brand-tertiary:      #316cd9;
+  --ch-brand-primary:      227 53 13;
+  --ch-brand-secondary:      77 173 91;
+  --ch-brand-tertiary:      49 108 217;
   --gradient:     #e3350d, #4dad5b, #316cd9;
   --gradient-bar: linear-gradient(90deg, #e3350d, #4dad5b, #316cd9);
 }
@@ -237,7 +237,7 @@
   --card-border-3: #316cd9;
   --card-border-4: #ffcb05;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(209 43 8 / 0.08) 0%, transparent 60%);
-  --c-preview-hover:  #1e3d8a;
+  --preview-hover-text:  #1e3d8a;
   --ch-preview:       49 108 217;
   --topbar-bg:            linear-gradient(180deg, #ffffff 0%, #f0f3f7 100%);
   --topbar-shadow:        0 4px 16px rgba(22, 29, 43, 0.1), 0 1px 0 rgba(227, 53, 13, 0.2);
@@ -312,7 +312,7 @@
   --card-border-3: #316cd9;
   --card-border-4: #ffcb05;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(227 53 13 / 0.15) 0%, transparent 60%);
-  --c-preview-hover:  #c8d6f5;
+  --preview-hover-text:  #c8d6f5;
   --ch-preview:       49 108 217;
   /* surface tokens */
   --topbar-bg:            linear-gradient(180deg, #1f2430 0%, #11141a 100%);
@@ -338,12 +338,12 @@
   THE FORCE - Jedi Knight (Light) / Sith Lord (Dark)
 ───────────────────────────────────────────────────────────────────────── */
 [data-skin="the-force"] {
-  --va-pink:      #c42020;
-  --va-teal:      #7a0000;
-  --va-gold:      #444444;
-  --ch-pink:      196 32 32;
-  --ch-teal:      122 0 0;
-  --ch-gold:      68 68 68;
+  --brand-primary:      #c42020;
+  --brand-secondary:      #7a0000;
+  --brand-tertiary:      #444444;
+  --ch-brand-primary:      196 32 32;
+  --ch-brand-secondary:      122 0 0;
+  --ch-brand-tertiary:      68 68 68;
   --gradient:     #c42020, #7a0000, #444444;
   --gradient-bar: linear-gradient(90deg, #c42020, #7a0000, #444444);
 }
@@ -357,12 +357,12 @@
 }
 
 [data-skin="the-force"][data-theme="light"] {
-  --va-pink:       #0077ff;
-  --va-teal:       #15b053;
-  --va-gold:       #e0a843;
-  --ch-pink:       0 119 255;
-  --ch-teal:       21 176 83;
-  --ch-gold:       224 168 67;
+  --brand-primary:       #0077ff;
+  --brand-secondary:       #15b053;
+  --brand-tertiary:       #e0a843;
+  --ch-brand-primary:       0 119 255;
+  --ch-brand-secondary:       21 176 83;
+  --ch-brand-tertiary:       224 168 67;
   --gradient:      #0077ff, #15b053, #e0a843;
   --gradient-bar:  linear-gradient(90deg, #0077ff, #15b053, #e0a843);
   --bg:            #eceadd;
@@ -399,7 +399,7 @@
   --card-border-3: #e0a843;
   --card-border-4: #8bc34a;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(0 119 255 / 0.08) 0%, transparent 60%);
-  --c-preview-hover:  #1e3d8a;
+  --preview-hover-text:  #1e3d8a;
   --ch-preview:       0 119 255;
   /* surface tokens */
   --topbar-bg:      linear-gradient(180deg, #ffffff 0%, #eceadd 100%);
@@ -457,7 +457,7 @@
   --card-border-3: #666666;
   --card-border-4: #c42020;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(196 32 32 / 0.08) 0%, transparent 60%);
-  --c-preview-hover:  #aaaaaa;
+  --preview-hover-text:  #aaaaaa;
   --ch-preview:       150 150 150;
   /* surface tokens */
   --topbar-bg:            linear-gradient(180deg, #1a1a1c 0%, #0a0a0c 100%);
@@ -497,12 +497,12 @@
   FLOATING LIGHTS - Flower Gleam (Light) / Lantern Glow (Dark)
 ───────────────────────────────────────────────────────────────────────── */
 [data-skin="floating-lights"] {
-  --va-pink:      #ffca28;
-  --va-teal:      #d884cb;
-  --va-gold:      #4cb951;
-  --ch-pink:      255 202 40;
-  --ch-teal:      216 132 203;
-  --ch-gold:      255 119 168;
+  --brand-primary:      #ffca28;
+  --brand-secondary:      #d884cb;
+  --brand-tertiary:      #4cb951;
+  --ch-brand-primary:      255 202 40;
+  --ch-brand-secondary:      216 132 203;
+  --ch-brand-tertiary:      255 119 168;
   --gradient:     #ffca28, #d884cb, #ff77a8;
   --gradient-bar: linear-gradient(90deg, #ffca28, #d884cb, #ff77a8, #4cb951);
 }
@@ -542,7 +542,7 @@
   --card-border-3: #fca311;
   --card-border-4: #4caf50;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(214 74 120 / 0.08) 0%, transparent 60%);
-  --c-preview-hover:  #5a2a70;
+  --preview-hover-text:  #5a2a70;
   --ch-preview:       106 59 121;
   /* surface tokens */
   --topbar-bg:      linear-gradient(180deg, #ffffff 0%, #fcf9f2 100%);
@@ -615,7 +615,7 @@
   --card-border-3: #ff77a8;
   --card-border-4: #8a65c9;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(255 202 40 / 0.12) 0%, transparent 60%);
-  --c-preview-hover:  #c060b8;
+  --preview-hover-text:  #c060b8;
   --ch-preview:       216 132 203;
   /* surface tokens */
   --topbar-bg:            linear-gradient(180deg, #1c1835 0%, #0d0a17 100%);
