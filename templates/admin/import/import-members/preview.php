@@ -47,16 +47,16 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
       </div>
     </div>
 
-    <div class="listing-field-row">
-      <span class="listing-field-label">Destination</span>
+    <div class="field-row">
+      <span class="field-label">Destination</span>
       <div><?= View::e($listing->title) ?> <span class="text-dim">(member table: <code><?= View::e($listing->dbprefix) ?></code>)</span></div>
     </div>
-    <div class="listing-field-row">
-      <span class="listing-field-label">Detected format</span>
+    <div class="field-row">
+      <span class="field-label">Detected format</span>
       <div><span class="badge badge-info"><?= View::e($formatLabel) ?></span></div>
     </div>
-    <div class="listing-field-row">
-      <span class="listing-field-label">Duplicates</span>
+    <div class="field-row">
+      <span class="field-label">Duplicates</span>
       <div>Skipped by email address. Existing members are not overwritten.</div>
     </div>
   </div>

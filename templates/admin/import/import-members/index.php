@@ -44,8 +44,8 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="im-listing">Destination Listing <span class="req">*</span></label>
+      <div class="field-row">
+        <label class="field-label" for="im-listing">Destination Listing <span class="req">*</span></label>
         <div>
           <div class="select-wrap select-auto">
             <select id="im-listing" name="listing_id" required>
@@ -59,8 +59,8 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="im-file">
+      <div class="field-row field-row--top">
+        <label class="field-label" for="im-file">
           Upload File <span class="req">*</span>
         </label>
         <div>

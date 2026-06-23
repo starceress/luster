@@ -130,8 +130,8 @@ $src = View::e($source);
   <div class="card">
     <div class="card-head">Preview Summary</div>
     <div class="card-body">
-    <div class="listing-field-row listing-field-row--top">
-      <div class="listing-field-label">Source</div>
+    <div class="field-row field-row--top">
+      <div class="field-label">Source</div>
       <div class="import-review-list-value">
         <?= View::e($source_name) ?> &mdash; 
         <?php if ($preview->schemaVariant !== ''): ?>
@@ -139,7 +139,7 @@ $src = View::e($source);
         <?php endif; ?>
       </div>
 
-      <div class="listing-field-label">Connection</div>
+      <div class="field-label">Connection</div>
       <div class="import-review-list-value">
         <?php if ($conn_type === 'SQL dump'): ?>
           SQL dump
@@ -155,7 +155,7 @@ $src = View::e($source);
       </div>
 
       <?php if (!empty($importChips)): ?>
-        <div class="listing-field-label">Importing</div>
+        <div class="field-label">Importing</div>
         <div class="import-review-list-value">
           <?php foreach ($importChips as $chip): ?>
             <span class="badge badge-inactive"><?= View::e($chip) ?></span>
@@ -163,10 +163,10 @@ $src = View::e($source);
         </div>
       <?php endif; ?>
 
-      <div class="listing-field-label">Conflicts</div>
+      <div class="field-label">Conflicts</div>
       <div class="import-review-list-value"><?= $options->conflictStrategy === 'overwrite' ? 'Overwrite existing records' : 'Skip existing records' ?></div>
 
-      <div class="listing-field-label">Images</div>
+      <div class="field-label">Images</div>
       <div class="import-review-list-value">
         <?php if ($options->imageMode === 'path'): ?>
           Same-server path
@@ -188,7 +188,7 @@ $src = View::e($source);
       </div>
 
       <?php if ($preview->sameDatabase): ?>
-        <div class="listing-field-label">Same database</div>
+        <div class="field-label">Same database</div>
         <div class="import-review-list-value">The old member tables are already in Luster's database, so member rows do not need to be copied.</div>
       <?php endif; ?>
     </div>

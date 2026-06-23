@@ -56,8 +56,8 @@ $defaultGateLabel = $currentGateType === 'button'
           </div></div>
         <div class="pc-section">
 
-          <div class="listing-field-row listing-field-row--top">
-            <label class="listing-field-label" for="global-rules-body">
+          <div class="field-row field-row--top">
+            <label class="field-label" for="global-rules-body">
               Rules Template
             </label>
             <div>
@@ -73,8 +73,8 @@ $defaultGateLabel = $currentGateType === 'button'
             </div>
           </div>
 
-          <div class="listing-field-row">
-            <label class="listing-field-label" for="global-rules-enabled">Gate Enabled</label>
+          <div class="field-row">
+            <label class="field-label" for="global-rules-enabled">Gate Enabled</label>
             <div>
               <label class="toggle-wrap">
                 <input type="checkbox" id="global-rules-enabled" name="gate_enabled" value="1"
@@ -85,8 +85,8 @@ $defaultGateLabel = $currentGateType === 'button'
             </div>
           </div>
 
-          <div class="listing-field-row" id="global-rules-gate-style-row" style="<?= $gateIsEnabled ? '' : 'display:none' ?>">
-            <label class="listing-field-label" for="global-rules-gate-type">Gate Style</label>
+          <div class="field-row" id="global-rules-gate-style-row" style="<?= $gateIsEnabled ? '' : 'display:none' ?>">
+            <label class="field-label" for="global-rules-gate-type">Gate Style</label>
             <div>
               <div class="select-wrap select-auto">
                 <select id="global-rules-gate-type" name="gate_type">
@@ -98,8 +98,8 @@ $defaultGateLabel = $currentGateType === 'button'
             </div>
           </div>
 
-          <div class="listing-field-row" id="global-rules-gate-label-row">
-            <label class="listing-field-label" for="global-rules-gate-label">Gate Label</label>
+          <div class="field-row" id="global-rules-gate-label-row">
+            <label class="field-label" for="global-rules-gate-label">Gate Label</label>
             <div>
               <input class="form" type="text" id="global-rules-gate-label" name="gate_label"
                      maxlength="255"

@@ -34,8 +34,8 @@ $b = rtrim(View::e($base_url), '/');
     </div>
 
     <div class="card-body">
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="rules_per_page">Entries Per Page</label>
+      <div class="field-row">
+        <label class="field-label" for="rules_per_page">Entries Per Page</label>
         <div>
           <input type="number" id="rules_per_page" name="rules_per_page"
                  class="form form--compact" min="5" max="100"

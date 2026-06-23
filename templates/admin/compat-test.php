@@ -29,8 +29,8 @@ $b = rtrim(View::e($base_url), '/');
   <form method="POST" action="<?= $b ?>/admin/compat-test" class="pc-section">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-    <div class="listing-field-row">
-      <label class="listing-field-label" for="ct-listing">Listing</label>
+    <div class="field-row">
+      <label class="field-label" for="ct-listing">Listing</label>
       <div>
         <div class="select-wrap" style="max-width:300px">
           <select id="ct-listing" name="listing_id">
@@ -46,8 +46,8 @@ $b = rtrim(View::e($base_url), '/');
       </div>
     </div>
 
-    <div class="listing-field-row">
-      <label class="listing-field-label" for="ct-type">Embed Type</label>
+    <div class="field-row">
+      <label class="field-label" for="ct-type">Embed Type</label>
       <div>
         <div class="select-wrap" style="max-width:200px">
           <select id="ct-type" name="embed_type">

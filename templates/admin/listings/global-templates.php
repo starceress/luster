@@ -116,7 +116,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template">List</button>
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template__table">Table</button>
           </div>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_members_template" id="listing_default_members_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_members_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -128,7 +128,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="join-form" <?= $_grp('join-form') ?>>
           <div class="pc-section-label">Join Form</div>
           <p class="form-hint mb-sm">Default join form layout. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_join_form_template" id="listing_default_join_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_join_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -140,7 +140,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
           <div class="pc-section-label">Update Membership Form</div>
           <p class="form-hint mb-sm">Default layout for the update (edit membership) form. Two steps: sign-in and edit fields.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_update_form_template" id="listing_default_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_update_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -152,7 +152,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
           <div class="pc-section-label">Lost Password Form</div>
           <p class="form-hint mb-sm">Default layout for the password reset form. Two steps: email entry and new password.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_reset_form_template" id="listing_default_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_reset_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -164,8 +164,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
           <div class="pc-section-label">Statistics</div>
 
-          <div class="listing-field-row listing-field-row--top" style="margin-bottom: 1em">
-            <label class="listing-field-label" for="gl-newmembers-limit">Default newest members shown</label>
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="gl-newmembers-limit">Default newest members shown</label>
             <div>
               <input id="gl-newmembers-limit" type="number" name="stat_newmembers_limit" class="form form--compact"
                      min="0" max="255"
@@ -175,7 +175,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             </div>
           </div>
 
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_stats_template" id="listing_default_stats_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_stats_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -187,7 +187,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
           <div class="pc-section-label">Codes Display</div>
           <p class="form-hint mb-sm">Default layout for the codes/buttons gallery. Use <code>{each_size_group}</code> for grouped mode or <code>{each_code}</code> for flat mode.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_codes_template" id="listing_default_codes_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -199,7 +199,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
           <div class="pc-section-label">Codes Donation Form</div>
           <p class="form-hint mb-sm">Default layout for the code donation form.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_codes_submit_form_template" id="listing_default_codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_submit_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -211,7 +211,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
           <div class="pc-section-label">Affiliates Display</div>
           <p class="form-hint mb-sm">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_affiliates_section_template" id="listing_default_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliates_section_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -223,7 +223,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
           <div class="pc-section-label">Affiliate Application</div>
           <p class="form-hint mb-sm">Default layout for affiliate application forms.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -235,7 +235,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
           <div class="pc-section-label">Contact Form</div>
           <p class="form-hint mb-sm">Default layout for the contact form (name, email, subject, message).</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_contact_form_template" id="listing_default_contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_contact_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -247,7 +247,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
           <div class="pc-section-label">News Feed</div>
           <p class="form-hint mb-sm">Default for listings with the News Feed add-on. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea name="listing_default_updates_template" id="listing_default_updates_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_updates_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">

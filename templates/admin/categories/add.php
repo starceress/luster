@@ -23,8 +23,8 @@ $fe = $field_errors ?? [];
   <div class="gradient-card">
     <div class="pc-section">
 
-      <div class="listing-field-row listing-field-row--top<?= !empty($fe['name']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="cat-name">
+      <div class="field-row field-row--top<?= !empty($fe['name']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="cat-name">
           Category Name <span class="req">*</span>
         </label>
         <div>
@@ -38,8 +38,8 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="cat-slug">URL Slug</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="cat-slug">URL Slug</label>
         <div>
           <input id="cat-slug" type="text" name="slug" class="form"
                  maxlength="100"
@@ -49,8 +49,8 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="cat-parent">Parent Category</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="cat-parent">Parent Category</label>
         <div>
           <div class="select-wrap">
             <select id="cat-parent" name="parent_id">
@@ -69,8 +69,8 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="add-network-toggle">Add to a Network?</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="add-network-toggle">Add to a Network?</label>
         <div>
           <div class="select-wrap">
             <select id="add-network-toggle" name="add_network">
@@ -82,8 +82,8 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top is-hidden" id="network-name-row">
-        <label class="listing-field-label" for="cat-network">Network Name</label>
+      <div class="field-row field-row--top is-hidden" id="network-name-row">
+        <label class="field-label" for="cat-network">Network Name</label>
         <div>
           <input id="cat-network" type="text" name="network_name" class="form"
                  maxlength="50" placeholder="e.g. MyNetwork">

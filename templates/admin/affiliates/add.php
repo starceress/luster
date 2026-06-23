@@ -75,8 +75,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
                 }
             }
           ?>
-          <div class="listing-field-row listing-field-row--top">
-            <label class="listing-field-label">Listing</label>
+          <div class="field-row field-row--top">
+            <label class="field-label">Listing</label>
             <div>
               <p class="text-strong"><?= View::e($scopeLabel) ?></p>
               <p class="form-hint">Listing assignment cannot be changed after creation.</p>
@@ -84,8 +84,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
             </div>
           </div>
         <?php else: ?>
-          <div class="listing-field-row listing-field-row--top">
-            <label class="listing-field-label" for="aff-listing">Listing</label>
+          <div class="field-row field-row--top">
+            <label class="field-label" for="aff-listing">Listing</label>
             <div>
               <div class="select-wrap">
                 <select id="aff-listing" name="fanlisting_id">
@@ -110,8 +110,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <?php endif; ?>
 
       <!-- Affiliate Name -->
-      <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="aff-name">
+      <div class="field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="aff-name">
           Affiliate Name <span class="req">*</span>
         </label>
         <div>
@@ -126,8 +126,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       </div>
 
       <!-- URL -->
-      <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="aff-url">
+      <div class="field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="aff-url">
           URL <span class="req">*</span>
         </label>
         <div>
@@ -141,8 +141,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       </div>
 
       <!-- Email -->
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="aff-email">Email</label>
+      <div class="field-row">
+        <label class="field-label" for="aff-email">Email</label>
         <div>
           <input id="aff-email" type="email" name="email" class="form"
                  maxlength="255" placeholder="owner@example.com"
@@ -152,8 +152,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 
       <!-- Status (edit mode only) -->
       <?php if ($isEdit): ?>
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="aff-status">Status</label>
+      <div class="field-row">
+        <label class="field-label" for="aff-status">Status</label>
         <div>
           <?php $currentStatus = $old['status'] ?? $affiliate->status ?? 'approved'; ?>
           <div class="select-wrap">
@@ -166,8 +166,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
           <p class="form-hint">Changing to Rejected will also deactivate the affiliate.</p>
         </div>
       </div>
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="aff-active">Active</label>
+      <div class="field-row">
+        <label class="field-label" for="aff-active">Active</label>
         <div>
           <?php $isActive = isset($old['active']) ? $old['active'] === '1' : ($affiliate->active ?? false); ?>
           <div class="select-wrap">
@@ -183,8 +183,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 
       <!-- Application message (read-only, edit mode only, when present) -->
       <?php if ($isEdit && ($affiliate->applicationMessage ?? '') !== ''): ?>
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label">Application Message</label>
+      <div class="field-row field-row--top">
+        <label class="field-label">Application Message</label>
         <div>
           <textarea class="form" rows="4" readonly><?= View::e($affiliate->applicationMessage) ?></textarea>
           <p class="form-hint">Submitted by the applicant. Read-only.</p>
@@ -193,8 +193,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <?php endif; ?>
 
       <!-- Image -->
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Image</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Image</span>
         <div>
           <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
             <div class="existing-upload-preview">

@@ -33,8 +33,8 @@ $b = rtrim(View::e($base_url), '/');
     </div>
 
     <div class="card-body">
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="wishlist_per_page">Entries Per Page</label>
+      <div class="field-row">
+        <label class="field-label" for="wishlist_per_page">Entries Per Page</label>
         <div>
           <input type="number" id="wishlist_per_page" name="wishlist_per_page"
                  class="form form--compact" min="1" max="100"

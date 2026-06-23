@@ -68,7 +68,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
       <div class="pc-section-label">Target Luster Listing <span class="req">*</span></div>
       
       <div class="pc-section">
-      <div class="form-group">
+      <div class="field-group">
         <div class="select-wrap">
           <select name="bb_target_listing_id" id="bb-target-listing" required>
             <option value="">— Select Listing —</option>

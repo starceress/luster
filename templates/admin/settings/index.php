@@ -86,8 +86,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">Login Details</div>
-            <div class="listing-field-row listing-field-row--top<?= !empty($fe['username']) ? ' has-error' : '' ?>">
-              <label class="listing-field-label" for="p-username">Username <span class="req">*</span></label>
+            <div class="field-row field-row--top<?= !empty($fe['username']) ? ' has-error' : '' ?>">
+              <label class="field-label" for="p-username">Username <span class="req">*</span></label>
               <div>
                 <input id="p-username" type="text" name="admin_username" class="form"
                        maxlength="50" required
@@ -97,8 +97,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
             </div>
 
-            <div class="listing-field-row listing-field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
-              <label class="listing-field-label" for="p-email">Email Address <span class="req">*</span></label>
+            <div class="field-row field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+              <label class="field-label" for="p-email">Email Address <span class="req">*</span></label>
               <div>
                 <input id="p-email" type="email" name="admin_email" class="form"
                        maxlength="255" required
@@ -108,8 +108,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
             </div>
 
-            <div class="listing-field-row listing-field-row--top">
-              <label class="listing-field-label" for="p-owner-name">Owner Name <span class="req">*</span></label>
+            <div class="field-row field-row--top">
+              <label class="field-label" for="p-owner-name">Owner Name <span class="req">*</span></label>
               <div>
                 <input id="p-owner-name" type="text" name="admin_display_name" class="form"
                        maxlength="100" required
@@ -121,8 +121,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">Change Password</div>
-            <div class="form-group<?= !empty($fe['admin_current_password']) ? ' has-error' : '' ?>">
-              <label class="form-label" for="p-current-pass">Current Password <em class="opt">(required to set a new password)</em></label>
+            <div class="field-group<?= !empty($fe['admin_current_password']) ? ' has-error' : '' ?>">
+              <label class="field-label" for="p-current-pass">Current Password <em class="opt">(required to set a new password)</em></label>
               <div class="input-icon-wrap">
                 <input id="p-current-pass" type="password" name="admin_current_password" class="form"
                        maxlength="255" autocomplete="current-password"
@@ -135,9 +135,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <p class="form-hint">Only needed when you are changing your password.</p>
               <?php if (!empty($fe['admin_current_password'])): ?><p class="field-error"><?= View::e($fe['admin_current_password'][0]) ?></p><?php endif; ?>
             </div>
-            <div class="form-row">
-              <div class="form-group<?= !empty($fe['admin_new_password']) ? ' has-error' : '' ?>">
-                <label class="form-label" for="p-new-pass">New Password</label>
+            <div class="field-grid">
+              <div class="field-group<?= !empty($fe['admin_new_password']) ? ' has-error' : '' ?>">
+                <label class="field-label" for="p-new-pass">New Password</label>
                 <div class="input-icon-wrap">
                   <input id="p-new-pass" type="password" name="admin_new_password" class="form"
                          maxlength="255" autocomplete="new-password"
@@ -150,8 +150,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <p class="form-hint">Leave blank to keep your current password. New passwords must be at least 12 characters.</p>
                 <?php if (!empty($fe['admin_new_password'])): ?><p class="field-error"><?= View::e($fe['admin_new_password'][0]) ?></p><?php endif; ?>
               </div>
-              <div class="form-group<?= !empty($fe['admin_confirm_password']) ? ' has-error' : '' ?>">
-                <label class="form-label" for="p-confirm-pass">Confirm New Password</label>
+              <div class="field-group<?= !empty($fe['admin_confirm_password']) ? ' has-error' : '' ?>">
+                <label class="field-label" for="p-confirm-pass">Confirm New Password</label>
                 <div class="input-icon-wrap">
                   <input id="p-confirm-pass" type="password" name="admin_confirm_password" class="form"
                          maxlength="255" autocomplete="new-password"
@@ -257,8 +257,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="pc-section">
           <div class="pc-section-label">Default Mode</div>
           <?php $activeDefaultTheme = $site_settings['admin_default_theme'] ?? 'light'; ?>
-          <div class="listing-field-row">
-            <label class="listing-field-label">Light / Dark</label>
+          <div class="field-row">
+            <label class="field-label">Light / Dark</label>
             <div>
               <div class="theme-mode-picker">
                 <form method="POST" action="<?= $b ?>/admin/settings/default-theme"
@@ -375,16 +375,16 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">Site Information</div>
-            <div class="form-group<?= !empty($fe['site_name']) ? ' has-error' : '' ?>">
-              <label class="form-label" for="s-site-name">Site Name <span class="req">*</span></label>
+            <div class="field-group<?= !empty($fe['site_name']) ? ' has-error' : '' ?>">
+              <label class="field-label" for="s-site-name">Site Name <span class="req">*</span></label>
               <input id="s-site-name" type="text" name="site_name" class="form"
                      maxlength="100" required
                      value="<?= View::e(cfgVal($cfg, 'site_name', 'Luster')) ?>">
               <p class="form-hint">Your collective's name. Luster also uses this in outgoing emails and admin page titles.</p>
               <?php if (!empty($fe['site_name'])): ?><p class="field-error"><?= View::e($fe['site_name'][0]) ?></p><?php endif; ?>
             </div>
-            <div class="form-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>">
-              <label class="form-label" for="s-site-url">Collective Public URL <span class="req">*</span></label>
+            <div class="field-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>">
+              <label class="field-label" for="s-site-url">Collective Public URL <span class="req">*</span></label>
               <input id="s-site-url" type="url" name="site_url" class="form" maxlength="500" required
                      value="<?= View::e(cfgVal($cfg, 'site_url')) ?>">
               <p class="form-hint">Your collective's public homepage URL, without a trailing slash. Luster uses this for the &ldquo;Visit site&rdquo; admin link and as a fallback for embedded forms.</p>
@@ -394,16 +394,16 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">Owner Information</div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="s-owner-name">Owner Name</label>
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label" for="s-owner-name">Owner Name</label>
                 <input id="s-owner-name" type="text" name="owner_name" class="form"
                        maxlength="100"
                        value="<?= View::e(cfgVal($cfg, 'owner_name')) ?>">
                 <p class="form-hint">The public owner name used in email templates and messages.</p>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="s-owner-email">Contact Email</label>
+              <div class="field-group">
+                <label class="field-label" for="s-owner-email">Contact Email</label>
                 <input id="s-owner-email" type="email" name="owner_email" class="form" maxlength="255"
                        value="<?= View::e(cfgVal($cfg, 'owner_email')) ?>">
                 <p class="form-hint">The public contact email used for outgoing messages. This can be different from your admin login email.</p>
@@ -413,9 +413,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">Display & Locale</div>
-            <div class="form-row form-row--3">
-              <div class="form-group">
-                <label class="form-label" for="s-timezone">Timezone</label>
+            <div class="field-grid field-grid--3">
+              <div class="field-group">
+                <label class="field-label" for="s-timezone">Timezone</label>
                 <?php
                   $currentTz = cfgVal($cfg, 'timezone', 'UTC');
                   $commonTz  = [
@@ -470,8 +470,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 </div>
                 <p class="form-hint">Timezone for all date/time display throughout the admin panel.</p>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="s-date-format">Date Format</label>
+              <div class="field-group">
+                <label class="field-label" for="s-date-format">Date Format</label>
                 <?php
                   $dateFmtFormats = ['j M Y', 'M j, Y', 'F j, Y', 'd/m/Y', 'm/d/Y', 'Y-m-d', 'd-m-Y', 'm-d-Y'];
                   $dateFmtOptions = array_combine($dateFmtFormats, array_map(static fn($f) => date($f), $dateFmtFormats));
@@ -486,8 +486,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 </div>
                 <p class="form-hint">Choose how dates look in admin tables and activity screens.</p>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="s-time-format">Time Format</label>
+              <div class="field-group">
+                <label class="field-label" for="s-time-format">Time Format</label>
                 <?php
                   $timeFmtFormats = ['H:i', 'g:i A', 'g:i a'];
                   $timeFmtOptions = array_combine($timeFmtFormats, array_map(static fn($f) => date($f), $timeFmtFormats));
@@ -530,7 +530,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">SMTP Email</div>
-            <div class="form-group">
+            <div class="field-group">
               <label class="toggle-wrap">
                 <input type="checkbox" name="smtp_enabled" value="1"
                        <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'checked' : '' ?>>
@@ -538,40 +538,40 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </label>
               <p class="form-hint">Turn this on when you want Luster to send mail through a real email account or email service. Leave it off only if your web host's built-in PHP mail sending is already reliable.</p>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-host">SMTP Host</label>
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label" for="s-smtp-host">SMTP Host</label>
                 <input id="s-smtp-host" type="text" name="smtp_host" class="form"
                        maxlength="255" placeholder="e.g. smtp.gmail.com"
                        value="<?= View::e(cfgVal($cfg, 'smtp_host')) ?>">
                 <p class="form-hint">The mail server address from your email provider.</p>
               </div>
-              <div class="form-group form-group--narrow">
-                <label class="form-label" for="s-smtp-port">Port</label>
+              <div class="field-group">
+                <label class="field-label" for="s-smtp-port">Port</label>
                 <input id="s-smtp-port" type="number" name="smtp_port" class="form form--narrow"
                        min="1" max="65535"
                        value="<?= View::e((string) (int) ($cfg['smtp_port'] ?? 587)) ?>">
                 <p class="form-hint">587 for TLS, 465 for SSL.</p>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-user">SMTP Username</label>
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label" for="s-smtp-user">SMTP Username</label>
                 <input id="s-smtp-user" type="text" name="smtp_user" class="form"
                        maxlength="255" autocomplete="off"
                        value="<?= View::e(cfgVal($cfg, 'smtp_user')) ?>">
                 <p class="form-hint">Usually your full email address, unless your provider says otherwise.</p>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-pass">SMTP Password</label>
+              <div class="field-group">
+                <label class="field-label" for="s-smtp-pass">SMTP Password</label>
                 <input id="s-smtp-pass" type="password" name="smtp_pass" class="form"
                        maxlength="255" autocomplete="new-password"
                        placeholder="<?= (cfgVal($cfg, 'smtp_pass') !== '') ? '(password stored - leave blank to keep)' : '' ?>">
                 <p class="form-hint">Leave blank to keep the current stored password. Enter a new value to replace it.</p>
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="s-smtp-secure">Encryption</label>
+            <div class="field-group">
+              <label class="field-label" for="s-smtp-secure">Encryption</label>
               <div class="select-wrap">
                 <select id="s-smtp-secure" name="smtp_secure">
                   <?php
@@ -585,16 +585,16 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
               <p class="form-hint">Use the encryption type your email provider lists for outgoing SMTP.</p>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-from">From Address</label>
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label" for="s-smtp-from">From Address</label>
                 <input id="s-smtp-from" type="email" name="smtp_from" class="form"
                        maxlength="255" placeholder="Defaults to Contact Email"
                        value="<?= View::e(cfgVal($cfg, 'smtp_from')) ?>">
                 <p class="form-hint">The sender email address recipients see. Leave blank to use the Contact Email above.</p>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-from-name">From Name</label>
+              <div class="field-group">
+                <label class="field-label" for="s-smtp-from-name">From Name</label>
                 <input id="s-smtp-from-name" type="text" name="smtp_from_name" class="form"
                        maxlength="100" placeholder="Defaults to Owner Name"
                        value="<?= View::e(cfgVal($cfg, 'smtp_from_name')) ?>">
@@ -646,8 +646,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <div>These settings tell copied embed snippets where Luster lives. Most sites can keep the detected values. Edit them only when embedded forms submit to the wrong place or link checks look for the wrong URL.</div>
             </div>
             
-              <div class="listing-field-row listing-field-row--top">
-                <label class="listing-field-label" for="s-install-path">Server Install Path</label>
+              <div class="field-row field-row--top">
+                <label class="field-label" for="s-install-path">Server Install Path</label>
                 <div>
                   <?php $_installPath = cfgVal($cfg, 'install_path') ?: (rtrim(str_replace('\\', '/', LUSTER_BASE), '/') . '/'); ?>
                   <div class="input-action-row">
@@ -658,8 +658,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <p class="form-hint">The server folder where Luster is installed, ending with a slash. This is a disk path, not a web address. Only change it if copied embed snippets cannot find Luster.</p>
                 </div>
               </div>
-              <div class="listing-field-row listing-field-row--top">
-                <label class="listing-field-label" for="s-embed-url">Embed Form Submission URL</label>
+              <div class="field-row field-row--top">
+                <label class="field-label" for="s-embed-url">Embed Form Submission URL</label>
                 <div>
                   <?php $_embedBaseUrl = cfgVal($cfg, 'embed_base_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
                   <div class="input-action-row">
@@ -670,8 +670,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <p class="form-hint">The web address embedded forms submit to, without a trailing slash. Change this only if your public fanlisting pages live on a different domain or folder than the Luster admin app.</p>
                 </div>
               </div>
-              <div class="listing-field-row listing-field-row--top">
-                <label class="listing-field-label" for="s-reciprocal-url">Reciprocal Link Check URL</label>
+              <div class="field-row field-row--top">
+                <label class="field-label" for="s-reciprocal-url">Reciprocal Link Check URL</label>
                 <div>
                   <?php $_reciprocalUrl = cfgVal($cfg, 'reciprocal_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
                   <div class="input-action-row">
@@ -707,8 +707,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="pc-section">
             <div class="pc-section-label">Admin Alerts</div>
 
-            <div class="listing-field-row">
-              <label class="listing-field-label" for="notif-update-email">Luster Updates</label>
+            <div class="field-row">
+              <label class="field-label" for="notif-update-email">Luster Updates</label>
               <div>
                 <label class="toggle-wrap">
                   <input type="hidden" name="update_email_notify" value="0">
@@ -720,8 +720,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
             </div>
 
-            <div class="listing-field-row">
-              <label class="listing-field-label" for="notif-pending-digest">Pending Digest</label>
+            <div class="field-row">
+              <label class="field-label" for="notif-pending-digest">Pending Digest</label>
               <div>
                 <label class="toggle-wrap">
                   <input type="hidden" name="pending_digest_enabled" value="0">
@@ -737,8 +737,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="pc-section">
             <div class="pc-section-label">Overdue Notifications</div>
 
-            <div class="listing-field-row">
-              <label class="listing-field-label" for="notif-stale-days">Overdue Warning (days)</label>
+            <div class="field-row">
+              <label class="field-label" for="notif-stale-days">Overdue Warning (days)</label>
               <div>
                 <input id="notif-stale-days" type="number" name="stale_days" class="form form--compact"
                        min="1" max="365"
@@ -747,8 +747,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
             </div>
 
-            <div class="listing-field-row">
-              <label class="listing-field-label" for="notif-overdue-email">Overdue Email</label>
+            <div class="field-row">
+              <label class="field-label" for="notif-overdue-email">Overdue Email</label>
               <div>
                 <label class="toggle-wrap">
                   <input type="hidden" name="overdue_notify_enabled" value="0">
@@ -760,8 +760,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
             </div>
 
-            <div class="listing-field-row">
-              <label class="listing-field-label" for="notif-overdue-days">Days Until Overdue Email</label>
+            <div class="field-row">
+              <label class="field-label" for="notif-overdue-days">Days Until Overdue Email</label>
               <div>
                 <input id="notif-overdue-days" type="number" name="overdue_days" class="form form--compact"
                        min="1" max="365"
@@ -781,15 +781,15 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             }
           ?>
 
-            <div class="listing-field-row">
-              <label class="listing-field-label">Last Sent</label>
+            <div class="field-row">
+              <label class="field-label">Last Sent</label>
               <div>
                 <p class="form-hint">Last notification sent: <strong><?= View::e($nfLastSent) ?></strong></p>
               </div>
             </div>
 
-            <div class="listing-field-row">
-              <label class="listing-field-label">Send Now</label>
+            <div class="field-row">
+              <label class="field-label">Send Now</label>
               <div>
                 <button type="button" class="btn btn-quaternary btn-sm"
                         onclick="document.getElementById('overdue-now-form').requestSubmit()">
@@ -831,15 +831,15 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
           <div class="pc-section">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="bl-pattern">Email Pattern <span class="req">*</span></label>
+            <div class="field-grid">
+              <div class="field-group">
+                <label class="field-label" for="bl-pattern">Email Pattern <span class="req">*</span></label>
                 <input id="bl-pattern" type="text" name="pattern" class="form" maxlength="255" required
                        placeholder="spam@example.com  or  @spam.com">
                 <p class="form-hint">Use a full email address to block one person, or start with <code>@</code> to block everyone from that email domain.</p>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="bl-note">Note <em class="opt">(optional)</em></label>
+              <div class="field-group">
+                <label class="field-label" for="bl-note">Note <em class="opt">(optional)</em></label>
                 <input id="bl-note" type="text" name="note" class="form"
                        maxlength="500" placeholder="Why this address was blocked">
                 <p class="form-hint">Internal note &mdash; not shown to visitors.</p>
@@ -936,7 +936,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="pc-section">
           <div class="pc-section-label">Script</div>
             <div class="sysinfo-row">
-              <span class="form-label">Name</span> Luster
+              <span class="field-label">Name</span> Luster
             </div>
 
           <?php
@@ -948,13 +948,13 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           ?>
 
           <div class="sysinfo-row">
-            <span class="form-label">Installed Version</span>
+            <span class="field-label">Installed Version</span>
             <?= View::e(Version::CURRENT) ?>
           </div>
 
           <?php if (!$us->neverChecked): ?>
           <div class="sysinfo-row">
-            <span class="form-label">Latest Version</span>
+            <span class="field-label">Latest Version</span>
             <?php if ($us->latest !== null): ?>
               <?= View::e($us->latest) ?>
             <?php elseif (!$us->checkFailed): ?>
@@ -964,7 +964,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?php endif; ?>
           </div>
           <div class="sysinfo-row">
-            <span class="form-label">Release Status</span>
+            <span class="field-label">Release Status</span>
             <span class="status-inline">
               <?php if ($us->checkFailed): ?>
                 <span class="badge badge-inactive">Check failed</span>
@@ -985,7 +985,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
           <?php endif; ?>
           <div class="sysinfo-row">
-            <span class="form-label">Last Checked</span>
+            <span class="field-label">Last Checked</span>
             <span style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
               <?php if (!$us->neverChecked): ?>
                 <?= View::e($checkedStr ?? '') ?>
@@ -1008,10 +1008,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="pc-section">
           <div class="pc-section-label">Server</div>
             <div class="sysinfo-row">
-              <span class="form-label">PHP Version</span> <?= View::e($php_version) ?>
+              <span class="field-label">PHP Version</span> <?= View::e($php_version) ?>
             </div>
             <div class="sysinfo-row">
-              <span class="form-label">Database</span> <?= View::e($db_version) ?>
+              <span class="field-label">Database</span> <?= View::e($db_version) ?>
             </div>
         </div>
 
@@ -1024,16 +1024,16 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             These values come from <code>config/app.php</code>. Luster shows them here so you can verify what database this install is using.
           </p>
             <div class="sysinfo-row">
-              <span class="form-label">Host</span> <?= View::e(cfgVal($cfg, 'db_host', 'localhost')) ?>
+              <span class="field-label">Host</span> <?= View::e(cfgVal($cfg, 'db_host', 'localhost')) ?>
             </div>
             <div class="sysinfo-row">
-              <span class="form-label">Database</span> <?= View::e(cfgVal($cfg, 'db_name')) ?>
+              <span class="field-label">Database</span> <?= View::e(cfgVal($cfg, 'db_name')) ?>
             </div>
             <div class="sysinfo-row">
-              <span class="form-label">User</span> <?= View::e(cfgVal($cfg, 'db_user')) ?>
+              <span class="field-label">User</span> <?= View::e(cfgVal($cfg, 'db_user')) ?>
             </div>
             <div class="sysinfo-row">
-              <span class="form-label">Debug</span>
+              <span class="field-label">Debug</span>
               <span class="status-inline">
                 <?php if ($cfg['app_debug'] ?? false): ?>
                   <span class="badge badge-error">Enabled</span>
@@ -1044,7 +1044,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </span>
             </div>
             <div class="sysinfo-row">
-              <span class="form-label">Install URL</span>
+              <span class="field-label">Install URL</span>
               <span class="text-mono text-dim"><?= View::e(cfgVal($cfg, 'app_url')) ?></span>
             </div>
             <p class="form-hint">The install URL is where the Luster app itself lives. Your public collective URL can be different.</p>

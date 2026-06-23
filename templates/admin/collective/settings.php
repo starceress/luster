@@ -29,8 +29,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     <div class="pc-section">
       <div class="pc-section-label">Contact Form</div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label">Contact Form</label>
+      <div class="field-row field-row--top">
+        <label class="field-label">Contact Form</label>
         <div>
           <label class="toggle-wrap">
             <input type="checkbox" name="collective_contact_enabled" value="1"
@@ -41,8 +41,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="s-collective-contact-recipient">Recipient email</label>
+      <div class="field-row">
+        <label class="field-label" for="s-collective-contact-recipient">Recipient email</label>
         <div>
           <input id="s-collective-contact-recipient" type="email"
                  name="collective_contact_recipient" class="form" maxlength="255"
@@ -56,8 +56,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     <div class="pc-section">
       <div class="pc-section-label">Affiliate Applications</div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label">Applications</label>
+      <div class="field-row field-row--top">
+        <label class="field-label">Applications</label>
         <div>
           <label class="toggle-wrap">
             <input type="checkbox" name="collective_affiliate_apply_enabled" value="1"
@@ -72,8 +72,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     <div class="pc-section">
       <div class="pc-section-label">Form Page URLs</div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="s-form-url-codes-submit">Code Donation Form</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="s-form-url-codes-submit">Code Donation Form</label>
         <div>
           <input id="s-form-url-codes-submit" type="text" name="collective_form_url_codes_submit" class="form" maxlength="200"
                  value="<?= View::e($site_settings['collective_form_url_codes_submit'] ?? '') ?>"
@@ -82,8 +82,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="s-form-url-affiliate-apply">Affiliate Application</label>
+      <div class="field-row">
+        <label class="field-label" for="s-form-url-affiliate-apply">Affiliate Application</label>
         <div>
           <input id="s-form-url-affiliate-apply" type="text" name="collective_form_url_affiliate_apply" class="form" maxlength="200"
                  value="<?= View::e($site_settings['collective_form_url_affiliate_apply'] ?? '') ?>"
@@ -92,8 +92,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="s-form-url-adopt">Adoption Form</label>
+      <div class="field-row">
+        <label class="field-label" for="s-form-url-adopt">Adoption Form</label>
         <div>
           <input id="s-form-url-adopt" type="text" name="collective_form_url_adopt" class="form" maxlength="200"
                  value="<?= View::e($site_settings['collective_form_url_adopt'] ?? '') ?>"
@@ -102,8 +102,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="s-form-url-contact">Contact Form</label>
+      <div class="field-row">
+        <label class="field-label" for="s-form-url-contact">Contact Form</label>
         <div>
           <input id="s-form-url-contact" type="text" name="collective_form_url_contact" class="form" maxlength="200"
                  value="<?= View::e($site_settings['collective_form_url_contact'] ?? '') ?>"

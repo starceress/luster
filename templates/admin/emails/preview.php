@@ -29,22 +29,22 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
   <div class="db-info-grid summary-grid">
     <div>
-      <div class="form-label summary-label">Send to</div>
+      <div class="field-label summary-label">Send to</div>
       <div><?= View::e($listing_title) ?></div>
     </div>
     <div>
-      <div class="form-label summary-label">Recipients</div>
+      <div class="field-label summary-label">Recipients</div>
       <div><strong><?= (int) $total ?></strong> unique address<?= $total !== 1 ? 'es' : '' ?></div>
     </div>
     <div class="summary-span-full">
-      <div class="form-label summary-label">Subject</div>
+      <div class="field-label summary-label">Subject</div>
       <div><?= View::e($subject) ?></div>
     </div>
   </div>
 
   <?php if (!empty($sample)): ?>
   <div class="summary-stack">
-    <div class="form-label summary-label">Sample recipients</div>
+    <div class="field-label summary-label">Sample recipients</div>
     <ul class="summary-list">
       <?php foreach ($sample as $addr): ?>
         <li><?= View::e($addr) ?></li>

@@ -94,8 +94,8 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
     <div class="pc-section">
       <div class="pc-section-label">Database Table Prefix</div>
       <div class="pc-section">
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="fn_table_prefix">Table Prefix</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="fn_table_prefix">Table Prefix</label>
         <div>
           <input id="fn_table_prefix" type="text" name="fn_table_prefix" class="form import-input-medium"
                  placeholder="fanatic_"
@@ -115,8 +115,8 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
       <div class="pc-section">
         <div class="pc-section-label">Auto-detect Credentials</div>
         <div class="pc-section">
-          <div class="listing-field-row listing-field-row--top">
-            <label class="listing-field-label" for="js-config-path">Config file path</label>
+          <div class="field-row field-row--top">
+            <label class="field-label" for="js-config-path">Config file path</label>
             <div>
               <div style="display:flex;gap:.5rem;align-items:flex-start">
                 <input id="js-config-path" type="text" class="form" style="flex:1"
@@ -140,29 +140,29 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
       <div class="pc-section">
         <div class="pc-section-label">Database Credentials</div>
         <div class="pc-section">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="db_host">Host</label>
+        <div class="field-grid">
+          <div class="field-group">
+            <label class="field-label" for="db_host">Host</label>
             <input id="db_host" type="text" name="db_host" class="form"
                    value="<?= View::e((string) ($saved_creds['host'] ?? 'localhost')) ?>">
             <p class="form-hint">Usually <code>localhost</code> when the old script is on the same web host.</p>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="db_name">Database Name</label>
+          <div class="field-group">
+            <label class="field-label" for="db_name">Database Name</label>
             <input id="db_name" type="text" name="db_name" class="form"
                    value="<?= View::e((string) ($saved_creds['name'] ?? '')) ?>">
             <p class="form-hint">The MySQL database used by the old script.</p>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="db_user">User</label>
+        <div class="field-grid">
+          <div class="field-group">
+            <label class="field-label" for="db_user">User</label>
             <input id="db_user" type="text" name="db_user" class="form"
                    value="<?= View::e((string) ($saved_creds['user'] ?? '')) ?>">
             <p class="form-hint">The MySQL username for the old script's database.</p>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="db_pass">Password</label>
+          <div class="field-group">
+            <label class="field-label" for="db_pass">Password</label>
             <div class="input-icon-wrap">
               <input id="db_pass" type="password" name="db_pass" class="form"
                      autocomplete="new-password">
@@ -198,8 +198,8 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
         <?php endif; ?>
         
       <div class="pc-section">
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="sql_dump">Upload File <span class="req">*</span></label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="sql_dump">Upload File <span class="req">*</span></label>
           <div>
             <label class="file-drop-zone" for="sql_dump">
               <input id="sql_dump" type="file" name="sql_dump"

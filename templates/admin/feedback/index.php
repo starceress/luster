@@ -35,8 +35,8 @@ use Luster\Core\View;
     <div class="pc-section">
 
       <!-- Contact name -->
-      <div class="listing-field-row<?= isset($field_errors['contact_name']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="f-contact-name">Name <span class="req">*</span></label>
+      <div class="field-row<?= isset($field_errors['contact_name']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="f-contact-name">Name <span class="req">*</span></label>
         <div>
           <input type="text" id="f-contact-name" name="contact_name" class="form" required
                  value="<?= View::e($old['contact_name'] ?? $owner_name) ?>" maxlength="200">
@@ -47,8 +47,8 @@ use Luster\Core\View;
       </div>
 
       <!-- Contact email -->
-      <div class="listing-field-row<?= isset($field_errors['contact_email']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="f-contact">Email <span class="req">*</span></label>
+      <div class="field-row<?= isset($field_errors['contact_email']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="f-contact">Email <span class="req">*</span></label>
         <div>
           <input type="email" id="f-contact" name="contact_email" class="form" required
                  value="<?= View::e($old['contact_email'] ?? $admin_email) ?>" maxlength="254">
@@ -60,8 +60,8 @@ use Luster\Core\View;
       </div>
 
       <!-- Contact URL (optional) -->
-      <div class="listing-field-row<?= isset($field_errors['contact_url']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="f-contact-url">Website URL</label>
+      <div class="field-row<?= isset($field_errors['contact_url']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="f-contact-url">Website URL</label>
         <div>
           <input type="url" id="f-contact-url" name="contact_url" class="form"
                  value="<?= View::e($old['contact_url'] ?? '') ?>" maxlength="512" placeholder="https://yoursite.example.com">
@@ -73,8 +73,8 @@ use Luster\Core\View;
       </div>
 
       <!-- Report type -->
-      <div class="listing-field-row<?= isset($field_errors['type']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="f-type">Report type <span class="req">*</span></label>
+      <div class="field-row<?= isset($field_errors['type']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="f-type">Report type <span class="req">*</span></label>
         <div>
           <div class="select-wrap">
             <select id="f-type" name="type" class="form">
@@ -91,8 +91,8 @@ use Luster\Core\View;
       </div>
 
       <!-- Subject -->
-      <div class="listing-field-row<?= isset($field_errors['subject']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="f-subject">Subject <span class="req">*</span></label>
+      <div class="field-row<?= isset($field_errors['subject']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="f-subject">Subject <span class="req">*</span></label>
         <div>
           <input type="text" id="f-subject" name="subject" class="form"
                  value="<?= View::e($old['subject'] ?? '') ?>" maxlength="200">
@@ -103,8 +103,8 @@ use Luster\Core\View;
       </div>
 
       <!-- Description -->
-      <div class="listing-field-row listing-field-row--top<?= isset($field_errors['message']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="f-message">Description <span class="req">*</span></label>
+      <div class="field-row field-row--top<?= isset($field_errors['message']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="f-message">Description <span class="req">*</span></label>
         <div>
           <textarea id="f-message" name="message" class="form" rows="9"><?= View::e($old['message'] ?? '') ?></textarea>
           <p class="form-hint">Describe your issue, question, or suggestion in as much detail as possible.</p>
@@ -115,8 +115,8 @@ use Luster\Core\View;
       </div>
 
       <!-- System info -->
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label">System Info</label>
+      <div class="field-row field-row--top">
+        <label class="field-label">System Info</label>
         <div>
           <label class="form-check">
             <input type="checkbox" id="f-sysinfo" name="include_sysinfo" value="1"
@@ -135,8 +135,8 @@ use Luster\Core\View;
 
       <!-- Error log (only shown when there are entries) -->
       <?php if (!$errorlog_empty): ?>
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label">Error Log</label>
+      <div class="field-row field-row--top">
+        <label class="field-label">Error Log</label>
         <div>
           <label class="form-check">
             <input type="checkbox" id="f-errorlog" name="include_errorlog" value="1"
@@ -166,8 +166,8 @@ use Luster\Core\View;
 <?php if ($send_failed && $composed_body !== ''): ?>
 <div class="gradient-card mt-lg">
   <div class="pc-section">
-    <div class="listing-field-row listing-field-row--top">
-      <label class="listing-field-label">Copy report</label>
+    <div class="field-row field-row--top">
+      <label class="field-label">Copy report</label>
       <div>
         <textarea id="lstr-composed-body" class="form form-mono" rows="20" readonly><?= View::e($composed_body) ?></textarea>
         <p class="form-hint">

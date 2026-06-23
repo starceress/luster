@@ -41,8 +41,8 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="pc-section">
-      <div class="listing-field-row">
-        <span class="listing-field-label">Network & Category</span>
+      <div class="field-row">
+        <span class="field-label">Network & Category</span>
         <div>
           <div class="cat-widget" id="cat-widget"
                data-tfl='<?= $dataTfl ?>'
@@ -57,8 +57,8 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
-      <div class="listing-field-row<?= !empty($fe['subject']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="fl-subject">Subject <span class="req">*</span></label>
+      <div class="field-row<?= !empty($fe['subject']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="fl-subject">Subject <span class="req">*</span></label>
         <div>
           <input id="fl-subject" type="text" name="subject" class="form" maxlength="255" required
                  value="<?= View::e($val('subject')) ?>">
@@ -67,8 +67,8 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-title">Title</label>
+      <div class="field-row">
+        <label class="field-label" for="fl-title">Title</label>
         <div>
           <input id="fl-title" type="text" name="title" class="form" maxlength="255"
                  value="<?= View::e($val('title')) ?>">
@@ -76,8 +76,8 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
-      <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="fl-url">Website URL <span class="req">*</span></label>
+      <div class="field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="fl-url">Website URL <span class="req">*</span></label>
         <div>
           <input id="fl-url" type="url" name="url" class="form" maxlength="500" placeholder="https://" required
                  value="<?= View::e($val('url')) ?>">
@@ -85,8 +85,8 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-email">Email</label>
+      <div class="field-row">
+        <label class="field-label" for="fl-email">Email</label>
         <div>
           <input id="fl-email" type="email" name="email" class="form" maxlength="255"
                  placeholder="admin@example.com"
@@ -95,8 +95,8 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <span class="listing-field-label">Image</span>
+      <div class="field-row">
+        <span class="field-label">Image</span>
         <label class="file-drop-zone">
           <input id="thumbnail" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
           <span class="file-drop-icon"><?= View::icon('image') ?></span>
@@ -105,8 +105,8 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </label>
       </div>
 
-      <div class="listing-field-row">
-        <span class="listing-field-label">Status</span>
+      <div class="field-row">
+        <span class="field-label">Status</span>
         <div class="status-pill-row">
           <label class="status-pill status-pill--current">
             <input type="radio" name="status" value="2" <?= $selStatus === 2 ? 'checked' : '' ?>>
@@ -123,8 +123,8 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
-      <div class="listing-field-row" id="opened-row">
-        <label class="listing-field-label" for="fl-opened">Opened On</label>
+      <div class="field-row" id="opened-row">
+        <label class="field-label" for="fl-opened">Opened On</label>
         <div>
           <input id="fl-opened" type="date" name="opened" class="form form--compact"
                  value="<?= View::e($val('opened', $default_date)) ?>">

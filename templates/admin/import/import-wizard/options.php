@@ -344,8 +344,8 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <?php if ($source === 'fanatically'): ?>
     <div class="pc-section">
       <div class="pc-section-label">Fanatically Options</div>
-      <div class="form-group">
-        <label class="form-label" for="fn_kim_status">KIM List Import Status</label>
+      <div class="field-group">
+        <label class="field-label" for="fn_kim_status">KIM List Import Status</label>
         <div class="import-choice" style="margin-top:.375rem">
           <label class="import-choice-item">
             <input type="radio" name="fn_kim_status" value="active"
@@ -390,8 +390,8 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
           If your host blocks remote downloads, upload a ZIP of the image folder instead. Luster matches files by filename.
         </p>
         <div class="pc-section">
-          <div class="listing-field-row listing-field-row--top">
-            <label class="listing-field-label" for="img-path">Server Path</label>
+          <div class="field-row field-row--top">
+            <label class="field-label" for="img-path">Server Path</label>
             <div>
               <input id="img-path" type="text" name="image_path" class="form"
                      placeholder="e.g. /home/user/old-install (optional)"
@@ -399,8 +399,8 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
               <p class="form-hint">Optional. Use this only when the old image files are on the same server as Luster.</p>
             </div>
           </div>
-          <div class="listing-field-row listing-field-row--top">
-            <label class="listing-field-label" for="img-url">Live Site URL</label>
+          <div class="field-row field-row--top">
+            <label class="field-label" for="img-url">Live Site URL</label>
             <div>
               <input id="img-url" type="url" name="image_url" class="form"
                      placeholder="e.g. https://example.com/old-install (optional)"
@@ -408,8 +408,8 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
               <p class="form-hint">Optional. Use the old public site URL when Luster needs to download images from another server.</p>
             </div>
           </div>
-          <div class="listing-field-row listing-field-row--top">
-            <label class="listing-field-label" for="js-zip-file-input">Upload File</label>
+          <div class="field-row field-row--top">
+            <label class="field-label" for="js-zip-file-input">Upload File</label>
             <div>
               <label class="file-drop-zone" for="js-zip-file-input">
                 <input id="js-zip-file-input" type="file" accept=".zip"
@@ -444,8 +444,8 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
         </div>
         <div id="js-image-options"<?= $imagesOn ? '' : ' class="is-hidden"' ?>>
           <div class="pc-section" style="margin-top:.625rem">
-            <div class="listing-field-row listing-field-row--top">
-              <label class="listing-field-label" for="img-path">Server Path</label>
+            <div class="field-row field-row--top">
+              <label class="field-label" for="img-path">Server Path</label>
               <div>
                 <input id="img-path" type="text" name="image_path" class="form"
                        placeholder="e.g. /home/user/codesort/images"
@@ -453,8 +453,8 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
                 <p class="form-hint">Enter the folder that contains the CodeSort images, not the whole CodeSort install. Luster tries this first, then the URL.</p>
               </div>
             </div>
-            <div class="listing-field-row listing-field-row--top">
-              <label class="listing-field-label" for="img-url">Live Site URL</label>
+            <div class="field-row field-row--top">
+              <label class="field-label" for="img-url">Live Site URL</label>
               <div>
                 <input id="img-url" type="url" name="image_url" class="form"
                        placeholder="e.g. https://example.com/codesort/images (optional)"
@@ -462,8 +462,8 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
                 <p class="form-hint">Optional. Use this when Luster must download CodeSort images from the old public site.</p>
               </div>
             </div>
-            <div class="listing-field-row listing-field-row--top">
-              <label class="listing-field-label" for="js-zip-file-input">Upload File</label>
+            <div class="field-row field-row--top">
+              <label class="field-label" for="js-zip-file-input">Upload File</label>
               <div>
                 <label class="file-drop-zone" for="js-zip-file-input">
                   <input id="js-zip-file-input" type="file" accept=".zip"

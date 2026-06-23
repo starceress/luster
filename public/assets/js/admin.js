@@ -2218,8 +2218,8 @@ document.addEventListener('drop', function (e) {
       if (f.type === 'tokens') {
         custVals[f.id] = (f.tokens || []).filter(function (t) { return t.checked; })
           .map(function (t) { return { token: t.token, line: t.line }; });
-        html += '<div class="listing-field-row listing-field-row--top">'
-              + '<label class="listing-field-label">' + f.label + '</label>'
+        html += '<div class="field-row field-row--top">'
+              + '<label class="field-label">' + f.label + '</label>'
               + '<div><div class="ec-token-grid">';
         (f.tokens || []).forEach(function (t) {
           html += '<label class="ec-token-item">'
@@ -2240,8 +2240,8 @@ document.addEventListener('drop', function (e) {
       if (f.type === 'cstatvars') {
         custVals[f.id] = (f.vars || []).filter(function (v) { return v.checked; })
           .map(function (v) { return { name: v.name, label: v.label }; });
-        html += '<div class="listing-field-row listing-field-row--top">'
-              + '<label class="listing-field-label">' + f.label + '</label>'
+        html += '<div class="field-row field-row--top">'
+              + '<label class="field-label">' + f.label + '</label>'
               + '<div><div class="ec-token-grid">';
         (f.vars || []).forEach(function (v) {
           html += '<label class="ec-token-item">'
@@ -2259,8 +2259,8 @@ document.addEventListener('drop', function (e) {
         return;
       }
       // Standard option: label column + control column
-      html += '<div class="listing-field-row listing-field-row--top" id="ec-row-' + esc(f.id) + '">'
-            + '<label class="listing-field-label" for="ec-f-' + esc(f.id) + '">' + f.label + '</label>'
+      html += '<div class="field-row field-row--top" id="ec-row-' + esc(f.id) + '">'
+            + '<label class="field-label" for="ec-f-' + esc(f.id) + '">' + f.label + '</label>'
             + '<div>';
       if (f.type === 'listing' || f.type === 'listing_or_zero') {
         var isListingSection = secSel && secSel.value === 'l';

@@ -42,8 +42,8 @@ require_once __DIR__ . '/../_css_assets.php';
     <form method="POST" action="" novalidate>
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
 
-      <div class="form-group">
-        <label class="form-label" for="new_password">New Password <span>*</span></label>
+      <div class="field-group">
+        <label class="field-label" for="new_password">New Password <span>*</span></label>
         <div class="input-icon-wrap">
           <input type="password" id="new_password" name="new_password" class="form"
                  maxlength="255" required autocomplete="new-password" autofocus>
@@ -54,8 +54,8 @@ require_once __DIR__ . '/../_css_assets.php';
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="new_password_confirm">Confirm New Password <span>*</span></label>
+      <div class="field-group">
+        <label class="field-label" for="new_password_confirm">Confirm New Password <span>*</span></label>
         <div class="input-icon-wrap">
           <input type="password" id="new_password_confirm" name="new_password_confirm" class="form"
                  maxlength="255" required autocomplete="new-password">

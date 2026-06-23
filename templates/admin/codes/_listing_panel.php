@@ -75,12 +75,12 @@ $_tabRejected = $_codesBaseUrl !== null
       <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
       <input type="hidden" name="_from"  value="<?= View::e($_from) ?>">
       <div>
-        <label class="form-label code-modal-label">Label <span class="text-dim">(optional)</span></label>
+        <label class="field-label code-modal-label">Label <span class="text-dim">(optional)</span></label>
         <input class="form" type="text" name="name" value="<?= View::e($code->name ?? '') ?>"
                placeholder="<?= View::e($code->filename) ?>">
       </div>
       <div>
-        <label class="form-label code-modal-label">Status</label>
+        <label class="field-label code-modal-label">Status</label>
         <div class="select-wrap">
           <select name="status">
             <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>Live</option>
@@ -91,7 +91,7 @@ $_tabRejected = $_codesBaseUrl !== null
       </div>
       <?php if ($_hasDonors): ?>
       <div>
-        <label class="form-label code-modal-label">Donor</label>
+        <label class="field-label code-modal-label">Donor</label>
         <div class="select-wrap">
           <select name="donor_id">
             <option value="">None</option>
@@ -104,7 +104,7 @@ $_tabRejected = $_codesBaseUrl !== null
       <?php endif; ?>
       <?php if ($_hasCats): ?>
       <div>
-        <label class="form-label code-modal-label">Category</label>
+        <label class="field-label code-modal-label">Category</label>
         <div class="select-wrap">
           <select name="cat_ids[]">
             <option value="">None</option>
@@ -124,17 +124,17 @@ $_tabRejected = $_codesBaseUrl !== null
       <details<?= $_hasDonorInfo ? ' open' : '' ?> class="code-donor-details">
         <summary class="link" style="font-size:var(--fs-sm);margin-bottom:.5rem;display:inline-block;list-style:none;cursor:pointer"><?= $_hasDonorInfo ? 'Donor information' : '+ Add Donor Information' ?></summary>
         <div>
-          <label class="form-label code-modal-label">Donor Name</label>
+          <label class="field-label code-modal-label">Donor Name</label>
           <input class="form" type="text" name="submitter_name"
                  value="<?= View::e($code->submitterName ?? '') ?>" placeholder="Display name&hellip;">
         </div>
         <div style="margin-top:.5rem">
-          <label class="form-label code-modal-label">Donor Email</label>
+          <label class="field-label code-modal-label">Donor Email</label>
           <input class="form" type="email" name="submitter_email"
                  value="<?= View::e($code->submitterEmail ?? '') ?>" placeholder="Optional">
         </div>
         <div style="margin-top:.5rem">
-          <label class="form-label code-modal-label">Donor Website</label>
+          <label class="field-label code-modal-label">Donor Website</label>
           <input class="form" type="url" name="submitter_url"
                  value="<?= View::e($code->submitterUrl ?? '') ?>" placeholder="https://&hellip;">
         </div>

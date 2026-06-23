@@ -41,8 +41,8 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
     </div>
 
     <div class="pc-section">
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-sort">Sort listings by</label>
+      <div class="field-row">
+        <label class="field-label" for="fl-sort">Sort listings by</label>
         <div>
           <div class="select-wrap select-auto">
             <select id="fl-sort" name="owned_sort" >
@@ -67,8 +67,8 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
     </div>
 
     <div class="pc-section">
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-per-page">Listings per page</label>
+      <div class="field-row">
+        <label class="field-label" for="fl-per-page">Listings per page</label>
         <div>
           <input type="number" id="fl-per-page" name="owned_per_page" class="form form--compact" min="5" max="50" value="<?= (int) ($cfg['owned_per_page'] ?? 10) ?>">
           <p class="form-hint">How many listings to show on each admin page. Choose 5&ndash;50.</p>

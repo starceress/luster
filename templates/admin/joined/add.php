@@ -70,8 +70,8 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
     </div>
 
     <div class="pc-section">
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Network &amp; Category</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Network &amp; Category</span>
         <div>
           <div class="cat-widget"
                id="cat-widget"
@@ -87,8 +87,8 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         </div>
       </div>
 
-      <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="jf-url">Website URL <span class="req">*</span></label>
+      <div class="field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="jf-url">Website URL <span class="req">*</span></label>
         <div>
           <input id="jf-url" type="url" name="url" class="form" maxlength="500" placeholder="https://" required value="<?= View::e($val('url', $joined, 'url')) ?>">
           <?php if (!empty($fe['url'])): ?>
@@ -97,8 +97,8 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         </div>
       </div>
 
-      <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="jf-name">Subject <span class="req">*</span></label>
+      <div class="field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="jf-name">Subject <span class="req">*</span></label>
         <div>
           <input id="jf-name" type="text" name="name" class="form" maxlength="255" required placeholder="e.g. Hunters: Voices Strong" value="<?= View::e($val('name', $joined, 'name')) ?>">
           <?php if (!empty($fe['name'])): ?>
@@ -107,15 +107,15 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="jf-date">Date Joined</label>
+      <div class="field-row">
+        <label class="field-label" for="jf-date">Date Joined</label>
         <div>
           <input id="jf-date" type="date" name="date_joined" class="form form--compact" value="<?= View::e($val('date_joined', $joined, 'dateJoined')) ?>">
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Image</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Image</span>
         <div>
           <?php if ($isEdit && ($joined->image ?? '') !== ''): ?>
             <div class="existing-upload-preview">
@@ -136,8 +136,8 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="jf-status">Status</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="jf-status">Status</label>
         <div>
           <div class="select-wrap">
             <select id="jf-status" name="status">
@@ -148,8 +148,8 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <span class="listing-field-label">Visibility</span>
+      <div class="field-row">
+        <span class="field-label">Visibility</span>
         <label class="form-check">
           <input id="jf-active" type="checkbox" name="active" value="1" <?= $activeVal ? 'checked' : '' ?>>
           <span class="form-check-label">Active (visible on public site)</span>

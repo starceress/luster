@@ -38,8 +38,8 @@ $b = rtrim(View::e($base_url), '/');
       <div class="pc-section-label">Display Preferences</div>
 
       <!-- Sort order -->
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="display_mode">Sort Listings By</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="display_mode">Sort Listings By</label>
         <div>
           <div class="select-wrap">
             <select id="display_mode" name="display_mode" >
@@ -54,8 +54,8 @@ $b = rtrim(View::e($base_url), '/');
       </div>
 
       <!-- Per page -->
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="per_page">Items Per Page</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="per_page">Items Per Page</label>
         <div>
           <input type="number" id="per_page" name="per_page" class="form form--compact"
                  min="5" max="50"
@@ -72,5 +72,5 @@ $b = rtrim(View::e($base_url), '/');
       <a href="<?= $b ?>/admin/joined" class="btn btn-ghost">Cancel</a>
     </div>
 
-  </div><!-- /.card.listing-field-card -->
+  </div><!-- /.card.field-card -->
 </form>

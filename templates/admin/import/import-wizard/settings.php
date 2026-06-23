@@ -39,45 +39,45 @@ $b = rtrim(View::e($base_url ?? ''), '/');
         This only hides the card from the wizard; it does not delete any imported data.
       </p>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label">Visible sources</label>
+      <div class="field-row">
+        <label class="field-label">Visible sources</label>
         <div>
-          <div class="form-group">
+          <div class="field-group">
             <label class="toggle-wrap">
               <input type="checkbox" name="import_show_enthusiast" value="1"
                      <?= ($settings['import_show_enthusiast'] ?? '1') === '1' ? 'checked' : '' ?>>
               <span class="toggle-label">Show Enthusiast card</span>
             </label>
           </div>
-          <div class="form-group">
+          <div class="field-group">
             <label class="toggle-wrap">
               <input type="checkbox" name="import_show_listing_admin" value="1"
                      <?= ($settings['import_show_listing_admin'] ?? '1') === '1' ? 'checked' : '' ?>>
               <span class="toggle-label">Show Listing Admin card</span>
             </label>
           </div>
-          <div class="form-group">
+          <div class="field-group">
             <label class="toggle-wrap">
               <input type="checkbox" name="import_show_fanupdate" value="1"
                      <?= ($settings['import_show_fanupdate'] ?? '1') === '1' ? 'checked' : '' ?>>
               <span class="toggle-label">Show FanUpdate card</span>
             </label>
           </div>
-          <div class="form-group">
+          <div class="field-group">
             <label class="toggle-wrap">
               <input type="checkbox" name="import_show_codesort" value="1"
                      <?= ($settings['import_show_codesort'] ?? '1') === '1' ? 'checked' : '' ?>>
               <span class="toggle-label">Show CodeSort card</span>
             </label>
           </div>
-          <div class="form-group">
+          <div class="field-group">
             <label class="toggle-wrap">
               <input type="checkbox" name="import_show_bellabuffs" value="1"
                      <?= ($settings['import_show_bellabuffs'] ?? '1') === '1' ? 'checked' : '' ?>>
               <span class="toggle-label">Show BellaBuffs card</span>
             </label>
           </div>
-          <div class="form-group">
+          <div class="field-group">
             <label class="toggle-wrap">
               <input type="checkbox" name="import_show_fanatically" value="1"
                      <?= ($settings['import_show_fanatically'] ?? '1') === '1' ? 'checked' : '' ?>>
@@ -92,8 +92,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     <div class="pc-section">
       <div class="pc-section-label">Config File Reader</div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label">Auto-detect</label>
+      <div class="field-row field-row--top">
+        <label class="field-label">Auto-detect</label>
         <div>
           <label class="toggle-wrap">
             <input type="checkbox" name="import_allow_config_reader" value="1"

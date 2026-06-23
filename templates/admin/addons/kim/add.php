@@ -26,29 +26,29 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     <div class="pc-section">
       <div class="pc-section-label">Member Details</div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="kim-name">Name <span class="req">*</span></label>
+      <div class="field-row">
+        <label class="field-label" for="kim-name">Name <span class="req">*</span></label>
         <input id="kim-name" type="text" name="name" class="form"
                value="<?= View::e(($old ?? [])['name'] ?? '') ?>"
                required maxlength="100" autofocus>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="kim-email">Email <span class="req">*</span></label>
+      <div class="field-row">
+        <label class="field-label" for="kim-email">Email <span class="req">*</span></label>
         <input id="kim-email" type="email" name="email" class="form"
                value="<?= View::e(($old ?? [])['email'] ?? '') ?>"
                required maxlength="255">
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="kim-url">URL</label>
+      <div class="field-row">
+        <label class="field-label" for="kim-url">URL</label>
         <input id="kim-url" type="url" name="url" class="form"
                value="<?= View::e(($old ?? [])['url'] ?? '') ?>"
                maxlength="500" placeholder="https://">
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="kim-fanlisting">Fanlisting <span class="req">*</span></label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="kim-fanlisting">Fanlisting <span class="req">*</span></label>
         <div>
           <div class="select-wrap">
             <select id="kim-fanlisting" name="fanlisting_id" required>
@@ -70,8 +70,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     <div class="pc-section">
       <div class="pc-section-label">Status</div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label">Approval</label>
+      <div class="field-row">
+        <label class="field-label">Approval</label>
         <div>
           <label class="toggle-wrap">
             <input type="checkbox" name="approve_now" value="1">
@@ -85,8 +85,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     <div class="pc-section">
       <div class="pc-section-label">Password <span class="text-dim" style="font-weight:normal">(optional)</span></div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="kim-password">Password</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="kim-password">Password</label>
         <div>
           <div class="input-icon-wrap">
             <input id="kim-password" type="password" name="password" class="form"

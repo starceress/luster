@@ -102,8 +102,8 @@ $id = (int) $listing->id;
     </div>
 
     <div class="pc-section">
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="af-name">Field Name <span class="req">*</span></label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="af-name">Field Name <span class="req">*</span></label>
         <div>
           <input type="text" class="form" id="af-name" name="name"
                  maxlength="30" pattern="[a-zA-Z0-9_]+"
@@ -113,8 +113,8 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="af-label">Label <span class="req">*</span></label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="af-label">Label <span class="req">*</span></label>
         <div>
           <input type="text" class="form" id="af-label" name="label"
                  maxlength="100" placeholder="e.g. Favourite Song" required>
@@ -122,8 +122,8 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="af-type">Type</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="af-type">Type</label>
         <div>
           <div class="select-wrap">
             <select  id="af-type" name="type">
@@ -137,8 +137,8 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div id="af-options-row" class="listing-field-row listing-field-row--top is-hidden">
-        <label class="listing-field-label" for="af-options">Options</label>
+      <div id="af-options-row" class="field-row field-row--top is-hidden">
+        <label class="field-label" for="af-options">Options</label>
         <div>
           <textarea class="form" id="af-options" name="options" rows="2"
                     placeholder="e.g. Option A, Option B, Option C"></textarea>
@@ -146,8 +146,8 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Required</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Required</span>
         <div>
           <div class="flex-row">
             <label class="form-check">

@@ -87,27 +87,27 @@ function importChecked(array $old, string $key, bool $default = true): string {
         </div>
       </div>
       <div class="pc-section">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="db_host">Database Host</label>
+        <div class="field-grid">
+          <div class="field-group">
+            <label class="field-label" for="db_host">Database Host</label>
             <input id="db_host" type="text" name="db_host" class="form"
                    placeholder="localhost (blank = use Luster's DB)"
                    value="<?= importOld($old, 'db_host') ?>">
           </div>
-          <div class="form-group">
-            <label class="form-label" for="db_name">Database Name</label>
+          <div class="field-group">
+            <label class="field-label" for="db_name">Database Name</label>
             <input id="db_name" type="text" name="db_name" class="form"
                    value="<?= importOld($old, 'db_name') ?>">
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="db_user">Database User</label>
+        <div class="field-grid">
+          <div class="field-group">
+            <label class="field-label" for="db_user">Database User</label>
             <input id="db_user" type="text" name="db_user" class="form"
                    value="<?= importOld($old, 'db_user') ?>">
           </div>
-          <div class="form-group">
-            <label class="form-label" for="db_pass">Database Password</label>
+          <div class="field-group">
+            <label class="field-label" for="db_pass">Database Password</label>
             <div class="input-icon-wrap">
               <input id="db_pass" type="password" name="db_pass" class="form"
                      autocomplete="new-password">
@@ -123,7 +123,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <button type="button" id="js-test-conn" class="btn btn-secondary"
                 data-action="<?= $b ?>/admin/import/<?= $src ?>/test-connection">Test Connection</button>
         <button type="reset" class="btn btn-ghost" id="clear-form-btn">Clear</button>
-        <span id="js-test-result" class="form-label--tight is-hidden"></span>
+        <span id="js-test-result" class="field-label--tight is-hidden"></span>
       </div>
     </div>
   </div>
@@ -138,8 +138,8 @@ function importChecked(array $old, string $key, bool $default = true): string {
         </div>
       </div>
       <div class="pc-section">
-        <div class="form-group">
-          <label class="form-label" for="sql_dump">SQL File <span class="text-muted">(max 50 MB)</span></label>
+        <div class="field-group">
+          <label class="field-label" for="sql_dump">SQL File <span class="text-muted">(max 50 MB)</span></label>
           <label class="file-drop-zone" for="sql_dump">
             <input id="sql_dump" type="file" name="sql_dump" accept=".sql,text/plain,text/x-sql,application/sql">
             <span class="file-drop-icon"><?= View::icon('import') ?></span>
@@ -164,7 +164,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <?php if ($source === 'fanupdate'): ?>
     <div class="pc-section">
       <div class="pc-section-label">Blog Table Name</div>
-      <div class="form-group">
+      <div class="field-group">
         <input id="fu_prefix" type="text" name="fu_prefix" class="form import-input-medium"
                placeholder="blog"
                value="<?= importOld($old, 'fu_prefix', 'blog') ?>">
@@ -176,7 +176,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <?php if ($source === 'listing-admin'): ?>
     <div class="pc-section">
       <div class="pc-section-label">Table Prefix</div>
-      <div class="form-group">
+      <div class="field-group">
         <input id="la_table_prefix" type="text" name="la_table_prefix" class="form import-input-medium"
                placeholder="(leave blank for default install)"
                value="<?= importOld($old, 'la_table_prefix') ?>">

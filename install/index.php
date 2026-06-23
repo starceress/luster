@@ -1412,29 +1412,29 @@ function renderStep2(string $csrf, array $stored, array $errors = []): void
     <?php if (!empty($errors)): ?>
     <div class="alert alert-error" role="alert"><strong>Please fix the following:</strong><ul class="star-list" style="color: var(--danger)"><?php foreach ($errors as $err): ?><li><?= e($err) ?></li><?php endforeach; ?></ul></div>
     <?php endif; ?>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="db_host">Database Host <span class="req">*</span></label>
+    <div class="field-grid">
+      <div class="field-group">
+        <label class="field-label" for="db_host">Database Host <span class="req">*</span></label>
         <input type="text" id="db_host" name="db_host" class="form"
                value="<?= e((string) ($db['host'] ?? 'localhost')) ?>" required>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="db_name">Database Name <span class="req">*</span></label>
+      <div class="field-group">
+        <label class="field-label" for="db_name">Database Name <span class="req">*</span></label>
         <input type="text" id="db_name" name="db_name" class="form"
                value="<?= e((string) ($db['name'] ?? '')) ?>" required>
         <p class="form-hint">The database must already exist.</p>
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="db_user">Database Username <span class="req">*</span></label>
+    <div class="field-grid">
+      <div class="field-group">
+        <label class="field-label" for="db_user">Database Username <span class="req">*</span></label>
         <input type="text" id="db_user" name="db_user" class="form"
                value="<?= e((string) ($db['user'] ?? '')) ?>" required autocomplete="username">
         <p class="form-hint">User must have full privileges on the provided database.</p>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="db_pass">Database Password <span class="req">*</span></label>
+      <div class="field-group">
+        <label class="field-label" for="db_pass">Database Password <span class="req">*</span></label>
         <div class="input-icon-wrap">
           <input type="password" id="db_pass" name="db_pass" class="form"
                  required autocomplete="current-password">
@@ -1576,22 +1576,22 @@ function renderStep3(string $csrf, array $stored): void
   <div class="pc-section">
     <div class="pc-section-label">Site Settings</div>
 
-      <div class="form-group">
-      <label class="form-label" for="app_url">Luster Install URL <span class="req">*</span></label>
+      <div class="field-group">
+      <label class="field-label" for="app_url">Luster Install URL <span class="req">*</span></label>
       <input type="url" id="app_url" name="app_url" class="form"
              value="<?= e($currentAppUrl) ?>" required
              placeholder="https://example.com/luster/public">
       <p class="form-hint"><b>Must end with <code>/public</code> — no trailing slash.</b> This is the URL to Luster's <code>public/</code> folder, which is where the admin panel and all public pages live. Example: if you uploaded Luster to <code>yoursite.com/luster/</code>, enter <code>https://yoursite.com/luster/public</code>.</p>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="site_name">Site Name <span class="req">*</span></label>
+    <div class="field-grid">
+      <div class="field-group">
+        <label class="field-label" for="site_name">Site Name <span class="req">*</span></label>
         <input type="text" id="site_name" name="site_name" class="form"
                value="<?= e($currentSiteName) ?>" required>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="site_url">Site URL <span class="req">*</span></label>
+      <div class="field-group">
+        <label class="field-label" for="site_url">Site URL <span class="req">*</span></label>
         <input type="url" id="site_url" name="site_url" class="form"
                value="<?= e($currentSiteUrl) ?>" required
                placeholder="https://example.com">
@@ -1599,15 +1599,15 @@ function renderStep3(string $csrf, array $stored): void
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="owner_name">Name <span class="req">*</span></label>
+    <div class="field-grid">
+      <div class="field-group">
+        <label class="field-label" for="owner_name">Name <span class="req">*</span></label>
         <input type="text" id="owner_name" name="owner_name" class="form"
                maxlength="100" required value="<?= e((string) ($site['owner_name'] ?? '')) ?>">
         <p class="form-hint">Used in outgoing outgoing emails (e.g. <em>Star</em>). Can be changed later in Settings.</p>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="owner_email">Contact Email <em class="fw-normal">(optional)</em></label>
+      <div class="field-group">
+        <label class="field-label" for="owner_email">Contact Email <em class="fw-normal">(optional)</em></label>
         <input type="email" id="owner_email" name="owner_email" class="form"
                maxlength="255" value="<?= e((string) ($site['owner_email'] ?? '')) ?>">
         <p class="form-hint">Used in for outgoing emails. <strong>Defaults to your admin email if left blank.</strong> Can be changed later in Settings.</p>
@@ -1622,17 +1622,17 @@ function renderStep3(string $csrf, array $stored): void
       This account is for logging into the Luster admin panel. You can add more admin users after installation.
     </p>
 
-    <div class="form-row">
-    <div class="form-group">
-      <label class="form-label" for="admin_username">Username <span class="req">*</span></label>
+    <div class="field-grid">
+    <div class="field-group">
+      <label class="field-label" for="admin_username">Username <span class="req">*</span></label>
       <input type="text" id="admin_username" name="admin_username" class="form"
              required autocomplete="username"
              pattern="[a-zA-Z0-9_\-]{3,50}"
              value="<?= e((string) ($site['admin_username'] ?? '')) ?>">
     </div>
 
-    <div class="form-group">
-      <label class="form-label" for="admin_email">Email Address <span class="req">*</span></label>
+    <div class="field-group">
+      <label class="field-label" for="admin_email">Email Address <span class="req">*</span></label>
       <input type="email" id="admin_email" name="admin_email" class="form"
              required autocomplete="email"
              value="<?= e((string) ($site['admin_email'] ?? '')) ?>">
@@ -1640,9 +1640,9 @@ function renderStep3(string $csrf, array $stored): void
     </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="admin_password">Password <span class="req">*</span></label>
+    <div class="field-grid">
+      <div class="field-group">
+        <label class="field-label" for="admin_password">Password <span class="req">*</span></label>
         <div class="input-icon-wrap">
           <input type="password" id="admin_password" name="admin_password" class="form"
                  required autocomplete="new-password" minlength="12">
@@ -1653,8 +1653,8 @@ function renderStep3(string $csrf, array $stored): void
         </div>
         <p class="form-hint">Minimum 12 characters.</p>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="admin_password_confirm">Confirm Password <span class="req">*</span></label>
+      <div class="field-group">
+        <label class="field-label" for="admin_password_confirm">Confirm Password <span class="req">*</span></label>
         <div class="input-icon-wrap">
           <input type="password" id="admin_password_confirm" name="admin_password_confirm" class="form"
                  required autocomplete="new-password" minlength="12">
@@ -1693,21 +1693,21 @@ function renderStep4(string $csrf, array $stored): void
     <p class="text-dim-copy">Please confirm the details below. If you need to change anything, click the <strong>Back</strong> button. Otherwise, click <strong>Install Luster</strong> to proceed with the installation.</p>
 
     <div class="pc-section-label">Site</div>
-    <div class="sysinfo-row"><span class="form-label">Luster Install URL</span><?= e((string) ($site['app_url'] ?? '')) ?></div>
-    <div class="sysinfo-row"><span class="form-label">Site Name</span><?= e((string) ($site['site_name'] ?? '')) ?></div>
-    <div class="sysinfo-row"><span class="form-label">Site URL</span><?= e((string) ($site['site_url'] ?? $site['app_url'] ?? '')) ?></div>
+    <div class="sysinfo-row"><span class="field-label">Luster Install URL</span><?= e((string) ($site['app_url'] ?? '')) ?></div>
+    <div class="sysinfo-row"><span class="field-label">Site Name</span><?= e((string) ($site['site_name'] ?? '')) ?></div>
+    <div class="sysinfo-row"><span class="field-label">Site URL</span><?= e((string) ($site['site_url'] ?? $site['app_url'] ?? '')) ?></div>
     <?php if ((string) ($site['owner_name'] ?? '') !== ''): ?>
-    <div class="sysinfo-row"><span class="form-label">Name</span><?= e((string) $site['owner_name']) ?></div>
+    <div class="sysinfo-row"><span class="field-label">Name</span><?= e((string) $site['owner_name']) ?></div>
     <?php endif; ?>
     <?php if ((string) ($site['owner_email'] ?? '') !== ''): ?>
-    <div class="sysinfo-row"><span class="form-label">Contact Email</span><?= e((string) $site['owner_email']) ?></div>
+    <div class="sysinfo-row"><span class="field-label">Contact Email</span><?= e((string) $site['owner_email']) ?></div>
     <?php endif; ?>
   </div>
   
   <div class="pc-section">
     <div class="pc-section-label">Admin Account</div>
-    <div class="sysinfo-row"><span class="form-label">Username</span><?= e((string) ($site['admin_username'] ?? '')) ?></div>
-    <div class="sysinfo-row"><span class="form-label">Email</span><?= e((string) ($site['admin_email'] ?? '')) ?></div>
+    <div class="sysinfo-row"><span class="field-label">Username</span><?= e((string) ($site['admin_username'] ?? '')) ?></div>
+    <div class="sysinfo-row"><span class="field-label">Email</span><?= e((string) ($site['admin_email'] ?? '')) ?></div>
   </div>
 
   <div class="composer-footer composer-footer--row">

@@ -67,26 +67,26 @@ $statusLabels = [
     <div class="pc-section">
       <div class="pc-section-label">Applicant</div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="adopt-name">Name <span class="req">*</span></label>
+      <div class="field-row">
+        <label class="field-label" for="adopt-name">Name <span class="req">*</span></label>
         <input id="adopt-name" type="text" name="name" class="form"
                value="<?= View::e($application['name']) ?>" required maxlength="255">
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="adopt-email">Email <span class="req">*</span></label>
+      <div class="field-row">
+        <label class="field-label" for="adopt-email">Email <span class="req">*</span></label>
         <input id="adopt-email" type="email" name="email" class="form"
                value="<?= View::e($application['email']) ?>" required maxlength="255">
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="adopt-url">URL</label>
+      <div class="field-row">
+        <label class="field-label" for="adopt-url">URL</label>
         <input id="adopt-url" type="url" name="url" class="form"
                value="<?= View::e($application['url']) ?>" maxlength="500" placeholder="https://">
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label">Listing</label>
+      <div class="field-row">
+        <label class="field-label">Listing</label>
         <div>
           <?php if ($listing !== null): ?>
             <a href="<?= View::e($listing->url) ?>" target="_blank" rel="noopener" class="link">
@@ -101,14 +101,14 @@ $statusLabels = [
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="adopt-message">Message</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="adopt-message">Message</label>
         <textarea id="adopt-message" name="message" class="form" rows="4"
                   maxlength="5000"><?= View::e((string) ($application['message'] ?? '')) ?></textarea>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="adopt-notes">Personal Notes</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="adopt-notes">Personal Notes</label>
         <div>
           <textarea id="adopt-notes" name="admin_notes" class="form" rows="3"
                     maxlength="5000"
@@ -121,8 +121,8 @@ $statusLabels = [
     <div class="pc-section">
       <div class="pc-section-label">Status</div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label">Status</label>
+      <div class="field-row field-row--top">
+        <label class="field-label">Status</label>
         <div>
           <?php foreach ($statusLabels as $value => $label): ?>
           <label class="radio-label" style="display:block;margin-bottom:.35rem">

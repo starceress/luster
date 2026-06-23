@@ -80,8 +80,8 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
     <div id="js-bb-path-section" class="pc-section<?= $bbMode === 'upload' ? ' is-hidden' : '' ?>">
       <div class="pc-section-label">BellaBuffs Folder Path</div>
       <div class="pc-section">
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="bb_folder_path">Folder Path</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="bb_folder_path">Folder Path</label>
         <div>
           <input id="bb_folder_path" type="text" name="bb_folder_path" class="form"
                  placeholder="/home/user/public_html/myfanlisting">
@@ -102,8 +102,8 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
         <div><strong>Upload mode imports members only.</strong> To migrate affiliates and fan codes, use the server folder path instead.</div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="members_file"><code>members.txt</code> <span class="req">*</span></label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="members_file"><code>members.txt</code> <span class="req">*</span></label>
         <div>
           <label class="file-drop-zone" for="members_file">
             <input id="members_file" type="file" name="members_file" accept=".txt">
@@ -113,8 +113,8 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
           </label>
         </div>
       </div>
-      <div class="listing-field-row listing-field-row--top" style="margin-top:.5rem">
-        <label class="listing-field-label" for="newbies_file"><code>newbies.txt</code> <span class="text-dim">(optional)</span></label>
+      <div class="field-row field-row--top" style="margin-top:.5rem">
+        <label class="field-label" for="newbies_file"><code>newbies.txt</code> <span class="text-dim">(optional)</span></label>
         <div>
           <label class="file-drop-zone" for="newbies_file">
             <input id="newbies_file" type="file" name="newbies_file" accept=".txt">

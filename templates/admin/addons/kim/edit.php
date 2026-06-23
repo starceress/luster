@@ -41,26 +41,26 @@ $b = rtrim(View::e($base_url), '/');
 
       <div class="pc-section-label">Information</div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="kim-name">Name <span class="req">*</span></label>
+      <div class="field-row">
+        <label class="field-label" for="kim-name">Name <span class="req">*</span></label>
         <input id="kim-name" type="text" name="name" class="form"
                value="<?= View::e($member->name) ?>" required maxlength="100">
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="kim-email">Email <span class="req">*</span></label>
+      <div class="field-row">
+        <label class="field-label" for="kim-email">Email <span class="req">*</span></label>
         <input id="kim-email" type="email" name="email" class="form"
                value="<?= View::e($member->email) ?>" required maxlength="255">
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="kim-url">URL</label>
+      <div class="field-row">
+        <label class="field-label" for="kim-url">URL</label>
         <input id="kim-url" type="url" name="url" class="form"
                value="<?= View::e($member->url) ?>" maxlength="500" placeholder="https://">
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="kim-fanlisting">Fanlisting <span class="req">*</span></label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="kim-fanlisting">Fanlisting <span class="req">*</span></label>
         <div>
           <div class="select-wrap">
             <select id="kim-fanlisting" name="fanlisting_id"  required>
@@ -74,8 +74,8 @@ $b = rtrim(View::e($base_url), '/');
           </div>
         </div>
       </div>
-      <div class="listing-field-row">
-        <label class="listing-field-label">Granted</label>
+      <div class="field-row">
+        <label class="field-label">Granted</label>
         <div class="radio-group">
           <label class="radio-label">
             <input type="radio" name="granted" value="1" <?= $member->granted ? 'checked' : '' ?>> Yes
@@ -91,8 +91,8 @@ $b = rtrim(View::e($base_url), '/');
       <div class="pc-section-label">Password</div>
 
       
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="kim-new-password">New Password</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="kim-new-password">New Password</label>
         <div>
           <div class="input-icon-wrap">
             <input id="kim-new-password" type="password" name="new_password" class="form"
@@ -107,8 +107,8 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="kim-new-password-confirm">Confirm Password</label>
+      <div class="field-row">
+        <label class="field-label" for="kim-new-password-confirm">Confirm Password</label>
         <div class="input-icon-wrap">
           <input id="kim-new-password-confirm" type="password" name="new_password_confirm"
                  class="form" maxlength="255" autocomplete="new-password">

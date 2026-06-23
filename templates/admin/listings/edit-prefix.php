@@ -48,16 +48,16 @@ $b = rtrim(View::e($base_url), '/');
         <div><strong>High-risk change.</strong> This renames where this listing's members are stored. If anything goes wrong, Luster may not be able to find those members. There is no undo - <b>back up your database before proceeding.</b></div>
     </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Current Prefix</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Current Prefix</span>
         <div>
           <div class="ro-field"><?= View::e($listing->dbprefix) ?></div>
           <p class="form-hint">The current internal name for this listing's member records.</p>
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="ep-new-prefix">
+      <div class="field-row field-row--top">
+        <label class="field-label" for="ep-new-prefix">
           New Prefix <span class="req">*</span>
         </label>
         <div>
@@ -66,8 +66,8 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="ep-confirm">
+      <div class="field-row field-row--top">
+        <label class="field-label" for="ep-confirm">
           Confirm Prefix <span class="req">*</span>
         </label>
         <div>

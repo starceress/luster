@@ -47,16 +47,16 @@ $encName = urlencode($field->name);
     </div>
 
     <div class="pc-section">
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Field Name</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Field Name</span>
         <div>
           <div class="ro-field"><?= View::e($field->name) ?></div>
           <p class="form-hint">This internal name cannot be changed because existing member answers are saved under it.</p>
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="ef-label">Label <span class="req">*</span></label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="ef-label">Label <span class="req">*</span></label>
         <div>
           <input type="text" id="ef-label" name="label" class="form"
                  maxlength="100" required
@@ -65,8 +65,8 @@ $encName = urlencode($field->name);
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="ef-type">Type</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="ef-type">Type</label>
         <div>
           <div class="select-wrap">
             <select id="ef-type" name="type" >
@@ -80,8 +80,8 @@ $encName = urlencode($field->name);
         </div>
       </div>
 
-      <div id="ef-options-row" class="listing-field-row listing-field-row--top is-hidden">
-        <label class="listing-field-label" for="ef-options">Options</label>
+      <div id="ef-options-row" class="field-row field-row--top is-hidden">
+        <label class="field-label" for="ef-options">Options</label>
         <div>
           <textarea id="ef-options" name="options" class="form" rows="3"
                     placeholder="e.g. Option A, Option B, Option C"><?= View::e($options) ?></textarea>
@@ -89,8 +89,8 @@ $encName = urlencode($field->name);
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Required</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Required</span>
         <div>
           <div class="flex-row">
             <label class="form-check">

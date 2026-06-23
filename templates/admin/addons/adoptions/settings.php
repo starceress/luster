@@ -29,8 +29,8 @@ $b = rtrim(View::e($base_url), '/');
   <form method="POST" action="<?= $b ?>/admin/adoptions/settings">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <div class="pc-section">
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label">Default View</label>
+      <div class="field-row field-row--top">
+        <label class="field-label">Default View</label>
         <div>
           <div class="radio-group">
             <label class="radio-label">
@@ -45,8 +45,8 @@ $b = rtrim(View::e($base_url), '/');
           <p class="form-hint">Which view opens when you click Adoptions in the sidebar.</p>
         </div>
       </div>
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="adopt-per-page">Entries Per Page</label>
+      <div class="field-row">
+        <label class="field-label" for="adopt-per-page">Entries Per Page</label>
         <div>
           <input id="adopt-per-page" type="number" name="adoption_per_page"
                  class="form form--compact" min="5" max="25"

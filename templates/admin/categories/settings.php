@@ -28,8 +28,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
     <div class="pc-section">
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="per_page">Items Per Page</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="per_page">Items Per Page</label>
         <div>
           <input type="number" id="per_page" name="per_page" class="form form--compact"
                  min="5" max="100"

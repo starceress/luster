@@ -39,8 +39,8 @@ $fe = $field_errors ?? [];
     <div class="pc-section">
       <div class="pc-section-label">Account Details</div>
 
-      <div class="listing-field-row<?= !empty($fe['username']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="au-username">Username <span class="req">*</span></label>
+      <div class="field-row<?= !empty($fe['username']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="au-username">Username <span class="req">*</span></label>
         <div>
           <input id="au-username" type="text" name="username" class="form"
                  maxlength="50" required autocomplete="off"
@@ -50,8 +50,8 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="listing-field-row<?= !empty($fe['email']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="au-email">Email Address <span class="req">*</span></label>
+      <div class="field-row<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="au-email">Email Address <span class="req">*</span></label>
         <div>
           <input id="au-email" type="email" name="email" class="form"
                  maxlength="255" required autocomplete="off"
@@ -61,8 +61,8 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="au-owner-name">Display Name <span class="req">*</span></label>
+      <div class="field-row">
+        <label class="field-label" for="au-owner-name">Display Name <span class="req">*</span></label>
         <div>
           <input id="au-owner-name" type="text" name="display_name" class="form"
                  maxlength="100" required autocomplete="off"
@@ -73,8 +73,8 @@ $fe = $field_errors ?? [];
 
       <div class="pc-section-label">Password</div>
 
-      <div class="listing-field-row listing-field-row--top<?= !empty($fe['password']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="au-pass">Password <span class="req">*</span></label>
+      <div class="field-row field-row--top<?= !empty($fe['password']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="au-pass">Password <span class="req">*</span></label>
         <div>
           <div class="input-icon-wrap">
             <input id="au-pass" type="password" name="password" class="form"
@@ -89,8 +89,8 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top<?= !empty($fe['password_confirm']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="au-confirm">Confirm Password <span class="req">*</span></label>
+      <div class="field-row field-row--top<?= !empty($fe['password_confirm']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="au-confirm">Confirm Password <span class="req">*</span></label>
         <div>
           <div class="input-icon-wrap">
             <input id="au-confirm" type="password" name="password_confirm" class="form"

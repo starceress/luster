@@ -42,15 +42,15 @@ require_once __DIR__ . '/../_css_assets.php';
     <form method="POST" action="" novalidate>
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-      <div class="form-group">
-        <label class="form-label" for="username">Username</label>
+      <div class="field-group">
+        <label class="field-label" for="username">Username</label>
         <input type="text" id="username" name="username" class="form"
                value="<?= View::e($username) ?>"
                autocomplete="username" autofocus required>
       </div>
 
-      <div class="form-group form-group--compact">
-        <label class="form-label" for="password">Password</label>
+      <div class="field-group field-group--compact">
+        <label class="field-label" for="password">Password</label>
         <div class="input-icon-wrap">
           <input type="password" id="password" name="password" class="form"
                  autocomplete="current-password" required>

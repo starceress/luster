@@ -38,8 +38,8 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
   <div class="gradient-card">
     <div class="pc-section">
 
-      <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="cat-name">
+      <div class="field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="cat-name">
           Category Name <span class="req">*</span>
         </label>
         <div>
@@ -51,8 +51,8 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="cat-slug">URL Slug</label>
+      <div class="field-row">
+        <label class="field-label" for="cat-slug">URL Slug</label>
         <div>
           <input id="cat-slug" type="text" name="slug" class="form"
                  value="<?= View::e($currentSlug) ?>" maxlength="100">
@@ -60,8 +60,8 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="cat-parent">Parent Category</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="cat-parent">Parent Category</label>
         <div>
           <div class="select-wrap">
             <select id="cat-parent" name="parent_id">
@@ -80,8 +80,8 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="add-network-toggle">Change Network?</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="add-network-toggle">Change Network?</label>
         <div>
           <div class="select-wrap">
             <select id="add-network-toggle" name="add_network">
@@ -99,8 +99,8 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top is-hidden" id="replacement-network-row">
-        <label class="listing-field-label" for="replacement-network">New Network</label>
+      <div class="field-row field-row--top is-hidden" id="replacement-network-row">
+        <label class="field-label" for="replacement-network">New Network</label>
         <div>
           <div class="cat-row">
             <div class="select-wrap" data-role="cat-network-wrap">

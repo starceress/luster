@@ -46,16 +46,16 @@ $id = (int) $listing->id;
     <div class="pc-section">
       <div class="pc-section-label">General Information</div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Email</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Email</span>
         <div>
           <div class="ro-field"><?= View::e($member->email) ?></div>
           <p class="form-hint">Email is the member identifier and cannot be changed here.</p>
         </div>
       </div>
 
-      <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="m-name">
+      <div class="field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="m-name">
           Name <span class="req">*</span>
         </label>
         <div>
@@ -68,8 +68,8 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="m-url">Website URL</label>
+      <div class="field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="m-url">Website URL</label>
         <div>
           <input id="m-url" type="url" name="url" class="form"
                  maxlength="500" placeholder="https://"
@@ -80,8 +80,8 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="m-country">Country</label>
+      <div class="field-row">
+        <label class="field-label" for="m-country">Country</label>
         <div class="select-wrap">
           <select id="m-country" name="country" >
             <option value="">&mdash; Select Country &mdash;</option>
@@ -95,8 +95,8 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Show Website?</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Show Website?</span>
         <div class="choice-inline-group">
           <label class="form-check">
             <input type="radio" name="showurl" value="1"
@@ -120,8 +120,8 @@ $id = (int) $listing->id;
         $fKey     = 'field_' . $field->name;
         $fieldVal = $old[$fKey] ?? ($member->additionalFields[$field->name] ?? '');
       ?>
-        <div class="listing-field-row listing-field-row--top<?= !empty($fe[$fKey]) ? ' has-error' : '' ?>">
-          <label class="listing-field-label" for="field-<?= View::e($field->name) ?>">
+        <div class="field-row field-row--top<?= !empty($fe[$fKey]) ? ' has-error' : '' ?>">
+          <label class="field-label" for="field-<?= View::e($field->name) ?>">
             <?= View::e($field->label) ?>
           </label>
           <?php if ($field->type === 'textarea'): ?>
@@ -167,8 +167,8 @@ $id = (int) $listing->id;
           data-del-name="<?= View::e($member->email) ?>">
       <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="merge-dupe-email">Duplicate email to delete</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="merge-dupe-email">Duplicate email to delete</label>
         <div>
           <input id="merge-dupe-email" type="email" name="duplicate_email" class="form"
                  maxlength="255" placeholder="duplicate&#64;example.com" required>

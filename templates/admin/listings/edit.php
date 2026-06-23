@@ -183,8 +183,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       </div>
       <div class="pc-section">
         <div class="pc-section-label">Details</div>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Network &amp; Category</label>
+        <div class="field-row field-row--top">
+          <label class="field-label">Network &amp; Category</label>
           <div>
             <div class="cat-widget" id="cat-widget"
                  data-tfl='<?= $dataTfl ?>'
@@ -199,8 +199,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-subject">Subject</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="fl-subject">Subject</label>
           <div>
             <input id="fl-subject" type="text" name="subject" class="form"
                    value="<?= View::e($listing->subject ?? '') ?>" maxlength="255">
@@ -208,8 +208,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row<?= !empty($fe['title']) ? ' has-error' : '' ?>">
-          <label class="listing-field-label" for="fl-title">Title</label>
+        <div class="field-row<?= !empty($fe['title']) ? ' has-error' : '' ?>">
+          <label class="field-label" for="fl-title">Title</label>
           <div>
             <input id="fl-title" type="text" name="title" class="form"
                    value="<?= View::e((string) $oldTitle) ?>"
@@ -219,8 +219,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-          <label class="listing-field-label" for="fl-url">Website URL <span class="req">*</span></label>
+        <div class="field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+          <label class="field-label" for="fl-url">Website URL <span class="req">*</span></label>
           <div>
             <input id="fl-url" type="url" name="url" class="form"
                    value="<?= View::e((string) $oldUrl) ?>"
@@ -229,8 +229,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
-          <label class="listing-field-label" for="fl-email">Contact Email</label>
+        <div class="field-row field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+          <label class="field-label" for="fl-email">Contact Email</label>
           <div>
             <input id="fl-email" type="email" name="email" class="form"
                    value="<?= View::e((string) $oldEmail) ?>"
@@ -240,8 +240,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-description">Description</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="fl-description">Description</label>
           <div>
             <textarea id="fl-description" name="description" class="form" rows="4"
                       maxlength="65535"
@@ -250,8 +250,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row">
-          <label class="listing-field-label">Status</label>
+        <div class="field-row">
+          <label class="field-label">Status</label>
           <div class="status-pill-row" id="status-pills">
             <label class="status-pill status-pill--current">
               <input type="radio" name="status" value="current"  <?= $oldStatus === 'current'  ? 'checked' : '' ?>> Current
@@ -265,8 +265,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row" id="opened-row">
-          <label class="listing-field-label" for="fl-opened">Opened On</label>
+        <div class="field-row" id="opened-row">
+          <label class="field-label" for="fl-opened">Opened On</label>
           <div>
             <?php
               $openedRaw = (string) ($listing->opened ?? '');
@@ -279,8 +279,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-last-updated">Last Updated</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="fl-last-updated">Last Updated</label>
           <div>
             <div class="actions-row actions-row--wrap">
               <input id="fl-last-updated" type="date" name="fl_last_updated" class="form form--compact"
@@ -292,8 +292,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <?php $lt = $listing_type ?? 'listing'; ?>
-        <div class="listing-field-row">
-          <label class="listing-field-label" for="fl-listing-type">Listing Type</label>
+        <div class="field-row">
+          <label class="field-label" for="fl-listing-type">Listing Type</label>
           <div>
             <div class="select-wrap select-auto">
               <select id="fl-listing-type" name="listing_type">
@@ -313,8 +313,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       <div class="pc-section">
         <div class="pc-section-label">Listing Image</div>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Image</label>
+        <div class="field-row field-row--top">
+          <label class="field-label">Image</label>
           <div>
             <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
               <div class="existing-image-row upload-panel-row">
@@ -344,8 +344,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       <div class="pc-section">
         <div class="pc-section-label">Public Display Preferences</div>
-         <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-members-per-page">Members Per Page</label>
+         <div class="field-row field-row--top">
+          <label class="field-label" for="fl-members-per-page">Members Per Page</label>
           <div>
             <input id="fl-members-per-page" type="number" name="members_per_page" class="form form--compact"
                    min="10" max="100" value="<?= (int) ($members_per_page ?? 25) ?>">
@@ -353,8 +353,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-newmembers-limit">How Many Newest Member Names Shown</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="fl-newmembers-limit">How Many Newest Member Names Shown</label>
           <div>
             <input id="fl-newmembers-limit" type="number" name="stat_newmembers_limit" class="form form--compact"
                    min="0" max="255"
@@ -365,8 +365,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <?php $ab = $approved_by ?? ''; ?>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-approved-by">Approved By</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="fl-approved-by">Approved By</label>
           <div>
             <div class="select-wrap select-auto">
               <select id="fl-approved-by" name="approved_by">
@@ -379,8 +379,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Allow Affiliate Applications</label>
+        <div class="field-row field-row--top">
+          <label class="field-label">Allow Affiliate Applications</label>
           <div>
             <input type="hidden" name="affiliate_apply_enabled" value="0">
             <label class="toggle-wrap">
@@ -391,7 +391,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <p class="form-hint">When enabled, the <code>{affiliate_apply_toggle}</code> token in your affiliates template shows a collapsible application form.</p>
 
             <div id="fl-aff-apply-style-row" style="margin-top: 0.75em;<?= ($affiliate_apply_enabled ?? false) ? '' : ' display:none' ?>">
-              <label class="listing-field-label" for="fl-aff-apply-style" style="font-weight: normal; margin-bottom: 0.25em;">Toggle style</label>
+              <label class="field-label" for="fl-aff-apply-style" style="font-weight: normal; margin-bottom: 0.25em;">Toggle style</label>
               <div class="select-wrap select-auto">
                 <select id="fl-aff-apply-style" name="affiliate_apply_style">
                   <option value="link" <?= ($affiliate_apply_style ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
@@ -403,8 +403,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Allow Codes Donations</label>
+        <div class="field-row field-row--top">
+          <label class="field-label">Allow Codes Donations</label>
           <div>
             <label class="toggle-wrap">
               <input type="checkbox" name="codes_submit_enabled" value="1" id="fl-codes-submit-enabled"
@@ -431,8 +431,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row">
-          <label class="listing-field-label">Enable Contact Form</label>
+        <div class="field-row">
+          <label class="field-label">Enable Contact Form</label>
           <div>
             <label class="toggle-wrap">
               <input type="checkbox" name="contact_enabled" value="1"
@@ -444,8 +444,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 
         <?php if ($adoption_addon_installed ?? false): ?>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Put Up For Adoption</label>
+        <div class="field-row field-row--top">
+          <label class="field-label">Put Up For Adoption</label>
           <div>
             <label class="toggle-wrap">
               <input type="checkbox" name="for_adoption" value="1" id="fl-for-adoption"
@@ -464,8 +464,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
         <?php endif; ?>
 
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label">Auto Approve Joins</label>
+        <div class="field-row field-row--top">
+          <label class="field-label">Auto Approve Joins</label>
           <div>
             <label class="toggle-wrap">
               <input type="checkbox" name="auto_approve_joins" value="1" id="fl-auto-approve-joins"
@@ -476,8 +476,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row">
-          <label class="listing-field-label">Queue Member Updates for Review</label>
+        <div class="field-row">
+          <label class="field-label">Queue Member Updates for Review</label>
           <div>
             <label class="toggle-wrap">
               <input type="checkbox" name="queue_updates" value="1" id="fl-queue-updates"
@@ -653,7 +653,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__list">List</button>
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__table">Table</button>
           </div>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="members_template" name="members_template" class="form form-mono" spellcheck="false"><?= View::e($tplMembersVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -665,7 +665,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="join-form" <?= $_grp('join-form') ?>>
           <div class="pc-section-label">Join Form <?= $srcBadge('join_form_template') ?></div>
           <p class="form-hint mb-sm">Controls the full layout of the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="join_form_template" name="join_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplJoinFormVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -677,7 +677,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
           <div class="pc-section-label">Update Form <?= $srcBadge('update_form_template') ?></div>
           <p class="form-hint mb-sm">Controls the full layout of the update form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="update_form_template" name="update_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdateFormVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -689,7 +689,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
           <div class="pc-section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
           <p class="form-hint mb-sm">Controls the full layout of the password reset form. Use <code>{if_step_email}&hellip;{/if_step_email}</code> for the email-entry step and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> for the new-password step.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="reset_form_template" name="reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplResetFormVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -700,7 +700,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
           <div class="pc-section-label">Listing Statistics <?= $srcBadge('stats_template') ?></div>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="stats_template" name="stats_template" class="form form-mono" spellcheck="false"><?= View::e($tplStatsVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -712,7 +712,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
           <div class="pc-section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
           <p class="form-hint mb-sm">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="codes_template" name="codes_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -725,7 +725,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
           <div class="pc-section-label">Codes Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
           <p class="form-hint mb-sm">Controls the full layout of the Codes Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="codes_submit_form_template" name="codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesFormVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -740,7 +740,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
           <div class="pc-section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
           <p class="form-hint mb-sm">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -753,7 +753,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
           <div class="pc-section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
           <p class="form-hint mb-sm">Controls the full layout of the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="affiliate_apply_form_template" name="affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffApplyFormVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -768,7 +768,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
           <div class="pc-section-label">Contact Form <?= $srcBadge('contact_form_template') ?></div>
           <p class="form-hint mb-sm">Controls the full layout of the contact form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="contact_form_template" name="contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplContactFormVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -781,7 +781,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
           <div class="pc-section-label">News Feed <?= $srcBadge('updates_template') ?></div>
           <p class="form-hint mb-sm">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
-          <div class="form-group">
+          <div class="field-group">
             <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
@@ -1208,8 +1208,8 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
         </div>
       </div>
       <div class="pc-section">
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="af-name">Field Name <span class="req">*</span></label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="af-name">Field Name <span class="req">*</span></label>
           <div>
             <input type="text" class="form" id="af-name" name="name"
                    maxlength="30" pattern="[a-zA-Z0-9_]+"
@@ -1218,16 +1218,16 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
             <p class="form-hint">Use letters, numbers, and underscores only. <strong>No spaces - use underscores instead</strong> (e.g. "fave movie" becomes <code>fav_movie</code>). Each additional field <em>for this listing</em> must have a unique field name. Members will not see this.</p>
           </div>
         </div>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="af-label">Label <span class="req">*</span></label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="af-label">Label <span class="req">*</span></label>
           <div>
             <input type="text" class="form" id="af-label" name="label"
                    maxlength="100" placeholder="e.g. Favourite Song" required>
             <p class="form-hint">The label members will see on your join form and members pages.</p>
           </div>
         </div>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="af-type">Type</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="af-type">Type</label>
           <div>
             <div class="select-wrap">
               <select class="form" id="af-type" name="type">
@@ -1239,16 +1239,16 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
             </div>
           </div>
         </div>
-        <div id="af-options-row" class="listing-field-row listing-field-row--top is-hidden">
-          <label class="listing-field-label" for="af-options">Options</label>
+        <div id="af-options-row" class="field-row field-row--top is-hidden">
+          <label class="field-label" for="af-options">Options</label>
           <div>
             <textarea class="form" id="af-options" name="options" rows="2"
                       placeholder="e.g. Option A, Option B, Option C"></textarea>
             <p class="form-hint">For dropdown, checkbox, and radio fields, write the choices separated by commas.</p>
           </div>
         </div>
-        <div class="listing-field-row listing-field-row--top">
-          <span class="listing-field-label">Required?</span>
+        <div class="field-row field-row--top">
+          <span class="field-label">Required?</span>
           <div>
             <div class="flex-row">
               <label class="form-check">
@@ -1576,8 +1576,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-form-join">Join Form</label>
+      <div class="field-row">
+        <label class="field-label" for="fl-form-join">Join Form</label>
         <div>
           <input id="fl-form-join" type="text" name="form_url_join" class="form"
                  maxlength="200"
@@ -1586,8 +1586,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-form-update">Update Form</label>
+      <div class="field-row">
+        <label class="field-label" for="fl-form-update">Update Form</label>
         <div>
           <input id="fl-form-update" type="text" name="form_url_update" class="form"
                  maxlength="200"
@@ -1596,8 +1596,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-form-reset">Lost Password Form</label>
+      <div class="field-row">
+        <label class="field-label" for="fl-form-reset">Lost Password Form</label>
         <div>
           <input id="fl-form-reset" type="text" name="form_url_reset" class="form"
                  maxlength="200"
@@ -1606,9 +1606,9 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         </div>
       </div>
 
-      <div class="listing-field-row" id="fl-codes-submit-embed-row"
+      <div class="field-row" id="fl-codes-submit-embed-row"
            <?= ($embedSettings['codes_submit_enabled'] ?? true) ? '' : 'style="display:none"' ?>>
-        <label class="listing-field-label" for="fl-form-codes-submit">Codes Donation Form</label>
+        <label class="field-label" for="fl-form-codes-submit">Codes Donation Form</label>
         <div>
           <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form"
                  maxlength="200"
@@ -1617,9 +1617,9 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         </div>
       </div>
 
-      <div class="listing-field-row" id="fl-aff-form-url-row"
+      <div class="field-row" id="fl-aff-form-url-row"
            <?= ($affiliate_apply_enabled ?? false) ? '' : 'style="display:none"' ?>>
-        <label class="listing-field-label" for="fl-form-aff-apply">Affiliate Application</label>
+        <label class="field-label" for="fl-form-aff-apply">Affiliate Application</label>
         <div>
           <input id="fl-form-aff-apply" type="text" name="form_url_affiliate_apply" class="form"
                  maxlength="200"
@@ -1628,8 +1628,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="fl-form-contact">Contact Form</label>
+      <div class="field-row">
+        <label class="field-label" for="fl-form-contact">Contact Form</label>
         <div>
           <input id="fl-form-contact" type="text" name="form_url_contact" class="form"
                  maxlength="200"
@@ -1664,8 +1664,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         // Helper to render one snippet row
         $snip = static function (string $label, string $file) use ($_snipPathRaw, $_snipPath, $_snipId, $b): void {
             $plain = "<?php\n\$luster_fanlisting_id = {$_snipId};\nrequire '{$_snipPathRaw}/public/embed/{$file}';\n?>";
-            echo '<div class="listing-field-row listing-field-row--top">';
-            echo '<span class="listing-field-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+            echo '<div class="field-row field-row--top">';
+            echo '<span class="field-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
             echo '<div class="embed-snippet-wrap">';
             echo '<div class="ro-field embed-snippet">';
             echo '&lt;?php<br>';
@@ -1751,8 +1751,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       $advEmbedSettings = $embed_settings ?? [];
       ?>
       <div class="pc-section">
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="adv-db-host">DB Host</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="adv-db-host">DB Host</label>
           <div>
             <input id="adv-db-host" type="text" name="db_host" class="form"
                    maxlength="255" placeholder="localhost"
@@ -1760,8 +1760,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <p class="form-hint">The database server name, usually <code>localhost</code>.</p>
           </div>
         </div>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="adv-db-name">DB Name</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="adv-db-name">DB Name</label>
           <div>
             <input id="adv-db-name" type="text" name="db_name" class="form"
                    maxlength="255" placeholder="my_database"
@@ -1769,8 +1769,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <p class="form-hint">The database name that contains this listing's member records.</p>
           </div>
         </div>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="adv-db-user">DB User</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="adv-db-user">DB User</label>
           <div>
             <input id="adv-db-user" type="text" name="db_user" class="form"
                    maxlength="255" autocomplete="off"
@@ -1778,8 +1778,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <p class="form-hint">The username Luster should use for that separate database.</p>
           </div>
         </div>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="adv-db-pass">DB Password</label>
+        <div class="field-row field-row--top">
+          <label class="field-label" for="adv-db-pass">DB Password</label>
           <div>
             <div class="input-icon-wrap">
               <input id="adv-db-pass" type="password" name="db_pass" class="form"

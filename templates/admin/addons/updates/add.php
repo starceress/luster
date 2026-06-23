@@ -67,8 +67,8 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
       </div>
 
       <div class="pc-section">
-        <div class="listing-field-row">
-          <label class="listing-field-label" for="upd-title">Title <span class="req">*</span></label>
+        <div class="field-row">
+          <label class="field-label" for="upd-title">Title <span class="req">*</span></label>
           <div>
             <input type="text" id="upd-title" name="title" class="form"
                    maxlength="255" required
@@ -76,8 +76,8 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
                    placeholder="What's new?">
           </div>
         </div>
-        <div class="listing-field-row">
-          <label class="listing-field-label" for="upd-posted-at">Date<span class="req">*</span></label>
+        <div class="field-row">
+          <label class="field-label" for="upd-posted-at">Date<span class="req">*</span></label>
           <div>
             <input type="datetime-local" id="upd-posted-at" name="posted_at"
                    class="form form--auto" required
@@ -85,8 +85,8 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
             <p class="form-hint">You can backdate or future-date entries.</p>
           </div>
         </div>
-        <div class="listing-field-row">
-          <label class="listing-field-label">Category</label>
+        <div class="field-row">
+          <label class="field-label">Category</label>
           <div>
             <input type="hidden" id="upd-category" name="category"
                    value="<?= $is_edit ? View::e($update->category) : '' ?>">
@@ -105,7 +105,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
           </div>
         </div>
 
-        <div class="form-group form-group--compact" style="margin-top:1.25rem">
+        <div class="field-group field-group--compact" style="margin-top:1.25rem">
           <textarea id="upd-body" name="body" class="form"
                     rows="9" required
                     placeholder="Write your update here&hellip;"><?= $is_edit ? View::e($update->body) : '' ?></textarea>
@@ -113,8 +113,8 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
       </div>
 
       <div class="pc-section">
-        <div class="listing-field-row">
-          <label class="listing-field-label">Posted by</label>
+        <div class="field-row">
+          <label class="field-label">Posted by</label>
           <div>
             <span class="field-value"><?= View::e($is_edit ? $update->author : $author) ?></span>
             <p class="form-hint">The admin account posting this entry. Not displayed publicly &mdash; stored for record-keeping only.</p>

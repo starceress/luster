@@ -50,8 +50,8 @@ require_once __DIR__ . '/../_css_assets.php';
     <form method="POST" action="" novalidate>
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
 
-      <div class="form-group">
-        <label class="form-label" for="identifier">Username or Email</label>
+      <div class="field-group">
+        <label class="field-label" for="identifier">Username or Email</label>
         <input type="text" id="identifier" name="identifier" class="form"
                autocomplete="username email" autofocus required>
       </div>

@@ -37,8 +37,8 @@ $b = rtrim(View::e($base_url), '/');
 
     <div class="pc-section">
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="m-per-page">Members Per Page</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="m-per-page">Members Per Page</label>
         <div>
           <input type="number" id="m-per-page" name="per_page" class="form form--compact"
                  min="5" max="200"
@@ -55,5 +55,5 @@ $b = rtrim(View::e($base_url), '/');
       <a href="<?= $b ?>/admin/members" class="btn btn-ghost">Cancel</a>
     </div>
 
-  </div><!-- /.card.listing-field-card -->
+  </div><!-- /.card.field-card -->
 </form>

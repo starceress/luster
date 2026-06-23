@@ -40,20 +40,20 @@ $allOk = empty($failed);
 
   <div class="db-info-grid summary-grid">
     <div>
-      <div class="form-label summary-label">Sent to</div>
+      <div class="field-label summary-label">Sent to</div>
       <div><?= View::e($listing_title) ?></div>
     </div>
     <div>
-      <div class="form-label summary-label">Subject</div>
+      <div class="field-label summary-label">Subject</div>
       <div><?= View::e($subject) ?></div>
     </div>
     <div>
-      <div class="form-label summary-label">Delivered</div>
+      <div class="field-label summary-label">Delivered</div>
       <div><strong><?= (int) $sent ?></strong> / <?= (int) $total ?></div>
     </div>
     <?php if (!$allOk): ?>
     <div>
-      <div class="form-label summary-label">Failed</div>
+      <div class="field-label summary-label">Failed</div>
       <div><?= count($failed) ?></div>
     </div>
     <?php endif; ?>
@@ -61,7 +61,7 @@ $allOk = empty($failed);
 
   <?php if (!$allOk): ?>
   <div class="summary-stack">
-    <div class="form-label summary-label">Failed addresses</div>
+    <div class="field-label summary-label">Failed addresses</div>
     <ul class="summary-list">
       <?php foreach ($failed as $addr): ?>
         <li><?= View::e($addr) ?></li>

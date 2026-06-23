@@ -39,8 +39,8 @@ $b = rtrim(View::e($base_url), '/');
     </div>
 
     <div class="card-body">
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="lc_default_sort">Default Sort</label>
+      <div class="field-row">
+        <label class="field-label" for="lc_default_sort">Default Sort</label>
         <div>
           <div class="select-wrap select-auto">
             <select id="lc_default_sort" name="lc_default_sort">
@@ -52,8 +52,8 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="lc_per_page">Items Per Page</label>
+      <div class="field-row">
+        <label class="field-label" for="lc_per_page">Items Per Page</label>
         <div>
           <input type="number" id="lc_per_page" name="lc_per_page" class="form form--compact"
                  min="5" max="100" value="<?= (int) $lc_per_page ?>">
@@ -98,8 +98,8 @@ $b = rtrim(View::e($base_url), '/');
         $cronIsDue  = $cronLastTs !== null && ($cronLastTs + 30 * 24 * 3600) <= time();
       ?>
       <div class="pc-section">
-        <div class="listing-field-row">
-          <label class="listing-field-label">Last Run</label>
+        <div class="field-row">
+          <label class="field-label">Last Run</label>
           <div>
             <?php if ($cronLastTs === null): ?>N/A
             <?php else: ?>
@@ -110,8 +110,8 @@ $b = rtrim(View::e($base_url), '/');
             <?php endif; ?>
           </div>
         </div>
-        <div class="listing-field-row">
-          <label class="listing-field-label" for="lc-auto-enable">Enable Auto-Check</label>
+        <div class="field-row">
+          <label class="field-label" for="lc-auto-enable">Enable Auto-Check</label>
           <div>
             <label class="toggle-wrap">
               <input type="checkbox" id="lc-auto-enable" name="auto_link_check_enabled"
@@ -121,8 +121,8 @@ $b = rtrim(View::e($base_url), '/');
             <p class="form-hint">The script only runs when 30 days have elapsed since the last check.</p>
           </div>
         </div>
-        <div class="listing-field-row">
-          <label class="listing-field-label">Cron URL</label>
+        <div class="field-row">
+          <label class="field-label">Cron URL</label>
           <div>
             <div class="ro-field embed-snippet"><?= View::e($cron_url) ?></div>
             <p class="form-hint">Call this URL from your cron manager once daily. Keep the token secret.</p>

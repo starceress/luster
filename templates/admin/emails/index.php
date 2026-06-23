@@ -333,8 +333,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
             <!-- Fields -->
             <div class="pc-section">
-              <div class="form-group form-group-preview-gap">
-                <label class="form-label" for="et-subject-<?= View::e($type) ?>">Subject</label>
+              <div class="field-group field-group-preview-gap">
+                <label class="field-label" for="et-subject-<?= View::e($type) ?>">Subject</label>
                 <input class="form et-subject"
                        type="text"
                        id="et-subject-<?= View::e($type) ?>"
@@ -344,8 +344,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                        data-type="<?= View::e($type) ?>">
                 <p class="form-hint">Tokens work here too. Example: <code>{listing_title}</code> becomes the real listing name when the email is sent.</p>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="et-body-<?= View::e($type) ?>">Body</label>
+              <div class="field-group">
+                <label class="field-label" for="et-body-<?= View::e($type) ?>">Body</label>
                 <textarea class="form et-body"
                           id="et-body-<?= View::e($type) ?>"
                           name="email_body_<?= View::e($type) ?>"
@@ -681,8 +681,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
         <div class="custom-template-body">
 
-          <div class="form-group custom-template-row">
-            <label class="form-label" for="new-tpl-name">Template Name <span class="req">*</span></label>
+          <div class="field-group custom-template-row">
+            <label class="field-label" for="new-tpl-name">Template Name <span class="req">*</span></label>
             <div>
               <input id="new-tpl-name" type="text" name="tpl_name" class="form"
                      maxlength="150" required placeholder="e.g. Welcome note, Monthly update&hellip;">
@@ -690,8 +690,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             </div>
           </div>
 
-          <div class="form-group custom-template-row">
-            <label class="form-label" for="new-tpl-subject">Subject (optional)</label>
+          <div class="field-group custom-template-row">
+            <label class="field-label" for="new-tpl-subject">Subject (optional)</label>
             <div>
               <input id="new-tpl-subject" type="text" name="tpl_subject" class="form"
                      maxlength="255" placeholder="(Optional - Leave blank to fill this when composing)">
@@ -699,8 +699,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             </div>
           </div>
 
-          <div class="form-group form-group--compact">
-            <label class="form-label" for="new-tpl-body">Body <span class="req">*</span></label>
+          <div class="field-group field-group--compact">
+            <label class="field-label" for="new-tpl-body">Body <span class="req">*</span></label>
             <textarea id="new-tpl-body" name="tpl_body" class="form"
                       rows="9" maxlength="50000" required></textarea>
             <p class="form-hint">Saved templates are reusable starting points for bulk email. Tokens are filled when the message is sent.</p>
@@ -843,20 +843,20 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             data-base-action="<?= $b ?>/admin/new-email-template/__ID__/update">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
         <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label" for="ct-edit-name">Template Name <span class="req">*</span></label>
+          <div class="field-group">
+            <label class="field-label" for="ct-edit-name">Template Name <span class="req">*</span></label>
             <input type="text" id="ct-edit-name" name="tpl_name" class="form"
                    maxlength="150" required>
             <p class="form-hint">Only admins see this name.</p>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="ct-edit-subject">Subject</label>
+          <div class="field-group">
+            <label class="field-label" for="ct-edit-subject">Subject</label>
             <input type="text" id="ct-edit-subject" name="tpl_subject" class="form"
                    maxlength="255">
             <p class="form-hint">Optional. Tokens work here after you load this template into a compose screen.</p>
           </div>
-          <div class="form-group form-group--compact">
-            <label class="form-label" for="ct-edit-body">Body <span class="req">*</span></label>
+          <div class="field-group field-group--compact">
+            <label class="field-label" for="ct-edit-body">Body <span class="req">*</span></label>
             <textarea id="ct-edit-body" name="tpl_body" class="form"
                       rows="9" maxlength="50000" required></textarea>
             <p class="form-hint">Tokens are filled when the message is sent.</p>

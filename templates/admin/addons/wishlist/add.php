@@ -94,8 +94,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     <div class="pc-section">
       <div class="pc-section-label">Subject Details</div>
 
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="wl-subject">
+      <div class="field-row">
+        <label class="field-label" for="wl-subject">
           Subject <span class="req">*</span>
         </label>
         <div>
@@ -105,8 +105,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="wl-url">URL</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="wl-url">URL</label>
         <div>
           <input id="wl-url" type="url" name="url" class="form" maxlength="255"
                  placeholder="https://"
@@ -115,8 +115,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Image</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Image</span>
         <div>
           <?php if ($isEdit && ($entry->image ?? '') !== ''): ?>
             <div class="existing-upload-preview">
@@ -138,8 +138,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       <div class="pc-section-label">Classification</div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label">Network &amp; Category</label>
+      <div class="field-row field-row--top">
+        <label class="field-label">Network &amp; Category</label>
         <div>
           <div class="cat-widget" id="cat-widget"
                data-tfl='<?= $dataTfl ?>'
@@ -154,8 +154,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="wl-type">Status</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="wl-type">Status</label>
         <div>
           <?php $currentType = (string) $val('type', 'wanted'); ?>
           <div class="select-wrap select-auto">
@@ -175,8 +175,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       <div class="pc-section-label">Public Display</div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="wl-description">Description</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="wl-description">Description</label>
         <div>
           <textarea id="wl-description" name="description" class="form" rows="4"
                     maxlength="2000"><?= View::e((string) $val('description')) ?></textarea>
@@ -184,8 +184,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="wl-added-at">Date Added</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="wl-added-at">Date Added</label>
         <div>
           <input id="wl-added-at" type="date" name="added_at" class="form form--compact"
                  value="<?= View::e(!empty($old) ? (string) ($old['added_at'] ?? '') : ($entry?->addedAt ?? '')) ?>">
@@ -193,8 +193,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Show on public wishlist</span>
+      <div class="field-row field-row--top">
+        <span class="field-label">Show on public wishlist</span>
         <div>
           <?php $isActive = !empty($old) ? ($old['active'] ?? false) : ($entry?->active ?? true); ?>
           <label class="toggle-wrap">
