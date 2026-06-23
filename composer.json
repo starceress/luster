@@ -1,7 +1,7 @@
 {
     "name": "luster/luster",
     "description": "Fanlisting management script",
-    "version": "1.0.16",
+    "version": "1.0.17",
     "type": "project",
     "license": "GPL-3.0-or-later",
     "homepage": "https://github.com/starceress/luster",
