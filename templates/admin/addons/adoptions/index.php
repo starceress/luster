@@ -240,7 +240,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
       <?php else: ?>Granted Applications
       <?php endif; ?>
       <?php if ($selected_listing !== null): ?>&mdash; <?= View::e($selected_listing->subject ?: $selected_listing->title) ?><?php endif; ?>
-      <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> Application<?= $total !== 1 ? 's' : '' ?></span>
+      <span class="card-head-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> Application<?= $total !== 1 ? 's' : '' ?></span>
       <?php
         // Use unfiltered per-listing totals so the badge is not scoped by active search.
         $_alc = $adoption_listing_counts[$listing_id] ?? [];
@@ -367,7 +367,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
             </td>
 
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <?php if ($isPending): ?>
                   <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="btn btn-primary btn-xs">Review</a>
                 <?php else: ?>
@@ -426,7 +426,7 @@ endif; ?>
 <?php else: ?>
   <div class="card">
     <div class="card-head">Adoption Listings
-      <span class="row-sub"><?= count($adoption_listings) ?> listing<?= count($adoption_listings) !== 1 ? 's' : '' ?></span>
+      <span class="card-head-sub"><?= count($adoption_listings) ?> listing<?= count($adoption_listings) !== 1 ? 's' : '' ?></span>
     </div>
     <div class="table-wrap">
       <table class="data-table mem-table">
@@ -480,7 +480,7 @@ endif; ?>
             </td>
             <td class="table-num text-dim" data-label="Total"><?= (int) $item['count_all'] ?></td>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $fl->id ?>" class="btn btn-primary btn-xs">View</a>
                 <?php if ($emailAllN > 0): ?>
                   <a href="<?= $b ?>/admin/adoptions/<?= (int) $fl->id ?>/email-all"

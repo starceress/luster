@@ -191,6 +191,7 @@ if ($_lusterKimResetStep === 'confirm') {
             'token_invalid' => !$_lusterTokenValid,
         ]);
         $_lusterTokensC = [
+            '{site_name}'                    => View::e((string) $_lusterApp->getConfig()->get('site_name', 'Collective')),
             '{submit_button}'                => '<button type="submit" class="fl-submit">Set New Password</button>',
             '{clear_button}'                 => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             '{reset_request_url}'            => View::e($_lusterResetRecoveryUrl),
@@ -238,6 +239,7 @@ if ($_lusterKimResetStep === 'confirm') {
             'token_invalid' => false,
         ]);
         $_lusterTokens = [
+            '{site_name}'                    => View::e((string) $_lusterApp->getConfig()->get('site_name', 'Collective')),
             '{field_email}'                  => $_lusterF['email'],
             '{field_email_input}'            => $_lusterF['email_input'],
             '{submit_button}'                => '<button type="submit" class="fl-submit">Send Reset Link</button>',

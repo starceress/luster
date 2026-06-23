@@ -195,6 +195,8 @@ if (trim($_lusterOwnedTemplate) === '') {
     $_lusterOwnedTemplate = SiteSettingsRepo::collectiveDefaults()['owned_template'];
 }
 
+$_lusterOwnedTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterOwnedTemplate);
+
 $_lusterListingHtml = null;
 if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';

@@ -96,6 +96,7 @@ $_lusterUpdatesTemplateHtml = null;
 $_lusterUpdatesTemplate     = $_lusterSiteRepo->get('collective_updates_template');
 
 if ($_lusterUpdatesTemplate !== null && trim($_lusterUpdatesTemplate) !== '') {
+    $_lusterUpdatesTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterUpdatesTemplate);
     $tplForLoop = TemplateEngine::conditionals($_lusterUpdatesTemplate, [
         'updates'    => count($_lusterUpdates) > 0,
         'no_updates' => count($_lusterUpdates) === 0,

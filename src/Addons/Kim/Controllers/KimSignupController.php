@@ -106,7 +106,9 @@ final class KimSignupController
         ]);
         $v->field('name')->required()->maxLength(100);
         $v->field('email')->required()->email()->maxLength(255);
-        $v->field('url')->required()->httpUrl()->maxLength(500);
+        if ($url !== '') {
+            $v->field('url')->httpUrl()->maxLength(500);
+        }
         $v->field('fanlisting_id')->required();
 
         $validationFailed = $v->fails();
@@ -144,17 +146,23 @@ final class KimSignupController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Password — auto-generate if not supplied
+        // Password — required
         $rawPassword     = (string) $request->post('password',         '');
         $passwordConfirm = (string) $request->post('password_confirm', '');
 
-        if ($rawPassword !== '' && $rawPassword !== $passwordConfirm) {
+        if ($rawPassword === '') {
+            $session->set('lstr_flash_error', 'Password is required.');
+            $session->set('lstr_flash_old', $oldFields);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
+        }
+
+        if ($rawPassword !== $passwordConfirm) {
             $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
             $session->set('lstr_flash_old', $oldFields);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        if ($rawPassword !== '') {
+        {
             $passwordValidator = new Validator(['password' => $rawPassword]);
             PasswordPolicy::apply($passwordValidator->field('password'));
             if ($passwordValidator->fails()) {
@@ -162,13 +170,6 @@ final class KimSignupController
                 $session->set('lstr_flash_old', $oldFields);
                 return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
             }
-        }
-
-        if ($rawPassword === '') {
-            $rawPassword  = bin2hex(random_bytes(8));
-            $wasGenerated = true;
-        } else {
-            $wasGenerated = false;
         }
 
         $passwordHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
@@ -283,11 +284,11 @@ final class KimSignupController
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'text',         'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                     'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'url',          'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL',  'required' => true,  'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+            ['type' => 'url',          'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL (optional)',  'required' => false, 'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
             ['type' => 'email',        'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'select',       'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $flSelectHtml],
-            ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. If left blank, we\'ll email you a link to set one.'],
-            ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
+            ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
             ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . Captcha::getQuestion('kim_signup'), 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
@@ -315,7 +316,7 @@ final class KimSignupController
                 '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($kimSignupTpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim', $this->app->getCSRF()->token(), false, formMarker: 'kim_signup:' . $listingId);
+            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim', $this->app->getCSRF()->token(), false, formMarker: 'kim_signup');
         }
 
         return $this->renderKimPage('signup.php', [

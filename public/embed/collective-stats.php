@@ -329,9 +329,22 @@ if ($_lusterCStatsTemplate !== null) {
         $luster_members_pending > 0 ? '$1' : '',
         $_lusterCStatsTemplate,
     );
+    $_lusterCStatsTemplate = (string) preg_replace(
+        '/\{if_owned_upcoming\}(.*?)\{\/if_owned_upcoming\}/s',
+        $luster_owned_upcoming > 0 ? '$1' : '',
+        $_lusterCStatsTemplate,
+    );
+    $_lusterCStatsTemplate = (string) preg_replace(
+        '/\{if_owned_pending\}(.*?)\{\/if_owned_pending\}/s',
+        $luster_owned_pending > 0 ? '$1' : '',
+        $_lusterCStatsTemplate,
+    );
+
+    $_lusterSiteName = (string) $_lusterApp->getConfig()->get('site_name', 'Collective');
 
     $_lusterHtml = str_replace(
         [
+            '{site_name}',
             '{owned_active}',
             '{owned_upcoming}',
             '{owned_pending}',
@@ -357,6 +370,7 @@ if ($_lusterCStatsTemplate !== null) {
             '{tafl_url}',
         ],
         [
+            $_lusterE($_lusterSiteName),
             (string) $luster_owned_active,
             (string) $luster_owned_upcoming,
             (string) $luster_owned_pending,

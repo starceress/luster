@@ -197,7 +197,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
     <?php else: ?>Granted Sign-Ups
     <?php endif; ?>
     <?php if ($selected_listing !== null): ?>&mdash; <?= View::e($selected_listing->subject) ?><?php endif; ?>
-    <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> Sign-Up<?= $total !== 1 ? 's' : '' ?></span>
+    <span class="card-head-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> Sign-Up<?= $total !== 1 ? 's' : '' ?></span>
     <?php
       // Use unfiltered per-listing count so the badge is not scoped by active search.
       $_kimEmailAllN = (int) ($kim_listing_counts[$listing_id] ?? 0);
@@ -327,7 +327,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
         </td>
 
         <td class="act-col" data-label="">
-          <div class="data-actions">
+          <div class="actions-row">
             <?php if ($m->pending): ?>
               <button type="submit" form="approve-kim-<?= (int) $m->id ?>"
                       class="btn btn-success btn-xs">Approve</button>

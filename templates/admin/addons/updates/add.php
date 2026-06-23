@@ -49,7 +49,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= View::e($back_url) ?>" class="link">&larr; Back to <?= View::e($backLabel) ?> News Feed</a>
 </div>
 
@@ -63,7 +63,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         <div class="pc-head-meta">
           <div class="pc-head-title"><?= $is_edit ? 'Edit Update' : 'Post Update' ?></div>
         </div>
-        <span class="badge badge-info-pink pc-head-badge"><?= View::e($ctxDisplay) ?></span>
+        <span class="badge badge-info2 pc-head-badge"><?= View::e($ctxDisplay) ?></span>
       </div>
 
       <div class="pc-section">

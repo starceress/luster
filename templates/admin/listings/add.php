@@ -24,7 +24,7 @@ $dataCustom     = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_A
 $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/listings" class="link">&larr; Back to Owned Listings</a>
 </div>
 

@@ -48,7 +48,7 @@ $dataCustomCats = json_encode($custom_cats ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
 $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/joined" class="link">
     &larr; Back to Joined Listings
   </a>

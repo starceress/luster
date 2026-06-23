@@ -137,6 +137,7 @@ $_lusterUpdResolved         = ListingTemplateResolver::resolve(
 $_lusterUpdatesTemplate = $_lusterUpdResolved['should_render_template'] ? $_lusterUpdResolved['value'] : null;
 
 if ($_lusterUpdatesTemplate !== null) {
+    $_lusterUpdatesTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterUpdatesTemplate);
     // Apply listing context tokens to the template SHELL before loop rendering
     // so that user-authored update body text cannot accidentally match {listing_subject}.
     $tplForLoop = $_lusterFid !== null

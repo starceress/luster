@@ -16,7 +16,7 @@ $b  = rtrim(View::e($base_url ?? ''), '/');
 $fe = $field_errors ?? [];
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/settings#panel-accounts" class="link">&larr; Back to Settings</a>
 </div>
 

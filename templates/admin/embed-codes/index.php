@@ -72,9 +72,9 @@ $iconMap = [
     'rules-gate'   => 'rules',
 ];
 $badgeMeta = [
-    'form' => ['cls' => 'badge-info-pink', 'label' => 'Form'],
+    'form' => ['cls' => 'badge-info2', 'label' => 'Form'],
     'data' => ['cls' => 'badge-info',      'label' => 'Data'],
-    'stat' => ['cls' => 'badge-info-gold', 'label' => 'Stats'],
+    'stat' => ['cls' => 'badge-info3', 'label' => 'Stats'],
     'ext'  => ['cls' => 'badge-upcoming',  'label' => 'Add-on'],
 ];
 
@@ -902,6 +902,9 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{collective_last_updated}</code></td><td>Date your newest owned listing was opened &mdash; the last time the collective grew.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{joined_total_cats}</code></td><td>Number of distinct categories across your active joined listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_pending}&hellip;{/if_pending}</code></td><td>Shows the text inside only when at least one member is waiting for approval.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_owned_upcoming}&hellip;{/if_owned_upcoming}</code></td><td>Shows the text inside only when at least one owned listing is marked upcoming.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_owned_pending}&hellip;{/if_owned_pending}</code></td><td>Shows the text inside only when at least one owned listing is marked pending.</td></tr>
               </tbody>
             </table>
             </div>

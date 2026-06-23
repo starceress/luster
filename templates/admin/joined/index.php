@@ -229,7 +229,7 @@ $bulkOptions = match ($statusTab) {
           'hidden'   => 'Hidden Joined Listings',
           default    => 'All Joined Listings',
       } ?>
-      <span class="row-sub">
+      <span class="card-head-sub">
         Showing <?= $from ?>&#8211;<?= $to ?> of <?= number_format((int) ($total ?? 0)) ?> listing<?= (int) ($total ?? 0) !== 1 ? 's' : '' ?>
       </span>
     </div>
@@ -329,7 +329,7 @@ $bulkOptions = match ($statusTab) {
           </td>
           <?php endif; ?>
           <td class="act-col" data-label="">
-            <div class="data-actions">
+            <div class="actions-row">
               <a href="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/edit"
                  class="btn btn-tertiary btn-xs">Edit</a>
               <button type="submit" form="del-joined-<?= (int) $jf->id ?>" class="btn btn-danger btn-xs">Delete</button>

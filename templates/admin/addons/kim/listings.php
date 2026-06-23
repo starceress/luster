@@ -76,7 +76,7 @@ $pageUrl = static function (int $p) use ($b, $sort, $dir): string {
 
   <div class="card">
     <div class="card-head">Listings
-      <span class="row-sub">Showing <?= $rangeFirst ?>&ndash;<?= $rangeLast ?> of <?= (int) $total_listings ?></span>
+      <span class="card-head-sub">Showing <?= $rangeFirst ?>&ndash;<?= $rangeLast ?> of <?= (int) $total_listings ?></span>
     </div>
     <div class="table-wrap">
     <table class="data-table mem-table">

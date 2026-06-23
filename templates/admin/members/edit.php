@@ -17,7 +17,7 @@ $fe = $field_errors ?? [];
 $id = (int) $listing->id;
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $id ?>&status=all" class="link">
     &larr; Back to Members: <?= View::e($listing->title) ?>
   </a>

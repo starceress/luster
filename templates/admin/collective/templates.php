@@ -57,7 +57,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="tpl-filter-panel">
+<div class="filter-panel is-open">
   <div class="filter-row" id="tpl-filter-row">
     <label for="tpl-group-select" style="font-weight:600; white-space:nowrap">Select Template:</label>
     <div class="select-wrap">
@@ -112,7 +112,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
       <div class="tpl-reset-all-row pc-section" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
         <div style="text-align:center; padding: 0.75rem 0;">
-          <button type="button" class="btn btn-quaternary btn-block-center"
+          <button type="button" class="btn btn-tertiary btn-block-center"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/settings/templates/reset-all"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>"
@@ -390,7 +390,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
     <!-- ── Right column: token reference ─────────────────────────────────── -->
     <div class="composer-side composer-side--sticky">
 
-      <div class="tpl-filter-panel token-search-wrap">
+      <div class="filter-panel is-open token-search-wrap">
         <div class="search-field-wrap">
           <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
           <input type="search"
@@ -418,6 +418,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Use {each_listing}...{/each_listing} for a flat list. Switch to {each_current}, {each_upcoming}, and {each_pending} for separate sections.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('owned_template', '{site_name}',                      '{site_name}',                      'The collective/site name.') ?>
             <?= $tok('owned_template', '{each_listing}{/each_listing}',   '{each_listing}...{/each_listing}',   'Repeats the HTML inside it once for each owned listing shown.') ?>
             <?= $tok('owned_template', '{each_current}{/each_current}',   '{each_current}...{/each_current}',   'Repeats the HTML inside it once for each current owned listing. Use with upcoming and pending blocks for separate sections.') ?>
             <?= $tok('owned_template', '{each_upcoming}{/each_upcoming}', '{each_upcoming}...{/each_upcoming}', 'Repeats the HTML inside it once for each upcoming owned listing.') ?>
@@ -469,6 +470,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Always renders one listing. Wrap your row design in {each_listing}...{/each_listing} — it is required for tokens to be replaced.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('latest_listing_template', '{site_name}',                      '{site_name}',                      'The collective/site name.') ?>
             <?= $tok('latest_listing_template', '{each_listing}{/each_listing}',   '{each_listing}...{/each_listing}',   'Wrap your row design inside this. Required for token replacement.') ?>
             <?= $tok('latest_listing_template', '{listing_title}',      '{listing_title}',      'The fanlisting display name.') ?>
             <?= $tok('latest_listing_template', '{listing_url}',        '{listing_url}',        'The link to the fanlisting.') ?>
@@ -508,6 +510,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Always renders one listing. Wrap your row design in {each_listing}...{/each_listing} — it is required for tokens to be replaced.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('random_listing_template', '{site_name}',                      '{site_name}',                      'The collective/site name.') ?>
             <?= $tok('random_listing_template', '{each_listing}{/each_listing}',   '{each_listing}...{/each_listing}',   'Wrap your row design inside this. Required for token replacement.') ?>
             <?= $tok('random_listing_template', '{listing_title}',      '{listing_title}',      'The fanlisting display name.') ?>
             <?= $tok('random_listing_template', '{listing_url}',        '{listing_url}',        'The link to the fanlisting.') ?>
@@ -547,6 +550,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Use {each_joined}...{/each_joined} for a flat list. Use {each_current_joined}...{/each_current_joined} when you want the list to follow category order.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('joined_template', '{site_name}',                                  '{site_name}',                                  'The collective/site name.') ?>
             <?= $tok('joined_template', '{each_joined}{/each_joined}',                 '{each_joined}...{/each_joined}',                 'Repeats the HTML inside it once for each joined listing. Use this for a simple list.') ?>
             <?= $tok('joined_template', '{each_current_joined}{/each_current_joined}', '{each_current_joined}...{/each_current_joined}', 'Repeats the HTML inside it once for each joined listing, in category order.') ?>
             <?= $tok('joined_template', '{listing_subject}',    '{listing_subject}',    'What this fanlisting is about (e.g. Archeology, Marilyn Monroe).') ?>
@@ -570,6 +574,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Always renders one joined listing. Wrap your row design in {each_joined}...{/each_joined} — it is required for tokens to be replaced.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('latest_joined_listing_template', '{site_name}',                  '{site_name}',                  'The collective/site name.') ?>
             <?= $tok('latest_joined_listing_template', '{each_joined}{/each_joined}', '{each_joined}...{/each_joined}', 'Wrap your row design inside this. Required for token replacement.') ?>
             <?= $tok('latest_joined_listing_template', '{listing_subject}',    '{listing_subject}',    'What this fanlisting is about (e.g. Archeology, Marilyn Monroe).') ?>
             <?= $tok('latest_joined_listing_template', '{listing_url}',        '{listing_url}',        'The link to the joined fanlisting.') ?>
@@ -589,6 +594,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Always renders one joined listing. Wrap your row design in {each_joined}...{/each_joined} — it is required for tokens to be replaced.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('random_joined_listing_template', '{site_name}',                  '{site_name}',                  'The collective/site name.') ?>
             <?= $tok('random_joined_listing_template', '{each_joined}{/each_joined}', '{each_joined}...{/each_joined}', 'Wrap your row design inside this. Required for token replacement.') ?>
             <?= $tok('random_joined_listing_template', '{listing_subject}',    '{listing_subject}',    'What this fanlisting is about (e.g. Archeology, Marilyn Monroe).') ?>
             <?= $tok('random_joined_listing_template', '{listing_url}',        '{listing_url}',        'The link to the joined fanlisting.') ?>
@@ -608,6 +614,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Summary numbers for the whole collective. These are template tokens, not PHP variables for sample pages.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_stats_template', '{site_name}',         '{site_name}',         'The collective/site name.') ?>
             <?= $tok('collective_stats_template', '{owned_active}',      '{owned_active}',      'How many owned listings are currently open.') ?>
             <?= $tok('collective_stats_template', '{owned_upcoming}',    '{owned_upcoming}',    'How many owned listings are marked upcoming.') ?>
             <?= $tok('collective_stats_template', '{owned_pending}',     '{owned_pending}',     'How many owned listings are marked pending.') ?>
@@ -632,6 +639,8 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('collective_stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
             <?= $tok('collective_stats_template', '{if_countries}{/if_countries}', '{if_countries}...{/if_countries}', 'Shows only when the collective country count is greater than zero.') ?>
             <?= $tok('collective_stats_template', '{if_pending}{/if_pending}', '{if_pending}...{/if_pending}', 'Shows only when at least one member across your owned listings is waiting for approval.') ?>
+            <?= $tok('collective_stats_template', '{if_owned_upcoming}{/if_owned_upcoming}', '{if_owned_upcoming}...{/if_owned_upcoming}', 'Shows only when at least one owned listing is marked upcoming.') ?>
+            <?= $tok('collective_stats_template', '{if_owned_pending}{/if_owned_pending}', '{if_owned_pending}...{/if_owned_pending}', 'Shows only when at least one owned listing is marked pending.') ?>
           </tbody></table>
         </div>
       </details>
@@ -642,6 +651,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery. Renders codes with no fanlisting assigned.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_codes_template', '{site_name}',                          '{site_name}',                          'The collective/site name.') ?>
             <?= $tok('collective_codes_template', '{each_size_group}{/each_size_group}', '{each_size_group}...{/each_size_group}', 'Repeats the HTML inside it once per group of same-sized codes. Wrap an {each_code}...{/each_code} loop inside it.') ?>
             <?= $tok('collective_codes_template', '{group_size}',       '{group_size}',       'The group label, e.g. "88×31px" or "Other". Use inside {each_size_group}.') ?>
             <?= $tok('collective_codes_template', '{group_code_count}', '{group_code_count}', 'How many codes are in this size group. Use inside {each_size_group}.') ?>
@@ -696,6 +706,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_affiliates_section_template', '{site_name}',                          '{site_name}',                          'The collective/site name.') ?>
             <?= $tok('collective_affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
             <?= $tok('collective_affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
             <?= $tok('collective_affiliates_section_template', '{aff_url}',       '{aff_url}',       'The affiliate site link. Use inside {each_affiliate}.') ?>
@@ -717,7 +728,8 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Controls the layout of the collective affiliate application form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('collective_affiliate_apply_form_template', '{listing_title}', '{listing_title}', 'The collective/site name.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{site_name}',      '{site_name}',      'The collective/site name.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{listing_title}', '{listing_title}', 'The collective/site name (alias for {site_name}).') ?>
             <?= $tok('collective_affiliate_apply_form_template', '{listing_url}',   '{listing_url}',   'The collective/site URL.') ?>
             <?= $tok('collective_affiliate_apply_form_template', '{field_name}',          '{field_name}',          'Full label + input block for the affiliate site name field.') ?>
             <?= $tok('collective_affiliate_apply_form_template', '{field_name_input}',    '{field_name_input}',    'Just the site name text input element.') ?>
@@ -744,6 +756,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Controls the layout of the collective contact form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_contact_form_template', '{site_name}',           '{site_name}',           'The collective/site name.') ?>
             <?= $tok('collective_contact_form_template', '{field_name}',          '{field_name}',          'The Name field, with label and wrapper.') ?>
             <?= $tok('collective_contact_form_template', '{field_name_input}',    '{field_name_input}',    'Just the Name input, no label or wrapper.') ?>
             <?= $tok('collective_contact_form_template', '{field_email}',           '{field_email}',           'The Email field, with label and wrapper.') ?>
@@ -769,6 +782,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Shown on the public KIM list overview. Wrap each fanlisting row in {each_kim_listing}...{/each_kim_listing}.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_kim_list_overview_template', '{site_name}',                              '{site_name}',                              'The collective/site name.') ?>
             <?= $tok('collective_kim_list_overview_template', '{each_kim_listing}{/each_kim_listing}', '{each_kim_listing}...{/each_kim_listing}', 'Repeats the HTML inside it once for each fanlisting that has KIM sign-ups.') ?>
             <?= $tok('collective_kim_list_overview_template', '{listing_title}',     '{listing_title}',     'Fanlisting display name. Use inside {each_kim_listing}.') ?>
             <?= $tok('collective_kim_list_overview_template', '{listing_subject}',   '{listing_subject}',   'What the fanlisting is about. Use inside {each_kim_listing}.') ?>
@@ -787,6 +801,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Shown when a visitor views KIM members for a single fanlisting. Wrap each member in {each_kim_member}...{/each_kim_member}.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_kim_list_subject_template', '{site_name}',                    '{site_name}',                    'The collective/site name.') ?>
             <?= $tok('collective_kim_list_subject_template', '{listing_title}',                '{listing_title}',                'Fanlisting display name.') ?>
             <?= $tok('collective_kim_list_subject_template', '{listing_subject}',              '{listing_subject}',              'The fanlisting subject (what it is about).') ?>
             <?= $tok('collective_kim_list_subject_template', '{listing_url}',                  '{listing_url}',                  'Link to the fanlisting.') ?>
@@ -840,6 +855,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Controls the KIM update form layout. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('kim_update_form_template', '{site_name}',                       '{site_name}',                       'The collective/site name.') ?>
             <?= $tok('kim_update_form_template', '{field_email}',                     '{field_email}',                     'Full label + input for the sign-in email field.') ?>
             <?= $tok('kim_update_form_template', '{field_email_input}',               '{field_email_input}',               'Just the email input element.') ?>
             <?= $tok('kim_update_form_template', '{field_password}',                  '{field_password}',                  'Full label + input for the sign-in password field.') ?>
@@ -858,6 +874,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Controls both steps of the KIM password reset form. Use <code>{if_step_email}</code> and <code>{if_step_confirm}</code> to separate the two flows in a single template.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('kim_reset_form_template', '{site_name}',                        '{site_name}',                        'The collective/site name.') ?>
             <?= $tok('kim_reset_form_template', '{if_step_email}{/if_step_email}',   '{if_step_email}...{/if_step_email}',   'Shows only on the email-entry step (the first step).') ?>
             <?= $tok('kim_reset_form_template', '{if_step_confirm}{/if_step_confirm}', '{if_step_confirm}...{/if_step_confirm}', 'Shows only on the new-password step (after clicking the email link).') ?>
             <?= $tok('kim_reset_form_template', '{if_token_valid}{/if_token_valid}', '{if_token_valid}...{/if_token_valid}', 'Inside {if_step_confirm} — shows only when the reset token is valid.') ?>
@@ -907,6 +924,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Wrap your row design in {each_wishlist_item}...{/each_wishlist_item}. This template is self-contained — include your own wrapper element.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('wishlist_template', '{site_name}',                                '{site_name}',                                'The collective/site name.') ?>
             <?= $tok('wishlist_template', '{each_wishlist_item}{/each_wishlist_item}', '{each_wishlist_item}...{/each_wishlist_item}', 'Repeats the HTML inside it once for each active wishlist entry.') ?>
             <?= $tok('wishlist_template', '{item_subject}',     '{item_subject}',     'The wishlist item title.') ?>
             <?= $tok('wishlist_template', '{item_url}',         '{item_url}',         'The link for this item. Empty when none is set.') ?>
@@ -941,6 +959,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('collective_updates_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one update on the current page.') ?>
             <?= $tok('collective_updates_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no updates (use for an empty state message).') ?>
+            <?= $tok('collective_updates_template', '{site_name}',                  '{site_name}',                  'The collective/site name.') ?>
             <?= $tok('collective_updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
             <?= $tok('collective_updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
             <?= $tok('collective_updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>

@@ -15,7 +15,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
 }
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/listings" class="link">
     &larr; Back to Owned Listings
   </a>

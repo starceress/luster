@@ -16,7 +16,7 @@ $formatLabels = ['enthusiast' => 'Enthusiast', 'listing_admin' => 'Listing Admin
 $formatLabel  = $formatLabels[$format] ?? 'Unknown';
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/import-members" class="link">&larr; Back</a>
 </div>
 

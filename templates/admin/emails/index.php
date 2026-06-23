@@ -247,11 +247,11 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     <?php if (!$isGlobal && $listing !== null): ?>
       <span class="text-dim">
         Cards showing <span class="badge badge-info">Custom</span> override the global template.
-        Cards showing <span class="badge badge-info-gold">Global</span> inherit global templates.
+        Cards showing <span class="badge badge-info3">Global</span> inherit global templates.
       </span>
     <?php else: ?>
       <span class="text-dim">
-        <span class="badge badge-info-gold">Global</span> templates apply to all listings unless a per-listing override exists.
+        <span class="badge badge-info3">Global</span> templates apply to all listings unless a per-listing override exists.
       </span>
     <?php endif; ?>
   </form>
@@ -314,7 +314,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                   <?php if ($card['isCustomised']): ?>
                     <span class="badge badge-info">Custom</span>
                   <?php else: ?>
-                    <span class="badge badge-info-gold">Global</span>
+                    <span class="badge badge-info3">Global</span>
                   <?php endif; ?>
                 <?php endif; ?>
                 <label class="et-toggle-wrap" title="Toggle whether this email is sent">
@@ -494,7 +494,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         </div>
       </div>
 
-      <div class="tpl-filter-panel token-search-wrap">
+      <div class="filter-panel is-open token-search-wrap">
       <div class="search-field-wrap">
         <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
         <input type="search"
@@ -542,7 +542,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
           <div class="pc-head-title">Bulk Email</div>
-          <span class="badge badge-info-pink pc-head-badge" id="me-listing-chip">
+          <span class="badge badge-info2 pc-head-badge" id="me-listing-chip">
             <span id="me-chip-label">All Listings</span>
           </span>
         </div>
@@ -733,7 +733,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     
 <!-- ──── SIDEBAR: AVAILABLE TOKENS ──────────────────────────────────── -->
     <div class="composer-side">
-      <div class="tpl-filter-panel token-search-wrap">
+      <div class="filter-panel is-open token-search-wrap">
       <div class="search-field-wrap">
         <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
         <input type="search"
@@ -805,7 +805,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                 <?= View::e(date($admin_date_format, strtotime($t->created_at))) ?>
               </td>
               <td class="act-col">
-                <div class="data-actions">
+                <div class="actions-row">
                   <a href="<?= $b ?>/admin/emails?tab=bulk&load=<?= (int) $t->id ?>"
                      class="btn btn-secondary btn-sm">Use</a>
                   <button type="button" class="btn btn-tertiary btn-sm ct-edit-btn"

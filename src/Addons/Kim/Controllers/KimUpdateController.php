@@ -453,6 +453,7 @@ final class KimUpdateController
         if ($updateTpl !== '') {
             $tpl    = TemplateEngine::conditionals($updateTpl, ['lost_password_url' => true]);
             $tokens = [
+                '{site_name}'                        => View::e((string) $this->app->getConfig()->get('site_name', 'Collective')),
                 '{field_email}'                      => $f['email'],
                 '{field_email_input}'                => $f['email_input'],
                 '{field_password}'                   => $f['password'],
@@ -462,7 +463,7 @@ final class KimUpdateController
                 '{lost_password_url}'                => View::e($resolvedResetUrl),
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/update/sign-in', $this->app->getCSRF()->token(), false, formMarker: 'kim_update_auth:' . $listingId);
+            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/update/sign-in', $this->app->getCSRF()->token(), false, formMarker: 'kim_update_auth');
         }
 
         return $this->renderKimPage('update.php', [

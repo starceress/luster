@@ -44,7 +44,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
       $rangeLast  = min($page * $per_page, $total);
     ?>
     <div class="card-head">Activity Log
-      <span class="row-sub">Showing <?= $rangeFirst ?>-<?= $rangeLast ?> of <?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?></span>
+      <span class="card-head-sub">Showing <?= $rangeFirst ?>-<?= $rangeLast ?> of <?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?></span>
     </div>
     <table class="data-table">
       <colgroup>

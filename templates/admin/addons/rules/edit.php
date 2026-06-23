@@ -26,7 +26,7 @@ $defaultGateLabel = $currentGateType === 'button'
 ?>
 
 <?php if (!($_rules_embedded ?? false)): ?>
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/rules" class="link">&larr; Back to Join Rules</a>
 </div>
 

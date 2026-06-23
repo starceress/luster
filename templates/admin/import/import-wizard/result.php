@@ -56,7 +56,7 @@ $hasErr  = $result->hasErrors();
         <?= number_format($result->totalImported()) ?> imported, <?= number_format($result->totalSkipped()) ?> skipped
       </div>
     </div>
-    <div class="import-result-actions">
+    <div class="actions-row" style="flex-shrink:0">
       <a href="<?= $b ?>/admin/import/<?= $src ?>/report" class="btn btn-secondary btn-sm">
         <?= View::icon('download') ?> Download Report
       </a>
@@ -248,7 +248,7 @@ $hasErr  = $result->hasErrors();
   </div>
 <?php endif; ?>
 <!-- ──── ACTIONS ────────────────────────────────────────────────────── -->
-<div class="btn-row import-action-row">
+<div class="actions-row actions-row--wrap" style="justify-content:space-between;margin-top:1.5rem">
   <a href="<?= $b ?>/admin/import" class="btn btn-secondary">&larr; Run Another Import </a>
   <a href="<?= $b ?>/admin" class="btn btn-primary">Go to Dashboard &rarr;</a>
 </div>

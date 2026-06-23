@@ -134,7 +134,7 @@ $rangeLast  = min($page * $per_page, $total);
 
   <div class="card">
     <div class="card-head">All Listings
-      <span class="row-sub">Showing <?= $rangeFirst ?>&ndash;<?= $rangeLast ?> of <?= (int) $total ?> Listing<?= $total === 1 ? '' : 's' ?></span>
+      <span class="card-head-sub">Showing <?= $rangeFirst ?>&ndash;<?= $rangeLast ?> of <?= (int) $total ?> Listing<?= $total === 1 ? '' : 's' ?></span>
     </div>
 
     <div class="bulk bulk--flush">
@@ -231,7 +231,7 @@ $rangeLast  = min($page * $per_page, $total);
             </td>
 
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <a href="<?= $b ?>/admin/rules/<?= (int) $row['listing_id'] ?>/edit"
                    class="btn btn-tertiary btn-xs">Edit</a>
 

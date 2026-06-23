@@ -96,7 +96,6 @@
 [data-skin="prism-power"][data-theme="light"] .link:hover { color: #1ba6d8; border-color: #1ba6d8; }
 [data-skin="prism-power"] .sidebar-label { color: var(--va-gold); }
 [data-skin="prism-power"] .sidebar-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, color-mix(in srgb, var(--accent3) 58%, transparent), transparent); }
-[data-skin="prism-power"][data-theme="light"] .row-sub, 
 [data-skin="prism-power"][data-theme="light"] .card-head-sub { color: #d83e8a; }
 [data-skin="prism-power"][data-theme="light"] .overview-section-divider { border-top: 1px solid #a6b7e7; }
 [data-skin="prism-power"][data-theme="light"] .btn-tertiary { background: #bbc8ee; color: #fff; border: 1px solid var(--border); }
@@ -171,7 +170,6 @@
 [data-skin="prism-power"][data-theme="dark"] .welcome-block strong { color: var(--accent); }
 [data-skin="prism-power"][data-theme="dark"] .nav-item:hover { background: #2f4a99; color: #fff; }
 [data-skin="prism-power"][data-theme="dark"] .nav-item:hover .nav-icon { color: #fbd30b; opacity: 1; filter: drop-shadow(0 0 6px rgb(241 63 114 / 0.55)); }
-[data-skin="prism-power"][data-theme="dark"] .row-sub,
 [data-skin="prism-power"][data-theme="dark"] .card-head-sub { color: #d8d0a5; }
 [data-skin="prism-power"][data-theme="dark"] .bulk,
 [data-skin="prism-power"][data-theme="dark"] .data-table th { color: #99b3ff; }
@@ -273,7 +271,6 @@
 [data-skin="victory-road"][data-theme="light"] .modal-body strong { color: #35ac35; }
 [data-skin="victory-road"][data-theme="light"] .todo-toggle { background: #fff4ad; }
 [data-skin="victory-road"][data-theme="light"] .bulk { background: #fff4ad; }
-[data-skin="victory-road"][data-theme="light"] .row-sub,
 [data-skin="victory-road"][data-theme="light"] .card-head-sub { color: var(--text-muted); }
 [data-skin="victory-road"][data-theme="light"] .filter-panel select,
 [data-skin="victory-road"][data-theme="light"] .filter-panel input:not([type="button"]):not([type="submit"]):not([type="reset"]) { background: #fff; color: var(--text); }
@@ -423,7 +420,6 @@
   --ch-danger:        255 179 193;
 }
 
-[data-skin="the-force"][data-theme="light"] .row-sub,
 [data-skin="the-force"][data-theme="light"] .card-head-sub { color: var(--text-muted); }
 
 [data-skin="the-force"][data-theme="dark"] {
@@ -481,12 +477,11 @@
   color:        #e05555;
   border-color: rgb(196 32 32 / 0.42);
 }
-[data-skin="the-force"][data-theme="dark"] .badge-info-pink {
+[data-skin="the-force"][data-theme="dark"] .badge-info2 {
   background:   rgb(196 32 32 / 0.15);
   color:        #d44040;
   border-color: rgb(196 32 32 / 0.36);
 }
-[data-skin="the-force"][data-theme="dark"] .row-sub,
 [data-skin="the-force"][data-theme="dark"] .card-head-sub { color: #d6cfc1; }
 [data-skin="the-force"][data-theme="dark"] .stat-extra a { color: var(--text); }
 [data-skin="the-force"][data-theme="dark"] .stat-extra a:hover { color: #ffffff; }

@@ -4,7 +4,7 @@ $b  = rtrim(View::e($base_url ?? ''), '/');
 $fe = $field_errors ?? [];
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/categories" class="link">
     &larr; Back to Categories
   </a>

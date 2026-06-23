@@ -54,7 +54,7 @@ $listingId  = (int) ($listing->id ?? 0);
       </div>
     </div>
 
-      <div class="tpl-filter-panel token-search-wrap">
+      <div class="filter-panel is-open token-search-wrap">
     <div class="search-field-wrap">
       <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
       <input type="search"
@@ -102,7 +102,7 @@ $listingId  = (int) ($listing->id ?? 0);
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         <div class="pc-head-title">Compose New Email</div>
-        <span class="badge badge-info-pink pc-head-badge"><?= $flName ?></span>
+        <span class="badge badge-info2 pc-head-badge"><?= $flName ?></span>
       </div>
 
       <div class="composer-block">
@@ -124,7 +124,7 @@ $listingId  = (int) ($listing->id ?? 0);
 
         <div class="composer-row">
           <span class="composer-lbl">Subject</span>
-          <span class="badge badge-info-pink"><?= $flName ?>:</span>
+          <span class="badge badge-info2"><?= $flName ?>:</span>
           <div class="flex-fill">
             <input class="subj-input" type="text" name="subject_suffix" id="subject"
                    maxlength="255" required value="<?= $oldSubject ?>" placeholder="Enter subject&hellip;">

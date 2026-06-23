@@ -302,7 +302,7 @@ $_flTabCounts = $tab_counts ?? [];
   <div class="card">
     <div class="card-head">
       <span><?= $tableTitle ?></span>
-      <span class="row-sub">
+      <span class="card-head-sub">
         Showing <?= $flFrom ?>&#8211;<?= $flTo ?> of <?= number_format((int) $total) ?> listing<?= (int) $total !== 1 ? 's' : '' ?><?php if ($total_pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $total_pages ?><?php endif; ?>
       </span>
     </div>
@@ -404,7 +404,7 @@ $_flTabCounts = $tab_counts ?? [];
           </td>
 <!-- ──── ACTIONS ────────────────────────────────────────────────────── -->
           <td class="act-col" data-label="">
-            <div class="data-actions">
+            <div class="actions-row">
               <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
                  class="btn btn-tertiary btn-xs">Edit</a>
               <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $fl->id ?>&status=all"

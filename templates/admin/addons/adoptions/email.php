@@ -28,7 +28,7 @@ $oldSubject = View::e($old['subject'] ?? '');
 $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="link">&larr; Back to Application</a>
 </div>
 
@@ -76,7 +76,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       </div>
     </div>
 
-      <div class="tpl-filter-panel token-search-wrap">
+      <div class="filter-panel is-open token-search-wrap">
     <div class="search-field-wrap">
       <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
       <input type="search"
@@ -125,7 +125,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         <div class="pc-head-title">Compose New Email</div>
         <?php if ($flSubject !== ''): ?>
-          <span class="badge badge-info-pink pc-head-badge"><?= $flSubject ?></span>
+          <span class="badge badge-info2 pc-head-badge"><?= $flSubject ?></span>
         <?php endif; ?>
       </div>
 

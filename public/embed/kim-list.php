@@ -158,6 +158,9 @@ if ($_lusterSubjectId > 0) {
     }
 
     $_lusterSubjectTpl = $_lusterSiteSettings->get('collective_kim_list_subject_template') ?? '';
+    if ($_lusterSubjectTpl !== '') {
+        $_lusterSubjectTpl = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterSubjectTpl);
+    }
     $_lusterSubjectTemplateHtml = null;
     if ($_lusterSubjectTpl !== '') {
         $_lusterHasMembers = count($_lusterMembers) > 0;
@@ -236,6 +239,9 @@ if ($_lusterSubjectId > 0) {
     }
 
     $_lusterOverviewTpl = $_lusterSiteSettings->get('collective_kim_list_overview_template') ?? '';
+    if ($_lusterOverviewTpl !== '') {
+        $_lusterOverviewTpl = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterOverviewTpl);
+    }
     $_lusterOverviewTemplateHtml = null;
     if ($_lusterOverviewTpl !== '') {
         $_lusterHasListings = count($_lusterFanlistingsWithCounts) > 0;

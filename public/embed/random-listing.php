@@ -84,6 +84,8 @@ if (trim($_lusterTemplate) === '') {
     $_lusterTemplate = SiteSettingsRepo::collectiveDefaults()['random_listing_template'];
 }
 
+$_lusterTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterTemplate);
+
 $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';
 
 // Fetch per-listing settings (image, last_updated)

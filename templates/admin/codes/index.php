@@ -402,7 +402,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
           <div class="text-muted"><?= View::e($code->name) ?></div>
           <?php endif; ?>
           <?php if ($code->submitterName !== null): ?>
-          <div class="badge badge-info-pink">&hearts; <?= View::e($code->submitterName) ?></div>
+          <div class="badge badge-info2">&hearts; <?= View::e($code->submitterName) ?></div>
           <?php endif; ?>
           <?php if ($code->status === 'pending'): ?>
           <span class="badge badge-pending">Pending</span>
@@ -500,7 +500,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
       <?php else: ?>
         <?= $_flName ?>
       <?php endif; ?>
-      <span class="row-sub"><?= $_flCount ?> pending donation<?= $_flCount !== 1 ? 's' : '' ?></span>
+      <span class="card-head-sub"><?= $_flCount ?> pending donation<?= $_flCount !== 1 ? 's' : '' ?></span>
       <div class="actions-row--right">
         <button type="button" class="btn btn-success btn-xs"
                 data-global-approve-listing="<?= $_flId ?>"
@@ -564,7 +564,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
               <?= ($code->created_at ?? '') !== '' ? View::e(date($admin_date_format, strtotime($code->created_at))) : '&mdash;' ?>
             </td>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/codes/<?= (int) $code->id ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
                   <input type="hidden" name="listing_id" value="0">

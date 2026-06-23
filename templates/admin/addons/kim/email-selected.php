@@ -32,7 +32,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 $returnSafe = View::e($return_url);
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $returnSafe ?>" class="link">&larr; Back to Keep In Mind</a>
 </div>
 
@@ -85,7 +85,7 @@ $returnSafe = View::e($return_url);
     </div>
 
 
-      <div class="tpl-filter-panel token-search-wrap">
+      <div class="filter-panel is-open token-search-wrap">
     <div class="search-field-wrap">
       <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
       <input type="search"
@@ -140,7 +140,7 @@ $returnSafe = View::e($return_url);
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         <div class="pc-head-title">Email Selected KIM Members</div>
-        <span class="badge badge-info-pink pc-head-badge">
+        <span class="badge badge-info2 pc-head-badge">
           <span id="es-count-label"><?= $count ?> member<?= $count !== 1 ? 's' : '' ?></span>
         </span>
       </div>

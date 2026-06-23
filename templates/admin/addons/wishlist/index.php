@@ -75,7 +75,7 @@ $sortUrl = static function (string $col) use ($b, $sort, $dir, $filter_type, $se
 $tabTotal = array_sum($type_counts);
 $tabs = [
     'all'      => ['label' => 'All',        'count' => $tabTotal,                      'badge' => 'badge-inactive'],
-    'top'      => ['label' => 'Top Wanted', 'count' => $type_counts['top']      ?? 0,  'badge' => 'badge-info-pink'],
+    'top'      => ['label' => 'Top Wanted', 'count' => $type_counts['top']      ?? 0,  'badge' => 'badge-info2'],
     'wanted'   => ['label' => 'Wanted',     'count' => $type_counts['wanted']   ?? 0,  'badge' => 'badge-current'],
     'granted'  => ['label' => 'Granted',    'count' => $type_counts['granted']  ?? 0,  'badge' => 'badge-redirect'],
     'hidden'   => ['label' => 'Hidden',     'count' => $hidden_count            ?? 0,  'badge' => 'badge-inactive'],
@@ -256,7 +256,7 @@ $showDragHint = isset($typeTabs[$filter_type])
         $rangeStart = min($total, ($page - 1) * $per_page + 1);
         $rangeEnd   = min($total, $page * $per_page);
       ?>
-      <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> <?= $total === 1 ? 'entry' : 'entries' ?></span>
+      <span class="card-head-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> <?= $total === 1 ? 'entry' : 'entries' ?></span>
       <?php if ($dragEnabled): ?>
         <a href="<?= View::e($b . '/admin/wishlist?type=' . urlencode($filter_type)) ?>" class="btn btn-preview btn-xs actions-row--right"><?= View::icon('grip') ?> Exit reorder</a>
       <?php elseif ($showDragHint): ?>
@@ -399,7 +399,7 @@ $showDragHint = isset($typeTabs[$filter_type])
             <td data-label="Status">
               <?php $badgeClass = match ($entry->type) {
                 'wanted'  => 'badge-current',
-                'top'     => 'badge-info-pink',
+                'top'     => 'badge-info2',
                 'granted' => 'badge-redirect',
                 default   => 'badge-inactive',
               }; ?>
@@ -416,7 +416,7 @@ $showDragHint = isset($typeTabs[$filter_type])
             </td>
 
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <a href="<?= $b ?>/admin/wishlist/<?= (int) $entry->id ?>/edit"
                    class="btn btn-tertiary btn-xs">Edit</a>
                 <button type="submit"

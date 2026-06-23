@@ -6,31 +6,50 @@
 > See `docs/CSS-CLASS-MIGRATION.md` for the full class reference and mappings from
 > Enthusiast / Listing Admin.
 
-# Members:
+# Members (List Layout):
 ```
-<h2 class="fl-heading">Member List</h2>
-<div class="fl-member-controls">
-<p class="fl-member-sort">Sort by: {sort_link_all} | {sort_link_name} | {sort_link_country}</p>
-<p class="fl-member-stats">{member_count} fans from {country_count} countries.</p>
-</div>
+<h1>Member List</h1>
+<p>Sort by: {sort_link_all} | {sort_link_name} | {sort_link_country}</p><br>
 
 {if_members}
-<ul class="fl-member-list">
+<div class="fl-member-list">
+<ul>
 {each_member}
-<li class="fl-member-item">
-{if_fan_url}<a href="{fan_url}" class="fl-member-name">{fan_name}</a>{/if_fan_url}
-{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url}
-{if_fan_country} <span class="fl-member-country">&mdash; {fan_country}</span>{/if_fan_country}
-</li>
+<li class="fl-member-item">{if_fan_url}<a href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}{fan_name}{/if_no_fan_url}{if_fan_country} &mdash; {fan_country}{/if_fan_country}</li>
 {/each_member}
 </ul>
+</div>
 {/if_members}
 
 {if_no_members}
-<p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>
+<p>No members yet. <a href="{join_url}">Want to join?</a></p>
 {/if_no_members}
+```
 
-<div class="fl-pagination-wrap">{pagination}</div>
+# Members (Table Layout):
+```
+<h1>Member List</h1>
+<p>Sort by: {sort_link_all} | {sort_link_name} | {sort_link_country}</p><br>
+
+{if_members}
+<div class="fl-member-table">
+<div class="fl-member-table-head">
+<span class="fl-member-table-th">Name</span>
+<span class="fl-member-table-th">Country</span>
+</div>
+
+{each_member}
+<div class="fl-member-table-row">
+<span class="fl-member-table-cell">{if_fan_url}<a href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}{fan_name}{/if_no_fan_url}</span>
+<span class="fl-member-table-cell">{if_fan_country}{fan_country}{/if_fan_country}{if_no_fan_country}&ndash;{/if_no_fan_country}</span>
+</div>
+{/each_member}
+</div>
+{/if_members}
+
+{if_no_members}
+<p>No members yet. <a href="{join_url}">Want to join?</a></p>
+{/if_no_members}
 ```
 
 # Join Form:
@@ -139,6 +158,13 @@
 </div>
 </div>
 ```
+
+> **Tip — `{if_approved_by}` vs `{if_tfl}` / `{if_tafl}`:**
+> Use `{if_approved_by}` when the content is the same for both networks (e.g.
+> `{if_approved_by}<b>Approved by:</b> {network_name}{/if_approved_by}`).
+> The default template above uses `{if_tfl}` and `{if_tafl}` only because the
+> link *target* differs per network (`{tfl_url}` vs `{tafl_url}`). If you don't
+> need per-network differences, `{if_approved_by}` alone is enough.
 
 # Affiliates:
 ```

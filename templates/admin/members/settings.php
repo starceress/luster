@@ -11,7 +11,7 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url), '/');
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/members" class="link">&larr; Back to Members</a>
 </div>
 

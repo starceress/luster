@@ -326,7 +326,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
   </div>
   <?php endif; ?>
 
-  <div class="btn-row import-action-row">
+  <div class="actions-row actions-row--wrap" style="justify-content:space-between;margin-top:1.5rem">
     <a href="<?= $b ?>/admin/import" class="btn btn-ghost">&#8592; Back</a>
     <button type="submit" id="js-submit-btn" class="btn btn-primary">Preview Import &#8594;</button>
   </div>

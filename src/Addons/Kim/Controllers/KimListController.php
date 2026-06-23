@@ -52,6 +52,7 @@ final class KimListController
         $overviewTpl = (new SiteSettingsRepo($db))->get('collective_kim_list_overview_template') ?? '';
         $overviewTemplateHtml = null;
         if ($overviewTpl !== '') {
+            $overviewTpl = str_replace('{site_name}', htmlspecialchars((string) $this->app->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $overviewTpl);
             $hasListings = count($fanlistingsWithCounts) > 0;
             $tpl = TemplateEngine::conditionals($overviewTpl, [
                 'has_listings' => $hasListings,
@@ -139,6 +140,7 @@ final class KimListController
         $subjectTpl = $siteRepo->get('collective_kim_list_subject_template') ?? '';
         $subjectTemplateHtml = null;
         if ($subjectTpl !== '') {
+            $subjectTpl = str_replace('{site_name}', htmlspecialchars((string) $this->app->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $subjectTpl);
             $hasMembers = count($members) > 0;
             $tpl = TemplateEngine::conditionals($subjectTpl, [
                 'has_kim_members' => $hasMembers,

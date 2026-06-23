@@ -163,6 +163,8 @@ if (trim($_lusterJoinedTemplate) === '') {
     $_lusterJoinedTemplate = SiteSettingsRepo::collectiveDefaults()['joined_template'];
 }
 
+$_lusterJoinedTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterJoinedTemplate);
+
 $_lusterListingHtml = null;
 if ($_lusterJoinedTemplate !== null) {
     $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';

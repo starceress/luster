@@ -18,7 +18,7 @@ $currentSlug   = $cat->slug ?? '';
 $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat->parent_id : null;
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/categories" class="link">
     &larr; Back to Categories
   </a>

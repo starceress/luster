@@ -75,8 +75,9 @@ final class UpdatesPublicController
         $updatesTemplateHtml = null;
         if ($resolved['should_render_template']) {
             $resolvedTpl = str_replace(
-                ['{listing_title}', '{listing_subject}', '{listing_url}'],
+                ['{site_name}', '{listing_title}', '{listing_subject}', '{listing_url}'],
                 [
+                    htmlspecialchars((string) $this->app->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                     htmlspecialchars((string) $listing->title,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                     htmlspecialchars((string) $listing->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                     htmlspecialchars((string) $listing->url,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
@@ -193,6 +194,7 @@ final class UpdatesPublicController
         $updatesTemplateHtml = null;
         $collectiveUpdatesTpl = $siteRepo->get('collective_updates_template');
         if ($collectiveUpdatesTpl !== null && trim($collectiveUpdatesTpl) !== '') {
+            $collectiveUpdatesTpl = str_replace('{site_name}', htmlspecialchars($siteName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $collectiveUpdatesTpl);
             $updatesTemplateHtml = self::buildUpdatesHtml($updates, $collectiveUpdatesTpl);
         }
 

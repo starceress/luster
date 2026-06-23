@@ -101,7 +101,7 @@ $collLastDate = $latest_coll !== null
 <!-- ──── TABLE ───────────────────────────────────────────────────────── -->
 <div class="card">
   <div class="card-head">News Feed Index
-    <span class="row-sub">Showing <?= $rangeFirst ?>–<?= $rangeLast ?> of <?= $total_listings ?> Listing<?= $total_listings === 1 ? '' : 's' ?></span>
+    <span class="card-head-sub">Showing <?= $rangeFirst ?>–<?= $rangeLast ?> of <?= $total_listings ?> Listing<?= $total_listings === 1 ? '' : 's' ?></span>
   </div>
   <div class="table-wrap">
     <table class="data-table mem-table">
@@ -137,7 +137,7 @@ $collLastDate = $latest_coll !== null
           <td data-label="Listing">
             <div class="ctx-cell">
               <a href="<?= $b ?>/admin/updates/collective" class="link"><b><?= View::e($site_name) ?></b></a>
-              <span class="badge badge-info-gold">Collective</span>
+              <span class="badge badge-info3">Collective</span>
             </div>
           </td>
           <td class="text-dim" data-label="Last Updated">
@@ -151,7 +151,7 @@ $collLastDate = $latest_coll !== null
             <?php endif; ?>
           </td>
           <td class="act-col" data-label="">
-            <div class="data-actions">
+            <div class="actions-row">
               <a href="<?= $b ?>/admin/updates/collective" class="btn btn-primary btn-sm">View</a>
               <a href="<?= $b ?>/admin/updates/collective/add" class="btn btn-secondary btn-sm">Add</a>
             </div>
@@ -190,7 +190,7 @@ $collLastDate = $latest_coll !== null
               <?php endif; ?>
             </td>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <a href="<?= $b ?>/admin/updates/<?= $fid ?>" class="btn btn-primary btn-sm">View</a>
                 <a href="<?= $b ?>/admin/updates/<?= $fid ?>/add" class="btn btn-secondary btn-sm">Add</a>
               </div>

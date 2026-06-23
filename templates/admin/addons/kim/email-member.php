@@ -32,7 +32,7 @@ $backUrl    = $listing !== null
     : $b . '/admin/kim';
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= View::e($backUrl) ?>" class="link">&larr; Back to <?= $listing !== null ? View::e($listing->subject) : 'KIM List' ?></a>
 </div>
 
@@ -83,7 +83,7 @@ $backUrl    = $listing !== null
       </div>
     </div>
 
-      <div class="tpl-filter-panel token-search-wrap">
+      <div class="filter-panel is-open token-search-wrap">
     <div class="search-field-wrap">
       <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
       <input type="search"
@@ -132,7 +132,7 @@ $backUrl    = $listing !== null
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         <div class="pc-head-title">Compose New Email</div>
         <?php if ($flSubject !== ''): ?>
-          <span class="badge badge-info-pink pc-head-badge"><?= $flSubject ?></span>
+          <span class="badge badge-info2 pc-head-badge"><?= $flSubject ?></span>
         <?php endif; ?>
       </div>
 
@@ -156,7 +156,7 @@ $backUrl    = $listing !== null
         <div class="composer-row">
           <span class="composer-lbl">Subject</span>
           <?php if ($flSubject !== ''): ?>
-            <span class="badge badge-info-pink"><?= $flSubject ?>:</span>
+            <span class="badge badge-info2"><?= $flSubject ?>:</span>
           <?php endif; ?>
           <div class="flex-fill">
             <input class="subj-input" type="text" name="subject_suffix" id="subject"

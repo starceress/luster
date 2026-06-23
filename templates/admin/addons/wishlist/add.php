@@ -71,7 +71,7 @@ if (is_array($oldNets) && is_array($oldNames)) {
 $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/wishlist" class="link">&larr; Back to Wishlist</a>
 </div>
 

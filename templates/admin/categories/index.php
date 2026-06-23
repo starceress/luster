@@ -172,7 +172,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
         $_catFrom  = $_catTotal > 0 ? ($page - 1) * $_catPP + 1 : 0;
         $_catTo    = min($_catFrom + $_catPP - 1, $_catTotal);
       ?>
-      <span class="row-sub">
+      <span class="card-head-sub">
         Showing <?= $_catFrom ?>&ndash;<?= $_catTo ?> of <?= $_catTotal ?> categor<?= $_catTotal === 1 ? 'y' : 'ies' ?>
       </span>
     </div>

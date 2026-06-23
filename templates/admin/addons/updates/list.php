@@ -58,7 +58,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/updates" class="link">&larr; Back to News Feed</a>
 </div>
 
@@ -160,7 +160,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
     <?php $range_start = $total === 0 ? 0 : ($page - 1) * $per_page + 1;
           $range_end   = min($page * $per_page, $total); ?>
     <div class="card-head"><?= View::e($ctx_name) ?>
-      <span class="row-sub">Showing <?= $range_start ?>–<?= $range_end ?> of <?= $total ?> <?= $total === 1 ? 'entry' : 'entries' ?></span>
+      <span class="card-head-sub">Showing <?= $range_start ?>–<?= $range_end ?> of <?= $total ?> <?= $total === 1 ? 'entry' : 'entries' ?></span>
     </div>
 
     <div class="bulk bulk--flush">
@@ -208,7 +208,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
                 </div>
               <?php endif; ?>
             </div>
-            <div class="data-actions">
+            <div class="actions-row">
               <a href="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/edit"
                  class="btn btn-tertiary btn-xs">Edit</a>
               <form method="POST"

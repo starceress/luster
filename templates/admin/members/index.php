@@ -205,7 +205,7 @@ $pendingNewCnt = count($pendingNew);
         $_plFrom = (int) $total > 0 ? ($page - 1) * $per_page + 1 : 0;
         $_plTo   = min((int) $total, $page * $per_page);
       ?>
-      <span class="row-sub">Showing <?= $_plFrom ?>&ndash;<?= $_plTo ?> of <?= number_format((int) $total) ?> member<?= (int) $total !== 1 ? 's' : '' ?></span>
+      <span class="card-head-sub">Showing <?= $_plFrom ?>&ndash;<?= $_plTo ?> of <?= number_format((int) $total) ?> member<?= (int) $total !== 1 ? 's' : '' ?></span>
       <div class="actions-row actions-row--right actions-row--wrap">
         <form method="POST" action="<?= $b ?>/admin/members/<?= $lid ?>/approve-all-pending"
               class="action-form-inline"
@@ -259,7 +259,7 @@ $pendingNewCnt = count($pendingNew);
               <td class="text-muted" data-label="<?= View::e($field->label) ?>"><?= View::e($m->additionalFields[$field->name] ?? '') ?></td>
             <?php endforeach; ?>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-sm">Approve</button>
                 <button type="submit" form="reject-member-<?= md5($m->email) ?>" class="btn btn-warning btn-sm">Reject</button>
                 <a href="<?= $b ?>/admin/members/<?= $lid ?>/edit?email=<?= urlencode($m->email) ?>" class="btn btn-tertiary btn-sm">Edit</a>
@@ -308,7 +308,7 @@ $pendingNewCnt = count($pendingNew);
         $_puFrom = $pendingPUTotal > 0 ? ($puPage - 1) * $per_page + 1 : 0;
         $_puTo   = min($pendingPUTotal, $puPage * $per_page);
       ?>
-      <span class="row-sub">Showing <?= $_puFrom ?>&ndash;<?= $_puTo ?> of <?= number_format($pendingPUTotal) ?> update<?= $pendingPUTotal !== 1 ? 's' : '' ?></span>
+      <span class="card-head-sub">Showing <?= $_puFrom ?>&ndash;<?= $_puTo ?> of <?= number_format($pendingPUTotal) ?> update<?= $pendingPUTotal !== 1 ? 's' : '' ?></span>
       <div class="actions-row actions-row--right actions-row--wrap">
         <form method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
               class="action-form-inline"
@@ -388,7 +388,7 @@ $pendingNewCnt = count($pendingNew);
               <?php endif; ?>
             </td>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="_listing_id" value="<?= $lid ?>">
@@ -452,7 +452,7 @@ endif;
   <div class="card">
     <div class="card-head">
       <?= $status === 'approved' ? 'Approved Members' : 'All Members' ?>
-      <span class="row-sub">
+      <span class="card-head-sub">
         Showing <?= $from ?>&#8211;<?= $to ?> of <?= number_format((int) $total) ?> member<?= (int) $total !== 1 ? 's' : '' ?><?php if (($pages ?? 1) > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $pages ?><?php endif; ?>
       </span>
     </div>
@@ -519,7 +519,7 @@ endif;
               </td>
             <?php endif; ?>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <?php if (!$m->approved): ?>
                   <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-sm">Approve</button>
                 <?php endif; ?>
@@ -628,7 +628,7 @@ include LUSTER_BASE . '/templates/admin/_pagination.php';
             <?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?>
           </td>
           <td class="act-col" data-label="">
-            <div class="data-actions">
+            <div class="actions-row">
               <?php if (!$m->approved): ?>
                 <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -687,7 +687,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
 <form method="POST" action="<?= $b ?>/admin/members/pending-bulk" data-del-bulk data-del-entity="member_reject">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
   <div class="card"><div class="card-head"><?= View::icon('pending') ?> Pending New Members</span>
-      <span class="row-sub">Showing <?= $_newFrom ?>&ndash;<?= $_newTo ?> of <?= number_format($_totalNew) ?> member<?= $_totalNew !== 1 ? 's' : '' ?></span>
+      <span class="card-head-sub">Showing <?= $_newFrom ?>&ndash;<?= $_newTo ?> of <?= number_format($_totalNew) ?> member<?= $_totalNew !== 1 ? 's' : '' ?></span>
       <div class="actions-row actions-row--right actions-row--wrap">
         <form method="POST" action="<?= $b ?>/admin/members/approve-all-overview"
               class="action-form-inline"
@@ -753,7 +753,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
             <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
             <td data-label="Country"><?= View::e($m->country) ?></td>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
@@ -806,7 +806,7 @@ endif;
         $_puFrom = $_totalUpdates > 0 ? ($puPage - 1) * $per_page + 1 : 0;
         $_puTo   = min($_totalUpdates, $puPage * $per_page);
       ?>
-      <span class="row-sub">Showing <?= $_puFrom ?>&ndash;<?= $_puTo ?> of <?= number_format($_totalUpdates) ?> update<?= $_totalUpdates !== 1 ? 's' : '' ?></span>
+      <span class="card-head-sub">Showing <?= $_puFrom ?>&ndash;<?= $_puTo ?> of <?= number_format($_totalUpdates) ?> update<?= $_totalUpdates !== 1 ? 's' : '' ?></span>
       <div class="actions-row actions-row--right actions-row--wrap">
         <form method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
               class="action-form-inline"
@@ -903,7 +903,7 @@ endif;
             </td>
             <td data-label="Submitted" class="cell-meta-nowrap"><?= View::e($pu->submitted_at) ?></td>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                   <button type="submit" class="btn btn-success btn-xs">Approve</button>
@@ -975,7 +975,7 @@ $_ovSortUrl = static function (string $col) use ($buildUrl, $_ovSort, $_ovDir): 
     <?php $vlCount = count($validListings); ?>
     <div class="card-head">
       <?= $status === 'approved' ? 'Approved Members by Listing' : 'All Members by Listing' ?>
-      <span class="row-sub">Showing 1&ndash;<?= $vlCount ?> of <?= $vlCount ?> listing<?= $vlCount !== 1 ? 's' : '' ?></span>
+      <span class="card-head-sub">Showing 1&ndash;<?= $vlCount ?> of <?= $vlCount ?> listing<?= $vlCount !== 1 ? 's' : '' ?></span>
     </div>
     <div class="table-wrap">
       <table class="data-table mem-table">

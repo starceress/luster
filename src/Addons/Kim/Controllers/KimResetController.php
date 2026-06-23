@@ -303,6 +303,7 @@ final class KimResetController
                 'token_invalid' => false,
             ]);
             $tokens = [
+                '{site_name}'            => View::e((string) $this->app->getConfig()->get('site_name', 'Collective')),
                 '{field_email}'          => $f['email'],
                 '{field_email_input}'    => $f['email_input'],
                 '{submit_button}'        => '<button type="submit" class="fl-submit">Send Reset Link</button>',
@@ -310,7 +311,7 @@ final class KimResetController
                 '{reset_request_url}'    => View::e($baseUrl . '/kim/reset'),
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset', $this->app->getCSRF()->token(), false, formMarker: 'kim_reset:' . $listingId);
+            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset', $this->app->getCSRF()->token(), false, formMarker: 'kim_reset');
         }
 
         return $this->renderKimPage('reset.php', [
@@ -352,6 +353,7 @@ final class KimResetController
                 'token_invalid' => !$tokenValid,
             ]);
             $tokens = [
+                '{site_name}'            => View::e((string) $this->app->getConfig()->get('site_name', 'Collective')),
                 '{submit_button}'        => '<button type="submit" class="fl-submit">Set New Password</button>',
                 '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
                 '{reset_request_url}'    => View::e($baseUrl . '/kim/reset'),
@@ -364,7 +366,7 @@ final class KimResetController
             if ($rawToken !== '') {
                 $innerHtml .= '<input type="hidden" name="token" value="' . View::e($rawToken) . '">';
             }
-            $formHtml = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset/confirm', $this->app->getCSRF()->token(), false, formMarker: 'kim_reset:' . $listingId);
+            $formHtml = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/reset/confirm', $this->app->getCSRF()->token(), false, formMarker: 'kim_reset');
         }
 
         return $this->renderKimPage('reset-confirm.php', [

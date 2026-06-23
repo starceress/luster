@@ -182,7 +182,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?= View::icon('admins') ?>
           </div>
             <div class="pc-head-meta">
-            <div class="pc-head-title">Admin Accounts &nbsp; <span class="badge badge-info-pink" style="font-family: var(--font-sans);"><?= count($users ?? []) ?> Total</span></div>
+            <div class="pc-head-title">Admin Accounts &nbsp; <span class="badge badge-info2" style="font-family: var(--font-sans);"><?= count($users ?? []) ?> Total</span></div>
             <div class="pc-head-sub">All accounts with admin panel access. Each logs in independently.</div>
           </div>
           <a href="<?= $b ?>/admin/admin-users/add" class="btn btn-primary btn-sm pc-head-cta">
@@ -220,7 +220,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <?= View::e(substr($user->createdAt, 0, 10)) ?>
                 </td>
                 <td class="act-col">
-                  <div class="data-actions">
+                  <div class="actions-row">
                     <a href="<?= $b ?>/admin/admin-users/<?= $user->id ?>/edit" class="btn btn-tertiary btn-sm">Edit</a>
                     <?php if ($user->id !== ($current_admin_id ?? 0)): ?>
                       <form method="POST"
@@ -866,7 +866,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="card">
           <div class="card-head">
             <span>Blocked Patterns</span>
-            <span class="row-sub">&mdash; <?= count($blacklist_entries) ?> entr<?= count($blacklist_entries) === 1 ? 'y' : 'ies' ?></span>
+            <span class="card-head-sub">&mdash; <?= count($blacklist_entries) ?> entr<?= count($blacklist_entries) === 1 ? 'y' : 'ies' ?></span>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -974,7 +974,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <?php elseif ($us->latest === null): ?>
                 <span class="badge badge-inactive">No releases yet</span>
               <?php elseif ($us->updateAvailable): ?>
-                <span class="badge badge-current">Update available</span>
+                <span class="badge badge-pending">Update available</span>
                 <a href="<?= $b ?>/admin/update" class="btn btn-download btn-sm">
                   Prepare Update &rarr;
                 </a>

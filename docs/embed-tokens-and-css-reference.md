@@ -157,6 +157,19 @@ Related classes: `.fl-stats`, `.fl-stats-grid`,
 | `{if_tafl}...{/if_tafl}` | Shows the inside only when the listing is TAFL-approved. |
 | `{if_stat_pending}...{/if_stat_pending}` | Shows the inside only when the pending member count is greater than zero. |
 
+**When to use `{if_approved_by}` vs `{if_tfl}` / `{if_tafl}`:**
+Use `{if_approved_by}` when you want to show the same content for both networks.
+Use `{if_tfl}` and `{if_tafl}` separately only when the content differs per
+network — for example, linking to different URLs:
+
+```
+<!-- Same content for both networks — use {if_approved_by} -->
+{if_approved_by}<b>Approved by:</b> {network_name}<br>{/if_approved_by}
+
+<!-- Different content per network — use {if_tfl} and {if_tafl} -->
+{if_approved_by}Approved by: <a href="{if_tfl}{tfl_url}{/if_tfl}{if_tafl}{tafl_url}{/if_tafl}">{network_name}</a>{/if_approved_by}
+```
+
 ## Member Template Tokens
 
 Used by `members_template` on the public members route and members embed.
@@ -387,6 +400,9 @@ Related classes: `.fl-cstats`, `.fl-cstats-grid`, `.fl-cstats-label`,
 | `{tfl_url}` | TFL website URL: `https://thefanlistings.org/` |
 | `{tafl_url}` | TAFL website URL: `https://www.animefanlistings.com/` |
 | `{if_countries}...{/if_countries}` | Shows only when countries count is greater than zero. |
+| `{if_pending}...{/if_pending}` | Shows only when pending member count is greater than zero. |
+| `{if_owned_upcoming}...{/if_owned_upcoming}` | Shows only when at least one owned listing is marked upcoming. |
+| `{if_owned_pending}...{/if_owned_pending}` | Shows only when at least one owned listing is marked pending. |
 
 ## Collective Stats PHP Variables
 

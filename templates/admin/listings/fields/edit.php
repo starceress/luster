@@ -21,7 +21,7 @@ $id      = (int) $listing->id;
 $encName = urlencode($field->name);
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="link">
     &larr; <?= View::e($listing->title) ?> &mdash; Fields
   </a>

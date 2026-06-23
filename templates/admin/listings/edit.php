@@ -88,7 +88,7 @@ if (is_array($oldNets) && is_array($oldNames)) {
 $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/listings" class="link">
     &larr; Back to Owned Listings
   </a>
@@ -590,7 +590,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 ?>
 <div id="tab-templates" class="tabs-panel">
 
-<div class="tpl-filter-panel">
+<div class="filter-panel is-open">
   <div class="filter-row" id="tpl-filter-row">
     <label for="tpl-group-select" style="font-weight:600; white-space:nowrap">Select Template:</label>
     <div class="select-wrap">
@@ -636,7 +636,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
       <div class="tpl-reset-all-row pc-section" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
         <div style="text-align:center; padding: 0.75rem 0;">
-          <button type="button" class="btn btn-quaternary btn-block-center"
+          <button type="button" class="btn btn-tertiary btn-block-center"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates/reset-all"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>"
@@ -648,6 +648,11 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
           <div class="pc-section-label">Members List <?= $srcBadge('members_template') ?></div>
+          <div class="tpl-layout-presets tpl-layout-presets--above">
+            <strong>Display Style:</strong>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__list">List</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__table">Table</button>
+          </div>
           <div class="form-group">
             <textarea id="members_template" name="members_template" class="form form-mono" spellcheck="false"><?= View::e($tplMembersVal) ?></textarea>
           </div>
@@ -797,7 +802,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
     <!-- ── Right column: token reference ──────────────────────────────── -->
     <div class="composer-side composer-side--sticky">
-    <div class="tpl-filter-panel token-search-wrap">
+    <div class="filter-panel is-open token-search-wrap">
       <div class="search-field-wrap">
         <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
         <input type="search"
@@ -1134,6 +1139,8 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 <script type="application/json" id="luster-coltpl-defaults">
 <?= json_encode([
     'members_template'              => $_gFallback(ListingSettingsRepo::defaultMembersTemplate(),              'listing_default_members_template'),
+    'members_template__list'        => ListingSettingsRepo::defaultMembersTemplate(),
+    'members_template__table'       => ListingSettingsRepo::defaultMembersTableTemplate(),
     'affiliates_section_template'   => $_gFallback(ListingSettingsRepo::defaultAffiliatesSectionTemplate(),   'listing_default_affiliates_section_template'),
     'stats_template'                => $_gFallback(ListingSettingsRepo::defaultStatsTemplate(),                'listing_default_stats_template'),
     'updates_template'              => $_gFallback(ListingSettingsRepo::defaultUpdatesTemplate(),              'listing_default_updates_template'),
@@ -1298,7 +1305,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
                 <?php endif; ?>
               </td>
               <td class="act-col">
-                <div class="data-actions">
+                <div class="actions-row">
                   <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/edit"
                      class="btn btn-tertiary btn-sm">Edit</a>
                   <form method="POST"
@@ -1666,7 +1673,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             echo "require '" . $_snipPath . '/public/embed/' . htmlspecialchars($file, ENT_QUOTES, 'UTF-8') . "';";
             echo '<br>?&gt;';
             echo '</div>';
-            echo '<button type="button" class="btn btn-ghost btn-xs embed-copy-btn" data-copy="' . htmlspecialchars($plain, ENT_QUOTES, 'UTF-8') . '">Copy</button>';
+            echo '<button type="button" class="btn btn-tertiary btn-xs embed-copy-btn" data-copy="' . htmlspecialchars($plain, ENT_QUOTES, 'UTF-8') . '">Copy</button>';
             echo '</div></div>';
         };
       ?>

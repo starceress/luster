@@ -20,7 +20,7 @@ $b  = rtrim(View::e($base_url), '/');
 $id = (int) $listing->id;
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/listings/<?= $id ?>" class="link">
     &larr; <?= View::e($listing->title) ?>
   </a>

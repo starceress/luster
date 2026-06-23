@@ -8,6 +8,8 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\UpdateApplier;
 use Luster\Core\UpdateChecker;
+use Luster\Core\UpdateStatus;
+use Luster\Core\Version;
 use Luster\Repositories\ErrorLogRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
@@ -27,6 +29,11 @@ final class AdminUpdateController extends AdminController
 
     public function index(Request $request, array $params): Response
     {
+        $preview = (string) $request->query('preview', '');
+        if ($preview !== '') {
+            return $this->renderPreviewState($preview);
+        }
+
         $session = $this->app->getSession();
 
         $success = (string) $session->get('lstr_flash_success', '');
@@ -72,6 +79,150 @@ final class AdminUpdateController extends AdminController
         ], '', [
             $this->crumb('Settings', $this->adminUrl('/admin/settings#panel-system')),
         ]);
+    }
+
+    /**
+     * Renders the update page with mock data for a given preview state.
+     *
+     * Usage: GET /admin/update?preview=STATE
+     *
+     * States:
+     *   up-to-date        — current version matches latest, no update
+     *   update-available   — newer version exists, not yet prepared
+     *   check-failed       — GitHub check failed with an error
+     *   never-checked      — no update check has ever been run
+     *   staged-ok          — update prepared, all preflight checks pass
+     *   staged-blocked     — update prepared, some preflight checks fail
+     *   manual-required    — update cannot be auto-applied
+     *   lock-exists        — stale update lock file present
+     *   success            — flash success message shown
+     *   error              — flash error message shown
+     */
+    private function renderPreviewState(string $state): Response
+    {
+        $current = Version::CURRENT;
+        $next    = $this->bumpPatch($current);
+
+        $baseStatus = new UpdateStatus(
+            installed: $current, latest: $current, releaseUrl: 'https://github.com/spyderfang/luster/releases/tag/v' . $current,
+            releaseTitle: 'Luster v' . $current, checkedAt: time(), updateAvailable: false, checkFailed: false, neverChecked: false, error: null,
+        );
+
+        $defaults = [
+            'success'           => '',
+            'error'             => '',
+            'update_status'     => $baseStatus,
+            'staging_valid'     => false,
+            'staging_dir'       => '',
+            'update_version'    => '',
+            'release_url'       => '',
+            'release_title'     => '',
+            'preflight'         => [],
+            'preflight_ok'      => false,
+            'backup_downloaded' => false,
+            'manual_reason'     => '',
+            'manual_version'    => '',
+            'manual_url'        => '',
+            'lock_exists'       => false,
+        ];
+
+        $passChecks = [
+            ['label' => 'PHP version', 'detail' => 'PHP ' . PHP_VERSION . ' meets the minimum requirement.', 'ok' => true],
+            ['label' => 'Disk space', 'detail' => 'Sufficient free space available.', 'ok' => true],
+            ['label' => 'File permissions', 'detail' => 'Application directory is writable.', 'ok' => true],
+            ['label' => 'Database connection', 'detail' => 'Database is reachable and responding.', 'ok' => true],
+        ];
+
+        $failChecks = [
+            ['label' => 'PHP version', 'detail' => 'PHP ' . PHP_VERSION . ' meets the minimum requirement.', 'ok' => true],
+            ['label' => 'Disk space', 'detail' => 'Only 12 MB free — at least 50 MB required.', 'ok' => false],
+            ['label' => 'File permissions', 'detail' => 'Application directory is writable.', 'ok' => true],
+            ['label' => 'Database connection', 'detail' => 'Connection refused — check credentials in config/app.php.', 'ok' => false],
+        ];
+
+        $overrides = match ($state) {
+            'up-to-date' => [],
+
+            'update-available' => [
+                'update_status' => new UpdateStatus(
+                    installed: $current, latest: $next, releaseUrl: 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+                    releaseTitle: 'Luster v' . $next, checkedAt: time(), updateAvailable: true, checkFailed: false, neverChecked: false, error: null,
+                ),
+            ],
+
+            'check-failed' => [
+                'update_status' => new UpdateStatus(
+                    installed: $current, latest: null, releaseUrl: null,
+                    releaseTitle: null, checkedAt: time(), updateAvailable: false, checkFailed: true, neverChecked: false,
+                    error: 'cURL error 28: Connection timed out after 10001 milliseconds.',
+                ),
+            ],
+
+            'never-checked' => [
+                'update_status' => new UpdateStatus(
+                    installed: $current, latest: null, releaseUrl: null,
+                    releaseTitle: null, checkedAt: null, updateAvailable: false, checkFailed: false, neverChecked: true, error: null,
+                ),
+            ],
+
+            'staged-ok' => [
+                'staging_valid'  => true,
+                'update_version' => $next,
+                'release_url'    => 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+                'release_title'  => 'Luster v' . $next . ' — Bug fixes and performance improvements',
+                'preflight'      => $passChecks,
+                'preflight_ok'   => true,
+                'backup_downloaded' => true,
+            ],
+
+            'staged-blocked' => [
+                'staging_valid'  => true,
+                'update_version' => $next,
+                'release_url'    => 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+                'release_title'  => 'Luster v' . $next . ' — Bug fixes and performance improvements',
+                'preflight'      => $failChecks,
+                'preflight_ok'   => false,
+            ],
+
+            'manual-required' => [
+                'update_status'  => new UpdateStatus(
+                    installed: $current, latest: $next, releaseUrl: 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+                    releaseTitle: 'Luster v' . $next, checkedAt: time(), updateAvailable: true, checkFailed: false, neverChecked: false, error: null,
+                ),
+                'manual_reason'  => 'This release raises the minimum PHP version to 8.3. Please update PHP on your server before applying the update, then download the release manually.',
+                'manual_version' => $next,
+                'manual_url'     => 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+            ],
+
+            'lock-exists' => [
+                'lock_exists' => true,
+            ],
+
+            'success' => [
+                'success' => 'Update applied successfully! Luster has been updated to version ' . $next . '.',
+            ],
+
+            'error' => [
+                'error' => 'The staged update could not be found. Discard it and prepare the update again.',
+            ],
+
+            default => [],
+        };
+
+        $data = array_merge($defaults, $overrides);
+
+        return $this->adminLayout('admin/update/index.php', 'Luster Update (Preview: ' . $state . ')', 'settings', $data, '', [
+            $this->crumb('Settings', $this->adminUrl('/admin/settings#panel-system')),
+        ]);
+    }
+
+    private function bumpPatch(string $version): string
+    {
+        $parts = explode('.', $version);
+        if (count($parts) === 3) {
+            $parts[2] = (string) ((int) $parts[2] + 1);
+        }
+        return implode('.', $parts);
     }
 
     public function prepare(Request $request, array $params): Response

@@ -333,9 +333,9 @@ $_tabRejected = $_codesBaseUrl !== null
             <div class="text-muted"><?= View::e($_codeLabelForCode) ?></div>
             <?php endif; ?>
             <?php if ($_codeDonorForCode !== null): ?>
-            <div class="badge badge-info-pink">&hearts; <?= View::e($_codeDonorForCode->name) ?></div>
+            <div class="badge badge-info2">&hearts; <?= View::e($_codeDonorForCode->name) ?></div>
             <?php elseif ($code->submitterName !== null): ?>
-            <div class="badge badge-info-pink">&hearts; <?= View::e($code->submitterName) ?></div>
+            <div class="badge badge-info2">&hearts; <?= View::e($code->submitterName) ?></div>
             <?php endif; ?>
             <?php if ($code->status === 'pending'): ?>
             <span class="badge badge-pending">Pending</span>

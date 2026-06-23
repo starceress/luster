@@ -229,6 +229,7 @@ if ($_lusterUpdateTpl !== '') {
     $_lusterLostPwUrl = $_lusterLinkReset ?? $_lusterBaseUrl . '/kim/reset';
     $_lusterTplOut    = TemplateEngine::conditionals($_lusterUpdateTpl, ['lost_password_url' => true]);
     $_lusterTokens    = [
+        '{site_name}'                        => View::e((string) $_lusterApp->getConfig()->get('site_name', 'Collective')),
         '{field_email}'                      => $_lusterF['email'],
         '{field_email_input}'                => $_lusterF['email_input'],
         '{field_password}'                   => $_lusterF['password'],

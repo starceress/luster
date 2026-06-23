@@ -9,7 +9,7 @@ $listingId  = (int) ($result['listing_id']   ?? 0);
 $listingName = (string) ($result['listing_title'] ?? '');
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/import-members" class="link">&larr; Import Members</a>
 </div>
 

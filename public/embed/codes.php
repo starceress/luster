@@ -191,6 +191,7 @@ if ($_lusterIsCollective) {
 }
 
 if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
+    $_lusterCodesTemplate = str_replace('{site_name}', htmlspecialchars($_lusterListingName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterCodesTemplate);
     $_lusterCodesTemplateHtml = CodesTemplateRenderer::render(
         $_lusterCodesTemplate,
         $_lusterCodes,

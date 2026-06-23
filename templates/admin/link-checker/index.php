@@ -377,7 +377,7 @@ $sumCell = static function (?array $ms, string $key): string {
           $_sumEnd   = min($mem_sum_page * $lc_per_page, $mem_sum_total);
         ?>
         <?php if ($mem_sum_total > 0): ?>
-        <span class="row-sub">Showing <?= $_sumStart ?>&#8211;<?= $_sumEnd ?> of <?= number_format($mem_sum_total) ?> listing<?= $mem_sum_total !== 1 ? 's' : '' ?></span>
+        <span class="card-head-sub">Showing <?= $_sumStart ?>&#8211;<?= $_sumEnd ?> of <?= number_format($mem_sum_total) ?> listing<?= $mem_sum_total !== 1 ? 's' : '' ?></span>
         <?php endif; ?>
         <div class="stat-pills" style="margin-left:auto">
           <span class="badge badge-current"><?= (int) ($mem_stats['ok']        ?? 0) ?> Active</span>
@@ -433,7 +433,7 @@ $sumCell = static function (?array $ms, string $key): string {
                     : '<span class="text-dim">&mdash;</span>' ?>
               </td>
               <td class="act-col" data-label="">
-                <div class="data-actions">
+                <div class="actions-row">
                   <button type="button" class="btn btn-secondary btn-xs js-lc-scan-listing"
                           data-listing-id="<?= $_lsid ?>"
                           data-csrf="<?= View::e($csrf_token) ?>"
@@ -491,7 +491,7 @@ $sumCell = static function (?array $ms, string $key): string {
       <div class="card-head">
         <span>Member URLs<?php if ($mem_listing !== null): ?> &mdash; <?= View::e($mem_listing->subject ?: $mem_listing->title) ?><?php endif; ?></span>
         <?php if ($mem_total > 0): ?>
-        <span class="row-sub">Showing <?= ($mem_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($mem_page - 1) * $lc_per_page + count($members ?? []) ?> of <?= number_format($mem_total) ?> member<?= $mem_total !== 1 ? 's' : '' ?></span>
+        <span class="card-head-sub">Showing <?= ($mem_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($mem_page - 1) * $lc_per_page + count($members ?? []) ?> of <?= number_format($mem_total) ?> member<?= $mem_total !== 1 ? 's' : '' ?></span>
         <?php endif; ?>
         <div class="stat-pills" style="margin-left:auto">
           <a href="<?= View::e($lcStatusUrl('ok', 'members')) ?>" class="badge badge-current<?= $status === 'ok' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['ok'] ?? 0) ?> Active</a>
@@ -609,7 +609,7 @@ $sumCell = static function (?array $ms, string $key): string {
       <div class="card">
       <div class="card-head">
         <span><?= $filterLabel !== null ? View::e($filterLabel) : 'All Listings' ?></span>
-        <span class="row-sub">Showing <?= ($aff_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($aff_page - 1) * $lc_per_page + count($affiliates) ?> of <?= number_format($aff_total) ?> affiliate<?= $aff_total !== 1 ? 's' : '' ?></span>
+        <span class="card-head-sub">Showing <?= ($aff_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($aff_page - 1) * $lc_per_page + count($affiliates) ?> of <?= number_format($aff_total) ?> affiliate<?= $aff_total !== 1 ? 's' : '' ?></span>
         <div class="stat-pills" style="margin-left:auto">
           <a href="<?= View::e($lcStatusUrl('ok', 'affiliates')) ?>" class="badge badge-current<?= $status === 'ok' ? ' badge--active' : '' ?>"><?= $aff_stats['ok'] ?> Active</a>
           <a href="<?= View::e($lcStatusUrl('dead', 'affiliates')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= $aff_stats['dead'] ?> Dead</a>
@@ -733,7 +733,7 @@ $sumCell = static function (?array $ms, string $key): string {
       <div class="card">
       <div class="card-head">
         <span>Joined Listings</span>
-        <span class="row-sub">Showing <?= ($joined_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($joined_page - 1) * $lc_per_page + count($joined) ?> of <?= number_format($joined_total) ?> listing<?= $joined_total !== 1 ? 's' : '' ?></span>
+        <span class="card-head-sub">Showing <?= ($joined_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($joined_page - 1) * $lc_per_page + count($joined) ?> of <?= number_format($joined_total) ?> listing<?= $joined_total !== 1 ? 's' : '' ?></span>
         <div class="stat-pills" style="margin-left:auto">
           <a href="<?= View::e($lcStatusUrl('ok', 'joined')) ?>" class="badge badge-current<?= $status === 'ok' ? ' badge--active' : '' ?>"><?= $joined_stats['ok'] ?> Active</a>
           <a href="<?= View::e($lcStatusUrl('dead', 'joined')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= $joined_stats['dead'] ?> Dead</a>
@@ -812,7 +812,7 @@ $sumCell = static function (?array $ms, string $key): string {
       <div class="card">
       <div class="card-head">
         <span>Redirected Links</span>
-        <span class="row-sub">Showing 1&#8211;<?= $totalMoved ?> of <?= $totalMoved ?> link<?= $totalMoved !== 1 ? 's' : '' ?></span>
+        <span class="card-head-sub">Showing 1&#8211;<?= $totalMoved ?> of <?= $totalMoved ?> link<?= $totalMoved !== 1 ? 's' : '' ?></span>
       </div>
       <div class="table-wrap">
         <table class="data-table mem-table">
@@ -829,7 +829,7 @@ $sumCell = static function (?array $ms, string $key): string {
           <tbody>
             <?php foreach ($moved_affiliates as $aff): ?>
             <tr>
-              <td data-label="Type"><span class="badge badge-info-pink">Affiliate</span></td>
+              <td data-label="Type"><span class="badge badge-info2">Affiliate</span></td>
               <td data-label="Name"><span class="text-strong"><?= View::e($aff->name) ?></span></td>
               <td data-label="Current URL">
                 <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer" class="link lc-old-url">
@@ -847,7 +847,7 @@ $sumCell = static function (?array $ms, string $key): string {
               </td>
               <td class="text-muted" data-label="Checked"><?= $aff->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($aff->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?></td>
               <td data-label="">
-                <div class="data-actions">
+                <div class="actions-row">
                   <?php if ($aff->linkRedirectUrl !== null): ?>
                   <form method="POST" action="<?= $b ?>/admin/link-checker/apply-affiliate-redirect" class="action-form-inline">
                     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
@@ -880,7 +880,7 @@ $sumCell = static function (?array $ms, string $key): string {
               </td>
               <td class="text-muted" data-label="Checked"><?= $jl->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($jl->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?></td>
               <td data-label="">
-                <div class="data-actions">
+                <div class="actions-row">
                   <?php if ($jl->linkRedirectUrl !== null): ?>
                   <form method="POST" action="<?= $b ?>/admin/link-checker/apply-joined-redirect" class="action-form-inline">
                     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
@@ -913,7 +913,7 @@ $sumCell = static function (?array $ms, string $key): string {
               </td>
               <td class="text-muted" data-label="Checked"><?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?></td>
               <td data-label="">
-                <div class="data-actions">
+                <div class="actions-row">
                   <?php if ($mem->link_redirect_url !== null): ?>
                   <form method="POST" action="<?= $b ?>/admin/link-checker/apply-member-redirect" class="action-form-inline">
                     <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token) ?>">
@@ -948,7 +948,7 @@ $sumCell = static function (?array $ms, string $key): string {
       <div class="card">
       <div class="card-head">
         <span>Dead Links</span>
-        <span class="row-sub">Showing 1&#8211;<?= $totalDead ?> of <?= $totalDead ?> link<?= $totalDead !== 1 ? 's' : '' ?></span>
+        <span class="card-head-sub">Showing 1&#8211;<?= $totalDead ?> of <?= $totalDead ?> link<?= $totalDead !== 1 ? 's' : '' ?></span>
       </div>
       <div class="table-wrap">
         <table class="data-table mem-table">
@@ -964,7 +964,7 @@ $sumCell = static function (?array $ms, string $key): string {
           <tbody>
             <?php foreach ($dead_affiliates as $aff): ?>
             <tr>
-              <td data-label="Type"><span class="badge badge-info-pink">Affiliate</span></td>
+              <td data-label="Type"><span class="badge badge-info2">Affiliate</span></td>
               <td data-label="Name"><span class="text-strong"><?= View::e($aff->name) ?></span></td>
               <td data-label="URL">
                 <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer" class="link lc-old-url">

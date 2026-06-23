@@ -14,7 +14,7 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url), '/');
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/link-checker" class="link">&larr; Back to Link Checker</a>
 </div>
 

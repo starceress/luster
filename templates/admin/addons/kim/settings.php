@@ -13,7 +13,7 @@ $_defaults = [
 ];
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/kim" class="link">&larr; Back to Keep In Mind</a>
 </div>
 

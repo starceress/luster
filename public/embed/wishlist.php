@@ -89,6 +89,7 @@ $_wishlistTemplateHtml = null;
 $_wishlistTemplate     = $_siteSettings->get('wishlist_template');
 
 if ($_wishlistTemplate !== null && trim($_wishlistTemplate) !== '') {
+    $_wishlistTemplate = str_replace('{site_name}', htmlspecialchars((string) $_app->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_wishlistTemplate);
     $_uploadsUrl = rtrim($_app->getBaseUrl(), '/') . '/uploads/wishlist';
 
     $_wishlistRowFn = static function (string $inner, object $entry) use ($_uploadsUrl): string {

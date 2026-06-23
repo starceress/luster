@@ -3116,33 +3116,6 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── Codes drop-zone feedback ──────────────────────────────────────────────────
-// Updates the label when files are selected. Runs on both the standalone codes
-// page and the embedded Codes tab in edit.php.
-
-(function () {
-  var input = document.getElementById('codes-input');
-  if (!input) return;
-  var drop  = input.closest('.codes-drop');
-  var label = drop ? drop.querySelector('.codes-drop-label') : null;
-  var hint  = drop ? drop.querySelector('.codes-drop-hint')  : null;
-  if (!label) return;
-
-  var defaultLabel = label.textContent;
-  var defaultHint  = hint ? hint.textContent : '';
-
-  input.addEventListener('change', function () {
-    var n = input.files ? input.files.length : 0;
-    if (n === 0) {
-      label.textContent = defaultLabel;
-      if (hint) hint.textContent = defaultHint;
-    } else {
-      label.textContent = n === 1 ? input.files[0].name : n + ' files selected';
-      if (hint) hint.textContent = 'Ready to upload -- click Upload below';
-    }
-  });
-}());
-
 // ── Codes management page ─────────────────────────────────────────────────────
 // Guards on .code-card so this block only activates on the codes admin page.
 
@@ -4289,6 +4262,54 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     if (resetBtn)  resetBtn.addEventListener('click', doReset);
   }());
 
+  // Bidirectional textarea ↔ token-card linking (all template pages)
+  (function () {
+    var cards = document.querySelectorAll('details[data-token-card][data-tpl-group]');
+    if (!cards.length) return;
+
+    var cardByGroup = {};
+    cards.forEach(function (card) {
+      cardByGroup[card.getAttribute('data-tpl-group')] = card;
+    });
+
+    var suppressCardToggle = false;
+
+    // Textarea focus → open matching sidebar card, close others
+    document.querySelectorAll('.tpl-group-section[data-tpl-group] textarea').forEach(function (ta) {
+      ta.addEventListener('focus', function () {
+        var group = ta.closest('[data-tpl-group]').getAttribute('data-tpl-group');
+        var target = cardByGroup[group];
+        if (!target || target.open) return;
+
+        suppressCardToggle = true;
+        cards.forEach(function (c) { if (c !== target && c.open) c.open = false; });
+        target.open = true;
+        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        suppressCardToggle = false;
+      });
+    });
+
+    // Sidebar card toggle → scroll to and focus matching textarea
+    cards.forEach(function (card) {
+      var summary = card.querySelector('summary');
+      if (!summary) return;
+      summary.addEventListener('click', function () {
+        if (suppressCardToggle) return;
+        // The click fires before the browser toggles open, so !card.open means it's about to open
+        if (card.open) return;
+        var group = card.getAttribute('data-tpl-group');
+        var section = document.querySelector('.tpl-group-section[data-tpl-group="' + group + '"]');
+        if (!section) return;
+        var ta = section.querySelector('textarea');
+        if (!ta) return;
+        requestAnimationFrame(function () {
+          section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          ta.focus({ preventScroll: true });
+        });
+      });
+    });
+  }());
+
   // Reset All Templates button (listing edit — posts via dynamic form to avoid nesting)
   (function () {
     var btn = document.getElementById('fl-reset-all-templates');
@@ -4316,9 +4337,11 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('.tpl-reset-row button[data-textarea]');
     if (!btn || btn.classList.contains('coltpl-preview-btn')) return;
-    var ta = document.getElementById(btn.dataset.textarea);
-    if (ta && defaults[btn.dataset.textarea] !== undefined) {
-      ta.value = defaults[btn.dataset.textarea];
+    // Layout preset buttons use a different defaults key
+    var key = btn.dataset.layoutPreset || btn.dataset.textarea;
+    var ta  = document.getElementById(btn.dataset.textarea);
+    if (ta && defaults[key] !== undefined) {
+      ta.value = defaults[key];
       ta.focus();
     }
   });
@@ -4474,7 +4497,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     if (!textInput) return;
     var chipsId        = wrap.getAttribute('data-tag-chips');
     var chipsContainer = chipsId ? (document.getElementById(chipsId) || wrap) : wrap;
-    var chipClass      = wrap.getAttribute('data-tag-chip-class') || 'badge badge-info-gold';
+    var chipClass      = wrap.getAttribute('data-tag-chip-class') || 'badge badge-info3';
 
     function syncHidden() {
       var chips = chipsContainer.querySelectorAll('[data-value]');
@@ -5323,6 +5346,7 @@ document.addEventListener('click', function (e) {
         if (data && data.error) {
           if (row) row.classList.remove('lc-busy');
           window.lstrToast('error', data.error);
+          if (onDone) onDone();
           return;
         }
         if (row) applyResult(row, data, panelId);
@@ -6444,28 +6468,6 @@ document.addEventListener('click', function (e) {
 
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') affMsgClose();
-});
-
-// Listing edit: compatibility-wrapper subtabs.
-document.addEventListener('click', function (e) {
-  var link = e.target.closest('#compat-wrappers .tab-link');
-  if (!link) return;
-
-  var section = document.getElementById('compat-wrappers');
-  var target  = link.dataset.target;
-  var panel   = target ? document.getElementById(target) : null;
-  if (!section || !panel) return;
-
-  e.preventDefault();
-  section.querySelectorAll('.tab-link').forEach(function (item) {
-    item.classList.remove('tab-link--active');
-  });
-  section.querySelectorAll('.compat-panel').forEach(function (item) {
-    item.style.display = 'none';
-  });
-
-  link.classList.add('tab-link--active');
-  panel.style.display = '';
 });
 
 // Listing edit: dependent rows in the embed settings tab.

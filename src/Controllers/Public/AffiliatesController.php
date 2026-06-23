@@ -80,6 +80,7 @@ final class AffiliatesController
             ? $this->applySectionTemplate(
                 $sectionTemplate, $result['items'], $result['total'], $uploadsUrl,
                 $affiliateApplyUrl, $applySettings['enabled'] ?? false, $applyStyle, $applyFormHtml,
+                (string) $this->app->getConfig()->get('site_name', 'Collective'),
             )
             : null;
 
@@ -140,6 +141,7 @@ final class AffiliatesController
             ? $this->applySectionTemplate(
                 $sectionTemplate, $result['items'], $result['total'], $uploadsUrl,
                 $affiliateApplyUrl, $collectiveApplyEnabled, $collectiveApplyStyle, $collectiveFormHtml,
+                $siteName,
             )
             : null;
 
@@ -188,9 +190,9 @@ final class AffiliatesController
         }
 
         $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
-            ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
+            ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site Name',                      'required' => true,  'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
+            ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Website URL',                       'required' => true,  'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
@@ -257,9 +259,9 @@ final class AffiliatesController
         $formUrl    = CollectiveFormUrlResolver::resolve($override, $siteUrl, rtrim($embedBase, '/') . '/affiliate-apply/collective');
 
         $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
-            ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
+            ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site Name',                      'required' => true,  'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
+            ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Website URL',                       'required' => true,  'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
@@ -269,6 +271,7 @@ final class AffiliatesController
         $collectiveAffTpl = $siteRepo->get('collective_affiliate_apply_form_template') ?? '';
         if ($collectiveAffTpl !== '') {
             $tokens = [
+                '{site_name}'             => \Luster\Core\View::e($siteName),
                 '{listing_title}'         => \Luster\Core\View::e($siteName),
                 '{listing_subject}'       => \Luster\Core\View::e($siteName),
                 '{listing_url}'           => \Luster\Core\View::e($siteUrl),
@@ -335,6 +338,7 @@ final class AffiliatesController
         bool   $applyEnabled = false,
         string $applyStyle = 'link',
         string $applyFormHtml = '',
+        string $siteName = 'Collective',
     ): string {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -369,8 +373,8 @@ final class AffiliatesController
         }
 
         return str_replace(
-            ['{affiliates_count}', '{affiliate_apply_url}'],
-            [(string) $total, htmlspecialchars($affiliateApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
+            ['{site_name}', '{affiliates_count}', '{affiliate_apply_url}'],
+            [htmlspecialchars($siteName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), (string) $total, htmlspecialchars($affiliateApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
             $output,
         );
     }

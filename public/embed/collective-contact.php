@@ -115,7 +115,7 @@ $_lusterWrapperTpl = '';
 $_lusterSubjOld = (string) ($_lusterOld['subject'] ?? '');
 $_lusterSubjHtml = '<select id="contact-subject" name="subject" required>'
                  . '<option value="" disabled' . ($_lusterSubjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
-foreach (['Comments', 'Contact', 'Questions & Concerns'] as $_lusterSubjOpt) {
+foreach (['Comments', 'Questions/Concerns', 'Contact/Other'] as $_lusterSubjOpt) {
     $_lusterOptEsc    = htmlspecialchars($_lusterSubjOpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterSubjHtml .= '<option value="' . $_lusterOptEsc . '"' . ($_lusterSubjOld === $_lusterSubjOpt ? ' selected' : '') . '>' . $_lusterOptEsc . '</option>';
 }
@@ -134,6 +134,7 @@ $_lusterContactTpl = (string) ($_lusterSiteRepo->get('collective_contact_form_te
 $_lusterFormHtml   = null;
 if ($_lusterContactTpl !== '') {
     $_lusterTokens = [
+        '{site_name}'            => htmlspecialchars((string) $_lusterConfig->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         '{listing_title}'        => htmlspecialchars((string) $_lusterConfig->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         '{listing_subject}'      => htmlspecialchars((string) $_lusterConfig->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         '{listing_url}'          => htmlspecialchars((string) ($_lusterConfig->get('site_url', '')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),

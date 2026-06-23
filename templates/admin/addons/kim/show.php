@@ -32,7 +32,7 @@ $fid = (int) $listing->id;
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List</a>
   <?php if ($approved_count > 0): ?>
   <div class="actions-row">
@@ -61,7 +61,7 @@ $fid = (int) $listing->id;
   <div class="card">
     <div class="card-head">
       <span><?= View::e($listing->subject) ?></span>
-     <div class="row-sub"><span class="badge badge-pending"><?= (int) $pending_count ?> pending</span></div>
+     <div class="card-head-sub"><span class="badge badge-pending"><?= (int) $pending_count ?> pending</span></div>
     </div>
     <form method="POST" action="<?= $b ?>/admin/kim/<?= $fid ?>/bulk"
           data-del-bulk data-del-entity="kim_member"
@@ -111,7 +111,7 @@ $fid = (int) $listing->id;
             </td>
             <td class="text-dim nowrap" data-label="Date"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <button type="submit" form="approve-kim-<?= (int) $m->id ?>" class="btn btn-success btn-xs">Approve</button>
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member" class="btn btn-secondary btn-xs">Email</a>
@@ -161,7 +161,7 @@ $fid = (int) $listing->id;
     <div class="card-head">
       <span><?= View::e($listing->subject) ?></span>
       <?php $granted_count = count(array_filter((array) $approved_members, fn($m) => $m->granted)); ?>
-      <div class="row-sub"><span class="badge badge-current"><?= (int) $approved_count ?> approved</span>
+      <div class="card-head-sub"><span class="badge badge-current"><?= (int) $approved_count ?> approved</span>
       <?php if ($granted_count > 0): ?>
         <span class="badge badge-redirect"><?= $granted_count ?> Granted</span></div>
       <?php endif; ?>
@@ -216,7 +216,7 @@ $fid = (int) $listing->id;
             </td>
             <td class="text-dim nowrap" data-label="Date"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
             <td class="act-col" data-label="">
-              <div class="data-actions">
+              <div class="actions-row">
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member" class="btn btn-secondary btn-xs">Email</a>
                 <button type="submit" form="del-kim-<?= (int) $m->id ?>" class="btn btn-danger btn-xs">Delete</button>

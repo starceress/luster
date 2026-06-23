@@ -212,8 +212,8 @@ if ($_lusterSectionTemplate !== null) {
     }
 
     $_lusterSectionHtml = str_replace(
-        ['{affiliates_count}', '{affiliate_apply_url}'],
-        [(string) $total, htmlspecialchars($_lusterAffApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
+        ['{site_name}', '{affiliates_count}', '{affiliate_apply_url}'],
+        [htmlspecialchars($_lusterTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), (string) $total, htmlspecialchars($_lusterAffApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
         $_lusterSectionHtml,
     );
 }

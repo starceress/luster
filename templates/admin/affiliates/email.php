@@ -39,7 +39,7 @@ $totalCount   = $selectedOnly ? count($idRecipMap) : (int) ($scope_counts['all']
 $displayCount = $selectedOnly ? $totalCount : (int) ($scope_counts[$oldScope] ?? $totalCount);
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/affiliates" class="link">&larr; Back to Affiliates</a>
 </div>
 
@@ -96,7 +96,7 @@ $displayCount = $selectedOnly ? $totalCount : (int) ($scope_counts[$oldScope] ??
       </div>
     </div>
 
-      <div class="tpl-filter-panel">
+      <div class="filter-panel is-open">
     <div class="search-field-wrap token-search-wrap">
       <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
       <input type="search"
@@ -148,7 +148,7 @@ $displayCount = $selectedOnly ? $totalCount : (int) ($scope_counts[$oldScope] ??
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         <div class="pc-head-title"><?= $selectedOnly ? 'Email Selected Affiliates' : 'Email Affiliates' ?></div>
-        <span class="badge badge-info-pink pc-head-badge" id="es-count-badge">
+        <span class="badge badge-info2 pc-head-badge" id="es-count-badge">
           <span id="es-count-label"><?= $displayCount ?> affiliate<?= $displayCount !== 1 ? 's' : '' ?></span>
         </span>
       </div>

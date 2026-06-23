@@ -364,7 +364,7 @@ final class ContactController
         $subjOld     = (string) ($old['subject'] ?? '');
         $subjectHtml = '<select id="contact-subject" name="subject" required>'
                      . '<option value="" disabled' . ($subjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
-        foreach (['Comments', 'Contact', 'Questions & Concerns'] as $_subjectOpt) {
+        foreach (['Comments', 'Questions/Concerns', 'Contact/Other'] as $_subjectOpt) {
             $optEsc       = htmlspecialchars($_subjectOpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $subjectHtml .= '<option value="' . $optEsc . '"' . ($subjOld === $_subjectOpt ? ' selected' : '') . '>' . $optEsc . '</option>';
         }
@@ -398,6 +398,7 @@ final class ContactController
 
         if ($contactTpl !== '') {
             $tokens = [
+                '{site_name}'            => View::e((string) $this->app->getConfig()->get('site_name', 'Collective')),
                 '{listing_title}'        => View::e($listing?->title ?? (string) $this->app->getConfig()->get('site_name', 'Collective')),
                 '{listing_subject}'      => View::e($listing?->subject ?? (string) $this->app->getConfig()->get('site_name', 'Collective')),
                 '{listing_url}'          => View::e($listing?->url   ?? (string) ($this->app->getConfig()->get('site_url', ''))),
@@ -418,7 +419,7 @@ final class ContactController
                 '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($contactTpl, $tokens);
-            $marker    = ($listing !== null) ? 'contact:' . $listingId : 'contact_collective:0';
+            $marker    = ($listing !== null) ? 'contact:' . $listing->id : 'contact_collective:0';
             $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $formAction, $this->app->getCSRF()->token(), false, formMarker: $marker);
         }
 

@@ -113,9 +113,9 @@ class SiteSettingsRepo
                                . '</div>',
             'collective_stats_template' => '<div class="fl-cstats">' . "\n"
                                          . '<div class="fl-cstats-grid">' . "\n"
-                                         . '<b>Owned Listings:</b> {owned_active} open, {owned_upcoming} upcoming<br>' . "\n"
+                                         . '<b>Owned Listings:</b> {owned_active} open{if_owned_upcoming}, {owned_upcoming} upcoming{/if_owned_upcoming}{if_owned_pending}, {owned_pending} pending{/if_owned_pending}<br>' . "\n"
                                          . '<b>Joined listings:</b> {joined_active}<br>' . "\n"
-                                         . '<b>Total members:</b> {members_approved} approved<br>' . "\n"
+                                         . '<b>Total members:</b> {members_approved} approved{if_pending}, {members_pending} pending{/if_pending}<br>' . "\n"
                                          . '</div>' . "\n"
                                          . '</div>',
             'collective_affiliates_section_template' => '<div class="fl-affiliates-section">' . "\n"

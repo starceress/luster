@@ -71,6 +71,8 @@ if (trim($_lusterTemplate) === '') {
     $_lusterTemplate = SiteSettingsRepo::collectiveDefaults()['random_joined_listing_template'];
 }
 
+$_lusterTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterTemplate);
+
 $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
 
 $_lusterHtml = JoinedListingRowRenderer::renderTemplate($_lusterTemplate, [$_lusterListing], $_lusterUploadsUrl, (string) ($luster_date_format ?? ''));

@@ -8,39 +8,19 @@
 {each_listing}
 
 <div class="fl-listing-item">
-{if_listing_image}<div class="fl-listing-image-wrap"><img class="fl-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}
+{if_listing_image}<div class="fl-listing-image-wrap"><img class="fl-listing-image" src="{listing_image_url}" title="{listing_subject}"></div>{/if_listing_image}
 
 <div class="fl-listing-body">
 <a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>
 
 <span class="fl-listing-subject">{listing_title}</span>
 <div class="fl-listing-meta">
-{if_approved_by}<b>Approved by:</b> {if_tfl}The Fanlistings Network{/if_tfl}{if_tafl}The Anime Fanlistings Network{/if_tafl}<br>{/if_approved_by}
 <b>Category:</b> {listing_category}<br>
-<b>Members:</b> {member_count} member(s) & {if_pending}{member_pending_count} pending{/if_pending}<br>
-<b>Countries:</b> {if_countries}{country_count} countries{/if_countries}<br>
+<b>Members:</b> {member_count} member(s) {if_pending}& {member_pending_count} pending{/if_pending}<br>
+<b>Countries:</b> {country_count} countries<br>
 <b>Opened:</b> {date_opened}<br>
 {if_date_updated}<b>Updated:</b> {date_updated}{/if_date_updated}
-
 </div>
-</div>
-</div>
-{/each_listing}
-</div>
-```
-
-# Random Owned:
-```
-<div class="fl-random-listing">
-{each_listing}
-
-<div class="fl-random-listing-item">
-{if_listing_image}<div class="fl-random-listing-image-wrap"><img class="fl-random-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}
-
-<div class="fl-random-listing-body">
-<a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>
-
-<span class="fl-random-listing-subject">{listing_title}</span>
 </div>
 
 </div>
@@ -54,12 +34,31 @@
 {each_listing}
 
 <div class="fl-latest-listing-item">
-{if_listing_image}<div class="fl-latest-listing-image-wrap"><img class="fl-latest-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}
+{if_listing_image}<div class="fl-latest-listing-image-wrap"><img class="fl-latest-listing-image" src="{listing_image_url}" title="{listing_subject}"></div>{/if_listing_image}
 
 <div class="fl-latest-listing-body">
 <a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>
 
 <span class="fl-latest-listing-subject">{listing_title}</span>
+</div>
+
+</div>
+{/each_listing}
+</div>
+```
+
+# Random Owned:
+```
+<div class="fl-random-listing">
+{each_listing}
+
+<div class="fl-random-listing-item">
+{if_listing_image}<div class="fl-random-listing-image-wrap"><img class="fl-random-listing-image" src="{listing_image_url}" title="{listing_subject}"></div>{/if_listing_image}
+
+<div class="fl-random-listing-body">
+<a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>
+
+<span class="fl-random-listing-subject">{listing_title}</span>
 </div>
 
 </div>
@@ -83,32 +82,13 @@
 </div>
 ```
 
-# Random Joined :
-```
-<div class="fl-random-joined-listing">
-{each_joined}
-
-<div class="fl-random-joined-listing-item">
-{if_listing_image}<div class="fl-random-joined-listing-image-wrap"><img class="fl-random-joined-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}
-
-<div class="fl-random-joined-listing-body">
-<a href="{listing_url}" target="_blank" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}">{listing_subject}</a>
-
-<span class="fl-random-joined-listing-category">{listing_category}</span>
-</div>
-
-</div>
-{/each_joined}
-</div>
-```
-
 # Latest Joined:
 ```
 <div class="fl-latest-joined-listing">
 {each_joined}
 
 <div class="fl-latest-joined-listing-item">
-{if_listing_image}<div class="fl-latest-joined-listing-image-wrap"><img class="fl-latest-joined-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}
+{if_listing_image}<div class="fl-latest-joined-listing-image-wrap"><img class="fl-latest-joined-listing-image" src="{listing_image_url}" title="{listing_subject}"></div>{/if_listing_image}
 
 <div class="fl-latest-joined-listing-body">
 <a href="{listing_url}" target="_blank" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}">{listing_subject}</a>
@@ -121,22 +101,44 @@
 </div>
 ```
 
+# Random Joined :
+```
+<div class="fl-random-joined-listing">
+{each_joined}
+
+<div class="fl-random-joined-listing-item">
+{if_listing_image}<div class="fl-random-joined-listing-image-wrap"><img class="fl-random-joined-listing-image" src="{listing_image_url}" title="{listing_subject}"></div>{/if_listing_image}
+
+<div class="fl-random-joined-listing-body">
+<a href="{listing_url}" target="_blank" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}">{listing_subject}</a>
+
+<span class="fl-random-joined-listing-category">{listing_category}</span>
+</div>
+
+</div>
+{/each_joined}
+</div>
+```
+
+
+
 # Statistics:
 ```
+<h1>Collective Statistics</h1>
 <div class="fl-cstats">
 <div class="fl-cstats-grid">
-<b>Owned Listings:</b> {owned_active} open, {owned_upcoming} upcoming<br>
+<b>Owned Listings:</b> {owned_active} open{if_owned_upcoming}, {owned_upcoming} upcoming{/if_owned_upcoming}{if_owned_pending}, {owned_pending} pending{/if_owned_pending}<br>
 <b>Joined listings:</b> {joined_active}<br>
-<b>Total members:</b> {members_approved} approved<br>
+<b>Total members:</b> {members_approved} approved{if_pending}, {members_pending} pending{/if_pending}<br>
 </div>
 </div>
 ```
 
 # Codes:
 ```
-<h2>Codes</h2>
-<div class="fl-embed fl-embed--codes">
+<h1>Codes</h1>
 {if_no_codes}<p>No codes available yet.</p>{/if_no_codes}
+
 {if_codes}
 
 <div class="fl-codes">
@@ -149,8 +151,8 @@
 {each_code}
 
 <li class="fl-code-item">
-<img src="{code_url}" alt="{code_size}" class="fl-code-image">
-{if_donor}<span class="fl-code-caption">by {if_donor_url}<a href="{code_donor_url}" target="_blank">{code_donor_name}</a>{/if_donor_url}{if_no_donor_url}{code_donor_name}{/if_no_donor_url}</span>{/if_donor}
+<img src="{code_url}" title="{code_size}" class="fl-code-image">
+{if_donor}<span class="fl-code-caption">by {if_donor_url}<a href="{code_donor_url}" target="_blank" title="{code_donor_name}">{code_donor_name}</a>{/if_donor_url}{if_no_donor_url}{code_donor_name}{/if_no_donor_url}</span>{/if_donor}
 {if_code_name}<span class="fl-code-caption">{code_name}</span>{/if_code_name}
 </li>
 
@@ -162,12 +164,11 @@
 </div>
 
 {/if_codes}
-</div>
 ```
 
 # Codes Donation Form:
 ```
-<h2>Donate Codes to {listing_subject}</h2>
+<h2>Donate Codes to {site_name}</h2>
 <div class="fl-form-fields">
 {field_submitter_name}
 {field_submitter_email}
@@ -200,19 +201,21 @@
 
 # Affiliates:
 ```
-<h2>Affiliates</h2>
+<h1>Affiliates</h2>
 <div class="fl-affiliates-section">
+
 {if_affiliates}
 {each_affiliate}
 {if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}
 {if_no_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank">{aff_name}</a>{/if_no_aff_image}
+{/each_affiliate}
 
-{/each_affiliate}{/if_affiliates}
+<p>{affiliate_apply_toggle}</p>
+{/if_affiliates}
 
 {if_no_affiliates}
-No affiliates yet.
+<p>No affiliates yet. {affiliate_apply_toggle}</p>
 {/if_no_affiliates}
-{affiliate_apply_toggle}
 </div>
 ```
 

@@ -52,7 +52,7 @@ if (!in_array($activeGroup, $_validGroups, true)) { $activeGroup = 'all'; }
 $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) ? 'hidden' : '';
 ?>
 
-<div class="tpl-filter-panel">
+<div class="filter-panel is-open">
   <div class="filter-row" id="tpl-filter-row">
     <label for="tpl-group-select" style="font-weight:600; white-space:nowrap">Select Template:</label>
     <div class="select-wrap">
@@ -98,7 +98,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
       <div class="tpl-reset-all-row pc-section" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
         <div style="text-align:center; padding: 0.75rem 0;">
-          <button type="button" class="btn btn-quaternary btn-block-center"
+          <button type="button" class="btn btn-tertiary btn-block-center"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/global-templates/reset-all"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>"
@@ -111,12 +111,17 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
           <div class="pc-section-label">Members List</div>
           <p class="form-hint mb-sm">Default for all listings. Wrap your row design in <code>{each_member}&hellip;{/each_member}</code>.</p>
+          <div class="tpl-layout-presets tpl-layout-presets--above">
+            <strong style="color: var(--accent2); text-transform: uppercase; letter-spacing: .08em;">Choose Display Style:</strong>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template">List</button>
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template__table">Table</button>
+          </div>
           <div class="form-group">
             <textarea name="listing_default_members_template" id="listing_default_members_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_members_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="members" data-textarea="listing_default_members_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="members" data-textarea="listing_default_members_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -127,8 +132,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_join_form_template" id="listing_default_join_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_join_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="join_form" data-textarea="listing_default_join_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_join_form_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="join_form" data-textarea="listing_default_join_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -139,8 +144,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_update_form_template" id="listing_default_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_update_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="update_form" data-textarea="listing_default_update_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_update_form_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="update_form" data-textarea="listing_default_update_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -151,8 +156,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_reset_form_template" id="listing_default_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_reset_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="reset_form" data-textarea="listing_default_reset_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_reset_form_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="reset_form" data-textarea="listing_default_reset_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -174,8 +179,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_stats_template" id="listing_default_stats_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_stats_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="listing_default_stats_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_stats_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="listing_default_stats_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -186,8 +191,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_codes_template" id="listing_default_codes_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes" data-textarea="listing_default_codes_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_codes_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes" data-textarea="listing_default_codes_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -198,8 +203,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_codes_submit_form_template" id="listing_default_codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_submit_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes_submit_form" data-textarea="listing_default_codes_submit_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_codes_submit_form_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes_submit_form" data-textarea="listing_default_codes_submit_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -210,8 +215,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_affiliates_section_template" id="listing_default_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliates_section_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="listing_default_affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliates_section_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="listing_default_affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -222,8 +227,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="listing_default_affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliate_apply_form_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="listing_default_affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -234,8 +239,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_contact_form_template" id="listing_default_contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_contact_form_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="contact_form" data-textarea="listing_default_contact_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_contact_form_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="contact_form" data-textarea="listing_default_contact_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -246,8 +251,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <textarea name="listing_default_updates_template" id="listing_default_updates_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_updates_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="listing_default_updates_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_updates_template">Reset to Luster Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="listing_default_updates_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -262,7 +267,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
     <!-- ── Right column: token reference ─────────────────────────────────── -->
     <div class="composer-side composer-side--sticky">
 
-      <div class="tpl-filter-panel token-search-wrap">
+      <div class="filter-panel is-open token-search-wrap">
         <div class="search-field-wrap">
           <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
           <input type="search"
@@ -587,10 +592,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 </form>
 
 <script type="application/json" id="luster-coltpl-defaults">
-<?= json_encode(array_combine(
-    array_keys($d),
-    array_values($d)
-), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+<?= json_encode(array_merge($d, [
+    'listing_default_members_template__table' => ListingSettingsRepo::defaultMembersTableTemplate(),
+]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 
 <script type="application/json" id="luster-coltpl-meta"><?= json_encode([

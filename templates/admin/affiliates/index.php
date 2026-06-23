@@ -211,7 +211,7 @@ $rangeEnd   = min($total, $page * $per_page);
       <?php else: ?>Rejected Applications
       <?php endif; ?>
       <?php $_affNoun = in_array($tab, ['pending', 'rejected'], true) ? 'Application' : 'Affiliate'; ?>
-      <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> <?= $total !== 1 ? $_affNoun . 's' : $_affNoun ?></span>
+      <span class="card-head-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> <?= $total !== 1 ? $_affNoun . 's' : $_affNoun ?></span>
       <?php if ($_tableOnly && $dragEnabled): ?>
         <button type="button" id="aff-embed-reorder-exit"
                 class="btn btn-preview btn-xs actions-row--right" style="display:none">
@@ -408,7 +408,7 @@ $rangeEnd   = min($total, $page * $per_page);
 
           <!-- Actions: Approve / Reject / Edit / Email / Delete -->
           <td class="act-col" data-label="">
-            <div class="data-actions">
+            <div class="actions-row">
               <?php if ($aff->status === 'pending'): ?>
                 <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/approve"
                       class="action-form-inline">

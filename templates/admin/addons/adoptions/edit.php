@@ -33,7 +33,7 @@ $statusLabels = [
 ];
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= View::e($backUrl) ?>" class="link">
     &larr; Back to <?= $listing !== null ? View::e($listing->title) : ('Listing #' . $listingId) ?>
   </a>

@@ -18,7 +18,7 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url), '/');
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/kim?listing_id=<?= (int) $member->fanlistingId ?>" class="link">&larr; Back to KIM: <?= View::e($fanlisting_name) ?></a>
 </div>
 

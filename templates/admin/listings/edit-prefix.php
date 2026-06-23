@@ -9,7 +9,7 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url), '/');
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="link">
     &larr; Back to <?= View::e($listing->title) ?>
   </a>

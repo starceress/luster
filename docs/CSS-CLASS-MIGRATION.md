@@ -372,6 +372,12 @@ Both Enthusiast and Luster use admin-editable templates with token substitution.
 hardcoded CSS classes in either script. Enthusiast uses `$$token$$` delimiters; Luster
 uses `{token}` delimiters.
 
+**Network conditionals:** Luster stats templates offer three conditional blocks for
+network approval: `{if_approved_by}` (true for either network), `{if_tfl}` (TFL only),
+and `{if_tafl}` (TAFL only). Use `{if_approved_by}` when the content is the same for
+both networks. Only use `{if_tfl}` and `{if_tafl}` when you need different content per
+network (e.g. linking to different URLs).
+
 ### Collective Stats (`show_collective_stats.php`)
 
 Enthusiast exposes PHP variables only (no HTML output). Luster exposes the same

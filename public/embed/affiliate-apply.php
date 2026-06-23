@@ -155,6 +155,7 @@ if ($_lusterListingId === 0) {
     $_lusterCollAffTpl = $_lusterSiteRepo->get('collective_affiliate_apply_form_template') ?? '';
     if ($_lusterCollAffTpl !== '') {
         $_lusterAffTokens = [
+            '{site_name}'             => View::e($_lusterSiteName),
             '{listing_title}'         => View::e($_lusterSiteName),
             '{listing_subject}'       => View::e($_lusterSiteName),
             '{listing_url}'           => View::e($_lusterSiteUrl),

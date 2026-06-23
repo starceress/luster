@@ -9,7 +9,7 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url), '/');
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/updates" class="link">&larr; Back to News Feed</a>
 </div>
 

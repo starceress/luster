@@ -28,7 +28,7 @@ $defaultGateLabel = $currentGateType === 'button'
     : 'Proceed';
 ?>
 
-<div class="page-topbar">
+<div class="toolbar">
   <a href="<?= $b ?>/admin/rules" class="link">&larr; Back to Join Rules</a>
 </div>
 

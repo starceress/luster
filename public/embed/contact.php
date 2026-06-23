@@ -143,7 +143,7 @@ $_lusterCaptchaQ     = Captcha::getQuestion('contact_listing');
 $_lusterSubjOld  = (string) ($_lusterOld['subject'] ?? '');
 $_lusterSubjHtml = '<select id="contact-subject" name="subject" required>'
                  . '<option value="" disabled' . ($_lusterSubjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
-foreach (['Comments', 'Contact', 'Questions & Concerns'] as $_lusterSubjOpt) {
+foreach (['Comments', 'Questions/Concerns', 'Contact/Other'] as $_lusterSubjOpt) {
     $_lusterOptEsc    = htmlspecialchars($_lusterSubjOpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterSubjHtml .= '<option value="' . $_lusterOptEsc . '"' . ($_lusterSubjOld === $_lusterSubjOpt ? ' selected' : '') . '>' . $_lusterOptEsc . '</option>';
 }
