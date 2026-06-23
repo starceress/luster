@@ -497,7 +497,11 @@
   border-bottom: none;
 }
 
-/* -- Stats (per-listing) ------------------------------------------------------- */
+/* ------------------------------------------------------------------------
+   PER-LISTING STATS
+   Statistics block shown on individual fanlisting pages (member count,
+   dates, newest members, growth rate, etc.).
+------------------------------------------------------------------------ */
 
 .fl-stats {
   --fl: ; /* Outer wrapper - intentionally empty */
