@@ -4,21 +4,15 @@ declare(strict_types=1);
 
 namespace Luster\Tests\Unit;
 
-use Luster\Addons\Updates\Controllers\UpdatesPublicController;
 use Luster\Addons\Updates\Update;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Support\SampleTemplateData;
+use Luster\Support\UpdatesTemplateRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for UpdatesPublicController::buildUpdatesHtmlPublic(), which powers
- * both ListingController::ltplPreviewUpdates() (per-listing template preview)
- * and ListingController::gtplPreviewUpdates() (global template preview).
- *
- * Both preview methods are thin wrappers that call buildUpdatesHtmlPublic()
- * with SampleTemplateData::updates() for the "Sample Data" section and [] for
- * the "Empty State" section, then apply a "No updates posted yet." fallback
- * when the empty render returns an empty string.
+ * Tests for UpdatesTemplateRenderer::render(), which powers admin template
+ * previews (per-listing and global) and the updates embed.
  */
 final class UpdatesTemplateRenderTest extends TestCase
 {
@@ -28,7 +22,7 @@ final class UpdatesTemplateRenderTest extends TestCase
 
     private static function render(array $updates, string $tpl): string
     {
-        return UpdatesPublicController::buildUpdatesHtmlPublic($updates, $tpl);
+        return UpdatesTemplateRenderer::render($updates, $tpl);
     }
 
     // -----------------------------------------------------------------------

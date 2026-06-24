@@ -5,7 +5,7 @@
 
  Contact form content fragment. Provides a per-listing or collective contact
  form with name, email, URL, subject, message, and CAPTCHA fields. Served as a
- full page via View::renderPublic() or as an embeddable fragment via
+ embeddable fragment via
  View::renderFragment() from embed/contact.php or embed/collective-contact.php.
  Supports custom form templates.
 */

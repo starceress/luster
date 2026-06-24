@@ -17,8 +17,7 @@ namespace Luster\Core;
 /**
  * Generates pagination HTML from an admin-editable {token} template.
  *
- * Replaces MembersController::buildPagination() and the inline pagination
- * loop in embed/updates.php with one shared, tested implementation. Static
+ * Shared pagination renderer used by embeds and admin previews. Static
  * (like TemplateEngine) — a stateless string-transformation utility called
  * directly throughout the codebase.
  *

@@ -156,12 +156,16 @@ $_lusterApplyMembersTemplate = static function (
 };
 
 // Shared data for all rendering paths
+$_lusterJoinUrl = \Luster\Support\ListingFormUrlResolver::resolve(
+    (string) ($_lusterSettingsRepo->getEmbedSettings($_lusterListingId)['form_url_join'] ?? ''),
+    $_lusterListing->url,
+);
 $_lusterCommonData = [
     'listing'      => $_lusterListing,
     'listing_title' => $_lusterListing->title,
     'listing_url'  => $_lusterListing->url,
     'page_title'      => 'Members',
-    'join_url'        => $_lusterBaseUrl . '/join/' . $_lusterListingId,
+    'join_url'        => $_lusterJoinUrl,
     'members_base'    => $_lusterMembersBase,
     'sort'            => $_lusterSort,
     'show_search'     => $_lusterShowSearch,
@@ -171,7 +175,7 @@ $_lusterCommonData = [
 ];
 
 // ---------------------------------------------------------------------------
-// 5. Render — three paths identical to MembersController::index()
+// 5. Render — three paths: country filter, country summary, default list
 // ---------------------------------------------------------------------------
 
 if ($_lusterCountry !== '') {
@@ -195,7 +199,7 @@ if ($_lusterCountry !== '') {
     if ($_lusterMemberTemplate !== null) {
         $_lusterMembersHtml = $_lusterApplyMembersTemplate(
             $_lusterMemberTemplate, $_lusterResult['members'], $_lusterResult['total'],
-            $_lusterBaseUrl . '/join/' . $_lusterListingId, $_lusterFields,
+            $_lusterJoinUrl, $_lusterFields,
             $_lusterStatsLine, $_lusterSortLinkAll, $_lusterSortLinkName, $_lusterSortLinkCountry,
         );
     }
@@ -233,7 +237,7 @@ if ($_lusterCountry !== '') {
         $_lusterCountryBody = '<ul class="fl-member-list">' . "\n" . $_lusterCountryRows . '</ul>';
         $_lusterMembersHtml = MembersTemplateRenderer::renderWithBody(
             $_lusterMemberTemplate, $_lusterCountryBody,
-            $_lusterBaseUrl . '/join/' . $_lusterListingId, $_lusterTotal,
+            $_lusterJoinUrl, $_lusterTotal,
             $_lusterStatsLine, $_lusterSortLinkAll, $_lusterSortLinkName, $_lusterSortLinkCountry,
         );
     }
@@ -267,7 +271,7 @@ if ($_lusterCountry !== '') {
     if ($_lusterMemberTemplate !== null) {
         $_lusterMembersHtml = $_lusterApplyMembersTemplate(
             $_lusterMemberTemplate, $_lusterResult['members'], $_lusterResult['total'],
-            $_lusterBaseUrl . '/join/' . $_lusterListingId, $_lusterFields,
+            $_lusterJoinUrl, $_lusterFields,
             $_lusterStatsLine, $_lusterSortLinkAll, $_lusterSortLinkName, $_lusterSortLinkCountry,
         );
     }

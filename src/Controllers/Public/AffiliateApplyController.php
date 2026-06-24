@@ -23,7 +23,6 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Core\View;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\EmailTemplateRepo;
@@ -31,17 +30,14 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
-use Luster\Support\FormFieldBuilder;
-use Luster\Support\FormTemplateRenderer;
-use Luster\Support\ListingTemplateResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Public affiliate application form.
+ * Public affiliate application form (POST-only).
  *
- * GET  /affiliate-apply/{id} — renders the application form for a listing.
- * POST /affiliate-apply/{id} — validates input, stores a pending application,
- *                              sends admin notification email, redirects.
+ * POST /affiliate-apply/{id}         — validates input, stores a pending application,
+ *                                      sends admin notification email, redirects.
+ * POST /affiliate-apply/collective   — same for the collective (site-wide) scope.
  *
  * Security properties:
  *  - Only available when affiliate_apply_enabled = 1 for the listing
@@ -52,7 +48,7 @@ use Luster\Support\SuccessRenderer;
  *  - All input validated before any DB write
  *  - Duplicate application checked before insert (by URL and email)
  *  - Image validated by finfo MIME type, not file extension
- *  - Image capped at 2 MB
+ *  - Image capped at 500 KB
  */
 final class AffiliateApplyController
 {
@@ -66,42 +62,6 @@ final class AffiliateApplyController
     private const MAX_IMAGE_SIZE = 512_000; // 500 KB
 
     public function __construct(private readonly Application $app) {}
-
-    // -----------------------------------------------------------------------
-    // GET /affiliate-apply/{id}
-    // -----------------------------------------------------------------------
-
-    /**
-     * Renders the affiliate application form for a specific listing.
-     *
-     * Returns 404 when affiliate applications are not enabled for the listing.
-     */
-    public function show(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $applySettings = $settingsRepo->getAffiliateApplySettings($listingId);
-
-        if (!$applySettings['enabled']) {
-            return Response::notFound('Affiliate applications are not open for this listing.');
-        }
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('That listing does not exist.');
-        }
-
-        $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $old     = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        return $this->renderForm($listingId, $listing, $applySettings, $old, $error);
-    }
 
     // -----------------------------------------------------------------------
     // POST /affiliate-apply/{id}
@@ -234,32 +194,6 @@ final class AffiliateApplyController
     }
 
     // -----------------------------------------------------------------------
-    // GET /affiliate-apply/collective
-    // -----------------------------------------------------------------------
-
-    /**
-     * Renders the affiliate application form for the collective (site-wide scope).
-     *
-     * Returns 404 when `collective_affiliate_apply_enabled` is not set to '1'.
-     */
-    public function collectiveShow(Request $request, array $params): Response
-    {
-        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
-
-        if ($siteRepo->get('collective_affiliate_apply_enabled') !== '1') {
-            return Response::notFound('Collective affiliate applications are not open.');
-        }
-
-        $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $old     = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        return $this->renderCollectiveForm($error, $old);
-    }
-
-    // -----------------------------------------------------------------------
     // POST /affiliate-apply/collective
     // -----------------------------------------------------------------------
 
@@ -382,85 +316,6 @@ final class AffiliateApplyController
     // -----------------------------------------------------------------------
 
     /**
-     * Builds and returns the collective affiliate application form response.
-     *
-     * When `collective_affiliate_apply_form_template` is set in lstr_site_settings
-     * the template is rendered and wrapped in a <form> tag; otherwise the default
-     * PHP fragment template is used.
-     */
-    private function renderCollectiveForm(string $error, array $old): Response
-    {
-        $captchaQuestion = Captcha::getQuestion('affiliate_apply');
-        $config          = $this->app->getConfig();
-        $baseUrl         = $this->app->getBaseUrl();
-        $siteName        = (string) $config->get('site_name', 'Collective');
-        $siteUrl         = (string) ($config->get('site_url', '') ?: $baseUrl);
-        $siteRepo        = new SiteSettingsRepo($this->app->getDatabase());
-        $wrapperTpl      = '';
-
-        $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
-            ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => (string) ($old['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
-            ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
-            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-        ], $wrapperTpl);
-
-        $formHtml = null;
-        $collectiveAffTpl = $siteRepo->get('collective_affiliate_apply_form_template') ?? '';
-        if ($collectiveAffTpl !== '') {
-            $tokens = [
-                '{site_name}'             => View::e($siteName),
-                '{listing_title}'         => View::e($siteName),
-                '{listing_subject}'       => View::e($siteName),
-                '{listing_url}'           => View::e($siteUrl),
-                '{field_name}'            => $f['name'],
-                '{field_name_input}'      => $f['name_input'],
-                '{field_url}'             => $f['url'],
-                '{field_url_input}'       => $f['url_input'],
-                '{field_email}'           => $f['email'],
-                '{field_email_input}'     => $f['email_input'],
-                '{field_image}'           => $f['image'],
-                '{field_image_input}'     => $f['image_input'],
-                '{field_message}'         => $f['message'],
-                '{field_message_input}'   => $f['message_input'],
-                '{captcha_block}'         => $f['captcha_answer'],
-                '{captcha_block_input}'   => $f['captcha_answer_input'],
-                '{captcha_question}'      => View::e($captchaQuestion),
-                '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
-                '{clear_button}'          => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-            ];
-            $innerHtml = FormTemplateRenderer::expandTokens($collectiveAffTpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm(
-                $innerHtml,
-                $this->collectiveFormUrl($config, $baseUrl),
-                $this->app->getCSRF()->token(),
-                true,
-                formMarker: 'aff_apply_collective:0',
-            );
-        }
-
-        $data = [
-            'listing'      => null,
-            'listing_title' => $siteName,
-            'listing_url'  => $siteUrl,
-            'page_title'   => 'Affiliate Application',
-            'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/css/default/',
-            'form_action'  => $this->collectiveFormUrl($config, $baseUrl),
-            'csrf_token'   => $this->app->getCSRF()->token(),
-            'errors'       => $error,
-            'f'            => $f,
-            'form_html'    => $formHtml,
-        ];
-
-        return Response::html(
-            $this->app->getView()->renderPublic('affiliate-apply.php', $data)
-        );
-    }
-
-    /**
      * Resolves the POST target for the collective affiliate application form.
      *
      * Reads `collective_form_url_affiliate_apply` from lstr_site_settings, then
@@ -474,101 +329,7 @@ final class AffiliateApplyController
 
         $override = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_form_url_affiliate_apply');
 
-        return CollectiveFormUrlResolver::resolve($override, $siteUrl, rtrim($embedBase, '/') . '/affiliate-apply/collective');
-    }
-
-    /**
-     * Builds and returns the per-listing affiliate application form response.
-     *
-     * Uses the three-level template cascade (per-listing → global default → built-in
-     * PHP fragment). When a template is in use it is expanded with field tokens and
-     * wrapped in a <form>; otherwise the default template renders bare form fields.
-     */
-    private function renderForm(
-        int    $listingId,
-        object $listing,
-        array  $applySettings,
-        array  $old,
-        string $error,
-    ): Response {
-        $captchaQuestion = Captcha::getQuestion('affiliate_apply');
-        $config          = $this->app->getConfig();
-        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings   = $settingsRepo->getEmbedSettings($listingId);
-        $wrapperTpl      = $settingsRepo->getWrapperTemplate($listingId) ?? '';
-
-        $formUrl = $this->resolveFormUrl(
-            $listingId,
-            (string) $listing->url,
-            $applySettings,
-            $this->app->getBaseUrl(),
-        );
-
-        $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site Name',                      'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
-            ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Website URL',                       'required' => true,  'value' => (string) ($old['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
-            ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
-            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-        ], $wrapperTpl);
-
-        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
-        $affApplyResolved = ListingTemplateResolver::resolve(
-            $settingsRepo->getAffiliateApplyFormTemplate($listingId),
-            $globalTemplates['listing_default_affiliate_apply_form_template'] ?? null,
-            '',
-        );
-        $formHtml = null;
-        $affApplyTpl = $affApplyResolved['should_render_template'] ? $affApplyResolved['value'] : '';
-        if ($affApplyTpl !== '') {
-            $tokens = [
-                '{listing_title}'         => View::e((string) $listing->title),
-                '{listing_subject}'       => View::e((string) $listing->subject),
-                '{listing_url}'           => View::e((string) $listing->url),
-                '{field_name}'            => $f['name'],
-                '{field_name_input}'      => $f['name_input'],
-                '{field_url}'             => $f['url'],
-                '{field_url_input}'       => $f['url_input'],
-                '{field_email}'           => $f['email'],
-                '{field_email_input}'     => $f['email_input'],
-                '{field_image}'           => $f['image'],
-                '{field_image_input}'     => $f['image_input'],
-                '{field_message}'         => $f['message'],
-                '{field_message_input}'   => $f['message_input'],
-                '{captcha_block}'         => $f['captcha_answer'],
-                '{captcha_block_input}'   => $f['captcha_answer_input'],
-                '{captcha_question}'      => View::e($captchaQuestion),
-                '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
-                '{clear_button}'          => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-            ];
-            $innerHtml = FormTemplateRenderer::expandTokens($affApplyTpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm(
-                $innerHtml,
-                $formUrl,
-                $this->app->getCSRF()->token(),
-                true,
-                formMarker: 'aff_apply:' . $listingId,
-            );
-        }
-
-        $data = [
-            'listing'      => $listing,
-            'listing_title' => (string) $listing->title,
-            'listing_url'  => (string) $listing->url,
-            'page_title'   => 'Affiliate Application — ' . $listing->title,
-            'base_url'     => $this->app->getBaseUrl(),
-            'theme_path'   => rtrim((string) $listing->url, '/') . '/' . ltrim((string) ($embedSettings['theme_path'] ?? 'theme'), '/'),
-            'form_action'  => $formUrl,
-            'csrf_token'   => $this->app->getCSRF()->token(),
-            'errors'       => $error,
-            'f'            => $f,
-            'form_html'    => $formHtml,
-        ];
-
-        return Response::html(
-            $this->app->getView()->renderPublic('affiliate-apply.php', $data)
-        );
+        return CollectiveFormUrlResolver::resolve($override, $siteUrl, $siteUrl);
     }
 
     /**
@@ -579,13 +340,10 @@ final class AffiliateApplyController
      */
     private function resolveFormUrl(int $listingId, string $listingUrl, array $applySettings, string $baseUrl): string
     {
-        $embedBase = (string) ($this->app->getConfig()->get('embed_base_url', '') ?: $baseUrl);
-
-        if ($applySettings['form_url'] !== '') {
-            return rtrim($listingUrl, '/') . '/' . ltrim($applySettings['form_url'], '/');
-        }
-
-        return rtrim($embedBase, '/') . '/affiliate-apply/' . $listingId;
+        return \Luster\Support\ListingFormUrlResolver::resolve(
+            (string) $applySettings['form_url'],
+            $listingUrl,
+        );
     }
 
     /**

@@ -20,22 +20,17 @@ use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
 use Luster\Core\Response;
-use Luster\Core\TemplateEngine;
 use Luster\Core\Validator;
-use Luster\Core\View;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
-use Luster\Support\FormTemplateRenderer;
+use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Public KIM update flow — two-step: sign in then manage all entries.
+ * Public KIM update flow — sign in then manage all entries.
  *
- * GET  /kim/update              — step 1: sign-in form (email + password)
  * POST /kim/update/sign-in      — authenticate; store session; redirect to dashboard
- * GET  /kim/update/sign-out     — clear auth session; redirect to sign-in form
- * GET  /kim/update/dashboard    — step 2: show all KIM entries for authed email
  * POST /kim/update/save         — apply bulk changes / removals to selected entries
  */
 final class KimUpdateController
@@ -43,32 +38,6 @@ final class KimUpdateController
     private const SESSION_AUTH_KEY = 'lstr_kim_update_authed';
 
     public function __construct(private readonly Application $app) {}
-
-    // -----------------------------------------------------------------------
-    // GET /kim/update — step 1: sign-in form
-    // -----------------------------------------------------------------------
-
-    /**
-     * Shows the KIM sign-in form (step 1 of the update flow).
-     *
-     * Redirects straight to the dashboard when the fan is already authenticated.
-     */
-    public function showForm(Request $request, array $params): Response
-    {
-        $session = $this->app->getSession();
-
-        // Already authenticated → go straight to dashboard
-        if ((string) $session->get(self::SESSION_AUTH_KEY, '') !== '') {
-            return Response::redirect($this->app->getBaseUrl() . '/kim/update/dashboard');
-        }
-
-        $error    = (string) $session->get('lstr_flash_error', '');
-        $oldEmail = (string) $session->get('lstr_flash_old_email', '');
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old_email');
-
-        return $this->renderSignInForm($oldEmail, $error);
-    }
 
     // -----------------------------------------------------------------------
     // POST /kim/update/sign-in
@@ -85,7 +54,12 @@ final class KimUpdateController
         $rateLimit     = $this->app->getRateLimit();
         $ip            = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
-        $fallbackUrl   = $baseUrl . '/kim/update';
+        $siteUrl       = (string) $this->app->getConfig()->get('site_url', '');
+        $fallbackUrl   = CollectiveFormUrlResolver::resolve(
+            (new SiteSettingsRepo($this->app->getDatabase()))->get('kim_url_update') ?: 'kim-update.php',
+            $siteUrl !== '' ? $siteUrl : $baseUrl,
+            $siteUrl !== '' ? $siteUrl : $baseUrl,
+        );
 
         if ($rateLimit->isBlocked($ip, 'kim_update')) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
@@ -134,110 +108,7 @@ final class KimUpdateController
         $rateLimit->clear($ip, 'kim_update');
         $session->set(self::SESSION_AUTH_KEY, $email);
 
-        $dashboardUrl = $embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/kim/update/dashboard';
-        return Response::redirect($dashboardUrl);
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /kim/update/sign-out
-    // -----------------------------------------------------------------------
-
-    /** Clears the KIM auth session key and redirects to the sign-in form. */
-    public function signOut(Request $request, array $params): Response
-    {
-        $session       = $this->app->getSession();
-        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
-        $session->remove(self::SESSION_AUTH_KEY);
-        $fallbackUrl = $this->app->getBaseUrl() . '/kim/update';
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /kim/update/dashboard — step 2
-    // -----------------------------------------------------------------------
-
-    /**
-     * Shows the dashboard listing all KIM entries for the authenticated email (step 2).
-     *
-     * Redirects to the sign-in form when the fan is not authenticated or when
-     * all their entries have been removed externally.
-     */
-    public function showDashboard(Request $request, array $params): Response
-    {
-        $session    = $this->app->getSession();
-        $authedEmail = (string) $session->get(self::SESSION_AUTH_KEY, '');
-        $baseUrl    = $this->app->getBaseUrl();
-
-        if ($authedEmail === '') {
-            return Response::redirect($baseUrl . '/kim/update');
-        }
-
-        $successHtml = (string) $session->get('lstr_flash_success_html', '');
-        $error       = (string) $session->get('lstr_flash_error',        '');
-        $session->remove('lstr_flash_success_html');
-        $session->remove('lstr_flash_error');
-
-        $kimRepo     = new KimMemberRepo($this->app->getDatabase());
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $members     = $kimRepo->findAllByEmail($authedEmail);
-
-        // If no entries remain (e.g. all removed, or email changed externally), sign out
-        if ($members === []) {
-            $session->remove(self::SESSION_AUTH_KEY);
-            return Response::redirect($baseUrl . '/kim/update');
-        }
-
-        $entries = [];
-        foreach ($members as $member) {
-            $listing       = $listingRepo->getById($member->fanlistingId);
-            $entries[] = [
-                'id'           => $member->id,
-                'fanlisting_id'=> $member->fanlistingId,
-                'listing_title' => $listing !== null
-                    ? ($listing->subject ?: $listing->title)
-                    : 'Listing #' . $member->fanlistingId,
-                'name'         => $member->name,
-                'url'          => $member->url ?? '',
-                'email'        => $member->email,
-                'pending'      => $member->pending,
-            ];
-        }
-
-        $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'text',     'name' => 'new_name',             'id' => 'kim-new-name',             'label' => 'New Name',             'required' => false, 'attrs' => ['maxlength' => '100'], 'hint' => 'Leave blank to keep current'],
-            ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Leave blank to keep current'],
-            ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',      'required' => false, 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
-            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
-            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-        ], '');
-
-        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
-        $kimUrls  = $siteRepo->getMany(['kim_url_reset', 'kim_url_list']);
-        $kimParsed   = parse_url((string) ($this->app->getConfig()->get('site_url', '')));
-        $kimSiteRoot = ($kimParsed['scheme'] ?? 'https') . '://' . ($kimParsed['host'] ?? '');
-        if (!empty($kimParsed['port'])) {
-            $kimSiteRoot .= ':' . $kimParsed['port'];
-        }
-        $toLink = static fn(?string $v): ?string =>
-            ($v !== null && $v !== '') ? $kimSiteRoot . '/' . ltrim($v, '/') : null;
-
-        return $this->renderKimPage('update-dashboard.php', [
-            'page_title'    => 'KIM — Manage Your Entries',
-            'auth_email'    => $authedEmail,
-            'entries'       => $entries,
-            'save_action'   => $baseUrl . '/kim/update/save',
-            'sign_out_url'  => $baseUrl . '/kim/update/sign-out',
-            'csrf_token'    => $this->app->getCSRF()->token(),
-            'errors'        => $error !== ''
-                ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
-                : '',
-            'success_html'  => $successHtml,
-            'f'             => $f,
-            'link_reset'    => $toLink($kimUrls['kim_url_reset'] ?? null, 'kim-reset.php'),
-            'link_list'     => $toLink($kimUrls['kim_url_list']  ?? null, 'kim-list.php'),
-            'base_url'      => $baseUrl,
-            'theme_path'    => $baseUrl . '/assets/css/default/',
-        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -257,10 +128,16 @@ final class KimUpdateController
         $session       = $this->app->getSession();
         $authedEmail   = (string) $session->get(self::SESSION_AUTH_KEY, '');
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
-        $dashboardUrl  = $embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/kim/update/dashboard';
+        $siteUrl       = (string) $this->app->getConfig()->get('site_url', '');
+        $kimUpdateUrl  = CollectiveFormUrlResolver::resolve(
+            (new SiteSettingsRepo($this->app->getDatabase()))->get('kim_url_update') ?: 'kim-update.php',
+            $siteUrl !== '' ? $siteUrl : $baseUrl,
+            $siteUrl !== '' ? $siteUrl : $baseUrl,
+        );
+        $dashboardUrl  = $embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl;
 
         if ($authedEmail === '') {
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/kim/update');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
         }
 
         // Honeypot
@@ -342,7 +219,7 @@ final class KimUpdateController
                 $session->remove(self::SESSION_AUTH_KEY);
                 $session->remove('lstr_embed_return_to');
                 $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-removed'));
-                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/kim/update');
+                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
             }
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-updated'));
             return Response::redirect($dashboardUrl);
@@ -433,7 +310,7 @@ final class KimUpdateController
                 'lstr_flash_success_html',
                 SuccessRenderer::render('Your entries were updated. Please sign in again with your new email address.', 'kim-updated'),
             );
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/kim/update');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
         }
 
         // Check whether all entries are now gone (updates may not have deleted any,
@@ -443,112 +320,11 @@ final class KimUpdateController
             $session->remove(self::SESSION_AUTH_KEY);
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-removed'));
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/kim/update');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
         }
 
         $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-updated'));
         return Response::redirect($dashboardUrl);
     }
 
-    // -----------------------------------------------------------------------
-    // Internals — continued
-    // -----------------------------------------------------------------------
-
-    // -----------------------------------------------------------------------
-    // Internals
-    // -----------------------------------------------------------------------
-
-    /**
-     * Builds and returns the KIM sign-in form response.
-     *
-     * Uses the admin-defined kim_update_form_template when available,
-     * otherwise falls back to the default fragment template.
-     */
-    private function renderSignInForm(string $oldEmail = '', string $error = ''): Response
-    {
-        $baseUrl  = $this->app->getBaseUrl();
-        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
-
-        $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'email',    'name' => 'email',    'id' => 'kim-email',    'label' => 'Email',    'required' => true, 'value' => $oldEmail, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'password', 'name' => 'password', 'id' => 'kim-password', 'label' => 'Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
-        ], '');
-
-        $kimUrls  = $siteRepo->getMany(['kim_url_reset', 'kim_url_list']);
-        $kimParsed   = parse_url((string) ($this->app->getConfig()->get('site_url', '')));
-        $kimSiteRoot = ($kimParsed['scheme'] ?? 'https') . '://' . ($kimParsed['host'] ?? '');
-        if (!empty($kimParsed['port'])) {
-            $kimSiteRoot .= ':' . $kimParsed['port'];
-        }
-        $toLink = static fn(?string $v, string $default = ''): ?string =>
-            (($v !== null && $v !== '') || $default !== '')
-                ? $kimSiteRoot . '/' . ltrim($v !== null && $v !== '' ? $v : $default, '/')
-                : null;
-
-        $resolvedResetUrl = $toLink($kimUrls['kim_url_reset'] ?? null, 'kim-reset.php');
-
-        $formHtml  = null;
-        $updateTpl = $siteRepo->get('kim_update_form_template') ?? '';
-        if ($updateTpl !== '') {
-            $tpl    = TemplateEngine::conditionals($updateTpl, ['lost_password_url' => true]);
-            $tokens = [
-                '{site_name}'                        => View::e((string) $this->app->getConfig()->get('site_name', 'Collective')),
-                '{field_email}'                      => $f['email'],
-                '{field_email_input}'                => $f['email_input'],
-                '{field_password}'                   => $f['password'],
-                '{field_password_input}'             => $f['password_input'],
-                '{submit_button}'                    => '<button type="submit" class="fl-submit">Sign In</button>',
-                '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-                '{lost_password_url}'                => View::e($resolvedResetUrl),
-            ];
-            $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/update/sign-in', $this->app->getCSRF()->token(), false, formMarker: 'kim_update_auth');
-        }
-
-        return $this->renderKimPage('update.php', [
-            'page_title'  => 'KIM — Sign In',
-            'form_action' => $baseUrl . '/kim/update/sign-in',
-            'csrf_token'  => $this->app->getCSRF()->token(),
-            'errors'      => $error !== ''
-                ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
-                : '',
-            'f'           => $f,
-            'form_html'   => $formHtml,
-            'link_reset'  => $toLink($kimUrls['kim_url_reset'] ?? null, 'kim-reset.php'),
-            'link_list'   => $toLink($kimUrls['kim_url_list']  ?? null, 'kim-list.php'),
-            'base_url'    => $baseUrl,
-            'theme_path'  => $baseUrl . '/assets/css/default/',
-        ]);
-    }
-
-    /**
-     * Wraps a KIM fragment template in the public layout and returns the response.
-     *
-     * Falls back to rendering the fragment alone when the layout file does not exist.
-     */
-    private function renderKimPage(string $template, array $data): Response
-    {
-        $view     = $this->app->getView();
-        $baseUrl  = $this->app->getBaseUrl();
-        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
-
-        $content = $view->render('default/addons/kim/' . $template, $data);
-
-        $layoutData = array_merge($data, [
-            'content'      => $content,
-            'listing'      => null,
-            'listing_title' => $siteName,
-            'listing_url'  => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/css/default/',
-        ]);
-
-        $layoutPath = $this->app->getBasePath() . '/templates/default/layout.php';
-        if (is_file($layoutPath)) {
-            $html = $view->render('default/layout.php', $layoutData);
-        } else {
-            $html = $content;
-        }
-
-        return Response::html($html);
-    }
 }

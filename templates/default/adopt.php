@@ -5,9 +5,8 @@
 
  Adoption application form content fragment (Adoption add-on). Allows visitors
  to submit an application expressing interest in adopting a fanlisting, with
- name, email, URL, message, and CAPTCHA fields. Served as a full page via
- View::renderPublic() or as an embeddable fragment via View::renderFragment()
- from embed/adopt.php. Supports custom form templates.
+ name, email, URL, message, and CAPTCHA fields. Rendered via
+ View::renderFragment() from embed/adopt.php. Supports custom form templates.
 */
 
 declare(strict_types=1);

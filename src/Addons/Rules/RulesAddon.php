@@ -132,8 +132,7 @@ final class RulesAddon implements AddonInterface
     /** Registers public (/rules/*) and admin (/admin/rules/*) routes. */
     public function registerRoutes(Router $router): void
     {
-        // Public
-        $router->get('/rules/{id}',       RulesPublicController::class, 'gate');
+        // Public (POST only — rules gate lives on the owner's site via embed)
         $router->post('/rules/{id}/agree', RulesPublicController::class, 'agree');
 
         // Admin — literal paths before parameterised

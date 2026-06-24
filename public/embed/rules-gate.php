@@ -186,15 +186,11 @@ $_lusterSettingsRepo = new \Luster\Repositories\ListingSettingsRepo($_lusterApp-
 $_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
 $_lusterListingUrl = $_lusterListing?->url ?? '';
 
-$_lusterResolveUrl = static function (string $settingKey, string $fallbackRoute) use ($_lusterEmbedSettings, $_lusterListingUrl, $_lusterBaseUrl, $_lusterListingId): string {
-    $page = (string) ($_lusterEmbedSettings[$settingKey] ?? '');
-    if ($page !== '' && preg_match('#^https?://#i', $page)) {
-        return $page;
-    }
-    if ($page !== '') {
-        return rtrim($_lusterListingUrl, '/') . '/' . ltrim($page, '/');
-    }
-    return $_lusterBaseUrl . '/' . $fallbackRoute . '/' . $_lusterListingId;
+$_lusterResolveUrl = static function (string $settingKey) use ($_lusterEmbedSettings, $_lusterListingUrl): string {
+    return \Luster\Support\ListingFormUrlResolver::resolve(
+        (string) ($_lusterEmbedSettings[$settingKey] ?? ''),
+        $_lusterListingUrl,
+    );
 };
 
 $_lusterRulesBodyHtml = \Luster\Support\RulesBodyRenderer::render(
@@ -203,8 +199,8 @@ $_lusterRulesBodyHtml = \Luster\Support\RulesBodyRenderer::render(
         'subject'       => $_lusterListing?->subject ?? '',
         'listing_title' => $_lusterListing?->title ?? '',
         'listing_url'   => $_lusterListingUrl,
-        'join_url'      => $_lusterResolveUrl('form_url_join', 'join'),
-        'update_url'    => $_lusterResolveUrl('form_url_update', 'update'),
+        'join_url'      => $_lusterResolveUrl('form_url_join'),
+        'update_url'    => $_lusterResolveUrl('form_url_update'),
     ],
     [
         'gate_checkbox' => $_lusterGateCheckboxHtml,

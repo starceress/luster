@@ -32,7 +32,7 @@ use Luster\Core\TemplateEngine;
 use Luster\Core\UpdateChecker;
 use Luster\Core\Validator;
 use Luster\Core\View;
-use Luster\Addons\Updates\Controllers\UpdatesPublicController as UpdatesPreviewHelper;
+use Luster\Support\UpdatesTemplateRenderer as UpdatesPreviewHelper;
 use Luster\Support\AffiliateRowRenderer;
 use Luster\Support\SampleTemplateData;
 use Luster\Support\CollectiveFormUrlResolver;
@@ -592,7 +592,7 @@ final class SettingsController extends AdminController
         $siteUrl    = (string) ($this->app->getConfig()->get('site_url', '') ?: $baseUrl);
         $siteRepo   = new SiteSettingsRepo($db);
         $affOverride = $siteRepo->get('collective_form_url_affiliate_apply');
-        $affiliateApplyUrl = CollectiveFormUrlResolver::resolve($affOverride, $siteUrl, $baseUrl . '/affiliate-apply/collective');
+        $affiliateApplyUrl = CollectiveFormUrlResolver::resolve($affOverride, $siteUrl, $siteUrl);
 
         $applyStyle = (string) ($siteRepo->get('collective_affiliate_apply_style') ?? 'link');
         if (!in_array($applyStyle, ['link', 'button'], true)) {
@@ -1161,8 +1161,8 @@ final class SettingsController extends AdminController
         $liveUpdates   = (new UpdateRepo($db))->getCollective(1, 5);
         $sampleUpdates = !empty($liveUpdates) ? $liveUpdates : SampleTemplateData::updates();
 
-        $sample = UpdatesPreviewHelper::buildUpdatesHtmlPublic($sampleUpdates, $tpl);
-        $empty  = UpdatesPreviewHelper::buildUpdatesHtmlPublic([], $tpl);
+        $sample = UpdatesPreviewHelper::render($sampleUpdates, $tpl);
+        $empty  = UpdatesPreviewHelper::render([], $tpl);
 
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No updates posted yet.</p>';

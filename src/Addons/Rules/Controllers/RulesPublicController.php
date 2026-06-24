@@ -18,16 +18,13 @@ use Luster\Addons\Rules\RulesRepo;
 use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
-use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
-use Luster\Support\RulesBodyRenderer;
 
 /**
  * Public rules gate.
  *
  * Routes (registered by RulesAddon::registerRoutes()):
- *   GET  /rules/{id}        gate()   — show the rules (full-page standalone view)
  *   POST /rules/{id}/agree  agree()  — record agreement in session, redirect back
  *
  * Agreement is tracked in the session as:
@@ -39,95 +36,6 @@ use Luster\Support\RulesBodyRenderer;
 final class RulesPublicController
 {
     public function __construct(private readonly Application $app) {}
-
-    // -----------------------------------------------------------------------
-    // GET /rules/{id}
-    // -----------------------------------------------------------------------
-
-    /**
-     * Renders the rules gate page for a listing. Resolves the active rule set (per-listing
-     * first, then the global fallback), builds the gate checkbox/button HTML, expands any
-     * {token} placeholders in the body, and passes the rendered body to the template.
-     * Also indicates whether the visitor has already agreed in this session.
-     */
-    public function gate(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-        $ruleSet   = $this->requireActiveRules($listingId);
-
-        if ($ruleSet instanceof Response) {
-            return $ruleSet;
-        }
-
-        $session    = $this->app->getSession();
-        $baseUrl    = $this->app->getBaseUrl();
-        $csrf       = $this->app->getCSRF()->token();
-        $returnTo   = (string) $session->get('lstr_embed_return_to', '');
-        if ($returnTo === '') {
-            // Standalone (non-embed) visits have no captured host-page URL —
-            // default to the join form so agreeing doesn't redirect back to
-            // this same gate (which would then show "already agreed").
-            $returnTo = $baseUrl . '/join/' . $listingId;
-        }
-
-        $alreadyAgreed = $this->hasAgreed($listingId, $ruleSet);
-
-        $listing = (new ListingRepo($this->app->getDatabase(), $this->app->getConfig()))
-            ->getById($listingId);
-
-        $settingsRepo  = new \Luster\Repositories\ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $listingUrl    = $listing?->url ?? '';
-
-        $resolveUrl = static function (string $settingKey, string $fallbackRoute) use ($embedSettings, $listingUrl, $baseUrl, $listingId): string {
-            $page = (string) ($embedSettings[$settingKey] ?? '');
-            if ($page !== '' && preg_match('#^https?://#i', $page)) {
-                return $page;
-            }
-            if ($page !== '') {
-                return rtrim($listingUrl, '/') . '/' . ltrim($page, '/');
-            }
-            return $baseUrl . '/' . $fallbackRoute . '/' . $listingId;
-        };
-
-        [$gateCheckboxHtml, $gateButtonHtml] = $this->buildGateTokens($ruleSet);
-
-        $rulesBodyHtml = RulesBodyRenderer::render(
-            $ruleSet->body,
-            [
-                'subject'       => $listing?->subject ?? '',
-                'listing_title' => $listing?->title ?? '',
-                'listing_url'   => $listingUrl,
-                'join_url'      => $resolveUrl('form_url_join', 'join'),
-                'update_url'    => $resolveUrl('form_url_update', 'update'),
-            ],
-            [
-                'gate_checkbox' => $gateCheckboxHtml,
-                'gate_button'   => $gateButtonHtml,
-            ]
-        );
-
-        if (!RulesBodyRenderer::hasGateToken($ruleSet->body)) {
-            $rulesBodyHtml .= "\n" . $gateCheckboxHtml . "\n" . $gateButtonHtml;
-        }
-
-        $html = $this->app->getView()->renderPublic('addons/rules/gate.php', [
-            'listing'         => $listing,
-            'listing_title'    => $listing?->title ?? '',
-            'listing_url'     => $listing?->url ?? '',
-            'page_title'      => 'Join Rules',
-            'rules'           => $ruleSet,
-            'already_agreed'  => $alreadyAgreed,
-            'form_action'     => $baseUrl . '/rules/' . $listingId . '/agree',
-            'return_to'       => $returnTo,
-            'csrf_token'      => $csrf,
-            'rules_body_html' => $rulesBodyHtml,
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/css/default/',
-        ]);
-
-        return Response::html($html);
-    }
 
     // -----------------------------------------------------------------------
     // POST /rules/{id}/agree  (CSRF validated by CsrfMiddleware)
@@ -154,7 +62,10 @@ final class RulesPublicController
         // Require explicit checkbox confirmation — browser required= is client-only
         if ($request->post('agree', '') !== '1') {
             $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/rules/' . $listingId);
+            $listingRepo   = new \Luster\Repositories\ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+            $listing       = $listingRepo->getById($listingId);
+            $fallback      = $listing !== null ? $listing->url : ($this->app->getConfig()->get('app_url', $baseUrl));
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallback);
         }
 
         // Record agreement as a fingerprint (row ID + version) so that a
@@ -234,16 +145,6 @@ final class RulesPublicController
     }
 
     /**
-     * Returns true when the session holds an agreement fingerprint that matches
-     * the current rule-set version for the given listing.
-     */
-    private function hasAgreed(int $listingId, RuleSet $ruleSet): bool
-    {
-        $stored = (string) $this->app->getSession()->get('lstr_rules_agreed_' . $listingId, '');
-        return $stored === $ruleSet->fingerprint();
-    }
-
-    /**
      * Returns true when the URL is a valid absolute HTTP or HTTPS address with a non-empty host.
      * Used to validate post-agreement redirect targets before following them.
      */
@@ -261,26 +162,4 @@ final class RulesPublicController
         return in_array($scheme, ['http', 'https'], true) && $host !== '';
     }
 
-    /**
-     * Returns [checkboxHtml, buttonHtml] gate token values for the given rule set.
-     *
-     * @return array{string, string}
-     */
-    private function buildGateTokens(RuleSet $ruleSet): array
-    {
-        $label = View::e($ruleSet->effectiveGateLabel());
-
-        if ($ruleSet->gateType === 'button') {
-            return [
-                '',
-                '<button type="submit" class="fl-submit fl-rules-gate-btn" name="agree" value="1">'
-                    . $label . '</button>',
-            ];
-        }
-
-        return [
-            '<input type="checkbox" class="fl-rules-agree-check" name="agree" value="1" required>',
-            '<button type="submit" class="fl-submit fl-rules-gate-btn">' . $label . '</button>',
-        ];
-    }
 }

@@ -29,9 +29,9 @@ use RuntimeException;
  * new $class() — fine for unit tests with no-dependency controllers.
  *
  * Example:
- *   $router->get('/members/{slug}', MembersController::class, 'index');
- *   // Controller action: public function index(Request $req, array $params): Response
- *   //   $params['slug'] is available
+ *   $router->post('/join/{id}', JoinController::class, 'submit');
+ *   // Controller action: public function submit(Request $req, array $params): Response
+ *   //   $params['id'] is available
  */
 final class Router
 {

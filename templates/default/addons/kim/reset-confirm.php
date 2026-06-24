@@ -6,8 +6,8 @@
  KIM List password reset confirmation content fragment (Keep In Mind add-on,
  step 2 of 2). Validates the reset token from the emailed link and presents a
  new-password form. Shows an expired/invalid message with a recovery link when
- the token is no longer valid. Served as a full page via View::renderPublic()
- or as an embeddable fragment via View::renderFragment() from
+ the token is no longer valid. Rendered as an embeddable fragment via
+ View::renderFragment() from
  embed/kim-reset.php. Supports custom form templates.
 */
 

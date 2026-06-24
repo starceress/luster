@@ -6,7 +6,7 @@
  KIM List sign-up form content fragment (Keep In Mind add-on). Presents the
  public form for visitors to register their interest in adopting a fanlisting,
  with name, email, URL, fanlisting selector, password, and CAPTCHA fields.
- Served as a full page via View::renderPublic() or as an embeddable fragment
+ Rendered as an embeddable fragment
  via View::renderFragment() from embed/kim-signup.php. Supports custom form
  templates.
 */

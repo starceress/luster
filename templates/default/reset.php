@@ -5,7 +5,7 @@
 
  Password reset content fragment (step 1 of 2). Presents a form where the fan
  enters their email address to receive a time-limited password reset link.
- Served as a full page via View::renderPublic() or as an embeddable fragment
+ Rendered as an embeddable fragment
  via View::renderFragment() from embed/reset.php. Supports custom form templates.
 */
 

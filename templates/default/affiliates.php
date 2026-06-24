@@ -5,7 +5,7 @@
 
  Affiliates list content fragment. Displays approved affiliates for a listing
  or collective, with image buttons or text-link fallbacks and pagination. Served
- as a full page via View::renderPublic() or as an embeddable fragment via
+ as an embeddable fragment via
  View::renderFragment() from embed/affiliates.php. Supports custom affiliates
  section templates.
 */

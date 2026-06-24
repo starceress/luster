@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Luster\Addons\Kim;
 
 use Luster\Addons\Kim\Controllers\KimAdminController;
-use Luster\Addons\Kim\Controllers\KimListController;
 use Luster\Addons\Kim\Controllers\KimResetController;
 use Luster\Addons\Kim\Controllers\KimSignupController;
 use Luster\Addons\Kim\Controllers\KimUpdateController;
@@ -97,20 +96,11 @@ final class KimAddon implements AddonInterface
     /** Registers all public (/kim/*) and admin (/admin/kim/*) routes. */
     public function registerRoutes(Router $router): void
     {
-        // ── Public routes ─────────────────────────────────────────────────
-        // Order matters: specific paths before dynamic ones.
-        $router->get('/kim/list/{id}',      KimListController::class,   'subject');
-        $router->get('/kim/list',           KimListController::class,   'index');
-        $router->get('/kim/update/dashboard', KimUpdateController::class, 'showDashboard');
+        // ── Public routes (POST only — fan-facing pages live on the owner's site via embeds) ──
         $router->post('/kim/update/sign-in', KimUpdateController::class, 'submitSignIn');
-        $router->get('/kim/update/sign-out', KimUpdateController::class, 'signOut');
         $router->post('/kim/update/save',    KimUpdateController::class, 'submitSave');
-        $router->get('/kim/update',          KimUpdateController::class, 'showForm');
-        $router->get('/kim/reset/confirm',  KimResetController::class,  'showConfirm');
         $router->post('/kim/reset/confirm', KimResetController::class,  'submitConfirm');
-        $router->get('/kim/reset',          KimResetController::class,  'showForm');
         $router->post('/kim/reset',         KimResetController::class,  'submit');
-        $router->get('/kim',                KimSignupController::class, 'showForm');
         $router->post('/kim',               KimSignupController::class, 'submit');
 
         // ── Admin routes ──────────────────────────────────────────────────

@@ -179,14 +179,10 @@ if ($_lusterSignedIn) {
 if (isset($luster_lost_password_url)) {
     $_lusterLostPasswordUrl = (string) $luster_lost_password_url;
 } else {
-    $_lusterResetPage       = (string) ($_lusterEmbedSettings['form_url_reset'] ?? '');
-    if ($_lusterResetPage !== '' && preg_match('#^https?://#i', $_lusterResetPage)) {
-        $_lusterLostPasswordUrl = $_lusterResetPage;
-    } elseif ($_lusterResetPage !== '') {
-        $_lusterLostPasswordUrl = rtrim((string) $_lusterListing->url, '/') . '/' . ltrim($_lusterResetPage, '/');
-    } else {
-        $_lusterLostPasswordUrl = '';
-    }
+    $_lusterResetPage = (string) ($_lusterEmbedSettings['form_url_reset'] ?? '');
+    $_lusterLostPasswordUrl = $_lusterResetPage !== ''
+        ? \Luster\Support\ListingFormUrlResolver::resolve($_lusterResetPage, $_lusterListing->url)
+        : '';
 }
 
 // ---------------------------------------------------------------------------

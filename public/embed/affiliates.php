@@ -74,9 +74,14 @@ if ($_lusterListingId > 0) {
         return;
     }
 
-    $_lusterResult      = $_lusterAffiliateRepo->getActiveByListing($_lusterListingId, $_lusterPerPage, $_lusterPage);
+    $_lusterResult       = $_lusterAffiliateRepo->getActiveByListing($_lusterListingId, $_lusterPerPage, $_lusterPage);
     $_lusterIsCollective = false;
-    $_lusterJoinUrl      = $_lusterBaseUrl . '/join/' . $_lusterListingId;
+    $_lusterSettingsRepo  = new ListingSettingsRepo($_lusterApp->getDatabase());
+    $_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
+    $_lusterJoinUrl      = \Luster\Support\ListingFormUrlResolver::resolve(
+        (string) ($_lusterEmbedSettings['form_url_join'] ?? ''),
+        $_lusterListing->url,
+    );
     $_lusterTitle        = $_lusterListing->title;
 } else {
     // Collective mode
@@ -93,7 +98,6 @@ if ($_lusterListingId > 0) {
 
 $_lusterSectionTemplate   = null;
 if ($_lusterListingId > 0) {
-    $_lusterSettingsRepo = new ListingSettingsRepo($_lusterApp->getDatabase());
     $_lusterTpls         = $_lusterSettingsRepo->getTemplates($_lusterListingId);
     $_lusterGlobalTpls   = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
     $_lusterAffResolved  = ListingTemplateResolver::resolve(
@@ -155,11 +159,15 @@ if ($_lusterSectionTemplate !== null) {
     }
 
     if ($_lusterListingId > 0) {
-        $_lusterAffApplyUrl = $_lusterBaseUrl . '/affiliate-apply/' . $_lusterListingId;
+        $_lusterAffApplySettings = $_lusterSettingsRepo->getAffiliateApplySettings($_lusterListingId);
+        $_lusterAffApplyUrl      = \Luster\Support\ListingFormUrlResolver::resolve(
+            (string) $_lusterAffApplySettings['form_url'],
+            $_lusterListing->url,
+        );
     } else {
         $_lusterSiteUrl  = (string) ($_lusterApp->getConfig()->get('site_url', '') ?: $_lusterBaseUrl);
         $_lusterAffOverride = (new SiteSettingsRepo($_lusterApp->getDatabase()))->get('collective_form_url_affiliate_apply');
-        $_lusterAffApplyUrl = CollectiveFormUrlResolver::resolve($_lusterAffOverride, $_lusterSiteUrl, $_lusterBaseUrl . '/affiliate-apply/collective');
+        $_lusterAffApplyUrl = CollectiveFormUrlResolver::resolve($_lusterAffOverride, $_lusterSiteUrl, $_lusterSiteUrl);
     }
 
     // {affiliate_apply_toggle} — collapsible inline affiliate application form

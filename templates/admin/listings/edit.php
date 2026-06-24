@@ -774,7 +774,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php if ($hasUpdatesAddon): ?>
         <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
           <div class="section-label">News Feed <?= $srcBadge('updates_template') ?></div>
-          <p class="form-hint" style="margin-bottom:.75rem">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls the rendered updates list in the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
           <div class="field-group">
             <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
           </div>
@@ -1562,7 +1562,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('embed') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Embed Settings</div>
-      <div class="panel-header-sub">Tell Luster which public pages hold this listing's forms.</div>
+      <div class="panel-header-sub">Tell Luster where your host pages are so it can build email links and redirects.</div>
     </div>
   </div>
   
@@ -1596,7 +1596,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <input id="fl-form-reset" type="text" name="form_url_reset" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_reset'] !== '' ? $embedSettings['form_url_reset'] : 'reset.php') ?>">
-          <p class="form-hint">The public page where members can request or finish a password reset.</p>
+          <p class="form-hint">The page on your site where members can reset their password. Luster links to this page in reset emails.</p>
         </div>
       </div>
 

@@ -574,13 +574,7 @@ final class EmailTemplateRepo
      */
     private static function resolveFormUrl(string $url, string $listingUrl): string
     {
-        if ($url === '') {
-            return $listingUrl;
-        }
-        if (preg_match('#^https?://#i', $url)) {
-            return $url;
-        }
-        return rtrim($listingUrl, '/') . '/' . ltrim($url, '/');
+        return \Luster\Support\ListingFormUrlResolver::resolve($url, $listingUrl);
     }
 
     /**

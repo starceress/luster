@@ -5,8 +5,7 @@
 
  Affiliate application form content fragment. Allows visitors to apply to
  become an affiliate of a listing or collective, with name, email, URL, image
- upload, message, and CAPTCHA fields. Served as a full page via
- View::renderPublic() or as an embeddable fragment via View::renderFragment()
+ upload, message, and CAPTCHA fields. Rendered via View::renderFragment()
  from embed/affiliate-apply.php. Supports custom form templates.
 */
 

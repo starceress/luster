@@ -14,9 +14,8 @@ use PHPUnit\Framework\TestCase;
  *  - SiteSettingsRepo::get/set('collective_form_url_codes_submit')
  *  - SiteSettingsRepo::get/set('collective_form_url_affiliate_apply')
  *  - CollectiveFormUrlResolver::resolve(), used by CodesSubmitController::submit()
- *    (collective branch), AffiliateApplyController::collectiveFormUrl(),
- *    AffiliatesController::collective(), and the affiliates embed to resolve these
- *    overrides relative to the collective's public site URL (site_url)
+ *    (collective branch), AffiliateApplyController::collectiveFormUrl(), and the
+ *    affiliates embed to resolve overrides relative to the collective's site URL
  */
 final class CollectiveFormUrlSettingsTest extends TestCase
 {

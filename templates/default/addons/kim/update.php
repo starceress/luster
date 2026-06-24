@@ -5,8 +5,7 @@
 
  KIM List update sign-in form content fragment (Keep In Mind add-on, step 1 of
  2). Presents an email + password form so the visitor can authenticate before
- managing their KIM entries in the dashboard (step 2). Served as a full page
- via View::renderPublic() or as an embeddable fragment via
+ managing their KIM entries in the dashboard (step 2). Rendered via
  View::renderFragment() from embed/kim-update.php. Supports custom form
  templates.
 */

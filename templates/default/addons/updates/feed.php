@@ -5,9 +5,9 @@
 
  News Feed public feed content fragment (News Feed add-on). Displays
  per-listing or collective news/update entries with title, date, author,
- category tags, body text, and pagination. Served as a full page via
- View::renderPublic() or as an embeddable fragment via View::renderFragment()
- from embed/updates.php or embed/collective-updates.php. Supports custom
+ category tags, body text, and pagination. Rendered via
+ View::renderFragment() from embed/updates.php or
+ embed/collective-updates.php. Supports custom
  updates templates.
 */
 

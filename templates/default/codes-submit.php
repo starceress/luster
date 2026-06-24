@@ -5,7 +5,7 @@
 
  Fan code submission form content fragment. Allows visitors to upload a graphic
  code image for review, with submitter name/email/URL fields and CAPTCHA
- validation. Served as a full page via View::renderPublic() or as an embeddable
+ validation. Rendered as an embeddable
  fragment via View::renderFragment() from embed/codes-submit.php. Supports
  custom form templates.
 */

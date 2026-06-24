@@ -6,8 +6,7 @@
  Password reset confirmation content fragment (step 2 of 2). Validates the
  reset token from the emailed link and presents a new-password form. Shows an
  expired/invalid message with a "request a new one" link when the token is no
- longer valid. Served as a full page via View::renderPublic() or as an
- embeddable fragment via View::renderFragment() from embed/reset.php.
+ longer valid. Rendered via View::renderFragment() from embed/reset.php.
 */
 
 declare(strict_types=1);

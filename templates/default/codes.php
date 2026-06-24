@@ -6,7 +6,7 @@
  Fan codes list content fragment. Displays approved graphic codes grouped by
  size, with donor attribution and category tags. Supports a custom codes display
  template; when one is set, the pre-rendered HTML is output directly. Served as
- a full page via View::renderPublic() or as an embeddable fragment via
+ a embeddable fragment via
  View::renderFragment() from embed/codes.php.
 */
 

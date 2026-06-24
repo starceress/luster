@@ -20,9 +20,8 @@ use Luster\Models\Affiliate;
 /**
  * Renders per-affiliate row templates by substituting {aff_*} tokens.
  *
- * Shared by AffiliatesController, the admin Collective/per-listing template
- * previews, and the affiliates embed so the {each_affiliate} row tokens stay
- * in sync across every surface.
+ * Shared by the affiliates embed and admin template previews so the
+ * {each_affiliate} row tokens stay in sync across every surface.
  *
  * Tokens:
  *   {aff_name}      — affiliate name (escaped)
@@ -71,6 +70,36 @@ final class AffiliateRowRenderer
             $affiliates,
             static fn(string $inner, Affiliate $affiliate): string => self::render($affiliate, $inner, $uploadsUrl),
         );
+    }
+
+    /**
+     * Processes a full affiliates section template: conditionals, count token,
+     * apply URL token, and the {each_affiliate} row loop.
+     *
+     * @param Affiliate[] $affiliates
+     */
+    public static function renderSection(
+        string $template,
+        array  $affiliates,
+        int    $total,
+        string $uploadsUrl,
+        string $affiliateApplyUrl = '',
+    ): string {
+        $hasAffiliates = $total > 0;
+        $template = TemplateEngine::conditionals($template, [
+            'affiliates'    => $hasAffiliates,
+            'no_affiliates' => !$hasAffiliates,
+        ]);
+        $template = str_replace(
+            ['{affiliates_count}', '{affiliate_apply_url}'],
+            [(string) $total,      $affiliateApplyUrl],
+            $template,
+        );
+        if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $template, $m)) {
+            $rows     = self::renderRows($m[1], $affiliates, $uploadsUrl);
+            $template = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', $rows, $template, 1);
+        }
+        return $template;
     }
 
     /**

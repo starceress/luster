@@ -71,8 +71,8 @@ $_defaults = [
     </div>
 
     <div class="card-body">
-      <div class="section-label">Embed URLs</div>
-      <p class="text-dim">Enter the <strong>page filename</strong> of each KIM page on your site. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
+      <div class="section-label">Host Page URLs</div>
+      <p class="text-dim">Enter the <strong>page filename</strong> of each KIM page on your site. Luster will prepend your site's base URL automatically. These are used for email links and cross-embed navigation.</p>
 
       <div class="card-body">
         <div class="field-row">

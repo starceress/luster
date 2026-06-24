@@ -5,7 +5,7 @@
 
  Join form content fragment. Renders the public "Join this listing" form with
  name, email, URL, country, additional fields, password, and CAPTCHA. Served as
- a full page via View::renderPublic() or as an embeddable fragment via
+ a embeddable fragment via
  View::renderFragment() from embed/join.php. Supports custom form templates.
 */
 

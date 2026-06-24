@@ -35,9 +35,7 @@ use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
-use Luster\Support\FormFieldBuilder;
-use Luster\Support\FormTemplateRenderer;
-use Luster\Support\ListingTemplateResolver;
+use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -65,45 +63,6 @@ final class JoinController
     // GET /join/{id}
     // -----------------------------------------------------------------------
 
-    /**
-     * Renders the join form, including CAPTCHA, country selector, and any
-     * dynamic additional fields defined for this listing.
-     *
-     * Also checks the Rules add-on gate — if the fan has not agreed to the
-     * current rules version, they are redirected to the rules page first.
-     */
-    public function showForm(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('That listing does not exist.');
-        }
-
-        $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields        = $fieldRepo->getFieldsForListing($listingId);
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-
-        $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $old     = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        // Redirect to rules gate if the fan hasn't agreed yet
-        if ($this->app->isAddonInstalled('Rules') && !$this->rulesAgreed($listingId)) {
-            $baseUrl = $this->app->getBaseUrl();
-            $session->set('lstr_embed_return_to', $baseUrl . '/join/' . $listingId);
-            return Response::redirect($baseUrl . '/rules/' . $listingId);
-        }
-
-        return $this->renderJoinForm($listingId, $listing, $fields, $embedSettings, $old, $error);
-    }
-
     // -----------------------------------------------------------------------
     // POST /join/{id}
     // -----------------------------------------------------------------------
@@ -125,19 +84,6 @@ final class JoinController
         $ip           = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
-        // Rate limiting
-        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_JOIN)) {
-            $session->set('lstr_flash_error', 'Too many join attempts. Please try again later.');
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
-        }
-
-        // Honeypot — silent reject; fake success so bots see no difference
-        if ((string) $request->post('website_confirm', '') !== '') {
-            $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'joined'));
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
-        }
-
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
 
@@ -145,24 +91,34 @@ final class JoinController
             return Response::notFound('That listing does not exist.');
         }
 
-        // Rules gate enforcement — catches direct POSTs that bypass the embed gate.
-        // In embed mode ($embedReturnTo set) the fan should already have agreed via
-        // rules-gate.php on the host page; if not, redirect back to the host page so
-        // rules-gate.php can render the gate form there instead of going to the backend.
-        if ($this->app->isAddonInstalled('Rules') && !$this->rulesAgreed($listingId)) {
-            $session->set('lstr_embed_return_to', $embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/rules/' . $listingId);
-        }
-
         $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
         $fields        = $fieldRepo->getFieldsForListing($listingId);
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
 
-        $formPageName   = (string) $embedSettings['form_url_join'];
-        $formUrl        = $formPageName !== ''
-                        ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
-                        : $baseUrl . '/join/' . $listingId;
+        $formUrl = ListingFormUrlResolver::resolve(
+            (string) $embedSettings['form_url_join'],
+            $listing->url,
+        );
+
+        // Rate limiting
+        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_JOIN)) {
+            $session->set('lstr_flash_error', 'Too many join attempts. Please try again later.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        // Honeypot — silent reject; fake success so bots see no difference
+        if ((string) $request->post('website_confirm', '') !== '') {
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'joined'));
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        // Rules gate enforcement — catches direct POSTs that bypass the embed gate.
+        if ($this->app->isAddonInstalled('Rules') && !$this->rulesAgreed($listingId)) {
+            $session->set('lstr_embed_return_to', $embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
 
         // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'join')) {
@@ -427,116 +383,6 @@ final class JoinController
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the join form template with all required variables.
-     *
-     * Used by both showForm() (on GET) and the captcha-failure path in submit(),
-     * so the form can be re-rendered in-place without a redirect.
-     *
-     * @param \Luster\Models\AdditionalField[] $fields
-     * @param array<string,mixed>              $embedSettings
-     * @param array<string,string>             $old
-     */
-    private function renderJoinForm(
-        int $listingId,
-        Listing $listing,
-        array $fields,
-        array $embedSettings,
-        array $old = [],
-        string $error = '',
-        string $captchaError = '',
-    ): Response {
-        $baseUrl         = $this->app->getBaseUrl();
-        $captchaQuestion = Captcha::getQuestion('join');
-        $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
-        $settingsRepoRjf = new ListingSettingsRepo($this->app->getDatabase());
-        $wrapperTpl      = $settingsRepoRjf->getWrapperTemplate($listingId) ?? '';
-
-        $countryFieldEnabled = (bool) $embedSettings['country_field_enabled'];
-
-        $fb          = $this->app->getFormFieldBuilder();
-        $descriptors = [
-            ['type' => 'text',     'name' => 'name',             'id' => 'join-name',             'label' => 'Name',             'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'email',    'name' => 'email',            'id' => 'join-email',            'label' => 'Email',            'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => $countryFieldEnabled, 'raw_input' => $countrySelect],
-            ...$fb->descriptorsFromAdditionalFields($fields, $old),
-            ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. If left blank, one will be generated for you.'],
-            ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-            ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'join-captcha',          'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-        ];
-        $f = $fb->build($descriptors, $wrapperTpl);
-
-        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
-        $joinResolved    = ListingTemplateResolver::resolve(
-            $settingsRepoRjf->getJoinFormTemplate($listingId),
-            $globalTemplates['listing_default_join_form_template'] ?? null,
-            '',
-        );
-        $formHtml    = null;
-        $joinFormTpl = $joinResolved['should_render_template'] ? $joinResolved['value'] : '';
-        if ($joinFormTpl !== '') {
-            $additionalFieldsHtml      = implode("\n", array_map(
-                fn($field) => $f['field_' . $field->name] ?? '', $fields,
-            ));
-            $additionalFieldsInputHtml = implode("\n", array_map(
-                fn($field) => $f['field_' . $field->name . '_input'] ?? '', $fields,
-            ));
-
-            $tokens = [
-                '{listing_title}'                => View::e($listing->title),
-                '{listing_subject}'              => View::e($listing->subject),
-                '{listing_url}'                  => View::e($listing->url),
-                '{field_name}'                    => $f['name'],
-                '{field_name_input}'              => $f['name_input'],
-                '{field_email}'                   => $f['email'],
-                '{field_email_input}'             => $f['email_input'],
-                '{field_url}'                     => $f['url'],
-                '{field_url_input}'               => $f['url_input'],
-                '{field_country}'                 => $countryFieldEnabled ? $f['country'] : '',
-                '{field_country_input}'           => $countryFieldEnabled ? $f['country_input'] : '',
-                '{additional_fields}'             => $additionalFieldsHtml,
-                '{additional_fields_input}'       => $additionalFieldsInputHtml,
-                '{field_password}'                => $f['password'],
-                '{field_password_input}'          => $f['password_input'],
-                '{field_password_confirm}'        => $f['password_confirm'],
-                '{field_password_confirm_input}'  => $f['password_confirm_input'],
-                '{captcha_block}'                 => $f['captcha_answer'],
-                '{captcha_block_input}'           => $f['captcha_answer_input'],
-                '{captcha_question}'              => View::e($captchaQuestion),
-                '{submit_button}'                 => '<button type="submit" class="fl-submit">Join Listing</button>',
-                '{clear_button}'                  => '<button type="reset" class="fl-btn-secondary">Clear Form</button>',
-            ];
-
-            $innerHtml = FormTemplateRenderer::expandTokens($joinFormTpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm(
-                $innerHtml,
-                $baseUrl . '/join/' . $listingId,
-                $this->app->getCSRF()->token(),
-                false,
-                formMarker: 'join:' . $listingId,
-            );
-        }
-
-        $html = $this->app->getView()->renderPublic('join.php', [
-            'listing'               => $listing,
-            'listing_title'          => $listing->title,
-            'listing_url'           => $listing->url,
-            'page_title'            => 'Join',
-            'form_action'           => $baseUrl . '/join/' . $listingId,
-            'csrf_token'            => $this->app->getCSRF()->token(),
-            'errors'                => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'fields'                => $fields,
-            'f'                     => $f,
-            'base_url'              => $baseUrl,
-            'theme_path'            => $baseUrl . '/assets/css/default/',
-            'country_field_enabled' => $countryFieldEnabled,
-            'form_html'             => $formHtml,
-        ]);
-
-        return Response::html($html);
-    }
-
-    /**
      * Creates a one-time password-setup token for a newly auto-approved member
      * and returns the full URL to the confirm form with the raw token in the query string.
      *
@@ -557,24 +403,17 @@ final class JoinController
 
         $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
 
-        $baseUrl       = $this->app->getBaseUrl();
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $formPageName  = (string) $embedSettings['form_url_reset'];
+        $listingRepo   = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing       = $listingRepo->getById($listingId);
+        $resetPageUrl  = ListingFormUrlResolver::resolve(
+            (string) $embedSettings['form_url_reset'],
+            (string) ($listing->url ?? ''),
+        );
 
-        if ($formPageName !== '') {
-            if (preg_match('#^https?://#i', $formPageName)) {
-                $hostResetUrl = $formPageName;
-            } else {
-                $listingRepo  = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-                $listing      = $listingRepo->getById($listingId);
-                $hostResetUrl = rtrim((string) ($listing->url ?? ''), '/') . '/' . ltrim($formPageName, '/');
-            }
-            $sep = str_contains($hostResetUrl, '?') ? '&' : '?';
-            return $hostResetUrl . $sep . 'token=' . urlencode($rawToken);
-        }
-
-        return $baseUrl . '/reset/' . $listingId . '/confirm?token=' . urlencode($rawToken);
+        $sep = str_contains($resetPageUrl, '?') ? '&' : '?';
+        return $resetPageUrl . $sep . 'token=' . urlencode($rawToken);
     }
 
     /**

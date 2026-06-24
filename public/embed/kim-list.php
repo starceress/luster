@@ -61,7 +61,7 @@ $_lusterSubjectId       = (int) ($luster_kim_subject_id ?? 0);
 $_lusterOnlyWithSignups = (bool) ($luster_kim_only_with_signups ?? true);
 $_lusterPerPage         = isset($luster_per_page) ? max(1, (int) $luster_per_page) : 25;
 $_lusterPage            = max(1, (int) ($_GET['page'] ?? 1));
-$_lusterListBase        = isset($luster_kim_list_base) && (string) $luster_kim_list_base !== ''
+$_lusterListBaseOverride = isset($luster_kim_list_base) && (string) $luster_kim_list_base !== ''
     ? (string) $luster_kim_list_base
     : null;
 
@@ -84,6 +84,7 @@ $_toKimLink = static fn(?string $v): ?string =>
     ($v !== null && $v !== '') ? $_lusterKimSiteRoot . '/' . ltrim($v, '/') : null;
 
 $_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls['kim_url_signup'] ?? null) ?? $_lusterKimSiteRoot . '/kim.php';
+$_lusterListBase   = $_lusterListBaseOverride ?? $_toKimLink($_lusterKimUrls['kim_url_list'] ?? null) ?? $_lusterKimSiteRoot . '/kim-list.php';
 
 // ---------------------------------------------------------------------------
 // 5. Render the appropriate fragment
@@ -172,8 +173,8 @@ if ($_lusterSubjectId > 0) {
                 );
             },
         );
-        $_lusterKimOverviewUrl = $_lusterListBase ?? $_lusterBaseUrl . '/kim/list';
-        $_lusterKimSignupUrl  = $_lusterLinkSignup ?? $_lusterBaseUrl . '/kim';
+        $_lusterKimOverviewUrl = $_lusterListBase ?? '';
+        $_lusterKimSignupUrl  = $_lusterLinkSignup ?? '';
         $_lusterTplOut = TemplateEngine::conditionals($_lusterTplOut, [
             'kim_overview_url' => $_lusterKimOverviewUrl !== '',
             'kim_signup_url'   => $_lusterKimSignupUrl !== '',
@@ -244,12 +245,12 @@ if ($_lusterSubjectId > 0) {
             $_lusterTplOut,
             'kim_listing',
             array_values($_lusterFanlistingsWithCounts),
-            static function (string $inner, mixed $entry) use ($_lusterListBase, $_lusterBaseUrl): string {
+            static function (string $inner, mixed $entry) use ($_lusterListBase): string {
                 $fl    = $entry['listing'];
                 $count = (int) $entry['count'];
                 $url   = $_lusterListBase !== null
-                    ? $_lusterListBase . '?id=' . (int) $fl->id
-                    : $_lusterBaseUrl . '/kim/list/' . (int) $fl->id;
+                    ? $_lusterListBase . (str_contains($_lusterListBase, '?') ? '&' : '?') . 'id=' . (int) $fl->id
+                    : '#';
                 return TemplateEngine::render($inner, [
                     'listing_title'     => $fl->title,
                     'listing_subject'   => $fl->subject,

@@ -80,7 +80,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     </div>
 
     <div class="card-body">
-      <div class="section-label">Form Page URLs</div>
+      <div class="section-label">Host Page URLs</div>
 
       <div class="field-row field-row--top">
         <label class="field-label" for="s-form-url-codes-submit">Code Donation Form</label>

@@ -6,7 +6,7 @@
  Update membership content fragment (two-step). Step 1 presents a sign-in form
  (email + password) with a "Forgot password?" link. Step 2 shows the editable
  profile fields and an option to permanently delete the membership. Served as a
- full page via View::renderPublic() or as an embeddable fragment via
+ embeddable fragment via
  View::renderFragment() from embed/update.php. Supports custom form templates.
 */
 

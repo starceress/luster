@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Luster\Tests\Unit;
 
-use Luster\Controllers\Public\AffiliatesController;
 use Luster\Models\Affiliate;
+use Luster\Support\AffiliateRowRenderer;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
-use ReflectionMethod;
 
 /**
- * Tests for AffiliatesController::applySectionTemplate().
+ * Tests for AffiliateRowRenderer::renderSection().
  *
  * Covers:
  *  - {affiliates_count}  receives the total count
@@ -22,18 +20,6 @@ use ReflectionMethod;
  */
 final class AffiliateSectionTemplateTest extends TestCase
 {
-    private AffiliatesController $controller;
-    private ReflectionMethod $applySection;
-
-    protected function setUp(): void
-    {
-        $rc = new ReflectionClass(AffiliatesController::class);
-        $this->controller = $rc->newInstanceWithoutConstructor();
-
-        $this->applySection = new ReflectionMethod(AffiliatesController::class, 'applySectionTemplate');
-        $this->applySection->setAccessible(true);
-    }
-
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
@@ -68,13 +54,7 @@ final class AffiliateSectionTemplateTest extends TestCase
         int    $total,
         string $uploadsUrl = 'https://example.com/uploads/affiliates',
     ): string {
-        return (string) $this->applySection->invoke(
-            $this->controller,
-            $template,
-            $affiliates,
-            $total,
-            $uploadsUrl,
-        );
+        return AffiliateRowRenderer::renderSection($template, $affiliates, $total, $uploadsUrl);
     }
 
     // -----------------------------------------------------------------------

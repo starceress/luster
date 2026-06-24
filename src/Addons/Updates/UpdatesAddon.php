@@ -4,9 +4,9 @@
  Copyright (c) 2026 Star (https://dreamesque.net)
 
  Addon entry point for the News Feed (internally "Updates"). Implements
- AddonInterface to create the lstr_updates table and register public
- and admin routes. Provides a blogging-style news system for both
- individual fanlistings and the collective as a whole.
+ AddonInterface to create the lstr_updates table and register admin
+ routes. Public output is embed-only (public/embed/updates.php and
+ public/embed/collective-updates.php).
 */
 
 declare(strict_types=1);
@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Luster\Addons\Updates;
 
 use Luster\Addons\Updates\Controllers\UpdatesAdminController;
-use Luster\Addons\Updates\Controllers\UpdatesPublicController;
 use Luster\Core\AddonInterface;
 use Luster\Core\Router;
 use PDO;
@@ -23,7 +22,7 @@ use PDO;
  * Updates add-on.
  *
  * Provides a news/updates system for owned fanlistings and the collective.
- * Admins post updates; fans read them via the public feed or embed.
+ * Admins post updates; fans read them via embeds on the owner's host pages.
  */
 final class UpdatesAddon implements AddonInterface
 {
@@ -71,13 +70,9 @@ final class UpdatesAddon implements AddonInterface
         $pdo->exec('DROP TABLE IF EXISTS `lstr_updates`');
     }
 
-    /** Registers public (/updates, /updates/{id}) and admin (/admin/updates/*) routes. */
+    /** Registers admin (/admin/updates/*) routes. Public output is embed-only. */
     public function registerRoutes(Router $router): void
     {
-        // ── Public routes (read-only feed) ────────────────────────────────
-        $router->get('/updates',      UpdatesPublicController::class, 'collective');
-        $router->get('/updates/{id}', UpdatesPublicController::class, 'feed');
-
         // ── Admin routes ──────────────────────────────────────────────────
         // Specific literal paths must be registered before parameterised ones.
 

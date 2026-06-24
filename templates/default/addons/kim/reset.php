@@ -5,9 +5,8 @@
 
  KIM List password reset content fragment (Keep In Mind add-on, step 1 of 2).
  Presents a form where the visitor enters their email address to receive a
- time-limited reset link for their KIM entries. Served as a full page via
- View::renderPublic() or as an embeddable fragment via View::renderFragment()
- from embed/kim-reset.php. Supports custom form templates.
+ time-limited reset link for their KIM entries. Rendered via
+ View::renderFragment() from embed/kim-reset.php. Supports custom form templates.
 */
 
 declare(strict_types=1);

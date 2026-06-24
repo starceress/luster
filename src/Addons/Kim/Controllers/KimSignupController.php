@@ -22,41 +22,19 @@ use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Core\View;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
-use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
 /**
  * Public KIM sign-up form.
  *
- * GET  /kim  — renders the sign-up form
  * POST /kim  — validates, inserts, sends confirmation, redirects to host page
  */
 final class KimSignupController
 {
     public function __construct(private readonly Application $app) {}
-
-    // -----------------------------------------------------------------------
-    // GET /kim
-    // -----------------------------------------------------------------------
-
-    /** Renders the KIM sign-up form with any flash error and repopulation data. */
-    public function showForm(Request $request, array $params): Response
-    {
-        $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $old     = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlistings = $listingRepo->getAll();
-
-        return $this->renderForm($fanlistings, $old, $error);
-    }
 
     // -----------------------------------------------------------------------
     // POST /kim
@@ -77,7 +55,12 @@ final class KimSignupController
         $rateLimit     = $this->app->getRateLimit();
         $ip            = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
-        $fallbackUrl   = $baseUrl . '/kim';
+        $siteUrl       = (string) $this->app->getConfig()->get('site_url', '');
+        $fallbackUrl   = \Luster\Support\CollectiveFormUrlResolver::resolve(
+            (new SiteSettingsRepo($this->app->getDatabase()))->get('kim_url_signup') ?: 'kim.php',
+            $siteUrl !== '' ? $siteUrl : $baseUrl,
+            $siteUrl !== '' ? $siteUrl : $baseUrl,
+        );
 
         // Rate limit check
         if ($rateLimit->isBlocked($ip, 'kim_signup')) {
@@ -280,117 +263,6 @@ final class KimSignupController
     // -----------------------------------------------------------------------
 
     /**
-     * Builds and returns the KIM sign-up form response.
-     *
-     * Renders the fanlisting selector and all input fields. If an admin-
-     * defined template is stored in lstr_site_settings, that template drives
-     * the layout; otherwise the default fragment template is used.
-     */
-    private function renderForm(
-        array  $fanlistings,
-        array  $old = [],
-        string $error = '',
-    ): Response {
-        $baseUrl    = $this->app->getBaseUrl();
-        $siteRepo   = new SiteSettingsRepo($this->app->getDatabase());
-        $wrapperTpl = '';
-        $siteName   = (string) $this->app->getConfig()->get('site_name', 'Luster');
-
-        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
-                      . '<option value="">&#8212; Select a Listing &#8212;</option>';
-        foreach ($fanlistings as $_fl) {
-            $_flId       = htmlspecialchars((string) $_fl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $_flTitle    = htmlspecialchars((string) $_fl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $_flSelected = ((string) ($old['fanlisting_id'] ?? '')) === (string) $_fl->id ? ' selected' : '';
-            $_flUpcoming = $_fl->upcoming ? ' (upcoming)' : '';
-            $flSelectHtml .= "<option value=\"{$_flId}\"{$_flSelected}>{$_flTitle}{$_flUpcoming}</option>";
-        }
-        $flSelectHtml .= '</select>';
-
-        $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'text',         'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                     'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'url',          'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL (optional)',  'required' => false, 'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',        'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'select',       'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $flSelectHtml],
-            ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
-            ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-            ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . Captcha::getQuestion('kim_signup'), 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-        ], $wrapperTpl);
-
-        $formHtml = null;
-        $kimSignupTpl = $siteRepo->get('kim_signup_form_template') ?? '';
-        if ($kimSignupTpl !== '') {
-            $tokens = [
-                '{site_name}'                        => View::e($siteName),
-                '{field_name}'                        => $f['name'],
-                '{field_name_input}'                  => $f['name_input'],
-                '{field_url}'                         => $f['url'],
-                '{field_url_input}'                   => $f['url_input'],
-                '{field_email}'                       => $f['email'],
-                '{field_email_input}'                 => $f['email_input'],
-                '{field_fanlisting_id}'               => $f['fanlisting_id'],
-                '{field_fanlisting_id_input}'         => $f['fanlisting_id_input'],
-                '{field_password}'                    => $f['password'],
-                '{field_password_input}'              => $f['password_input'],
-                '{field_password_confirm}'            => $f['password_confirm'],
-                '{field_password_confirm_input}'      => $f['password_confirm_input'],
-                '{captcha_block}'                     => $f['captcha_answer'],
-                '{captcha_block_input}'               => $f['captcha_answer_input'] ?? '',
-                '{captcha_question}'                  => View::e(Captcha::getQuestion('kim_signup')),
-                '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
-                '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-            ];
-            $innerHtml = FormTemplateRenderer::expandTokens($kimSignupTpl, $tokens);
-            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim', $this->app->getCSRF()->token(), false, formMarker: 'kim_signup');
-        }
-
-        return $this->renderKimPage('signup.php', [
-            'page_title'  => 'KIM List — Sign Up',
-            'form_action' => $baseUrl . '/kim',
-            'csrf_token'  => $this->app->getCSRF()->token(),
-            'errors'      => $error !== ''
-                ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
-                : '',
-            'old'         => $old,
-            'f'           => $f,
-            'form_html'   => $formHtml,
-            'base_url'    => $baseUrl,
-            'theme_path'  => $baseUrl . '/assets/css/default/',
-        ]);
-    }
-
-    /**
-     * Wraps a KIM fragment template in the public layout and returns the response.
-     *
-     * Falls back to rendering the fragment alone when the layout file does not exist.
-     */
-    private function renderKimPage(string $template, array $data): Response
-    {
-        $view     = $this->app->getView();
-        $baseUrl  = $this->app->getBaseUrl();
-        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
-
-        $content = $view->render('default/addons/kim/' . $template, $data);
-
-        $layoutData = array_merge($data, [
-            'content'      => $content,
-            'listing'      => null,
-            'listing_title' => $siteName,
-            'listing_url'  => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/css/default/',
-        ]);
-
-        $layoutPath = $this->app->getBasePath() . '/templates/default/layout.php';
-        if (is_file($layoutPath)) {
-            $html = $view->render('default/layout.php', $layoutData);
-        } else {
-            $html = $content;
-        }
-
-        return Response::html($html);
-    }
-
-    /**
      * Creates a one-hour password setup token for a freshly registered KIM member
      * and returns the full reset URL to include in the welcome email.
      *
@@ -419,21 +291,15 @@ final class KimSignupController
 
         $resetRepo->create($member->id, $tokenHash, $expiresAt);
 
-        // Resolve reset page: prefer the admin-configured KIM reset page URL so that
-        // the token lands on the host page embedding the kim-reset.php embed, not on
-        // the signup page or Luster's own routes.
-        $siteRepo      = new SiteSettingsRepo($this->app->getDatabase());
-        $resetPagePath = $siteRepo->get('kim_url_reset') ?? '';
-        if ($resetPagePath !== '') {
-            $parsed   = parse_url((string) ($this->app->getConfig()->get('site_url', '')));
-            $siteRoot = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '');
-            if (!empty($parsed['port'])) {
-                $siteRoot .= ':' . $parsed['port'];
-            }
-            $baseResetUrl = $siteRoot . '/' . ltrim($resetPagePath, '/');
-        } else {
-            $baseResetUrl = $this->app->getBaseUrl() . '/kim/reset/confirm';
-        }
+        $siteRepo       = new SiteSettingsRepo($this->app->getDatabase());
+        $siteUrl        = (string) $this->app->getConfig()->get('site_url', '');
+        $kimResetPage   = $siteRepo->get('kim_url_reset') ?: 'kim-reset.php';
+        $siteUrlOrBase  = $siteUrl !== '' ? $siteUrl : $this->app->getBaseUrl();
+        $baseResetUrl   = \Luster\Support\CollectiveFormUrlResolver::resolve(
+            $kimResetPage,
+            $siteUrlOrBase,
+            $siteUrlOrBase,
+        );
 
         $sep = str_contains($baseResetUrl, '?') ? '&' : '?';
         return $baseResetUrl . $sep . 'token=' . urlencode($rawToken);

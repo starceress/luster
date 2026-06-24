@@ -5,8 +5,8 @@
 
  Members list content fragment. Displays approved members for a listing with
  sort-by controls (name, country, added), a country summary view, additional
- field values, and pagination. Served as a full page via View::renderPublic()
- or as an embeddable fragment via View::renderFragment() from embed/members.php.
+ field values, and pagination. Rendered as an embeddable fragment via
+ View::renderFragment() from embed/members.php.
  Supports custom member row templates.
 */
 

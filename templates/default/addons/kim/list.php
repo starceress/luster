@@ -5,8 +5,7 @@
 
  KIM List overview content fragment (Keep In Mind add-on). Displays all
  fanlistings that have KIM sign-ups, with interest counts per listing and links
- to each fanlisting's subject page. Served as a full page via
- View::renderPublic() or as an embeddable fragment via View::renderFragment()
+ to each fanlisting's subject page. Rendered via View::renderFragment()
  from embed/kim-list.php. Supports custom overview templates.
 */
 
@@ -41,7 +40,7 @@ $_linkListBase = isset($link_list_base) && $link_list_base !== '' ? $link_list_b
           $count = (int) $entry['count'];
         ?>
         <li class="fl-kim-item">
-          <a href="<?= $_linkListBase !== null ? View::e($_linkListBase) . '?id=' . (int) $fl->id : $b . '/kim/list/' . (int) $fl->id ?>">
+          <a href="<?= $_linkListBase !== null ? View::e($_linkListBase) . (str_contains($_linkListBase, '?') ? '&amp;' : '?') . 'id=' . (int) $fl->id : '#' ?>">
             <?= View::e($fl->subject) ?>
           </a>
           <?php if ($count === 0): ?>

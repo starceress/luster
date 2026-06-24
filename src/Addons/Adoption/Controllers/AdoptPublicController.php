@@ -21,22 +21,20 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Core\View;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
-use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
 /**
  * Public adoption application form.
  *
  * Routes (registered by AdoptionAddon::registerRoutes()):
- *   GET  /adopt/{id}  — renders the application form.
- *   POST /adopt/{id}  — validates input, inserts application, redirects to host page.
+ *   POST /adopt/{id}          — validates input, inserts application, redirects to host page.
+ *   POST /adopt-collective    — validates input for collective form, inserts, redirects.
  *
  * Only available when the listing has for_adoption=1 in lstr_fanlisting_settings
  * and the listing is not inactive.
@@ -44,31 +42,6 @@ use Luster\Support\SuccessRenderer;
 final class AdoptPublicController
 {
     public function __construct(private readonly Application $app) {}
-
-    // -----------------------------------------------------------------------
-    // GET /adopt/{id}
-    // -----------------------------------------------------------------------
-
-    /** Renders the adoption application form for a single listing. */
-    public function showForm(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-        $listing   = $this->requireAdoptableListing($listingId);
-
-        if ($listing instanceof Response) {
-            return $listing;
-        }
-
-        $session     = $this->app->getSession();
-        $successHtml = (string) $session->get('lstr_flash_success_html', '');
-        $error       = (string) $session->get('lstr_flash_error', '');
-        $old         = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_success_html');
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        return $this->renderForm($listingId, $listing, $old, $error, successHtml: $successHtml);
-    }
 
     // -----------------------------------------------------------------------
     // POST /adopt/{id}
@@ -88,12 +61,11 @@ final class AdoptPublicController
         $session       = $this->app->getSession();
         $ip            = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
-        $fallbackUrl   = $baseUrl . '/adopt/' . $listingId;
-
         $listing = $this->requireAdoptableListing($listingId);
         if ($listing instanceof Response) {
             return $listing;
         }
+        $fallbackUrl = $listing->url;
 
         // Rate limiting
         $rateLimit = $this->app->getRateLimit();
@@ -211,42 +183,6 @@ final class AdoptPublicController
     }
 
     // -----------------------------------------------------------------------
-    // GET /adopt-collective
-    // -----------------------------------------------------------------------
-
-    /** Renders the collective adoption form (listing chosen from a dropdown). */
-    public function collectiveForm(Request $request, array $params): Response
-    {
-        $session     = $this->app->getSession();
-        $successHtml = (string) $session->get('lstr_flash_success_html', '');
-        $error       = (string) $session->get('lstr_flash_error', '');
-        $old         = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_success_html');
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        if ($successHtml !== '') {
-            $baseUrl = $this->app->getBaseUrl();
-            $html    = $this->app->getView()->renderPublic('adopt.php', [
-                'listing'      => null,
-                'listing_title' => (string) $this->app->getConfig()->get('site_name', ''),
-                'listing_url'  => $baseUrl,
-                'page_title'   => 'Adopt a Listing',
-                'success_html' => $successHtml,
-                'base_url'     => $baseUrl,
-                'theme_path'   => $baseUrl . '/assets/css/default/',
-                'form_action'  => '',
-                'csrf_token'   => '',
-                'errors'       => '',
-                'f'            => [],
-            ]);
-            return Response::html($html);
-        }
-
-        return $this->renderCollectiveForm($old, $error);
-    }
-
-    // -----------------------------------------------------------------------
     // POST /adopt-collective
     // -----------------------------------------------------------------------
 
@@ -266,7 +202,7 @@ final class AdoptPublicController
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
         $siteUrl       = (string) ($config->get('site_url', '') ?: $baseUrl);
         $adoptOverride = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_form_url_adopt');
-        $fallbackUrl   = CollectiveFormUrlResolver::resolve($adoptOverride, $siteUrl, $baseUrl . '/adopt-collective');
+        $fallbackUrl   = CollectiveFormUrlResolver::resolve($adoptOverride, $siteUrl, $siteUrl);
 
         // Rate limiting
         $rateLimit = $this->app->getRateLimit();
@@ -427,172 +363,4 @@ final class AdoptPublicController
         return $listing;
     }
 
-    /**
-     * Builds and returns the per-listing adoption form response.
-     *
-     * When $successHtml is non-empty the success view is rendered instead
-     * of the form, so the flash message is displayed on the same page without
-     * a redirect loop.
-     *
-     * @param array<string,string> $old Previously submitted field values for repopulation.
-     */
-    private function renderForm(
-        int $listingId,
-        \Luster\Models\Listing $listing,
-        array $old = [],
-        string $error = '',
-        string $captchaError = '',
-        string $successHtml = '',
-    ): Response {
-        $baseUrl = $this->app->getBaseUrl();
-
-        if ($successHtml !== '') {
-            $html = $this->app->getView()->renderPublic('adopt.php', [
-                'listing'      => $listing,
-                'listing_title' => $listing->title,
-                'listing_url'  => $listing->url,
-                'page_title'   => 'Adopt ' . $listing->title,
-                'success_html' => $successHtml,
-                'base_url'     => $baseUrl,
-                'theme_path'   => $baseUrl . '/assets/css/default/',
-                'form_action'  => '',
-                'csrf_token'   => '',
-                'errors'       => '',
-                'f'            => [],
-            ]);
-            return Response::html($html);
-        }
-
-        $captchaQuestion = Captcha::getQuestion('adopt');
-        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
-        $wrapperTpl      = $settingsRepo->getWrapperTemplate($listingId) ?? '';
-
-        $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',    'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'adopt-email',   'label' => 'Email',   'required' => true,  'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'url',      'name' => 'url',            'id' => 'adopt-url',     'label' => 'Website URL', 'required' => false, 'value' => (string) ($old['url']  ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
-            ['type' => 'textarea', 'name' => 'message',        'id' => 'adopt-message', 'label' => 'Message', 'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '5'], 'hint' => 'Optional'],
-            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-        ], $wrapperTpl);
-
-        $formHtml = null;
-
-        $html = $this->app->getView()->renderPublic('adopt.php', [
-            'listing'             => $listing,
-            'listing_title'        => $listing->title,
-            'listing_url'         => $listing->url,
-            'page_title'          => 'Adopt ' . $listing->title,
-            'form_action'         => $baseUrl . '/adopt/' . $listingId,
-            'csrf_token'          => $this->app->getCSRF()->token(),
-            'errors'              => $error !== ''
-                ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
-                : '',
-            'f'                   => $f,
-            'form_html'           => $formHtml,
-            'base_url'            => $baseUrl,
-            'theme_path'          => $baseUrl . '/assets/css/default/',
-        ]);
-
-        return Response::html($html);
-    }
-
-    /**
-     * Builds and returns the collective adoption form.
-     *
-     * Fetches adoptable listings from ListingSettingsRepo to populate the
-     * listing selector, then renders the admin-editable collective adoption
-     * form template stored in lstr_site_settings.
-     *
-     * @param array<string,string> $old Previously submitted field values for repopulation.
-     */
-    private function renderCollectiveForm(array $old = [], string $error = ''): Response
-    {
-        $baseUrl      = $this->app->getBaseUrl();
-        $config       = $this->app->getConfig();
-        $db           = $this->app->getDatabase();
-        $siteName     = (string) $config->get('site_name', '');
-        $siteUrl      = (string) ($config->get('site_url', '') ?: $baseUrl);
-        $formAction   = $baseUrl . '/adopt-collective';
-
-        $settingsRepo = new ListingSettingsRepo($db);
-        $adoptable    = $settingsRepo->getAdoptableListings(new ListingRepo($db, $config));
-
-        $captchaQuestion = Captcha::getQuestion('adopt');
-        $descriptors     = [];
-
-        if ($adoptable !== []) {
-            $oldListingId   = (string) ($old['listing_id'] ?? '');
-            $listingOptions = '<option value="">&#8212; Select a Listing &#8212;</option>';
-            foreach ($adoptable as $row) {
-                $value           = (string) $row['id'];
-                $selected        = $value === $oldListingId ? ' selected' : '';
-                $listingOptions .= '<option value="' . View::e($value) . '"' . $selected . '>' . View::e($row['title']) . '</option>';
-            }
-            $listingSelectHtml = '<select class="fl-select" id="adopt-listing" name="listing_id" required>' . $listingOptions . '</select>';
-            $descriptors[]     = ['type' => 'select', 'name' => 'listing_id', 'id' => 'adopt-listing', 'label' => 'Listing', 'required' => true, 'raw_input' => $listingSelectHtml];
-        }
-
-        $descriptors = array_merge($descriptors, [
-            ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',        'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'adopt-email',   'label' => 'Email',       'required' => true,  'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'url',      'name' => 'url',            'id' => 'adopt-url',     'label' => 'Website URL', 'required' => false, 'value' => (string) ($old['url']    ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
-            ['type' => 'textarea', 'name' => 'message',        'id' => 'adopt-message', 'label' => 'Message',     'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '5'], 'hint' => 'Optional'],
-            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-        ]);
-
-        $f = $this->app->getFormFieldBuilder()->build($descriptors, '');
-
-        $tpl = (new SiteSettingsRepo($db))->get('collective_adoption_form_template')
-             ?: SiteSettingsRepo::defaultCollectiveAdoptionFormTemplate();
-
-        if ($adoptable !== []) {
-            $fieldListingId      = $f['listing_id'];
-            $fieldListingIdInput = $f['listing_id_input'];
-            $submitButton        = '<button type="submit" class="fl-submit">Submit Application</button>';
-        } else {
-            $fieldListingId      = '<p>No listings are currently available for adoption.</p>';
-            $fieldListingIdInput = '';
-            $submitButton        = '';
-        }
-
-        $tokens = [
-            '{site_name}'              => View::e($siteName),
-            '{field_listing_id}'       => $fieldListingId,
-            '{field_listing_id_input}' => $fieldListingIdInput,
-            '{field_name}'             => $f['name'],
-            '{field_name_input}'       => $f['name_input'],
-            '{field_email}'            => $f['email'],
-            '{field_email_input}'      => $f['email_input'],
-            '{field_url}'              => $f['url'],
-            '{field_url_input}'        => $f['url_input'],
-            '{field_message}'          => $f['message'],
-            '{field_message_input}'    => $f['message_input'],
-            '{captcha_block}'          => $f['captcha_answer'],
-            '{captcha_block_input}'    => $f['captcha_answer_input'],
-            '{captcha_question}'       => View::e($captchaQuestion),
-            '{submit_button}'          => $submitButton,
-            '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-        ];
-
-        $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
-        $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $formAction, $this->app->getCSRF()->token(), false, formMarker: 'adopt_collective:0');
-
-        $html = $this->app->getView()->renderPublic('adopt.php', [
-            'listing'      => null,
-            'listing_title' => $siteName,
-            'listing_url'  => $siteUrl,
-            'page_title'   => 'Adopt a Listing',
-            'form_action'  => $formAction,
-            'csrf_token'   => $this->app->getCSRF()->token(),
-            'errors'       => $error !== ''
-                ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
-                : '',
-            'f'            => $f,
-            'form_html'    => $formHtml,
-            'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/css/default/',
-        ]);
-
-        return Response::html($html);
-    }
 }

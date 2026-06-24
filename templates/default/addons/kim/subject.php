@@ -6,7 +6,7 @@
  KIM List subject page content fragment (Keep In Mind add-on). Shows approved
  KIM members for a single fanlisting, with interest count, member names/URLs,
  pagination, and links back to the overview and sign-up pages. Served as a full
- page via View::renderPublic() or as an embeddable fragment via
+ page as an embeddable fragment via
  View::renderFragment() from embed/kim-list.php. Supports custom member and
  subject templates.
 */
@@ -27,7 +27,7 @@ $_linkSignup = isset($link_signup) && $link_signup !== '' ? $link_signup : null;
   <h2 class="fl-kim-heading fl-kim-subject-heading">KIM — <?= View::e($listing->subject) ?></h2>
 
   <p class="fl-kim-meta">
-    <a href="<?= $_linkList !== null ? View::e($_linkList) : $b . '/kim/list' ?>">&larr; Back to KIM List</a>
+    <?php if ($_linkList !== null): ?><a href="<?= View::e($_linkList) ?>">&larr; Back to KIM List</a><?php endif; ?>
   </p>
 
   <?php if (isset($kim_member_template_html) && $kim_member_template_html !== null): ?>

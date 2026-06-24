@@ -7,7 +7,7 @@
  Displays a table of the authenticated user's KIM entries across all
  fanlistings, with checkboxes to select entries for bulk update or removal.
  Includes fields for changing name, email, URL, and password. Served as a full
- page via View::renderPublic() or as an embeddable fragment via
+ page as an embeddable fragment via
  View::renderFragment() from embed/kim-update.php.
 */
 

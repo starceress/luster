@@ -4,10 +4,9 @@
  Copyright (c) 2026 Star (https://dreamesque.net)
 
  Template renderer for both public and admin views. Public templates are PHP
- fragments rendered inside a layout wrapper via renderPublic(), or standalone
- via renderFragment() for embed mode. Admin templates use PHP includes with
- extracted data arrays. The static e() method is the project-wide HTML
- escaping shorthand used in every template.
+ fragments rendered via renderFragment() for embed mode. Admin templates use
+ PHP includes with extracted data arrays. The static e() method is the
+ project-wide HTML escaping shorthand used in every template.
 */
 
 declare(strict_types=1);
@@ -19,23 +18,17 @@ use RuntimeException;
 /**
  * Template renderer.
  *
- * Fan-facing public templates (.php) use PHP fragments wrapped by layout.php.
+ * Fan-facing public templates (.php) are fragments rendered via renderFragment().
  * Admin templates (.php) use PHP includes with an extracted $data array.
- * Legacy HTML templates (.html) use {token} substitution — kept for backwards
- * compatibility but superseded by the PHP modular system.
  *
  * All values substituted into HTML templates are automatically escaped with
  * htmlspecialchars(). PHP templates must call View::e() explicitly for any
  * variable output.
  *
- * Public rendering pipeline:
- *   Controller → renderPublic('join.php', $data)
+ * Public rendering pipeline (embed-only):
+ *   embed/*.php → renderFragment('join.php', $data)
  *     → output-buffers the content fragment (extract + require)
- *     → output-buffers templates/default/layout.php with $content injected
- *     → returns complete HTML string → Response::html()
- *
- * Embed mode: use renderFragment() instead of renderPublic() to return only
- * the content fragment without the layout wrapper.
+ *     → returns HTML string → echoed into the host page
  */
 final class View
 {
@@ -235,29 +228,6 @@ final class View
     // -----------------------------------------------------------------------
     // Public rendering (fan-facing PHP modular templates)
     // -----------------------------------------------------------------------
-
-    /**
-     * Renders a public content fragment wrapped in templates/default/layout.php.
-     *
-     * If layout.php does not exist, returns the fragment alone. This means
-     * embed mode works before the site owner creates layout.php.
-     *
-     * @param string $template  Filename only, e.g. 'join.php' or 'members.php'
-     * @param array  $data      Variables available in the content template and layout.
-     */
-    public function renderPublic(string $template, array $data = []): string
-    {
-        $content    = $this->renderFragment($template, $data);
-        $layoutPath = rtrim($this->templateDir, '/\\')
-                    . DIRECTORY_SEPARATOR . 'default'
-                    . DIRECTORY_SEPARATOR . 'layout.php';
-
-        if (!is_file($layoutPath)) {
-            return $content;
-        }
-
-        return $this->renderPhp($layoutPath, array_merge($data, ['content' => $content]));
-    }
 
     /**
      * Renders a public content fragment only — no layout.php wrapping.

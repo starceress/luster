@@ -1921,8 +1921,8 @@ final class ListingController extends AdminController
         );
 
         $sampleUpdates = !empty($updates) ? $updates : SampleTemplateData::updates();
-        $sample = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic($sampleUpdates, $tplResolved);
-        $empty  = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic([], $tplResolved);
+        $sample = \Luster\Support\UpdatesTemplateRenderer::render($sampleUpdates, $tplResolved);
+        $empty  = \Luster\Support\UpdatesTemplateRenderer::render([], $tplResolved);
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No updates posted for this listing yet.</p>';
         }
@@ -2745,8 +2745,8 @@ final class ListingController extends AdminController
             $tpl,
         );
 
-        $sample = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic(SampleTemplateData::updates(), $tplResolved);
-        $empty  = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic([], $tplResolved);
+        $sample = \Luster\Support\UpdatesTemplateRenderer::render(SampleTemplateData::updates(), $tplResolved);
+        $empty  = \Luster\Support\UpdatesTemplateRenderer::render([], $tplResolved);
 
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No updates posted yet.</p>';

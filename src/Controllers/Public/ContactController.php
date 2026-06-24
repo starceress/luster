@@ -22,21 +22,16 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Core\View;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
-use Luster\Support\FormTemplateRenderer;
-use Luster\Support\ListingTemplateResolver;
 
 /**
  * Public contact forms.
  *
- * GET  /contact/{id} — per-listing contact form
  * POST /contact/{id} — process per-listing contact submission
- * GET  /contact      — collective contact form
  * POST /contact      — process collective contact submission
  *
  * Security properties:
@@ -48,48 +43,6 @@ use Luster\Support\ListingTemplateResolver;
 final class ContactController
 {
     public function __construct(private readonly Application $app) {}
-
-    // -----------------------------------------------------------------------
-    // GET /contact/{id}
-    // -----------------------------------------------------------------------
-
-    /**
-     * Renders the contact form for a specific listing.
-     *
-     * Returns an error page if the listing's contact form is disabled.
-     */
-    public function listingForm(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $listingRepo  = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing      = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('That listing does not exist.');
-        }
-
-        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
-        $contactSettings = $settingsRepo->getContactSettings($listingId);
-
-        if (!$contactSettings['enabled']) {
-            return $this->renderPublic('error.php', [
-                'listing'      => $listing,
-                'listing_title' => $listing->title,
-                'listing_url'  => $listing->url,
-                'page_title'   => 'Contact',
-                'error'        => 'The contact form for this listing is currently disabled.',
-            ]);
-        }
-
-        $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $old     = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        return $this->renderContactForm($listing, $old, $error);
-    }
 
     // -----------------------------------------------------------------------
     // POST /contact/{id}
@@ -121,10 +74,10 @@ final class ContactController
         $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
         $contactSettings = $settingsRepo->getContactSettings($listingId);
 
-        $formUrlContact = (string) $contactSettings['form_url_contact'];
-        $fallbackUrl    = $formUrlContact !== ''
-            ? rtrim((string) $listing->url, '/') . '/' . ltrim($formUrlContact, '/')
-            : $baseUrl . '/contact/' . $listingId;
+        $fallbackUrl = \Luster\Support\ListingFormUrlResolver::resolve(
+            (string) $contactSettings['form_url_contact'],
+            $listing->url,
+        );
 
         if (!$contactSettings['enabled']) {
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -215,40 +168,6 @@ final class ContactController
     }
 
     // -----------------------------------------------------------------------
-    // GET /contact
-    // -----------------------------------------------------------------------
-
-    /**
-     * Renders the site-wide collective contact form.
-     *
-     * Returns an error page if `collective_contact_enabled` is not set to '1'.
-     */
-    public function collectiveForm(Request $request, array $params): Response
-    {
-        $config   = $this->app->getConfig();
-        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
-        $enabled  = (bool) ((int) ($siteRepo->get('collective_contact_enabled') ?? '1'));
-
-        if (!$enabled) {
-            return $this->renderPublic('error.php', [
-                'listing'      => null,
-                'listing_title' => (string) $config->get('site_name', 'Collective'),
-                'listing_url'  => (string) ($config->get('site_url', '')),
-                'page_title'   => 'Contact',
-                'error'        => 'The collective contact form is currently disabled.',
-            ]);
-        }
-
-        $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $old     = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        return $this->renderContactForm(null, $old, $error);
-    }
-
-    // -----------------------------------------------------------------------
     // POST /contact
     // -----------------------------------------------------------------------
 
@@ -270,7 +189,7 @@ final class ContactController
         $siteRepo      = new SiteSettingsRepo($this->app->getDatabase());
         $siteUrl       = (string) ($config->get('site_url', '') ?: $baseUrl);
         $contactOverride = $siteRepo->get('collective_form_url_contact');
-        $fallbackUrl   = CollectiveFormUrlResolver::resolve($contactOverride, $siteUrl, $baseUrl . '/contact');
+        $fallbackUrl   = CollectiveFormUrlResolver::resolve($contactOverride, $siteUrl, $siteUrl);
         $enabled  = (bool) ((int) ($siteRepo->get('collective_contact_enabled') ?? '1'));
 
         if (!$enabled) {
@@ -381,108 +300,6 @@ final class ContactController
     }
 
     /**
-     * Builds the contact form response for both per-listing and collective contexts.
-     *
-     * Generates a CAPTCHA question, constructs FormFieldBuilder descriptors, and
-     * applies any stored custom form template via ListingTemplateResolver. When a
-     * template is found it is expanded with field tokens and wrapped in a <form>;
-     * otherwise the built-in PHP fragment is used.
-     *
-     * @param \Luster\Models\Listing|null $listing  Pass null for the collective form.
-     */
-    private function renderContactForm(
-        mixed  $listing,
-        array  $old,
-        string $flashError,
-        string $captchaError = '',
-    ): Response {
-        $captchaKey = $listing !== null ? 'contact_listing' : 'contact_collective';
-        $baseUrl    = $this->app->getBaseUrl();
-
-        $captchaQuestion = Captcha::getQuestion($captchaKey);
-        $formAction      = $listing !== null
-            ? $baseUrl . '/contact/' . (int) $listing->id
-            : $baseUrl . '/contact';
-
-        // Subject select as raw_input
-        $subjOld     = (string) ($old['subject'] ?? '');
-        $subjectHtml = '<select id="contact-subject" name="subject" required>'
-                     . '<option value="" disabled' . ($subjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
-        foreach (['Comments', 'Questions/Concerns', 'Contact/Other'] as $_subjectOpt) {
-            $optEsc       = htmlspecialchars($_subjectOpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $subjectHtml .= '<option value="' . $optEsc . '"' . ($subjOld === $_subjectOpt ? ' selected' : '') . '>' . $optEsc . '</option>';
-        }
-        $subjectHtml .= '</select>';
-
-        $fb          = $this->app->getFormFieldBuilder();
-        $descriptors = [
-            ['type' => 'text',     'name' => 'name',           'id' => 'contact-name',    'label' => 'Name',        'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'contact-email',   'label' => 'Email',       'required' => true,  'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'url',      'name' => 'url',            'id' => 'contact-url',     'label' => 'Website URL', 'required' => false, 'value' => (string) ($old['url']     ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'url']],
-            ['type' => 'select',   'name' => 'subject',        'id' => 'contact-subject', 'label' => 'Subject',     'required' => true,  'raw_input' => $subjectHtml],
-            ['type' => 'textarea', 'name' => 'message',        'id' => 'contact-message', 'label' => 'Message',     'required' => true,  'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '5000', 'rows' => '6']],
-            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'contact-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-        ];
-        $f = $fb->build($descriptors, '');
-
-        $formHtml = null;
-        if ($listing !== null) {
-            $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
-            $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
-            $resolved        = ListingTemplateResolver::resolve(
-                $settingsRepo->getContactFormTemplate((int) $listing->id),
-                $globalTemplates['listing_default_contact_form_template'] ?? null,
-                '',
-            );
-            $contactTpl = $resolved['should_render_template'] ? $resolved['value'] : '';
-        } else {
-            $siteRepo   = new SiteSettingsRepo($this->app->getDatabase());
-            $contactTpl = $siteRepo->get('collective_contact_form_template') ?? '';
-        }
-
-        if ($contactTpl !== '') {
-            $tokens = [
-                '{site_name}'            => View::e((string) $this->app->getConfig()->get('site_name', 'Collective')),
-                '{listing_title}'        => View::e($listing?->title ?? (string) $this->app->getConfig()->get('site_name', 'Collective')),
-                '{listing_subject}'      => View::e($listing?->subject ?? (string) $this->app->getConfig()->get('site_name', 'Collective')),
-                '{listing_url}'          => View::e($listing?->url   ?? (string) ($this->app->getConfig()->get('site_url', ''))),
-                '{field_name}'           => $f['name'],
-                '{field_name_input}'     => $f['name_input'],
-                '{field_email}'          => $f['email'],
-                '{field_email_input}'    => $f['email_input'],
-                '{field_url}'            => $f['url'],
-                '{field_url_input}'      => $f['url_input'],
-                '{field_subject}'        => $f['subject'],
-                '{field_subject_input}'  => $f['subject_input'],
-                '{field_message}'        => $f['message'],
-                '{field_message_input}'  => $f['message_input'],
-                '{captcha_block}'        => $f['captcha_answer'],
-                '{captcha_block_input}'  => $f['captcha_answer_input'],
-                '{captcha_question}'     => View::e($captchaQuestion),
-                '{submit_button}'        => '<button type="submit" class="fl-submit">Send Message</button>',
-                '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-            ];
-            $innerHtml = FormTemplateRenderer::expandTokens($contactTpl, $tokens);
-            $marker    = ($listing !== null) ? 'contact:' . $listing->id : 'contact_collective:0';
-            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $formAction, $this->app->getCSRF()->token(), false, formMarker: $marker);
-        }
-
-        $data = [
-            'listing'      => $listing,
-            'listing_title' => $listing?->title ?? (string) $this->app->getConfig()->get('site_name', 'Collective'),
-            'listing_url'  => $listing?->url   ?? (string) ($this->app->getConfig()->get('site_url', '')),
-            'page_title'   => 'Contact',
-            'form_action'  => $formAction,
-            'csrf_token'   => $this->app->getCSRF()->token(),
-            'errors'       => $flashError !== '' ? '<p>' . htmlspecialchars($flashError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'f'            => $f,
-            'form_html'    => $formHtml,
-        ];
-
-        return $this->renderPublic('contact.php', $data);
-    }
-
-    /**
      * Extracts trimmed text fields from the current POST for flash repopulation.
      *
      * @return array<string,string>
@@ -498,20 +315,4 @@ final class ContactController
         ];
     }
 
-    /**
-     * Renders a full-page public template, injecting base_url and theme_path automatically.
-     */
-    private function renderPublic(string $template, array $data): Response
-    {
-        $view    = $this->app->getView();
-        $config  = $this->app->getConfig();
-        $baseUrl = $this->app->getBaseUrl();
-
-        $themePath = rtrim($baseUrl, '/') . '/assets/css/default/';
-
-        return Response::html($view->renderPublic($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'theme_path' => $themePath,
-        ])));
-    }
 }

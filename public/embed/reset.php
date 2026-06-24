@@ -162,7 +162,10 @@ if ($_lusterStep === 'confirm') {
         ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ], $_lusterWrapperTpl);
     $_lusterFormAction2   = $_lusterRedirectTo;
-    $_lusterResetUrl      = $_lusterBaseUrl . '/reset/' . $_lusterListingId;
+    $_lusterResetUrl      = \Luster\Support\ListingFormUrlResolver::resolve(
+        (string) ($_lusterEmbedSettings['form_url_reset'] ?? ''),
+        $_lusterListing->url,
+    );
 
     $_lusterFormHtml = null;
     if ($_lusterResetFormTpl !== '') {

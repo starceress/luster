@@ -7,7 +7,7 @@
  rules that a visitor must agree to before accessing the join form. Renders
  either a "you have already agreed" message or the rules body with an agreement
  form (checkbox + button or single button, depending on gate style). Served as
- a full page via View::renderPublic() or as an embeddable fragment via
+ a embeddable fragment via
  View::renderFragment() from embed/rules-gate.php.
 */
 

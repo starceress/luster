@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace Luster\Tests\Unit;
 
-use Luster\Controllers\Public\AffiliatesController;
 use Luster\Models\Affiliate;
+use Luster\Support\AffiliateRowRenderer;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
-use ReflectionMethod;
 
 /**
- * Regression tests for AffiliatesController::buildAffiliateRows() token semantics.
+ * Regression tests for AffiliateRowRenderer::renderRows() token semantics.
  *
- * Verifies the {aff_*} row tokens (via AffiliateRowRenderer):
+ * Verifies the {aff_*} row tokens:
  *  - {aff_name} / {aff_url} are HTML-escaped.
  *  - {aff_image_url} is JUST the raw image URL (escaped), usable inside
  *    <img src="{aff_image_url}">; empty string when the affiliate has no image.
@@ -22,20 +20,6 @@ use ReflectionMethod;
  */
 final class AffiliatesControllerTokenTest extends TestCase
 {
-    private AffiliatesController $controller;
-    private ReflectionMethod $buildRows;
-
-    protected function setUp(): void
-    {
-        // Application is final; use newInstanceWithoutConstructor() since
-        // buildAffiliateRows() never accesses $this->app.
-        $rc = new ReflectionClass(AffiliatesController::class);
-        $this->controller = $rc->newInstanceWithoutConstructor();
-
-        $this->buildRows = new ReflectionMethod(AffiliatesController::class, 'buildAffiliateRows');
-        $this->buildRows->setAccessible(true);
-    }
-
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
@@ -66,7 +50,7 @@ final class AffiliatesControllerTokenTest extends TestCase
 
     private function invoke(string $template, array $affiliates, string $uploadsUrl = 'https://example.com/uploads/affiliates'): string
     {
-        return (string) $this->buildRows->invoke($this->controller, $template, $affiliates, $uploadsUrl);
+        return AffiliateRowRenderer::renderRows($template, $affiliates, $uploadsUrl);
     }
 
     // -----------------------------------------------------------------------

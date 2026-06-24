@@ -20,23 +20,18 @@ use Luster\Core\Captcha;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
-use Luster\Core\View;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
-use Luster\Support\FormFieldBuilder;
-use Luster\Support\FormTemplateRenderer;
-use Luster\Support\ListingTemplateResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
  * Public fan code submission — allows fans to submit code images for review.
  *
  * Routes:
- *   GET  /codes/submit/{id}  — show submission form
  *   POST /codes/submit/{id}  — process submission (stores as pending), redirects to host page
  */
 final class CodesSubmitController
@@ -48,155 +43,6 @@ final class CodesSubmitController
     private const MAX_SIZE = 512_000;
 
     public function __construct(private readonly Application $app) {}
-
-    // -----------------------------------------------------------------------
-    // GET /codes/submit/{id}
-    // -----------------------------------------------------------------------
-
-    /**
-     * Renders the code submission form for a listing (or collective when id = 0).
-     *
-     * Returns 404 if the listing does not exist or code submissions are disabled.
-     * When a custom template is stored in lstr_fanlisting_settings (per-listing)
-     * or lstr_site_settings (collective), the template is expanded with field
-     * tokens and wrapped in a <form>; otherwise the built-in fragment is used.
-     */
-    public function showForm(Request $request, array $params): Response
-    {
-        $listingId    = (int) ($params['id'] ?? 0);
-        $isCollective = ($listingId === 0);
-
-        $db     = $this->app->getDatabase();
-        $config = $this->app->getConfig();
-
-        if ($isCollective) {
-            $listing     = null;
-            $listingName = (string) ($config->get('site_name', '') ?: 'Collective');
-            $listingUrl  = '';
-        } else {
-            $listingRepo  = new ListingRepo($db, $config);
-            $settingsRepo = new ListingSettingsRepo($db);
-            $listing      = $listingRepo->getById($listingId);
-
-            if ($listing === null) {
-                return Response::notFound('Listing not found.');
-            }
-
-            $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-            if (!($embedSettings['codes_submit_enabled'] ?? true)) {
-                return Response::notFound('Code donations are not enabled for this listing.');
-            }
-
-            $listingName = $listing->title;
-            $listingUrl  = $listing->url ?? '';
-        }
-
-        $session = $this->app->getSession();
-        $baseUrl = $this->app->getBaseUrl();
-
-        $error = (string) $session->get('lstr_flash_error', '');
-        $old   = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        $captchaQuestion = Captcha::getQuestion('code_submit');
-
-        if ($isCollective) {
-            $wrapperTpl = '';
-        } else {
-            $settingsRepoRcs = new ListingSettingsRepo($this->app->getDatabase());
-            $wrapperTpl      = $settingsRepoRcs->getWrapperTemplate($listingId) ?? '';
-        }
-
-        $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',         'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
-            ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name',      'required' => true, 'value' => (string) ($old['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
-            ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',               'required' => true,  'value' => (string) ($old['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
-            ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website URL (optional)',   'required' => false, 'value' => (string) ($old['submitter_url']   ?? ''), 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
-            ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-        ], $wrapperTpl);
-
-        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
-        $formHtml = null;
-        if (!$isCollective) {
-            $csResolved = ListingTemplateResolver::resolve(
-                $settingsRepoRcs->getCodesSubmitFormTemplate($listingId),
-                $globalTemplates['listing_default_codes_submit_form_template'] ?? null,
-                '',
-            );
-            $csFormTpl = $csResolved['should_render_template'] ? $csResolved['value'] : '';
-            if ($csFormTpl !== '') {
-                $tokens = [
-                    '{listing_title}'               => View::e($listingName),
-                    '{listing_subject}'             => View::e((string) ($listing->subject ?? $listingName)),
-                    '{listing_url}'                 => View::e($listingUrl),
-                    '{field_code_image}'            => $f['code_image'],
-                    '{field_code_image_input}'      => $f['code_image_input'],
-                    '{field_submitter_name}'        => $f['submitter_name'],
-                    '{field_submitter_name_input}'  => $f['submitter_name_input'],
-                    '{field_submitter_email}'       => $f['submitter_email'],
-                    '{field_submitter_email_input}' => $f['submitter_email_input'],
-                    '{field_submitter_url}'         => $f['submitter_url'],
-                    '{field_submitter_url_input}'   => $f['submitter_url_input'],
-                    '{captcha_block}'               => $f['captcha'],
-                    '{captcha_block_input}'         => $f['captcha_input'],
-                    '{captcha_question}'            => View::e($captchaQuestion),
-                    '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
-                    '{clear_button}'                => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-                ];
-                $innerHtml = FormTemplateRenderer::expandTokens($csFormTpl, $tokens);
-                $formHtml  = FormTemplateRenderer::wrapForm(
-                    $innerHtml,
-                    $baseUrl . '/codes/submit/' . $listingId,
-                    $this->app->getCSRF()->token(),
-                    true,
-                    formMarker: 'codes_submit:' . $listingId,
-                );
-            }
-        } else {
-            $csCollectiveTpl = (new SiteSettingsRepo($db))->get('collective_codes_submit_form_template');
-            if ($csCollectiveTpl !== null && trim($csCollectiveTpl) !== '') {
-                $tokens = [
-                    '{site_name}'                    => View::e($listingName),
-                    '{field_code_image}'            => $f['code_image'],
-                    '{field_code_image_input}'      => $f['code_image_input'],
-                    '{field_submitter_name}'        => $f['submitter_name'],
-                    '{field_submitter_name_input}'  => $f['submitter_name_input'],
-                    '{field_submitter_email}'       => $f['submitter_email'],
-                    '{field_submitter_email_input}' => $f['submitter_email_input'],
-                    '{field_submitter_url}'         => $f['submitter_url'],
-                    '{field_submitter_url_input}'   => $f['submitter_url_input'],
-                    '{captcha_block}'               => $f['captcha'],
-                    '{captcha_block_input}'         => $f['captcha_input'],
-                    '{captcha_question}'            => View::e($captchaQuestion),
-                    '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
-                    '{clear_button}'                => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-                ];
-                $innerHtml = FormTemplateRenderer::expandTokens($csCollectiveTpl, $tokens);
-                $formHtml  = FormTemplateRenderer::wrapForm(
-                    $innerHtml,
-                    $baseUrl . '/codes/submit/' . $listingId,
-                    $this->app->getCSRF()->token(),
-                    true,
-                    formMarker: 'codes_submit_collective:' . $listingId,
-                );
-            }
-        }
-
-        return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
-            'listing'      => $listing,
-            'listing_title' => $listingName,
-            'listing_url'  => $listingUrl,
-            'page_title'   => 'Submit a Code — ' . $listingName,
-            'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/css/default/',
-            'form_action'  => $baseUrl . '/codes/submit/' . $listingId,
-            'csrf_token'   => $this->app->getCSRF()->token(),
-            'errors'       => htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-            'f'            => $f,
-            'form_html'    => $formHtml,
-        ]));
-    }
 
     // -----------------------------------------------------------------------
     // POST /codes/submit/{id}
@@ -225,7 +71,7 @@ final class CodesSubmitController
             $listing  = null;
             $siteUrl  = (string) ($config->get('site_url', '') ?: $baseUrl);
             $override = (new SiteSettingsRepo($db))->get('collective_form_url_codes_submit');
-            $submitUrl = CollectiveFormUrlResolver::resolve($override, $siteUrl, $baseUrl . '/codes/submit/0');
+            $submitUrl = CollectiveFormUrlResolver::resolve($override, $siteUrl, $siteUrl);
         } else {
             $listingRepo  = new ListingRepo($db, $config);
             $settingsRepo = new ListingSettingsRepo($db);
@@ -240,10 +86,10 @@ final class CodesSubmitController
                 return Response::notFound('Code donations are not enabled for this listing.');
             }
 
-            $codesSubmitPage = (string) ($embedSettings['form_url_codes_submit'] ?? '');
-            $submitUrl = $codesSubmitPage !== ''
-                ? rtrim((string) $listing->url, '/') . '/' . ltrim($codesSubmitPage, '/')
-                : $baseUrl . '/codes/submit/' . $listingId;
+            $submitUrl = \Luster\Support\ListingFormUrlResolver::resolve(
+                (string) ($embedSettings['form_url_codes_submit'] ?? ''),
+                $listing->url,
+            );
         }
 
         $formUrl = $embedReturnTo !== '' ? $embedReturnTo : $submitUrl;

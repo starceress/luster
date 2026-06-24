@@ -16,13 +16,11 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
-use Luster\Core\Countries;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
-use Luster\Core\TemplateEngine;
 use Luster\Core\Validator;
 use Luster\Models\Listing;
 use Luster\Repositories\EmailTemplateRepo;
@@ -32,18 +30,14 @@ use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
-use Luster\Repositories\SiteSettingsRepo;
-use Luster\Support\FormFieldBuilder;
-use Luster\Support\FormTemplateRenderer;
-use Luster\Support\ListingTemplateResolver;
+use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
  * Fan update form — two-step flow.
  *
- * Step 1 (sign-in): GET /update/{id} with no session → email + password only.
- * Step 2 (update):  POST /update/{id}/sign-in → sets session → GET /update/{id}
- *                   → pre-filled update fields.
+ * POST /update/{id}/sign-in  — verifies email + password, sets session auth key
+ * POST /update/{id}          — applies fan changes (update or delete membership)
  *
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware
@@ -60,57 +54,6 @@ final class UpdateController
     private const AUTH_KEY = 'lstr_update_authed_';
 
     public function __construct(private readonly Application $app) {}
-
-    // -----------------------------------------------------------------------
-    // GET /update/{id}
-    // -----------------------------------------------------------------------
-
-    /**
-     * Renders step 1 (sign-in) or step 2 (pre-filled update form) depending on
-     * whether a valid authenticated email exists in the session.
-     *
-     * If the session email no longer maps to a real member (deleted after login),
-     * the session is cleared and the sign-in form is shown instead.
-     */
-    public function showForm(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('That listing does not exist.');
-        }
-
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-
-        $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $old     = (array)  $session->get('lstr_flash_old',   []);
-        $session->remove('lstr_flash_error');
-        $session->remove('lstr_flash_old');
-
-        $authedEmail = (string) $session->get(self::AUTH_KEY . $listingId, '');
-
-        if ($authedEmail === '') {
-            return $this->renderSignIn($listingId, $listing, $embedSettings, $old, $error);
-        }
-
-        // Validate the session email still exists
-        $fieldRepo  = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields     = $fieldRepo->getFieldsForListing($listingId);
-        $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
-        $member     = $memberRepo->getByEmail($listing->dbprefix, $authedEmail);
-
-        if ($member === null) {
-            $session->remove(self::AUTH_KEY . $listingId);
-            return $this->renderSignIn($listingId, $listing, $embedSettings, [], '');
-        }
-
-        return $this->renderUpdateForm($listingId, $listing, $fields, $embedSettings, $member, $old, $error);
-    }
 
     // -----------------------------------------------------------------------
     // POST /update/{id}/sign-in
@@ -130,16 +73,6 @@ final class UpdateController
         $ip            = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
-        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
-        }
-
-        // Honeypot — silent reject
-        if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
-        }
-
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
 
@@ -149,7 +82,17 @@ final class UpdateController
 
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $formUrl       = $this->buildFormUrl($listing, $embedSettings, $baseUrl, $listingId);
+        $formUrl       = $this->buildFormUrl($listing, $embedSettings);
+
+        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
+            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        // Honeypot — silent reject
+        if ((string) $request->post('website_confirm', '') !== '') {
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
 
         $email    = trim((string) $request->post('email',    ''));
         $password = (string) $request->post('password', '');
@@ -204,37 +147,6 @@ final class UpdateController
     }
 
     // -----------------------------------------------------------------------
-    // GET /update/{id}/sign-out
-    // -----------------------------------------------------------------------
-
-    /**
-     * Clears the update-session auth key for this listing and redirects back to the form.
-     *
-     * Used when the fan clicks "Sign out" from the pre-filled update form so another
-     * visitor on a shared computer can sign in with a different email.
-     */
-    public function signOut(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-        $baseUrl   = $this->app->getBaseUrl();
-
-        $this->app->getSession()->remove(self::AUTH_KEY . $listingId);
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-        $embedSettings = [];
-        if ($listing !== null) {
-            $embedSettings = (new ListingSettingsRepo($this->app->getDatabase()))->getEmbedSettings($listingId);
-        }
-
-        $formUrl = $listing !== null
-            ? $this->buildFormUrl($listing, $embedSettings, $baseUrl, $listingId)
-            : $baseUrl . '/update/' . $listingId;
-
-        return Response::redirect($formUrl);
-    }
-
-    // -----------------------------------------------------------------------
     // POST /update/{id}
     // -----------------------------------------------------------------------
 
@@ -260,24 +172,6 @@ final class UpdateController
 
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
-        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
-        }
-
-        // Honeypot — silent reject; fake success so bots see no difference
-        if ((string) $request->post('website_confirm', '') !== '') {
-            $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'updated'));
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
-        }
-
-        // Must be authenticated before reaching the update form
-        $email = (string) $session->get(self::AUTH_KEY . $listingId, '');
-        if ($email === '') {
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
-        }
-
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
 
@@ -289,14 +183,32 @@ final class UpdateController
         $fields        = $fieldRepo->getFieldsForListing($listingId);
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $formUrl       = $this->buildFormUrl($listing, $embedSettings, $baseUrl, $listingId);
+        $formUrl       = $this->buildFormUrl($listing, $embedSettings);
+
+        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
+            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        // Honeypot — silent reject; fake success so bots see no difference
+        if ((string) $request->post('website_confirm', '') !== '') {
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'updated'));
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        // Must be authenticated before reaching the update form
+        $email = (string) $session->get(self::AUTH_KEY . $listingId, '');
+        if ($email === '') {
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
 
         if ($member === null) {
             $session->remove(self::AUTH_KEY . $listingId);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Update fields (all optional; blank = keep existing)
@@ -506,231 +418,18 @@ final class UpdateController
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
-    // -----------------------------------------------------------------------
-    // Internals
-    // -----------------------------------------------------------------------
-
-    /**
-     * Renders the sign-in step (step 1 — email + password only).
-     */
-    private function renderSignIn(
-        int $listingId,
-        Listing $listing,
-        array $embedSettings,
-        array $old = [],
-        string $error = '',
-    ): Response {
-        $baseUrl       = $this->app->getBaseUrl();
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $wrapperTpl    = $settingsRepo->getWrapperTemplate($listingId) ?? '';
-        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
-        $updResolved   = ListingTemplateResolver::resolve(
-            $settingsRepo->getUpdateFormTemplate($listingId),
-            $globalTemplates['listing_default_update_form_template'] ?? null,
-            ListingSettingsRepo::defaultUpdateFormTemplate(),
-        );
-        $updateFormTpl = $updResolved['should_render_template'] ? $updResolved['value'] : '';
-
-        $formAction      = $baseUrl . '/update/' . $listingId . '/sign-in';
-        $lostPasswordUrl = $this->buildResetUrl($listing, $embedSettings, $baseUrl, $listingId);
-
-        $fb          = $this->app->getFormFieldBuilder();
-        $descriptors = [
-            ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true, 'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'password', 'name' => 'password', 'id' => 'upd-password', 'label' => 'Password',       'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
-        ];
-        $f = $fb->build($descriptors, $wrapperTpl);
-
-        $formHtml = null;
-        if ($updateFormTpl !== '') {
-            $processed = TemplateEngine::conditionals($updateFormTpl, [
-                'not_signed_in' => true,
-                'signed_in'     => false,
-            ]);
-            $tokens = [
-                '{listing_title}'          => \Luster\Core\View::e((string) $listing->title),
-                '{listing_subject}'        => \Luster\Core\View::e((string) $listing->subject),
-                '{listing_url}'            => \Luster\Core\View::e((string) $listing->url),
-                '{field_signin_email}'     => $f['email'],
-                '{field_signin_password}'  => $f['password'],
-                '{field_new_name}'         => '',
-                '{field_new_email}'        => '',
-                '{field_new_url}'          => '',
-                '{field_new_country}'      => '',
-                '{additional_fields}'      => '',
-                '{field_password}'         => '',
-                '{field_password_confirm}' => '',
-                '{captcha_block}'          => '',
-                '{captcha_block_input}'    => '',
-                '{captcha_question}'       => '',
-                '{field_remove}'           => '',
-                '{submit_button}'          => '<button type="submit" class="fl-submit">Sign In</button>',
-                '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-                '{sign_out_url}'           => '#',
-                '{field_email}'            => '',
-                '{lost_password_url}'      => \Luster\Core\View::e($lostPasswordUrl),
-            ];
-            $inner    = FormTemplateRenderer::expandTokens($processed, $tokens);
-            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false, formMarker: 'update:' . $listingId);
-        }
-
-        $html = $this->app->getView()->renderPublic('update.php', [
-            'listing'           => $listing,
-            'listing_title'      => $listing->title,
-            'listing_url'       => $listing->url,
-            'page_title'        => 'Update Membership',
-            'signed_in'         => false,
-            'sign_in_action'    => $formAction,
-            'csrf_token'        => $this->app->getCSRF()->token(),
-            'errors'            => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'lost_password_url' => $lostPasswordUrl,
-            'fields'            => [],
-            'f'                 => $f,
-            'form_html'         => $formHtml,
-            'base_url'          => $baseUrl,
-            'theme_path'        => $baseUrl . '/assets/css/default/',
-        ]);
-
-        return Response::html($html);
-    }
-
-    /**
-     * Renders the update form (step 2 — authenticated, pre-filled fields).
-     *
-     * @param \Luster\Models\AdditionalField[] $fields
-     * @param array<string,mixed>              $embedSettings
-     * @param array<string,string>             $old
-     */
-    private function renderUpdateForm(
-        int $listingId,
-        Listing $listing,
-        array $fields,
-        array $embedSettings,
-        \Luster\Models\Member $member,
-        array $old = [],
-        string $error = '',
-        string $updateError = '',
-    ): Response {
-        $baseUrl         = $this->app->getBaseUrl();
-        $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
-        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
-        $wrapperTpl      = $settingsRepo->getWrapperTemplate($listingId) ?? '';
-        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
-        $updResolved     = ListingTemplateResolver::resolve(
-            $settingsRepo->getUpdateFormTemplate($listingId),
-            $globalTemplates['listing_default_update_form_template'] ?? null,
-            ListingSettingsRepo::defaultUpdateFormTemplate(),
-        );
-        $updateFormTpl = $updResolved['should_render_template'] ? $updResolved['value'] : '';
-
-        $formAction = $baseUrl . '/update/' . $listingId;
-        $signOutUrl = $baseUrl . '/update/' . $listingId . '/sign-out';
-
-        // URL + "Remove my website URL" checkbox bundled as a single raw_input
-        $urlVal = htmlspecialchars(
-            (string) (($old['url'] ?? '') !== '' ? $old['url'] : $member->url),
-            ENT_QUOTES | ENT_SUBSTITUTE,
-            'UTF-8',
-        );
-        $urlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="' . $urlVal . '" maxlength="500" placeholder="https://">'
-                . '<div class="fl-field-hint"><label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label></div>';
-
-        // Merge old/current values for additional fields so pre-fill comes from the member record
-        $updOld = [];
-        foreach ($fields as $field) {
-            $oldVal = $old['field_' . $field->name] ?? null;
-            $updOld['field_' . $field->name] = $oldVal !== null
-                ? (is_array($oldVal) ? implode(',', array_map('strval', $oldVal)) : (string) $oldVal)
-                : (string) ($member->additionalFields[$field->name] ?? '');
-        }
-
-        $fb          = $this->app->getFormFieldBuilder();
-        $descriptors = [
-            ['type' => 'text',     'name' => 'new_name',            'id' => 'upd-name',         'label' => 'New Name',             'required' => false, 'value' => (string) ($old['new_name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name',         'placeholder' => $member->name]],
-            ['type' => 'email',    'name' => 'new_email',           'id' => 'upd-new-email',    'label' => 'New Email',            'required' => false, 'value' => (string) ($old['new_email'] ?? ''), 'attrs' => ['maxlength' => '255',                                    'placeholder' => $member->email]],
-            ['type' => 'url',      'name' => 'url',                 'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
-            ['type' => 'text',     'name' => 'country',             'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySelect],
-            ...$fb->descriptorsFromAdditionalFields($fields, $updOld),
-            ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
-            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Repeat new password']],
-        ];
-        $f = $fb->build($descriptors, $wrapperTpl);
-
-        $formHtml = null;
-        if ($updateFormTpl !== '') {
-            $additionalFieldsHtml = implode("\n", array_map(
-                fn(\Luster\Models\AdditionalField $field) => $f['field_' . $field->name] ?? '',
-                $fields,
-            ));
-            $removeMembershipHtml = '<div class="fl-field fl-field--danger"><label>'
-                . '<input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">'
-                . ' Permanently delete my membership instead of updating it</label>'
-                . '<p class="fl-field-hint">This immediately and permanently removes your membership from this listing. Cannot be undone.</p></div>';
-
-            $processed = TemplateEngine::conditionals($updateFormTpl, [
-                'not_signed_in' => false,
-                'signed_in'     => true,
-            ]);
-            $tokens = [
-                '{listing_title}'          => \Luster\Core\View::e((string) $listing->title),
-                '{listing_subject}'        => \Luster\Core\View::e((string) $listing->subject),
-                '{listing_url}'            => \Luster\Core\View::e((string) $listing->url),
-                '{field_signin_email}'     => '',
-                '{field_signin_password}'  => '',
-                '{field_new_name}'         => $f['new_name'],
-                '{field_new_email}'        => $f['new_email'],
-                '{field_new_url}'          => $f['url'],
-                '{field_new_country}'      => $f['country'],
-                '{additional_fields}'      => $additionalFieldsHtml,
-                '{field_password}'         => $f['new_password'],
-                '{field_password_confirm}' => $f['new_password_confirm'],
-                '{captcha_block}'          => '',
-                '{captcha_block_input}'    => '',
-                '{captcha_question}'       => '',
-                '{field_remove}'           => $removeMembershipHtml,
-                '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
-                '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-                '{sign_out_url}'           => \Luster\Core\View::e($signOutUrl),
-                '{field_email}'            => \Luster\Core\View::e($member->email),
-                '{lost_password_url}'      => '',
-            ];
-            $inner    = FormTemplateRenderer::expandTokens($processed, $tokens);
-            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false, formMarker: 'update:' . $listingId);
-        }
-
-        $html = $this->app->getView()->renderPublic('update.php', [
-            'listing'       => $listing,
-            'listing_title'  => $listing->title,
-            'listing_url'   => $listing->url,
-            'page_title'    => 'Update Membership',
-            'signed_in'     => true,
-            'sign_out_url'  => $signOutUrl,
-            'form_action'   => $formAction,
-            'csrf_token'    => $this->app->getCSRF()->token(),
-            'errors'        => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'field_email'   => $member->email,
-            'fields'        => $fields,
-            'f'             => $f,
-            'form_html'     => $formHtml,
-            'base_url'      => $baseUrl,
-            'theme_path'    => $baseUrl . '/assets/css/default/',
-        ]);
-
-        return Response::html($html);
-    }
-
     /**
      * Resolves the update form URL, using the per-listing form_url_update path
      * when configured, otherwise falling back to the built-in backend route.
      *
      * @param array<string,mixed> $embedSettings
      */
-    private function buildFormUrl(Listing $listing, array $embedSettings, string $baseUrl, int $listingId): string
+    private function buildFormUrl(Listing $listing, array $embedSettings): string
     {
-        $formPageName = (string) ($embedSettings['form_url_update'] ?? '');
-        return $formPageName !== ''
-            ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
-            : $baseUrl . '/update/' . $listingId;
+        return ListingFormUrlResolver::resolve(
+            (string) ($embedSettings['form_url_update'] ?? ''),
+            $listing->url,
+        );
     }
 
     /**
@@ -740,15 +439,12 @@ final class UpdateController
      *
      * @param array<string,mixed> $embedSettings
      */
-    private function buildResetUrl(Listing $listing, array $embedSettings, string $baseUrl, int $listingId): string
+    private function buildResetUrl(Listing $listing, array $embedSettings): string
     {
         $resetPage = (string) ($embedSettings['form_url_reset'] ?? '');
-        if ($resetPage !== '') {
-            if (preg_match('#^https?://#i', $resetPage)) {
-                return $resetPage;
-            }
-            return rtrim((string) $listing->url, '/') . '/' . ltrim($resetPage, '/');
+        if ($resetPage === '') {
+            return '';
         }
-        return '';
+        return ListingFormUrlResolver::resolve($resetPage, $listing->url);
     }
 }
