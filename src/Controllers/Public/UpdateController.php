@@ -333,6 +333,10 @@ final class UpdateController
                     ownerEmail:     (string) $cfg->get('owner_email', ''),
                     fanName:        $memberName,
                     fanEmail:       $email,
+                    listingEmail:   $listing->email,
+                    formUrlJoin:    (string) $embedSettings['form_url_join'],
+                    formUrlUpdate:  (string) $embedSettings['form_url_update'],
+                    formUrlReset:   (string) $embedSettings['form_url_reset'],
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_REMOVE, $tokens);
                 $mailer->send($email, $memberName, $subject, $body);

@@ -657,6 +657,7 @@ final class MemberController extends AdminController
                     try {
                         $cfg       = $this->app->getConfig();
                         $emailRepo = new EmailTemplateRepo($db);
+                        $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
                         $tokens    = EmailTemplateRepo::buildTokens(
                             listingName:    $listing->title,
                             listingUrl:     $listing->url,
@@ -666,6 +667,10 @@ final class MemberController extends AdminController
                             ownerEmail:     (string) $cfg->get('owner_email', ''),
                             fanName:        $member->name,
                             fanEmail:       $member->email,
+                            listingEmail:   $listing->email,
+                            formUrlJoin:    (string) $_es['form_url_join'],
+                            formUrlUpdate:  (string) $_es['form_url_update'],
+                            formUrlReset:   (string) $_es['form_url_reset'],
                         );
                         [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
                         $mailer->send($member->email, $member->name, $subject, $body);
@@ -761,6 +766,7 @@ final class MemberController extends AdminController
             try {
                 $cfg       = $this->app->getConfig();
                 $emailRepo = new EmailTemplateRepo($db);
+                $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
                 $tokens    = EmailTemplateRepo::buildTokens(
                     listingName:    $listing->title,
                     listingUrl:     $listing->url,
@@ -770,6 +776,10 @@ final class MemberController extends AdminController
                     ownerEmail:     (string) $cfg->get('owner_email', ''),
                     fanName:        $member->name,
                     fanEmail:       $member->email,
+                    listingEmail:   $listing->email,
+                    formUrlJoin:    (string) $_es['form_url_join'],
+                    formUrlUpdate:  (string) $_es['form_url_update'],
+                    formUrlReset:   (string) $_es['form_url_reset'],
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
                 $mailer->send($member->email, $member->name, $subject, $body);
@@ -844,6 +854,7 @@ final class MemberController extends AdminController
                 }
 
                 try {
+                    $_es    = $settingsRepo->getEmbedSettings((int) $fl->id);
                     $tokens = EmailTemplateRepo::buildTokens(
                         listingName:    $fl->title,
                         listingUrl:     $fl->url,
@@ -853,6 +864,10 @@ final class MemberController extends AdminController
                         ownerEmail:     (string) $config->get('owner_email', ''),
                         fanName:        $member->name,
                         fanEmail:       $member->email,
+                        listingEmail:   $fl->email,
+                        formUrlJoin:    (string) $_es['form_url_join'],
+                        formUrlUpdate:  (string) $_es['form_url_update'],
+                        formUrlReset:   (string) $_es['form_url_reset'],
                     );
                     [$subject, $body] = $emailTemplateRepo->resolveForListing(
                         (int) $fl->id,
@@ -891,6 +906,7 @@ final class MemberController extends AdminController
             $pendingUpdateRepo->delete($pu->id);
 
             try {
+                $_es    = $settingsRepo->getEmbedSettings($pu->fanlisting_id);
                 $tokens = EmailTemplateRepo::buildTokens(
                     listingName:    $listing->title,
                     listingUrl:     $listing->url,
@@ -900,6 +916,10 @@ final class MemberController extends AdminController
                     ownerEmail:     (string) $config->get('owner_email', ''),
                     fanName:        $member->name,
                     fanEmail:       $member->email,
+                    listingEmail:   $listing->email,
+                    formUrlJoin:    (string) $_es['form_url_join'],
+                    formUrlUpdate:  (string) $_es['form_url_update'],
+                    formUrlReset:   (string) $_es['form_url_reset'],
                 );
                 [$subject, $body] = $emailTemplateRepo->resolveForListing(
                     $pu->fanlisting_id,
@@ -992,6 +1012,7 @@ final class MemberController extends AdminController
                     if ($member !== null) {
                         try {
                             $emailRepo = new EmailTemplateRepo($db);
+                            $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
                             $tokens    = EmailTemplateRepo::buildTokens(
                                 listingName:    $listing->title,
                                 listingUrl:     $listing->url,
@@ -1001,6 +1022,10 @@ final class MemberController extends AdminController
                                 ownerEmail:     (string) $config->get('owner_email', ''),
                                 fanName:        $member->name,
                                 fanEmail:       $member->email,
+                                listingEmail:   $listing->email,
+                                formUrlJoin:    (string) $_es['form_url_join'],
+                                formUrlUpdate:  (string) $_es['form_url_update'],
+                                formUrlReset:   (string) $_es['form_url_reset'],
                             );
                             [$subj, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
                             $mailer->send($member->email, $member->name, $subj, $body);
@@ -1189,6 +1214,7 @@ final class MemberController extends AdminController
                     $cfg       = $this->app->getConfig();
                     $mailer    = new Mailer($cfg);
                     $emailRepo = new EmailTemplateRepo($db);
+                    $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
                     $tokens    = EmailTemplateRepo::buildTokens(
                         listingName:    $listing->title,
                         listingUrl:     $listing->url,
@@ -1198,6 +1224,10 @@ final class MemberController extends AdminController
                         ownerEmail:     (string) $cfg->get('owner_email', ''),
                         fanName:        $member->name,
                         fanEmail:       $member->email,
+                        listingEmail:   $listing->email,
+                        formUrlJoin:    (string) $_es['form_url_join'],
+                        formUrlUpdate:  (string) $_es['form_url_update'],
+                        formUrlReset:   (string) $_es['form_url_reset'],
                     );
                     [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
                     $mailer->send($member->email, $member->name, $subject, $body);
@@ -1392,8 +1422,15 @@ final class MemberController extends AdminController
 
         $member = $listing !== null ? (new MemberRepo($db, $config))->getByEmail($listing->dbprefix, $toEmail) : null;
 
+        $_es = $listing ? (new ListingSettingsRepo($db))->getEmbedSettings($id) : ['form_url_join' => '', 'form_url_update' => '', 'form_url_reset' => ''];
+        $_formTokens = $listing ? EmailTemplateRepo::buildTokens(
+            listingName: '', listingUrl: $listing->url, siteName: '',
+            formUrlJoin: (string) $_es['form_url_join'], formUrlUpdate: (string) $_es['form_url_update'], formUrlReset: (string) $_es['form_url_reset'],
+        ) : ['{form_url_join}' => '', '{form_url_update}' => '', '{form_url_reset}' => ''];
+
         $search  = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
-                    '{listing_title}', '{listing_subject}', '{listing_url}',
+                    '{listing_title}', '{listing_subject}', '{listing_url}', '{listing_email}',
+                    '{form_url_join}', '{form_url_update}', '{form_url_reset}',
                     '{site_name}', '{owner_name}', '{owner_email}'];
         $replace = [
             $member ? $member->name    : '',
@@ -1403,6 +1440,10 @@ final class MemberController extends AdminController
             $listing ? $listing->title   : '',
             $listing ? $listing->subject : '',
             $listing ? $listing->url     : '',
+            $listing ? $listing->email   : '',
+            $_formTokens['{form_url_join}'],
+            $_formTokens['{form_url_update}'],
+            $_formTokens['{form_url_reset}'],
             (string) $config->get('site_name', 'Luster'),
             (string) $config->get('owner_name', ''),
             (string) $config->get('owner_email', ''),
@@ -1536,6 +1577,12 @@ final class MemberController extends AdminController
         $ownerEmail  = (string) $config->get('owner_email', '');
         $mailer      = new Mailer($this->app->getConfig());
 
+        $_es = (new ListingSettingsRepo($db))->getEmbedSettings($id);
+        $_formTokens = EmailTemplateRepo::buildTokens(
+            listingName: '', listingUrl: $listing->url, siteName: '',
+            formUrlJoin: (string) $_es['form_url_join'], formUrlUpdate: (string) $_es['form_url_update'], formUrlReset: (string) $_es['form_url_reset'],
+        );
+
         $sent   = 0;
         $failed = [];
 
@@ -1546,10 +1593,12 @@ final class MemberController extends AdminController
             $country = $member ? $member->country : '';
 
             $search  = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
-                        '{listing_title}', '{listing_subject}', '{listing_url}',
+                        '{listing_title}', '{listing_subject}', '{listing_url}', '{listing_email}',
+                        '{form_url_join}', '{form_url_update}', '{form_url_reset}',
                         '{site_name}', '{owner_name}', '{owner_email}'];
             $replace = [$name,        $email,        $url,        $country,
-                        $listing->title, $listing->subject, $listing->url,
+                        $listing->title, $listing->subject, $listing->url, $listing->email,
+                        $_formTokens['{form_url_join}'], $_formTokens['{form_url_update}'], $_formTokens['{form_url_reset}'],
                         $siteName,    $ownerName,    $ownerEmail];
 
             $personalSubject = str_replace($search, $replace, $subject);

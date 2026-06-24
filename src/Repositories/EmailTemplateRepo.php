@@ -521,6 +521,13 @@ final class EmailTemplateRepo
     /**
      * Builds the standard token map for use with applyTokens().
      *
+     * Populates all standard fan-email tokens. The four form-URL params fall back to
+     * $listingUrl when left empty, so {form_url_*} tokens are always non-blank.
+     *
+     * @param string $listingEmail  The listing's own contact email ({listing_email}).
+     * @param string $formUrlJoin   Direct join-form URL ({form_url_join}); falls back to $listingUrl.
+     * @param string $formUrlUpdate Direct update-form URL ({form_url_update}); falls back to $listingUrl.
+     * @param string $formUrlReset  Direct reset-form URL ({form_url_reset}); falls back to $listingUrl.
      * @return array<string, string>
      */
     public static function buildTokens(
@@ -536,6 +543,10 @@ final class EmailTemplateRepo
         string $fanCountry     = '',
         string $resetUrl       = '',
         string $fanPassword    = '',
+        string $listingEmail   = '',
+        string $formUrlJoin    = '',
+        string $formUrlUpdate  = '',
+        string $formUrlReset   = '',
     ): array {
         return [
             '{fan_name}'         => $fanName,
@@ -544,13 +555,32 @@ final class EmailTemplateRepo
             '{fan_country}'      => $fanCountry,
             '{fan_password}'     => $fanPassword,
             '{reset_url}'        => $resetUrl,
-            '{listing_title}'     => $listingName,
+            '{listing_title}'    => $listingName,
             '{listing_subject}'  => $listingSubject,
             '{listing_url}'      => $listingUrl,
+            '{listing_email}'    => $listingEmail,
             '{site_name}'        => $siteName,
             '{owner_name}'       => $ownerName,
             '{owner_email}'      => $ownerEmail,
+            '{form_url_join}'    => self::resolveFormUrl($formUrlJoin, $listingUrl),
+            '{form_url_update}'  => self::resolveFormUrl($formUrlUpdate, $listingUrl),
+            '{form_url_reset}'   => self::resolveFormUrl($formUrlReset, $listingUrl),
         ];
+    }
+
+    /**
+     * Resolves a form page URL to an absolute URL. Empty values fall back to the
+     * listing URL; relative filenames are resolved against it.
+     */
+    private static function resolveFormUrl(string $url, string $listingUrl): string
+    {
+        if ($url === '') {
+            return $listingUrl;
+        }
+        if (preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+        return rtrim($listingUrl, '/') . '/' . ltrim($url, '/');
     }
 
     /**

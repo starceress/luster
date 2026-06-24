@@ -207,6 +207,10 @@ final class ResetController
                     fanName:        $member->name,
                     fanEmail:       $email,
                     resetUrl:       $resetUrl,
+                    listingEmail:   $listing->email,
+                    formUrlJoin:    (string) $embedSettings['form_url_join'],
+                    formUrlUpdate:  (string) $embedSettings['form_url_update'],
+                    formUrlReset:   (string) $embedSettings['form_url_reset'],
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_RESET, $tokens);
                 $mailer->send($email, $member->name, $subject, $body);

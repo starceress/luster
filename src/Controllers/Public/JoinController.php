@@ -359,6 +359,10 @@ final class JoinController
                     fanCountry:     $country,
                     resetUrl:       $resetUrl,
                     fanPassword:    $wasGenerated ? $rawPassword : '',
+                    listingEmail:   $listing->email,
+                    formUrlJoin:    (string) $embedSettings['form_url_join'],
+                    formUrlUpdate:  (string) $embedSettings['form_url_update'],
+                    formUrlReset:   (string) $embedSettings['form_url_reset'],
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_JOIN, $tokens);
                 $mailer->send($email, $name, $subject, $body);
@@ -393,6 +397,10 @@ final class JoinController
                     fanEmail:       $email,
                     fanUrl:         $url,
                     fanCountry:     $country,
+                    listingEmail:   $listing->email,
+                    formUrlJoin:    (string) $embedSettings['form_url_join'],
+                    formUrlUpdate:  (string) $embedSettings['form_url_update'],
+                    formUrlReset:   (string) $embedSettings['form_url_reset'],
                 );
                 [$notifySubject, $notifyBody] = $notifyRepo->resolveForListing(
                     $listingId, EmailTemplateRepo::TYPE_NOTIFY_JOIN, $notifyTokens,

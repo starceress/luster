@@ -20,7 +20,9 @@ use Luster\Core\Response;
 use Luster\Core\UrlGuard;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SavedEmailRepo;
 
@@ -295,11 +297,19 @@ final class BulkEmailController extends AdminController
         $memberRepo  = new MemberRepo($db, $config);
         $siteName    = (string) $config->get('site_name', 'Luster');
 
+        $settingsRepo = new ListingSettingsRepo($db);
+
         if ($listingId > 0) {
             $listing = $listingRepo->getById($listingId);
             if ($listing === null || $listing->dbprefix === '') {
                 return [[], $siteName];
             }
+
+            $es = $settingsRepo->getEmbedSettings($listingId);
+            $formUrls = EmailTemplateRepo::buildTokens(
+                listingName: '', listingUrl: $listing->url, siteName: '',
+                formUrlJoin: (string) $es['form_url_join'], formUrlUpdate: (string) $es['form_url_update'], formUrlReset: (string) $es['form_url_reset'],
+            );
 
             $recipients = [];
             foreach ($memberRepo->getApproved($listing->dbprefix) as $member) {
@@ -311,6 +321,10 @@ final class BulkEmailController extends AdminController
                     'listing_title'     => $listing->title,
                     'listing_subject'  => $listing->subject,
                     'listing_url'      => $listing->url,
+                    'listing_email'    => $listing->email,
+                    'form_url_join'    => $formUrls['{form_url_join}'],
+                    'form_url_update'  => $formUrls['{form_url_update}'],
+                    'form_url_reset'   => $formUrls['{form_url_reset}'],
                 ];
             }
 
@@ -323,6 +337,11 @@ final class BulkEmailController extends AdminController
             if ($listing->dbprefix === '') {
                 continue;
             }
+            $es = $settingsRepo->getEmbedSettings((int) $listing->id);
+            $formUrls = EmailTemplateRepo::buildTokens(
+                listingName: '', listingUrl: $listing->url, siteName: '',
+                formUrlJoin: (string) $es['form_url_join'], formUrlUpdate: (string) $es['form_url_update'], formUrlReset: (string) $es['form_url_reset'],
+            );
             foreach ($memberRepo->getApproved($listing->dbprefix) as $member) {
                 if (!isset($recipients[$member->email])) {
                     $recipients[$member->email] = [
@@ -333,6 +352,10 @@ final class BulkEmailController extends AdminController
                         'listing_title'     => $listing->title,
                         'listing_subject'  => $listing->subject,
                         'listing_url'      => $listing->url,
+                        'listing_email'    => $listing->email,
+                        'form_url_join'    => $formUrls['{form_url_join}'],
+                        'form_url_update'  => $formUrls['{form_url_update}'],
+                        'form_url_reset'   => $formUrls['{form_url_reset}'],
                     ];
                 }
             }
@@ -344,11 +367,7 @@ final class BulkEmailController extends AdminController
     /**
      * Replaces all supported tokens in a string with per-recipient values.
      *
-     * Tokens: {fan_name}, {fan_email}, {fan_url}, {fan_country},
-     *         {listing_title}, {listing_subject}, {listing_url},
-     *         {site_name}, {owner_name}, {owner_email}
-     *
-     * @param array{name:string,url:string,country:string,listing_name:string,listing_subject:string,listing_url:string} $recipient
+     * @param array{name:string,email:string,url:string,country:string,listing_title:string,listing_subject:string,listing_url:string,listing_email:string,form_url_join:string,form_url_update:string,form_url_reset:string} $recipient
      */
     private function applyTokens(
         string $text,
@@ -360,12 +379,14 @@ final class BulkEmailController extends AdminController
         return str_replace(
             [
                 '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
-                '{listing_title}',            '{listing_subject}',            '{listing_url}',
+                '{listing_title}',            '{listing_subject}',            '{listing_url}', '{listing_email}',
+                '{form_url_join}', '{form_url_update}', '{form_url_reset}',
                 '{site_name}',  '{owner_name}', '{owner_email}',
             ],
             [
                 $recipient['name'], $recipient['email'], $recipient['url'], $recipient['country'],
-                $recipient['listing_title'], $recipient['listing_subject'], $recipient['listing_url'],
+                $recipient['listing_title'], $recipient['listing_subject'], $recipient['listing_url'], $recipient['listing_email'] ?? '',
+                $recipient['form_url_join'] ?? '', $recipient['form_url_update'] ?? '', $recipient['form_url_reset'] ?? '',
                 $siteName,      $ownerName,     $ownerEmail,
             ],
             $text,

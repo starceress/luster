@@ -1003,6 +1003,7 @@ final class GlobalCodesController extends AdminController
             }
 
             $emailRepo = new EmailTemplateRepo($db);
+            $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
             $tokens = EmailTemplateRepo::buildTokens(
                 listingName:    $listing->title,
                 listingUrl:     $listing->url,
@@ -1013,6 +1014,10 @@ final class GlobalCodesController extends AdminController
                 fanName:        (string) ($code->submitter_name ?? ''),
                 fanEmail:       $email,
                 fanUrl:         (string) ($code->submitter_url ?? ''),
+                listingEmail:   $listing->email,
+                formUrlJoin:    (string) $_es['form_url_join'],
+                formUrlUpdate:  (string) $_es['form_url_update'],
+                formUrlReset:   (string) $_es['form_url_reset'],
             );
 
             [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_CODE_APPROVED, $tokens);
