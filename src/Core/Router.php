@@ -42,16 +42,19 @@ final class Router
     // Route registration
     // -----------------------------------------------------------------------
 
+    /** Registers a GET route. Path segments in {braces} become named parameters. */
     public function get(string $path, string $controller, string $action): void
     {
         $this->add('GET', $path, $controller, $action);
     }
 
+    /** Registers a POST route. Path segments in {braces} become named parameters. */
     public function post(string $path, string $controller, string $action): void
     {
         $this->add('POST', $path, $controller, $action);
     }
 
+    /** Registers a route for any HTTP method. */
     public function add(string $method, string $path, string $controller, string $action): void
     {
         $this->routes[] = [
@@ -83,6 +86,12 @@ final class Router
     // Dispatch
     // -----------------------------------------------------------------------
 
+    /**
+     * Matches the request against registered routes and calls the corresponding action.
+     *
+     * Normalises trailing slashes (e.g. '/admin/listings/' → '/admin/listings') before
+     * matching. Returns a 404 response when no route matches.
+     */
     public function dispatch(Request $request): Response
     {
         $method = $request->method();
@@ -124,6 +133,7 @@ final class Router
     // Internals
     // -----------------------------------------------------------------------
 
+    /** Converts a route path with {placeholder} syntax into a named-capture regex. */
     private function buildPattern(string $path): string
     {
         // Escape everything except the placeholder syntax {name}
@@ -139,6 +149,7 @@ final class Router
         return '#^' . $pattern . '$#';
     }
 
+    /** Instantiates $class via the resolver (or directly) and calls $action($request, $params). */
     private function callAction(
         string  $class,
         string  $action,

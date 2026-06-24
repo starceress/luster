@@ -22,8 +22,15 @@ use Luster\Models\Affiliate;
 /**
  * Data access for the lstr_affiliates table.
  *
- * Affiliates are linked to a specific listing via listing_id, which
- * corresponds to enth_listings.id. All queries use prepared statements.
+ * An affiliate can be scoped to a specific listing (fanlisting_id = N) or
+ * to the collective as a whole (fanlisting_id IS NULL). Pending affiliates
+ * (pending = 1) are affiliate applications awaiting admin review; approved
+ * affiliates have pending = 0. The rejected state is a soft-delete: rejected
+ * rows remain with pending = 2 so the admin can distinguish "never applied"
+ * from "applied and declined".
+ *
+ * All queries use PDO prepared statements; no raw values are ever interpolated
+ * into SQL except pre-validated orderBy fragments built by the controller.
  */
 final class AffiliateRepo
 {
@@ -1152,6 +1159,12 @@ final class AffiliateRepo
         return $stmt->rowCount() > 0;
     }
 
+    /**
+     * Records the outcome of a single URL check for an affiliate row.
+     *
+     * Stores the resolved link_status and, when the URL redirected, the final
+     * destination URL so the admin can apply it later via applyRedirectUrl().
+     */
     public function updateLinkStatus(int $id, string $status, ?string $redirectUrl, ?string $now = null): void
     {
         $stmt = $this->db->prepare(
@@ -1164,6 +1177,13 @@ final class AffiliateRepo
         $stmt->execute(['status' => $status, 'redir' => $redirectUrl, 'now' => $now ?? date('Y-m-d H:i:s'), 'id' => $id]);
     }
 
+    /**
+     * Records the outcome of a reciprocal-link check for an affiliate row.
+     *
+     * A reciprocal link check fetches the affiliate's page and looks for a
+     * back-link to this collective. The status is 'ok' when found, 'not_found'
+     * when the page loaded but had no back-link, or 'dead' on HTTP failure.
+     */
     public function updateReciprocalStatus(int $id, string $status, ?string $now = null): void
     {
         $stmt = $this->db->prepare(
@@ -1175,6 +1195,12 @@ final class AffiliateRepo
         $stmt->execute(['status' => $status, 'now' => $now ?? date('Y-m-d H:i:s'), 'id' => $id]);
     }
 
+    /**
+     * Resets link-check and reciprocal-check state for every affiliate row.
+     *
+     * Call this before starting a fresh check run so stale results from the
+     * previous run do not persist alongside newly checked rows.
+     */
     public function resetLinkStatus(): void
     {
         $this->db->prepare(
@@ -1252,6 +1278,16 @@ final class AffiliateRepo
         return $result;
     }
 
+    /**
+     * Returns email details for a specific set of affiliate IDs, keyed by ID.
+     *
+     * Used when the admin selects individual affiliate rows for a targeted email
+     * rather than using the scope selector (all / collective / per-listing).
+     * Rows without an email address are excluded.
+     *
+     * @param  int[]   $ids
+     * @return array<int, array{id: int, name: string, email: string, url: string, listing_id: int|null}>
+     */
     public function getEmailRecipientsByIds(array $ids): array
     {
         if (empty($ids)) {

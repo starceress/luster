@@ -18,6 +18,10 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\CategoryRepo;
 
+/**
+ * Manages the listing category tree: sortable/searchable paginated index,
+ * add/edit/delete, canonical TFL/TAFL seed health reporting, and bulk-delete.
+ */
 final class CategoryController extends AdminController
 {
 
@@ -25,6 +29,10 @@ final class CategoryController extends AdminController
     // GET /admin/categories
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the paginated category index with source/search filters, seed health
+     * status, and JSON data attributes used by the add-category dropdowns.
+     */
     public function index(Request $request, array $params): Response
     {
         $repo    = new CategoryRepo($this->app->getDatabase());
@@ -101,6 +109,10 @@ final class CategoryController extends AdminController
     // GET /admin/categories/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the add-category form, restoring flash field errors if a previous
+     * submission failed.
+     */
     public function addForm(Request $request, array $params): Response
     {
 
@@ -129,6 +141,10 @@ final class CategoryController extends AdminController
     // POST /admin/categories/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Validates and inserts a new category; optionally sets a slug on the same
+     * request if one was submitted alongside the name.
+     */
     public function add(Request $request, array $params): Response
     {
         $name    = trim((string) $request->post('name', ''));
@@ -169,6 +185,9 @@ final class CategoryController extends AdminController
     // GET /admin/categories/{id}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the edit-category form for the given category ID.
+     */
     public function editForm(Request $request, array $params): Response
     {
         $id   = (int) ($params['id'] ?? 0);
@@ -206,6 +225,9 @@ final class CategoryController extends AdminController
     // POST /admin/categories/{id}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Validates and saves changes to a category's name, source, slug, and parent.
+     */
     public function edit(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -255,6 +277,10 @@ final class CategoryController extends AdminController
     // POST /admin/categories/seed
     // -----------------------------------------------------------------------
 
+    /**
+     * Inserts missing TFL or TAFL canonical categories via CategoryRepo::backfillSeeds().
+     * The include_tafl POST flag selects TAFL-only; omitting it seeds TFL-only.
+     */
     public function seed(Request $request, array $params): Response
     {
         $taflOnly = (bool) (int) ($request->post('include_tafl', '0'));
@@ -278,6 +304,9 @@ final class CategoryController extends AdminController
     // POST /admin/categories/{id}/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes a single category by ID.
+     */
     public function delete(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -300,6 +329,10 @@ final class CategoryController extends AdminController
     // POST /admin/categories/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes all checked categories in one POST; supports "select all" via
+     * server-side source/search filter.
+     */
     public function bulk(Request $request, array $params): Response
     {
         $baseUrl = $this->app->getBaseUrl();
@@ -339,6 +372,9 @@ final class CategoryController extends AdminController
     // GET /admin/categories/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the category display-settings form (items per page).
+     */
     public function settingsForm(Request $request, array $params): Response
     {
         $config  = $this->app->getConfig();
@@ -363,6 +399,9 @@ final class CategoryController extends AdminController
     // POST /admin/categories/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Persists the categories_per_page value (clamped 5–100) to config/app.php.
+     */
     public function saveSettings(Request $request, array $params): Response
     {
         $baseUrl = $this->app->getBaseUrl();
@@ -392,6 +431,10 @@ final class CategoryController extends AdminController
 
     // -----------------------------------------------------------------------
 
+    /**
+     * Writes the config array to config/app.php via a temp-file rename and
+     * invalidates the OPcache entry so changes take effect immediately.
+     */
     private function writeConfig(array $config): void
     {
         $configPath = $this->app->getBasePath() . '/config/app.php';

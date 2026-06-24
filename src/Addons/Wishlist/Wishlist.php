@@ -14,6 +14,12 @@ declare(strict_types=1);
 
 namespace Luster\Addons\Wishlist;
 
+/**
+ * Immutable value object for a row in lstr_wishlist.
+ *
+ * Represents one item on the site owner's fanlisting wishlist.
+ * Hydrate via Wishlist::fromRow(); all fields are read-only after construction.
+ */
 final class Wishlist
 {
     public function __construct(
@@ -29,6 +35,7 @@ final class Wishlist
         public readonly bool    $active,
     ) {}
 
+    /** Hydrates an instance from an associative database row. */
     public static function fromRow(array $row): self
     {
         return new self(
@@ -45,6 +52,7 @@ final class Wishlist
         );
     }
 
+    /** Returns the human-readable label for the entry type. */
     public function typeLabel(): string
     {
         return match ($this->type) {

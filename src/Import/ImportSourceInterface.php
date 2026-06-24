@@ -16,6 +16,17 @@ declare(strict_types=1);
 namespace Luster\Import;
 
 use PDO;
+
+/**
+ * Contract that every import adapter must implement.
+ *
+ * Each adapter connects to a foreign fanlisting script's database (or reads
+ * flat files in the BellaBuffs case), runs a read-only preview pass, and then
+ * executes the actual data migration into Luster's tables. Adapters are
+ * stateless — all context flows through method arguments — and the $source and
+ * $target PDO connections may point to the same database (e.g. when Enthusiast
+ * and Luster share a MySQL instance).
+ */
 interface ImportSourceInterface
 {
     /**

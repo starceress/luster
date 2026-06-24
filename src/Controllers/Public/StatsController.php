@@ -48,6 +48,13 @@ final class StatsController
     // GET /stats/{listingId}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the stats page for a listing by substituting all {token} placeholders.
+     *
+     * Returns 404 for unknown listings and for listings that are not yet open
+     * (upcoming or in-trouble status). Conditional blocks ({if_approved_by}, etc.)
+     * are processed with preg_replace before the flat str_replace pass.
+     */
     public function index(Request $request, array $params): Response
     {
         $listingId = (int) ($params['listingId'] ?? 0);
@@ -188,9 +195,9 @@ final class StatsController
     // -----------------------------------------------------------------------
 
     /**
-     * Formats newest members with hyperlinks and ", and more..." when applicable.
+     * Determines how many "newest members" to fetch for the {stat_newmembers} token.
      *
-     * @param array<int, array{name: string, url: string}> $members
+     * Per-listing override wins; falls back to the global site setting, then to 5.
      */
     private function resolveNewestLimit(?int $perListing, ?string $global): int
     {
@@ -203,6 +210,15 @@ final class StatsController
         return 5;
     }
 
+    /**
+     * Formats a list of recent members into a readable sentence with hyperlinks.
+     *
+     * Names are HTML-escaped and linked when a URL is present. Appends
+     * ", and more…" when the full approved count exceeds the displayed slice.
+     * Oxford comma is applied for lists of three or more.
+     *
+     * @param array<int, array{name: string, url: string}> $members
+     */
     private function formatNewestMembers(array $members, int $totalApproved): string
     {
         if ($members === []) {

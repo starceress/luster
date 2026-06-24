@@ -96,6 +96,10 @@ final class View
         return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
+    /**
+     * Wraps an email address in a <span class="email-wrap"> for CSS-based obfuscation.
+     * The address is HTML-escaped before wrapping.
+     */
     public static function emailWrap(string $email): string
     {
         $escaped = htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -326,6 +330,10 @@ final class View
     // Internals
     // -----------------------------------------------------------------------
 
+    /**
+     * Output-buffers a PHP template file after extract()ing $data (merged with shared vars).
+     * Used by both the public rendering pipeline and admin template rendering.
+     */
     private function renderPhp(string $path, array $data): string
     {
         // Merge shared vars (set once via share()) with per-render data.
@@ -344,6 +352,13 @@ final class View
         return (string) ob_get_clean();
     }
 
+    /**
+     * Processes {token} and {loop}...{/loop} blocks in legacy HTML templates.
+     *
+     * ViewRaw values are inserted verbatim; all other scalar values are
+     * htmlspecialchars()-escaped before substitution. Array values are treated as
+     * loop data; non-scalar, non-ViewRaw values are silently skipped.
+     */
     private function substituteTokens(string $content, array $data): string
     {
         // Process loop blocks first: {loop_key}...{/loop_key}

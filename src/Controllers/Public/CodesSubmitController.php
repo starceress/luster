@@ -53,6 +53,14 @@ final class CodesSubmitController
     // GET /codes/submit/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the code submission form for a listing (or collective when id = 0).
+     *
+     * Returns 404 if the listing does not exist or code submissions are disabled.
+     * When a custom template is stored in lstr_fanlisting_settings (per-listing)
+     * or lstr_site_settings (collective), the template is expanded with field
+     * tokens and wrapped in a <form>; otherwise the built-in fragment is used.
+     */
     public function showForm(Request $request, array $params): Response
     {
         $listingId    = (int) ($params['id'] ?? 0);
@@ -194,6 +202,14 @@ final class CodesSubmitController
     // POST /codes/submit/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the code submission POST for a listing (or collective when id = 0).
+     *
+     * Runs rate-limit, honeypot, CAPTCHA, and blacklist checks; validates the
+     * image (MIME via finfo, max 500 KB, JPEG/PNG/GIF/WebP), saves it with a
+     * randomised filename under public/uploads/codes/, and inserts a pending
+     * record in lstr_codes. Redirects back to the host page on success or error.
+     */
     public function submit(Request $request, array $params): Response
     {
         $listingId    = (int) ($params['id'] ?? 0);

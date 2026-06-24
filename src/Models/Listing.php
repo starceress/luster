@@ -48,7 +48,9 @@ final class Listing
         public readonly string  $dbprefix,
         public readonly string  $email,
         public readonly string  $additionalInfo,
+        /** True when the listing is in upcoming/pending state (not yet open to members). */
         public readonly bool    $upcoming,
+        /** True when the listing is inactive/closed (trouble=1 in enth_, status=0 in owned). */
         public readonly bool    $trouble,
         /** Date the listing opened — from joined/opened/since column if present. */
         public readonly ?string $joined = null,

@@ -16,15 +16,29 @@ declare(strict_types=1);
 namespace Luster\Models;
 
 /**
- * Represents a single parsed additional field definition from
- * enth_fanlistings.additional_info.
+ * Parsed definition of a single custom field attached to a listing's member table.
  *
- * The $name corresponds to the suffix after "additional_" in the member
- * table column (e.g. "fave_song" → column "additional_fave_song").
- * Template token: {fan_fave_song}.
+ * Listings can define extra fields ("Favorite song", "Favorite character", etc.)
+ * beyond the built-in name/email/country set. FieldRepo reads the raw field
+ * config string from the database and returns an array of these objects.
+ * Templates loop over that array to build form inputs and member display rows
+ * dynamically — field names are never hardcoded anywhere.
+ *
+ * In the standard Enthusiast schema the member-table column is named
+ * "additional_{$name}" (e.g. "additional_fave_song"). In the unprefixed
+ * schema the column is the bare $name. The corresponding embed template
+ * token is "{fan_{$name}}" in both cases.
  */
 final class AdditionalField
 {
+    /**
+     * @param string $name     Bare field identifier used as the DB column suffix and
+     *                         template token name (e.g. "fave_song").
+     * @param string $label    Human-readable label shown in forms and admin views.
+     * @param string $type     Field input type (e.g. "text", "select").
+     * @param bool   $required Whether the field must be filled in on the join/update form.
+     * @param string $options  Pipe-delimited option list for select fields; empty for text fields.
+     */
     public function __construct(
         public readonly string $name,
         public readonly string $label,

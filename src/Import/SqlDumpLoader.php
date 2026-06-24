@@ -14,6 +14,17 @@
 declare(strict_types=1);
 
 namespace Luster\Import;
+
+/**
+ * Loads a mysqldump .sql file into temporary tables so import adapters can run
+ * queries against the dump data without a live source database connection.
+ *
+ * Only CREATE TABLE (column-definition form) and INSERT … VALUES (literal-only)
+ * statements are executed; every other SQL statement (DROP, ALTER, SET, GRANT,
+ * etc.) is silently discarded for security. Table names are prefixed to avoid
+ * collisions with Luster's own tables. cleanup() drops all temp tables created
+ * by a previous load() call.
+ */
 final class SqlDumpLoader
 {
     /** Maximum allowed file size in bytes (50 MB). */
@@ -204,7 +215,12 @@ final class SqlDumpLoader
     // Validation
     // -----------------------------------------------------------------------
 
-    /** @throws \RuntimeException */
+    /**
+     * Validates the uploaded SQL file: checks it is readable, within size limits,
+     * non-empty, and has an allowed plain-text MIME type.
+     *
+     * @throws \RuntimeException on any validation failure.
+     */
     private function validateFile(string $filePath): void
     {
         if (!is_file($filePath) || !is_readable($filePath)) {
@@ -320,13 +336,9 @@ final class SqlDumpLoader
     }
 
     /**
-     * Rewrites all occurrences of a bare or backtick-quoted table name in a
-     * SQL statement to the given replacement name. Only rewrites in positions
-     * where a table name is expected (after TABLE, INTO, FROM, JOIN, UPDATE).
-     */
-    /**
-     * Replaces all single- and double-quoted string literals with empty quotes,
-     * so safety checks only inspect unquoted SQL structure.
+     * Replaces all single- and double-quoted string literals with empty quotes so
+     * safety-check regexes only see unquoted SQL structure (no false positives from
+     * data such as 'Star Trek (2009)' or 'KIM (Keep In Mind)').
      */
     private static function stripQuotedStrings(string $sql): string
     {
@@ -367,6 +379,11 @@ final class SqlDumpLoader
         return $out;
     }
 
+    /**
+     * Rewrites all occurrences of $original (bare or backtick-quoted) to $replacement
+     * in positions where a table name is expected (after TABLE [IF NOT EXISTS], INTO,
+     * FROM, JOIN, UPDATE). Column names that happen to share the table name are left alone.
+     */
     private function rewriteTableName(string $sql, string $original, string $replacement): string
     {
         // Match backtick-quoted or bare table name after the keywords we care about.

@@ -14,6 +14,16 @@
 declare(strict_types=1);
 
 namespace Luster\Import;
+
+/**
+ * Immutable value object that carries every option chosen in the import wizard.
+ *
+ * Built from raw POST data by ImportController via fromPost() and passed through
+ * to ImportSourceInterface::preview() and run(). The constructor parameters cover
+ * all six import sources; source-specific settings (BellaBuffs file paths,
+ * Fanatically table prefix, FanUpdate blog table name, etc.) are populated only
+ * when the matching source slug is active and ignored by other adapters.
+ */
 final class ImportOptions
 {
     /**

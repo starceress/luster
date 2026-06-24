@@ -55,6 +55,7 @@ final class AdoptionAdminController
 
     public function __construct(private readonly Application $app) {}
 
+    /** Returns $candidate if it is same-origin, otherwise $fallback. */
     private function safeReturn(string $candidate, string $fallback): string
     {
         return ($candidate !== '' && UrlGuard::isSameOriginUrl($candidate, $this->app->getBaseUrl()))
@@ -66,6 +67,12 @@ final class AdoptionAdminController
     // GET /admin/adoptions
     // -----------------------------------------------------------------------
 
+    /**
+     * Overview of all adoption applications, with tab/listing/search filters.
+     *
+     * Bare navigation (no query params) auto-redirects to the pending tab when
+     * pending applications exist, or to the configured default landing page.
+     */
     public function index(Request $request, array $params): Response
     {
         $tab = trim((string) $request->query('tab', 'all'));
@@ -201,6 +208,11 @@ final class AdoptionAdminController
     // POST /admin/adoptions/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles bulk approve, reject, delete, and email actions on selected applications.
+     *
+     * The email action redirects to bulkEmailForm instead of processing inline.
+     */
     public function bulk(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -255,6 +267,12 @@ final class AdoptionAdminController
     // POST /admin/adoptions/{id}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the edit/review form for one adoption application.
+     *
+     * Pending (and legacy 'new') applications open in review mode which
+     * prominently shows the Approve/Reject buttons.
+     */
     public function editForm(Request $request, array $params): Response
     {
         $id           = (int) ($params['id'] ?? 0);
@@ -291,6 +309,7 @@ final class AdoptionAdminController
         ]);
     }
 
+    /** Validates and saves changes to an adoption application's fields and status. */
     public function editSave(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -339,6 +358,7 @@ final class AdoptionAdminController
     // POST /admin/adoptions/{id}/approve
     // -----------------------------------------------------------------------
 
+    /** Sets the application status to 'approved' and sends a status email. */
     public function approve(Request $request, array $params): Response
     {
         return $this->quickStatus($request, $params, 'approved');
@@ -348,6 +368,7 @@ final class AdoptionAdminController
     // POST /admin/adoptions/{id}/reject
     // -----------------------------------------------------------------------
 
+    /** Sets the application status to 'rejected' and sends a status email. */
     public function reject(Request $request, array $params): Response
     {
         return $this->quickStatus($request, $params, 'rejected');
@@ -357,6 +378,7 @@ final class AdoptionAdminController
     // POST /admin/adoptions/{id}/status
     // -----------------------------------------------------------------------
 
+    /** Sets the application status to any valid value without sending a status email. */
     public function setStatus(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -390,6 +412,7 @@ final class AdoptionAdminController
     // POST /admin/adoptions/{id}/delete
     // -----------------------------------------------------------------------
 
+    /** Permanently deletes an adoption application and logs the action. */
     public function delete(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -424,6 +447,7 @@ final class AdoptionAdminController
     // POST /admin/adoptions/settings
     // -----------------------------------------------------------------------
 
+    /** Renders the Adoption settings page (default landing, per-page count). */
     public function settingsForm(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -450,6 +474,7 @@ final class AdoptionAdminController
         ]);
     }
 
+    /** Persists the Adoption settings and redirects back to the settings page. */
     public function saveSettings(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -480,6 +505,7 @@ final class AdoptionAdminController
     // POST /admin/adoptions/{id}/email
     // -----------------------------------------------------------------------
 
+    /** Renders the single-applicant email composer for one application. */
     public function emailForm(Request $request, array $params): Response
     {
         $id           = (int) ($params['id'] ?? 0);
@@ -519,6 +545,12 @@ final class AdoptionAdminController
         ]);
     }
 
+    /**
+     * Sends the composed email to a single applicant.
+     *
+     * Applies {app_*} and {listing_*} token substitution before sending, and
+     * logs the action to the activity log.
+     */
     public function emailSend(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -577,6 +609,13 @@ final class AdoptionAdminController
     // POST /admin/adoptions/email
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the bulk email composer for multiple applicants.
+     *
+     * Supports two modes: explicit application IDs from the bulk-action
+     * selector, or a listing_id + statuses pair (used by emailAllForListing
+     * to avoid hitting URL-length limits).
+     */
     public function bulkEmailForm(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -677,6 +716,12 @@ final class AdoptionAdminController
         ]);
     }
 
+    /**
+     * Sends the bulk email to each selected applicant with per-recipient token substitution.
+     *
+     * Deduplicates by email address (case-insensitive) so applicants with
+     * multiple entries receive only one message.
+     */
     public function bulkEmailSend(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -768,6 +813,13 @@ final class AdoptionAdminController
     // GET /admin/adoptions/{lid}/email-all
     // -----------------------------------------------------------------------
 
+    /**
+     * Redirects to the bulk email composer pre-scoped to all approved and
+     * granted applicants for a specific listing.
+     *
+     * Uses the listing_id + statuses URL pattern rather than serialising every
+     * application ID, which would exceed URL length limits for large lists.
+     */
     public function emailAllForListing(Request $request, array $params): Response
     {
         $lid          = (int) ($params['lid'] ?? 0);
@@ -807,6 +859,10 @@ final class AdoptionAdminController
     // Helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves or rejects one application by setting its status and, for
+     * approved/rejected, sending the corresponding status email to the applicant.
+     */
     private function quickStatus(Request $request, array $params, string $status): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -839,6 +895,12 @@ final class AdoptionAdminController
         return $this->redirectAfterAction($request, $baseUrl);
     }
 
+    /**
+     * Sends an adoption approved/rejected status email to the applicant.
+     *
+     * Uses the per-listing email template if one exists, otherwise falls back
+     * to the global default. Email failures are non-fatal and silently swallowed.
+     */
     private function sendAdoptionStatusEmail(array $application, string $status): void
     {
         try {
@@ -877,6 +939,10 @@ final class AdoptionAdminController
         }
     }
 
+    /**
+     * Redirects to the _return POST value if same-origin, or to the pending/all
+     * tab of the adoptions index based on whether pending applications remain.
+     */
     private function redirectAfterAction(Request $request, string $baseUrl): Response
     {
         $returnUrl = trim((string) $request->post('_return', ''));
@@ -888,6 +954,7 @@ final class AdoptionAdminController
         return Response::redirect($baseUrl . '/admin/adoptions?tab=' . $tab);
     }
 
+    /** Renders a page within the admin layout with current_section='adoptions'. */
     private function layout(string $template, string $title, array $data, array $breadcrumbs = []): Response
     {
         $config    = $this->app->getConfig();
@@ -913,6 +980,7 @@ final class AdoptionAdminController
         ], $this->app->getAdminNavData())));
     }
 
+    /** Returns the full admin URL for the given path. */
     private function adminUrl(string $path): string
     {
         return $this->app->getBaseUrl() . $path;
@@ -924,6 +992,11 @@ final class AdoptionAdminController
         return ['label' => $label, 'url' => $url];
     }
 
+    /**
+     * Replaces {app_*}, {listing_*}, and {site_*} tokens in email subject/body text.
+     *
+     * Used for both single-applicant and bulk email sends.
+     */
     private function applyAdoptionTokens(string $text, array $app, ?Listing $listing, Config $config): string
     {
         return str_replace(
@@ -946,12 +1019,14 @@ final class AdoptionAdminController
         );
     }
 
+    /** Returns the sender display name: smtp_from_name falling back to owner_name. */
     private function resolveFromName(Config $config): string
     {
         $name = (string) $config->get('smtp_from_name', '');
         return $name !== '' ? $name : (string) $config->get('owner_name', '');
     }
 
+    /** Returns the sender email address: smtp_from falling back to owner_email. */
     private function resolveFromEmail(Config $config): string
     {
         $email = (string) $config->get('smtp_from', '');

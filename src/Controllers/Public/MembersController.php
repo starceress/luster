@@ -43,6 +43,15 @@ final class MembersController
     // GET /members/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the members list in one of three display modes:
+     *  - Country summary (default): one entry per country with a fan count and a drill-down link.
+     *  - Country filter (?country=X): paginated members from a single country.
+     *  - Name sort (?sort=name): paginated alphabetical list of all members.
+     *
+     * When a custom members template is stored in the DB, output is rendered through
+     * MembersTemplateRenderer instead of the default template loop.
+     */
     public function index(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);

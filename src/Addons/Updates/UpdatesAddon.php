@@ -27,21 +27,25 @@ use PDO;
  */
 final class UpdatesAddon implements AddonInterface
 {
+    /** Returns the unique string key used in lstr_addons and class discovery. */
     public function getKey(): string
     {
         return 'Updates';
     }
 
+    /** Returns the human-readable add-on name shown in the admin nav and Manage Add-ons page. */
     public function getName(): string
     {
         return 'News Feed';
     }
 
+    /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
         return 'Blogging management system to post news & updates for both individual fanlistings and an entire collective.';
     }
 
+    /** Creates lstr_updates. */
     public function install(PDO $pdo): void
     {
         $pdo->exec(
@@ -61,11 +65,13 @@ final class UpdatesAddon implements AddonInterface
         );
     }
 
+    /** Drops lstr_updates. */
     public function uninstall(PDO $pdo): void
     {
         $pdo->exec('DROP TABLE IF EXISTS `lstr_updates`');
     }
 
+    /** Registers public (/updates, /updates/{id}) and admin (/admin/updates/*) routes. */
     public function registerRoutes(Router $router): void
     {
         // ── Public routes (read-only feed) ────────────────────────────────

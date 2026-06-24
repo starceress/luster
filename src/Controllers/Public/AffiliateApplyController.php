@@ -71,6 +71,11 @@ final class AffiliateApplyController
     // GET /affiliate-apply/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the affiliate application form for a specific listing.
+     *
+     * Returns 404 when affiliate applications are not enabled for the listing.
+     */
     public function show(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -102,6 +107,14 @@ final class AffiliateApplyController
     // POST /affiliate-apply/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the affiliate application form for a specific listing.
+     *
+     * Runs rate-limit, honeypot, CAPTCHA, blacklist, validation, and duplicate
+     * checks in sequence. On success, inserts a pending application, sends an
+     * admin notification email, and redirects back to the form URL with a
+     * flash success message.
+     */
     public function submit(Request $request, array $params): Response
     {
         $listingId     = (int) ($params['id'] ?? 0);
@@ -224,6 +237,11 @@ final class AffiliateApplyController
     // GET /affiliate-apply/collective
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the affiliate application form for the collective (site-wide scope).
+     *
+     * Returns 404 when `collective_affiliate_apply_enabled` is not set to '1'.
+     */
     public function collectiveShow(Request $request, array $params): Response
     {
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
@@ -245,6 +263,12 @@ final class AffiliateApplyController
     // POST /affiliate-apply/collective
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the collective affiliate application form.
+     *
+     * Mirrors submit() but scopes the insert to fanlisting_id = null and reads
+     * settings from lstr_site_settings rather than lstr_fanlisting_settings.
+     */
     public function collectiveSubmit(Request $request, array $params): Response
     {
         $db            = $this->app->getDatabase();
@@ -357,6 +381,13 @@ final class AffiliateApplyController
     // Private helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Builds and returns the collective affiliate application form response.
+     *
+     * When `collective_affiliate_apply_form_template` is set in lstr_site_settings
+     * the template is rendered and wrapped in a <form> tag; otherwise the default
+     * PHP fragment template is used.
+     */
     private function renderCollectiveForm(string $error, array $old): Response
     {
         $captchaQuestion = Captcha::getQuestion('affiliate_apply');
@@ -429,6 +460,13 @@ final class AffiliateApplyController
         );
     }
 
+    /**
+     * Resolves the POST target for the collective affiliate application form.
+     *
+     * Reads `collective_form_url_affiliate_apply` from lstr_site_settings, then
+     * delegates to CollectiveFormUrlResolver which prefers the override if set,
+     * otherwise the site URL, otherwise the Luster embed base URL.
+     */
     private function collectiveFormUrl(object $config, string $baseUrl): string
     {
         $embedBase = (string) ($config->get('embed_base_url', '') ?: $baseUrl);
@@ -439,6 +477,13 @@ final class AffiliateApplyController
         return CollectiveFormUrlResolver::resolve($override, $siteUrl, rtrim($embedBase, '/') . '/affiliate-apply/collective');
     }
 
+    /**
+     * Builds and returns the per-listing affiliate application form response.
+     *
+     * Uses the three-level template cascade (per-listing → global default → built-in
+     * PHP fragment). When a template is in use it is expanded with field tokens and
+     * wrapped in a <form>; otherwise the default template renders bare form fields.
+     */
     private function renderForm(
         int    $listingId,
         object $listing,
@@ -526,6 +571,12 @@ final class AffiliateApplyController
         );
     }
 
+    /**
+     * Resolves the POST target URL for the per-listing application form.
+     *
+     * If `form_url_affiliate_apply` is set in the listing's embed settings it is
+     * joined to the listing URL; otherwise falls back to the embed base URL route.
+     */
     private function resolveFormUrl(int $listingId, string $listingUrl, array $applySettings, string $baseUrl): string
     {
         $embedBase = (string) ($this->app->getConfig()->get('embed_base_url', '') ?: $baseUrl);
@@ -600,6 +651,13 @@ final class AffiliateApplyController
         return null;
     }
 
+    /**
+     * Sends the affiliate_applied email template to the listing owner (or site owner
+     * for the collective scope). Silently swallows mailer exceptions so a failed
+     * notification never rolls back an already-saved application.
+     *
+     * @param object|null $listing  Listing model, or null for collective scope.
+     */
     private function sendAdminNotification(
         ?object $listing,
         string  $affName,
@@ -655,6 +713,9 @@ final class AffiliateApplyController
         }
     }
 
+    /**
+     * Extracts trimmed text fields from the current POST for flash repopulation.
+     */
     private function collectOld(Request $request): array
     {
         return [

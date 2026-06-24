@@ -48,6 +48,9 @@ final class AuthController
     // GET /admin/login
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the login page, redirecting already-authenticated admins to the dashboard.
+     */
     public function loginForm(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -81,6 +84,10 @@ final class AuthController
     // POST /admin/login
     // -----------------------------------------------------------------------
 
+    /**
+     * Validates credentials, upgrades legacy MD5 hashes, issues a session,
+     * and optionally writes a 30-day remember-me cookie.
+     */
     public function login(Request $request, array $params): Response
     {
         $ip        = $request->ip();
@@ -194,6 +201,10 @@ final class AuthController
     // POST /admin/logout
     // -----------------------------------------------------------------------
 
+    /**
+     * Destroys the session, deletes the remember-me token from the DB, and
+     * expires the remember-me cookie before redirecting to the login page.
+     */
     public function logout(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -235,6 +246,9 @@ final class AuthController
     // GET /admin/forgot
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the forgot-password form.
+     */
     public function forgotForm(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -261,6 +275,11 @@ final class AuthController
     // POST /admin/forgot
     // -----------------------------------------------------------------------
 
+    /**
+     * Generates a one-time SHA-256 reset token, emails it to the matching
+     * account, and always returns the same message regardless of whether the
+     * account exists (no user enumeration).
+     */
     public function forgot(Request $request, array $params): Response
     {
         $ip        = $request->ip();
@@ -337,6 +356,10 @@ final class AuthController
     // GET /admin/reset/{token}
     // -----------------------------------------------------------------------
 
+    /**
+     * Validates the raw reset token (SHA-256 lookup) and renders the new-password form,
+     * redirecting to the forgot page if the token is expired or already used.
+     */
     public function resetForm(Request $request, array $params): Response
     {
         $rawToken  = (string) ($params['token'] ?? '');
@@ -376,6 +399,10 @@ final class AuthController
     // POST /admin/reset/{token}
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the new-password form: validates, hashes with Argon2id, invalidates
+     * all remember-me tokens for the account, and marks the reset token as used.
+     */
     public function reset(Request $request, array $params): Response
     {
         $rawToken = (string) ($params['token'] ?? '');
@@ -426,16 +453,30 @@ final class AuthController
         return Response::redirect($baseUrl . '/admin/login');
     }
 
+    /**
+     * Returns the active skin slug for the auth pages (login/forgot/reset).
+     */
     private function selectedSkin(): string
     {
         return $this->selectedSkinAndTheme()['skin'];
     }
 
+    /**
+     * Returns the admin default theme ('dark' or 'light') for the auth pages.
+     */
     private function adminDefaultTheme(): string
     {
         return $this->selectedSkinAndTheme()['theme'];
     }
 
+    /**
+     * Resolves the active skin slug and default theme from lstr_site_settings,
+     * verifying community skin file integrity via a stored SHA-256 hash.
+     * Uses a static request-lifetime cache to avoid repeated DB hits for the
+     * three auth pages that share the same data.
+     *
+     * @return array{skin: string, theme: string}
+     */
     private function selectedSkinAndTheme(): array
     {
         static $cache = null;

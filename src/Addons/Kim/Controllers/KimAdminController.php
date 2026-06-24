@@ -38,6 +38,11 @@ final class KimAdminController extends AdminController
     // GET /admin/kim  — unified tabbed member view
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the unified KIM member index with tab filtering (all / approved / pending / granted),
+     * optional per-listing and search scoping, and sortable columns. When no tab parameter is
+     * provided it defaults to "pending" if any pending members exist.
+     */
     public function index(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -141,6 +146,10 @@ final class KimAdminController extends AdminController
     // GET /admin/kim/listings  — per-listing overview table
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the per-listing overview table showing pending, approved, and granted
+     * KIM member counts for every fanlisting. Sortable by subject or pending count.
+     */
     public function listings(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -210,6 +219,11 @@ final class KimAdminController extends AdminController
     // POST /admin/kim/bulk  — cross-listing bulk actions
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles cross-listing bulk actions on KIM members (approve, delete, email-selected).
+     * The "email_selected" action redirects to the cross-listing email composer; others
+     * apply immediately. Return URL must stay within the KIM admin area.
+     */
     public function bulkGlobal(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -265,6 +279,7 @@ final class KimAdminController extends AdminController
     // GET /admin/kim/{fid}/show
     // -----------------------------------------------------------------------
 
+    /** Redirects to the unified member index filtered to the given fanlisting. */
     public function show(Request $request, array $params): Response
     {
         $fanlistingId = (int) ($params['fid'] ?? 0);
@@ -275,6 +290,11 @@ final class KimAdminController extends AdminController
     // GET|POST /admin/kim/{id}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Shows the edit form for a KIM member (GET) or saves the submitted changes (POST).
+     * On POST the fanlisting assignment, granted flag, and optional password change
+     * are all validated before calling KimMemberRepo::update().
+     */
     public function edit(Request $request, array $params): Response
     {
         $memberId = (int) ($params['id'] ?? 0);
@@ -392,6 +412,10 @@ final class KimAdminController extends AdminController
     // POST /admin/kim/{id}/approve
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves a pending KIM member and sends the configured approval email.
+     * Email failures are caught and silently ignored so the approval itself is not blocked.
+     */
     public function approve(Request $request, array $params): Response
     {
         $memberId = (int) ($params['id'] ?? 0);
@@ -452,6 +476,7 @@ final class KimAdminController extends AdminController
     // POST /admin/kim/{id}/delete
     // -----------------------------------------------------------------------
 
+    /** Deletes a KIM member and redirects back to the per-listing member view. */
     public function delete(Request $request, array $params): Response
     {
         $memberId = (int) ($params['id'] ?? 0);
@@ -485,6 +510,12 @@ final class KimAdminController extends AdminController
     // GET /admin/kim/{fid}/bulk-email
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the bulk email composer for a fanlisting. When selected member IDs are
+     * stored in the session (from a prior "Email Selected" bulk action) it enters
+     * selected-only mode with a chip-removal UI; otherwise all approved members are
+     * shown as recipients.
+     */
     public function massEmailForm(Request $request, array $params): Response
     {
         $fanlistingId = (int) ($params['fid'] ?? 0);
@@ -558,6 +589,12 @@ final class KimAdminController extends AdminController
     // POST /admin/kim/{fid}/bulk-email
     // -----------------------------------------------------------------------
 
+    /**
+     * Sends the bulk email to all approved KIM members of a fanlisting (or to a
+     * specific subset when member IDs are posted). Substitutes per-recipient KIM
+     * tokens in the subject and body. Delivery failures are counted and logged but
+     * do not abort remaining sends.
+     */
     public function massEmail(Request $request, array $params): Response
     {
         $fanlistingId = (int) ($params['fid'] ?? 0);
@@ -645,6 +682,7 @@ final class KimAdminController extends AdminController
     // GET /admin/kim/{id}/email-member
     // -----------------------------------------------------------------------
 
+    /** Renders the individual-member email composer for a single KIM member. */
     public function emailMemberForm(Request $request, array $params): Response
     {
         $memberId = (int) ($params['id'] ?? 0);
@@ -703,6 +741,11 @@ final class KimAdminController extends AdminController
     // POST /admin/kim/{id}/email-member
     // -----------------------------------------------------------------------
 
+    /**
+     * Sends a single personalised email to a KIM member. The subject is prefixed with
+     * the listing subject. On delivery failure an error is flashed and the composer
+     * is shown again with the entered subject and body repopulated.
+     */
     public function emailMember(Request $request, array $params): Response
     {
         $memberId = (int) ($params['id'] ?? 0);
@@ -775,6 +818,11 @@ final class KimAdminController extends AdminController
     // POST /admin/kim/{fid}/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles per-listing bulk actions on KIM members (approve, delete, email-selected).
+     * The "email_selected" action stores the selected IDs in the session and redirects
+     * to the bulk email composer; other actions apply immediately.
+     */
     public function bulk(Request $request, array $params): Response
     {
         $fanlistingId = (int) ($params['fid'] ?? 0);
@@ -830,6 +878,7 @@ final class KimAdminController extends AdminController
     // GET /admin/kim/settings
     // -----------------------------------------------------------------------
 
+    /** Renders the KIM settings page (URL overrides, items per page, default landing tab). */
     public function showSettings(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -868,6 +917,10 @@ final class KimAdminController extends AdminController
     // POST /admin/kim/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves KIM settings. If the "reset_defaults" flag is posted all four URL keys,
+     * items per page, and the default landing preference are restored to their defaults.
+     */
     public function saveSettings(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -906,6 +959,7 @@ final class KimAdminController extends AdminController
     // GET /admin/kim/add
     // -----------------------------------------------------------------------
 
+    /** Renders the manual KIM entry creation form. */
     public function addForm(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -933,6 +987,10 @@ final class KimAdminController extends AdminController
     // POST /admin/kim/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Creates a new KIM entry. Validates name, email, URL, and fanlisting assignment,
+     * rejects duplicates by email+fanlisting, and optionally approves the entry immediately.
+     */
     public function add(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -1014,6 +1072,11 @@ final class KimAdminController extends AdminController
     // GET /admin/kim/email-selected  — cross-listing email-selected compose
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the cross-listing "Email Selected" composer. Member IDs are taken from the
+     * "ids" query parameter; their listing assignments are pre-loaded for per-recipient
+     * token previews. Rejects the request when no valid IDs are given.
+     */
     public function emailSelectedGlobalForm(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -1096,6 +1159,11 @@ final class KimAdminController extends AdminController
     // POST /admin/kim/email-selected  — cross-listing email-selected send
     // -----------------------------------------------------------------------
 
+    /**
+     * Sends personalized emails to the selected cross-listing KIM members. Each message
+     * substitutes per-recipient KIM tokens and looks up the recipient's listing for the
+     * listing-specific tokens. Delivery failures are counted but do not abort remaining sends.
+     */
     public function emailSelectedGlobalSend(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();

@@ -41,6 +41,11 @@ final class RulesAdminController extends AdminController
     // GET /admin/rules
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the paginated rules index listing every fanlisting's rule status.
+     * Supports sorting by ID, subject, or last-updated date; search by subject;
+     * and filtering by listing type. Per-page count is read from site settings.
+     */
     public function index(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -106,6 +111,7 @@ final class RulesAdminController extends AdminController
     // POST /admin/rules/bulk
     // -----------------------------------------------------------------------
 
+    /** Applies a bulk action (delete, enable, or disable) to the selected rule sets. */
     public function bulk(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -154,6 +160,7 @@ final class RulesAdminController extends AdminController
     // POST /admin/rules/{id}/edit
     // -----------------------------------------------------------------------
 
+    /** Renders the rule editor for a listing, pre-filling any existing rule body. */
     public function editForm(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -182,6 +189,12 @@ final class RulesAdminController extends AdminController
         ]);
     }
 
+    /**
+     * Saves the rule body, enabled flag, gate type, and gate label for a listing.
+     * If the body changes the version is bumped, invalidating all existing fan agreements.
+     * When a "_redirect_to_listing" ID is posted the success redirect returns to the
+     * listing edit page instead of the rule editor.
+     */
     public function editSave(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -243,6 +256,10 @@ final class RulesAdminController extends AdminController
     // POST /admin/rules/{id}/toggle
     // -----------------------------------------------------------------------
 
+    /**
+     * Flips the enabled state of an existing rule set without entering the editor.
+     * Refuses to enable a rule set whose body is empty, requiring the admin to add text first.
+     */
     public function toggle(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -287,6 +304,7 @@ final class RulesAdminController extends AdminController
     // POST /admin/rules/{id}/delete
     // -----------------------------------------------------------------------
 
+    /** Deletes the rule set for a listing and redirects to the rules index. */
     public function delete(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -314,6 +332,7 @@ final class RulesAdminController extends AdminController
     // POST /admin/rules/global
     // -----------------------------------------------------------------------
 
+    /** Renders the global rules template editor used as a collective-wide fallback. */
     public function globalForm(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -337,6 +356,10 @@ final class RulesAdminController extends AdminController
         ]);
     }
 
+    /**
+     * Saves the global rules template. If the body text changes the version is bumped,
+     * which resets any fan session agreements that relied on the global template.
+     */
     public function globalSave(Request $request, array $params): Response
     {
         $body     = trim((string) $request->post('body', ''));
@@ -381,6 +404,10 @@ final class RulesAdminController extends AdminController
     // POST /admin/rules/global/preview
     // -----------------------------------------------------------------------
 
+    /**
+     * Returns a standalone HTML preview of the submitted global rules template,
+     * rendered with sample token values and the configured gate type.
+     */
     public function globalPreview(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -438,6 +465,7 @@ final class RulesAdminController extends AdminController
     // POST /admin/rules/settings
     // -----------------------------------------------------------------------
 
+    /** Renders the rules settings page (currently: configurable items per page). */
     public function settingsForm(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -459,6 +487,7 @@ final class RulesAdminController extends AdminController
         ]);
     }
 
+    /** Saves rules display settings. Accepts a "reset" or "clear" action to restore defaults. */
     public function settingsSave(Request $request, array $params): Response
     {
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());

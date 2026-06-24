@@ -694,6 +694,10 @@ final class EmailTemplateRepo
     // Private helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Fetches a single template row for a fanlisting_id + type pair, or returns
+     * null when no row exists or when the table does not yet exist.
+     */
     private function fetchOne(int $listingId, string $type): ?object
     {
         try {
@@ -716,6 +720,9 @@ final class EmailTemplateRepo
     }
 
     /**
+     * Fetches all template rows for a fanlisting_id, returning a map of
+     * type → object|null (null for any type with no saved row).
+     *
      * @return array<string, object|null>
      */
     private function fetchAll(int $listingId): array
@@ -744,6 +751,11 @@ final class EmailTemplateRepo
         return $result;
     }
 
+    /**
+     * Converts a raw DB row into a typed object with consistent property names.
+     *
+     * The returned object has properties: id, listingId, type, enabled, subject, body.
+     */
     private function rowToObject(array $row): object
     {
         return (object) [

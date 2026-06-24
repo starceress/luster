@@ -43,6 +43,7 @@ final class RulesRepo
         return $stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
+    /** Returns the rule set for a listing, or null if none exists. */
     public function getForListing(int $listingId): ?RuleSet
     {
         $stmt = $this->db->prepare(
@@ -222,6 +223,7 @@ final class RulesRepo
         return (int) $stmt->rowCount();
     }
 
+    /** Enables or disables the rule set for a single listing. */
     public function setEnabled(int $listingId, bool $enabled): void
     {
         $stmt = $this->db->prepare(
@@ -230,6 +232,7 @@ final class RulesRepo
         $stmt->execute(['enabled' => $enabled ? 1 : 0, 'fid' => $listingId]);
     }
 
+    /** Deletes the rule set row for a listing. */
     public function delete(int $listingId): void
     {
         $stmt = $this->db->prepare(
@@ -242,7 +245,11 @@ final class RulesRepo
     // Helpers
     // -------------------------------------------------------------------------
 
-    /** @param array<string,mixed> $row */
+    /**
+     * Hydrates a RuleSet from a database row.
+     *
+     * @param array<string,mixed> $row
+     */
     private function hydrate(array $row): RuleSet
     {
         return new RuleSet(

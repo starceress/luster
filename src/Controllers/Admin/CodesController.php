@@ -22,6 +22,11 @@ use Luster\Repositories\CodeDonorsRepo;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\CodeSizesRepo;
 use Luster\Repositories\ListingRepo;
+/**
+ * Per-listing codes management: upload with MIME/size validation, size groups,
+ * code categories, donors, drag-drop reordering, bulk operations, metadata
+ * edits, approval-status changes, and ZIP export.
+ */
 final class CodesController extends AdminController
 {
     /** Allowed MIME types for uploaded code images. */
@@ -47,6 +52,11 @@ final class CodesController extends AdminController
     // POST /admin/listings/{fid}/codes/upload
     // -----------------------------------------------------------------------
 
+    /**
+     * Accepts one or more uploaded code images, validates MIME type and file size,
+     * moves them to public/uploads/codes/ with randomised filenames, and inserts
+     * a row per image including any posted size, donor, category, and status.
+     */
     public function upload(Request $request, array $params): Response
     {
         $listingId = (int) ($params['fid'] ?? 0);
@@ -247,6 +257,9 @@ final class CodesController extends AdminController
     // POST /admin/listings/{fid}/codes/sizes/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Adds a named size definition (label, optional width × height) for the listing.
+     */
     public function addSize(Request $request, array $params): Response
     {
         $listingId = (int) ($params['fid'] ?? 0);
@@ -291,6 +304,9 @@ final class CodesController extends AdminController
     // POST /admin/listings/{fid}/codes/sizes/{sid}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Updates the label, width, and height of an existing size definition.
+     */
     public function editSize(Request $request, array $params): Response
     {
         $listingId = (int) ($params['fid'] ?? 0);
@@ -342,6 +358,9 @@ final class CodesController extends AdminController
     // POST /admin/listings/{fid}/codes/categories/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Adds a named code category (optionally nested under a parent) for the listing.
+     */
     public function addCategory(Request $request, array $params): Response
     {
         $listingId = (int) ($params['fid'] ?? 0);
@@ -392,6 +411,10 @@ final class CodesController extends AdminController
     // POST /admin/listings/{fid}/codes/categories/{cid}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Renames a code category and optionally changes its parent; prevents
+     * a category from being set as its own parent.
+     */
     public function editCategory(Request $request, array $params): Response
     {
         $listingId  = (int) ($params['fid'] ?? 0);

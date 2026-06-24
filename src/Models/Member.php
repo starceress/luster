@@ -51,7 +51,13 @@ final class Member
     ];
 
     /**
-     * @param array<string,string> $additionalFields  Dynamic field values keyed by field name.
+     * @param bool                 $approved         True when the member is publicly visible (approved=1
+     *                                               in enth_ schema, pending=0 in unprefixed schema).
+     * @param bool                 $rejected         True when the member was explicitly rejected
+     *                                               (pending=2 in the unprefixed schema; always false
+     *                                               in the standard enth_ schema which has no rejected state).
+     * @param array<string,string> $additionalFields Dynamic field values keyed by bare field name
+     *                                               (without the "additional_" prefix).
      */
     public function __construct(
         public readonly int    $id,
@@ -60,6 +66,7 @@ final class Member
         public readonly string $url,
         public readonly string $country,
         public readonly bool   $showurl,
+        /** Argon2id hash (or legacy MD5 hash for pre-Luster members). Never a plaintext value. */
         public readonly string $password,
         public readonly bool   $approved,
         public readonly bool   $rejected,

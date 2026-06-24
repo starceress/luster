@@ -13,6 +13,14 @@
 declare(strict_types=1);
 
 namespace Luster\Import;
+
+/**
+ * Full result report returned by ImportSourceInterface::run() after an import completes.
+ *
+ * Holds per-data-type row counts (imported, skipped, errors) and a separate
+ * image-migration tally. toText() produces a plain-text report the admin can
+ * download from the wizard's result page.
+ */
 final class ImportResult
 {
     /**
@@ -27,26 +35,41 @@ final class ImportResult
         public readonly string $schemaVariant,
     ) {}
 
+    /**
+     * Returns the total number of records successfully inserted across all data types.
+     */
     public function totalImported(): int
     {
         return (int) array_sum(array_column($this->rows, 'imported'));
     }
 
+    /**
+     * Returns the total number of records skipped (conflict strategy or gate) across all data types.
+     */
     public function totalSkipped(): int
     {
         return (int) array_sum(array_column($this->rows, 'skipped'));
     }
 
+    /**
+     * Returns the total number of image files successfully copied or fetched.
+     */
     public function totalImagesCopied(): int
     {
         return (int) array_sum(array_column($this->imageRows, 'copied'));
     }
 
+    /**
+     * Returns the total number of image migrations that failed or were skipped.
+     */
     public function totalImagesFailed(): int
     {
         return (int) array_sum(array_column($this->imageRows, 'skipped'));
     }
 
+    /**
+     * Returns true if any data row or image row recorded at least one error string.
+     */
     public function hasErrors(): bool
     {
         foreach ($this->rows as $row) {

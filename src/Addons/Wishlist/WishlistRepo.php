@@ -15,6 +15,7 @@ namespace Luster\Addons\Wishlist;
 
 use Luster\Core\Database;
 
+/** Data-access layer for lstr_wishlist. */
 final class WishlistRepo
 {
     public function __construct(private readonly Database $db) {}
@@ -76,6 +77,8 @@ final class WishlistRepo
     }
 
     /**
+     * Returns a paginated result set with a total count for the matching filters.
+     *
      * @return array{items: Wishlist[], total: int}
      */
     public function paginate(
@@ -140,6 +143,7 @@ final class WishlistRepo
         ];
     }
 
+    /** Returns a single wishlist entry by primary key, or null if not found. */
     public function getById(int $id): ?Wishlist
     {
         $stmt = $this->db->prepare('SELECT * FROM lstr_wishlist WHERE id = :id');
@@ -149,6 +153,7 @@ final class WishlistRepo
         return $row !== false ? Wishlist::fromRow($row) : null;
     }
 
+    /** Returns the total number of entries, optionally filtered by type and active status. */
     public function countAll(?string $type = null, bool $activeOnly = false): int
     {
         $where  = [];
@@ -194,6 +199,7 @@ final class WishlistRepo
         return $counts;
     }
 
+    /** Returns the number of entries where active = 0. */
     public function countHidden(): int
     {
         $stmt = $this->db->prepare('SELECT COUNT(*) FROM lstr_wishlist WHERE active = 0');
@@ -242,6 +248,11 @@ final class WishlistRepo
         return $counts;
     }
 
+    /**
+     * Inserts a new wishlist entry. Recognised $data keys: subject, url, image,
+     * category, type, description, added_at, sort_order, active.
+     * Returns the new row's auto-increment ID.
+     */
     public function insert(array $data): int
     {
         $stmt = $this->db->prepare(
@@ -265,6 +276,10 @@ final class WishlistRepo
         return (int) $this->db->lastInsertId();
     }
 
+    /**
+     * Updates a wishlist entry. Recognised $data keys: subject, url, image, category,
+     * type, description, added_at, sort_order, active.
+     */
     public function update(int $id, array $data): void
     {
         $stmt = $this->db->prepare(
@@ -294,17 +309,23 @@ final class WishlistRepo
         ]);
     }
 
+    /** Deletes a wishlist entry by primary key. */
     public function delete(int $id): void
     {
         $this->db->prepare('DELETE FROM lstr_wishlist WHERE id = :id')->execute(['id' => $id]);
     }
 
+    /** Changes the type of a single entry without touching other fields. */
     public function setType(int $id, string $type): void
     {
         $this->db->prepare('UPDATE lstr_wishlist SET type = :type WHERE id = :id')
                  ->execute(['type' => $type, 'id' => $id]);
     }
 
+    /**
+     * Flips the active flag for an entry and returns the new active state.
+     * Returns false when the entry no longer exists after the update.
+     */
     public function toggleActive(int $id): bool
     {
         $this->db->prepare(
@@ -330,7 +351,11 @@ final class WishlistRepo
         return array_map('intval', array_column($stmt->fetchAll(), 'id'));
     }
 
-    /** @param int[] $ids */
+    /**
+     * Writes consecutive sort_order values (0, 1, 2, …) to the given IDs in the supplied order.
+     *
+     * @param int[] $ids
+     */
     public function reorder(array $ids): void
     {
         $stmt = $this->db->prepare(

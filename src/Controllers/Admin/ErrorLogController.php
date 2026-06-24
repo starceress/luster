@@ -17,6 +17,10 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ErrorLogRepo;
 
+/**
+ * Displays and manages the error log: paginated index, CSV export,
+ * and a flush action that clears all entries from lstr_error_log.
+ */
 final class ErrorLogController extends AdminController
 {
 
@@ -24,6 +28,9 @@ final class ErrorLogController extends AdminController
     // GET /admin/errorlog
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the paginated error log, newest entries first.
+     */
     public function index(Request $request, array $params): Response
     {
         $repo    = new ErrorLogRepo($this->app->getDatabase());
@@ -51,6 +58,9 @@ final class ErrorLogController extends AdminController
     // GET /admin/errorlog/export
     // -----------------------------------------------------------------------
 
+    /**
+     * Streams all error log entries as a CSV file download.
+     */
     public function export(Request $request, array $params): Response
     {
         $repo = new ErrorLogRepo($this->app->getDatabase());
@@ -81,6 +91,9 @@ final class ErrorLogController extends AdminController
     // POST /admin/errorlog/flush
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes all rows from lstr_error_log and flashes a success message.
+     */
     public function flush(Request $request, array $params): Response
     {
         $repo    = new ErrorLogRepo($this->app->getDatabase());

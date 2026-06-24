@@ -29,21 +29,25 @@ use Luster\Models\AdditionalField;
  */
 final class FieldRenderer
 {
+    /** Renders a plain text <input> with fl-input class. */
     public function text(string $id, string $name, string $value, bool $required, array $attrs = []): string
     {
         return $this->input('text', $id, $name, $value, $required, $attrs);
     }
 
+    /** Renders an email <input> with fl-input class. */
     public function email(string $id, string $name, string $value, bool $required, array $attrs = []): string
     {
         return $this->input('email', $id, $name, $value, $required, $attrs);
     }
 
+    /** Renders a URL <input> with fl-input class. */
     public function url(string $id, string $name, string $value, bool $required, array $attrs = []): string
     {
         return $this->input('url', $id, $name, $value, $required, $attrs);
     }
 
+    /** Renders a password <input> with fl-input class. Value is never populated (no repopulation for password fields). */
     public function password(string $id, string $name, bool $required, array $attrs = []): string
     {
         return '<input type="password"'
@@ -55,6 +59,7 @@ final class FieldRenderer
              . '>';
     }
 
+    /** Renders a <textarea> with fl-textarea class. */
     public function textarea(string $id, string $name, string $value, bool $required, array $attrs = []): string
     {
         return '<textarea'
@@ -67,6 +72,8 @@ final class FieldRenderer
     }
 
     /**
+     * Renders a <select> element with fl-select class.
+     *
      * @param array<int|string, string> $options [value => label]
      */
     public function select(string $id, string $name, array $options, string $selected, bool $required, array $attrs = []): string
@@ -88,6 +95,11 @@ final class FieldRenderer
              . '>' . $optionsHtml . '</select>';
     }
 
+    /**
+     * Renders a file <input> with fl-input class.
+     *
+     * @param string $accept MIME-type or extension accept filter (e.g. 'image/*'), empty to omit.
+     */
     public function file(string $id, string $name, bool $required = false, string $accept = '', array $attrs = []): string
     {
         $html = '<input type="file" class="fl-input"'
@@ -135,6 +147,8 @@ final class FieldRenderer
     }
 
     /**
+     * Renders a group of radio buttons, one <label><input> pair per option.
+     *
      * @param array<int|string, string> $options [value => label]
      */
     public function radioGroup(string $name, array $options, string $selected, bool $required): string

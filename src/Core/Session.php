@@ -76,21 +76,25 @@ final class Session
         $this->started = true;
     }
 
+    /** Returns the session value for $key, or $default when absent. */
     public function get(string $key, mixed $default = null): mixed
     {
         return $_SESSION[$key] ?? $default;
     }
 
+    /** Stores a value in the session under $key. */
     public function set(string $key, mixed $value): void
     {
         $_SESSION[$key] = $value;
     }
 
+    /** Returns true when $key exists in the session and is not null. */
     public function has(string $key): bool
     {
         return isset($_SESSION[$key]);
     }
 
+    /** Removes $key from the session. No-op when the key does not exist. */
     public function remove(string $key): void
     {
         unset($_SESSION[$key]);
@@ -129,6 +133,7 @@ final class Session
         $this->started = false;
     }
 
+    /** Returns true when start() has been called successfully this request. */
     public function isStarted(): bool
     {
         return $this->started;

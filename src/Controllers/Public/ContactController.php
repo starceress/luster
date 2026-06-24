@@ -53,6 +53,11 @@ final class ContactController
     // GET /contact/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the contact form for a specific listing.
+     *
+     * Returns an error page if the listing's contact form is disabled.
+     */
     public function listingForm(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -90,6 +95,13 @@ final class ContactController
     // POST /contact/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the contact form POST for a specific listing.
+     *
+     * Runs rate-limit, honeypot, CAPTCHA, blacklist, and validation checks, then
+     * delivers the message via Mailer with Reply-To set to the fan's email.
+     * Redirects back to the form URL (or embed host page) on both success and error.
+     */
     public function listingSubmit(Request $request, array $params): Response
     {
         $listingId     = (int) ($params['id'] ?? 0);
@@ -206,6 +218,11 @@ final class ContactController
     // GET /contact
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the site-wide collective contact form.
+     *
+     * Returns an error page if `collective_contact_enabled` is not set to '1'.
+     */
     public function collectiveForm(Request $request, array $params): Response
     {
         $config   = $this->app->getConfig();
@@ -235,6 +252,12 @@ final class ContactController
     // POST /contact
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the collective contact form POST.
+     *
+     * Mirrors listingSubmit() but sends the message to the collective recipient
+     * from lstr_site_settings (falling back to `owner_email` in app config).
+     */
     public function collectiveSubmit(Request $request, array $params): Response
     {
         $baseUrl       = $this->app->getBaseUrl();
@@ -348,6 +371,9 @@ final class ContactController
     // Internals
     // -----------------------------------------------------------------------
 
+    /**
+     * Returns the inline HTML shown to the fan after a message is sent successfully.
+     */
     private static function contactSentHtml(string $senderName): string
     {
         $escaped = htmlspecialchars($senderName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -355,7 +381,14 @@ final class ContactController
     }
 
     /**
-     * @param \Luster\Models\Listing|null $listing  null = collective form
+     * Builds the contact form response for both per-listing and collective contexts.
+     *
+     * Generates a CAPTCHA question, constructs FormFieldBuilder descriptors, and
+     * applies any stored custom form template via ListingTemplateResolver. When a
+     * template is found it is expanded with field tokens and wrapped in a <form>;
+     * otherwise the built-in PHP fragment is used.
+     *
+     * @param \Luster\Models\Listing|null $listing  Pass null for the collective form.
      */
     private function renderContactForm(
         mixed  $listing,
@@ -450,6 +483,8 @@ final class ContactController
     }
 
     /**
+     * Extracts trimmed text fields from the current POST for flash repopulation.
+     *
      * @return array<string,string>
      */
     private function collectOld(Request $request): array
@@ -463,6 +498,9 @@ final class ContactController
         ];
     }
 
+    /**
+     * Renders a full-page public template, injecting base_url and theme_path automatically.
+     */
     private function renderPublic(string $template, array $data): Response
     {
         $view    = $this->app->getView();

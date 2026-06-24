@@ -18,6 +18,17 @@ namespace Luster\Import;
 use PDO;
 use RuntimeException;
 
+/**
+ * Import adapter for BellaBuffs flat-file fanlisting installations.
+ *
+ * BellaBuffs stores all data in comma-separated text files (members.txt,
+ * newbies.txt, affiliates.txt, buttons.txt) rather than a SQL database. This
+ * adapter parses those files, decodes BellaBuffs' email obfuscation tokens
+ * (ATTIE → @, DOTTY → ., DASHY → -, etc.), and imports members, affiliates,
+ * and fan graphic codes into Luster's tables. Because there is no SQL source,
+ * the controller passes Luster's own PDO as both the $source and $target arguments
+ * in preview() and run(); openConnection() always throws RuntimeException.
+ */
 final class BellaBuffsImportSource implements ImportSourceInterface
 {
     // Longer/more-specific tokens must come before shorter ones that are substrings of them.

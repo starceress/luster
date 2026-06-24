@@ -38,14 +38,23 @@ final class FieldWrapper
         </div>
         HTML;
 
+    /** Returns the built-in fl-field wrapper template, used when no custom template is stored in the DB. */
     public static function defaultTemplate(): string
     {
         return self::DEFAULT_TEMPLATE;
     }
 
     /**
+     * Wraps a rendered input element in its label, hint, error, and required-marker markup.
+     *
+     * Processes $template (or the built-in default) through TemplateEngine, substituting:
+     *   {label}, {field_id}, {hint}, {error}, {lost_password_url} (escaped),
+     *   {input}, {required_html} (raw), and conditionals for field_id/hint/error/lost_password_url.
+     *
      * @param string $fieldId empty string for checkbox/radio groups — no single
      *                        input id exists to point a wrapper id/label-for at
+     * @param string $lostPasswordUrl  When non-empty, exposes {lost_password_url} for the
+     *                                 "Forgot your password?" link on the update form.
      */
     public function render(
         string $template,

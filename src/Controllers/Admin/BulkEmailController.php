@@ -24,6 +24,17 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SavedEmailRepo;
 
+/**
+ * Handles bulk announcement emails and the saved email template library.
+ *
+ * The preview action validates the compose form and shows a recipient count
+ * and sample list before the email is sent. The send action performs the
+ * actual per-recipient loop with token substitution and logs the delivery.
+ * When sending to all listings, recipients are deduplicated by email address
+ * so a member of multiple listings only receives one copy. The saved-template
+ * actions (save, update, delete) manage the reusable template library that
+ * can be loaded into any compose form.
+ */
 final class BulkEmailController extends AdminController
 {
 
@@ -31,6 +42,13 @@ final class BulkEmailController extends AdminController
     // POST /admin/emails/preview
     // -----------------------------------------------------------------------
 
+    /**
+     * Validates the bulk-email compose form and renders a pre-send confirmation page.
+     *
+     * Collects recipients for the selected scope (one listing or all listings),
+     * shows the total count, and displays up to five sample recipient emails so the
+     * admin can verify the audience before committing to send.
+     */
     public function preview(Request $request, array $params): Response
     {
         $listingId = (int) $request->post('listing_id', '0');
@@ -73,6 +91,15 @@ final class BulkEmailController extends AdminController
     // POST /admin/emails/send
     // -----------------------------------------------------------------------
 
+    /**
+     * Sends the bulk email to all recipients in scope, one delivery per recipient.
+     *
+     * Re-validates the hidden subject/body fields, re-collects recipients, applies
+     * per-recipient token substitution ({fan_name}, {fan_email}, etc.), and delivers
+     * via Mailer. Increases the time limit to 5 minutes for large lists. Logs a
+     * summary of sent and failed addresses to the activity log, then renders the
+     * result page.
+     */
     public function send(Request $request, array $params): Response
     {
         $listingId = (int) $request->post('listing_id', '0');
@@ -136,6 +163,10 @@ final class BulkEmailController extends AdminController
     // GET /admin/new-email-template — redirect to unified page
     // -----------------------------------------------------------------------
 
+    /**
+     * Redirects the legacy /admin/new-email-template URL to the Saved Templates tab
+     * on the unified Emails page.
+     */
     public function savedEmailsRedirect(Request $request, array $params): Response
     {
         return Response::redirect($this->app->getBaseUrl() . '/admin/emails?tab=custom');
@@ -145,6 +176,14 @@ final class BulkEmailController extends AdminController
     // POST /admin/new-email-template/save
     // -----------------------------------------------------------------------
 
+    /**
+     * Creates a new saved email template from the compose form.
+     *
+     * Validates that name and body are non-empty. If the POST includes aff_ids
+     * (selected-affiliate context), those IDs are stashed in the session so the
+     * compose form reloads correctly after save. The referer header is honoured
+     * for the redirect when it is a same-origin URL.
+     */
     public function saveTemplate(Request $request, array $params): Response
     {
         $name    = trim((string) $request->post('tpl_name', ''));
@@ -183,6 +222,12 @@ final class BulkEmailController extends AdminController
     // POST /admin/new-email-template/{id}/update
     // -----------------------------------------------------------------------
 
+    /**
+     * Updates an existing saved email template's name, subject, and body.
+     *
+     * Returns a flash error if the template does not exist or the required
+     * fields (name, body) are blank.
+     */
     public function updateTemplate(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -214,6 +259,10 @@ final class BulkEmailController extends AdminController
     // POST /admin/new-email-template/{id}/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes a saved email template. The delete is unconditional — no confirmation
+     * page is shown; the admin's POST is treated as the confirmation.
+     */
     public function deleteTemplate(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);

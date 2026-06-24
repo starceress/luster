@@ -17,8 +17,16 @@ namespace Luster\Models;
 /**
  * Represents an admin account from lstr_admin_users.
  *
- * The password property holds a bcrypt/Argon2id hash — never a plaintext
- * value. lastLogin is null until the user logs in for the first time.
+ * Holds everything needed to authenticate an admin and display their
+ * identity in the panel. The password field is always an Argon2id hash —
+ * never a plaintext value. Use password_verify() to check submitted
+ * credentials against it.
+ *
+ * failedAttempts is incremented on each bad login and reset to 0 on
+ * success; it drives the brute-force lockout logic in AuthController.
+ * lastLogin is null until the account has been used at least once.
+ * displayName (added in Migration 46) is an optional vanity name shown
+ * in the admin panel, distinct from the login username.
  */
 final class AdminUser
 {
@@ -26,9 +34,13 @@ final class AdminUser
         public readonly int     $id,
         public readonly string  $username,
         public readonly string  $email,
+        /** Optional display name shown in the admin panel (Migration 46). */
         public readonly ?string $displayName,
+        /** Argon2id password hash — never a plaintext value. */
         public readonly string  $password,
+        /** Consecutive failed login attempts since the last successful login. */
         public readonly int     $failedAttempts,
+        /** Timestamp of the last successful login; null if the account has never been used. */
         public readonly ?string $lastLogin,
         public readonly string  $createdAt,
         public readonly string  $updatedAt,

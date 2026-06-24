@@ -105,6 +105,12 @@ final class CodeCategoriesRepo
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Inserts a new code category for a listing and returns its new primary key.
+     *
+     * Set $parentId to null for a top-level category. $sortOrder controls display
+     * order within the listing; use getMaxSortOrder() to append at the end.
+     */
     public function insert(int $listingId, string $name, ?int $parentId, int $sortOrder): int
     {
         $stmt = $this->db->prepare(
@@ -121,6 +127,11 @@ final class CodeCategoriesRepo
         return (int) $this->db->lastInsertId();
     }
 
+    /**
+     * Updates the name and parent of an existing code category.
+     *
+     * Set $parentId to null to make the category top-level.
+     */
     public function update(int $id, string $name, ?int $parentId): void
     {
         $stmt = $this->db->prepare(

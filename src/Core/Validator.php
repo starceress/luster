@@ -65,11 +65,13 @@ final class Validator
         return !empty($this->errors[$field]);
     }
 
+    /** Returns true when no validation errors have been recorded across all fields. */
     public function passes(): bool
     {
         return empty($this->errors);
     }
 
+    /** Returns true when at least one field has a validation error. */
     public function fails(): bool
     {
         return !$this->passes();

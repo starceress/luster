@@ -96,46 +96,55 @@ final class Application
     // Service accessors
     // -----------------------------------------------------------------------
 
+    /** Returns the application configuration (loaded from config/app.php). */
     public function getConfig(): Config
     {
         return $this->config;
     }
 
+    /** Returns the lazy PDO wrapper used by all repositories. */
     public function getDatabase(): Database
     {
         return $this->database;
     }
 
+    /** Returns the session wrapper (may not be started yet; call start() first). */
     public function getSession(): Session
     {
         return $this->session;
     }
 
+    /** Returns the request router. Normally used only by the boot internals. */
     public function getRouter(): Router
     {
         return $this->router;
     }
 
+    /** Returns the template renderer shared across all controllers. */
     public function getView(): View
     {
         return $this->view;
     }
 
+    /** Returns the CSRF token manager. */
     public function getCSRF(): CSRF
     {
         return $this->csrf;
     }
 
+    /** Returns the database-backed rate limiter. */
     public function getRateLimit(): RateLimit
     {
         return $this->rateLimit;
     }
 
+    /** Returns the public form field builder (FieldRenderer + FieldWrapper). */
     public function getFormFieldBuilder(): FormFieldBuilder
     {
         return $this->formFieldBuilder;
     }
 
+    /** Returns the absolute filesystem path to the project root (no trailing slash). */
     public function getBasePath(): string
     {
         return $this->basePath;
@@ -150,6 +159,7 @@ final class Application
         return $this->installedAddonKeys;
     }
 
+    /** Returns true when the addon with the given key is in the installed registry. */
     public function isAddonInstalled(string $key): bool
     {
         if (!$this->addonsLoaded) {
@@ -607,6 +617,7 @@ final class Application
         }
     }
 
+    /** Sets the PHP default timezone from config, falling back to UTC on an invalid value. */
     private function applyTimezone(): void
     {
         $tz = (string) $this->config->get('timezone', 'UTC');
@@ -616,6 +627,10 @@ final class Application
         }
     }
 
+    /**
+     * Requires config/routes.php and invokes the closure for the given context
+     * ('public' or 'admin') so route definitions are registered on the router.
+     */
     private function loadRoutes(string $context): void
     {
         $routesFile = $this->basePath . '/config/routes.php';
@@ -631,6 +646,13 @@ final class Application
         }
     }
 
+    /**
+     * Last-resort exception handler for anything that escapes the boot pipeline.
+     *
+     * Sends a 403 for CSRF failures, a debug stack trace when app_debug is true,
+     * and a generic 500 page otherwise. Always logs to error_log and attempts a
+     * best-effort write to lstr_error_log.
+     */
     private function handleException(Throwable $e): void
     {
         // Ensure security headers are sent even when an exception escaped before

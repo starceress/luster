@@ -35,6 +35,13 @@ final class SecurityHeaders
      */
     private const CSP_SCRIPT_HASH = 'sha256-lfZvxb5T4sGLkAT0mD3Vb+Uc8DCNaZf6KEuzEkUi0eA=';
 
+    /**
+     * Emits all security response headers via PHP header().
+     *
+     * Safe to call multiple times — returns immediately when headers have already
+     * been sent. The CSP_SCRIPT_HASH constant must be updated if the inline
+     * theme-toggle script in admin layout templates ever changes.
+     */
     public static function apply(): void
     {
         if (headers_sent()) {

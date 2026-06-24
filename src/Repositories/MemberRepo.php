@@ -168,6 +168,12 @@ final class MemberRepo
         return $row !== false ? Member::fromRow($row) : null;
     }
 
+    /**
+     * Returns the raw database row for a member by email, or null if not found.
+     *
+     * Unlike getByEmail(), this skips Member::fromRow() hydration and returns the
+     * plain associative array as fetched, including any additional field columns.
+     */
     public function getRawRow(string $prefix, string $email): ?array
     {
         $p    = $this->resolveTable($prefix);
@@ -319,14 +325,11 @@ final class MemberRepo
     }
 
     /**
-     * Returns a paginated slice of members filtered by status.
+     * Returns a paginated slice of members filtered by status with sorting support.
      *
-     * @param string $status  'approved' | 'pending' | 'all'
-     * @return array{members: Member[], total: int, pages: int}
-     */
-    /**
-     * @param string $sort  'name' | 'email' | 'country' | 'status'
-     * @param string $dir   'asc' | 'desc'
+     * @param string $status  'approved' | 'pending' | 'rejected' | 'all'
+     * @param string $sort    'name' | 'email' | 'country' | 'status'
+     * @param string $dir     'asc' | 'desc'
      * @return array{members: Member[], total: int, pages: int}
      */
     public function paginateByStatus(
@@ -752,11 +755,6 @@ final class MemberRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Validates a column name before SQL interpolation.
-     *
-     * @throws RuntimeException
-     */
-    /**
      * Returns the actual column names present in a member table.
      * Used to filter update data against stale field definitions.
      *
@@ -771,6 +769,11 @@ final class MemberRepo
         return array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'Field');
     }
 
+    /**
+     * Validates a column name before SQL interpolation.
+     *
+     * @throws RuntimeException when $column contains characters outside [a-zA-Z0-9_]
+     */
     private function validateColumnName(string $column): void
     {
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
@@ -780,6 +783,9 @@ final class MemberRepo
         }
     }
 
+    /**
+     * Returns the number of distinct non-empty countries across approved members in one listing.
+     */
     public function countUniqueCountries(string $prefix): int
     {
         $table = $this->resolveTable($prefix);
@@ -808,6 +814,10 @@ final class MemberRepo
         return $stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
+    /**
+     * Returns the MAX(added) timestamp across all members in the table, or null when
+     * the table is empty. Used to determine when a listing was last active.
+     */
     public function getLastUpdated(string $prefix): ?string
     {
         $table = $this->resolveTable($prefix);

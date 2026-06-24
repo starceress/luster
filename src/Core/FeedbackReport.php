@@ -45,11 +45,17 @@ final class FeedbackReport
         'other'    => 'Other',
     ];
 
+    /** Returns the human-readable label for a feedback type key, defaulting to 'Other'. */
     public static function typeLabel(string $type): string
     {
         return self::TYPE_LABELS[$type] ?? 'Other';
     }
 
+    /**
+     * Formats the system info block as a plain-text section for inclusion in a feedback report.
+     *
+     * See the class docblock for the expected keys in $data.
+     */
     public static function formatSysInfo(array $data): string
     {
         $addons    = !empty($data['addons']) ? implode(', ', $data['addons']) : 'None';
@@ -77,6 +83,11 @@ final class FeedbackReport
             . self::row('Add-ons',        $addons);
     }
 
+    /**
+     * Formats recent error log entries as a plain-text section.
+     *
+     * Each row in $rows should have 'created_at', 'source', and 'message' keys.
+     */
     public static function formatErrorLog(array $rows): string
     {
         $header = self::SEP . "RECENT ERRORS (LAST 10)\n" . self::SEP;
@@ -96,6 +107,14 @@ final class FeedbackReport
         return rtrim($lines) . "\n";
     }
 
+    /**
+     * Assembles the complete feedback report body from the submitted form data and
+     * pre-formatted system info / error log sections.
+     *
+     * @param array  $form      Submitted feedback form values (see class docblock).
+     * @param string $sysInfo   Output of formatSysInfo(), included when include_sysinfo is true.
+     * @param string $errorLog  Output of formatErrorLog(), included when include_errorlog is true.
+     */
     public static function compose(array $form, string $sysInfo, string $errorLog): string
     {
         $type       = $form['type']          ?? 'other';
@@ -135,6 +154,7 @@ final class FeedbackReport
         return $body;
     }
 
+    /** Formats a single "Label:           value" line, padded to 18 characters. */
     private static function row(string $label, string $value): string
     {
         return sprintf("%-18s %s\n", $label . ':', $value);

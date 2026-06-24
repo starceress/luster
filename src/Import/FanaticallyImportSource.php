@@ -18,6 +18,17 @@ namespace Luster\Import;
 
 use PDO;
 
+/**
+ * Import adapter for Fanatically 1.x databases.
+ *
+ * Fanatically uses a central member table with JSON-encoded custom field
+ * definitions, JSON-encoded affiliate listing mappings, and a configurable table
+ * prefix (default "fanatic_"). This adapter imports listings, members, categories,
+ * affiliates, joined listings, fan graphic codes, and non-sensitive site settings.
+ * When the corresponding add-ons are installed it also imports wishlist entries,
+ * KIM sign-ups, and adoption applications. Table prefix validation is enforced via
+ * assertValidPrefix() before any SQL interpolation.
+ */
 final class FanaticallyImportSource implements ImportSourceInterface
 {
     private const CHUNK = 500;
@@ -33,7 +44,12 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
     private ?\ZipArchive $activeZip = null;
 
-    /** Validates a table prefix string — same rule as Database::validatePrefix(). */
+    /**
+     * Validates a table prefix string against the same pattern as Database::validatePrefix().
+     * Only [a-zA-Z0-9_] characters are allowed. An empty string is valid (prefix-less install).
+     *
+     * @throws \RuntimeException when the prefix contains illegal characters.
+     */
     private static function assertValidPrefix(string $prefix): void
     {
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {

@@ -65,6 +65,13 @@ final class JoinController
     // GET /join/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the join form, including CAPTCHA, country selector, and any
+     * dynamic additional fields defined for this listing.
+     *
+     * Also checks the Rules add-on gate — if the fan has not agreed to the
+     * current rules version, they are redirected to the rules page first.
+     */
     public function showForm(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -101,6 +108,14 @@ final class JoinController
     // POST /join/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes a join form submission.
+     *
+     * Runs honeypot, rate-limit, CAPTCHA, blacklist, and duplicate-email checks
+     * before inserting the new member. Sends a confirmation email (and an admin
+     * notification if the listing has an email address). On auto-approve listings
+     * the member is active immediately; otherwise they land in the pending queue.
+     */
     public function submit(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -513,6 +528,14 @@ final class JoinController
         return Response::html($html);
     }
 
+    /**
+     * Creates a one-time password-setup token for a newly auto-approved member
+     * and returns the full URL to the confirm form with the raw token in the query string.
+     *
+     * Called only for auto-approved joins where the password was auto-generated —
+     * the URL is embedded in both the join confirmation email and a separate reset email
+     * so the fan can choose their own password before their first update.
+     */
     private function issuePasswordSetupUrl(int $listingId, string $email): string
     {
         $resetRepo = new FanPasswordResetRepo($this->app->getDatabase());

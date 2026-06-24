@@ -38,6 +38,12 @@ final class UpdatesPublicController
     // GET /updates/{id}  — per-fanlisting feed
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the public updates feed for a single fanlisting. Supports pagination and
+     * optional category filtering via the "cat" query parameter. When a custom updates
+     * template is configured it is rendered via TemplateEngine; otherwise the default
+     * fragment template is used.
+     */
     public function feed(Request $request, array $params): Response
     {
         $fid    = (int) ($params['id'] ?? 0);
@@ -124,7 +130,9 @@ final class UpdatesPublicController
     // -----------------------------------------------------------------------
 
     /**
-     * Renders an updates list via TemplateEngine when a custom template is set.
+     * Public proxy to buildUpdatesHtml(). Used by embed/updates.php and
+     * embed/collective-updates.php so they can render a custom template without
+     * re-implementing the TemplateEngine loop.
      *
      * @param \Luster\Addons\Updates\Update[] $updates
      */
@@ -133,6 +141,13 @@ final class UpdatesPublicController
         return self::buildUpdatesHtml($updates, $template);
     }
 
+    /**
+     * Renders an updates list through TemplateEngine using the provided template string.
+     * Handles {if_updates}/{if_no_updates} page-level conditionals and {each_update} loops
+     * with per-entry token substitution.
+     *
+     * @param \Luster\Addons\Updates\Update[] $updates
+     */
     private static function buildUpdatesHtml(array $updates, string $template): string
     {
         $hasUpdates = count($updates) > 0;
@@ -170,6 +185,11 @@ final class UpdatesPublicController
     // GET /updates  — collective feed
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the public collective updates feed (fanlisting_id IS NULL). Supports
+     * pagination and optional category filtering. Uses the collective updates template
+     * from site settings when set; falls back to the default fragment template.
+     */
     public function collective(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();

@@ -96,6 +96,11 @@ final class CodeDonorsRepo
     // Writes
     // -----------------------------------------------------------------------
 
+    /**
+     * Inserts a new donor record for a listing and returns the new primary key.
+     *
+     * Pass null for $email or $url when the donor did not provide those details.
+     */
     public function insert(int $listingId, string $name, ?string $email, ?string $url): int
     {
         $stmt = $this->db->prepare(
@@ -112,6 +117,11 @@ final class CodeDonorsRepo
         return (int) $this->db->lastInsertId();
     }
 
+    /**
+     * Updates the contact details for an existing donor.
+     *
+     * Pass null for $email or $url to clear those optional fields.
+     */
     public function update(int $id, string $name, ?string $email, ?string $url): void
     {
         $stmt = $this->db->prepare(

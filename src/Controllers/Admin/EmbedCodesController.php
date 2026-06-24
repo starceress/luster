@@ -23,10 +23,29 @@ use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 
+/**
+ * Renders the Embed Codes page, which generates copy-paste PHP snippets for every
+ * embed entry point, and drives the live preview iframe used on that page.
+ *
+ * The index action lists all 25+ embed types with pre-filled snippets (install path
+ * and a real listing ID). The preview action runs the requested embed in an isolated
+ * output buffer and returns a minimal HTML document so the admin can see exactly what
+ * a visitor would see. Session-gated embeds (Update Membership, KIM Update) are
+ * rendered synthetically with placeholder data so the preview never consumes or
+ * mutates the current session's auth state. The compat-test action smoke-tests legacy
+ * compatibility wrappers by executing a selected embed and displaying the raw output.
+ */
 final class EmbedCodesController
 {
     public function __construct(private readonly Application $app) {}
 
+    /**
+     * Renders the Embed Codes index page.
+     *
+     * Picks an example listing ID (from the ?listing= query parameter, or the first
+     * active listing) and passes it, the embed directory path, and all listings to the
+     * template so the snippet generator can pre-fill realistic values.
+     */
     public function index(Request $request, array $params): Response
     {
         $db        = $this->app->getDatabase();
@@ -84,6 +103,18 @@ final class EmbedCodesController
     // GET /admin/embed-codes/preview
     // -----------------------------------------------------------------------
 
+    /**
+     * Executes a requested embed type and returns a minimal standalone HTML page
+     * containing the rendered output, suitable for display inside a preview iframe.
+     *
+     * Most embeds are executed by requiring the real embed file with $luster_return=true
+     * and any query-string overrides forwarded as embed variables. Exceptions:
+     * - "update" and "kim-update" are session-gated and rendered synthetically via
+     *   separate private helpers so the preview never reads or mutates auth session state.
+     * - "members", "owned", and "joined" are executed three times each with different
+     *   display-mode options, presented behind a pure-CSS tab toggle.
+     * The returned document loads the public stylesheet for accurate styling.
+     */
     public function preview(Request $request, array $params): Response
     {
         $config     = $this->app->getConfig();
@@ -528,6 +559,15 @@ final class EmbedCodesController
      *
      * @param list<array{label: string, html: string}> $panels
      */
+    /**
+     * Wraps a set of HTML panels behind a pure-CSS pill-toggle so the admin can
+     * switch between display modes without scrolling through a tall stacked layout.
+     *
+     * Uses hidden radio inputs + CSS :checked sibling selectors — no JavaScript
+     * required, so the toggle works under strict CSP that blocks inline scripts.
+     *
+     * @param list<array{label: string, html: string}> $panels
+     */
     private function previewTabbedPanels(array $panels): string
     {
         $e = static fn(string $s): string =>
@@ -564,6 +604,12 @@ final class EmbedCodesController
         return $css . $radios . $pills . $content;
     }
 
+    /**
+     * Wraps embed preview HTML in a minimal standalone HTML document.
+     *
+     * Loads the public stylesheet with a cache-busting timestamp so the preview
+     * reflects the current CSS without requiring a hard refresh.
+     */
     private function previewWrap(string $content, string $appUrl): string
     {
         $base    = rtrim($appUrl, '/');
@@ -595,6 +641,15 @@ final class EmbedCodesController
     // GET/POST /admin/compat-test
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the compat-test page, which lets admins smoke-test legacy compatibility
+     * wrappers (Enthusiast, Listing Admin, CodeSort shims) by executing a selected
+     * embed type for a selected listing and displaying the raw HTML output inline.
+     *
+     * The form posts back to itself; on POST the selected embed file is required with
+     * $luster_return=true and the output is captured for display in the result panel.
+     * Any Throwable from the embed is caught and shown as an error rather than crashing.
+     */
     public function compatTest(Request $request, array $params): Response
     {
         $db        = $this->app->getDatabase();

@@ -27,6 +27,14 @@ use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 
+/**
+ * Unified member management controller.
+ *
+ * Serves the member overview (cross-listing counts), per-listing member list
+ * (approve/reject/delete/edit, bulk actions, pending updates), global search,
+ * CSV export, merge (deduplicate), email-selected, and per-listing member
+ * settings. All writes are logged to the activity log.
+ */
 final class MemberController extends AdminController
 {
 
@@ -35,6 +43,12 @@ final class MemberController extends AdminController
     // GET /admin/members/{id}     — redirects here with listing_id={id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Unified member page. Renders the overview (cross-listing counts and a
+     * listing selector) when no listing is selected, or the per-listing member
+     * list with status tabs, pending-updates section, and sort/search controls
+     * when a listing_id is provided. Also handles cross-listing search.
+     */
     public function overview(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -297,6 +311,10 @@ final class MemberController extends AdminController
     }
 
     // GET /admin/members/{id} — redirect to unified page
+    /**
+     * Redirects /members/{id} to the unified members page pre-filtered to the
+     * given listing ID (backwards-compatible URL shim).
+     */
     public function index(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -308,6 +326,10 @@ final class MemberController extends AdminController
     // GET + POST /admin/members/{id}/edit  (?email=addr@example.com)
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the member edit form (GET) or saves name/URL/country/custom-field
+     * changes (POST). Touches the listing's last_updated date on save.
+     */
     public function edit(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -434,6 +456,9 @@ final class MemberController extends AdminController
     // POST /admin/members/{id}/approve
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves a single pending member and sends a confirmation email if enabled.
+     */
     public function approve(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -446,6 +471,9 @@ final class MemberController extends AdminController
     // POST /admin/members/{id}/reject
     // -----------------------------------------------------------------------
 
+    /**
+     * Rejects (removes) a pending member without sending a notification email.
+     */
     public function reject(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -458,6 +486,9 @@ final class MemberController extends AdminController
     // POST /admin/members/{id}/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Permanently deletes an approved or pending member from the member table.
+     */
     public function deleteMember(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -468,12 +499,13 @@ final class MemberController extends AdminController
 
     // -----------------------------------------------------------------------
     // POST /admin/members/{id}/merge
-    //
-    // Merges two members by deleting the secondary (duplicate) member.
-    // The primary member (currently being edited) is kept unchanged.
-    // Both must exist in the same listing.
     // -----------------------------------------------------------------------
 
+    /**
+     * Merges two member records by deleting the duplicate (secondary) email.
+     * The primary member being edited is kept unchanged. Both must belong to
+     * the same listing.
+     */
     public function merge(Request $request, array $params): Response
     {
         $listingId    = (int) ($params['id'] ?? 0);
@@ -543,6 +575,11 @@ final class MemberController extends AdminController
     // POST /admin/members/{id}/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles per-listing bulk member actions: approve, pending, reject,
+     * delete, and email_selected. The email_selected action stashes the chosen
+     * email addresses in the session and redirects to the email-selected composer.
+     */
     public function bulk(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -677,6 +714,11 @@ final class MemberController extends AdminController
     // POST /admin/members/{id}/approve-all-pending
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves all pending members for a single listing in one operation,
+     * sending an approval email for each. Touches the listing's last_updated
+     * date after all approvals complete.
+     */
     public function approveAllPending(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -758,6 +800,11 @@ final class MemberController extends AdminController
     // member update. Sends approval/update emails best-effort for each.
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves every pending new member across all listings AND every pending
+     * member update in a single operation. Sends approval/update confirmation
+     * emails best-effort for each. Logs aggregate counts to the activity log.
+     */
     public function approveAllOverview(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -894,6 +941,11 @@ final class MemberController extends AdminController
     // Checkbox values are encoded as "{listingId}:{email}".
     // -----------------------------------------------------------------------
 
+    /**
+     * Cross-listing bulk approve or reject for the unified pending members table.
+     * Checkbox values are encoded as '{listingId}:{email}' strings and grouped
+     * by listing for efficient processing.
+     */
     public function pendingBulk(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -981,6 +1033,10 @@ final class MemberController extends AdminController
     // GET /admin/members/{id}/export
     // -----------------------------------------------------------------------
 
+    /**
+     * Streams approved members for a single listing as a CSV file download,
+     * including all custom additional-field columns.
+     */
     public function export(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -1039,6 +1095,10 @@ final class MemberController extends AdminController
         return Response::csv((string) $csv, $filename);
     }
 
+    /**
+     * Streams all pending members across every listing as a single CSV file
+     * download. Includes the listing title alongside each member row.
+     */
     public function exportPending(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -1186,6 +1246,9 @@ final class MemberController extends AdminController
     // GET /admin/members/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the member display settings page (members per page, etc.).
+     */
     public function indexSettings(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -1207,6 +1270,10 @@ final class MemberController extends AdminController
     // POST /admin/members/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves member display settings (per_page) to config/app.php.
+     * The 'reset_defaults' POST flag restores the built-in default of 25.
+     */
     public function saveSettings(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -1242,6 +1309,10 @@ final class MemberController extends AdminController
         return Response::redirect($baseUrl . '/admin/members/settings');
     }
 
+    /**
+     * Renders the single-member email composer, pre-populated with the member's
+     * name and contact details. Supports saved email template load/save.
+     */
     public function emailMemberForm(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -1291,6 +1362,11 @@ final class MemberController extends AdminController
         ], '', $this->memberBreadcrumbs($listing, $member ? $member->name : $email));
     }
 
+    /**
+     * Sends a one-off email to a single member with per-recipient token
+     * substitution ({fan_name}, {listing_title}, etc.) applied to the subject
+     * and body before delivery.
+     */
     public function emailMemberSend(Request $request, array $params): Response
     {
         $config   = $this->app->getConfig();
@@ -1351,6 +1427,11 @@ final class MemberController extends AdminController
     // GET /admin/members/{id}/email-selected
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the email-selected-members composer. The list of recipient
+     * addresses is read from the session key 'lstr_selected_emails', which
+     * is written by the bulk() action when 'email_selected' is chosen.
+     */
     public function emailSelectedForm(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -1413,6 +1494,11 @@ final class MemberController extends AdminController
     // POST /admin/members/{id}/email-selected/send
     // -----------------------------------------------------------------------
 
+    /**
+     * Sends the composed email to each selected member with per-recipient token
+     * substitution ({fan_name}, {listing_title}, etc.) applied individually.
+     * Partial failures are reported without aborting remaining sends.
+     */
     public function emailSelectedSend(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -1498,6 +1584,11 @@ final class MemberController extends AdminController
     // POST /admin/members/{id}/email-selected/save-template
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves a reusable email template from the email-selected composer to
+     * lstr_saved_emails, then restores the compose state (recipient list +
+     * draft fields) so the user can continue composing after saving.
+     */
     public function emailSelectedSaveTemplate(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();

@@ -21,6 +21,18 @@ use Luster\Core\Response;
 use Luster\Core\Version;
 use Luster\Repositories\ErrorLogRepo;
 
+/**
+ * Admin feedback form — lets the logged-in admin send a bug report, feature
+ * request, or question to the Luster developer.
+ *
+ * The form collects a free-text message, an optional contact address, and two
+ * opt-in checkboxes to attach sanitised diagnostic data (PHP/DB versions,
+ * installed add-ons, migration level) and/or the ten most recent error-log
+ * entries. Absolute server paths are stripped from error-log rows before
+ * inclusion so the report does not expose the host filesystem layout.
+ * Sending uses the configured SMTP transport via Mailer; on delivery failure
+ * the composed body is shown inline so the admin can copy-paste it manually.
+ */
 final class FeedbackController extends AdminController
 {
     private const ALLOWED_TYPES = ['bug', 'question', 'feature', 'other'];
@@ -29,6 +41,12 @@ final class FeedbackController extends AdminController
     // GET /admin/feedback
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the feedback form with fresh diagnostic data and no pre-filled values.
+     *
+     * Consumes any success flash message from a previous successful send so the
+     * confirmation banner only appears once.
+     */
     public function showForm(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -50,6 +68,15 @@ final class FeedbackController extends AdminController
     // POST /admin/feedback
     // -----------------------------------------------------------------------
 
+    /**
+     * Validates the submitted feedback form and sends the report email.
+     *
+     * On validation failure, re-renders the form with field-level errors and the
+     * submitted values preserved. On Mailer failure, re-renders the form with
+     * send_failed=true and the composed body text so the admin can copy-paste the
+     * content to send manually. On success, sets a flash message and redirects
+     * back to the form so a page refresh cannot re-submit.
+     */
     public function submit(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -134,6 +161,12 @@ final class FeedbackController extends AdminController
     // Internals
     // -----------------------------------------------------------------------
 
+    /**
+     * Returns a map of field name to error string for any fields that fail validation.
+     *
+     * An empty array means all fields are valid. The contact URL field is optional;
+     * when provided it must begin with http:// or https://.
+     */
     private function validateFields(
         string $type,
         string $subject,
@@ -168,6 +201,15 @@ final class FeedbackController extends AdminController
         return $errors;
     }
 
+    /**
+     * Collects the diagnostic data and formatted strings passed to the view.
+     *
+     * Queries the database for its server version and the highest applied
+     * migration number. Reads installed add-on keys from lstr_addons. Fetches
+     * the ten most recent error-log rows and strips the absolute LUSTER_BASE
+     * prefix from source and message fields. Returns all data ready for
+     * FeedbackReport::formatSysInfo() and FeedbackReport::formatErrorLog().
+     */
     private function gatherViewData(): array
     {
         $db      = $this->app->getDatabase();

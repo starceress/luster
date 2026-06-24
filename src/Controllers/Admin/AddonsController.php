@@ -21,12 +21,28 @@ use Luster\Repositories\ActivityRepo;
 use PDOException;
 use Throwable;
 
+/**
+ * Manages the add-on system from the admin panel.
+ *
+ * Discovers add-on packages under src/Addons/, displays their install/uninstall
+ * state, and handles one-click install and uninstall. Each add-on implements
+ * AddonInterface and owns its own database tables. Installing adds a registry row
+ * to lstr_addons and calls AddonInterface::install(), which runs DDL statements.
+ * Uninstalling removes only the registry row — data tables are preserved so
+ * reinstalling recovers existing data without re-running the full install.
+ */
 final class AddonsController
 {
     public function __construct(private readonly Application $app) {}
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Renders the Add-ons management page with a card per discovered add-on.
+     *
+     * Each card shows the add-on name, description, install status, and the
+     * appropriate Install or Disable button.
+     */
     public function index(Request $request, array $params): Response
     {
         $view    = $this->app->getView();
@@ -66,6 +82,13 @@ final class AddonsController
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Installs an add-on by calling its install() method and registering it in lstr_addons.
+     *
+     * DDL statements inside install() cause implicit commits in MySQL, so the steps
+     * are run sequentially outside a transaction rather than atomically. If install()
+     * throws, the error is surfaced as a flash message and the add-on is not registered.
+     */
     public function install(Request $request, array $params): Response
     {
         $key      = trim((string) $request->post('addon_key'));
@@ -118,6 +141,12 @@ final class AddonsController
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Disables an add-on by removing its row from lstr_addons without dropping data tables.
+     *
+     * The add-on's nav link disappears immediately. Reinstalling later re-registers
+     * the add-on and restores access to all previously stored data.
+     */
     public function uninstall(Request $request, array $params): Response
     {
         $key      = trim((string) $request->post('addon_key'));

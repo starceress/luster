@@ -116,6 +116,11 @@ final class SettingsController extends AdminController
     // GET /admin/collective
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the Collective overview dashboard: listing/member/joined counts,
+     * newest and most-active listing, newest member/affiliate/joined entry,
+     * collective codes count, and per-add-on record counts.
+     */
     public function collectiveIndex(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -290,6 +295,10 @@ final class SettingsController extends AdminController
     // POST /admin/collective/quick-actions/reorder
     // -----------------------------------------------------------------------
 
+    /**
+     * Persists the drag-drop quick-action order from the Collective overview.
+     * Returns a JSON response suitable for the AJAX caller.
+     */
     public function reorderQuickActions(Request $request, array $params): Response
     {
         $submitted = array_map('strval', (array) $request->post('order', []));
@@ -310,6 +319,12 @@ final class SettingsController extends AdminController
     // GET /admin/collective/templates
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the Collective Templates page where the admin can edit all
+     * collective-level embed templates (owned rows, joined rows, stats,
+     * affiliates section, codes, updates, KIM forms, adoption, wishlist,
+     * contact, etc.) grouped by the ?group= query parameter.
+     */
     public function collectiveTemplates(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -374,6 +389,11 @@ final class SettingsController extends AdminController
     // POST /admin/collective/templates/preview
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders a live preview of a collective embed template using real DB data.
+     * Called via AJAX from the Collective Templates editor; returns a bare HTML
+     * fragment wrapped in the public stylesheet.
+     */
     public function previewCollectiveTemplate(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -1332,6 +1352,10 @@ final class SettingsController extends AdminController
     // GET /admin/collective/snippets
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the Collective Embed Snippets page, which shows ready-to-paste
+     * PHP include snippets for every collective embed entry point.
+     */
     public function collectiveSnippets(Request $request, array $params): Response
     {
         $lusterBase = defined('LUSTER_BASE') ? \LUSTER_BASE : dirname(__DIR__, 3);
@@ -1351,6 +1375,10 @@ final class SettingsController extends AdminController
     // GET /admin/collective/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the Collective Settings page (collective contact, affiliate
+     * applications, and collective form URL overrides).
+     */
     public function collectiveSettings(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -1383,6 +1411,10 @@ final class SettingsController extends AdminController
     // POST /admin/collective/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves collective settings (contact toggle/recipient, affiliate applications
+     * toggle, and collective form URL overrides) to lstr_site_settings.
+     */
     public function saveCollectiveSettings(Request $request, array $params): Response
     {
         $session  = $this->app->getSession();
@@ -1423,6 +1455,10 @@ final class SettingsController extends AdminController
     // GET /admin/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the main Settings page with all seven panels: Admin Profile,
+     * Admin Accounts, Appearance, General, Server Paths, Blacklist, and System.
+     */
     public function index(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -1503,6 +1539,11 @@ final class SettingsController extends AdminController
     // POST /admin/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves the General settings panel: site name, site URL, timezone, owner
+     * identity, and date/time display format. Writes to config/app.php and
+     * persists display format preferences to lstr_site_settings.
+     */
     public function updateGeneral(Request $request, array $params): Response
     {
         $session      = $this->app->getSession();
@@ -1572,6 +1613,10 @@ final class SettingsController extends AdminController
     // POST /admin/settings/paths
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves the Server Paths panel: install_path, embed_base_url, and
+     * reciprocal_url. Writes the merged result to config/app.php.
+     */
     public function updatePaths(Request $request, array $params): Response
     {
         $session      = $this->app->getSession();
@@ -1604,6 +1649,11 @@ final class SettingsController extends AdminController
     // POST /admin/settings/smtp
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves the SMTP / Email panel: smtp_enabled, host, port, user, secure mode,
+     * from address, and from name. A blank password field preserves the existing
+     * stored value rather than overwriting it with an empty string.
+     */
     public function updateSmtp(Request $request, array $params): Response
     {
         $session      = $this->app->getSession();
@@ -1649,6 +1699,11 @@ final class SettingsController extends AdminController
     // POST /admin/settings/test-email
     // -----------------------------------------------------------------------
 
+    /**
+     * Sends a test email to the currently logged-in admin to verify that the
+     * server's mail delivery is working. Reports the transport mode (SMTP or
+     * PHP mail()) in the success flash message.
+     */
     public function testEmail(Request $request, array $params): Response
     {
         $session  = $this->app->getSession();
@@ -1705,6 +1760,11 @@ final class SettingsController extends AdminController
     // POST /admin/settings/profile
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves the Admin Profile panel: username, email, display name, and optional
+     * password change (requires current-password confirmation). Reflects updated
+     * identity into the session immediately so the topbar updates.
+     */
     public function updateProfile(Request $request, array $params): Response
     {
         $session      = $this->app->getSession();
@@ -1799,6 +1859,11 @@ final class SettingsController extends AdminController
     // POST /admin/settings/templates
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves all collective embed templates submitted from the Collective
+     * Templates page. Null-stores blank submissions so built-in defaults
+     * are used at render time.
+     */
     public function updateTemplates(Request $request, array $params): Response
     {
         $session  = $this->app->getSession();
@@ -1886,6 +1951,10 @@ final class SettingsController extends AdminController
     // POST /admin/settings/templates/reset-all
     // -----------------------------------------------------------------------
 
+    /**
+     * Resets all collective embed templates to their built-in defaults by
+     * setting every template key to NULL in lstr_site_settings.
+     */
     public function resetAllTemplates(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -1933,6 +2002,10 @@ final class SettingsController extends AdminController
     // POST /admin/settings/check-update
     // -----------------------------------------------------------------------
 
+    /**
+     * Forces a fresh update check against the GitHub releases API and flashes
+     * the result. Supports both AJAX (JSON) and regular POST (redirect) callers.
+     */
     public function checkUpdate(Request $request, array $params): Response
     {
         $session  = $this->app->getSession();
@@ -1969,6 +2042,10 @@ final class SettingsController extends AdminController
     // POST /admin/settings/import-visibility
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves the import-tool visibility checkboxes and config-reader toggle
+     * from the System Details panel to lstr_site_settings.
+     */
     public function saveImportVisibility(Request $request, array $params): Response
     {
         $session      = $this->app->getSession();
@@ -1998,6 +2075,10 @@ final class SettingsController extends AdminController
     // POST /admin/settings/default-theme
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves the admin default colour scheme ('light' or 'dark') to
+     * lstr_site_settings. New admin sessions will start with this theme.
+     */
     public function saveDefaultTheme(Request $request, array $params): Response
     {
         $session  = $this->app->getSession();
@@ -2025,6 +2106,11 @@ final class SettingsController extends AdminController
     // POST /admin/settings/notifications
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves the notification and stale-listing settings: update email flag,
+     * pending digest toggle, overdue notification toggle, stale threshold
+     * (days), and overdue threshold (days).
+     */
     public function saveNotifications(Request $request, array $params): Response
     {
         $session      = $this->app->getSession();
@@ -2053,6 +2139,12 @@ final class SettingsController extends AdminController
     // POST /admin/settings/skin
     // -----------------------------------------------------------------------
 
+    /**
+     * Activates the chosen admin skin. Validates that the slug is a known
+     * bundled skin or an existing community skin file, then rejects community
+     * skins that contain external url() references or @import rules before
+     * saving the slug and a SHA-256 hash to lstr_site_settings.
+     */
     public function saveSkin(Request $request, array $params): Response
     {
         $session  = $this->app->getSession();
@@ -2169,6 +2261,10 @@ final class SettingsController extends AdminController
     // GET /admin/compat-bridge — download Enthusiast compatibility bridge ZIP
     // -----------------------------------------------------------------------
 
+    /**
+     * Generates and streams a ZIP file containing the Enthusiast, Listing Admin,
+     * or CodeSort compatibility bridge shims for the requested legacy-script set.
+     */
     public function compatBridgeDownload(Request $request, array $params): Response
     {
         $set = (string) ($params['set'] ?? '');

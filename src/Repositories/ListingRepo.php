@@ -191,17 +191,12 @@ final class ListingRepo
     }
 
     /**
-     * Updates the Luster category assignment for a listing.
+     * Updates the category assignment and listing metadata for a listing.
      *
-     * Writes to the category_id column added by Migration 8.
-     * Pass null to clear the assignment.
-     */
-    /**
-     * Updates the Luster category assignment for a listing.
-     *
-     * Writes to the category_id column (primary, backward-compat) and, when
-     * $categoryIds is provided, replaces all rows in lstr_listing_categories.
-     * Pass null to leave the junction table untouched.
+     * Writes the primary category_id column (backward-compat with Enthusiast
+     * catid) and, when $categoryIds is provided, replaces all rows in the
+     * lstr_listing_categories junction table (Migration 51). Passing null for
+     * $categoryIds leaves the junction table untouched.
      */
     public function update(int $id, ?int $categoryId, string $subject = '', string $opened = '', string $catid = '', ?array $categoryIds = null): void
     {
@@ -419,6 +414,13 @@ final class ListingRepo
         return [];
     }
 
+    /**
+     * Returns a comma-separated string of category names for a listing.
+     *
+     * Resolves in the same way as getCatItems(): tries Enthusiast catid pipe
+     * format first, then falls back to the Luster category_id. Returns '—'
+     * when no category can be resolved.
+     */
     public function getCatNames(string $catid, ?int $categoryId = null): string
     {
         $items = $this->getCatItems($catid, $categoryId);
@@ -428,6 +430,12 @@ final class ListingRepo
         return implode(', ', array_map(fn($c) => $c['name'], $items));
     }
 
+    /**
+     * Inserts a new listing into the registry and returns the new primary key.
+     *
+     * Also populates the lstr_listing_categories junction table when $categoryIds
+     * is provided and non-empty (Migration 51 must have run).
+     */
     public function insert(string $title, string $subject, string $url, string $email, int $status, ?string $image, ?int $categoryId, ?string $opened, string $catid = '', ?array $categoryIds = null): int
     {
         $stmt = $this->db->prepare(
@@ -459,6 +467,14 @@ final class ListingRepo
         return $newId;
     }
 
+    /**
+     * Searches listings by subject or title, returning results ordered by subject.
+     *
+     * Used by the admin nav search to find listings by keyword across both name
+     * fields regardless of which Enthusiast schema variant is active.
+     *
+     * @return Listing[]
+     */
     public function search(string $query): array
     {
         $stmt = $this->db->prepare(
@@ -796,6 +812,14 @@ final class ListingRepo
         );
     }
 
+    /**
+     * Returns true when the named column is present in lstr_categories.
+     *
+     * Used as a migration guard before including optional columns (slug,
+     * parent_id) in the getCategoryList() query, so the listing page does
+     * not break on databases where the relevant migration has not run yet.
+     * Uses INFORMATION_SCHEMA on MySQL and PRAGMA table_info on SQLite (tests).
+     */
     private function categoryColumnExists(string $column): bool
     {
         try {

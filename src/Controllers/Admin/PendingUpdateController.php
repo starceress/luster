@@ -26,6 +26,16 @@ use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 
+/**
+ * Handles approve and reject actions for pending member update requests.
+ *
+ * When a fan submits the public update form and the listing has hold-update
+ * enabled, the changes are queued in lstr_pending_updates rather than applied
+ * immediately. This controller applies the queued changes to the member record
+ * on approval (sending a notification email if configured) or silently discards
+ * them on rejection. Both single-record and bulk actions redirect back to the
+ * Members page at the appropriate listing/status context.
+ */
 final class PendingUpdateController
 {
     public function __construct(private readonly Application $app) {}
@@ -34,6 +44,14 @@ final class PendingUpdateController
     // POST /admin/pending-updates/{id}/approve
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves a single pending update and applies its changes to the member record.
+     *
+     * Looks up the pending update, verifies both the listing and the member still
+     * exist, guards against email-address conflicts, writes the changes, sends an
+     * update-confirmation email to the fan (best-effort), and logs the action.
+     * Deletes the pending row regardless of email-send outcome.
+     */
     public function approve(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -137,6 +155,14 @@ final class PendingUpdateController
     // POST /admin/pending-updates/approve-all
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves all pending updates for a listing (or all listings when no listing ID is given).
+     *
+     * Iterates every pending row in scope, skipping any where the listing or member
+     * no longer exists or where the requested email is already taken. Sends
+     * update-confirmation emails best-effort per approved row. Reports a summary
+     * of how many updates were applied and how many were skipped.
+     */
     public function approveAll(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -237,6 +263,14 @@ final class PendingUpdateController
     // POST /admin/pending-updates/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves or rejects a specific set of pending updates identified by their IDs.
+     *
+     * For rejections, rows are deleted immediately without applying changes.
+     * For approvals, each row goes through the same guards as the single-approve
+     * action (listing exists, member exists, no email conflict). No notification
+     * emails are sent during bulk approve — those go through the single-approve path.
+     */
     public function bulk(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -330,6 +364,12 @@ final class PendingUpdateController
     // POST /admin/pending-updates/{id}/reject
     // -----------------------------------------------------------------------
 
+    /**
+     * Rejects and discards a single pending update without applying any changes.
+     *
+     * The pending row is deleted and the action is logged. The fan receives no
+     * notification on rejection.
+     */
     public function reject(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -363,6 +403,10 @@ final class PendingUpdateController
         );
     }
 
+    /**
+     * Returns true if the pending update requests an email address already held by
+     * a different member in the same listing's member table.
+     */
     private static function hasEmailConflict(object $pending, object $listing, MemberRepo $memberRepo): bool
     {
         $changes = $pending->changes;

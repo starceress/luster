@@ -46,6 +46,7 @@ final class KimResetController
     // GET /kim/reset
     // -----------------------------------------------------------------------
 
+    /** Renders the email-entry form for step 1 of the KIM password reset flow. */
     public function showForm(Request $request, array $params): Response
     {
         $session     = $this->app->getSession();
@@ -63,6 +64,12 @@ final class KimResetController
     // POST /kim/reset
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the email-entry step. Issues time-limited reset tokens for each
+     * approved KIM entry found for the submitted email, then sends a single email
+     * containing all reset links. Always redirects with the same neutral flash
+     * message to prevent account enumeration.
+     */
     public function submit(Request $request, array $params): Response
     {
         $baseUrl       = $this->app->getBaseUrl();
@@ -181,6 +188,10 @@ final class KimResetController
     // GET /kim/reset/confirm
     // -----------------------------------------------------------------------
 
+    /**
+     * Validates the reset token from the query string and renders the new-password
+     * form when the token is valid, or an inline error when it is expired or missing.
+     */
     public function showConfirm(Request $request, array $params): Response
     {
         $rawToken = trim((string) $request->query('token', ''));
@@ -207,6 +218,10 @@ final class KimResetController
     // POST /kim/reset/confirm
     // -----------------------------------------------------------------------
 
+    /**
+     * Validates the token and new password, then applies the password change
+     * and consumes the reset token so it cannot be reused.
+     */
     public function submitConfirm(Request $request, array $params): Response
     {
         $baseUrl       = $this->app->getBaseUrl();
@@ -290,6 +305,12 @@ final class KimResetController
     // Internals
     // -----------------------------------------------------------------------
 
+    /**
+     * Builds and returns the email-entry form response.
+     *
+     * Uses the admin-defined kim_reset_form_template when available,
+     * otherwise falls back to the default fragment template.
+     */
     private function renderResetForm(
         string $oldEmail = '',
         string $error = '',
@@ -339,6 +360,12 @@ final class KimResetController
         ]);
     }
 
+    /**
+     * Builds and returns the new-password form (confirm step).
+     *
+     * When $tokenValid is false the form is hidden and an error message is shown
+     * in its place. Uses the admin-defined kim_reset_form_template when available.
+     */
     private function renderConfirmForm(
         string $rawToken,
         bool   $tokenValid,
@@ -394,6 +421,11 @@ final class KimResetController
         ]);
     }
 
+    /**
+     * Wraps a KIM fragment template in the public layout and returns the response.
+     *
+     * Falls back to rendering the fragment alone when the layout file does not exist.
+     */
     private function renderKimPage(string $template, array $data): Response
     {
         $view    = $this->app->getView();

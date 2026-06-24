@@ -21,6 +21,15 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SavedEmailRepo;
 
+/**
+ * Renders the unified Emails admin page (GET /admin/emails).
+ *
+ * The page combines three tabs — Email Templates, Bulk Email, and Saved
+ * Templates — in a single view so all tab data is loaded eagerly and switching
+ * is instant. POST actions for each tab are handled by separate controllers:
+ * EmailTemplatesController (template save/reset/toggle) and BulkEmailController
+ * (preview, send, saved-template CRUD).
+ */
 final class EmailsController extends AdminController
 {
     private const VALID_TABS = ['templates', 'bulk', 'custom'];
@@ -29,6 +38,17 @@ final class EmailsController extends AdminController
     // GET /admin/emails
     // -----------------------------------------------------------------------
 
+    /**
+     * Loads all data for the three-tab Emails page and renders the unified view.
+     *
+     * For the Templates tab: resolves the active scope (global or a specific listing),
+     * merges per-listing and global template values into display cards (each card
+     * holds the effective subject/body, enabled state, and customisation indicator).
+     * For the Bulk Email tab: computes per-listing approved-member counts and a
+     * deduplicated total across all listings, loads saved templates, and pre-fills
+     * the compose form from flash old-data or a ?load=ID query parameter.
+     * For the Saved Templates tab: passes the full saved-template list.
+     */
     public function index(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();

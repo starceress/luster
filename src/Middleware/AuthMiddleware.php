@@ -19,6 +19,14 @@ use Luster\Core\Database;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Session;
+/**
+ * Admin authentication gate — runs before every admin controller action.
+ *
+ * Exempt paths (login, forgot-password, reset) bypass the check and are
+ * compared as exact matches; entries ending in '/' are treated as prefix matches.
+ * When a valid remember-me cookie is found, the token is validated against the
+ * DB, rotated, and the session is restored so the admin can continue seamlessly.
+ */
 final class AuthMiddleware
 {
     public function __construct(
@@ -28,6 +36,12 @@ final class AuthMiddleware
         private readonly ?Database $db = null,
     ) {}
 
+    /**
+     * Returns null to continue, or a redirect Response to the login page.
+     *
+     * Checks the session first; if no admin session exists, attempts a
+     * remember-me cookie validation before giving up.
+     */
     public function process(Request $request): ?Response
     {
         $path = $request->path();
@@ -52,6 +66,15 @@ final class AuthMiddleware
         return null;
     }
 
+    /**
+     * Attempts to authenticate via the lstr_remember cookie.
+     *
+     * Validates the stored SHA-256 token hash, then performs a compare-and-swap
+     * update to rotate the token so concurrent requests can't replay the same
+     * cookie. Regenerates the session and writes the admin identity keys on
+     * success. Returns false if the cookie is absent, malformed, expired, or
+     * already rotated by a concurrent request.
+     */
     private function tryRememberMe(): bool
     {
         $cookie = (string) ($_COOKIE['lstr_remember'] ?? '');

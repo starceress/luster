@@ -19,6 +19,14 @@ use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\BlacklistRepo;
 
+/**
+ * Manages the email/domain blacklist accessible from the Settings panel.
+ *
+ * Blacklist patterns are either full email addresses or @domain suffixes that
+ * block matching addresses from joining any listing. The index simply redirects
+ * to the blacklist panel on the Settings page; the add and delete actions handle
+ * mutations and redirect back to the same panel after logging each change.
+ */
 final class BlacklistController
 {
     public function __construct(private readonly Application $app) {}
@@ -27,6 +35,12 @@ final class BlacklistController
     // GET /admin/blacklist
     // -----------------------------------------------------------------------
 
+    /**
+     * Redirects to the blacklist panel on the Settings page.
+     *
+     * There is no dedicated blacklist index — the list is rendered as a card
+     * inside the Settings page at #panel-blacklist.
+     */
     public function index(Request $request, array $params): Response
     {
         return Response::redirect($this->app->getBaseUrl() . '/admin/settings#panel-blacklist');
@@ -36,6 +50,13 @@ final class BlacklistController
     // POST /admin/blacklist/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Adds a new entry to the blacklist.
+     *
+     * The pattern must be either a full email address or an @domain string.
+     * Duplicate entries are caught by the database unique constraint and reported
+     * as a flash error rather than a 500.
+     */
     public function add(Request $request, array $params): Response
     {
         $baseUrl = $this->app->getBaseUrl();
@@ -80,6 +101,12 @@ final class BlacklistController
     // POST /admin/blacklist/{id}/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Removes a blacklist entry by its ID.
+     *
+     * Fetches the pattern before deleting so it can be included in the activity
+     * log entry. Returns a 404-style flash error if the ID is not found.
+     */
     public function delete(Request $request, array $params): Response
     {
         $baseUrl = $this->app->getBaseUrl();

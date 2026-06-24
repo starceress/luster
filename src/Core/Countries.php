@@ -13,10 +13,16 @@ declare(strict_types=1);
 
 namespace Luster\Core;
 
+/**
+ * Static country list and HTML select builder for public join/update forms.
+ *
+ * The list is hardcoded rather than database-driven so it is available even
+ * when the database is unreachable and requires no migration to update.
+ */
 final class Countries
 {
     /**
-     * Returns a sorted list of country names.
+     * Returns an alphabetically sorted list of country names.
      *
      * @return string[]
      */

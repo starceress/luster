@@ -28,21 +28,25 @@ use PDO;
  */
 final class WishlistAddon implements AddonInterface
 {
+    /** Returns the unique string key used in lstr_addons and class discovery. */
     public function getKey(): string
     {
         return 'Wishlist';
     }
 
+    /** Returns the human-readable add-on name shown in the admin nav and Manage Add-ons page. */
     public function getName(): string
     {
         return 'Wishlist';
     }
 
+    /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
         return 'A collective wishlist of fanlistings you would like to open. Supports three entry types (Wanted, Top Wanted, Granted) with category grouping and a public embed for your site pages.';
     }
 
+    /** Creates lstr_wishlist. */
     public function install(PDO $pdo): void
     {
         $pdo->exec(
@@ -64,11 +68,13 @@ final class WishlistAddon implements AddonInterface
         );
     }
 
+    /** Drops lstr_wishlist. */
     public function uninstall(PDO $pdo): void
     {
         $pdo->exec('DROP TABLE IF EXISTS `lstr_wishlist`');
     }
 
+    /** Registers admin (/admin/wishlist/*) routes. */
     public function registerRoutes(Router $router): void
     {
         $router->get('/admin/wishlist',                  WishlistAdminController::class, 'index');

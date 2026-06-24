@@ -16,6 +16,18 @@ declare(strict_types=1);
 namespace Luster\Import;
 
 use PDO;
+
+/**
+ * Import adapter for Listing Admin (v3.x) databases.
+ *
+ * Creates owned listing rows and per-listing member tables in Luster from LA's
+ * central `main` registry and `members` table. Also imports categories, affiliates,
+ * joined listings, updates (requires the News Feed add-on), the owner's wishlist
+ * (requires the Wishlist add-on), KIM fan-interest entries (requires the KIM
+ * add-on), and per-listing join rules (requires the Rules add-on). Custom member
+ * field values stored in LA's `mExtra` blob are parsed on a best-effort basis.
+ * Image paths are read from the LA `options` table when available.
+ */
 final class ListingAdminImportSource implements ImportSourceInterface
 {
     private const CHUNK    = 500;

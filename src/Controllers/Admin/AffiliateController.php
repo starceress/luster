@@ -25,6 +25,14 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SavedEmailRepo;
 
+/**
+ * Manages affiliate (link exchange) entries across all listings and at the
+ * collective level.
+ *
+ * Covers: paginated/searchable index with status tabs, add/edit/delete, active
+ * toggle, drag-drop reordering, pending application approval/rejection/re-approval
+ * with email notifications, bulk actions, and the affiliate bulk email composer.
+ */
 final class AffiliateController extends AdminController
 {
 
@@ -32,6 +40,10 @@ final class AffiliateController extends AdminController
     // POST /admin/affiliates/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles bulk operations on selected affiliates: approve, reject, re-approve,
+     * activate, deactivate, delete, or redirect to the bulk email composer.
+     */
     public function bulk(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -91,6 +103,11 @@ final class AffiliateController extends AdminController
     // GET /admin/affiliates
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the paginated affiliate index with status tabs, scope/search
+     * filters, and column-header sorting. Auto-lands on the pending tab when
+     * there are unapproved applications.
+     */
     public function index(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -185,6 +202,12 @@ final class AffiliateController extends AdminController
     // GET + POST /admin/listings/{fid}/affiliates/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the add-affiliate form (GET) or creates a new affiliate record
+     * with optional image upload (POST). Works in both global context (no
+     * listing selected) and per-listing context (fid route param or context_fid
+     * query param).
+     */
     public function add(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -338,6 +361,10 @@ final class AffiliateController extends AdminController
     // GET + POST /admin/affiliates/{id}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the edit form for an existing affiliate (GET) or saves updated
+     * name/URL/email/image/status/sort_order (POST).
+     */
     public function editAffiliate(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -494,6 +521,11 @@ final class AffiliateController extends AdminController
     // POST /admin/affiliates/reorder  (AJAX)
     // -----------------------------------------------------------------------
 
+    /**
+     * Accepts a drag-drop reorder payload and updates sort_order values.
+     * Splices the paged slice into the full ordered list so cross-page sort
+     * positions remain consistent. Returns JSON {ok: true}.
+     */
     public function reorder(Request $request, array $params): Response
     {
         $db   = $this->app->getDatabase();
@@ -534,6 +566,10 @@ final class AffiliateController extends AdminController
     // POST /admin/affiliates/{id}/toggle
     // -----------------------------------------------------------------------
 
+    /**
+     * Flips the active/inactive state of an affiliate and updates the listing's
+     * last_updated timestamp when called from a per-listing context.
+     */
     public function toggle(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -567,6 +603,10 @@ final class AffiliateController extends AdminController
     // POST /admin/affiliates/{id}/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes an affiliate record, repacks sort_order values for the scope,
+     * and redirects back to the listing or the global affiliates page.
+     */
     public function deleteAffiliate(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -604,6 +644,9 @@ final class AffiliateController extends AdminController
     // GET /admin/affiliates/pending
     // -----------------------------------------------------------------------
 
+    /**
+     * Permanent redirect from the legacy /pending URL to the pending status tab.
+     */
     public function pending(Request $request, array $params): Response
     {
         return Response::redirect($this->app->getBaseUrl() . '/admin/affiliates?tab=pending');
@@ -613,6 +656,10 @@ final class AffiliateController extends AdminController
     // POST /admin/affiliates/{id}/approve
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves a pending affiliate application, logs the action, and sends
+     * an approval email to the applicant when an email address is provided.
+     */
     public function approve(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -654,6 +701,10 @@ final class AffiliateController extends AdminController
     // POST /admin/affiliates/{id}/reject
     // -----------------------------------------------------------------------
 
+    /**
+     * Rejects a pending affiliate application and logs the action.
+     * No email is sent on rejection.
+     */
     public function reject(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -684,6 +735,9 @@ final class AffiliateController extends AdminController
     // POST /admin/affiliates/{id}/re-approve
     // -----------------------------------------------------------------------
 
+    /**
+     * Moves a previously rejected application back to approved status.
+     */
     public function reApprove(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -711,10 +765,14 @@ final class AffiliateController extends AdminController
     }
 
     // -----------------------------------------------------------------------
-    // -----------------------------------------------------------------------
     // GET /admin/affiliates/email
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the affiliate bulk email composer. Supports a "selected only"
+     * mode (triggered by the bulk email_selected action) and a scope selector
+     * for emailing all, collective, or per-listing affiliates.
+     */
     public function emailCompose(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -787,6 +845,11 @@ final class AffiliateController extends AdminController
     // POST /admin/affiliates/email
     // -----------------------------------------------------------------------
 
+    /**
+     * Sends the composed email to all affiliates in the selected scope,
+     * substituting per-recipient tokens ({aff_name}, {listing_title}, etc.)
+     * before each send. Logs the outcome to the activity log.
+     */
     public function emailSend(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -910,6 +973,10 @@ final class AffiliateController extends AdminController
     // Private helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Resolves the redirect URL after a single-row status change. Always
+     * lands on the pending tab when more pending applications remain.
+     */
     private function redirectAfterStatusChange(Request $request, string $baseUrl, string $defaultTab): string
     {
         $tab = (new AffiliateRepo($this->app->getDatabase()))->getPendingCount() > 0 ? 'pending' : 'all';
@@ -920,6 +987,11 @@ final class AffiliateController extends AdminController
     // Private: send affiliate email
     // -----------------------------------------------------------------------
 
+    /**
+     * Sends a transactional affiliate email of the given type (approved,
+     * rejected, applied) using the stored or default template. Returns true
+     * if the email was dispatched successfully.
+     */
     private function sendAffiliateEmail(object $affiliate, string $type): bool
     {
         if ($affiliate->email === null || $affiliate->email === '') {

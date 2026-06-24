@@ -30,21 +30,29 @@ use PDO;
  */
 final class RulesAddon implements AddonInterface
 {
+    /** Returns the unique string key used in lstr_addons and class discovery. */
     public function getKey(): string
     {
         return 'Rules';
     }
 
+    /** Returns the human-readable add-on name shown in the admin nav and Manage Add-ons page. */
     public function getName(): string
     {
         return 'Join Rules';
     }
 
+    /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
         return 'Add per-listing rules that fans must read and agree to. When you update the rules text, existing agreements are invalidated so fans must re-agree on their next visit.';
     }
 
+    /**
+     * Creates lstr_rules with all required columns. Runs INFORMATION_SCHEMA
+     * checks for each optional column so re-running install on an existing
+     * database is safe. Also removes the legacy title column if it exists.
+     */
     public function install(PDO $pdo): void
     {
         $pdo->exec(
@@ -115,11 +123,13 @@ final class RulesAddon implements AddonInterface
         }
     }
 
+    /** Drops lstr_rules. */
     public function uninstall(PDO $pdo): void
     {
         $pdo->exec('DROP TABLE IF EXISTS `lstr_rules`');
     }
 
+    /** Registers public (/rules/*) and admin (/admin/rules/*) routes. */
     public function registerRoutes(Router $router): void
     {
         // Public

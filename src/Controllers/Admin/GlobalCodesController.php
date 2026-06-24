@@ -26,6 +26,14 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
+/**
+ * Cross-listing codes hub for the admin panel.
+ *
+ * Handles per-listing code management, collective codes (not tied to any
+ * specific listing), and the global pending-code review queue that shows
+ * submissions across all listings at once. Approve/reject actions optionally
+ * trigger a notification email to the code submitter.
+ */
 final class GlobalCodesController extends AdminController
 {
     private const PER_PAGE = 25;
@@ -34,6 +42,13 @@ final class GlobalCodesController extends AdminController
     // GET /admin/codes
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the codes index in one of three modes: global queue, per-listing, or collective.
+     *
+     * Global (no listing selected): shows the cross-listing pending queue with pagination.
+     * Per-listing (listing_id param): shows all codes for that listing, grouped by dimensions.
+     * Collective (collective=1 param): shows codes not tied to any listing.
+     */
     public function index(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -331,6 +346,9 @@ final class GlobalCodesController extends AdminController
     // POST /admin/codes/{id}/approve
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves a single code and optionally emails the submitter.
+     */
     public function approve(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -365,6 +383,9 @@ final class GlobalCodesController extends AdminController
     // POST /admin/codes/{id}/reject
     // -----------------------------------------------------------------------
 
+    /**
+     * Rejects a single code submission.
+     */
     public function reject(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -396,6 +417,12 @@ final class GlobalCodesController extends AdminController
     // POST /admin/codes/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Bulk-approves or bulk-rejects a selected set of codes.
+     *
+     * Accepted actions are "approve" and "reject". Sends donor emails for
+     * each code that gets approved, if the per-listing or global setting allows it.
+     */
     public function bulk(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -441,6 +468,12 @@ final class GlobalCodesController extends AdminController
     // POST /admin/codes/approve-all
     // -----------------------------------------------------------------------
 
+    /**
+     * Approves every pending code for a listing (or globally if no listing ID is posted).
+     *
+     * Fetches the pending codes first so donor emails can be sent before the
+     * status update makes them no longer "pending".
+     */
     public function approveAll(Request $request, array $params): Response
     {
         $db        = $this->app->getDatabase();
@@ -480,6 +513,13 @@ final class GlobalCodesController extends AdminController
     // POST /admin/codes/collective-upload
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles multi-file upload for collective codes (not tied to any listing).
+     *
+     * Validates MIME type (jpeg/png/gif/webp) and file size (max 500 KB) per file.
+     * Randomizes filenames on save. Optionally associates uploaded codes with a
+     * submitter name/email/url pulled from the donor select or inline new-donor fields.
+     */
     public function uploadCollective(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -642,6 +682,12 @@ final class GlobalCodesController extends AdminController
     // POST /admin/codes/collective/{id}/update
     // -----------------------------------------------------------------------
 
+    /**
+     * Updates the status, name, and submitter info for a single collective code.
+     *
+     * If the code is being approved for the first time (status changes to "approved"),
+     * triggers the donor notification email.
+     */
     public function updateCollective(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -702,6 +748,9 @@ final class GlobalCodesController extends AdminController
     // POST /admin/codes/collective/{id}/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes a single collective code record (does not delete the image file from disk).
+     */
     public function deleteCollective(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -734,6 +783,11 @@ final class GlobalCodesController extends AdminController
     // POST /admin/codes/collective/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Bulk-approves, bulk-rejects, or bulk-deletes selected collective codes.
+     *
+     * Delete verifies each code is actually collective (null fanlisting_id) before acting.
+     */
     public function bulkCollective(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -789,6 +843,9 @@ final class GlobalCodesController extends AdminController
     // POST /admin/codes/collective/reorder
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves a new sort order for collective codes from a comma-separated ID list.
+     */
     public function reorderCollective(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -819,6 +876,12 @@ final class GlobalCodesController extends AdminController
     // GET /admin/codes/collective/export
     // -----------------------------------------------------------------------
 
+    /**
+     * Streams a ZIP archive of all approved collective code image files to the browser.
+     *
+     * Requires the PHP zip extension. Returns an error flash if no approved
+     * collective codes exist or no image files are found on disk.
+     */
     public function exportCollective(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -893,6 +956,9 @@ final class GlobalCodesController extends AdminController
     // Helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Redirects back to the codes list, preserving the active tab and listing context.
+     */
     private function redirectBack(Request $request, string $baseUrl, int $listingId): Response
     {
         $tab = trim((string) $request->post('_tab', 'pending'));
@@ -902,6 +968,13 @@ final class GlobalCodesController extends AdminController
         return Response::redirect($baseUrl . '/admin/codes' . $qs);
     }
 
+    /**
+     * Sends a code-approval notification to the submitter if they provided an email.
+     *
+     * Respects the per-listing `code_approval_email` setting, falling back to the
+     * global `code_approval_email_enabled` site setting. Failures are logged to the
+     * PHP error log but do not interrupt the approval flow.
+     */
     private function maybeSendDonorEmail(\Luster\Core\Database $db, object $code): void
     {
         $email = (string) ($code->submitter_email ?? '');

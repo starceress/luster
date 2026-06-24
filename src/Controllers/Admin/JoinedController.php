@@ -20,6 +20,11 @@ use Luster\Core\Validator;
 use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\JoinedListingRepo;
 
+/**
+ * Manages the owner's joined-fanlisting entries: paginated index with network/
+ * category/status filtering, add/edit/delete forms with image upload,
+ * bulk status actions, active/inactive toggle, and display settings.
+ */
 final class JoinedController extends AdminController
 {
 
@@ -27,6 +32,10 @@ final class JoinedController extends AdminController
     // GET /admin/joined
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the paginated joined-listings index with network, category, and
+     * status-tab filters plus optional column sorting applied client-side.
+     */
     public function index(Request $request, array $params): Response
     {
         $repo         = new JoinedListingRepo($this->app->getDatabase());
@@ -118,6 +127,10 @@ final class JoinedController extends AdminController
     // GET + POST /admin/joined/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles the add form: GET renders empty form, POST validates, moves the
+     * uploaded image, builds the multi-network categories JSON, and persists.
+     */
     public function add(Request $request, array $params): Response
     {
         $repo         = new JoinedListingRepo($this->app->getDatabase());
@@ -258,6 +271,10 @@ final class JoinedController extends AdminController
     // GET + POST /admin/joined/{id}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles the edit form: GET populates fields from the existing record,
+     * POST validates, replaces or deletes the image file, and persists changes.
+     */
     public function edit(Request $request, array $params): Response
     {
         $id           = (int) ($params['id'] ?? 0);
@@ -426,6 +443,9 @@ final class JoinedController extends AdminController
     // POST /admin/joined/{id}/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes a joined listing and removes its image file from disk if present.
+     */
     public function delete(Request $request, array $params): Response
     {
         $id   = (int) ($params['id'] ?? 0);
@@ -458,6 +478,9 @@ final class JoinedController extends AdminController
     // POST /admin/joined/{id}/toggle
     // -----------------------------------------------------------------------
 
+    /**
+     * Flips the active flag on a joined listing between visible and hidden.
+     */
     public function toggle(Request $request, array $params): Response
     {
         $id   = (int) ($params['id'] ?? 0);
@@ -479,6 +502,10 @@ final class JoinedController extends AdminController
     // POST /admin/joined/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Applies a bulk action (approve, pending, hide, unhide, delete) to a
+     * set of joined-listing IDs; supports "select all" via a server-side filter.
+     */
     public function bulkAction(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -584,6 +611,10 @@ final class JoinedController extends AdminController
     // GET + POST /admin/joined/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Reads and saves the joined-listings display settings (display_mode, per_page)
+     * stored in config/app.php.
+     */
     public function settings(Request $request, array $params): Response
     {
         $config  = $this->app->getConfig();
@@ -639,6 +670,13 @@ final class JoinedController extends AdminController
     // Builds categories_json from parallel POST arrays cat_network[]/cat_name[]
     // -----------------------------------------------------------------------
 
+    /**
+     * Assembles the JSON blob stored in lstr_joined.categories_json from the
+     * parallel cat_network[] / cat_name[] POST arrays; auto-registers any
+     * "other" network name via CategoryRepo::addCustomNetwork().
+     *
+     * @return string|null JSON string, or null when no valid entries are present
+     */
     private function buildCategoriesJson(CategoryRepo $categoryRepo, Request $request): ?string
     {
         $networks = array_values((array) $request->post('cat_network', []));
@@ -674,6 +712,10 @@ final class JoinedController extends AdminController
     // Ensures public/uploads/joined/ exists with an .htaccess guard
     // -----------------------------------------------------------------------
 
+    /**
+     * Creates public/uploads/joined/ if absent and writes an .htaccess guard
+     * that denies PHP execution; returns the absolute directory path.
+     */
     private function ensureUploadDirectory(): string
     {
         $uploadDir = dirname(__DIR__, 3) . '/public/uploads/joined';
@@ -699,6 +741,10 @@ final class JoinedController extends AdminController
     // Writes config array to config/app.php via safe temp-file rename
     // -----------------------------------------------------------------------
 
+    /**
+     * Writes the config array to config/app.php via a temp-file rename and
+     * invalidates the OPcache entry so changes take effect immediately.
+     */
     private function writeConfig(array $config): void
     {
         $configPath = $this->app->getBasePath() . '/config/app.php';

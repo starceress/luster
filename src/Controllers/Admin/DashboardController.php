@@ -28,21 +28,17 @@ use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
+/**
+ * Renders the admin dashboard and handles maintenance actions (touch-updated,
+ * bulk-touch, dismiss-update banner).
+ */
 final class DashboardController
 {
     public function __construct(private readonly Application $app) {}
 
     /**
-     * POST /admin/maintenance/touch-all-updated
-     *
-     * Sets last_updated to today for every listing — useful when first
-     * enabling the staleness check on an existing install.
-     */
-    /**
-     * POST /admin/dismiss-update
-     *
      * Stores the dismissed version in session so the update banner is hidden
-     * for the rest of the session. Re-appears if a newer version is released.
+     * for the rest of the session; re-appears automatically if a newer version is released.
      */
     public function dismissUpdate(Request $request, array $params): Response
     {
@@ -54,9 +50,7 @@ final class DashboardController
     }
 
     /**
-     * POST /admin/listings/{id}/touch-updated  (JSON — called via fetch)
-     *
-     * Sets last_updated to today for a single listing.
+     * Sets last_updated to today for a single listing via JSON (called via fetch).
      */
     public function touchListing(Request $request, array $params): Response
     {
@@ -83,9 +77,7 @@ final class DashboardController
     }
 
     /**
-     * POST /admin/maintenance/bulk-touch-updated
-     *
-     * Marks a selected subset of neglected listings as updated today.
+     * Marks a selected subset of stale listings as updated today via a checkbox POST.
      */
     public function bulkTouchUpdated(Request $request, array $params): Response
     {
@@ -125,6 +117,10 @@ final class DashboardController
         return Response::redirect($this->app->getBaseUrl() . '/admin');
     }
 
+    /**
+     * Sets last_updated to today for every listing that is currently past the
+     * stale threshold — useful when first enabling the staleness check on an existing install.
+     */
     public function touchAllUpdated(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -155,6 +151,10 @@ final class DashboardController
         return Response::redirect($this->app->getBaseUrl() . '/admin');
     }
 
+    /**
+     * Returns a day-stable greeting phrase for the welcome block, rotating through
+     * a fixed list using today's date as the index.
+     */
     private static function dailyGreeting(string $username): string
     {
         $messages = [
@@ -175,6 +175,11 @@ final class DashboardController
         return sprintf($messages[$index], $username);
     }
 
+    /**
+     * Renders the admin dashboard, aggregating listing counts, member totals, top
+     * countries with month-over-month growth, stale listings, recent activity, and
+     * pending-items banners in a single pass over all listings.
+     */
     public function index(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();

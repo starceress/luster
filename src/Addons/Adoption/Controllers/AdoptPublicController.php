@@ -49,6 +49,7 @@ final class AdoptPublicController
     // GET /adopt/{id}
     // -----------------------------------------------------------------------
 
+    /** Renders the adoption application form for a single listing. */
     public function showForm(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -73,6 +74,13 @@ final class AdoptPublicController
     // POST /adopt/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes a per-listing adoption application.
+     *
+     * Applies rate limiting, honeypot, captcha, Validator, blacklist, and
+     * duplicate checks. On success inserts the application, sends an admin
+     * notification email, and redirects with a flash success message.
+     */
     public function submit(Request $request, array $params): Response
     {
         $listingId     = (int) ($params['id'] ?? 0);
@@ -206,6 +214,7 @@ final class AdoptPublicController
     // GET /adopt-collective
     // -----------------------------------------------------------------------
 
+    /** Renders the collective adoption form (listing chosen from a dropdown). */
     public function collectiveForm(Request $request, array $params): Response
     {
         $session     = $this->app->getSession();
@@ -241,6 +250,13 @@ final class AdoptPublicController
     // POST /adopt-collective
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes a collective adoption application.
+     *
+     * Validates the submitted listing_id against the adoptable-listing set
+     * (IDOR guard), then applies the same rate limit, honeypot, captcha,
+     * blacklist, and duplicate guards as the per-listing form before inserting.
+     */
     public function collectiveSubmit(Request $request, array $params): Response
     {
         $baseUrl       = $this->app->getBaseUrl();
@@ -412,7 +428,13 @@ final class AdoptPublicController
     }
 
     /**
-     * @param array<string,string> $old
+     * Builds and returns the per-listing adoption form response.
+     *
+     * When $successHtml is non-empty the success view is rendered instead
+     * of the form, so the flash message is displayed on the same page without
+     * a redirect loop.
+     *
+     * @param array<string,string> $old Previously submitted field values for repopulation.
      */
     private function renderForm(
         int $listingId,
@@ -475,7 +497,13 @@ final class AdoptPublicController
     }
 
     /**
-     * @param array<string,string> $old
+     * Builds and returns the collective adoption form.
+     *
+     * Fetches adoptable listings from ListingSettingsRepo to populate the
+     * listing selector, then renders the admin-editable collective adoption
+     * form template stored in lstr_site_settings.
+     *
+     * @param array<string,string> $old Previously submitted field values for repopulation.
      */
     private function renderCollectiveForm(array $old = [], string $error = ''): Response
     {

@@ -319,6 +319,10 @@ final class UpdateApplier
         return ['copied' => $copied, 'skipped' => $skipped];
     }
 
+    /**
+     * Removes the staging directory and downloaded ZIP and releases the update lock.
+     * Call to cancel a prepared update or clean up after apply().
+     */
     public function discard(?string $stagingDir, ?string $downloadPath): void
     {
         if ($stagingDir !== null && $stagingDir !== '' && is_dir($stagingDir)) {
@@ -330,6 +334,10 @@ final class UpdateApplier
         $this->releaseLock();
     }
 
+    /**
+     * Deletes a file, but only when it is inside the storage/cache directory.
+     * Silently does nothing when the path resolves outside that boundary.
+     */
     public function deleteFile(string $path): void
     {
         $real = realpath($path);
@@ -342,6 +350,11 @@ final class UpdateApplier
         }
     }
 
+    /**
+     * Returns true when $stagingDir still exists and contains a recognisable Luster
+     * package structure. Used to verify that a previously prepared update is still
+     * intact before the admin clicks "Apply".
+     */
     public function stagingIsValid(string $stagingDir): bool
     {
         try {
@@ -352,11 +365,19 @@ final class UpdateApplier
         }
     }
 
+    /** Returns true when an update lock file is present, indicating a prepare() is in progress. */
     public function lockExists(): bool
     {
         return is_file($this->lockPath());
     }
 
+    /**
+     * Extracts the SHA256 hash for $assetName from a SHA256SUMS file.
+     *
+     * Handles files with or without filename columns (single-hash files return
+     * the lone hash regardless of name). Returns null when no matching entry is found
+     * or when the file is ambiguous (multiple hashes, none with a matching filename).
+     */
     public static function parseChecksumForAsset(string $contents, string $assetName): ?string
     {
         $assetBase = basename(str_replace('\\', '/', $assetName));
@@ -391,6 +412,10 @@ final class UpdateApplier
         return $matches === 1 ? $fallback : null;
     }
 
+    /**
+     * Returns true when an archive entry name is safe to extract (no absolute paths,
+     * no drive letters, no empty or dot-only segments, and no path traversal sequences).
+     */
     public static function isSafeArchivePath(string $name): bool
     {
         $name = str_replace('\\', '/', $name);
@@ -543,6 +568,7 @@ final class UpdateApplier
         return null;
     }
 
+    /** Downloads $url to a local file path. Throws RuntimeException on network or write failure. */
     private function downloadToFile(string $url, string $path): void
     {
         $body = $this->fetch($url);
@@ -554,6 +580,11 @@ final class UpdateApplier
         }
     }
 
+    /**
+     * Extracts a release ZIP to $stagingDir, checking each entry for path traversal,
+     * absolute paths, and symlinks before writing. Throws RuntimeException on any
+     * unsafe entry or I/O failure.
+     */
     private function extractZipSafely(string $zipPath, string $stagingDir): void
     {
         $zip = new ZipArchive();
@@ -620,6 +651,7 @@ final class UpdateApplier
         $zip->close();
     }
 
+    /** Returns true when the ZIP entry at $index has Unix external attributes indicating a symlink. */
     private function zipEntryIsSymlink(ZipArchive $zip, int $index): bool
     {
         $opsys = 0;
@@ -636,6 +668,12 @@ final class UpdateApplier
         return $mode === 0120000;
     }
 
+    /**
+     * Locates the Luster app root inside $stagingDir.
+     *
+     * Checks the directory itself first, then looks one level deeper (releases
+     * often zip as 'luster-1.x.y/src/…'). Throws when no recognisable root is found.
+     */
     private function detectAppRoot(string $stagingDir): string
     {
         $real = realpath($stagingDir);
@@ -662,6 +700,7 @@ final class UpdateApplier
         return $candidates[0];
     }
 
+    /** Returns true when $path contains the expected top-level Luster directories and composer.json. */
     private function looksLikeAppRoot(string $path): bool
     {
         return is_dir($path . DIRECTORY_SEPARATOR . 'src')
@@ -670,6 +709,11 @@ final class UpdateApplier
             && is_file($path . DIRECTORY_SEPARATOR . 'composer.json');
     }
 
+    /**
+     * Produces a SQL dump of all lstr_* tables, the listing registry (owned /
+     * enth_fanlistings), and per-listing member tables, formatted as a single
+     * string suitable for inclusion in a backup ZIP.
+     */
     private function dumpDatabase(): string
     {
         $pdo = $this->db->pdo();
@@ -780,6 +824,7 @@ final class UpdateApplier
         }
     }
 
+    /** Returns true when a path should be excluded from the backup ZIP (vendor, storage, uploads). */
     private function shouldSkipBackupPath(string $rel): bool
     {
         $rel = $this->normalizeRelative(preg_replace('#^files/#', '', $rel) ?? $rel);
@@ -788,6 +833,12 @@ final class UpdateApplier
             || str_starts_with($rel, 'public/uploads/');
     }
 
+    /**
+     * Returns true when a staged file should not be copied to the live install.
+     *
+     * Skipped paths: config/app.php (user credentials), public/.htaccess
+     * (user-customised routing), storage/, public/uploads/, vendor/, and .git/.
+     */
     private function shouldSkipApplyPath(string $rel): bool
     {
         $rel = $this->normalizeRelative($rel);
@@ -799,6 +850,10 @@ final class UpdateApplier
             || str_starts_with($rel, '.git/');
     }
 
+    /**
+     * Backtick-quotes a database identifier after validating it is alphanumeric.
+     * Throws RuntimeException on any character outside [a-zA-Z0-9_].
+     */
     private function quoteIdentifier(string $identifier): string
     {
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $identifier)) {
@@ -808,6 +863,7 @@ final class UpdateApplier
         return '`' . $identifier . '`';
     }
 
+    /** Returns a SQL literal for $value: NULL for null, a PDO-quoted string otherwise. */
     private function sqlLiteral(PDO $pdo, mixed $value): string
     {
         if ($value === null) {
@@ -816,6 +872,7 @@ final class UpdateApplier
         return (string) $pdo->quote((string) $value);
     }
 
+    /** Creates the update lock file. Throws RuntimeException when a lock already exists. */
     private function acquireLock(): void
     {
         $lock = $this->lockPath();
@@ -827,6 +884,7 @@ final class UpdateApplier
         fclose($handle);
     }
 
+    /** Removes the update lock file if it exists. */
     private function releaseLock(): void
     {
         $lock = $this->lockPath();
@@ -835,6 +893,12 @@ final class UpdateApplier
         }
     }
 
+    /**
+     * Recursively removes $dir and all its contents.
+     *
+     * Refuses to operate on any path outside the storage/cache directory as a
+     * safeguard against accidental deletion of the live application.
+     */
     private function removeDirectory(string $dir): void
     {
         $real = realpath($dir);
@@ -858,6 +922,7 @@ final class UpdateApplier
         @rmdir($real);
     }
 
+    /** Throws RuntimeException when the PHP zip extension is not loaded. */
     private function ensureZipAvailable(): void
     {
         if (!class_exists(ZipArchive::class)) {
@@ -865,6 +930,7 @@ final class UpdateApplier
         }
     }
 
+    /** Returns the absolute path to storage/cache, creating it if necessary. */
     private function cacheDir(): string
     {
         $dir = $this->path('storage/cache');
@@ -875,16 +941,19 @@ final class UpdateApplier
         return $dir;
     }
 
+    /** Returns the absolute path to the update lock file inside storage/cache. */
     private function lockPath(): string
     {
         return $this->cacheDir() . DIRECTORY_SEPARATOR . '.update_lock';
     }
 
+    /** Resolves a relative app path (e.g. 'src/Core') to an absolute filesystem path. */
     private function path(string $rel): string
     {
         return rtrim($this->basePath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim($rel, '/\\'));
     }
 
+    /** Returns $path relative to basePath for display, or $path when it is not inside basePath. */
     private function relativePath(string $path): string
     {
         $base = rtrim(str_replace('\\', '/', $this->basePath), '/');
@@ -895,16 +964,19 @@ final class UpdateApplier
             : $path;
     }
 
+    /** Normalises backslashes to forward slashes and trims leading/trailing slashes. */
     private function normalizeRelative(string $rel): string
     {
         return trim(str_replace('\\', '/', $rel), '/');
     }
 
+    /** Returns the normalised forward-slash path for a ZIP archive entry. */
     private function zipPath(string $rel): string
     {
         return $this->normalizeRelative($rel);
     }
 
+    /** Returns true when $path is $base or strictly inside $base (using forward slashes). */
     private function isInside(string $path, string $base): bool
     {
         $path = rtrim(str_replace('\\', '/', $path), '/');
@@ -913,6 +985,7 @@ final class UpdateApplier
         return $path === $base || str_starts_with($path, $base . '/');
     }
 
+    /** Formats a byte count as a human-readable string (B, KB, MB, GB). */
     private function formatBytes(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB'];
@@ -926,6 +999,7 @@ final class UpdateApplier
         return number_format($value, $unit === 0 ? 0 : 1) . ' ' . $units[$unit];
     }
 
+    /** Fetches $url via the injected httpFetcher, returning false on failure. */
     private function fetch(string $url): string|false
     {
         try {

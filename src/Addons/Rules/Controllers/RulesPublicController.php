@@ -44,6 +44,12 @@ final class RulesPublicController
     // GET /rules/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the rules gate page for a listing. Resolves the active rule set (per-listing
+     * first, then the global fallback), builds the gate checkbox/button HTML, expands any
+     * {token} placeholders in the body, and passes the rendered body to the template.
+     * Also indicates whether the visitor has already agreed in this session.
+     */
     public function gate(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -127,6 +133,12 @@ final class RulesPublicController
     // POST /rules/{id}/agree  (CSRF validated by CsrfMiddleware)
     // -----------------------------------------------------------------------
 
+    /**
+     * Records the visitor's agreement in the session as a fingerprint string and redirects
+     * back. If the "agree" checkbox value is not "1" the action is a no-op. The redirect
+     * target is resolved in priority order: session-stored embed return URL, posted
+     * return_to value, listing URL, and finally the app base URL.
+     */
     public function agree(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -221,12 +233,20 @@ final class RulesPublicController
         }
     }
 
+    /**
+     * Returns true when the session holds an agreement fingerprint that matches
+     * the current rule-set version for the given listing.
+     */
     private function hasAgreed(int $listingId, RuleSet $ruleSet): bool
     {
         $stored = (string) $this->app->getSession()->get('lstr_rules_agreed_' . $listingId, '');
         return $stored === $ruleSet->fingerprint();
     }
 
+    /**
+     * Returns true when the URL is a valid absolute HTTP or HTTPS address with a non-empty host.
+     * Used to validate post-agreement redirect targets before following them.
+     */
     private function isValidReturnUrl(string $url): bool
     {
         if ($url === '') {

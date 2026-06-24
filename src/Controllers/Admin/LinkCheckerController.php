@@ -25,12 +25,36 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
+/**
+ * Admin link checker — scans affiliate, joined-listing, and member URLs for dead links
+ * and permanent redirects.
+ *
+ * The index page shows three tabs: Active (all entries with link status), Moved Links
+ * (one-click "Update URL" applies the detected redirect target), and Dead Links (entries
+ * that returned 4xx/5xx or timed out). Per-listing member URL checking is also supported:
+ * an admin first syncs member URLs into lstr_member_link_checks via scanMembers(), then
+ * individual rows can be checked with checkMember() and redirect URLs applied with
+ * applyRedirectMember(). All live checks use LinkChecker with SSRF protection from
+ * NetworkAddressGuard. Display settings (per-page count, default sort) are stored in
+ * config/app.php. Cron-based automatic checking is gated behind a shared-secret token
+ * stored in lstr_site_settings.
+ */
 final class LinkCheckerController extends AdminController
 {
     // -----------------------------------------------------------------------
     // Index — summary page with affiliate + joined tables
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the Link Checker index page with all affiliates, joined listings, and
+     * (optionally) member URL rows.
+     *
+     * When a listing_id query parameter is present and positive, loads member link
+     * check rows for that specific listing. When listing_id is absent (null), loads
+     * aggregate member stats across all listings. When listing_id=0 (Collective), the
+     * member section remains empty. Supports server-side sorting and status filtering
+     * on all three tables.
+     */
     public function index(Request $request): Response
     {
         $session = $this->app->getSession();
@@ -232,6 +256,16 @@ final class LinkCheckerController extends AdminController
     // Settings — GET shows page, POST saves display settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the Link Checker Settings page and processes its form.
+     *
+     * On GET: loads current display settings (per-page count, default sort column)
+     * from config, generates or reads the auto-check cron token from lstr_site_settings,
+     * and renders the settings form with the cron URL pre-built.
+     * On POST: validates the submitted options, writes them to config/app.php via
+     * writeConfig(), then redirects back. A "Reset to defaults" button restores
+     * per-page=10 and default-sort=name without touching cron settings.
+     */
     public function settings(Request $request): Response
     {
         $config  = $this->app->getConfig();
@@ -301,6 +335,14 @@ final class LinkCheckerController extends AdminController
     // Save auto link-check cron settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves the automatic link-check cron configuration to lstr_site_settings.
+     *
+     * Toggles the enabled flag and, when the "Regenerate token" checkbox is
+     * ticked, generates a fresh shared-secret token (the old one becomes invalid
+     * immediately). If no token exists yet, one is created on first save.
+     * Logs the change to lstr_activity_log.
+     */
     public function saveCronSettings(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -334,6 +376,15 @@ final class LinkCheckerController extends AdminController
     // AJAX — return all IDs for a panel (used by "Check All" to span pages)
     // -----------------------------------------------------------------------
 
+    /**
+     * Returns a JSON array of every record ID for the requested panel.
+     *
+     * Used by the "Check All" button to collect IDs across all pages in one
+     * request before dispatching per-row check calls. The panel= query parameter
+     * selects which table to query: 'affiliates', 'joined', or 'members'.
+     * For members, listing_id= must be present and positive; listing_id=0 or
+     * absent returns an empty array (Collective has no member table).
+     */
     public function allIds(Request $request): Response
     {
         $panel = (string) ($request->query('panel', '') ?? '');
@@ -371,6 +422,15 @@ final class LinkCheckerController extends AdminController
     // AJAX — check a single affiliate
     // -----------------------------------------------------------------------
 
+    /**
+     * Checks the URL of a single affiliate and updates its link and reciprocal status.
+     *
+     * Performs a live HTTP check via LinkChecker::check(), stores the result in
+     * lstr_affiliates, then — unless the link is dead — performs a reciprocal
+     * check via LinkChecker::checkReciprocal() and stores that result too.
+     * Returns JSON with the new statuses and a human-readable checked_at timestamp.
+     * Returns 503 if the cURL extension is not available.
+     */
     public function checkAffiliate(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -411,6 +471,14 @@ final class LinkCheckerController extends AdminController
     // AJAX — check a single joined listing
     // -----------------------------------------------------------------------
 
+    /**
+     * Checks the URL of a single joined listing and updates its link status.
+     *
+     * Performs a live HTTP check via LinkChecker::check() and stores the result
+     * in lstr_joined. Does not perform a reciprocal check (joined listings are
+     * external sites, not affiliates). Returns JSON with the new status and a
+     * checked_at timestamp. Returns 503 if cURL is unavailable.
+     */
     public function checkJoined(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -444,6 +512,14 @@ final class LinkCheckerController extends AdminController
     // Apply stored redirect URL to an affiliate record
     // -----------------------------------------------------------------------
 
+    /**
+     * Replaces an affiliate's current URL with the redirect target detected during the last check.
+     *
+     * Delegates to AffiliateRepo::applyRedirectUrl(), which copies the stored
+     * redirect_url value into the url column and clears link_status back to
+     * 'unchecked' so the admin can re-check the new URL. Logs the change.
+     * Returns a flash error if the record is missing or not in redirect state.
+     */
     public function applyRedirectAffiliate(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -475,6 +551,14 @@ final class LinkCheckerController extends AdminController
     // Apply stored redirect URL to a joined listing record
     // -----------------------------------------------------------------------
 
+    /**
+     * Replaces a joined listing's current URL with the redirect target detected during the last check.
+     *
+     * Delegates to JoinedListingRepo::applyRedirectUrl(), which copies the stored
+     * redirect_url value into the url column and clears link_status back to
+     * 'unchecked'. Logs the change. Returns a flash error if the record is missing
+     * or not in redirect state.
+     */
     public function applyRedirectJoined(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -506,6 +590,13 @@ final class LinkCheckerController extends AdminController
     // Reset all affiliate link statuses
     // -----------------------------------------------------------------------
 
+    /**
+     * Resets the link_status and redirect_url on every affiliate row back to 'unchecked'.
+     *
+     * Useful when switching domains or after a server migration, so previous
+     * stale check results do not persist. Logs the action and sets a flash
+     * success message.
+     */
     public function resetAffiliates(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -530,6 +621,12 @@ final class LinkCheckerController extends AdminController
     // Reset all joined listing link statuses
     // -----------------------------------------------------------------------
 
+    /**
+     * Resets the link_status and redirect_url on every joined-listing row back to 'unchecked'.
+     *
+     * Mirrors resetAffiliates() for the joined-listings table. Logs the action
+     * and sets a flash success message.
+     */
     public function resetJoined(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -554,6 +651,15 @@ final class LinkCheckerController extends AdminController
     // Sync member URLs for a listing into the check table
     // -----------------------------------------------------------------------
 
+    /**
+     * Syncs a listing's approved member URLs into lstr_member_link_checks.
+     *
+     * Reads all approved members with a non-empty URL from the listing's member
+     * table via MemberLinkCheckRepo::syncFromListing() and upserts them into
+     * the check table (new rows added, existing rows' URLs updated, rows for
+     * members who have since removed their URL deleted). Reports the synced
+     * count in a flash message. Requires a valid listing with a dbprefix.
+     */
     public function scanMembers(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -605,6 +711,14 @@ final class LinkCheckerController extends AdminController
     // AJAX — sync one listing's member URLs (used by Scan All and per-row Scan)
     // -----------------------------------------------------------------------
 
+    /**
+     * AJAX variant of scanMembers() for use by the "Scan All" batch and per-row Scan buttons.
+     *
+     * Accepts listing_id as a POST field, syncs member URLs via
+     * MemberLinkCheckRepo::syncFromListing(), and returns JSON with the synced
+     * count and the updated link-status breakdown for that listing.
+     * Returns JSON error responses (404, 422, 500) instead of redirecting.
+     */
     public function scanMemberAjax(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -647,6 +761,13 @@ final class LinkCheckerController extends AdminController
     // AJAX — check a single member URL
     // -----------------------------------------------------------------------
 
+    /**
+     * Checks the URL stored in a single lstr_member_link_checks row and updates its status.
+     *
+     * Performs a live HTTP check via LinkChecker::check() and stores the result.
+     * Returns JSON with the new link_status, http_code, redirect_url, and a
+     * checked_at timestamp. Returns 503 if the cURL extension is not available.
+     */
     public function checkMember(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -680,6 +801,15 @@ final class LinkCheckerController extends AdminController
     // Apply stored redirect URL to a member record
     // -----------------------------------------------------------------------
 
+    /**
+     * Applies the stored redirect URL to both the member link check row and the actual member record.
+     *
+     * Looks up the listing to obtain its dbprefix, then calls
+     * MemberLinkCheckRepo::applyRedirectUrl(), which writes the new URL into both
+     * lstr_member_link_checks and the member's row in the per-listing member table.
+     * Resets link_status to 'unchecked' so the admin can re-verify the new URL.
+     * Logs the change. Returns a flash error if the record is not in redirect state.
+     */
     public function applyRedirectMember(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -725,6 +855,13 @@ final class LinkCheckerController extends AdminController
     // Reset all member link statuses for a listing
     // -----------------------------------------------------------------------
 
+    /**
+     * Resets the link_status and redirect_url on every lstr_member_link_checks row for a listing.
+     *
+     * Requires a positive listing_id POST field. Returns a flash error if none
+     * is provided. Logs the action and redirects back to the member tab for
+     * the same listing.
+     */
     public function resetMembers(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -756,6 +893,13 @@ final class LinkCheckerController extends AdminController
     // Reset all link statuses (affiliates + joined listings)
     // -----------------------------------------------------------------------
 
+    /**
+     * Resets link statuses across affiliates, joined listings, and all member check rows.
+     *
+     * Calls resetLinkStatus() on all three repos in sequence. Useful before a
+     * full re-scan after a domain change. Logs a single combined activity entry
+     * and sets a flash success message.
+     */
     public function resetAll(Request $request): Response
     {
         if (!$this->validCsrf($request)) {
@@ -783,6 +927,12 @@ final class LinkCheckerController extends AdminController
     // Helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Returns the date format string from lstr_site_settings, defaulting to 'j M Y'.
+     *
+     * Used to format the checked_at timestamp in AJAX responses so it matches
+     * the date style the admin sees elsewhere in the panel.
+     */
     private function dateFormat(): string
     {
         try {
@@ -792,12 +942,28 @@ final class LinkCheckerController extends AdminController
         }
     }
 
+    /**
+     * Validates the _csrf POST field against the current session token.
+     *
+     * Returns true when the token is present and matches; false otherwise.
+     * Callers gate their POST handlers on this return value rather than
+     * letting CsrfMiddleware throw, because the link-checker endpoints need
+     * to return structured error responses (JSON or flash+redirect) rather
+     * than a generic 403 page.
+     */
     private function validCsrf(Request $request): bool
     {
         $token = (string) ($request->post('_csrf') ?? '');
         return $this->app->getCSRF()->validate($token);
     }
 
+    /**
+     * Atomically writes an updated config array to config/app.php.
+     *
+     * Writes to a .tmp sidecar file first, then renames over the real file so
+     * a partial write cannot corrupt the live config. Throws RuntimeException
+     * if either the write or the rename fails.
+     */
     private function writeConfig(array $config): void
     {
         $configPath = $this->app->getBasePath() . '/config/app.php';

@@ -19,6 +19,15 @@ use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AdminUserRepo;
 
+/**
+ * CRUD controller for admin user accounts.
+ *
+ * Handles creating, editing, and deleting the admin accounts shown on the
+ * Settings page. All passwords are hashed with PASSWORD_ARGON2ID. Safety guards
+ * prevent an admin from deleting their own account or removing the last
+ * remaining account. Editing your own account refreshes the session identity
+ * in-place; changing your own password also rotates the CSRF token.
+ */
 final class AdminUsersController extends AdminController
 {
 
@@ -26,6 +35,9 @@ final class AdminUsersController extends AdminController
     // GET + POST /admin/admin-users/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the "Add Admin Account" form, repopulating fields and errors from flash.
+     */
     public function addForm(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -46,6 +58,13 @@ final class AdminUsersController extends AdminController
         ]);
     }
 
+    /**
+     * Processes the "Add Admin Account" form submission.
+     *
+     * Validates username, email, display name, and password (min 12 chars,
+     * confirmed). On success, inserts the new account with an Argon2id password
+     * hash and redirects to the accounts panel on the Settings page.
+     */
     public function add(Request $request, array $params): Response
     {
         $baseUrl  = $this->app->getBaseUrl();
@@ -101,6 +120,9 @@ final class AdminUsersController extends AdminController
     // GET + POST /admin/admin-users/{id}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the "Edit Admin Account" form, pre-filled with the existing account values.
+     */
     public function editForm(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -128,6 +150,14 @@ final class AdminUsersController extends AdminController
         ]);
     }
 
+    /**
+     * Processes the "Edit Admin Account" form submission.
+     *
+     * Always updates username, email, and display name. If the new_password field is
+     * non-empty, validates it (min 12 chars, confirmed) and re-hashes with Argon2id,
+     * then rotates the CSRF token as a privilege-change signal. If the edited account
+     * belongs to the currently logged-in admin, the session identity is updated in-place.
+     */
     public function edit(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -201,6 +231,13 @@ final class AdminUsersController extends AdminController
     // POST /admin/admin-users/{id}/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes an admin account.
+     *
+     * Blocked by two safety guards: (1) you cannot delete your own account, and
+     * (2) you cannot delete the last remaining admin account. Both conditions
+     * return a flash error without making any database change.
+     */
     public function delete(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);

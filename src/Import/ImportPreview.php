@@ -14,6 +14,15 @@
 declare(strict_types=1);
 
 namespace Luster\Import;
+
+/**
+ * Read-only dry-run result returned by ImportSourceInterface::preview().
+ *
+ * Carries per-data-type row counts (found, would-import, would-skip) and any
+ * informational warnings gathered without writing anything to either database.
+ * The import wizard's preview page renders these values so the admin can review
+ * what will happen before committing the actual import run.
+ */
 final class ImportPreview
 {
     /** @param list<array{type:string,found:int,import:int,skip:int,warnings:string[]}> $rows */
@@ -24,7 +33,7 @@ final class ImportPreview
     ) {}
 
     /**
-     * Returns the total number of rows that would be imported across all types.
+     * Returns the total number of rows that would be imported across all data types.
      */
     public function totalToImport(): int
     {

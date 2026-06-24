@@ -22,6 +22,16 @@ use Luster\Import\SqlDumpLoader;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ListingRepo;
 
+/**
+ * Standalone member-only import wizard.
+ *
+ * Accepts an uploaded SQL dump containing a single member table (Enthusiast or
+ * Listing Admin format), loads it into temporary prefixed tables, auto-detects
+ * the column mapping, shows a preview with row counts and a sample, then merges
+ * members into the selected listing's member table using INSERT IGNORE to skip
+ * duplicates. Separate from the full import wizard; does not touch listings,
+ * categories, or any other data type.
+ */
 final class ImportMembersController
 {
     private const SESS_LISTING_ID  = 'lstr_imembers_listing_id';
@@ -39,6 +49,12 @@ final class ImportMembersController
     // GET /admin/import-members
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the landing page where the admin selects a target listing and uploads the SQL file.
+     *
+     * Only listings with a configured dbprefix (i.e., an actual member table) appear
+     * in the selector. Flash errors from a failed upload step are consumed here.
+     */
     public function landing(Request $request, array $params): Response
     {
         $db          = $this->app->getDatabase();
@@ -60,6 +76,16 @@ final class ImportMembersController
     // POST /admin/import-members/upload
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the uploaded SQL file and stores metadata for the preview step.
+     *
+     * Validates the listing selection and the uploaded .sql file (max 10 MB).
+     * Loads the SQL into temporary tables via SqlDumpLoader, then auto-detects
+     * which table is the member table and what column-name format it uses
+     * (Enthusiast: email/name/country/...; Listing Admin: mEmail/mName/mCountry/...).
+     * Stores counts, sample rows, and the column mapping in session for the preview
+     * page, then redirects to /admin/import-members/preview.
+     */
     public function upload(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -159,6 +185,12 @@ final class ImportMembersController
     // GET /admin/import-members/preview
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the preview page showing detected format, column mapping, row counts, and sample rows.
+     *
+     * All data is read from session (stored by the upload step). If no session state
+     * exists (e.g. the admin navigated here directly), redirects to the landing page.
+     */
     public function preview(Request $request, array $params): Response
     {
         $session   = $this->app->getSession();
@@ -190,6 +222,16 @@ final class ImportMembersController
     // POST /admin/import-members/run
     // -----------------------------------------------------------------------
 
+    /**
+     * Executes the member merge and redirects to the result page.
+     *
+     * Reads all rows from the detected temp table, maps columns using the stored
+     * mapping, and inserts each row into the target listing's member table with
+     * INSERT IGNORE (duplicates by email are skipped, not updated). Validates all
+     * three table-name components against validatePrefix() before interpolating
+     * into SQL. Temp tables are dropped in a finally block. Logs the outcome to
+     * lstr_activity_log and stores a result summary in session for the result page.
+     */
     public function run(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -306,6 +348,12 @@ final class ImportMembersController
     // GET /admin/import-members/result
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the result page with imported and skipped member counts.
+     *
+     * Reads the result array from session (stored by run()) and consumes it.
+     * Redirects to the landing page if no result is present.
+     */
     public function result(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -326,6 +374,13 @@ final class ImportMembersController
     // -----------------------------------------------------------------------
 
     /**
+     * Scans temp tables to find one with recognisable member columns and returns the mapping.
+     *
+     * Checks for Listing Admin columns (mEmail + mName) first, then Enthusiast columns
+     * (email + name). Returns the table name, the detected format string, and a mapping
+     * from Luster column names to source column names. Returns null as the table name
+     * if no recognisable member table is found.
+     *
      * @param  string[] $tables Original table names (without prefix)
      * @return array{0: string|null, 1: string, 2: array<string,string>}
      */
@@ -374,6 +429,9 @@ final class ImportMembersController
         return [null, 'unknown', []];
     }
 
+    /**
+     * Clears all member-import session keys (everything except the result key).
+     */
     private function clearImportSession(\Luster\Core\Session $session): void
     {
         foreach ([self::SESS_LISTING_ID, self::SESS_TEMP_TABLES, self::SESS_TEMP_PREFIX,
@@ -382,6 +440,9 @@ final class ImportMembersController
         }
     }
 
+    /**
+     * Drops any leftover temp tables from a previous session run before starting a new one.
+     */
     private function cleanupSession(\Luster\Core\Session $session, \PDO $pdo): void
     {
         $tables = (array)  $session->get(self::SESS_TEMP_TABLES, []);
@@ -391,6 +452,11 @@ final class ImportMembersController
         }
     }
 
+    /**
+     * Renders a page inside the admin layout shell, injecting base_url and csrf_token.
+     *
+     * Used instead of adminLayout() because this controller does not extend AdminController.
+     */
     private function layout(string $template, string $title, array $data): Response
     {
         $config    = $this->app->getConfig();

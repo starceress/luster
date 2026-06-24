@@ -20,6 +20,16 @@ use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 
+/**
+ * POST-only controller for transactional email template management.
+ *
+ * Handles saving all template types (join, approve, update, remove, reset,
+ * notify_join, affiliate_*, adoption_*, KIM_*) for a given scope (global or
+ * per-listing), resetting a single type back to its parent level (per-listing
+ * resets to global; global resets to the built-in default), and toggling the
+ * enabled flag via an AJAX endpoint. The GET index redirects to the unified
+ * Emails page served by EmailsController.
+ */
 final class EmailTemplatesController extends AdminController
 {
 
@@ -27,6 +37,10 @@ final class EmailTemplatesController extends AdminController
     // GET /admin/email-templates — redirect to unified page
     // -----------------------------------------------------------------------
 
+    /**
+     * Redirects legacy /admin/email-templates URLs to the Templates tab of the
+     * unified Emails page, preserving any listing= scope parameter.
+     */
     public function indexRedirect(Request $request, array $params): Response
     {
         $baseUrl = $this->app->getBaseUrl();
@@ -41,6 +55,14 @@ final class EmailTemplatesController extends AdminController
     // POST /admin/email-templates/save
     // -----------------------------------------------------------------------
 
+    /**
+     * Persists all template types for the given scope in one request.
+     *
+     * Reads email_subject_{type}, email_body_{type}, and email_enabled_{type}
+     * POST fields for every type in EmailTemplateRepo::TYPES, skipping
+     * collective-only types when the scope is per-listing. Validates that the
+     * listing exists when a per-listing scope is given.
+     */
     public function save(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -93,6 +115,13 @@ final class EmailTemplatesController extends AdminController
     // Returns JSON {"ok":true} on success, {"ok":false,"error":"..."} on failure.
     // -----------------------------------------------------------------------
 
+    /**
+     * Toggles the enabled flag for a single template type via AJAX.
+     *
+     * Accepts scope (global or a listing ID), type, and enabled (1 or 0).
+     * Validates both the type and the scope before writing. Returns JSON
+     * so the client can update the toggle UI without a full page reload.
+     */
     public function toggleEnabled(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -136,6 +165,14 @@ final class EmailTemplatesController extends AdminController
     // POST /admin/email-templates/reset
     // -----------------------------------------------------------------------
 
+    /**
+     * Resets a single template type to its parent level by deleting the override row.
+     *
+     * For a per-listing scope: deletes the per-listing row so the template inherits
+     * from the global setting. For the global scope: deletes the global row so the
+     * template falls back to the built-in default. Collective-only types cannot be
+     * reset on a per-listing scope.
+     */
     public function reset(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();

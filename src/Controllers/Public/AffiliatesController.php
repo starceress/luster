@@ -46,6 +46,15 @@ final class AffiliatesController
     // GET /affiliates/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the affiliates page for a specific listing.
+     *
+     * Only active affiliates are shown. When a section template is configured
+     * (from lstr_fanlisting_settings or the global default), the output is
+     * rendered via applySectionTemplate() instead of the plain PHP template.
+     * An inline affiliate application form is injected when the template
+     * contains the {affiliate_apply_toggle} token and applications are enabled.
+     */
     public function index(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -117,6 +126,13 @@ final class AffiliatesController
     // GET /affiliates
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the collective (site-wide) affiliates page.
+     *
+     * Only affiliates whose fanlisting_id IS NULL are included.
+     * Behaves identically to index() but reads the collective section template
+     * and pagination template from lstr_site_settings instead of per-listing settings.
+     */
     public function collective(Request $request, array $params): Response
     {
         $page = max(1, (int) $request->query('page', 1));
@@ -179,14 +195,11 @@ final class AffiliatesController
     // -----------------------------------------------------------------------
 
     /**
-     * Applies a per-affiliate row template to a list of affiliates and returns
-     * the concatenated HTML string. See AffiliateRowRenderer for the {aff_*}
-     * token reference.
+     * Renders the affiliate application form as an HTML fragment for inline
+     * display inside the {affiliate_apply_toggle} collapsible block.
      *
-     * @param Affiliate[] $affiliates
-     */
-    /**
-     * Renders the affiliate application form as an HTML fragment for inline display.
+     * Returns a View::renderFragment() string so the output can be injected
+     * into the section template without re-entering a full page render.
      */
     private function renderInlineApplyForm(int $listingId, object $listing, array $applySettings): string
     {
@@ -256,6 +269,11 @@ final class AffiliatesController
         ]);
     }
 
+    /**
+     * Renders the collective-level affiliate application form as an HTML fragment
+     * for inline display. Mirrors renderInlineApplyForm() but reads template and
+     * form URL from lstr_site_settings instead of per-listing settings.
+     */
     private function renderInlineCollectiveApplyForm(SiteSettingsRepo $siteRepo): string
     {
         $config          = $this->app->getConfig();
@@ -320,6 +338,11 @@ final class AffiliatesController
         ]);
     }
 
+    /**
+     * Delegates per-affiliate row rendering to AffiliateRowRenderer.
+     *
+     * @param Affiliate[] $affiliates
+     */
     private function buildAffiliateRows(string $template, array $affiliates, string $uploadsUrl): string
     {
         return AffiliateRowRenderer::renderRows($template, $affiliates, $uploadsUrl);

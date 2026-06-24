@@ -48,6 +48,7 @@ final class UpdateRepo
         return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
+    /** Counts all updates for a fanlisting. */
     public function countForFanlisting(int $fanlistingId): int
     {
         $stmt = $this->db->prepare(
@@ -82,6 +83,7 @@ final class UpdateRepo
         return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
+    /** Counts all collective (fanlisting_id IS NULL) updates. */
     public function countCollective(): int
     {
         $stmt = $this->db->prepare(
@@ -147,6 +149,7 @@ final class UpdateRepo
         return $result;
     }
 
+    /** Returns the most recent collective update, or null if none exist. */
     public function getLatestCollective(): ?Update
     {
         $stmt = $this->db->prepare(
@@ -160,6 +163,7 @@ final class UpdateRepo
         return $row !== false ? $this->hydrate($row) : null;
     }
 
+    /** Alias for countCollective() — kept for symmetry with the admin overview. */
     public function countCollectiveTotal(): int
     {
         return $this->countCollective();
@@ -169,6 +173,7 @@ final class UpdateRepo
     // Single-row fetch
     // -----------------------------------------------------------------------
 
+    /** Returns a single update by primary key, or null if not found. */
     public function getById(int $id): ?Update
     {
         $stmt = $this->db->prepare(
@@ -272,6 +277,11 @@ final class UpdateRepo
     // Writes
     // -----------------------------------------------------------------------
 
+    /**
+     * Inserts a new update. Pass null for $fanlistingId to create a collective entry.
+     * $data keys: title, body, category, author, posted_at.
+     * Returns the new row's auto-increment ID.
+     */
     public function insert(?int $fanlistingId, array $data): int
     {
         $stmt = $this->db->prepare(
@@ -291,6 +301,10 @@ final class UpdateRepo
         return (int) $this->db->lastInsertId();
     }
 
+    /**
+     * Updates editable fields on an existing entry.
+     * $data keys: title, body, category, posted_at.
+     */
     public function update(int $id, array $data): void
     {
         $stmt = $this->db->prepare(
@@ -310,6 +324,7 @@ final class UpdateRepo
         ]);
     }
 
+    /** Deletes an update by primary key. */
     public function delete(int $id): void
     {
         $stmt = $this->db->prepare('DELETE FROM `lstr_updates` WHERE `id` = :id');
@@ -320,7 +335,11 @@ final class UpdateRepo
     // Private helpers
     // -----------------------------------------------------------------------
 
-    /** @return array{0: string, 1: array<string,mixed>} */
+    /**
+     * Builds the WHERE clause and parameter map for filtered queries.
+     *
+     * @return array{0: string, 1: array<string,mixed>}
+     */
     private function filterWhere(?int $fanlistingId, string $search, string $category): array
     {
         $conds  = [];
@@ -347,7 +366,11 @@ final class UpdateRepo
         return [implode(' AND ', $conds), $params];
     }
 
-    /** @return Update[] */
+    /**
+     * Fetches all updates for a fanlisting ordered by posted_at DESC.
+     *
+     * @return Update[]
+     */
     private function fetchAllByFanlisting(int $fanlistingId): array
     {
         $stmt = $this->db->prepare(
@@ -357,7 +380,11 @@ final class UpdateRepo
         return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
-    /** @return Update[] */
+    /**
+     * Fetches all collective updates ordered by posted_at DESC.
+     *
+     * @return Update[]
+     */
     private function fetchAllCollective(): array
     {
         $stmt = $this->db->prepare(
@@ -383,6 +410,7 @@ final class UpdateRepo
     // Hydration
     // -----------------------------------------------------------------------
 
+    /** Hydrates an Update instance from an associative database row. */
     private function hydrate(array $row): Update
     {
         return new Update(

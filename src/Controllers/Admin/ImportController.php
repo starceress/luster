@@ -33,6 +33,18 @@ use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use ZipArchive;
 
+/**
+ * Drives the five-step database import wizard for all supported legacy sources.
+ *
+ * Steps: (1) source selection, (2) connect/upload, (3) scope/options, (4) dry-run
+ * preview, (5) run + result. Supported sources: Enthusiast, Listing Admin, FanUpdate,
+ * CodeSort, BellaBuffs, and Fanatically. Source credentials are kept only in the
+ * session for the wizard's duration and cleared immediately after run() completes.
+ * BellaBuffs is special — it has no SQL source; both source and target PDO point at
+ * the Luster database, and uploaded flat-file temp copies live in storage/cache/.
+ * SQL dump uploads create temporary prefixed tables in the Luster database that are
+ * cleaned up after the import or on returning to step 1.
+ */
 final class ImportController extends AdminController
 {
     private const SESSION_CREDS       = 'lstr_import_credentials';
@@ -54,6 +66,13 @@ final class ImportController extends AdminController
     // POST /admin/import/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders and processes the Import Wizard settings page.
+     *
+     * On GET: displays checkboxes controlling which source cards are visible on the
+     * import index, plus the config-reader opt-in toggle. On POST: saves those
+     * settings to lstr_site_settings and redirects back.
+     */
     public function settings(Request $request, array $params): Response
     {
         $db           = $this->app->getDatabase();
@@ -114,6 +133,13 @@ final class ImportController extends AdminController
     // GET /admin/import
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the source-selection landing page (step 1 of the import wizard).
+     *
+     * Clears all import session state from any previous wizard run, removes stale
+     * ZIP and temp files from storage/cache/, then renders source cards for each
+     * enabled source (visibility toggles read from lstr_site_settings).
+     */
     public function index(Request $request, array $params): Response
     {
         $this->clearImportSession();
@@ -145,6 +171,19 @@ final class ImportController extends AdminController
     // POST /admin/import/{source}/connect
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles the credential/connection step (step 2) for SQL-based sources.
+     *
+     * On GET: renders the credential form, pre-filling from any saved session
+     * credentials and indicating whether a SQL dump is already loaded.
+     * On POST (live-DB path): validates credentials, tests the connection via the
+     * source adapter, stores them in session, and redirects to step 3.
+     * On POST (dump path): if a file is attached, delegates to handleDumpUpload()
+     * which loads the SQL into temporary tables and redirects to step 3.
+     * BellaBuffs is routed to connectBellaBuffs() instead.
+     * Fanatically also accepts an optional table-prefix field stored alongside the
+     * credentials.
+     */
     public function connect(Request $request, array $params): Response
     {
         $source = $this->resolveSource($params);
@@ -266,6 +305,10 @@ final class ImportController extends AdminController
     // configure() — backward-compatibility redirect to connect()
     // -----------------------------------------------------------------------
 
+    /**
+     * Backward-compatibility alias — redirects /admin/import/{source}/configure
+     * to /admin/import/{source}/connect.
+     */
     public function configure(Request $request, array $params): Response
     {
         $source = $this->resolveSource($params);
@@ -280,6 +323,14 @@ final class ImportController extends AdminController
     // POST /admin/import/{source}/test-connection
     // -----------------------------------------------------------------------
 
+    /**
+     * Tests a source database connection and returns JSON with schema detection results.
+     *
+     * Called by the Connect step's "Test Connection" button. Opens a real connection,
+     * detects the schema variant, and optionally counts rows in the listing registry
+     * table to give the admin confidence they are connecting to the right database.
+     * Returns {"ok":true,"schema":"..."} on success or {"ok":false,"message":"..."}.
+     */
     public function testConnection(Request $request, array $params): Response
     {
         $source = $this->resolveSource($params);
@@ -351,6 +402,14 @@ final class ImportController extends AdminController
     // POST /admin/import/{source}/detect-config
     // -----------------------------------------------------------------------
 
+    /**
+     * Reads a legacy script's config.php by path and returns extracted credentials as JSON.
+     *
+     * The file is never require()d — it is read as plain text and parsed with regex
+     * to avoid executing arbitrary code. This feature is gated behind the
+     * import_allow_config_reader site setting, which the admin must opt into explicitly
+     * in Settings → System. Returns parsed host, name, user, pass, and prefix fields.
+     */
     public function detectConfig(Request $request, array $params): Response
     {
         if (!$request->isPost()) {
@@ -398,6 +457,17 @@ final class ImportController extends AdminController
     // POST /admin/import/{source}/options
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders and processes the scope/options step (step 3) of the import wizard.
+     *
+     * On GET: renders checkboxes for data types to import and image migration options,
+     * pre-filled from any saved session scope. Indicates whether a ZIP is already
+     * uploaded and ready for image migration.
+     * On POST: stores the submitted options in the session, carries over any dump
+     * metadata or ZIP path, and redirects to step 4 (preview).
+     * BellaBuffs is routed to scopeBellaBuffs() which shows a listing selector
+     * instead of SQL options.
+     */
     public function scope(Request $request, array $params): Response
     {
         $source  = $this->resolveSource($params);
@@ -483,6 +553,14 @@ final class ImportController extends AdminController
     // POST /admin/import/{source}/zip-upload
     // -----------------------------------------------------------------------
 
+    /**
+     * Accepts a ZIP archive upload for the "ZIP image migration" mode.
+     *
+     * Validates the file (extension must be .zip, max 50 MB, must be a valid
+     * ZIP archive). Stores the file in storage/cache/ with a random name and
+     * records the path in the session. Replaces any previously uploaded ZIP.
+     * Returns JSON with the entry count on success, or an error string on failure.
+     */
     public function uploadZip(Request $request, array $params): Response
     {
         $source = $this->resolveSource($params);
@@ -537,6 +615,15 @@ final class ImportController extends AdminController
     // POST /admin/import/{source}/preview
     // -----------------------------------------------------------------------
 
+    /**
+     * Runs a dry-run preview and renders the summary page (step 4).
+     *
+     * Calls the source adapter's preview() method with the session-stored scope
+     * options. For dump-mode sources, the Luster PDO is used as the source (data
+     * lives in temp tables). For BellaBuffs, both source and target are the Luster
+     * PDO. An exception from preview() is caught and displayed as an inline error
+     * rather than crashing, so the admin can adjust options and retry.
+     */
     public function preview(Request $request, array $params): Response
     {
         $source  = $this->resolveSource($params);
@@ -638,6 +725,15 @@ final class ImportController extends AdminController
     // POST /admin/import/{source}/run
     // -----------------------------------------------------------------------
 
+    /**
+     * Executes the import and redirects to the result page on success (step 5).
+     *
+     * Opens the source connection (or uses the Luster PDO for dump/BellaBuffs),
+     * calls the adapter's run() method, stores the ImportResult in session, logs
+     * a summary to lstr_activity_log, then clears all import credentials and temp
+     * files. On failure, stores the error as a flash message and redirects back to
+     * the connect step. Dump temp tables are always dropped in the finally block.
+     */
     public function run(Request $request, array $params): Response
     {
         $source  = $this->resolveSource($params);
@@ -737,6 +833,13 @@ final class ImportController extends AdminController
     // GET /admin/import/{source}/result
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the result page after a completed import (step 5).
+     *
+     * Reads the ImportResult from session. If no result is present (e.g. run() failed
+     * and redirected to /connect), redirects to /connect so any flash error from the
+     * failed run is visible and the admin has a clear retry path.
+     */
     public function result(Request $request, array $params): Response
     {
         $source  = $this->resolveSource($params);
@@ -771,6 +874,13 @@ final class ImportController extends AdminController
     // GET /admin/import/{source}/report
     // -----------------------------------------------------------------------
 
+    /**
+     * Streams the import result as a plain-text download.
+     *
+     * Reads the stored ImportResult from session and calls toText() on it.
+     * If no result is available (session expired), redirects to the import index.
+     * Sends appropriate Content-Disposition and Content-Length headers.
+     */
     public function downloadReport(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -793,6 +903,12 @@ final class ImportController extends AdminController
     // POST /admin/import/{source}/upload-dump
     // -----------------------------------------------------------------------
 
+    /**
+     * Dedicated route for SQL dump uploads, delegating to handleDumpUpload().
+     *
+     * Provided as a separate POST endpoint for cases where the Connect step
+     * form separates the dump upload from the credential form.
+     */
     public function uploadDump(Request $request, array $params): Response
     {
         $source  = $this->resolveSource($params);
@@ -866,12 +982,18 @@ final class ImportController extends AdminController
         return Response::redirect($baseUrl . "/admin/import/{$source}/options");
     }
 
+    /**
+     * Returns the validated source slug from route params, or null if unrecognised.
+     */
     private function resolveSource(array $params): ?string
     {
         $s = $params['source'] ?? '';
         return in_array($s, self::SUPPORTED_SOURCES, true) ? $s : null;
     }
 
+    /**
+     * Instantiates the correct ImportSourceInterface adapter for a given source slug.
+     */
     private function getAdapter(string $source): ImportSourceInterface
     {
         return match ($source) {
@@ -885,6 +1007,9 @@ final class ImportController extends AdminController
         };
     }
 
+    /**
+     * Returns the human-readable display name for a source slug.
+     */
     private function sourceName(string $source): string
     {
         return match ($source) {
@@ -902,6 +1027,14 @@ final class ImportController extends AdminController
     // BellaBuffs-specific flow
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles the BellaBuffs connect step (step 2) — server-path or file-upload mode.
+     *
+     * In path mode, validates the folder path by calling BellaBuffsImportSource::testConnection().
+     * In upload mode, moves members.txt (required) and newbies.txt (optional) to
+     * storage/cache/ and records the paths in session. Both modes redirect to step 3
+     * on success. On POST error, re-renders the form with the error message.
+     */
     private function connectBellaBuffs(Request $request): Response
     {
         $session = $this->app->getSession();
@@ -987,6 +1120,15 @@ final class ImportController extends AdminController
         );
     }
 
+    /**
+     * Handles the BellaBuffs scope step (step 3).
+     *
+     * Renders a target-listing selector and checkboxes for which data types to
+     * import (approved members, pending members, affiliates, codes/buttons). For
+     * server-path mode, probes the folder to determine which optional files
+     * (newbies.txt, affiliates.txt, buttons.txt) are present so the template can
+     * show only available options.
+     */
     private function scopeBellaBuffs(Request $request): Response
     {
         $session = $this->app->getSession();
@@ -1055,6 +1197,9 @@ final class ImportController extends AdminController
         );
     }
 
+    /**
+     * Deletes any BellaBuffs temp files stored in storage/cache/ and clears their session keys.
+     */
     private function cleanupBbTempFiles(): void
     {
         $session = $this->app->getSession();
@@ -1067,6 +1212,11 @@ final class ImportController extends AdminController
         }
     }
 
+    /**
+     * Removes all import-related session keys and cleans up any dump temp tables and BB temp files.
+     *
+     * Called at the start of index() so a fresh wizard run starts with a clean slate.
+     */
     private function clearImportSession(): void
     {
         $session = $this->app->getSession();
@@ -1080,6 +1230,13 @@ final class ImportController extends AdminController
         $this->cleanupBbTempFiles();
     }
 
+    /**
+     * Drops all temporary tables created by a SQL dump upload from the Luster database.
+     *
+     * Reads the prefix and table list from the session. The _schema metadata key is
+     * removed before passing to SqlDumpLoader::cleanup() so it is not treated as a
+     * table name.
+     */
     private function cleanupDumpTables(): void
     {
         $session = $this->app->getSession();
@@ -1116,6 +1273,12 @@ final class ImportController extends AdminController
     }
 
     /**
+     * Resolves the credentials to use for the import connection.
+     *
+     * If all four fields are blank, substitutes the Luster primary database credentials
+     * (same-database import). Otherwise validates the submitted credentials and returns
+     * them as-is. The second return value is a validation error string, or null on success.
+     *
      * @param array{host:string,name:string,user:string,pass:string} $submitted
      * @return array{array{host:string,name:string,user:string,pass:string}, ?string}
      */
@@ -1129,6 +1292,9 @@ final class ImportController extends AdminController
         return [$submitted, $guardError];
     }
 
+    /**
+     * Returns true when all credential fields are blank, indicating a same-database import.
+     */
     private function shouldUsePrimaryDatabase(array $credentials): bool
     {
         return ($credentials['host'] ?? '') === ''
@@ -1137,6 +1303,9 @@ final class ImportController extends AdminController
             && ($credentials['pass'] ?? '') === '';
     }
 
+    /**
+     * Returns the Luster primary database credentials from config.
+     */
     private function getPrimaryDatabaseCredentials(): array
     {
         $config = $this->app->getConfig();
@@ -1148,6 +1317,12 @@ final class ImportController extends AdminController
         ];
     }
 
+    /**
+     * Validates that stored credentials contain a usable database host.
+     *
+     * Returns null on success or an error string if the host is missing or contains
+     * characters that would break the PDO DSN (spaces, semicolons, quotes).
+     */
     private function validateStoredCredentials(array $credentials): ?string
     {
         $host = trim((string) ($credentials['host'] ?? ''));

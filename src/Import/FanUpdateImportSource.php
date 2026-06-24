@@ -17,6 +17,18 @@ declare(strict_types=1);
 namespace Luster\Import;
 
 use PDO;
+
+/**
+ * Import adapter for FanUpdate databases.
+ *
+ * Imports blog/update entries from FanUpdate's `{prefix}` table into Luster's
+ * lstr_updates table (requires the Updates Feed add-on to be installed). FanUpdate
+ * links entries to fanlistings via a category/catjoin table pair; this adapter
+ * matches those subjects case-insensitively to Luster listing titles and falls back
+ * to a collective-level (NULL fanlisting_id) entry when no match is found.
+ * Non-public entries (is_public = 0) are always skipped. Comments, smilies, and
+ * display options have no Luster equivalent and are dropped.
+ */
 final class FanUpdateImportSource implements ImportSourceInterface
 {
     private const CHUNK = 500;

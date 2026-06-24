@@ -18,7 +18,12 @@ use Luster\Core\Database;
 /**
  * Data access for the lstr_error_log table.
  *
- * Requires lstr_error_log to exist — run public/migrate.php (Migration 14) first.
+ * Stores application-level error entries with a severity level ('error',
+ * 'warning', 'info'), a message string, and an optional source identifier
+ * (e.g. the controller or import adapter that logged the error). The admin
+ * Error Log page reads from here; the flush operation clears all rows at once.
+ *
+ * Requires Migration 14 (lstr_error_log table creation).
  */
 final class ErrorLogRepo
 {

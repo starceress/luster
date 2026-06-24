@@ -45,7 +45,17 @@ final class Pagination
     }
 
     /**
-     * @param array<string, scalar|null> $extraParams extra query-string params merged into every page URL
+     * Renders pagination HTML using a {token} template.
+     *
+     * When $total <= 1 returns an empty string (no navigation needed).
+     * The $baseUrl may already include a query string; page parameters are merged
+     * in rather than appended, so existing params like ?sort=name are preserved.
+     *
+     * @param int    $current      The currently active page number (1-based).
+     * @param int    $total        Total number of pages.
+     * @param string $baseUrl      The URL of the page being paginated (with or without query string).
+     * @param string $template     Admin-editable {token} template; defaults to the built-in one.
+     * @param array<string, scalar|null> $extraParams  Extra query-string params merged into every page URL.
      */
     public static function render(
         int $current,

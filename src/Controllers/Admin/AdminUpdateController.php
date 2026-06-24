@@ -23,6 +23,14 @@ use Luster\Core\Version;
 use Luster\Repositories\ErrorLogRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
+/**
+ * Manages the in-app update wizard for Luster itself.
+ *
+ * Covers the full lifecycle: checking GitHub for a newer release, downloading
+ * and staging the ZIP, running preflight checks, generating a backup, and
+ * applying the update. Session keys track wizard state so each step can
+ * resume without re-downloading if the admin navigates away mid-flow.
+ */
 final class AdminUpdateController extends AdminController
 {
     private const KEY_STAGING = 'lstr_update_staging_dir';
@@ -37,6 +45,13 @@ final class AdminUpdateController extends AdminController
     private const KEY_MANUAL_URL = 'lstr_update_manual_url';
     private const KEY_BACKUP_DOWNLOADED = 'lstr_update_backup_downloaded';
 
+    /**
+     * Shows the update wizard page.
+     *
+     * If a staged update is already in session, re-runs preflight checks on
+     * every load so the admin can fix blocking issues and refresh without
+     * re-downloading. Accepts a ?preview= query param for UI state previews.
+     */
     public function index(Request $request, array $params): Response
     {
         $preview = (string) $request->query('preview', '');
@@ -226,6 +241,12 @@ final class AdminUpdateController extends AdminController
         ]);
     }
 
+    /**
+     * Increments the patch segment of a semver string for preview purposes.
+     *
+     * For example, "1.2.3" becomes "1.2.4". Used only to generate realistic
+     * fake version numbers in the preview states — never touches real versions.
+     */
     private function bumpPatch(string $version): string
     {
         $parts = explode('.', $version);
@@ -235,6 +256,13 @@ final class AdminUpdateController extends AdminController
         return implode('.', $parts);
     }
 
+    /**
+     * Downloads and stages the latest release, then re-runs preflight checks.
+     *
+     * Redirects back to the update page with a success or error flash. Sets
+     * a manual-update flag in session if the release cannot be auto-applied
+     * (e.g. requires a PHP version the server doesn't meet).
+     */
     public function prepare(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -288,6 +316,13 @@ final class AdminUpdateController extends AdminController
         return Response::redirect($baseUrl . '/admin/update');
     }
 
+    /**
+     * Generates and streams a full backup ZIP to the browser.
+     *
+     * Includes application files and all Luster + member database tables.
+     * Sets a session flag so the apply step knows a backup was downloaded.
+     * The temporary ZIP file is deleted from disk after it is sent.
+     */
     public function backup(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -317,6 +352,14 @@ final class AdminUpdateController extends AdminController
         }
     }
 
+    /**
+     * Applies the staged update by copying files from the staging directory.
+     *
+     * Re-runs preflight before doing anything. Requires the admin to have
+     * checked the backup-confirmed checkbox. On success, clears all update
+     * session keys and redirects to the migration runner to apply any
+     * database changes the new version requires.
+     */
     public function apply(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -367,6 +410,13 @@ final class AdminUpdateController extends AdminController
         }
     }
 
+    /**
+     * Discards the prepared update and clears all update session state.
+     *
+     * Deletes the staged directory and downloaded ZIP from disk if they exist,
+     * then removes all update-related session keys so the wizard resets to the
+     * version-check screen.
+     */
     public function discard(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -382,12 +432,20 @@ final class AdminUpdateController extends AdminController
         return Response::redirect($baseUrl . '/admin/update');
     }
 
+    /**
+     * Returns a configured UpdateApplier instance wired to this install's base path and database.
+     */
     private function applier(): UpdateApplier
     {
         return new UpdateApplier($this->app->getBasePath(), $this->app->getDatabase());
     }
 
     /**
+     * Reads the cached preflight result from session.
+     *
+     * Returns an empty array if no preflight has been run yet, which is
+     * treated as a failing state by preflightOk().
+     *
      * @return array<int,array<string,mixed>>
      */
     private function preflightFromSession(): array
@@ -399,6 +457,10 @@ final class AdminUpdateController extends AdminController
     }
 
     /**
+     * Returns true only if every check in the preflight result passed.
+     *
+     * An empty preflight array (no checks run yet) is treated as failing.
+     *
      * @param array<int,array<string,mixed>> $preflight
      */
     private function preflightOk(array $preflight): bool
@@ -416,6 +478,11 @@ final class AdminUpdateController extends AdminController
         return true;
     }
 
+    /**
+     * Removes all update wizard session keys (staging dir, version, preflight, download path, etc.).
+     *
+     * Also calls clearManualSession() to remove the manual-update keys.
+     */
     private function clearUpdateSession(): void
     {
         $session = $this->app->getSession();
@@ -434,6 +501,9 @@ final class AdminUpdateController extends AdminController
         $this->clearManualSession();
     }
 
+    /**
+     * Removes the manual-update session keys (reason text, version, and download URL).
+     */
     private function clearManualSession(): void
     {
         $session = $this->app->getSession();
@@ -442,6 +512,9 @@ final class AdminUpdateController extends AdminController
         }
     }
 
+    /**
+     * Writes an error message to the Luster error log, swallowing any logging failures silently.
+     */
     private function logError(string $message): void
     {
         try {

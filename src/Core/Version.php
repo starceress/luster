@@ -13,6 +13,13 @@ declare(strict_types=1);
 
 namespace Luster\Core;
 
+/**
+ * Application version constants.
+ *
+ * CURRENT is compared against GitHub release tags by UpdateChecker.
+ * BUILT_AT is used as a fallback when two version strings cannot be ordered
+ * by semver comparison alone (e.g. a version-number reset scenario).
+ */
 final class Version
 {
     public const CURRENT       = '1.0.17';

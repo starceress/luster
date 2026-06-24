@@ -43,6 +43,7 @@ final class KimSignupController
     // GET /kim
     // -----------------------------------------------------------------------
 
+    /** Renders the KIM sign-up form with any flash error and repopulation data. */
     public function showForm(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -61,6 +62,14 @@ final class KimSignupController
     // POST /kim
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the KIM sign-up form.
+     *
+     * Applies rate limiting, honeypot, captcha, Validator, blacklist, and
+     * duplicate checks. On success inserts the pending member, sends a
+     * member confirmation email with a password setup link, and sends an
+     * admin notification email.
+     */
     public function submit(Request $request, array $params): Response
     {
         $baseUrl       = $this->app->getBaseUrl();
@@ -270,6 +279,13 @@ final class KimSignupController
     // Internals
     // -----------------------------------------------------------------------
 
+    /**
+     * Builds and returns the KIM sign-up form response.
+     *
+     * Renders the fanlisting selector and all input fields. If an admin-
+     * defined template is stored in lstr_site_settings, that template drives
+     * the layout; otherwise the default fragment template is used.
+     */
     private function renderForm(
         array  $fanlistings,
         array  $old = [],
@@ -343,6 +359,11 @@ final class KimSignupController
         ]);
     }
 
+    /**
+     * Wraps a KIM fragment template in the public layout and returns the response.
+     *
+     * Falls back to rendering the fragment alone when the layout file does not exist.
+     */
     private function renderKimPage(string $template, array $data): Response
     {
         $view     = $this->app->getView();
@@ -369,6 +390,14 @@ final class KimSignupController
         return Response::html($html);
     }
 
+    /**
+     * Creates a one-hour password setup token for a freshly registered KIM member
+     * and returns the full reset URL to include in the welcome email.
+     *
+     * Prefers the admin-configured KIM reset page URL (kim_url_reset) so the
+     * link lands on the correct host-page embed, not Luster's own routes.
+     * Returns an empty string if the member cannot be found.
+     */
     private function issuePasswordSetupUrl(
         KimMemberRepo $kimRepo,
         string        $email,

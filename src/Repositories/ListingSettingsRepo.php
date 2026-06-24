@@ -383,6 +383,10 @@ final class ListingSettingsRepo
         }
     }
 
+    /**
+     * Returns the per-listing Adoption Form template string, or null when not set /
+     * when Migration 70 has not been run yet.
+     */
     public function getAdoptFormTemplate(int $listingId): ?string
     {
         try {
@@ -399,6 +403,9 @@ final class ListingSettingsRepo
         }
     }
 
+    /**
+     * Default Adoption Application Form template used when no override is stored in the database.
+     */
     public static function defaultAdoptFormTemplate(): string
     {
         return '{field_name}' . "\n"
@@ -412,6 +419,10 @@ final class ListingSettingsRepo
              . '</div>';
     }
 
+    /**
+     * Returns the per-listing Contact Form template string, or null when not set /
+     * when Migration 70 has not been run yet.
+     */
     public function getContactFormTemplate(int $listingId): ?string
     {
         try {
@@ -428,6 +439,9 @@ final class ListingSettingsRepo
         }
     }
 
+    /**
+     * Default Contact Form template used when no override is stored in the database.
+     */
     public static function defaultContactFormTemplate(): string
     {
         return '<h2>Contact Form</h2>' . "\n"
@@ -486,8 +500,7 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Returns the built-in contact-sent confirmation HTML.
-     * Returns the built-in contact-sent confirmation HTML.
+     * Default contact-sent confirmation HTML used when no override is stored in the database.
      */
     public static function defaultContactSentTemplate(): string
     {
@@ -709,6 +722,12 @@ final class ListingSettingsRepo
             . '{/if_no_members}';
     }
 
+    /**
+     * Default members table template used when no override is stored in the database.
+     *
+     * Alternate layout that renders members as a two-column table (Name + Country)
+     * instead of the simple list produced by defaultMembersTemplate().
+     */
     public static function defaultMembersTableTemplate(): string
     {
         return '<h1>Member List</h1>' . "\n"
@@ -736,7 +755,10 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Default updates-feed entry template used when no override is stored.
+     * Default affiliates section template used when no override is stored in the database.
+     *
+     * Shared by the public affiliates embed and the admin per-listing template editor.
+     * Uses the {each_affiliate} loop with {if_aff_image} / {if_no_aff_image} conditionals.
      */
     public static function defaultAffiliatesSectionTemplate(): string
     {
@@ -756,6 +778,13 @@ final class ListingSettingsRepo
             . '</div>';
     }
 
+    /**
+     * Default updates-feed template used when no override is stored in the database.
+     *
+     * Uses the {each_update} loop with per-entry tokens: {update_title}, {update_date},
+     * {update_author}, {update_categories}, {update_body_html}, and the
+     * {if_author} / {if_categories} conditionals.
+     */
     public static function defaultUpdatesTemplate(): string
     {
         return '<h2>{listing_subject} Updates</h2>' . "\n"
@@ -1813,11 +1842,6 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Saves (upserts) affiliate application settings for a listing.
-     *
-     * Requires Migration 41.
-     */
-    /**
      * Returns whether to send the code-approval email for this listing.
      * NULL = inherit global setting, true = always send, false = never send.
      *
@@ -1856,6 +1880,11 @@ final class ListingSettingsRepo
         } catch (\PDOException) {}
     }
 
+    /**
+     * Saves (upserts) affiliate application settings for a listing.
+     *
+     * Requires Migration 41.
+     */
     public function saveAffiliateApplySettings(int $listingId, bool $enabled, string $formUrl, string $redirectUrl): void
     {
         try {

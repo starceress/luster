@@ -21,8 +21,14 @@ use Luster\Models\JoinedListing;
 /**
  * Data access for the lstr_joined table.
  *
- * Tracks listings that the site owner has joined (as a member), grouped by
- * category. All queries use prepared statements.
+ * Each row represents a fanlisting the site owner has joined as a member.
+ * Category metadata is stored both as a legacy plain string (category) and
+ * as a structured JSON column (categories_json) for multi-network support.
+ * The active flag controls public visibility independently of the status
+ * field ('approved' | 'pending' | 'hiatus' etc.).
+ *
+ * Includes link-checker integration: link_status, link_redirect_url, and
+ * link_checked_at track whether the stored URL is alive, moved, or dead.
  */
 final class JoinedListingRepo
 {
@@ -639,7 +645,7 @@ final class JoinedListingRepo
     }
 
     /**
-     * Toggles the active flag.
+     * Flips the active flag between 1 and 0 — hides a visible listing or reveals a hidden one.
      */
     public function toggleActive(int $id): bool
     {
@@ -772,6 +778,13 @@ final class JoinedListingRepo
         return $stmt->rowCount() > 0;
     }
 
+    /**
+     * Records the outcome of a URL check for a joined listing.
+     *
+     * Status values: 'ok', 'redirect', 'dead', 'unchecked'.
+     * When status is 'redirect', $redirectUrl holds the final destination URL
+     * so the admin can apply it later via applyRedirectUrl().
+     */
     public function updateLinkStatus(int $id, string $status, ?string $redirectUrl, ?string $now = null): void
     {
         $stmt = $this->db->prepare(
@@ -784,6 +797,12 @@ final class JoinedListingRepo
         $stmt->execute(['status' => $status, 'redir' => $redirectUrl, 'now' => $now ?? date('Y-m-d H:i:s'), 'id' => $id]);
     }
 
+    /**
+     * Resets link-check state for all joined listings back to 'unchecked'.
+     *
+     * Call this before starting a fresh check run so stale results from the
+     * previous run do not persist alongside newly checked rows.
+     */
     public function resetLinkStatus(): void
     {
         $this->db->prepare(

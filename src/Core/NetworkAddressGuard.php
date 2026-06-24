@@ -14,6 +14,14 @@ declare(strict_types=1);
 
 namespace Luster\Core;
 
+/**
+ * SSRF protection guard for all outbound HTTP connections.
+ *
+ * Validates that a hostname resolves exclusively to public IP addresses before
+ * any connection is attempted, blocking private RFC 1918 ranges, loopback,
+ * link-local, and other reserved ranges. Used by LinkChecker and
+ * NetworkDirectoryService.
+ */
 final class NetworkAddressGuard
 {
     /**
@@ -61,6 +69,10 @@ final class NetworkAddressGuard
         return ['error' => null, 'ips' => $resolvedIps];
     }
 
+    /**
+     * Lowercases the host and strips surrounding IPv6 brackets if present.
+     * Used to normalise both literal IP addresses and hostnames before validation.
+     */
     public static function normalizeHost(string $host): string
     {
         $normalized = trim($host);

@@ -21,6 +21,13 @@ use Luster\Core\Validator;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\FieldRepo;
 
+/**
+ * Manages custom additional-field definitions for a single listing.
+ *
+ * Adding a field issues an ALTER TABLE on the member table; deleting one
+ * drops the column. Field metadata (name, label, type, required, options) is
+ * stored in the listing registry row and loaded dynamically by FieldRepo.
+ */
 final class FieldController extends AdminController
 {
 
@@ -28,6 +35,9 @@ final class FieldController extends AdminController
     // GET /admin/listings/{fid}/fields
     // -----------------------------------------------------------------------
 
+    /**
+     * Lists all custom fields defined for the given listing.
+     */
     public function index(Request $req, array $params): Response
     {
         $listingId = (int) ($params['fid'] ?? 0);
@@ -57,6 +67,10 @@ final class FieldController extends AdminController
     // POST /admin/listings/{fid}/fields/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Validates the new field definition, adds the column via ALTER TABLE,
+     * and saves the updated field list to the listing registry.
+     */
     public function add(Request $req, array $params): Response
     {
         $listingId = (int) ($params['fid'] ?? 0);
@@ -134,6 +148,11 @@ final class FieldController extends AdminController
     // GET + POST /admin/listings/{fid}/fields/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the edit form (GET) or saves updated label/type/required/options
+     * back to the listing registry row (POST). The DB column itself is not
+     * renamed; only the metadata changes.
+     */
     public function edit(Request $req, array $params): Response
     {
         $listingId = (int) ($params['fid'] ?? 0);
@@ -235,6 +254,10 @@ final class FieldController extends AdminController
     // POST /admin/listings/{fid}/fields/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Drops the field column from the member table via ALTER TABLE and removes
+     * the field definition from the listing registry row.
+     */
     public function delete(Request $req, array $params): Response
     {
         $listingId = (int) ($params['fid'] ?? 0);

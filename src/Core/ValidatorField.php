@@ -38,6 +38,12 @@ final class ValidatorField
     // Rules
     // -----------------------------------------------------------------------
 
+    /**
+     * Marks the field as required (trimmed value must not be empty).
+     *
+     * When this check fails all subsequent rules on the field are skipped —
+     * there is no point format-checking an absent value.
+     */
     public function required(string $message = ''): static
     {
         if (trim($this->value) === '') {
@@ -48,6 +54,10 @@ final class ValidatorField
         return $this;
     }
 
+    /**
+     * Validates the field value as an email address using PHP's FILTER_VALIDATE_EMAIL.
+     * An empty value passes (combine with required() to reject blank inputs).
+     */
     public function email(string $message = ''): static
     {
         if ($this->stopped) {
@@ -61,6 +71,10 @@ final class ValidatorField
         return $this;
     }
 
+    /**
+     * Validates the field value as any valid URL (not restricted to http/https).
+     * An empty value passes. Use httpUrl() to restrict to web URLs only.
+     */
     public function url(string $message = ''): static
     {
         if ($this->stopped) {
@@ -74,6 +88,10 @@ final class ValidatorField
         return $this;
     }
 
+    /**
+     * Validates the field value as a URL whose scheme is exactly 'http' or 'https'.
+     * An empty value passes. Rejects bare domain names, ftp://, data: URIs, etc.
+     */
     public function httpUrl(string $message = ''): static
     {
         if ($this->stopped) {
@@ -97,6 +115,7 @@ final class ValidatorField
         return $this;
     }
 
+    /** Validates that the field value does not exceed $max Unicode characters (mb_strlen). */
     public function maxLength(int $max, string $message = ''): static
     {
         if ($this->stopped) {
@@ -110,6 +129,7 @@ final class ValidatorField
         return $this;
     }
 
+    /** Validates that the field value is at least $min Unicode characters (mb_strlen). */
     public function minLength(int $min, string $message = ''): static
     {
         if ($this->stopped) {

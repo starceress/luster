@@ -16,25 +16,45 @@ declare(strict_types=1);
 namespace Luster\Models;
 
 /**
- * Represents a single row from lstr_joined.
+ * Represents a single row from lstr_joined — a fanlisting the site owner has
+ * joined as a member (as opposed to one they run).
  *
- * Tracks listings the site owner has joined (as opposed to running).
+ * The distinction between active/status flags: active is the primary display
+ * gate (false = listing is inactive/closed and should not appear publicly);
+ * status is a string label ('approved', 'pending', etc.) used by imports to
+ * carry over upstream state.
+ *
+ * category holds a single plain-text category string for display; categoriesJson
+ * is a JSON-encoded array of category names stored by import sources that
+ * support multi-category joined listings (may be null for manually added entries).
+ *
+ * linkStatus and linkRedirectUrl are set by the Link Checker feature.
  */
 final class JoinedListing
 {
     public function __construct(
         public readonly int     $id,
+        /** Subject or name of the fanlisting (e.g. "Archaeology", "Marilyn Monroe"). */
         public readonly string  $name,
         public readonly string  $url,
+        /** Filename of the listing's button/image, or null if none was saved. */
         public readonly ?string $image,
+        /** Primary category label for display purposes. */
         public readonly string  $category,
+        /** JSON-encoded array of category names from import sources; null for manually added entries. */
         public readonly ?string $categoriesJson,
+        /** Date the site owner joined this listing, or null if not recorded. */
         public readonly ?string $dateJoined,
+        /** False when the listing is closed/inactive and should be hidden from the public page. */
         public readonly bool    $active,
+        /** Upstream status string carried over from imports (e.g. 'approved', 'pending'). */
         public readonly string  $status,
         public readonly string  $createdAt,
+        /** Link checker result for the listing URL: 'ok', 'dead', 'moved', 'error', or 'unchecked'. */
         public readonly string  $linkStatus,
+        /** Timestamp of the last link check, or null if never checked. */
         public readonly ?string $linkCheckedAt,
+        /** Final redirect destination detected by the link checker; null if no redirect was followed. */
         public readonly ?string $linkRedirectUrl,
     ) {}
 

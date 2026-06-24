@@ -230,9 +230,6 @@ final class PendingUpdateRepo
     }
 
     /**
-     * Deletes a pending update by primary key (used by both approve and reject).
-     */
-    /**
      * Returns multiple pending updates by their IDs.
      *
      * @param  int[] $ids
@@ -265,6 +262,12 @@ final class PendingUpdateRepo
         return $result;
     }
 
+    /**
+     * Deletes a pending update by primary key.
+     *
+     * Called by both the approve and reject workflows to discard the request
+     * after the admin action has been taken.
+     */
     public function delete(int $id): void
     {
         $stmt = $this->db->prepare(

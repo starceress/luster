@@ -31,21 +31,25 @@ use PDO;
  */
 final class KimAddon implements AddonInterface
 {
+    /** Returns the unique string key used in lstr_addons and class discovery. */
     public function getKey(): string
     {
         return 'Kim';
     }
 
+    /** Returns the human-readable add-on name shown in the admin nav and Manage Add-ons page. */
     public function getName(): string
     {
         return 'Keep In Mind (KIM)';
     }
 
+    /** Returns the description shown on the add-on card. */
     public function getDescription(): string
     {
         return 'KIM helps manage a registry of fanlisting owners who are interested in adopting your fanlisting(s) if it were to become available for adoption.';
     }
 
+    /** Creates lstr_kim_members and lstr_kim_password_resets (with CASCADE FK). */
     public function install(PDO $pdo): void
     {
         $pdo->exec(
@@ -83,12 +87,14 @@ final class KimAddon implements AddonInterface
         );
     }
 
+    /** Drops lstr_kim_password_resets then lstr_kim_members (FK order). */
     public function uninstall(PDO $pdo): void
     {
         $pdo->exec('DROP TABLE IF EXISTS `lstr_kim_password_resets`');
         $pdo->exec('DROP TABLE IF EXISTS `lstr_kim_members`');
     }
 
+    /** Registers all public (/kim/*) and admin (/admin/kim/*) routes. */
     public function registerRoutes(Router $router): void
     {
         // ── Public routes ─────────────────────────────────────────────────

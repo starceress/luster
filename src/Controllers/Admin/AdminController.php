@@ -95,11 +95,17 @@ abstract class AdminController
         return $crumb;
     }
 
+    /**
+     * Prepends "http://" when the URL has no scheme — delegates to UrlNormalizer.
+     */
     protected static function httpsify(string $url): string
     {
         return UrlNormalizer::httpsify($url);
     }
 
+    /**
+     * Builds an absolute admin URL by joining the base URL with $path.
+     */
     protected function adminUrl(string $path = ''): string
     {
         $base = rtrim($this->app->getBaseUrl(), '/');
@@ -109,6 +115,9 @@ abstract class AdminController
     }
 
     /**
+     * Validates and normalises a raw breadcrumb array, dropping entries with
+     * empty labels and trimming whitespace from all strings.
+     *
      * @param array<int,array{label:string,url?:string|null}> $breadcrumbs
      * @return array<int,array{label:string,url?:string|null}>
      */

@@ -16,6 +16,13 @@ use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 
+/**
+ * Legacy redirect shim for the system information page.
+ *
+ * The System Details panel now lives under Settings. This controller permanently
+ * redirects GET /admin/sysinfo to /admin/settings#tab-sysinfo so that any
+ * bookmarked or externally linked URLs keep working.
+ */
 final class SysInfoController
 {
     public function __construct(private readonly Application $app) {}
@@ -24,6 +31,9 @@ final class SysInfoController
     // GET /admin/sysinfo
     // -----------------------------------------------------------------------
 
+    /**
+     * Redirects to the System Details panel on the Settings page.
+     */
     public function index(Request $request, array $params): Response
     {
         return Response::redirect($this->app->getBaseUrl() . '/admin/settings#tab-sysinfo');

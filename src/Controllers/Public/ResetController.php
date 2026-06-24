@@ -66,6 +66,12 @@ final class ResetController
     // GET /reset/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the email-entry form (step 1 of the password reset flow).
+     *
+     * Repopulates the email field from the flash session when a previous
+     * submission failed validation.
+     */
     public function showForm(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -90,6 +96,14 @@ final class ResetController
     // POST /reset/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the email-entry form: issues a one-time reset token and sends the
+     * reset email. Always redirects with the same neutral success message whether
+     * the address exists or not, preventing email enumeration.
+     *
+     * Blacklisted addresses silently receive no email but see the same message.
+     * Only approved (non-pending) members can receive a reset link.
+     */
     public function submit(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -212,6 +226,13 @@ final class ResetController
     // GET /reset/{id}/confirm
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the new-password form (step 2 of the reset flow) after validating
+     * the raw token from the ?token= query parameter.
+     *
+     * Shows an error inline when the token is absent, expired, or belongs to a
+     * different listing — the fan can request a new link from the same page.
+     */
     public function showConfirm(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -246,6 +267,11 @@ final class ResetController
     // POST /reset/{id}/confirm
     // -----------------------------------------------------------------------
 
+    /**
+     * Processes the new-password form: validates the token, enforces the password
+     * policy, updates the member's password hash (Argon2id), and consumes the
+     * one-time token so it cannot be reused.
+     */
     public function submitConfirm(Request $request, array $params): Response
     {
         $listingId    = (int) ($params['id'] ?? 0);
@@ -352,6 +378,10 @@ final class ResetController
     // Internals
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the email-entry form with any flash error and optional old email
+     * repopulation. Also applies a custom reset form template when configured.
+     */
     private function renderResetForm(
         int $listingId,
         Listing $listing,
@@ -419,6 +449,11 @@ final class ResetController
         return Response::html($html);
     }
 
+    /**
+     * Renders the new-password form with the raw token embedded in a hidden
+     * field. When $rawToken is empty (invalid/expired link), the form is shown
+     * in a locked state with only a link back to request a new token.
+     */
     private function renderConfirmForm(
         int $listingId,
         Listing $listing,

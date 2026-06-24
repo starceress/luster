@@ -35,6 +35,11 @@ final class UpdatesAdminController extends AdminController
     // GET /admin/updates  — overview index
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the listings overview showing the latest update date and entry count
+     * for each fanlisting plus the collective feed. Supports search by subject and
+     * sorting by ID, subject, or latest post date.
+     */
     public function index(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -111,6 +116,7 @@ final class UpdatesAdminController extends AdminController
     // GET|POST /admin/updates/settings
     // -----------------------------------------------------------------------
 
+    /** Renders or saves the News Feed display settings (items per page). */
     public function settings(Request $request, array $params): Response
     {
         $db           = $this->app->getDatabase();
@@ -150,6 +156,10 @@ final class UpdatesAdminController extends AdminController
     // GET /admin/updates/collective  — collective updates list
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the paginated update list for the collective feed (fanlisting_id IS NULL),
+     * with optional search and category filtering.
+     */
     public function collectiveList(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -197,11 +207,13 @@ final class UpdatesAdminController extends AdminController
     // GET|POST /admin/updates/collective/add
     // -----------------------------------------------------------------------
 
+    /** Renders the add-update form for the collective feed. */
     public function collectiveAddForm(Request $request, array $params): Response
     {
         return $this->renderAddForm($request, null, 'Collective');
     }
 
+    /** Saves a new collective update. */
     public function collectiveAdd(Request $request, array $params): Response
     {
         return $this->handleAdd($request, null, 'Collective');
@@ -211,6 +223,10 @@ final class UpdatesAdminController extends AdminController
     // GET /admin/updates/{fid}  — per-fanlisting list
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the paginated update list for a single fanlisting, with optional
+     * search and category filtering.
+     */
     public function list(Request $request, array $params): Response
     {
         $fid = (int) ($params['fid'] ?? 0);
@@ -265,6 +281,7 @@ final class UpdatesAdminController extends AdminController
     // GET|POST /admin/updates/{fid}/add
     // -----------------------------------------------------------------------
 
+    /** Renders the add-update form for a per-fanlisting feed. */
     public function addForm(Request $request, array $params): Response
     {
         $fid     = (int) ($params['fid'] ?? 0);
@@ -279,6 +296,7 @@ final class UpdatesAdminController extends AdminController
         return $this->renderAddForm($request, $fid, $listing->subject);
     }
 
+    /** Saves a new update for a per-fanlisting feed. */
     public function add(Request $request, array $params): Response
     {
         $fid     = (int) ($params['fid'] ?? 0);
@@ -297,6 +315,7 @@ final class UpdatesAdminController extends AdminController
     // GET|POST /admin/updates/entry/{id}/edit
     // -----------------------------------------------------------------------
 
+    /** Renders the edit form for an existing update entry. */
     public function editForm(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -329,6 +348,7 @@ final class UpdatesAdminController extends AdminController
         ], '', $breadcrumbs);
     }
 
+    /** Saves edits to an existing update entry. */
     public function edit(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -381,6 +401,7 @@ final class UpdatesAdminController extends AdminController
     // POST /admin/updates/entry/{id}/delete
     // -----------------------------------------------------------------------
 
+    /** Deletes a single update entry and redirects back to its parent feed list. */
     public function delete(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -420,6 +441,7 @@ final class UpdatesAdminController extends AdminController
     // POST /admin/updates/bulk  — bulk delete across any page/listing
     // -----------------------------------------------------------------------
 
+    /** Deletes the selected update entries in bulk and redirects to the originating list. */
     public function bulkDelete(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();

@@ -65,6 +65,13 @@ final class UpdateController
     // GET /update/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders step 1 (sign-in) or step 2 (pre-filled update form) depending on
+     * whether a valid authenticated email exists in the session.
+     *
+     * If the session email no longer maps to a real member (deleted after login),
+     * the session is cleared and the sign-in form is shown instead.
+     */
     public function showForm(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -109,6 +116,11 @@ final class UpdateController
     // POST /update/{id}/sign-in
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles the sign-in step: verifies the fan's email and password,
+     * upgrades any legacy MD5 hashes to Argon2id on success, and writes
+     * the authenticated email to the session so showForm() can proceed to step 2.
+     */
     public function signIn(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -195,6 +207,12 @@ final class UpdateController
     // GET /update/{id}/sign-out
     // -----------------------------------------------------------------------
 
+    /**
+     * Clears the update-session auth key for this listing and redirects back to the form.
+     *
+     * Used when the fan clicks "Sign out" from the pre-filled update form so another
+     * visitor on a shared computer can sign in with a different email.
+     */
     public function signOut(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -220,6 +238,18 @@ final class UpdateController
     // POST /update/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Applies the fan's changes.
+     *
+     * Handles two distinct paths:
+     *   - delete_membership=1: removes the member record immediately and sends a farewell email.
+     *   - Otherwise: validates and applies field changes, either immediately (direct) or via
+     *     the pending-updates queue when hold_update is enabled for the listing.
+     *
+     * Password changes always bypass the queue and take effect immediately, regardless of the
+     * hold_update setting. Unchanged fields are stripped before the queue entry is written so
+     * password-only submissions do not create no-op pending updates.
+     */
     public function submit(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
@@ -685,6 +715,12 @@ final class UpdateController
         return Response::html($html);
     }
 
+    /**
+     * Resolves the update form URL, using the per-listing form_url_update path
+     * when configured, otherwise falling back to the built-in backend route.
+     *
+     * @param array<string,mixed> $embedSettings
+     */
     private function buildFormUrl(Listing $listing, array $embedSettings, string $baseUrl, int $listingId): string
     {
         $formPageName = (string) ($embedSettings['form_url_update'] ?? '');
@@ -693,6 +729,13 @@ final class UpdateController
             : $baseUrl . '/update/' . $listingId;
     }
 
+    /**
+     * Resolves the "Forgot your password?" link URL, preferring the per-listing
+     * form_url_reset override and returning an empty string when none is set
+     * (the template then hides the link entirely).
+     *
+     * @param array<string,mixed> $embedSettings
+     */
     private function buildResetUrl(Listing $listing, array $embedSettings, string $baseUrl, int $listingId): string
     {
         $resetPage = (string) ($embedSettings['form_url_reset'] ?? '');

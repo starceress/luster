@@ -35,6 +35,10 @@ final class KimListController
     // GET /kim/list
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the KIM list overview showing all fanlistings with at least one
+     * approved interest sign-up, along with their counts.
+     */
     public function index(Request $request, array $params): Response
     {
         $db          = $this->app->getDatabase();
@@ -100,6 +104,9 @@ final class KimListController
     // GET /kim/list/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the subject page showing approved KIM members for one fanlisting.
+     */
     public function subject(Request $request, array $params): Response
     {
         $fanlistingId = (int) ($params['id'] ?? 0);
@@ -210,6 +217,11 @@ final class KimListController
     // Internals
     // -----------------------------------------------------------------------
 
+    /**
+     * Wraps a KIM fragment template in the public layout and returns the response.
+     *
+     * Falls back to rendering the fragment alone when the layout file does not exist.
+     */
     private function renderKimPage(string $template, array $data): Response
     {
         $view    = $this->app->getView();

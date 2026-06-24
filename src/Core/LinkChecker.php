@@ -14,6 +14,17 @@ declare(strict_types=1);
 
 namespace Luster\Core;
 
+/**
+ * HTTP link checker for affiliate and joined-listing URLs.
+ *
+ * check() makes a single non-redirecting GET and classifies the URL as
+ * 'ok', 'redirect', or 'dead'. checkReciprocal() fetches a page (following
+ * up to MAX_HOPS redirects) and searches the body for the owner's URL.
+ *
+ * All outbound connections are routed through NetworkAddressGuard to prevent
+ * SSRF — any host that resolves to a private/loopback IP is rejected before
+ * the TCP connection is opened.
+ */
 final class LinkChecker
 {
     private const TIMEOUT        = 10;

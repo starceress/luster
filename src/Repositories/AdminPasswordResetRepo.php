@@ -27,6 +27,12 @@ final class AdminPasswordResetRepo
 {
     public function __construct(private readonly Database $db) {}
 
+    /**
+     * Inserts a new reset token row, storing the SHA-256 hash and expiry time.
+     *
+     * The caller is responsible for calling deleteByUser() first to enforce
+     * the one-token-per-user policy.
+     */
     public function create(int $adminUserId, string $tokenHash, string $expiresAt): void
     {
         $stmt = $this->db->prepare(
@@ -59,6 +65,9 @@ final class AdminPasswordResetRepo
         return $row !== false ? $row : null;
     }
 
+    /**
+     * Marks a token as consumed so it cannot be reused, even if it has not expired yet.
+     */
     public function markUsed(string $tokenHash): void
     {
         $this->db->prepare(
@@ -66,6 +75,12 @@ final class AdminPasswordResetRepo
         )->execute(['hash' => $tokenHash]);
     }
 
+    /**
+     * Removes all reset tokens for an admin user.
+     *
+     * Call this before create() to enforce the one-active-token-per-user rule,
+     * and on successful password reset to invalidate any remaining tokens.
+     */
     public function deleteByUser(int $adminUserId): void
     {
         $this->db->prepare(
@@ -73,6 +88,12 @@ final class AdminPasswordResetRepo
         )->execute(['uid' => $adminUserId]);
     }
 
+    /**
+     * Deletes all expired or already-used reset tokens across all admin users.
+     *
+     * Called opportunistically inside findValidByToken() to keep the table clean
+     * without a separate scheduled job.
+     */
     public function deleteExpired(): void
     {
         $this->db->prepare(

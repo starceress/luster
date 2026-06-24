@@ -225,6 +225,11 @@ class SiteSettingsRepo
         ];
     }
 
+    /**
+     * Default Collective Affiliate Application Form template used when no override is stored
+     * in the database. Mirrors ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+     * but intended for collective-level affiliate applications.
+     */
     public static function defaultCollectiveAffiliateApplyFormTemplate(): string
     {
         return '<div class="fl-form-fields">' . "\n"
@@ -242,6 +247,9 @@ class SiteSettingsRepo
              . '</div>';
     }
 
+    /**
+     * Default KIM Sign-Up Form template used when no override is stored in the database.
+     */
     public static function defaultKimSignupFormTemplate(): string
     {
         return '<div class="fl-form-fields">' . "\n"
@@ -260,6 +268,12 @@ class SiteSettingsRepo
              . '</div>';
     }
 
+    /**
+     * Default Wishlist display template used when no override is stored in the database.
+     *
+     * Renders three sections (Top Wanted, Wanted, Granted) using separate per-type
+     * {each_wishlist_item_top/wanted/granted} loops with {if_has_*} section guards.
+     */
     public static function defaultWishlistTemplate(): string
     {
         return <<<'HTML'
@@ -310,6 +324,12 @@ class SiteSettingsRepo
 HTML;
     }
 
+    /**
+     * Default Collective Updates Feed template used when no override is stored in the database.
+     *
+     * Uses the {each_update} loop with per-entry tokens; mirrors the per-listing
+     * ListingSettingsRepo::defaultUpdatesTemplate() layout.
+     */
     public static function defaultCollectiveUpdatesTemplate(): string
     {
         return '<div class="fl-updates-list">' . "\n"
@@ -333,6 +353,12 @@ HTML;
             . '</div>';
     }
 
+    /**
+     * Default Collective Codes display template used when no override is stored in the database.
+     *
+     * Uses the grouped {each_size_group}/{each_code} two-tier loop layout;
+     * mirrors ListingSettingsRepo::defaultCodesTemplate().
+     */
     public static function defaultCollectiveCodesTemplate(): string
     {
         return '{if_no_codes}<p>No codes available yet.</p>{/if_no_codes}' . "\n"

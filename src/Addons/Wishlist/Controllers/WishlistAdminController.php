@@ -21,6 +21,19 @@ use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
+/**
+ * Admin controller for the Wishlist add-on.
+ *
+ * Routes (registered by WishlistAddon::registerRoutes()):
+ *   GET|POST /admin/wishlist           index()    — paginated index with filters
+ *   GET|POST /admin/wishlist/add       add()      — add entry form
+ *   GET|POST /admin/wishlist/{id}/edit edit()     — edit entry form
+ *   POST     /admin/wishlist/{id}/delete delete() — delete entry (+ image)
+ *   POST     /admin/wishlist/{id}/toggle toggle() — AJAX active toggle
+ *   POST     /admin/wishlist/bulk      bulk()     — bulk actions
+ *   POST     /admin/wishlist/reorder   reorder()  — AJAX drag-and-drop reorder
+ *   GET|POST /admin/wishlist/settings  settings() — display settings
+ */
 final class WishlistAdminController extends AdminController
 {
     private const VALID_TYPES = ['wanted', 'top', 'granted'];
@@ -30,6 +43,10 @@ final class WishlistAdminController extends AdminController
     // GET /admin/wishlist
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the paginated wishlist index with type, active/hidden, category, and
+     * keyword filters. Shows per-type counts and all distinct categories in the sidebar.
+     */
     public function index(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -87,6 +104,7 @@ final class WishlistAdminController extends AdminController
     // GET + POST /admin/wishlist/settings
     // -----------------------------------------------------------------------
 
+    /** Renders or saves the wishlist display settings (items per page). */
     public function settings(Request $request, array $params): Response
     {
         $db           = $this->app->getDatabase();
@@ -121,6 +139,11 @@ final class WishlistAdminController extends AdminController
     // GET + POST /admin/wishlist/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the add form (GET) or creates a new wishlist entry (POST). On POST
+     * it validates the submitted data, processes an optional image upload, and
+     * inserts the entry.
+     */
     public function add(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -182,6 +205,11 @@ final class WishlistAdminController extends AdminController
     // GET + POST /admin/wishlist/{id}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the edit form for an existing entry (GET) or saves the changes (POST).
+     * On POST an optional new image can be uploaded, or the existing image deleted
+     * via the "delete_image" checkbox.
+     */
     public function edit(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -268,6 +296,7 @@ final class WishlistAdminController extends AdminController
     // POST /admin/wishlist/{id}/delete
     // -----------------------------------------------------------------------
 
+    /** Deletes a wishlist entry and its associated image file, if any. */
     public function delete(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -305,6 +334,7 @@ final class WishlistAdminController extends AdminController
     // POST /admin/wishlist/{id}/toggle  (AJAX)
     // -----------------------------------------------------------------------
 
+    /** AJAX endpoint that flips the active flag for an entry and returns the new state as JSON. */
     public function toggle(Request $request, array $params): Response
     {
         $id   = (int) ($params['id'] ?? 0);
@@ -321,6 +351,10 @@ final class WishlistAdminController extends AdminController
     // POST /admin/wishlist/bulk
     // -----------------------------------------------------------------------
 
+    /**
+     * Handles bulk actions on selected wishlist entries: move to a different type,
+     * delete (including associated image files), show, or hide.
+     */
     public function bulk(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -416,6 +450,11 @@ final class WishlistAdminController extends AdminController
     // POST /admin/wishlist/reorder  (AJAX)
     // -----------------------------------------------------------------------
 
+    /**
+     * AJAX endpoint for drag-and-drop sort reordering. Accepts a type, page, and
+     * per_page so the submitted page-slice of IDs is spliced into the full canonical
+     * order before all items are renumbered.
+     */
     public function reorder(Request $request, array $params): Response
     {
         if (!$this->validCsrf($request)) {
@@ -472,6 +511,11 @@ final class WishlistAdminController extends AdminController
     // Helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Extracts and normalises the wishlist form fields from the request.
+     * Category entries are built from the parallel cat_network / cat_name arrays and
+     * joined as a comma-separated string.
+     */
     private function collectFormData(Request $request): array
     {
         $rawNetworks = array_values((array) $request->post('cat_network', []));
@@ -498,7 +542,13 @@ final class WishlistAdminController extends AdminController
         ];
     }
 
-    /** Validates the uploaded image file. Returns [image, error, tmpPath, newFilename]. */
+    /**
+     * Validates the uploaded image file (MIME check via finfo, 2 MB size limit).
+     * Returns [image, error, tmpPath, newFilename]; image is null, newFilename is null when
+     * no upload was made or validation fails.
+     *
+     * @return array{null, string, string, string|null}
+     */
     private function processImageUpload(Request $request): array
     {
         $imageFile = $request->file('image') ?? [];
@@ -533,6 +583,10 @@ final class WishlistAdminController extends AdminController
         return [null, '', $tmpPath, $newFilename];
     }
 
+    /**
+     * Returns TFL, TAFL, and custom-network category data for the add/edit form's
+     * category widget, keyed as tfl_cats, tafl_cats, custom_networks, custom_cats.
+     */
     private function getCatData(): array
     {
         $repo           = new CategoryRepo($this->app->getDatabase());
@@ -549,6 +603,12 @@ final class WishlistAdminController extends AdminController
         ];
     }
 
+    /**
+     * Validates the collected form data and returns an array of human-readable error strings.
+     * An empty array means the data is valid.
+     *
+     * @return string[]
+     */
     private function validate(array $data): array
     {
         $errors = [];
@@ -587,6 +647,10 @@ final class WishlistAdminController extends AdminController
         return $errors;
     }
 
+    /**
+     * Ensures public/uploads/wishlist/ exists and has a PHP-execution-blocking .htaccess,
+     * then returns the absolute directory path.
+     */
     private function ensureUploadDirectory(): string
     {
         $uploadDir = dirname(__DIR__, 4) . '/public/uploads/wishlist';

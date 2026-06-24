@@ -46,16 +46,19 @@ final class Request
     // Method / path
     // -----------------------------------------------------------------------
 
+    /** Returns the HTTP method in uppercase (e.g. 'GET', 'POST'). */
     public function method(): string
     {
         return strtoupper((string) ($this->server['REQUEST_METHOD'] ?? 'GET'));
     }
 
+    /** Returns true when the request method is GET. */
     public function isGet(): bool
     {
         return $this->method() === 'GET';
     }
 
+    /** Returns true when the request method is POST. */
     public function isPost(): bool
     {
         return $this->method() === 'POST';
@@ -150,6 +153,7 @@ final class Request
         return isset($this->server[$key]) ? (string) $this->server[$key] : null;
     }
 
+    /** Returns a cookie value by name, or $default when absent. */
     public function cookie(string $key, mixed $default = null): mixed
     {
         return $this->cookies[$key] ?? $default;
@@ -161,6 +165,7 @@ final class Request
         return (string) ($this->server['REMOTE_ADDR'] ?? '');
     }
 
+    /** Returns true when the request carries the X-Requested-With: XMLHttpRequest header. */
     public function isAjax(): bool
     {
         return $this->header('X-Requested-With') === 'XMLHttpRequest';

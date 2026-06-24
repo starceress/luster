@@ -39,6 +39,7 @@ final class Response
     // Static factories
     // -----------------------------------------------------------------------
 
+    /** Creates an HTML response with Content-Type: text/html; charset=UTF-8. */
     public static function html(string $content, int $status = 200): static
     {
         return (new static())
@@ -47,6 +48,7 @@ final class Response
             ->withBody($content);
     }
 
+    /** Creates a JSON response. $data is encoded with JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE. */
     public static function json(mixed $data, int $status = 200): static
     {
         $encoded = (string) json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
@@ -57,6 +59,7 @@ final class Response
             ->withBody($encoded);
     }
 
+    /** Creates a redirect response. Always use a full URL (with scheme) for Location. */
     public static function redirect(string $url, int $code = 302): static
     {
         $r              = new static();
@@ -66,6 +69,7 @@ final class Response
         return $r;
     }
 
+    /** Creates a 404 Not Found HTML response with the given message. */
     public static function notFound(string $message = 'The page you requested was not found.'): static
     {
         $safe = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -79,6 +83,7 @@ final class Response
         );
     }
 
+    /** Creates a CSV download response. The filename is sanitised to alphanumeric, dots, dashes, and underscores. */
     public static function csv(string $content, string $filename = 'export.csv'): static
     {
         $safe = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $filename);
@@ -91,6 +96,7 @@ final class Response
             ->withBody($content);
     }
 
+    /** Creates a binary file download response with Content-Disposition: attachment. */
     public static function download(string $body, string $filename, string $mime = 'application/octet-stream'): static
     {
         $safe = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $filename);
@@ -103,6 +109,7 @@ final class Response
             ->withBody($body);
     }
 
+    /** Creates a 500 Internal Server Error HTML response. */
     public static function serverError(string $message = 'An unexpected error occurred.'): static
     {
         $safe = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -120,6 +127,7 @@ final class Response
     // Builder methods (clone-based, safe for immutable usage patterns)
     // -----------------------------------------------------------------------
 
+    /** Returns a clone of this response with the given HTTP status code. */
     public function withStatus(int $code): static
     {
         $clone         = clone $this;
@@ -128,6 +136,7 @@ final class Response
         return $clone;
     }
 
+    /** Returns a clone of this response with an additional response header. */
     public function withHeader(string $name, string $value): static
     {
         $clone                  = clone $this;
@@ -136,6 +145,7 @@ final class Response
         return $clone;
     }
 
+    /** Returns a clone of this response with the given body string. */
     public function withBody(string $body): static
     {
         $clone       = clone $this;
@@ -173,21 +183,25 @@ final class Response
     // Inspection
     // -----------------------------------------------------------------------
 
+    /** Returns the HTTP status code. */
     public function getStatus(): int
     {
         return $this->status;
     }
 
+    /** Returns true when this response will emit a Location header. */
     public function isRedirect(): bool
     {
         return $this->redirectUrl !== null;
     }
 
+    /** Returns the redirect target URL, or null for non-redirect responses. */
     public function getRedirectUrl(): ?string
     {
         return $this->redirectUrl;
     }
 
+    /** Returns the response body string. */
     public function getBody(): string
     {
         return $this->body;

@@ -13,6 +13,12 @@ declare(strict_types=1);
 
 namespace Luster\Addons\Kim;
 
+/**
+ * Immutable value object for a row in lstr_kim_members.
+ *
+ * Represents one fan's interest in adopting a specific fanlisting.
+ * Hydrate via KimMember::fromRow(); all fields are read-only after construction.
+ */
 final class KimMember
 {
     public function __construct(
@@ -27,6 +33,7 @@ final class KimMember
         public readonly string $addedAt,
     ) {}
 
+    /** Hydrates an instance from an associative database row. */
     public static function fromRow(array $row): self
     {
         return new self(

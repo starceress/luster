@@ -17,6 +17,21 @@ declare(strict_types=1);
 namespace Luster\Import;
 
 use Luster\Core\NetworkAddressGuard;
+
+/**
+ * Migrates image files for the import wizard across three modes.
+ *
+ * Mode 1 — same-server path: copies a file by absolute path using copy().
+ * Mode 2 — remote URL: downloads via cURL with DNS-pinned connections and SSRF
+ *           protection from NetworkAddressGuard.
+ * Mode 3 — ZIP archive: extracts a named entry from an open ZipArchive.
+ *
+ * Every mode validates the MIME type with finfo (jpeg/png/gif/webp only),
+ * generates a randomised filename, writes to the appropriate uploads/ subdirectory,
+ * and creates a protective .htaccess on first use. Failures are non-fatal and return
+ * null so callers can log a warning and continue the import. This class has no
+ * database access — callers persist the returned filename themselves.
+ */
 final class ImageMigrator
 {
     private const ALLOWED_MIMES = [
@@ -26,9 +41,12 @@ final class ImageMigrator
         'image/webp' => 'webp',
     ];
 
-    /** Base path to public/uploads/  (no trailing slash) */
+    /** Base path to public/uploads/ (no trailing slash). */
     private string $uploadsBase;
 
+    /**
+     * @param string $lusterPublicDir  Absolute path to Luster's public/ directory.
+     */
     public function __construct(string $lusterPublicDir)
     {
         $this->uploadsBase = rtrim($lusterPublicDir, '/\\') . '/uploads';

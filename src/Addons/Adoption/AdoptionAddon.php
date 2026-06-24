@@ -28,21 +28,29 @@ use PDO;
  */
 final class AdoptionAddon implements AddonInterface
 {
+    /** Returns the unique string key used in lstr_addons and class discovery. */
     public function getKey(): string
     {
         return 'Adoption';
     }
 
+    /** Returns the human-readable add-on name shown in the Manage Add-ons page. */
     public function getName(): string
     {
         return 'Adoption System';
     }
 
+    /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
         return 'Let visitors apply to adopt individual fanlistings. Adds a per-listing toggle, a public application form, and an admin panel for reviewing applications.';
     }
 
+    /**
+     * Creates lstr_adoption_applications and adds the for_adoption column to
+     * lstr_fanlisting_settings. Runs idempotent INFORMATION_SCHEMA checks so
+     * re-running install on an existing database is safe.
+     */
     public function install(PDO $pdo): void
     {
         // Add for_adoption column to lstr_fanlisting_settings (idempotent)
@@ -111,6 +119,7 @@ final class AdoptionAddon implements AddonInterface
         }
     }
 
+    /** Drops lstr_adoption_applications and removes the for_adoption column. */
     public function uninstall(PDO $pdo): void
     {
         $pdo->exec('DROP TABLE IF EXISTS `lstr_adoption_applications`');
@@ -121,6 +130,7 @@ final class AdoptionAddon implements AddonInterface
         }
     }
 
+    /** Registers public (/adopt/*) and admin (/admin/adoptions/*) routes. */
     public function registerRoutes(Router $router): void
     {
         // Public routes

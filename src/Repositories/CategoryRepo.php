@@ -67,6 +67,15 @@ final class CategoryRepo
         return $row !== false ? $row : null;
     }
 
+    /**
+     * Returns a paginated, filtered slice of categories for the admin categories page.
+     *
+     * @param string $source  Source filter: 'tfl', 'tafl', 'custom', or '' for all
+     * @param string $search  Substring search on category name (ignored when $catName is set)
+     * @param string $sort    Column to sort by: 'id', 'source', or 'name'
+     * @param string $catName Exact name match — used to jump straight to a single category
+     * @return array{items: object[], total: int, pages: int}
+     */
     public function paginate(int $perPage, int $page, string $source = '', string $search = '', string $sort = 'source', string $dir = 'asc', string $catName = ''): array
     {
         $where  = '1=1';
@@ -149,6 +158,13 @@ final class CategoryRepo
         return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN, 0));
     }
 
+    /**
+     * Returns the distinct custom network names (sources that are not 'tfl', 'tafl', or 'custom').
+     *
+     * Used by the admin categories filter to populate the source dropdown.
+     *
+     * @return string[]
+     */
     public function getCustomSources(): array
     {
         return $this->getAllCustomNetworkNames();
@@ -400,6 +416,12 @@ final class CategoryRepo
         return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
     }
 
+    /**
+     * Finds a category by its source and exact name, or returns null when not found.
+     *
+     * The (source, name) pair has a UNIQUE index (Migration 43), so at most one
+     * row is returned. Used by the importer and findOrCreate() to avoid duplicates.
+     */
     public function findBySourceAndName(string $source, string $name): ?object
     {
         $stmt = $this->db->prepare(

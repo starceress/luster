@@ -93,11 +93,13 @@ final class Database
         return $this->pdo()->beginTransaction();
     }
 
+    /** Commits the active transaction. */
     public function commit(): bool
     {
         return $this->pdo()->commit();
     }
 
+    /** Rolls back the active transaction. */
     public function rollBack(): bool
     {
         return $this->pdo()->rollBack();

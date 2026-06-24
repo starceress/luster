@@ -48,6 +48,11 @@ final class KimUpdateController
     // GET /kim/update — step 1: sign-in form
     // -----------------------------------------------------------------------
 
+    /**
+     * Shows the KIM sign-in form (step 1 of the update flow).
+     *
+     * Redirects straight to the dashboard when the fan is already authenticated.
+     */
     public function showForm(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -69,6 +74,10 @@ final class KimUpdateController
     // POST /kim/update/sign-in
     // -----------------------------------------------------------------------
 
+    /**
+     * Authenticates a KIM fan by checking their email and password against
+     * all their approved member rows. Sets the auth session key on success.
+     */
     public function submitSignIn(Request $request, array $params): Response
     {
         $baseUrl       = $this->app->getBaseUrl();
@@ -133,6 +142,7 @@ final class KimUpdateController
     // GET /kim/update/sign-out
     // -----------------------------------------------------------------------
 
+    /** Clears the KIM auth session key and redirects to the sign-in form. */
     public function signOut(Request $request, array $params): Response
     {
         $session       = $this->app->getSession();
@@ -146,6 +156,12 @@ final class KimUpdateController
     // GET /kim/update/dashboard — step 2
     // -----------------------------------------------------------------------
 
+    /**
+     * Shows the dashboard listing all KIM entries for the authenticated email (step 2).
+     *
+     * Redirects to the sign-in form when the fan is not authenticated or when
+     * all their entries have been removed externally.
+     */
     public function showDashboard(Request $request, array $params): Response
     {
         $session    = $this->app->getSession();
@@ -228,6 +244,13 @@ final class KimUpdateController
     // POST /kim/update/save
     // -----------------------------------------------------------------------
 
+    /**
+     * Applies bulk updates and removals submitted from the dashboard.
+     *
+     * Guards every operation against the authenticated email so fans can only
+     * modify their own entries. Sends a per-entry confirmation email and, when
+     * the email address changes, clears the auth session to force re-authentication.
+     */
     public function submitSave(Request $request, array $params): Response
     {
         $baseUrl       = $this->app->getBaseUrl();
@@ -435,6 +458,12 @@ final class KimUpdateController
     // Internals
     // -----------------------------------------------------------------------
 
+    /**
+     * Builds and returns the KIM sign-in form response.
+     *
+     * Uses the admin-defined kim_update_form_template when available,
+     * otherwise falls back to the default fragment template.
+     */
     private function renderSignInForm(string $oldEmail = '', string $error = ''): Response
     {
         $baseUrl  = $this->app->getBaseUrl();
@@ -492,6 +521,11 @@ final class KimUpdateController
         ]);
     }
 
+    /**
+     * Wraps a KIM fragment template in the public layout and returns the response.
+     *
+     * Falls back to rendering the fragment alone when the layout file does not exist.
+     */
     private function renderKimPage(string $template, array $data): Response
     {
         $view     = $this->app->getView();

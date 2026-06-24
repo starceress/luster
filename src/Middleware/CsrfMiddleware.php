@@ -18,6 +18,10 @@ use Luster\Core\CSRF;
 use Luster\Core\CsrfException;
 use Luster\Core\Request;
 use Luster\Core\Response;
+/**
+ * CSRF token guard — rejects any POST request whose _csrf field is
+ * missing or does not match the session-stored token.
+ */
 final class CsrfMiddleware
 {
     public function __construct(private readonly CSRF $csrf) {}

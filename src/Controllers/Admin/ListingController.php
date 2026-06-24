@@ -45,6 +45,15 @@ use Luster\Support\RulesBodyRenderer;
 use Luster\Support\SampleTemplateData;
 use Luster\Support\SuccessRenderer;
 
+/**
+ * The primary admin listings controller.
+ *
+ * Handles the paginated/filterable/sortable listings index (with network, category,
+ * type, and status-tab filters), add/edit/delete/bulk actions, table-prefix renaming,
+ * per-listing embed settings, template management (save, reset, live preview for every
+ * template type), global collective templates, per-listing email templates, and the
+ * stale-listing settings page.
+ */
 final class ListingController extends AdminController
 {
 
@@ -52,6 +61,11 @@ final class ListingController extends AdminController
     // GET /admin/listings
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the paginated owned-listings index with network/category/type/status
+     * filters and column-header sorting. Auto-lands on the pending tab when there
+     * are pending listings.
+     */
     public function index(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -337,6 +351,9 @@ final class ListingController extends AdminController
     // GET /admin/listings/{id}
     // -----------------------------------------------------------------------
 
+    /**
+     * Redirects /listings/{id} to /listings/{id}/edit (canonical detail URL).
+     */
     public function show(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -348,6 +365,9 @@ final class ListingController extends AdminController
     // GET /admin/listings/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the add-listing form with category selector dropdowns.
+     */
     public function addForm(Request $request, array $params): Response
     {
         $db           = $this->app->getDatabase();
@@ -378,6 +398,10 @@ final class ListingController extends AdminController
     // POST /admin/listings/add
     // -----------------------------------------------------------------------
 
+    /**
+     * Creates a new listing with optional image upload, resolves category IDs,
+     * inserts the registry row, and pre-fills default embed page names.
+     */
     public function add(Request $request, array $params): Response
     {
         $db             = $this->app->getDatabase();
@@ -504,6 +528,12 @@ final class ListingController extends AdminController
         return Response::redirect($this->app->getBaseUrl() . '/admin/listings');
     }
 
+    /**
+     * Handles bulk operations on selected listings: mark_updated (touch
+     * last_updated) or delete. Supports a "select all matching filter" mode
+     * that re-applies the current search/network/category/tab to derive the
+     * full set server-side.
+     */
     public function bulk(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -683,6 +713,13 @@ final class ListingController extends AdminController
     // GET + POST /admin/listings/{id}/edit
     // -----------------------------------------------------------------------
 
+    /**
+     * Tabbed listing detail view. GET renders the full edit form across all tabs
+     * (general, members, codes, affiliates, fields, templates, settings, email
+     * templates). POST saves the general-tab fields: title, URL, email, status,
+     * subject, opened date, categories, image, listing type, per-page, contact,
+     * join settings, affiliate apply, approved-by, description, and last-updated.
+     */
     public function edit(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -1165,6 +1202,11 @@ final class ListingController extends AdminController
     // POST /admin/listings/{id}/delete
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes a listing and all associated data: member table, settings,
+     * affiliates, pending updates, email templates, codes (with category map),
+     * add-on data (Updates, KIM), and the listing image file.
+     */
     public function delete(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -1262,6 +1304,11 @@ final class ListingController extends AdminController
     // GET + POST /admin/listings/{id}/edit-prefix
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the change-table-prefix form (GET) or renames the member table
+     * and updates the registry row atomically (POST). Validates that the new
+     * prefix is unique across all existing tables and listing registries.
+     */
     public function editPrefix(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -1399,6 +1446,11 @@ final class ListingController extends AdminController
     // POST /admin/listings/{id}/templates
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves all per-listing template overrides. A template is stored as NULL
+     * when its value matches the built-in default or the current global default,
+     * so the cascade ("follow global → built-in") works correctly.
+     */
     public function saveTemplates(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -1504,6 +1556,10 @@ final class ListingController extends AdminController
     // POST /admin/listings/{id}/templates/reset-all
     // -----------------------------------------------------------------------
 
+    /**
+     * Clears all per-listing template overrides to NULL, effectively reverting
+     * to global defaults (or built-in defaults when no global is set).
+     */
     public function resetAllTemplates(Request $request, array $params): Response
     {
         $id      = (int) ($params['id'] ?? 0);
@@ -1531,6 +1587,12 @@ final class ListingController extends AdminController
     // POST /admin/listings/{id}/templates/preview
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders a live template preview for a per-listing template type (members,
+     * affiliates_section, stats, updates, codes, rules, join_form, etc.) using
+     * real listing data where available, falling back to sample data. Returns a
+     * minimal standalone HTML page styled with the public stylesheet.
+     */
     public function templatesPreview(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -2262,6 +2324,10 @@ final class ListingController extends AdminController
     // POST /admin/listings/{id}/embed
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves embed page URL settings (join, update, reset, codes-submit, contact,
+     * affiliate apply) and optional per-listing DB credentials.
+     */
     public function saveEmbed(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -2339,6 +2405,10 @@ final class ListingController extends AdminController
     // POST /admin/listings/{id}/update
     // -----------------------------------------------------------------------
 
+    /**
+     * Quick single-field category update (used by the inline category picker
+     * in the listing index). Saves the primary category ID to the listing row.
+     */
     public function update(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -2368,6 +2438,11 @@ final class ListingController extends AdminController
     // GET /admin/listings/global-templates
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the global listing templates page where site-wide defaults for
+     * member row, stats, affiliates section, updates, and all form templates
+     * can be customized. Per-listing overrides cascade on top of these.
+     */
     public function globalTemplates(Request $request, array $params): Response
     {
         $db       = $this->app->getDatabase();
@@ -2394,6 +2469,11 @@ final class ListingController extends AdminController
     // POST /admin/listings/global-templates
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves global listing template overrides to lstr_site_settings. A template
+     * is stored as NULL when it matches the built-in default, so the cascade works
+     * correctly: per-listing override → global default → built-in default.
+     */
     public function saveGlobalTemplates(Request $request, array $params): Response
     {
         $db       = $this->app->getDatabase();
@@ -2436,6 +2516,10 @@ final class ListingController extends AdminController
     // POST /admin/listings/global-templates/reset-all
     // -----------------------------------------------------------------------
 
+    /**
+     * Clears all global listing template overrides (sets them to NULL in
+     * lstr_site_settings), reverting every listing to built-in defaults.
+     */
     public function resetAllGlobalTemplates(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -2470,6 +2554,11 @@ final class ListingController extends AdminController
     // POST /admin/listings/global-templates/preview
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders a live preview for a global listing template type using generic
+     * sample data (no specific listing required). Returns a minimal standalone
+     * HTML page styled with the public stylesheet.
+     */
     public function globalTemplatesPreview(Request $request, array $params): Response
     {
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
@@ -2939,6 +3028,10 @@ final class ListingController extends AdminController
     // GET /admin/listings/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Renders the Owned Listings Settings page (default sort, per-page count,
+     * image preview size, overdue notification threshold).
+     */
     public function indexSettings(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -2960,6 +3053,10 @@ final class ListingController extends AdminController
     // POST /admin/listings/settings
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves the Owned Listings display settings (sort order, per-page count,
+     * image preview size) to config/app.php and logs the change.
+     */
     public function saveSettings(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
@@ -3006,6 +3103,11 @@ final class ListingController extends AdminController
     // POST /admin/listings/settings/send-overdue-now
     // -----------------------------------------------------------------------
 
+    /**
+     * Sends the overdue-listings notification email immediately (on demand),
+     * using the configured overdue_days threshold. Always resets the 24-hour
+     * rate-limit window. No email is sent when no listings are overdue.
+     */
     public function sendOverdueNow(Request $request, array $params): Response
     {
         $session  = $this->app->getSession();
@@ -3076,6 +3178,10 @@ final class ListingController extends AdminController
     // GET|POST /admin/listings/{id}/email-templates  → unified page
     // -----------------------------------------------------------------------
 
+    /**
+     * Redirects the old per-listing email-templates URL to the unified Emails
+     * page with the appropriate tab and listing pre-selected.
+     */
     public function emailTemplatesRedirect(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -3086,6 +3192,10 @@ final class ListingController extends AdminController
     // GET /admin/listings/{id}/email-templates  (kept for reference; no longer routed)
     // -----------------------------------------------------------------------
 
+    /**
+     * @deprecated No longer routed — kept for backwards reference only.
+     *             Use emailTemplatesRedirect() → Emails page instead.
+     */
     public function emailTemplatesForm(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -3116,6 +3226,11 @@ final class ListingController extends AdminController
     // POST /admin/listings/{id}/email-templates
     // -----------------------------------------------------------------------
 
+    /**
+     * Saves all per-listing email template overrides (join, approve, update,
+     * remove, reset, notify_join, affiliate_applied, affiliate_approved,
+     * affiliate_rejected) with their enabled flags.
+     */
     public function saveEmailTemplates(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);

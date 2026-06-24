@@ -36,12 +36,6 @@ final class CodesRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns distinct size strings and donor names for codes in one listing.
-     * Used to populate the per-listing filter dropdowns.
-     *
-     * @return array{sizes: string[], donors: string[]}
-     */
-    /**
      * Returns sizes and donor names (with counts) for a listing's codes.
      * Used to populate the filter dropdowns on the per-listing Codes page.
      *
@@ -555,6 +549,11 @@ final class CodesRepo
         $stmt->execute(['url' => $url, 'id' => $id]);
     }
 
+    /**
+     * Sets or clears the submitter name for a code.
+     *
+     * Pass null to remove the attribution without deleting the code itself.
+     */
     public function updateSubmitterName(int $id, ?string $name): void
     {
         $stmt = $this->db->prepare(
@@ -563,6 +562,11 @@ final class CodesRepo
         $stmt->execute(['name' => $name, 'id' => $id]);
     }
 
+    /**
+     * Sets or clears the submitter email for a code.
+     *
+     * Pass null to remove the email without deleting the code itself.
+     */
     public function updateSubmitterEmail(int $id, ?string $email): void
     {
         $stmt = $this->db->prepare(

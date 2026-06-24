@@ -18,6 +18,19 @@ namespace Luster\Import;
 
 use PDO;
 use RuntimeException;
+
+/**
+ * Import adapter for Enthusiast databases.
+ *
+ * Supports two schema variants — unprefixed ("owned" + bare member tables) and
+ * enth_-prefixed ("enth_fanlistings" + {dbprefix}members tables) — auto-detected
+ * from the live connection or inferred from a SQL dump. Imports categories,
+ * affiliates, joined listings, owned listing rows, per-listing member tables,
+ * lstr_fanlisting_settings, email templates, and (for Erin's-fork installs) the
+ * reusable saved-email template library. Image migration is delegated to
+ * ImageMigrator; directory paths are read from the Enthusiast settings table when
+ * available.
+ */
 final class EnthusiastImportSource implements ImportSourceInterface
 {
     private const CHUNK    = 500;
@@ -1625,15 +1638,17 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // Run helpers — Owned listings
     // -----------------------------------------------------------------------
 
-    /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]} */
     /**
-     * @param array<int,int> $catIdMap  Source catid → Luster lstr_categories.id, built by runCategories().
-     *                                   Empty when categories were not imported in this run.
-     */
-    /**
+     * Copies owned listing rows from the source registry into the target `owned` (or `enth_fanlistings`) table.
+     *
+     * Preserves the source listingid when the target slot is free; auto-assigns a new ID on collision.
+     * Resolves and writes multi-category assignments to lstr_listing_categories when the junction
+     * table exists. Returns a listingIdMap (source id → target id) so downstream phases (settings,
+     * templates) can attach rows to the correct target FK even when IDs diverged.
+     *
+     * @param array<int,int> $catIdMap  Source catid → Luster lstr_categories.id from runCategories().
+     *                                   Pass [] when categories were not imported in this run.
      * @return array{row: array, listingIdMap: array<int,int>}
-     *   listingIdMap maps each source listingid to its final target listingid so that
-     *   subsequent phases (settings, templates) can attach rows to the correct target FK.
      */
     private function runOwnedListings(
         PDO $source, PDO $target, string $schema, ImportOptions $options, bool $sameDb,

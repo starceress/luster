@@ -17,9 +17,15 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
 
+/**
+ * Displays and manages the admin activity log: paginated index, CSV export,
+ * and a flush action that clears all entries from lstr_activity_log.
+ */
 final class ActivityLogController extends AdminController
 {
-
+    /**
+     * Renders the paginated activity log, newest entries first.
+     */
     public function index(Request $request, array $params): Response
     {
         $config  = $this->app->getConfig();
@@ -50,6 +56,9 @@ final class ActivityLogController extends AdminController
     // GET /admin/activitylog/export
     // -----------------------------------------------------------------------
 
+    /**
+     * Streams all activity log entries as a CSV file download.
+     */
     public function export(Request $request, array $params): Response
     {
         $repo = new ActivityRepo($this->app->getDatabase());
@@ -81,6 +90,9 @@ final class ActivityLogController extends AdminController
     // POST /admin/activitylog/flush
     // -----------------------------------------------------------------------
 
+    /**
+     * Deletes all rows from lstr_activity_log and flashes a success message.
+     */
     public function flush(Request $request, array $params): Response
     {
         $activityRepo = new ActivityRepo($this->app->getDatabase());

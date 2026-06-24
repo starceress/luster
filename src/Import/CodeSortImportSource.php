@@ -18,6 +18,18 @@ namespace Luster\Import;
 
 use PDO;
 
+/**
+ * Import adapter for CodeSort databases.
+ *
+ * CodeSort manages fan graphic codes across multiple fanlistings using global
+ * size and donor tables. This adapter auto-detects the two CodeSort table naming
+ * conventions (bare: `codes`, `cat`, `sizes`, `donors`, `collective`; and
+ * prefixed: `codes_codes`, `codes_cat`, etc.), matches CodeSort fanlistings to
+ * Luster listings by subject name (case-insensitive), and imports code categories,
+ * sizes, donors, and code images. Global sizes and donors are expanded to
+ * per-listing rows in Luster's schema. Unmatched fanlistings are skipped with a
+ * warning.
+ */
 final class CodeSortImportSource implements ImportSourceInterface
 {
     private const CHUNK = 500;
