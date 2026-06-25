@@ -328,10 +328,34 @@ final class DashboardController
 
         // ── Update status (read cache only — no network on dashboard load) ──
         $siteRepo      = new SiteSettingsRepo($db);
-        $updateStatus  = (new UpdateChecker($siteRepo))->getStatus();
+        $checker       = new UpdateChecker($siteRepo);
+        $updateStatus  = $checker->getStatus();
         $dismissedVer  = (string) $session->get('lstr_update_dismissed', '');
         $showUpdateBanner = $updateStatus->updateAvailable
             && ($dismissedVer === '' || $dismissedVer !== $updateStatus->latest);
+
+        if ($checker->shouldSendNotification($updateStatus)) {
+            try {
+                $ownerEmail = (string) ($this->app->getConfig()->get('owner_email', '') ?? '');
+                if ($ownerEmail !== '') {
+                    $siteName = (string) ($this->app->getConfig()->get('site_name', 'Luster') ?? '');
+                    $mailer   = new \Luster\Core\Mailer($this->app->getConfig());
+                    $mailer->send(
+                        $ownerEmail,
+                        '',
+                        '[' . $siteName . '] Luster ' . $updateStatus->latest . ' is available',
+                        "A new version of Luster is available.\n\n"
+                        . "Installed: " . \Luster\Core\Version::CURRENT . "\n"
+                        . "Available: " . $updateStatus->latest . "\n\n"
+                        . ($updateStatus->releaseUrl !== null ? "Release: " . $updateStatus->releaseUrl . "\n\n" : '')
+                        . "Log in to the admin panel to update."
+                    );
+                }
+                $checker->markNotified($updateStatus->latest);
+            } catch (\Throwable $e) {
+                // Best-effort — don't break the dashboard if the email fails.
+            }
+        }
 
         // ── Staleness detection ───────────────────────────────────────────
         // Uses ListingRepo::getStaleListings() — LEFT JOIN on lstr_fanlisting_settings,
