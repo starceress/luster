@@ -119,7 +119,7 @@
   --welcome-bg: var(--bg-card);
   --welcome-border: var(--border);
   --welcome-blush: radial-gradient(circle at top right, rgb(var(--ch-brand-primary)/0.12) 0%, rgb(var(--ch-brand-secondary)/0.06) 50%, transparent 70%);
-  --brand-gradient: linear-gradient(90deg, var(--gradient));
+  --brand-gradient: linear-gradient(90deg, #fd4fb0, #19ded9, #e8ac10);
   --btn-primary-bg: var(--accent);
   --btn-primary-color: #fff;
   --btn-primary-hover-bg: color-mix(in srgb, var(--accent) 75%, #fff);

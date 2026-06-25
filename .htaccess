@@ -5,10 +5,13 @@
 # is denied by this file. If your web server's document root points at
 # public/ directly, this file is redundant but harmless.
 
+DirectoryIndex index.php
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Allow the root index.php (PHP version check + redirect)
+    # Allow the root directory and index.php (PHP version check + redirect)
+    RewriteRule ^$ - [L]
     RewriteRule ^index\.php$ - [L]
 
     # Allow everything under public/

@@ -1,12 +1,14 @@
-### DEFAULT TEMPLATES
+# Per-Listing Template Defaults
 
-## Global Listing & Per-Listing Template Defaults
+This page shows the built-in default templates for per-listing embeds such as members, join, update, stats, codes, and more. These are the templates that ship with Luster out of the box.
+
+You can customize these per listing in the admin panel under **Listings > Edit > Templates**. If you have not made any changes, Luster uses these defaults automatically.
 
 > Every element uses `fl-*` CSS classes from `public/assets/css/default/style.css`.
-> See `docs/CSS-CLASS-MIGRATION.md` for the full class reference and mappings from
-> Enthusiast / Listing Admin.
+> See the [Embed Tokens and CSS Reference](REFERENCE_embed-tokens-and-css-reference.md)
+> for the full class reference and mappings from Enthusiast / Listing Admin.
 
-# Members (List Layout):
+## Members (List Layout)
 ```
 <h1>Member List</h1>
 <p>Sort by: {sort_link_all} | {sort_link_name} | {sort_link_country}</p><br>
@@ -26,7 +28,7 @@
 {/if_no_members}
 ```
 
-# Members (Table Layout):
+## Members (Table Layout)
 ```
 <h1>Member List</h1>
 <p>Sort by: {sort_link_all} | {sort_link_name} | {sort_link_country}</p><br>
@@ -52,7 +54,7 @@
 {/if_no_members}
 ```
 
-# Join Form:
+## Join Form
 ```
 <h2 class="fl-heading">Join {listing_subject}</h2>
 <div class="fl-form-fields">
@@ -71,7 +73,7 @@
 </div>
 ```
 
-# Update Form Tokens:
+## Update Form
 ```
 {if_not_signed_in}
 <h2 class="fl-heading">Update Your Information for {listing_subject}</h2>
@@ -109,7 +111,7 @@
 {/if_signed_in}
 ```
 
-# Lost Password Form:
+## Lost Password Form
 ```
 {if_step_email}
 <h2 class="fl-heading">Reset Password for {listing_subject}</h2>
@@ -143,7 +145,7 @@
 {/if_step_confirm}
 ```
 
-# Statistics:
+## Statistics
 ```
 <h2 class="fl-heading">{listing_subject} Statistics</h2>
 <div class="fl-stats">
@@ -166,7 +168,7 @@
 > link *target* differs per network (`{tfl_url}` vs `{tafl_url}`). If you don't
 > need per-network differences, `{if_approved_by}` alone is enough.
 
-# Affiliates:
+## Affiliates
 ```
 <h2 class="fl-heading">Affiliates</h2>
 <div class="fl-affiliates-section">
@@ -184,7 +186,7 @@ No affiliates yet.
 </div>
 ```
 
-# Affiliate Application Form:
+## Affiliate Application Form
 ```
 <h2 class="fl-heading">Affiliate Application for {listing_subject}</h2>
 <p class="fl-hint">Fill out the form below to apply to become an affiliate.</p>
@@ -203,7 +205,7 @@ No affiliates yet.
 </div>
 ```
 
-# Updates:
+## News Feed
 ```
 <h2 class="fl-heading">{listing_subject} Updates</h2>
 <div class="fl-updates">
@@ -229,8 +231,7 @@ No affiliates yet.
 <div class="fl-pagination-wrap">{pagination}</div>
 ```
 
-
-# Codes:
+## Codes Display
 ```
 <h2 class="fl-heading">Codes</h2>
 <div class="fl-codes">
@@ -257,7 +258,7 @@ No affiliates yet.
 </div>
 ```
 
-# Code Donation Form:
+## Code Donation Form
 ```
 <h2 class="fl-heading">Donate Codes to {listing_subject}</h2>
 <p class="fl-hint">Submit your fan-made codes or buttons for this listing.</p>
@@ -274,7 +275,7 @@ No affiliates yet.
 </div>
 ```
 
-# Contact Form:
+## Contact Form
 ```
 <h2 class="fl-heading">Contact Form</h2>
 <p class="fl-hint">Use the form below to get in touch.</p>
@@ -292,15 +293,16 @@ No affiliates yet.
 </div>
 ```
 
-# Contact Confirmation:
+## Contact Confirmation
 ```
 <div class="fl-success">
 <p class="fl-success-body">Your message has been sent. Thank you for getting in touch, {sender_name}!</p>
 </div>
 ```
+## Template and Dropdown Options Order
 
+This is the order that templates appear in the admin panel's template editor dropdown on the **Listings > Edit > Templates** page. Use this as a quick reference for which templates are available and how they are grouped.
 
-## Template & Dropdown Options Order
 - All Templates
 - Members List
 - Membership Forms: contains

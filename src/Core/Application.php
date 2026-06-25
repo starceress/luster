@@ -274,7 +274,7 @@ final class Application
             $selectedSkin      = $skinSettings['selected_skin'] ?? '';
             $adminDefaultTheme = in_array($skinSettings['admin_default_theme'] ?? '', ['dark', 'light'], true)
                 ? $skinSettings['admin_default_theme']
-                : 'light';
+                : 'dark';
             $storedHash   = $skinSettings['selected_skin_hash'] ?? null;
 
             // Verify community skin file integrity on every request.

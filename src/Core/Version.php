@@ -22,7 +22,7 @@ namespace Luster\Core;
  */
 final class Version
 {
-    public const CURRENT       = '1.0.17';
+    public const CURRENT       = '1.0.0';
     public const BUILT_AT      = '2026-06-22T00:00:00Z';
     public const GITHUB_REPO   = 'starceress/luster';
     public const SUPPORT_EMAIL = 'support@luster.net';

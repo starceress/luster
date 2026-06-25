@@ -1,0 +1,100 @@
+name: Bug Report
+description: Something Isn't Working The Way It Should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! The more detail you include, the faster it can be looked at.
+        **Please remove any sensitive information** (passwords, database credentials, API keys) before submitting.
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP Version
+      description: What PHP version is your server running?
+      placeholder: "e.g. 8.2.10"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: web-server
+    attributes:
+      label: Web Server
+      options:
+        - Apache
+        - LiteSpeed
+        - Nginx (via PHP-FPM proxy)
+        - Other / Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which Area is Affected?
+      options:
+        - Admin Panel (General)
+        - Dashboard
+        - Listings (Owned or Joined)
+        - Members
+        - Affiliates
+        - Codes
+        - Categories
+        - Email / SMTP
+        - Settings
+        - Public Embeds / Embed Wizard
+        - Compatibility Wrappers
+        - Import Data Wizard
+        - Installer, Migration Runner, Update Wizard
+        - Add-ons (Adoptions, Join Rules, KIM, News Feed, Wishlist)
+        - Multiple Areas (explain below)
+        - Other / Not Sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug or the issue. What did you see that you didn't expect? What is broken? How does it show up? 
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce your described bug or issue? Be as specific as possible.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen/what was supposed to happen (normal behavior)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Message or Error Log Output
+      description: |
+        Paste any error messages from the browser, Luster's error log (Admin → Logs → Error Log), or your server's PHP error log.
+        Wrap it in triple backticks if it's long.
+      render: text
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting, please confirm the following:
+      options:
+        - label: I searched open issues and this hasn't been reported yet
+          required: true
+        - label: I'm running PHP 8.1 or higher
+          required: true

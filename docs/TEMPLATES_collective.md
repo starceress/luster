@@ -1,8 +1,10 @@
-### DEFAULT TEMPLATES
+# Collective Template Defaults
 
-## Collective Template Defaults
+This page shows the built-in default templates for all collective-level embeds. These are the templates that ship with Luster out of the box.
 
-# Owned Listing
+You can customize any of these in the admin panel under **Collective > Templates**. If you have not made any changes, Luster uses these defaults automatically.
+
+## Owned Listing
 ```
 <div class="fl-listing-list">
 {each_listing}
@@ -28,7 +30,7 @@
 </div>
 ```
 
-# Latest Owned:
+## Latest Owned
 ```
 <div class="fl-latest-listing">
 {each_listing}
@@ -47,7 +49,7 @@
 </div>
 ```
 
-# Random Owned:
+## Random Owned
 ```
 <div class="fl-random-listing">
 {each_listing}
@@ -66,7 +68,7 @@
 </div>
 ```
 
-# Joined Listings:
+## Joined Listings
 ```
 <div class="fl-joined-list">
 {each_joined}
@@ -82,7 +84,7 @@
 </div>
 ```
 
-# Latest Joined:
+## Latest Joined
 ```
 <div class="fl-latest-joined-listing">
 {each_joined}
@@ -101,7 +103,7 @@
 </div>
 ```
 
-# Random Joined :
+## Random Joined
 ```
 <div class="fl-random-joined-listing">
 {each_joined}
@@ -119,10 +121,7 @@
 {/each_joined}
 </div>
 ```
-
-
-
-# Statistics:
+## Statistics
 ```
 <h1>Collective Statistics</h1>
 <div class="fl-cstats">
@@ -134,7 +133,7 @@
 </div>
 ```
 
-# Codes:
+## Codes Display
 ```
 <h1>Codes</h1>
 {if_no_codes}<p>No codes available yet.</p>{/if_no_codes}
@@ -166,7 +165,7 @@
 {/if_codes}
 ```
 
-# Codes Donation Form:
+## Codes Donation Form
 ```
 <h2>Donate Codes to {site_name}</h2>
 <div class="fl-form-fields">
@@ -182,7 +181,7 @@
 </div>
 ```
 
-# Collective Contact Form:
+## Collective Contact Form
 ```
 <h2>Contact Form</h2>
 <div class="fl-form-fields">
@@ -199,7 +198,7 @@
 </div>
 ```
 
-# Affiliates:
+## Affiliates
 ```
 <h1>Affiliates</h2>
 <div class="fl-affiliates-section">
@@ -219,7 +218,7 @@
 </div>
 ```
 
-# Collective Affiliate Application Form:
+## Collective Affiliate Application Form
 ```
 <h2>Affiliate Application</h2>
 <div class="fl-form-fields">
@@ -237,7 +236,7 @@
 </div>
 ```
 
-# Adoption Form:
+## Adoption Form
 ```
 <h2>Adoption Form</h2>
 <div class="fl-form-fields">
@@ -255,7 +254,7 @@
 </div>
 ```
 
-# KIM Sign-Up Form:
+## KIM Sign-Up Form
 ```
 <h2>KIM - Sign-Up</h2>
 <div class="fl-form-fields">
@@ -273,7 +272,7 @@
 </div>
 ```
 
-# KIM Update Form:
+## KIM Update Form
 ```
 <h2>KIM - Sign In</h2>
 <div class="fl-form-fields">
@@ -289,7 +288,7 @@
 {if_lost_password_url}<p class="fl-form-hint"><a href="{lost_password_url}">Forgot your password?</a></p>{/if_lost_password_url}
 ```
 
-# KIM Reset Form:
+## KIM Reset Form
 ```
 <h2>KIM - Password Reset</h2>
 {if_step_email}
@@ -318,7 +317,7 @@
 {/if_step_confirm}
 ```
 
-# KIM List Overview:
+## KIM List Overview
 ```
 <h2>Keep In Mind List</h2>
 <div class="fl-embed fl-embed--kim-list">
@@ -336,7 +335,7 @@
 </div>
 ```
 
-# KIM List Subject Page:
+## KIM List Subject Page
 ```
 <h2>KIM &mdash; {listing_subject}</h2>
 <div class="fl-embed fl-embed--kim-subject">
@@ -360,7 +359,7 @@
 </div>
 ```
 
-# Wishlist:
+## Wishlist
 ```
 <h2>Wishlist</h2>
 <div class="fl-embed fl-embed--wishlist">
@@ -411,7 +410,7 @@
 </div>
 ```
 
-# News Feed:
+## News Feed
 ```
 <h2>{listing_subject} Updates</h2>
 <div class="fl-updates-list">
@@ -433,9 +432,10 @@
 </div>
 ```
 
+## Template and Dropdown Options Order
 
+This is the order that templates appear in the admin panel's template editor dropdown on the **Collective > Templates** page. Use this as a quick reference for which templates are available and how they are grouped.
 
-## Template & Dropdown Options Order
 - All Templates (default)
 - Owned Listings: contains
   - Owned Listings

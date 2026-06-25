@@ -2083,10 +2083,10 @@ final class SettingsController extends AdminController
     {
         $session  = $this->app->getSession();
         $baseUrl  = $this->app->getBaseUrl();
-        $theme    = (string) $request->post('admin_default_theme', 'light');
+        $theme    = (string) $request->post('admin_default_theme', 'dark');
 
         if (!in_array($theme, ['light', 'dark'], true)) {
-            $theme = 'light';
+            $theme = 'dark';
         }
 
         (new SiteSettingsRepo($this->app->getDatabase()))->set('admin_default_theme', $theme);

@@ -50,10 +50,14 @@ jobs:
             --exclude='.env.example' \
             --exclude='.gitignore' \
             --exclude='.phpunit.result.cache' \
+            --exclude='RELEASING.md' \
             --exclude='composer.lock' \
             --exclude='dist' \
             --exclude='docs' \
+            --exclude='fanatically' \
+            --exclude='fanatically.zip' \
             --exclude='phpunit.xml' \
+            --exclude='samples' \
             --exclude='tests' \
             ./ "dist/${PKG}/"
 

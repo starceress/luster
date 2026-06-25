@@ -1,8 +1,10 @@
 # ✨ Luster ✦
-Luster is an open source, modern management script for fanlistings, shrines, 
-cliques, collectives, and other hobby sites. It is meant to feel familiar
-if you've used other fanlisting scripts, but built for today's expectations:
-more control, fortified security, and fine-tuned customization.
+*Where fandoms can shine.*
+
+Luster is a free, open-source management script for fanlistings, cliques, 
+collectives, and other hobby listings. It is meant to feel familiar if you've 
+used other fanlisting scripts, but built for today's expectations: more control, 
+fortified security, and fine-tuned customization.
 
 Run one listing or a whole collective from the same dashboard: owned & joined 
 listings, members, affiliates, codes, custom networks and categories, custom 
@@ -11,19 +13,6 @@ add-ons for adoptions, join rules, keep-in-mind lists, wishlists, and news feeds
 Migrate your data seamlessly from other fanlisting scripts using an Import Data
 Wizard, or use compatibility wrappers to bridge your transition from your 
 previous script to Luster.
-
-
-
-## 🧭 Navigation Quick Links
-- [Overview & Unique Features](#-overview--unique-features)
-- [Requirements](#-requirements)
-- [Installation](#-installation)
-- [Admin Panel](#-admin-panel)
-- [Migrating from Another Script](#-migrating-from-another-script)
-- [Questions You May Have](#-questions-you-may-have)
-- [Need Help, Found a Bug, etc?](#-need-help-found-a-bug-etc)
-- [Credits](#-credits)
-- [License](#-license)
 
 
 
@@ -54,20 +43,18 @@ it for you.
   each output with clickable tokens, targetable CSS classes, and rendered previews
   before changes reach your live site.
 - **Embed Wizard for quick snippets.** Build ready-to-copy embed snippets with
-  one-click copy buttons, rendered live previews, and guided options for 
-  customizing listing selection, categories, statuses, sorting, pagination, 
-  form paths, and other per-embed settings.
+  live previews and guided settings.
 - **Three-tier template system.** Set global defaults that apply to every
   listing, override per listing when needed, and reset everything back with one
-  click. A search bar and dropdown filter help you find the right template
-  quickly, and every template has a rendered preview for all customizable states.
+  click. Every template has a rendered preview so you can see exactly what your
+  visitors will see before you save.
 - **Per-listing customization.** Granular control over join settings, extra form
   fields, per-listing rules, stats blocks, affiliate output, code donations,
-  contact forms, and redirect behavior per listing so each individual fanlisting
+  contact forms, and redirect behavior per listing so each individual listing
   can function exactly the way you want it.
-- **Live reordering of codes and affiliates.** Reorder codes and affiliates
-  in the admin panel, save that order to the database, and have the live website
-  reflect the same arrangement.
+- **Drag-and-drop reordering.** Rearrange codes and affiliates in the admin
+  panel with drag-and-drop, and have your live site reflect the exact order you
+  chose.
 - **Communication tools with live previews.** Send emails (bulk or single),
   create and save reusable email templates, preview rendered email content before
   it goes out, and enable or disable outgoing emails on a global or per-listing
@@ -89,7 +76,7 @@ it for you.
 
 
 
-## 🧰 Requirements
+## ⚙️ Requirements
 - **PHP 8.1 or newer**
 - **MySQL or MariaDB**
 - **PDO and PDO MySQL extension**
@@ -132,32 +119,26 @@ related history into place for you.
 
 
 
-## ❓ Quick Questions You May Have
-An in-depth Frequently Asked Questions (FAQ) and Guide section can be located
-at [https://luster.nu/](https://luster.nu/); feel free to check there if your 
-question and answer isn't found here!
+## ❓ Brief FAQ
+For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 
 - **Is Luster free?**
   Yes, all the features of this script are completely free of charge.
 
-- **Why doesn't Luster support PHP versions lower than 8.1?**
-  Requiring PHP 8.1+ lets Luster focus on protecting you and your data.
-  PHP versions below 8.1 are old, unsupported, and no longer receive official
-  security fixes. The PHP project itself warns that older versions may expose
-  users to "security vulnerabilities and bugs", making it easier for you to
-  get hacked ([source](https://www.php.net/eol.php)).
-  While some other fanlisting scripts are compatible with older PHP versions,
-  that compatibility comes with the cost of making your database easier to
-  exploit.
+- **Why does Luster require PHP 8.1+?**
+  Security is a priority for Luster. PHP 8.1 is the oldest version that still
+  receives security updates from the PHP project. Requiring it means Luster
+  can use modern security features to keep your site and your members' data
+  protected.
 
 - **Do I need to edit any configuration files?**
   Nope! The installation wizard asks for your database details and site info, and
   writes the configuration file for you. You never touch a code file directly.
 
-- **Can I run more than one fanlisting/type of listing with it?**
-  Absolutely! That's actually what Luster is built around. Run a single listing
-  (whether it be a fanlisting, shrine, clique, etc) or manage a whole collective
-  of them, all from the same login.
+- **Can I run more than one listing with it?**
+  Absolutely! That's what Luster is built around. Run a single fanlisting, a
+  clique, or manage a whole collective of different listing types, all from the
+  same login.
 
 - **Will it work alongside my existing site?**
   Yup - Luster's public embeds are designed to be dropped into pages you

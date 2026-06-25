@@ -1,13 +1,13 @@
 {
     "name": "luster/luster",
-    "description": "Fanlisting management script",
-    "version": "1.0.17",
+    "description": "Management script for fanlistings, cliques, and collectives",
+    "version": "1.0.0",
     "type": "project",
     "license": "GPL-3.0-or-later",
     "homepage": "https://github.com/starceress/luster",
     "authors": [
         {
-            "name": "spyderfang",
+            "name": "Star",
             "homepage": "https://github.com/starceress"
         }
     ],
