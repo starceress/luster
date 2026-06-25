@@ -18,6 +18,9 @@ composer.lock
 # Installer sentinel — created at runtime, not committed
 /storage/.installed
 
+# Sample host pages — local dev only, not shipped
+/samples/
+
 # Test artefacts
 /.phpunit.cache/
 /.phpunit.result.cache
