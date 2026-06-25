@@ -18,6 +18,9 @@ composer.lock
 # Installer sentinel — created at runtime, not committed
 /storage/.installed
 
+# Documentation source — published to luster.nu, not shipped in release
+/docs/
+
 # Sample host pages — local dev only, not shipped
 /samples/
 
