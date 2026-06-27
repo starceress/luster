@@ -4,9 +4,8 @@
  Copyright (c) 2026 Star (https://dreamesque.net)
 
  Adoptions admin review and edit form. Displays the details of a single adoption
- application and allows the admin to change its status (pending, reviewed, approved,
- rejected, granted) along with optional admin notes. In review mode, the status
- defaults to "reviewed" for quick triage.
+ application and allows the admin to change its status (pending, approved, rejected,
+ granted) along with optional admin notes.
 */
 
 declare(strict_types=1);
@@ -28,12 +27,10 @@ $backUrl        = $b . '/admin/adoptions?listing_id=' . $listingId;
 $isReviewMode   = $is_review_mode ?? false;
 $currentStatus  = $application['status'] ?? 'pending';
 
-// In review mode, pre-select 'reviewed' so "Mark as Reviewed" does the right thing by default
-$selectedStatus = $isReviewMode ? 'reviewed' : $currentStatus;
+$selectedStatus = $currentStatus;
 
 $statusLabels = [
     'pending'  => 'Pending',
-    'reviewed' => 'Reviewed',
     'approved' => 'Approved',
     'rejected' => 'Rejected',
     'granted'  => 'Granted',
@@ -143,11 +140,7 @@ $statusLabels = [
     </div>
 
     <div class="composer-footer">
-      <?php if ($isReviewMode): ?>
-        <button type="submit" class="btn btn-primary">Mark as Reviewed</button>
-      <?php else: ?>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-      <?php endif; ?>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
       <button type="reset" class="btn btn-quaternary js-form-reset">Reset to Original</button>
       <button type="button" class="btn btn-ghost" id="adopt-clear-btn">Clear</button>
       <a href="<?= $b ?>/admin/adoptions" class="btn btn-ghost">Cancel</a>

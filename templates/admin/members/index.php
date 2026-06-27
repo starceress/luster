@@ -753,6 +753,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
                       data-del-modal data-del-entity="member" data-del-name="<?= View::e($m->name) ?>">
                   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
+                  <input type="hidden" name="_from_global" value="1">
                   <button type="submit" class="btn btn-danger btn-xs">Delete</button>
                 </form>
               </div>

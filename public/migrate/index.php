@@ -2718,6 +2718,48 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Migration 82: remove 'reviewed' status from lstr_adoption_applications.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 82')->fetchColumn()) {
+        $hasAdoptionTable = (int) $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_adoption_applications'"
+        )->fetchColumn();
+
+        if ($hasAdoptionTable) {
+            $colType = (string) $pdo->query(
+                "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+                  WHERE TABLE_SCHEMA = DATABASE()
+                    AND TABLE_NAME   = 'lstr_adoption_applications'
+                    AND COLUMN_NAME  = 'status'"
+            )->fetchColumn();
+
+            if (strpos($colType, "'reviewed'") !== false) {
+                $pdo->exec(
+                    "UPDATE `lstr_adoption_applications` SET status = 'pending' WHERE status = 'reviewed'"
+                );
+                $pdo->exec(
+                    "ALTER TABLE `lstr_adoption_applications`
+                     MODIFY COLUMN `status`
+                       ENUM('pending','approved','rejected','granted') NOT NULL DEFAULT 'pending'"
+                );
+                $done[] = 'Migration 82: removed <code>reviewed</code> status from <code>lstr_adoption_applications</code>';
+            } else {
+                $done[] = 'Migration 82: <code>lstr_adoption_applications</code> already on canonical status ENUM';
+            }
+        } else {
+            $done[] = 'Migration 82: <code>lstr_adoption_applications</code> table not present &mdash; skipped';
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (82)');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 82 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Build results HTML
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -1051,7 +1051,16 @@ final class MemberController extends AdminController
 
         $label = $action === 'approve' ? "Approved {$count} member(s)." : "Rejected {$count} member(s).";
         $session->set('lstr_flash_success', $label);
-        return Response::redirect($baseUrl . '/admin/members?status=pending');
+
+        $allListings   = $listingRepo->getAll();
+        $globalPending = (new PendingUpdateRepo($db))->countAll();
+        foreach ($allListings as $fl) {
+            if ($fl->dbprefix !== '') {
+                $globalPending += $memberRepo->countPending($fl->dbprefix);
+            }
+        }
+        $redirectStatus = $globalPending > 0 ? 'pending' : 'all';
+        return Response::redirect($baseUrl . '/admin/members?status=' . $redirectStatus);
     }
 
     // -----------------------------------------------------------------------

@@ -257,13 +257,12 @@ final class Application
             $pendingAffiliates = (new \Luster\Repositories\AffiliateRepo($this->database))->getPendingCount();
         } catch (\Throwable) {}
 
-        $navLcDead     = 0;
-        $navLcRedirect = 0;
+        $navLcDead = 0;
         try {
             $affStats    = (new \Luster\Repositories\AffiliateRepo($this->database))->getLinkStats();
             $joinedStats = (new \Luster\Repositories\JoinedListingRepo($this->database))->getLinkStats();
-            $navLcDead     = ($affStats['dead']     ?? 0) + ($joinedStats['dead']     ?? 0);
-            $navLcRedirect = ($affStats['redirect']  ?? 0) + ($joinedStats['redirect']  ?? 0);
+            $memStats    = (new \Luster\Repositories\MemberLinkCheckRepo($this->database, $this->config))->getLinkStatsAll();
+            $navLcDead   = ($affStats['dead'] ?? 0) + ($joinedStats['dead'] ?? 0) + ($memStats['dead'] ?? 0);
         } catch (\Throwable) {}
 
         $selectedSkin       = '';
@@ -324,7 +323,6 @@ final class Application
             'nav_pending_codes'      => $pendingCodes,
             'nav_pending_affiliates' => $pendingAffiliates,
             'nav_lc_dead'           => $navLcDead,
-            'nav_lc_redirect'       => $navLcRedirect,
             'nav_site_url'          => rtrim((string) $this->config->get('site_url', ''), '/'),
             'nav_installed_addons'  => $this->installedAddonKeys,
             'selected_skin'         => $selectedSkin,

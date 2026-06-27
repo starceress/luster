@@ -187,8 +187,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
 
       <a href="<?= $b ?>/admin/embed-codes" class="nav-item<?= navActive('embed-codes', $s) ?>"><span class="nav-icon"><?= View::icon('embed') ?></span> Embed Wizard</a>
 
-      <?php $_lcIssues = ($nav_lc_dead ?? 0) + ($nav_lc_redirect ?? 0); ?>
-      <a href="<?= $b ?>/admin/link-checker" class="nav-item<?= navActive('link-checker', $s) ?>"><span class="nav-icon"><?= View::icon('linkcheck') ?></span> Link Checker<?php if ($_lcIssues > 0): ?><span class="badge badge-pending nav-item-badge"><?= $_lcIssues ?></span><?php endif; ?></a>
+      <a href="<?= $b ?>/admin/link-checker" class="nav-item<?= navActive('link-checker', $s) ?>"><span class="nav-icon"><?= View::icon('linkcheck') ?></span> Link Checker<?php if (($nav_lc_dead ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) ($nav_lc_dead ?? 0) ?></span><?php endif; ?></a>
 
       <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>"><span class="nav-icon"><?= View::icon('addon') ?></span> Manage Add-Ons</a>
     </div>

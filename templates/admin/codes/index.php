@@ -555,15 +555,17 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
             <td class="actions-col" data-label="">
               <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/codes/<?= (int) $code->id ?>/approve" class="action-form-inline">
-                  <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-                  <input type="hidden" name="listing_id" value="0">
-                  <input type="hidden" name="_tab"       value="pending">
+                  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token) ?>">
+                  <input type="hidden" name="listing_id"  value="0">
+                  <input type="hidden" name="_tab"         value="pending">
+                  <input type="hidden" name="_from_global" value="1">
                   <button type="submit" class="btn btn-success btn-xs">Approve</button>
                 </form>
                 <form method="POST" action="<?= $b ?>/admin/codes/<?= (int) $code->id ?>/reject" class="action-form-inline">
-                  <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-                  <input type="hidden" name="listing_id" value="0">
-                  <input type="hidden" name="_tab"       value="pending">
+                  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token) ?>">
+                  <input type="hidden" name="listing_id"  value="0">
+                  <input type="hidden" name="_tab"         value="pending">
+                  <input type="hidden" name="_from_global" value="1">
                   <button type="submit" class="btn btn-danger btn-xs">Reject</button>
                 </form>
               </div>

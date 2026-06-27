@@ -4,7 +4,7 @@
  Copyright (c) 2026 Star (https://dreamesque.net)
 
  Adoptions admin overview. Displays adoption applications across all listings in a
- tabbed interface (all, pending, reviewed, approved, rejected, granted). Includes
+ tabbed interface (all, pending, approved, rejected, granted). Includes
  per-listing filtering, search, sortable columns, and bulk actions for managing
  adoption requests.
 */
@@ -32,7 +32,7 @@ use Luster\Core\View;
  */
 
 $b         = rtrim(View::e($base_url), '/');
-$appTabs   = ['all', 'pending', 'reviewed', 'approved', 'rejected', 'granted'];
+$appTabs   = ['all', 'pending', 'approved', 'rejected', 'granted'];
 $isAppView = in_array($tab, $appTabs, true);
 
 $listing_id      = $listing_id      ?? 0;
@@ -54,7 +54,6 @@ $per_page        = $per_page        ?? 10;
 $statusTabs = [
     'all'      => 'All',
     'pending'  => 'Pending',
-    'reviewed' => 'Reviewed',
     'approved' => 'Approved',
     'rejected' => 'Rejected',
     'granted'  => 'Granted',
@@ -65,7 +64,6 @@ $statusLabels = [
     'all'      => 'All',
     'pending'  => 'Pending',
     'new'      => 'Pending',   // legacy: pre-migration rows
-    'reviewed' => 'Reviewed',
     'approved' => 'Approved',
     'rejected' => 'Rejected',
     'granted'  => 'Granted',
@@ -73,7 +71,6 @@ $statusLabels = [
 $statusBadge = [
     'pending'  => 'badge-pending',
     'new'      => 'badge-pending',  // legacy
-    'reviewed' => 'badge-upcoming',
     'approved' => 'badge-current',
     'rejected' => 'badge-error',
     'granted'  => 'badge-redirect',
@@ -150,7 +147,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
       <?php
         $_adoptCounts = $adoption_listing_counts ?? [];
         $_adoptTotal  = array_sum(array_map(
-            static fn(array $c): int => (int) ($c['reviewed'] ?? 0) + (int) ($c['approved'] ?? 0) + (int) ($c['granted'] ?? 0),
+            static fn(array $c): int => (int) ($c['approved'] ?? 0) + (int) ($c['granted'] ?? 0),
             $_adoptCounts
         ));
       ?>
@@ -159,7 +156,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
         <?php foreach ($fanlistings as $fl): ?>
           <?php
             $_lc    = $_adoptCounts[(int) $fl->id] ?? [];
-            $_adoptN = (int) ($_lc['reviewed'] ?? 0) + (int) ($_lc['approved'] ?? 0) + (int) ($_lc['granted'] ?? 0);
+            $_adoptN = (int) ($_lc['approved'] ?? 0) + (int) ($_lc['granted'] ?? 0);
           ?>
           <option value="<?= (int) $fl->id ?>"
                   <?= $listing_id === $fl->id ? 'selected' : '' ?>>
@@ -241,7 +238,6 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
     <div class="card-head">
       <?php if ($tab === 'all'): ?>All Applications
       <?php elseif ($tab === 'pending'): ?>Pending Applications
-      <?php elseif ($tab === 'reviewed'): ?>Reviewed Applications
       <?php elseif ($tab === 'approved'): ?>Approved Applications
       <?php elseif ($tab === 'rejected'): ?>Rejected Applications
       <?php else: ?>Granted Applications
@@ -251,7 +247,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
       <?php
         // Use unfiltered per-listing totals so the badge is not scoped by active search.
         $_alc = $adoption_listing_counts[$listing_id] ?? [];
-        $emailAllCount = (int) ($_alc['reviewed'] ?? 0) + (int) ($_alc['approved'] ?? 0) + (int) ($_alc['granted'] ?? 0);
+        $emailAllCount = (int) ($_alc['approved'] ?? 0) + (int) ($_alc['granted'] ?? 0);
         if ($listing_id > 0 && $emailAllCount > 0):
       ?>
         <a href="<?= $b ?>/admin/adoptions/<?= (int) $listing_id ?>/email-all"
@@ -308,13 +304,16 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
               </a>
             </th>
             <?php endif; ?>
+            <?php if ($tab === 'pending'): ?>
+            <th>Application</th>
+            <?php endif; ?>
             <th>
               <a href="<?= View::e($sortUrl('applied_at')) ?>"
                  class="sort-th<?= $sort === 'applied_at' ? ' sort-active' : '' ?>">
                 Applied <?= View::sortIcon('applied_at', $sort, $dir) ?>
               </a>
             </th>
-            <th class="actions-col"></th>
+            <th class="actions-col">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -369,6 +368,19 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
             </td>
             <?php endif; ?>
 
+            <?php if ($tab === 'pending'): ?>
+            <td data-label="Application">
+              <?php $msg = (string) ($app['message'] ?? ''); ?>
+              <button type="button" class="link js-adopt-app-open"
+                      data-app-name="<?= View::e($app['name']) ?>"
+                      data-app-url="<?= View::e((string) ($app['url'] ?? '')) ?>"
+                      data-app-email="<?= View::e($app['email']) ?>"
+                      data-app-listing="<?= $fl !== null ? View::e($fl->subject ?: $fl->title) : '' ?>"
+                      data-app-date="<?= View::e(date($admin_date_format, strtotime((string) $app['applied_at']))) ?>"
+                      data-app-msg="<?= View::e($msg) ?>"><?= $msg !== '' ? 'Click to Read' : 'View Details' ?></button>
+            </td>
+            <?php endif; ?>
+
             <td class="text-dim nowrap" data-label="Applied">
               <?= View::e(date($admin_date_format, strtotime((string) $app['applied_at']))) ?>
             </td>
@@ -376,10 +388,10 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
             <td class="actions-col" data-label="">
               <div class="actions-row">
                 <?php if ($isPending): ?>
-                  <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="btn btn-primary btn-xs">Review</a>
-                <?php else: ?>
-                  <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
+                  <button type="submit" form="approve-adopt-<?= $appId ?>" class="btn btn-success btn-xs">Approve</button>
+                  <button type="submit" form="reject-adopt-<?= $appId ?>" class="btn btn-danger btn-xs">Reject</button>
                 <?php endif; ?>
+                <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
                 <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/email" class="btn btn-secondary btn-xs">Email</a>
                 <button type="submit" form="del-adopt-<?= $appId ?>" class="btn btn-danger btn-xs">Delete</button>
               </div>
@@ -401,6 +413,18 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
   ], static fn(string $v): bool => $v !== ''));
 ?>
 <?php foreach ($applications as $app): ?>
+<form id="approve-adopt-<?= (int) $app['id'] ?>" method="POST"
+      action="<?= $b ?>/admin/adoptions/<?= (int) $app['id'] ?>/approve">
+  <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
+</form>
+<form id="reject-adopt-<?= (int) $app['id'] ?>" method="POST"
+      action="<?= $b ?>/admin/adoptions/<?= (int) $app['id'] ?>/reject"
+      data-del-modal data-del-entity="adoption_application"
+      data-del-name="<?= View::e($app['name']) ?>">
+  <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
+</form>
 <form id="del-adopt-<?= (int) $app['id'] ?>" method="POST"
       action="<?= $b ?>/admin/adoptions/<?= (int) $app['id'] ?>/delete"
       data-del-modal data-del-entity="adoption_application"
@@ -415,6 +439,31 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
     $pg_url = static fn(int $p) => $buildUrl(['page' => $p > 1 ? $p : '']);
     include LUSTER_BASE . '/templates/admin/_pagination.php';
 endif; ?>
+
+<!-- Adoption application modal -->
+<div class="modal-backdrop is-hidden" id="adopt-app-modal" role="dialog" aria-modal="true" aria-labelledby="adopt-app-modal-title" data-managed-close>
+  <div class="modal modal--wide">
+    <div class="modal-header">
+      <h3 class="modal-title" id="adopt-app-modal-title">Adoption Application</h3>
+      <button type="button" class="modal-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <table class="data-table" style="margin-bottom:.75rem">
+        <tbody>
+          <tr><th style="width:100px">Name</th><td id="adopt-app-modal-name"></td></tr>
+          <tr><th>URL</th><td id="adopt-app-modal-url"></td></tr>
+          <tr><th>Email</th><td id="adopt-app-modal-email"></td></tr>
+          <tr><th>Listing</th><td id="adopt-app-modal-listing"></td></tr>
+          <tr><th>Applied</th><td id="adopt-app-modal-date"></td></tr>
+        </tbody>
+      </table>
+      <div id="adopt-app-modal-msg-wrap">
+        <div style="font-weight:600;margin-bottom:.35rem;color:var(--text)">Message</div>
+        <div id="adopt-app-modal-body" style="white-space:pre-wrap;color:var(--text-muted);line-height:1.5"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <?php endif; // applications ?>
 

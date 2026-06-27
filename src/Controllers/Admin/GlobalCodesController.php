@@ -961,11 +961,17 @@ final class GlobalCodesController extends AdminController
      */
     private function redirectBack(Request $request, string $baseUrl, int $listingId): Response
     {
+        $fromGlobal = $request->post('_from_global', '') === '1';
+
+        if ($fromGlobal || $listingId === 0) {
+            $remaining = (new CodesRepo($this->app->getDatabase()))->countPendingAll();
+            $tab       = $remaining > 0 ? 'pending' : 'all';
+            return Response::redirect($baseUrl . '/admin/codes?tab=' . $tab);
+        }
+
         $tab = trim((string) $request->post('_tab', 'pending'));
-        $qs  = $listingId > 0
-            ? '?listing_id=' . $listingId . '&tab=' . urlencode($tab)
-            : '?tab=pending';
-        return Response::redirect($baseUrl . '/admin/codes' . $qs);
+        $tab = in_array($tab, ['pending', 'approved', 'rejected'], true) ? $tab : 'pending';
+        return Response::redirect($baseUrl . '/admin/codes?listing_id=' . $listingId . '&tab=' . urlencode($tab));
     }
 
     /**

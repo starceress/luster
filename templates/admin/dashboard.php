@@ -289,10 +289,10 @@ $growthDiff          = $growth_this_month - $growth_last_month;
               <input type="checkbox" name="listing_ids[]"
                      value="<?= (int) $staleItem['listing']->id ?>"
                      form="bulk-maint-form"
-                     aria-label="Select <?= View::e($staleItem['listing']->title) ?>">
+                     aria-label="Select <?= View::e($staleItem['listing']->subject) ?>">
             </label>
             <a href="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/edit"
-               class="link"><?= View::e($staleItem['listing']->title) ?></a>
+               class="link"><?= View::e($staleItem['listing']->subject) ?></a>
           </div>
           <div class="todo-mrow-right">
             <?php

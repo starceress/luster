@@ -72,7 +72,7 @@ final class AdoptionAddon implements AddonInterface
                 `message`       TEXT NULL,
                 `admin_notes`   TEXT NULL,
                 `applied_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                `status`        ENUM('pending','reviewed','approved','rejected','granted') NOT NULL DEFAULT 'pending',
+                `status`        ENUM('pending','approved','rejected','granted') NOT NULL DEFAULT 'pending',
                 PRIMARY KEY (`id`),
                 INDEX `idx_adoption_listing` (`fanlisting_id`),
                 INDEX `idx_adoption_status`  (`status`)
@@ -88,19 +88,19 @@ final class AdoptionAddon implements AddonInterface
         )->fetchColumn();
         $colType = (string) $colType;
 
-        // Migrate legacy 'new' rows to 'pending'; 'reviewed' rows are kept as-is
-        if (strpos($colType, "'new'") !== false) {
+        // Migrate legacy 'new' and 'reviewed' rows to 'pending'
+        if (strpos($colType, "'new'") !== false || strpos($colType, "'reviewed'") !== false) {
             $pdo->exec(
-                "UPDATE `lstr_adoption_applications` SET status = 'pending' WHERE status = 'new'"
+                "UPDATE `lstr_adoption_applications` SET status = 'pending' WHERE status IN ('new','reviewed')"
             );
         }
 
         // Rebuild ENUM to canonical set if it doesn't match
-        if ($colType !== "enum('pending','reviewed','approved','rejected','granted')") {
+        if ($colType !== "enum('pending','approved','rejected','granted')") {
             $pdo->exec(
                 "ALTER TABLE `lstr_adoption_applications`
                  MODIFY COLUMN `status`
-                   ENUM('pending','reviewed','approved','rejected','granted') NOT NULL DEFAULT 'pending'"
+                   ENUM('pending','approved','rejected','granted') NOT NULL DEFAULT 'pending'"
             );
         }
 

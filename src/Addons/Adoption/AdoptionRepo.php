@@ -145,7 +145,7 @@ final class AdoptionRepo
     /**
      * Returns per-status counts, optionally scoped to a listing and/or search.
      *
-     * @return array{all:int, pending:int, reviewed:int, approved:int, rejected:int, granted:int}
+     * @return array{all:int, pending:int, approved:int, rejected:int, granted:int}
      */
     public function queryCounts(int $listingId = 0, string $search = ''): array
     {
@@ -167,7 +167,6 @@ final class AdoptionRepo
             "SELECT
                 COUNT(*)                         AS total,
                 SUM(status IN ('pending','new')) AS cnt_pending,
-                SUM(status = 'reviewed')         AS cnt_reviewed,
                 SUM(status = 'approved')         AS cnt_approved,
                 SUM(status = 'rejected')         AS cnt_rejected,
                 SUM(status = 'granted')          AS cnt_granted
@@ -178,7 +177,6 @@ final class AdoptionRepo
         return [
             'all'      => (int) ($row['total']       ?? 0),
             'pending'  => (int) ($row['cnt_pending']  ?? 0),
-            'reviewed' => (int) ($row['cnt_reviewed'] ?? 0),
             'approved' => (int) ($row['cnt_approved'] ?? 0),
             'rejected' => (int) ($row['cnt_rejected'] ?? 0),
             'granted'  => (int) ($row['cnt_granted']  ?? 0),
@@ -251,7 +249,7 @@ final class AdoptionRepo
      */
     public function update(int $id, string $name, string $email, string $url, string $message, string $status, string $adminNotes = ''): void
     {
-        if (!in_array($status, ['pending', 'reviewed', 'approved', 'rejected', 'granted'], true)) {
+        if (!in_array($status, ['pending', 'approved', 'rejected', 'granted'], true)) {
             $status = 'pending';
         }
         $baseParams = [
@@ -290,7 +288,7 @@ final class AdoptionRepo
      */
     public function setStatus(int $id, string $status): void
     {
-        if (!in_array($status, ['pending', 'reviewed', 'approved', 'rejected', 'granted'], true)) {
+        if (!in_array($status, ['pending', 'approved', 'rejected', 'granted'], true)) {
             return;
         }
         $stmt = $this->db->prepare(
@@ -313,7 +311,7 @@ final class AdoptionRepo
     /**
      * Returns counts for all statuses for a single listing in one query.
      *
-     * @return array{all: int, pending: int, reviewed: int, approved: int, rejected: int, granted: int}
+     * @return array{all: int, pending: int, approved: int, rejected: int, granted: int}
      */
     public function getCountsForListing(int $listingId): array
     {
@@ -321,7 +319,6 @@ final class AdoptionRepo
             "SELECT
                 COUNT(*)                         AS total,
                 SUM(status IN ('pending','new')) AS cnt_pending,
-                SUM(status = 'reviewed')         AS cnt_reviewed,
                 SUM(status = 'approved')         AS cnt_approved,
                 SUM(status = 'rejected')         AS cnt_rejected,
                 SUM(status = 'granted')          AS cnt_granted
@@ -332,7 +329,6 @@ final class AdoptionRepo
         return [
             'all'      => (int) ($row['total']       ?? 0),
             'pending'  => (int) ($row['cnt_pending']  ?? 0),
-            'reviewed' => (int) ($row['cnt_reviewed'] ?? 0),
             'approved' => (int) ($row['cnt_approved'] ?? 0),
             'rejected' => (int) ($row['cnt_rejected'] ?? 0),
             'granted'  => (int) ($row['cnt_granted']  ?? 0),
@@ -352,7 +348,6 @@ final class AdoptionRepo
                 fanlisting_id,
                 COUNT(*)                    AS total,
                 SUM(status IN ('pending','new')) AS cnt_pending,
-                SUM(status = 'reviewed')    AS cnt_reviewed,
                 SUM(status = 'approved')    AS cnt_approved,
                 SUM(status = 'granted')     AS cnt_granted
              FROM `" . self::TABLE . "`
@@ -364,7 +359,6 @@ final class AdoptionRepo
             $result[(int) $row['fanlisting_id']] = [
                 'all'      => (int) $row['total'],
                 'pending'  => (int) $row['cnt_pending'],
-                'reviewed' => (int) $row['cnt_reviewed'],
                 'approved' => (int) $row['cnt_approved'],
                 'granted'  => (int) $row['cnt_granted'],
             ];

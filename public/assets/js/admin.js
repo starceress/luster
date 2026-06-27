@@ -3951,7 +3951,8 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     update:                { title: 'Delete Update',           btn: 'Delete',      desc: 'You are about to delete the update <strong>$$names$$</strong>.',                       warn: 'This action cannot be undone.' },
     rules:                 { title: 'Delete Rules',            btn: 'Delete',      desc: 'You are about to delete the join rules for <strong>$$names$$</strong>.',               warn: 'Deleting removes the rules text (and rules gate, if enabled) entirely for this listing. This action cannot be undone.' },
     wishlist_entry:        { title: 'Delete Wishlist Entries', btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong>.',                                   warn: 'This action cannot be undone.' },
-    'reset-all-templates': { title: 'Reset All Templates',     btn: 'Reset All',   desc: 'You are about to reset <strong>$$names$$</strong>.',                                      warn: 'Every template for this listing will revert to the global default. Any per-listing customisations will be lost.' }
+    'reset-all-templates': { title: 'Reset All Templates',     btn: 'Reset All',   desc: 'You are about to reset <strong>$$names$$</strong>.',                                      warn: 'Every template for this listing will revert to the global default. Any per-listing customisations will be lost.' },
+    adoption_application:  { title: 'Reject Application',      btn: 'Reject',      desc: 'You are about to reject the application from <strong>$$names$$</strong>.',               warn: 'The applicant will be marked as rejected. This action cannot be undone.' }
   };
 
   function show(cfg, names, context, warnOverride) {
@@ -6470,6 +6471,68 @@ document.addEventListener('click', function (e) {
 
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') affMsgClose();
+});
+
+// ── Adoption application modal ────────────────────────────────────────────────
+
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.js-adopt-app-open');
+  if (!btn) return;
+  e.preventDefault();
+  var modal = document.getElementById('adopt-app-modal');
+  if (!modal) return;
+
+  var d       = btn.dataset;
+  var name    = d.appName    || '';
+  var url     = d.appUrl     || '';
+  var email   = d.appEmail   || '';
+  var listing = d.appListing || '';
+  var date    = d.appDate    || '';
+  var msg     = d.appMsg     || '';
+
+  var elTitle   = document.getElementById('adopt-app-modal-title');
+  var elName    = document.getElementById('adopt-app-modal-name');
+  var elUrl     = document.getElementById('adopt-app-modal-url');
+  var elEmail   = document.getElementById('adopt-app-modal-email');
+  var elListing = document.getElementById('adopt-app-modal-listing');
+  var elDate    = document.getElementById('adopt-app-modal-date');
+  var elBody    = document.getElementById('adopt-app-modal-body');
+
+  if (elTitle)   elTitle.textContent   = name || 'Adoption Application';
+  if (elName)    elName.textContent    = name;
+  if (elUrl)     elUrl.innerHTML       = url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(url) + '</a>' : '<span class="text-dim">&mdash;</span>';
+  if (elEmail)   elEmail.innerHTML     = email ? '<a href="mailto:' + esc(email) + '" class="link">' + esc(email) + '</a>' : '<span class="text-dim">&mdash;</span>';
+  if (elListing) elListing.textContent = listing || '—';
+  if (elDate)    elDate.textContent    = date || '—';
+  if (elBody)    elBody.textContent    = msg;
+  var elMsgWrap = document.getElementById('adopt-app-modal-msg-wrap');
+  if (elMsgWrap) elMsgWrap.hidden = !msg;
+
+  modal._adoptPrevFocus = document.activeElement;
+  modal.classList.remove('is-hidden');
+  modal.style.display = '';
+  var closeBtn = modal.querySelector('.modal-close');
+  if (closeBtn) closeBtn.focus();
+});
+
+function adoptAppClose() {
+  var modal = document.getElementById('adopt-app-modal');
+  if (!modal || modal.classList.contains('is-hidden')) return;
+  modal.classList.add('is-hidden');
+  if (modal._adoptPrevFocus && typeof modal._adoptPrevFocus.focus === 'function') {
+    modal._adoptPrevFocus.focus();
+  }
+}
+
+document.addEventListener('click', function (e) {
+  if (e.target.closest('#adopt-app-modal .modal-close')) { adoptAppClose(); return; }
+  var modal = document.getElementById('adopt-app-modal');
+  if (!modal || modal.classList.contains('is-hidden')) return;
+  if (e.target === modal) adoptAppClose();
+});
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') adoptAppClose();
 });
 
 // Listing edit: dependent rows in the embed settings tab.

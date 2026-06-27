@@ -50,8 +50,8 @@ use Luster\Repositories\SiteSettingsRepo;
  */
 final class AdoptionAdminController
 {
-    private const APP_STATUS_TABS = ['all', 'pending', 'reviewed', 'approved', 'rejected', 'granted'];
-    private const VALID_STATUSES  = ['pending', 'reviewed', 'approved', 'rejected', 'granted'];
+    private const APP_STATUS_TABS = ['all', 'pending', 'approved', 'rejected', 'granted'];
+    private const VALID_STATUSES  = ['pending', 'approved', 'rejected', 'granted'];
 
     public function __construct(private readonly Application $app) {}
 
@@ -651,7 +651,7 @@ final class AdoptionAdminController
         $sourceModeStatuses = '';
         if (empty($applications) && $directListingId > 0) {
             $rawStatuses     = explode(',', (string) $request->query('statuses', 'approved,granted'));
-            $allowedStatuses = ['pending', 'reviewed', 'approved', 'rejected', 'granted'];
+            $allowedStatuses = ['pending', 'approved', 'rejected', 'granted'];
             $statuses        = array_values(array_filter(
                 array_map('trim', $rawStatuses),
                 static fn(string $s): bool => in_array($s, $allowedStatuses, true)
@@ -945,12 +945,22 @@ final class AdoptionAdminController
      */
     private function redirectAfterAction(Request $request, string $baseUrl): Response
     {
+        $adoptionRepo = new AdoptionRepo($this->app->getDatabase());
+        $hasPending   = ($adoptionRepo->queryCounts(0, '')['pending'] ?? 0) > 0;
+
         $returnUrl = trim((string) $request->post('_return', ''));
         if ($returnUrl !== '' && UrlGuard::isSameOriginUrl($returnUrl, $baseUrl)) {
+            parse_str(parse_url($returnUrl, PHP_URL_QUERY) ?? '', $params);
+            if (($params['tab'] ?? '') === 'pending' && !$hasPending) {
+                $params['tab'] = 'all';
+                unset($params['page']);
+                $qs = http_build_query(array_filter($params, static fn($v) => $v !== '' && $v !== null));
+                return Response::redirect($baseUrl . '/admin/adoptions' . ($qs !== '' ? '?' . $qs : ''));
+            }
             return Response::redirect($returnUrl);
         }
-        $adoptionRepo = new AdoptionRepo($this->app->getDatabase());
-        $tab = ($adoptionRepo->queryCounts(0, '')['pending'] ?? 0) > 0 ? 'pending' : 'all';
+
+        $tab = $hasPending ? 'pending' : 'all';
         return Response::redirect($baseUrl . '/admin/adoptions?tab=' . $tab);
     }
 
