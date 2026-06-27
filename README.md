@@ -1,17 +1,17 @@
 # ✨ Luster
 *Where fandoms can shine! ✦*
 
-Luster is a free, open-source management script for fanlistings, cliques, 
-collectives, and other hobby listings. It is meant to feel familiar if you've 
-used other fanlisting scripts, but built for today's expectations: more control, 
+Luster is a free, open-source management script for fanlistings, cliques,
+collectives, and other hobby listings. It is meant to feel familiar if you've
+used other fanlisting scripts, but built for today's expectations: more control,
 fortified security, and fine-tuned customization.
 
-Run one listing or a whole collective from the same dashboard: owned & joined 
-listings, members, affiliates, codes, custom networks and categories, custom 
-fields, email templates, link checker, error and activity logs, and optional 
+Run one listing or a whole collective from the same dashboard: owned & joined
+listings, members, affiliates, codes, custom networks and categories, custom
+fields, email templates, link checker, error and activity logs, and optional
 add-ons for adoptions, join rules, keep-in-mind lists, wishlists, and news feeds.
 Migrate your data seamlessly from other fanlisting scripts using an Import Data
-Wizard, or use compatibility wrappers to bridge your transition from your 
+Wizard, or use compatibility wrappers to bridge your transition from your
 previous script to Luster.
 
 
@@ -21,39 +21,39 @@ Nearly everything in Luster is edited and configured directly from your admin
 panel. No need to create or upload additional files - the script takes care of
 it for you.
 
-- **One admin panel, multiple listings & types:** Run a single listing or a whole 
+- **One admin panel, multiple listings & types:** Run a single listing or a whole
   collective all side by side.
 - **Guided migration & wrappers:** The Import Data Wizard brings over your
-  data from other scripts. Compatibility wrappers keep your previous script working 
+  data from other scripts. Compatibility wrappers keep your previous script working
   while you transition to Luster.
-- **Dashboard to-do list:** See pending members, overdue listings, affiliate 
-  applications, code donations, adoption requests, and KIM signups right 
-  away when you sign in, with shortcuts to review or update each item directly 
+- **Dashboard to-do list:** See pending members, overdue listings, affiliate
+  applications, code donations, adoption requests, and KIM signups right
+  away when you sign in, with shortcuts to review or update each item directly
   from the dashboard.
-- **Multiple admin users:** Give co-owners their own separate accounts and logins 
+- **Multiple admin users:** Give co-owners their own separate accounts and logins
   instead of sharing one password.
 - **Admin panel customization:** Switch between light & dark mode, change your
   admin panel's appearance with different skins, create your own admin panel
   look, or download skins made by others in the community.
 - **Custom networks & categories:** Use the built-in TFL/TAFL-style categories or
   add your own custom networks and category groups to accomodate other directories.
-- **Customizable public embeds & live previews:** Add the script to your existing 
-  website with a small snippet of code, then customize each output with clickable 
+- **Customizable public embeds & live previews:** Add the script to your existing
+  website with a small snippet of code, then customize each output with clickable
   tokens or the Embed Wizard, targetable CSS classes, and rendered previews.
 - **Three-tier template system:** Set global defaults that apply to every
   listing, override per listing when needed, or reset everything back with one click.
-- **Drag-and-drop reordering:** Rearrange codes and affiliates with drag-and-drop 
+- **Drag-and-drop reordering:** Rearrange codes and affiliates with drag-and-drop
   and have your live site reflect the exact order you chose.
 - **Communication tools with live previews:** Send emails (bulk or single),
-  create and save email templates, preview rendered email content before sending, 
+  create and save email templates, preview rendered email content before sending,
   and enable or disable outgoing emails on a global or per-listing scale.
 - **Extra features when you want them:** Optional add-ons include news feeds,
-  a wishlist, "keep in mind" lists, adoption applications, and join rules, so you 
+  a wishlist, "keep in mind" lists, adoption applications, and join rules, so you
   only turn on the pieces your site needs.
-- **Link Checker & maintenance tools:** Check dead links and redirects, review admin 
+- **Link Checker & maintenance tools:** Check dead links and redirects, review admin
   activity with IP tracking, and browse error logs.
-- **Security-first foundations:** Modern password handling, CSRF protection, output 
-  escaping, safer upload/import handling, concealed install paths, and an automated 
+- **Security-first foundations:** Modern password handling, CSRF protection, output
+  escaping, safer upload/import handling, concealed install paths, and an automated
   test suite of 1,300+ tests to help protect your site by default.
 
 
@@ -99,6 +99,11 @@ upload the supported files, pick what you want to bring over, and Luster will
 copy your listings, members, affiliates, categories, codes, images, and
 related history into place for you.
 
+Luster also includes compatibility wrappers for Enthusiast, Listing Admin, and
+CodeSort that allow your old include paths to keep working while you transition,
+so your existing pages don't break before you've had a chance to update them.
+These can be found within the **Collective** section in the admin panel.
+
 
 
 ## ✦ Brief FAQ
@@ -114,7 +119,7 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
   protected.
 
 - **Do I need to edit any configuration files?**
-  Nope! The installation wizard asks for your database details and site info, and
+  Nope! The installation wizard asks for your database details and site info and
   writes the configuration file for you. You never touch a code file directly.
 
 - **Can I run more than one listing with it?**
@@ -124,25 +129,24 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 
 - **Will it work alongside my existing site?**
   Yup - Luster's public embeds are designed to be dropped into pages you
-  already have. You can further customize the CSS classes down to every detail,
-  so your site's look and feel can stay exactly as it is.
+  already have. The Embed Wizard generates ready-to-copy snippets, compatibility
+  wrappers keep your old include paths working, and every element has targetable
+  CSS classes so your site's look and feel can stay exactly as it is.
 
 - **What if something doesn't go as expected during setup?**
-  Double-check the steps above first — most hiccups come down to database
-  details or the web folder pointing somewhere other than `public/`. If you're
-  still stuck, [contact me](#need-help-found-a-bug-etc) and let me know what
-  you tried so I can help you figure it out!
+  Most hiccups come down to database details or the web folder pointing somewhere
+  other than `public/`. If you're still stuck, [contact me](#need-help-found-a-bug-etc)
+  and let me know what you tried so I can help you figure it out!
 
 - **Can you implement [insert fix]/[insert new feature]?**
-  Of course! Your feedback means a lot to me and helps Luster grow! Please let me
-  know by [contacting me](#need-help-found-a-bug-etc) and let's see what we can
-  build together!
+  Your feedback means a lot and helps Luster grow! Please [contact me](#need-help-found-a-bug-etc)
+  and let's see what we can build together!
 
 
 
 ## ✦ Need Help, Found a Bug, etc?
 - Click *Send a Report* in your Luster admin panel's navigation sidebar
-- Use the *Contact Form* at [https://luster.nu/contact.php](https://luster.nu/contact.php)
+- Use the *Contact Form* at [luster.nu](https://luster.nu/contact/)
 - *Email me* directly at `support@luster.nu`
 - Post at *The Fanlistings Message Board* at [board.thefanlistings.org](https://board.thefanlistings.org/)
 - Via *GitHub* at [Luster's GitHub issues](https://github.com/starceress/luster/issues) (requires GitHub account)
@@ -151,7 +155,7 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 
 ## ✦ Credits
 [Luster](https://luster.nu/) © [Star](https://dreamesque.net/) 2026.
-- Full credits are available on the [Luster credits page](https://luster.nu/credits.php).
+Full credits are available on [luster.nu](https://luster.nu/credits/).
 
 
 
