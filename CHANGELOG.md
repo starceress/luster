@@ -17,37 +17,6 @@ those files, the admin panel will let you know that a manual update is
 needed and link you to the release page.
 
 
-## [1.0.18]
-
-**Adoptions workflow redesign.** The adoption applications list now works
-like the affiliate applications list: there's a dedicated "Application"
-column with a "Click to Read" button that opens the full message in a
-pop-up, and the Actions column has inline Approve and Reject buttons so
-you don't have to navigate away to act on an application. The "Reviewed"
-status and tab have been removed — applications are either Pending,
-Approved, Rejected, or Granted.
-
-**Pending tabs now stay put.** When you approve, reject, or delete
-something from a Pending tab (members, affiliates, codes, or adoption
-applications), you stay on the Pending tab as long as there's still
-work to do. Once the queue is clear, the page automatically switches
-to the All tab. Previously, some actions would drop you onto a
-per-listing page instead of staying on the global pending view.
-
-**Link Checker badge fix.** The Link Checker number in the sidebar now
-correctly counts dead links from all three sources — affiliates, joined
-fanlistings, and fan member URLs. It was previously missing member link
-data and incorrectly including redirect links in the count.
-
-**Dashboard maintenance list.** The "Maintenance Needed" to-do list on
-the dashboard now shows each fanlisting's subject (e.g. "Dragon Age")
-instead of its script title, which is more useful at a glance.
-
-**Migration 82.** Cleans up any leftover "reviewed" status rows in the
-adoption applications table if you're upgrading from a build that had
-that status.
-
-
 ## [1.0.0]
 
 The first full release of Luster! A free, open-source management script

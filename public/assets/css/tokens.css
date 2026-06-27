@@ -111,7 +111,6 @@
   --card-border-3: #1d6fe8;
   --card-border-4: #e8ac10;
   --ch-preview: 79 70 229;
-  --preview-hover-text: #1e1a70;
   --topbar-bg: var(--bg-card);
   --topbar-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 0 rgb(var(--ch-brand-primary)/.12);
   --card-head-bg: var(--bg-subtle);
@@ -137,7 +136,6 @@
   --btn-secondary-color: #fff;
   --btn-tertiary-bg: var(--text-sidebar);
   --btn-tertiary-color: #fff;
-  --btn-preview-color: #3730a3;
   --badge-info-bg: rgb(var(--ch-brand-secondary)/.12);
   --badge-info-color: var(--brand-secondary);
   --badge-info-border: rgb(var(--ch-brand-secondary)/.25);
@@ -192,7 +190,6 @@
   --card-border-2: var(--brand-secondary);
   --card-border-3: var(--brand-quaternary);
   --card-border-4: var(--brand-tertiary);
-  --preview-hover-text: #c7d2fe;
   --topbar-bg: var(--bg-card);
   --topbar-shadow: 0 4px 24px rgba(0,0,0,0.35), 0 1px 0 rgb(var(--ch-brand-primary)/.08);
   --card-head-bg: var(--bg-subtle);
@@ -218,7 +215,6 @@
   --btn-secondary-color: #fff;
   --btn-tertiary-bg: var(--text-dim);
   --btn-tertiary-color: #fff;
-  --btn-preview-color: #a5b4fc;
   --badge-info-bg: rgb(var(--ch-brand-secondary)/.12);
   --badge-info-color: var(--brand-secondary);
   --badge-info-border: rgb(var(--ch-brand-secondary)/.25);

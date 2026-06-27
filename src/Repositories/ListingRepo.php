@@ -67,6 +67,20 @@ final class ListingRepo
     // -----------------------------------------------------------------------
 
     /**
+     * Returns the most recently added listing (highest primary key), or null
+     * if no listings exist.
+     */
+    public function getNewest(): ?Listing
+    {
+        $stmt = $this->db->prepare(
+            "SELECT * FROM {$this->table} ORDER BY {$this->pkCol} DESC LIMIT 1"
+        );
+        $stmt->execute();
+        $row = $stmt->fetch();
+        return $row !== false ? Listing::fromRow($row) : null;
+    }
+
+    /**
      * Returns every listing ordered by subject/name.
      *
      * @return Listing[]

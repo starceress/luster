@@ -508,7 +508,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         <span class="row-val">
           <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $newestMember['listing_id'] ?>&status=all&search=<?= urlencode($newestMember['member']->email) ?>"
              class="link"><?= View::e($newestMember['member']->name) ?></a>
-          (<?= View::e($newestMember['listing_title']) ?>)
+          (<?= View::e($newestMember['listing_subject']) ?>)
           <?php if (!empty($newestMember['member']->added)): ?>
             &mdash; <?= dashTimeAgo((string) $newestMember['member']->added) ?>
           <?php endif; ?>

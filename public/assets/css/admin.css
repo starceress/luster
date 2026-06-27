@@ -358,17 +358,17 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 .btn-quaternary:hover { border-color: var(--accent); color: var(--accent); }
 
-.btn-preview { background: rgb(var(--ch-preview)/.12); color: var(--btn-preview-color); border: 1px solid rgb(var(--ch-preview)/.26); }
+.btn-preview { background: rgb(var(--ch-preview)/.12); color: var(--text-muted); border: 1px solid rgb(var(--ch-preview)/.26); }
 
-.btn-preview:hover { background: rgb(var(--ch-preview)/.24); color: var(--preview-hover-text); border-color: rgb(var(--ch-preview)/.44); }
+.btn-preview:hover { background: rgb(var(--ch-preview)/.24); color: var(--text-dim); border-color: rgb(var(--ch-preview)/.44); }
 
-.btn-preview:focus-visible { background: rgb(var(--ch-preview)/.24); color: var(--preview-hover-text); border-color: rgb(var(--ch-preview)/.44); box-shadow: 0 0 0 3px rgb(var(--ch-preview)/.22); }
+.btn-preview:focus-visible { background: rgb(var(--ch-preview)/.24); color: var(--text-dim); border-color: rgb(var(--ch-preview)/.44); box-shadow: 0 0 0 3px rgb(var(--ch-preview)/.22); }
 
-[data-theme="light"] .btn-preview { background: rgb(var(--ch-preview)/.09); color: #3730a3; border-color: rgb(var(--ch-preview)/.2); }
+[data-theme="light"] .btn-preview { background: rgb(var(--ch-preview)/.09); color: var(--text-muted); border-color: rgb(var(--ch-preview)/.2); }
 
-[data-theme="light"] .btn-preview:hover { background: rgb(var(--ch-preview)/.17); color: var(--preview-hover-text); border-color: rgb(var(--ch-preview)/.36); }
+[data-theme="light"] .btn-preview:hover { background: rgb(var(--ch-preview)/.17); color: var(--text-dim); border-color: rgb(var(--ch-preview)/.36); }
 
-[data-theme="light"] .btn-preview:focus-visible { background: rgb(var(--ch-preview)/.17); color: var(--preview-hover-text); border-color: rgb(var(--ch-preview)/.36); box-shadow: 0 0 0 3px rgb(var(--ch-preview)/.15); }
+[data-theme="light"] .btn-preview:focus-visible { background: rgb(var(--ch-preview)/.17); color: var(--text-dim); border-color: rgb(var(--ch-preview)/.36); box-shadow: 0 0 0 3px rgb(var(--ch-preview)/.15); }
 
 .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid transparent; }
 

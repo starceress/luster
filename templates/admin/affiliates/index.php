@@ -430,7 +430,6 @@ $rangeEnd   = min($total, $page * $per_page);
                         class="btn btn-secondary btn-xs">Email</button>
               <?php endif; ?>
 
-              <?php if ($aff->status !== 'pending'): ?>
               <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
                     class="action-form-inline"
                     data-del-modal data-del-entity="affiliate"
@@ -438,7 +437,6 @@ $rangeEnd   = min($total, $page * $per_page);
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
                 <button type="submit" class="btn btn-danger btn-xs">Delete</button>
               </form>
-              <?php endif; ?>
             </div>
           </td>
         </tr>

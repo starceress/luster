@@ -202,8 +202,10 @@ final class DashboardController
         $fanUpcoming = (int) $fanStats['upcoming'];
         $fanCurrent  = (int) $fanStats['total'] - $fanPending - $fanUpcoming;
 
-        $newestOwned       = !empty($listings) ? $listings[count($listings) - 1] : null;
-        $newestOwnedName   = $newestOwned?->title;
+        $newestOwned       = $listingRepo->getNewest();
+        $newestOwnedName   = $newestOwned !== null
+            ? ($newestOwned->subject !== '' ? $newestOwned->subject . ' - ' . $newestOwned->title : $newestOwned->title)
+            : null;
         $newestOwnedOpened = $newestOwned?->opened;
 
         // ── Members ──────────────────────────────────────────────────────
@@ -230,7 +232,7 @@ final class DashboardController
 
             if ($approved > $mostActiveCount) {
                 $mostActiveCount = $approved;
-                $mostActiveName  = $fl->title;
+                $mostActiveName  = $fl->subject !== '' ? $fl->subject . ' - ' . $fl->title : $fl->title;
                 $mostActiveId    = $fl->id;
             }
 
@@ -243,7 +245,7 @@ final class DashboardController
             }
 
             foreach ($memberRepo->getRecent($fl->dbprefix, 2) as $m) {
-                $recentMembers[] = ['member' => $m, 'listing_title' => $fl->title, 'listing_id' => $fl->id];
+                $recentMembers[] = ['member' => $m, 'listing_subject' => ($fl->subject !== '' ? $fl->subject : $fl->title), 'listing_id' => $fl->id];
             }
 
             $thisMonthCount   = $memberRepo->countApprovedSince($fl->dbprefix, $thisMonthStart);
