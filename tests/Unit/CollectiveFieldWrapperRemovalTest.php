@@ -9,10 +9,9 @@ use Luster\Repositories\SiteSettingsRepo;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Phase D of PLAN-collective-templates-selector.md — confirms that:
- *  - collective_field_wrapper_template is NOT present in collectiveDefaults()
- *  - FieldWrapper still renders correctly with the built-in default when no
- *    custom template is provided (the '' path used by all collective embeds)
+ * Confirms that collective_field_wrapper_template is NOT present in
+ * collectiveDefaults(), and that FieldWrapper still renders correctly with
+ * its built-in default when no custom template is set.
  */
 final class CollectiveFieldWrapperRemovalTest extends TestCase
 {

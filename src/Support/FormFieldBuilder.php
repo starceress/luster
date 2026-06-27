@@ -30,7 +30,6 @@ use Luster\Models\AdditionalField;
  *
  * Constructed once in Application, exposed via getFormFieldBuilder().
  *
- * @see docs/PUBLIC-TEMPLATES-PLAN.md "Phase 5 — Form Field Wrapper"
  */
 final class FormFieldBuilder
 {

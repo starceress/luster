@@ -250,8 +250,8 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     }
 
     // Renders the combined owned_template — auto-detects flat ({each_listing})
-    // vs sectioned ({each_current}/{each_upcoming}/{each_pending}) mode from the
-    // template string itself, per docs/PUBLIC-TEMPLATES-PLAN.md Phase 2.
+    // vs sectioned ({each_current}/{each_upcoming}/{each_pending}) mode from
+    // the template string itself.
     $_lusterListingHtml = ListingRowRenderer::renderTemplate(
         $_lusterOwnedTemplate,
         $_lusterListings,

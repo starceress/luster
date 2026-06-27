@@ -30,7 +30,6 @@ final class SqlDumpLoader
     /** Maximum allowed file size in bytes (50 MB). */
     public const MAX_FILE_BYTES = 52_428_800;
 
-    /** Allowed MIME types for the uploaded file. */
     private const ALLOWED_MIME = ['text/plain', 'text/x-sql', 'application/sql', 'application/x-sql'];
 
     // -----------------------------------------------------------------------

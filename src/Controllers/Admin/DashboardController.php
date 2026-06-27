@@ -195,7 +195,7 @@ final class DashboardController
         $categoryRepo = new CategoryRepo($db);
         $settingsRepo = new ListingSettingsRepo($db);
 
-        // ── Owned listings ────────────────────────────────────────────
+        // --- Owned listings
         $fanStats    = $listingRepo->getStats();
         $listings    = $listingRepo->getAll();
         $fanPending  = (int) $fanStats['trouble'];   // 'trouble' = pending status
@@ -208,7 +208,7 @@ final class DashboardController
             : null;
         $newestOwnedOpened = $newestOwned?->opened;
 
-        // ── Members ──────────────────────────────────────────────────────
+        // --- Members
         $totalMembers        = 0;
         $totalPending        = 0;
         $recentMembers       = [];
@@ -264,7 +264,7 @@ final class DashboardController
         ));
         $recentMembers = array_slice($recentMembers, 0, 5);
 
-        // ── Joined listings ───────────────────────────────────────────
+        // --- Joined listings
         $stmt = $db->prepare(
             'SELECT COUNT(*) AS total, SUM(active = 0) AS inactive FROM lstr_joined'
         );
@@ -287,7 +287,7 @@ final class DashboardController
         $stmt->execute([date('Y-01-01')]);
         $joinedThisYear = (int) $stmt->fetchColumn();
 
-        // ── Opened this year ──────────────────────────────────────────
+        // --- Opened this year
         $currentYear    = (int) date('Y');
         $openedThisYear = 0;
         foreach ($listings as $fl) {
@@ -297,7 +297,7 @@ final class DashboardController
             }
         }
 
-        // ── Affiliates ───────────────────────────────────────────────────
+        // --- Affiliates
         $pendingColStmt = $db->prepare("SHOW COLUMNS FROM `lstr_affiliates` LIKE 'pending'");
         $pendingColStmt->execute();
         $affiliateWhere = $pendingColStmt->fetch() ? 'WHERE pending = 0' : '';
@@ -322,13 +322,13 @@ final class DashboardController
         $pendingAdoptions = (int) ($navData['nav_pending_adoptions'] ?? 0);
         $pendingKim       = (int) ($navData['nav_pending_kim']       ?? 0);
 
-        // ── Categories ───────────────────────────────────────────────────
+        // --- Categories
         $totalCategories = count($categoryRepo->getAll());
 
-        // ── Recent activity ──────────────────────────────────────────────
+        // --- Recent activity
         $recentActivity = $activityRepo->getRecent(10);
 
-        // ── Update status (read cache only — no network on dashboard load) ──
+        // --- Update status (read cache only — no network on dashboard load)
         $siteRepo      = new SiteSettingsRepo($db);
         $checker       = new UpdateChecker($siteRepo);
         $updateStatus  = $checker->getStatus();
@@ -359,7 +359,7 @@ final class DashboardController
             }
         }
 
-        // ── Staleness detection ───────────────────────────────────────────
+        // --- Staleness detection
         // Uses ListingRepo::getStaleListings() — LEFT JOIN on lstr_fanlisting_settings,
         // so active listings without a settings row are correctly included.
         $staleDays    = max(1, (int) ($siteRepo->get('stale_days') ?: '45'));
@@ -389,7 +389,7 @@ final class DashboardController
             }
         }
 
-        // ── Render ───────────────────────────────────────────────────────
+        // --- Render
         $csrfToken      = $this->app->getCSRF()->token();
         $noListings     = (int) $fanStats['total'] === 0;
         $appUrl = (string) $config->get('app_url', '');

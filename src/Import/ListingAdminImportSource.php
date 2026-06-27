@@ -219,7 +219,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
             ? new ImageMigrator(dirname(__DIR__, 2) . '/public')
             : null;
 
-        // Open a pre-uploaded ZIP archive (Phase 3 ZIP mode).
+        // Open a pre-uploaded ZIP archive.
         if ($options->imageMode === 'zip' && $options->zipPath !== '' && $migrator !== null) {
             $this->activeZip = new \ZipArchive();
             if ($this->activeZip->open($options->zipPath) !== true) {
@@ -242,7 +242,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // Source category ID→name map for resolving pipe-delimited category IDs
         $srcCatIdToName = $this->buildSourceCategoryMap($source, $sp);
 
-        // ── Step 1: Categories ────────────────────────────────────────────
+        // --- Step 1: Categories
         if ($options->importCategories) {
             $rows[] = $this->runCategories($source, $target, $options, $sp);
         }
@@ -251,7 +251,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $catNameToId      = $this->buildCategoryNameMap($target);
         $catNameToNetwork = $this->buildCategoryNetworkMap($target);
 
-        // ── Step 2: Listings + member tables ─────────────────────────────
+        // --- Step 2: Listings + member tables
         $listingIdMap = []; // LA main.id → new owned listingid
         if ($options->importListings) {
             ['row' => $listRow, 'idMap' => $listingIdMap, 'imageMap' => $lim] =
@@ -264,12 +264,12 @@ final class ListingAdminImportSource implements ImportSourceInterface
             }
         }
 
-        // ── Step 3: Members ───────────────────────────────────────────────
+        // --- Step 3: Members
         if ($options->importMembers && !empty($listingIdMap)) {
             $rows[] = $this->runMembers($source, $target, $targetSchema, $options, $listingIdMap, $sp, $sreg);
         }
 
-        // ── Step 4: Affiliates ────────────────────────────────────────────
+        // --- Step 4: Affiliates
         if ($options->importAffiliates) {
             ['row' => $affRow, 'imageMap' => $affMap] =
                 $this->runAffiliates($source, $target, $options, $migrator, $imageSettings, $listingIdMap, $sp);
@@ -281,7 +281,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
             }
         }
 
-        // ── Step 5: Joined listings ───────────────────────────────────────
+        // --- Step 5: Joined listings
         if ($options->importJoined) {
             ['row' => $joinRow, 'imageMap' => $joinMap] =
                 $this->runJoined($source, $target, $options, $catNameToId, $catNameToNetwork, $srcCatIdToName, $migrator, $imageSettings, $sp);
@@ -293,22 +293,22 @@ final class ListingAdminImportSource implements ImportSourceInterface
             }
         }
 
-        // ── Step 6: Updates ───────────────────────────────────────────────
+        // --- Step 6: Updates
         if ($options->importUpdates) {
             $rows[] = $this->runUpdates($source, $target, $options, $listingIdMap, $sp);
         }
 
-        // ── Step 7: Wishlist (owner's personal wishlist) ─────────────────
+        // --- Step 7: Wishlist (owner's personal wishlist)
         if ($options->importWishlist) {
             $rows[] = $this->runWishlist($source, $target, $options, $migrator, $imageSettings, $sp);
         }
 
-        // ── Step 8: KIM List (fan adoption interest) ──────────────────────
+        // --- Step 8: KIM List (fan adoption interest)
         if ($options->importKim) {
             $rows[] = $this->runKim($source, $target, $options, $listingIdMap, $sp);
         }
 
-        // ── Step 9: Join Rules ────────────────────────────────────────────
+        // --- Step 9: Join Rules
         if ($options->importRules) {
             $rows[] = $this->runRules($source, $target, $listingIdMap, $sreg);
         }

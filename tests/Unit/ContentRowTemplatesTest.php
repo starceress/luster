@@ -8,7 +8,7 @@ use Luster\Core\TemplateEngine;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests the Phase 4 content-row template rendering contracts:
+ * Tests content-row template rendering contracts:
  *   - Codes: grouped {each_size_group} with nested {each_code}
  *   - Updates: {update_body_html} raw insertion + author/category conditionals
  *   - Wishlist: {type_top}/{type_wanted}/{type_granted} conditionals

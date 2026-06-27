@@ -87,7 +87,7 @@ final class ImportOptions
         public readonly string $laTablePrefix        = '',
         /** Absolute path to a pre-uploaded ZIP file (mode=zip). Empty when not used. */
         public readonly string $zipPath              = '',
-        // ── BellaBuffs-specific ───────────────────────────────────────────
+        // --- BellaBuffs-specific
         /** lstr_fanlistings / owned listingid to import into. */
         public readonly int    $bbTargetListingId  = 0,
         /** Import approved members from members.txt. */
@@ -110,7 +110,7 @@ final class ImportOptions
         public readonly string $bbButtonsPath      = '',
         /** Absolute path to buttons/ image directory, or '' if not available. */
         public readonly string $bbButtonsDir       = '',
-        // ── Fanatically-specific ──────────────────────────────────────────
+        // --- Fanatically-specific
         /** Table prefix for Fanatically tables (default 'fanatic_'). */
         public readonly string $fnTablePrefix          = 'fanatic_',
         /** When true, KIM entries are imported as active (pending=0); false = pending=1. */
@@ -162,7 +162,7 @@ final class ImportOptions
             $fuPrefix = 'blog';
         }
 
-        // ── Fanatically field resolution ─────────────────────────────────────
+        // --- Fanatically field resolution
         $fnTablePrefix       = 'fanatic_';
         $fnKimActive         = true;
         $fnImportAdoption    = false;
@@ -176,7 +176,7 @@ final class ImportOptions
             $fnImportSiteSettings = !empty($post['fn_import_site_settings']);
         }
 
-        // ── BellaBuffs field resolution ───────────────────────────────────────
+        // --- BellaBuffs field resolution
         $bbMode             = '';
         $bbTargetListingId  = 0;
         $bbImportApproved   = true;

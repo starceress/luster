@@ -188,7 +188,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ? new ImageMigrator(dirname(__DIR__, 2) . '/public')
             : null;
 
-        // Open a pre-uploaded ZIP archive (Phase 3 ZIP mode).
+        // Open a pre-uploaded ZIP archive.
         // When a ZIP was uploaded in the Scope step, process images inline during run().
         if ($options->imageMode === 'zip' && $options->zipPath !== '' && $migrator !== null) {
             $this->activeZip = new \ZipArchive();

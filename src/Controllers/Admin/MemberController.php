@@ -159,7 +159,7 @@ final class MemberController extends AdminController
         $puPages               = 1;
 
         if ($listing !== null) {
-            // ── Per-listing ───────────────────────────────────────────────
+            // --- Per-listing
             $fields = $fieldRepo->getFieldsForListing($listingId);
 
             if ($status === 'pending') {
@@ -220,7 +220,7 @@ final class MemberController extends AdminController
                 }
             }
         } else {
-            // ── Cross-listing ─────────────────────────────────────────────
+            // --- Cross-listing
             if ($search !== '') {
                 // Cross-listing search: results shown in the active tab
                 foreach ($allListings as $fl) {
@@ -834,7 +834,7 @@ final class MemberController extends AdminController
         $approvedMembers = 0;
         $approvedUpdates = 0;
 
-        // ── 1. Approve all pending new members ─────────────────────────────
+        // --- 1. Approve all pending new members
         foreach ($listingRepo->getAll() as $fl) {
             if ($fl->dbprefix === '') {
                 continue;
@@ -886,7 +886,7 @@ final class MemberController extends AdminController
             }
         }
 
-        // ── 2. Approve all pending member updates ──────────────────────────
+        // --- 2. Approve all pending member updates
         foreach ($pendingUpdateRepo->getAll() as $pu) {
             $listing = $listingRepo->getById($pu->fanlisting_id);
 

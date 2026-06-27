@@ -32,8 +32,7 @@ use InvalidArgumentException;
  * blocks may themselves contain flat tokens that must survive until the final
  * tokens() pass, and conditional blocks may wrap loop output.
  *
- * Escaping contract (see docs/PUBLIC-TEMPLATES-PLAN.md "Escaping & Trusted-HTML
- * Convention"): tokens() takes two separate maps so callers never have to
+ * Escaping contract: tokens() takes two separate maps so callers never have to
  * remember to pre-escape. $escaped values are run through View::e(); $raw values
  * are inserted verbatim and must already be trusted HTML. Any $raw key must end
  * in `_html` (or appear in the documented allow-list) — tokens() enforces this at

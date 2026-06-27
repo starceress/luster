@@ -201,7 +201,7 @@ $_lusterFb            = $_lusterApp->getFormFieldBuilder();
 
 if (!$_lusterSignedIn) {
 
-    // ── Step 1: sign-in form ────────────────────────────────────────────────
+    // --- Step 1: sign-in form
     $_lusterFormAction1  = $_lusterRedirectTo;
     $_lusterDescriptors = [
         ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true, 'value' => (string) ($_lusterOld['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
@@ -264,7 +264,7 @@ if (!$_lusterSignedIn) {
 
 } else {
 
-    // ── Step 2: update form (authenticated) ─────────────────────────────────
+    // --- Step 2: update form (authenticated)
     $_lusterFieldRepo    = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
     $_lusterFields       = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
     $_lusterCountrySel   = Countries::buildSelect((string) ($_lusterOld['country'] ?? ''));

@@ -24,7 +24,7 @@ $puMemberMap    = $pending_member_data     ?? [];
 $pendingPUTotal = (int) ($pending_updates_total ?? count($pendingPUs));
 $pendingPUPages = (int) ($pending_updates_pages ?? 1);
 
-// ── URL builders ──────────────────────────────────────────────────────────────
+// --- URL builders
 $buildUrl = static function (array $overrides) use ($b, $lid, $status, $search, $sort, $dir, $page, $puPage): string {
     $p = [
         'listing_id' => $lid  > 0    ? $lid    : '',

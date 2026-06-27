@@ -19,8 +19,7 @@ namespace Luster\Core;
  * label/hint/error/required markup, via an admin-editable {token} template.
  *
  * Instance methods (not static): FormFieldBuilder receives this through its
- * constructor and calls it as a collaborator, per the Public Template System
- * plan (docs/PUBLIC-TEMPLATES-PLAN.md "Form Field Wrapper").
+ * constructor and calls it as a collaborator.
  *
  * `{input}` is the one raw-token exception documented in TemplateEngine's
  * allow-list — it carries pre-built trusted HTML from FieldRenderer (or a

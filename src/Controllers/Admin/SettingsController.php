@@ -622,7 +622,7 @@ final class SettingsController extends AdminController
         $siteName = (string) $this->app->getConfig()->get('site_name', 'Collective');
         $flatTokens = ['{site_name}', '{affiliates_count}', '{affiliate_apply_url}'];
 
-        // ── Active state ──────────────────────────────────────────────────
+        // --- Active state
         $active = $rawTpl;
         if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $active, $m)) {
             $rendered = AffiliateRowRenderer::renderRows($m[1], $affiliates, $uploadsUrl);
@@ -633,7 +633,7 @@ final class SettingsController extends AdminController
         $active = str_replace('{affiliate_apply_toggle}', $toggleHtml, $active);
         $activeHtml = str_replace($flatTokens, [$e($siteName), (string) $total, $e($affiliateApplyUrl)], $active);
 
-        // ── Empty state ───────────────────────────────────────────────────
+        // --- Empty state
         $empty = $rawTpl;
         $empty = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', '', $empty, 1);
         $empty = (string) preg_replace('/\{if_affiliates\}(.*?)\{\/if_affiliates\}/s',       '', $empty);
@@ -951,7 +951,7 @@ final class SettingsController extends AdminController
     {
         $fb = $this->app->getFormFieldBuilder();
 
-        // ── Step 1: sign-in form (custom template) ─────────────────────────
+        // --- Step 1: sign-in form (custom template)
         $f1 = $fb->build([
             ['type' => 'email',    'name' => 'email',    'id' => 'kim-email',    'label' => 'Email',    'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'password', 'name' => 'password', 'id' => 'kim-password', 'label' => 'Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
@@ -973,7 +973,7 @@ final class SettingsController extends AdminController
         $step1Inner = FormTemplateRenderer::expandTokens($tplOut, $tokens);
         $step1Html  = FormTemplateRenderer::wrapForm($step1Inner, '#', $this->app->getCSRF()->token(), false, preview: true);
 
-        // ── Step 2: dashboard (hardcoded — not customizable via template) ──
+        // --- Step 2: dashboard (hardcoded — not customizable via template)
         $f2 = $fb->build([
             ['type' => 'text',     'name' => 'new_name',             'id' => 'kim-new-name',             'label' => 'New Name',             'required' => false, 'attrs' => ['maxlength' => '100'], 'hint' => 'Leave blank to keep current'],
             ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Leave blank to keep current'],

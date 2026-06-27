@@ -96,14 +96,14 @@ final class KimAddon implements AddonInterface
     /** Registers all public (/kim/*) and admin (/admin/kim/*) routes. */
     public function registerRoutes(Router $router): void
     {
-        // ── Public routes (POST only — fan-facing pages live on the owner's site via embeds) ──
+        // --- Public routes (POST only — fan-facing pages live on the owner's site via embeds)
         $router->post('/kim/update/sign-in', KimUpdateController::class, 'submitSignIn');
         $router->post('/kim/update/save',    KimUpdateController::class, 'submitSave');
         $router->post('/kim/reset/confirm', KimResetController::class,  'submitConfirm');
         $router->post('/kim/reset',         KimResetController::class,  'submit');
         $router->post('/kim',               KimSignupController::class, 'submit');
 
-        // ── Admin routes ──────────────────────────────────────────────────
+        // --- Admin routes
         $router->get('/admin/kim',                      KimAdminController::class, 'index');
         $router->get('/admin/kim/listings',             KimAdminController::class, 'listings');
         $router->get('/admin/kim/add',                  KimAdminController::class, 'addForm');

@@ -21,8 +21,7 @@ use Luster\Models\AdditionalField;
  * error markup is the job of FieldWrapper.
  *
  * Instance methods (not static): FormFieldBuilder receives this through its
- * constructor and calls it as a collaborator, per the Public Template System
- * plan (docs/PUBLIC-TEMPLATES-PLAN.md "Form Field Wrapper").
+ * constructor and calls it as a collaborator.
  *
  * Every value is escaped via View::e() — callers pass raw scalars, never
  * pre-escaped strings.

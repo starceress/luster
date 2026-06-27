@@ -29,7 +29,6 @@ use Luster\Repositories\ListingRepo;
  */
 final class CodesController extends AdminController
 {
-    /** Allowed MIME types for uploaded code images. */
     private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     /** Maximum upload size per file (500 KB). */

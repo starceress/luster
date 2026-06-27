@@ -36,7 +36,6 @@ use Luster\Support\SuccessRenderer;
  */
 final class CodesSubmitController
 {
-    /** Allowed MIME types for submitted code images. */
     private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     /** Maximum upload size per file (500 KB). */

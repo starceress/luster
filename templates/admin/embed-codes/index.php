@@ -37,7 +37,7 @@ $hlPhp = static function (string $code): string {
     );
 };
 
-// ── icon + badge maps ─────────────────────────────────────────────────────
+// --- icon + badge maps
 $iconMap = [
     'join'         => 'add',
     'members'      => 'members',
@@ -78,7 +78,7 @@ $badgeMeta = [
     'ext'  => ['cls' => 'badge-upcoming',  'label' => 'Add-on'],
 ];
 
-// ── item metadata ─────────────────────────────────────────────────────────
+// --- item metadata
 $items = [
     'join' => [
         'label' => 'Join Form',

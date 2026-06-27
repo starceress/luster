@@ -25,7 +25,7 @@ namespace Luster\Core;
  * and last page, with `…` gap markers in between) and feeds it through
  * TemplateEngine::loop() as {each_page}, handing the caller's template full
  * control over per-item markup via {page_label}, {page_url}, {if_current},
- * {if_linked}, {if_gap} — see docs/PUBLIC-TEMPLATES-PLAN.md "Pagination".
+ * {if_linked}, {if_gap}.
  */
 final class Pagination
 {

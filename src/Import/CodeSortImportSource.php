@@ -195,7 +195,7 @@ final class CodeSortImportSource implements ImportSourceInterface
             : null;
         $publicRoot = dirname(__DIR__, 2) . '/public';
 
-        // Open a pre-uploaded ZIP archive (Phase 3 ZIP mode).
+        // Open a pre-uploaded ZIP archive.
         if ($options->imageMode === 'zip' && $options->zipPath !== '' && $migrator !== null) {
             $this->activeZip = new \ZipArchive();
             if ($this->activeZip->open($options->zipPath) !== true) {

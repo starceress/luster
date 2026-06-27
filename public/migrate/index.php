@@ -28,7 +28,7 @@ ini_set('session.cookie_samesite', 'Strict');
 session_name('luster_session');
 session_start();
 
-// ─── Shared page shell ────────────────────────────────────────────────────
+// --- Shared page shell
 function mig_page(string $pageTitle, string $phTitle, string $phSub, string $content, bool $dimGem = false, string $selectedSkin = ''): string
 {
     require_once __DIR__ . '/../../templates/admin/_css_assets.php';
@@ -96,7 +96,7 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
 HTML;
 }
 
-// ─── Card renderers ───────────────────────────────────────────────────────
+// --- Card renderers
 function mig_render_confirm(string $tokenSafe): string
 {
     return <<<HTML
@@ -186,7 +186,7 @@ function mig_render_results(array $done, array $errors): string
     return (string) ob_get_clean();
 }
 
-// ─── Access denied ────────────────────────────────────────────────────────
+// --- Access denied
 if (empty($_SESSION['lstr_admin_id'])) {
     http_response_code(403);
     echo mig_page('Access Denied', 'Access Denied', 'Authentication required.', <<<HTML
@@ -209,9 +209,7 @@ HTML, true);
     exit;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // CSRF guard — GET shows confirmation form; POST requires a valid token.
-// ─────────────────────────────────────────────────────────────────────────────
 
 // Generate a per-session token if one doesn't exist yet.
 if (empty($_SESSION['lstr_migrate_token'])) {
@@ -221,7 +219,7 @@ if (empty($_SESSION['lstr_migrate_token'])) {
 $migrateToken = (string) $_SESSION['lstr_migrate_token'];
 $tokenSafe    = htmlspecialchars($migrateToken, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-// ─── Skin (lightweight pre-read, non-fatal) ───────────────────────────────
+// --- Skin (lightweight pre-read, non-fatal)
 // Reads selected_skin from lstr_site_settings before any handler fires so
 // the GET confirmation page and POST result page both pick up the active skin.
 $migSelectedSkin = '';
@@ -248,7 +246,6 @@ $migSelectedSkin = '';
         }
     } catch (\Throwable) {}
 })();
-// ─────────────────────────────────────────────────────────────────────────────
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Show confirmation page — nothing runs on GET.
@@ -350,9 +347,7 @@ HTML, false, $migSelectedSkin);
 $done   = [];
 $errors = [];
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Bootstrap: create lstr_migrations tracking table
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     // Check existence before CREATE so we only report it when actually new.
     $trackingExists = (int) $pdo->query(
@@ -426,9 +421,7 @@ try {
     $errors[] = 'lstr_migrations bootstrap — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 1: active column on lstr_affiliates
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 1')->fetchColumn()) {
         $pdo->exec(
@@ -443,9 +436,7 @@ try {
     $errors[] = 'lstr_affiliates.active — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 2: lstr_fanlisting_settings (auto-approve, etc.)
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 2')->fetchColumn()) {
         $pdo->exec(
@@ -463,11 +454,9 @@ try {
     $errors[] = 'lstr_fanlisting_settings — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 3: make lstr_affiliates.fanlisting_id nullable
 //              NULL  = collective / site-wide affiliate
 //              INT   = belongs to a specific fanlisting
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 3')->fetchColumn()) {
         $pdo->exec(
@@ -481,9 +470,7 @@ try {
     $errors[] = 'lstr_affiliates.fanlisting_id nullable — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 4: lstr_joined (joined listings tracker)
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 4')->fetchColumn()) {
         $pdo->exec(
@@ -507,9 +494,7 @@ try {
     $errors[] = 'lstr_joined — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 5: stats and members template columns on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 5')->fetchColumn()) {
         $pdo->exec(
@@ -524,9 +509,7 @@ try {
     $errors[] = 'lstr_fanlisting_settings templates — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 6: affiliates template column on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 6')->fetchColumn()) {
         $pdo->exec(
@@ -540,9 +523,7 @@ try {
     $errors[] = 'lstr_fanlisting_settings.affiliates_template — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 7: lstr_categories table + category_id on lstr_joined + TFL seed
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 7')->fetchColumn()) {
         $pdo->exec(
@@ -572,11 +553,9 @@ try {
     $errors[] = 'migration 7 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 8: category_id on owned / enth_fanlistings
 //              Adds Luster's own category assignment (distinct from Enthusiast's
 //              native catid column). References lstr_categories.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 8')->fetchColumn()) {
         // Unprefixed Enthusiast 3 schema — use check-then-alter (IF NOT EXISTS is MariaDB-only).
@@ -600,10 +579,8 @@ try {
     $errors[] = 'migration 8 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 9: TAFL category seed into lstr_categories
 //              Flatten TAFL categories to Anime/Manga: Name format.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 9')->fetchColumn()) {
         $taflCategories = \Luster\Support\CategorySeedCatalog::tafl();
@@ -619,9 +596,7 @@ try {
     $errors[] = 'migration 9 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 10: Remove duplicate and bare Anime/Manga categories
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 10')->fetchColumn()) {
         $pdo->exec("DELETE FROM `lstr_categories` WHERE name = 'Anime/Manga'");
@@ -638,9 +613,7 @@ try {
     $errors[] = 'migration 10 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 11: image column on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 11')->fetchColumn()) {
         $pdo->exec(
@@ -655,9 +628,7 @@ try {
     $errors[] = 'lstr_fanlisting_settings.image — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 12: listing_type column on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 12')->fetchColumn()) {
         $pdo->exec(
@@ -672,9 +643,7 @@ try {
     $errors[] = 'lstr_fanlisting_settings.listing_type — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 13: members_per_page column on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 13')->fetchColumn()) {
         $pdo->exec(
@@ -689,9 +658,7 @@ try {
     $errors[] = 'lstr_fanlisting_settings.members_per_page — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 14: lstr_error_log table
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 14')->fetchColumn()) {
         $pdo->exec(
@@ -712,9 +679,7 @@ try {
     $errors[] = 'lstr_error_log — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 15: status and categories_json columns on lstr_joined
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 15')->fetchColumn()) {
         $pdo->exec(
@@ -730,9 +695,7 @@ try {
     $errors[] = 'migration 15 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 16: widen lstr_categories.source from ENUM to VARCHAR(50)
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 16')->fetchColumn()) {
         $pdo->exec("ALTER TABLE lstr_categories MODIFY COLUMN source VARCHAR(50) NOT NULL DEFAULT 'custom'");
@@ -743,9 +706,7 @@ try {
     $errors[] = 'lstr_categories.source VARCHAR — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 17: per-fanlisting embed settings columns on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 17')->fetchColumn()) {
         $pdo->exec(
@@ -766,9 +727,7 @@ try {
     $errors[] = 'lstr_fanlisting_settings embed columns — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 18: fan password reset tokens table
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 18')->fetchColumn()) {
         $pdo->exec(
@@ -791,9 +750,7 @@ try {
     $errors[] = 'lstr_fan_password_resets — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 19: per-fanlisting form page URLs + reset redirect URL
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 19')->fetchColumn()) {
         $pdo->exec(
@@ -811,9 +768,7 @@ try {
     $errors[] = 'lstr_fanlisting_settings form URLs — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 20: last_updated DATE on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 20')->fetchColumn()) {
         $pdo->exec(
@@ -828,9 +783,7 @@ try {
     $errors[] = 'lstr_fanlisting_settings.last_updated — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 21: pending update approval
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 21')->fetchColumn()) {
         $pdo->exec(
@@ -857,9 +810,7 @@ try {
     $errors[] = 'migration 21 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 22: listing codes
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 22')->fetchColumn()) {
         $pdo->exec(
@@ -883,9 +834,7 @@ try {
     $errors[] = 'lstr_codes — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 23: per-fanlisting email templates
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 23')->fetchColumn()) {
         $pdo->exec(
@@ -907,9 +856,7 @@ try {
     $errors[] = 'lstr_email_templates — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 24: lstr_blacklist (email / domain spam block list)
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     $already = (int) $pdo->query(
         'SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 24'
@@ -974,9 +921,7 @@ try {
     $errors[] = 'lstr_admin_remember_tokens — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 27: lstr_addons — installed add-on registry
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 27')->fetchColumn()) {
         $pdo->exec(
@@ -994,7 +939,6 @@ try {
 }
 
 // Migration 28: lstr_site_settings — global key/value store (collective templates etc.)
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 28')->fetchColumn()) {
         $pdo->exec(
@@ -1014,7 +958,6 @@ try {
 }
 
 // Migration 29: lstr_saved_emails — admin-saved reusable email draft templates
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 29')->fetchColumn()) {
         $pdo->exec(
@@ -1035,7 +978,6 @@ try {
 }
 
 // Migration 30: lstr_code_sizes + size_id column on lstr_codes
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 30')->fetchColumn()) {
         $pdo->exec(
@@ -1069,7 +1011,6 @@ try {
 
 // Migration 31: lstr_code_categories, lstr_code_category_map, lstr_code_donors,
 //               donor_id column on lstr_codes
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 31')->fetchColumn()) {
 
@@ -1132,9 +1073,7 @@ try {
     $errors[] = 'Code categories/donors — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 33: name column on lstr_codes (per-code label)
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 33')->fetchColumn()) {
 
@@ -1154,9 +1093,7 @@ try {
     $errors[] = 'Code name — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 32: status column on lstr_codes (approval workflow)
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 32')->fetchColumn()) {
 
@@ -1186,9 +1123,7 @@ try {
     $errors[] = 'Code status — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 34: submitter_name and submitter_email on lstr_codes (fan submissions)
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 34')->fetchColumn()) {
 
@@ -1208,9 +1143,7 @@ try {
     $errors[] = 'Code submitter — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 35: form_url_codes_submit on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 35')->fetchColumn()) {
 
@@ -1229,9 +1162,7 @@ try {
     $errors[] = 'Code submit page URL — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 36: submitter_url on lstr_codes
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 36')->fetchColumn()) {
 
@@ -1250,9 +1181,7 @@ try {
     $errors[] = 'Donor URL — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 37: contact_enabled + contact_recipient on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 37')->fetchColumn()) {
 
@@ -1272,9 +1201,7 @@ try {
     $errors[] = 'Contact form columns — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 38: rename lstr_joined status 'joined' → 'approved'
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 38')->fetchColumn()) {
         $pdo->exec("UPDATE `lstr_joined` SET `status` = 'approved' WHERE `status` = 'joined'");
@@ -1286,9 +1213,7 @@ try {
     $errors[] = 'Migration 38 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 39: approved_by (TFL/AFL) on lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 39')->fetchColumn()) {
 
@@ -1307,9 +1232,7 @@ try {
     $errors[] = 'Migration 39 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 40: link-check columns on lstr_affiliates and lstr_joined
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 40')->fetchColumn()) {
 
@@ -1343,7 +1266,6 @@ try {
 }
 
 // Migration 41: affiliate application columns + per-listing apply settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 41')->fetchColumn()) {
 
@@ -1373,14 +1295,12 @@ try {
     $errors[] = 'Migration 41 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 42: backfill any missing TFL/TAFL seed rows in lstr_categories.
 //
 // Fresh installs via install.php now seed these rows directly, but any install
 // that went through migrations 7 and 9 before the CategorySeedCatalog was
 // introduced has the correct data already.  This migration is intentionally
 // INSERT-only — it never deletes or renames existing rows.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 42')->fetchColumn()) {
         $tableExists = (bool) $pdo->query("SHOW TABLES LIKE 'lstr_categories'")->fetchColumn();
@@ -1416,13 +1336,11 @@ try {
     $errors[] = 'Migration 42 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 43: UNIQUE(source, name) index on lstr_categories.
 //
 // Prevents duplicate seed rows from multiple migrate.php runs or concurrent
 // admin seeding.  Remaps FK references to the MIN(id) survivor before deleting
 // duplicates, then adds the constraint via ALTER TABLE ... ADD UNIQUE KEY.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 43')->fetchColumn()) {
         $tableExists = (bool) $pdo->query("SHOW TABLES LIKE 'lstr_categories'")->fetchColumn();
@@ -1493,7 +1411,6 @@ try {
 }
 
 // Migration 44: owner_name column on lstr_admin_users
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 44')->fetchColumn()) {
         $col = $pdo->query("SHOW COLUMNS FROM `lstr_admin_users` LIKE 'owner_name'")->fetchAll();
@@ -1508,7 +1425,6 @@ try {
 }
 
 // Migration 45: rename display_name → owner_name on lstr_admin_users
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 45')->fetchColumn()) {
         $old = $pdo->query("SHOW COLUMNS FROM `lstr_admin_users` LIKE 'display_name'")->fetchAll();
@@ -1523,7 +1439,6 @@ try {
 }
 
 // Migration 46: rename owner_name → display_name on lstr_admin_users
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 46')->fetchColumn()) {
         $col = $pdo->query("SHOW COLUMNS FROM `lstr_admin_users` LIKE 'owner_name'")->fetchAll();
@@ -1538,7 +1453,6 @@ try {
 }
 
 // Migration 47: drop parent_id column from lstr_categories
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 47')->fetchColumn()) {
         $col = $pdo->query("SHOW COLUMNS FROM `lstr_categories` LIKE 'parent_id'")->fetchAll();
@@ -1553,7 +1467,6 @@ try {
 }
 
 // Migration 48: normalize legacy alias names and fix source='custom' for known TFL/TAFL categories
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 48')->fetchColumn()) {
         $fixed = 0;
@@ -1628,7 +1541,6 @@ try {
 }
 
 // Migration 49: strip "Anime/Manga: " prefix from lstr_categories + update lstr_joined
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 49')->fetchColumn()) {
         $fixed = 0;
@@ -1741,9 +1653,7 @@ try {
     $errors[] = 'Migration 49 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 50: per-listing join confirmation email + auto-approve joins
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 50')->fetchColumn()) {
         $pdo->exec(
@@ -1758,9 +1668,7 @@ try {
     $errors[] = 'Migration 50 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 51: lstr_listing_categories junction table
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 51')->fetchColumn()) {
         $pdo->exec(
@@ -1833,9 +1741,7 @@ try {
     $errors[] = 'Migration 51 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 52: Add opened column to owned table (unprefixed Enthusiast schema)
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 52')->fetchColumn()) {
         // Only alter `owned` when it exists — enth_-prefixed installs use enth_fanlistings instead.
@@ -1857,9 +1763,7 @@ try {
     $errors[] = 'Migration 52 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 53: affiliates_section_template column in lstr_fanlisting_settings
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 53')->fetchColumn()) {
         $pdo->exec(
@@ -1875,7 +1779,6 @@ try {
 }
 
 // Migration 54: expand lstr_wishlist.category to varchar(500) for multi-category
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 54')->fetchColumn()) {
         // Only alter lstr_wishlist when it exists — Wishlist add-on may not be installed.
@@ -1896,9 +1799,7 @@ try {
     $errors[] = 'Migration 54 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 55: Add slug column to lstr_categories, backfill, add unique index
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 55')->fetchColumn()) {
         // 1. Add slug column (default '' so no existing row is broken).
@@ -1950,12 +1851,10 @@ try {
     $errors[] = 'Migration 55 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 56: Re-add parent_id to lstr_categories
 //
-// Migration 47 dropped parent_id. Phase 2 of Luster re-introduces one-level
-// category nesting and needs the column back. Check-then-alter for compat.
-// ─────────────────────────────────────────────────────────────────────────────
+// Migration 47 dropped parent_id; this re-introduces one-level hierarchy support.
+// Check-then-alter for compat.
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 56')->fetchColumn()) {
         if (empty($pdo->query("SHOW COLUMNS FROM `lstr_categories` LIKE 'parent_id'")->fetchAll())) {
@@ -1968,13 +1867,11 @@ try {
     $errors[] = 'Migration 56 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 57: Create lstr_listing_external_refs table
 //
 // Records links between Luster listing IDs and IDs in external scripts
 // (source='fanatically', 'codesort', 'fansfansfans', etc.) so compat shims
 // can resolve external listing variables to correct Luster IDs.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 57')->fetchColumn()) {
         $pdo->exec(
@@ -1997,13 +1894,11 @@ try {
     $errors[] = 'Migration 57 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 58: Add status column to lstr_affiliates
 //
 // Replaces the boolean pending flag with an explicit status string so rejected
 // applications can be retained for record-keeping rather than deleted.
 // Existing rows: pending=1 → 'pending', pending=0 → 'approved' (default).
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 58')->fetchColumn()) {
         $pdo->exec(
@@ -2018,13 +1913,11 @@ try {
     $errors[] = 'Migration 58 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 59: Remove 'upcoming' type from lstr_wishlist
 //
 // The Upcoming wishlist type has been removed. Convert any existing entries
 // with type='upcoming' to type='wanted', then narrow the ENUM so the value
 // can no longer be stored.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 59')->fetchColumn()) {
         if ((int) $pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_wishlist'")->fetchColumn()) {
@@ -2038,7 +1931,6 @@ try {
     $errors[] = 'Migration 59 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 60: Default affiliate_apply_enabled to 1 + add codes_submit_enabled
 //
 // 1. Normalize all existing affiliate_apply_enabled = 0 rows to 1 so the setting
@@ -2046,7 +1938,6 @@ try {
 // 2. Change the column default from 0 → 1 for newly created rows.
 // 3. Add codes_submit_enabled (DEFAULT 1) so code donations can be toggled off
 //    per listing; existing listings default to enabled.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 60')->fetchColumn()) {
         // 1. Flip column default to 1 and normalize existing rows
@@ -2071,13 +1962,11 @@ try {
     $errors[] = 'Migration 60 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 61: Per-listing code approval email override
 //
 // Adds code_approval_email (NULL = follow global setting, 0 = off, 1 = on)
 // to lstr_fanlisting_settings so site owners can disable donor emails per listing.
 // The global toggle lives in lstr_site_settings (key/value, no schema change needed).
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 61')->fetchColumn()) {
         if (empty($pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'code_approval_email'")->fetchAll())) {
@@ -2093,13 +1982,11 @@ try {
     $errors[] = 'Migration 61 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 62: Allow collective codes (nullable fanlisting_id on codes tables)
 //
 // Makes fanlisting_id nullable in lstr_codes, lstr_code_categories, and
 // lstr_code_donors so codes can be created for the collective as a whole
 // (fanlisting_id = NULL) rather than always requiring a per-listing target.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 62')->fetchColumn()) {
         $pdo->exec("ALTER TABLE `lstr_codes` MODIFY COLUMN `fanlisting_id` INT UNSIGNED NULL");
@@ -2112,14 +1999,12 @@ try {
     $errors[] = 'Migration 62 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 63: Add "Anime/Manga: " prefix to TAFL category names
 //
 // TAFL categories were previously stored as bare names (e.g. "Series").
 // They are now stored with the network prefix (e.g. "Anime/Manga: Series")
 // so they are visually distinguishable from TFL categories without needing
 // to inspect the source column. Already-prefixed rows are left unchanged.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 63')->fetchColumn()) {
         $stmt = $pdo->prepare(
@@ -2137,7 +2022,6 @@ try {
     $errors[] = 'Migration 63 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 64: Public Template System — per-listing + collective template columns
 //
 // Adds admin-editable {token} template columns for the Public Template System
@@ -2148,7 +2032,6 @@ try {
 // {each_listing} / {each_current}/{each_upcoming}/{each_pending} grouped-loop
 // tokens processed by TemplateEngine; no real installs exist to preserve
 // compatibility for, so the rows are deleted outright rather than left dormant.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 64')->fetchColumn()) {
         $pdo->exec(
@@ -2197,7 +2080,6 @@ try {
 // {each_affiliate}...{/each_affiliate} loop and covers everything the old
 // row-only template could do. No real installs exist to preserve compatibility
 // for, so the column is dropped outright rather than left dormant.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 65')->fetchColumn()) {
         $col = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'affiliates_template'")->fetchAll();
@@ -2216,7 +2098,6 @@ try {
 // These TEXT NULL columns store optional admin-authored HTML blocks that are
 // injected above each public embed form. Token substitution supports
 // {listing_title}, {listing_url}, and {listing_subject}.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 66')->fetchColumn()) {
         $existing = array_column(
@@ -2248,7 +2129,6 @@ try {
 // Affects only installs that saved the old inline/span format before the
 // fl-* class rename; any value not containing the canonical
 // fl-listing-category div is treated as stale and cleared.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 67')->fetchColumn()) {
         $stmt = $pdo->prepare("SELECT setting_value FROM `lstr_site_settings` WHERE setting_key = 'owned_template'");
@@ -2266,7 +2146,6 @@ try {
 
 // Migration 68: Add rules_intro_template column to lstr_fanlisting_settings
 // for the Join Rules add-on per-listing intro HTML.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 68')->fetchColumn()) {
         $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'rules_intro_template'")->fetchAll();
@@ -2280,13 +2159,11 @@ try {
     $errors[] = 'Migration 68 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 69: Evolve lstr_rules schema for installs where the Join Rules
 // add-on was already installed before list_style/gate_type/gate_label were
 // added (and the legacy title column removed). Mirrors the idempotent ALTER
 // logic in RulesAddon::install(), which only runs for fresh installs —
 // already-installed add-ons never have install() re-invoked automatically.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 69')->fetchColumn()) {
         if (!empty($pdo->query("SHOW TABLES LIKE 'lstr_rules'")->fetchAll())) {
@@ -2340,11 +2217,9 @@ try {
     $errors[] = 'Migration 69 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 70: Add per-listing form template columns to
 // lstr_fanlisting_settings for the Form Templates feature (join,
 // code-donation, affiliate-application, and adoption forms).
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 70')->fetchColumn()) {
         $changes = [];
@@ -2394,14 +2269,12 @@ try {
     $errors[] = 'Migration 70 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 71: drop legacy join_intro_template column from lstr_fanlisting_settings
 //
 // Superseded by join_form_template (Migration 70) — the Join Form template now
 // absorbs the intro directly, so admins write any introductory HTML at the top
 // of that template instead of a separate {intro} block. No real installs exist
 // to preserve compatibility for, so the column is dropped outright.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 71')->fetchColumn()) {
         if ((int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 70')->fetchColumn()) {
@@ -2418,13 +2291,11 @@ try {
     $errors[] = 'Migration 71 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 72: drop legacy codes_submit_intro_template column from lstr_fanlisting_settings
 //
 // Superseded by codes_submit_form_template (Migration 70) — the Code Donation
 // Form template now absorbs the intro directly, so admins write any introductory
 // HTML at the top of that template instead of a separate intro block.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 72')->fetchColumn()) {
         if ((int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 70')->fetchColumn()) {
@@ -2441,14 +2312,12 @@ try {
     $errors[] = 'Migration 72 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 73: drop legacy form_url_remove / redirect_url_remove columns from
 // lstr_fanlisting_settings
 //
 // The standalone "Remove Membership" form/embed has been merged into the "Update
 // Membership" form as a delete-membership checkbox — these per-listing form/redirect
 // URL overrides are no longer used.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 73')->fetchColumn()) {
         foreach (['form_url_remove', 'redirect_url_remove'] as $col) {
@@ -2464,7 +2333,6 @@ try {
     $errors[] = 'Migration 73 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 74: add joined-listing description/comments columns and a
 // per-listing description column
 //
@@ -2473,7 +2341,6 @@ try {
 // lstr_fanlisting_settings.description is a free-text "About this listing"
 // field, populated from Enthusiast owned.desc / Listing Admin main.desc on
 // import and editable from the listing edit page.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 74')->fetchColumn()) {
         $changes = [];
@@ -2505,14 +2372,12 @@ try {
     $errors[] = 'Migration 74 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 75: add contact-form URL override and contact form template columns
 //
 // lstr_fanlisting_settings.form_url_contact — override URL for the contact
 //   form (mirrors form_url_join / form_url_update / form_url_reset).
 // lstr_fanlisting_settings.contact_form_template — per-listing contact form
 //   template stored in the DB (parallel to other form template columns).
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 75')->fetchColumn()) {
         $changes = [];
@@ -2538,14 +2403,12 @@ try {
     $errors[] = 'Migration 75 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 76: remove the stale collective_field_wrapper_template setting
 //
 // The collective field-wrapper template was removed from the admin UI and
 // SiteSettingsRepo::collectiveDefaults() in Phase D. Any stored DB value
 // is now dead weight — delete it so it cannot interfere with future key
 // additions that share similar names.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 76')->fetchColumn()) {
         try {
@@ -2560,11 +2423,9 @@ try {
     $errors[] = 'Migration 76 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 77: add update_form_template and reset_form_template columns to
 // lstr_fanlisting_settings so per-listing custom form templates can be stored
 // for the Update Membership and Password Reset public forms.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 77')->fetchColumn()) {
         $changes = [];
@@ -2600,10 +2461,8 @@ try {
     $errors[] = 'Migration 77 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 78: create lstr_member_link_checks table for tracking approved fan
 // URL health via the Link Checker.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 78')->fetchColumn()) {
         $pdo->exec(
@@ -2627,11 +2486,9 @@ try {
     $errors[] = 'Migration 78 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 79: add surrogate auto-increment id column to lstr_member_link_checks.
 // Migration 78 used a composite (listing_id, member_email) primary key; repos
 // expect a single-column integer id for row targeting and AJAX updates.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 79')->fetchColumn()) {
         $hasId = (int) $pdo->query(
@@ -2660,10 +2517,8 @@ try {
     $errors[] = 'Migration 79 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 80: per-listing newest-members display limit for {stat_newmembers}.
 // NULL = inherit global default; 0 = show all; 1–255 = explicit cap.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 80')->fetchColumn()) {
         $hasSNL = (int) $pdo->query(
@@ -2689,9 +2544,7 @@ try {
     $errors[] = 'Migration 80 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 81: per-listing affiliate application toggle style (link or button).
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 81')->fetchColumn()) {
         $hasAAS = (int) $pdo->query(
@@ -2717,9 +2570,7 @@ try {
     $errors[] = 'Migration 81 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Migration 82: remove 'reviewed' status from lstr_adoption_applications.
-// ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 82')->fetchColumn()) {
         $hasAdoptionTable = (int) $pdo->query(
@@ -2759,8 +2610,6 @@ try {
     $errors[] = 'Migration 82 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Build results HTML
-// ─────────────────────────────────────────────────────────────────────────────
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

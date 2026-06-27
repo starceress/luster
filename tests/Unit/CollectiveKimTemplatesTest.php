@@ -8,8 +8,7 @@ use Luster\Repositories\SiteSettingsRepo;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the four KIM collective template defaults added in Phase C
- * (PLAN-collective-templates-selector.md):
+ * Tests for the four KIM collective template defaults:
  *   - collective_kim_list_overview_template
  *   - collective_kim_list_subject_template
  *   - kim_update_form_template

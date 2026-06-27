@@ -122,7 +122,7 @@ $_lusterBaseUrl = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url',
                 ?: $_lusterApp->getBaseUrl();
 
 if ($_lusterStep === 'confirm') {
-    // ── Confirm step: validate token, show new-password form ──────────────
+    // --- Confirm step: validate token, show new-password form
 
     $_lusterRawToken = trim((string) ($_GET['token'] ?? ''));
 
@@ -216,7 +216,7 @@ if ($_lusterStep === 'confirm') {
         'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);
 } else {
-    // ── Request step: email entry form ─────────────────────────────────────
+    // --- Request step: email entry form
 
     $_lusterSession  = $_lusterApp->getSession();
     $_lusterSuccess  = (string) $_lusterSession->get('lstr_flash_success_html', '');

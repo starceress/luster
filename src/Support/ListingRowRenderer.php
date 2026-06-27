@@ -105,18 +105,14 @@ final class ListingRowRenderer
      * Renders one {each_$loopName}...{/each_$loopName} block within $template,
      * substituting one row per listing via render().
      *
-     * Deliberate deviation from the plan's literal renderGroup() signature
-     * (docs/PUBLIC-TEMPLATES-PLAN.md Phase 2), which listed `PDO $db` and
-     * `string $prefix` parameters: owned.php already batch-fetches settings,
-     * categories, and member stats before calling the renderer (the same
-     * architecture render() has always used), so a fresh DB handle here would
-     * be redundant and inconsistent. $categoryMap follows the same
-     * [listingId => value] batch-map convention as $settingsMap/$statsMap.
-     *
      * Caller loops over loop names ('listing', 'current', 'upcoming', 'pending')
      * by calling this once per name — TemplateEngine::loop()'s regex only
      * touches its own {each_$loopName} block, leaving sibling blocks intact for
      * the next call (see TemplateEngine::loop() docblock on nesting support).
+     *
+     * $categoryMap follows the same [listingId => value] batch-map convention
+     * as $settingsMap/$statsMap; owned.php batch-fetches all three before
+     * calling the renderer so no DB handle is needed here.
      *
      * @param Listing[] $listings
      * @param array<int, array<string, mixed>> $settingsMap [listingId => settings row]
@@ -154,7 +150,7 @@ final class ListingRowRenderer
      * auto-detecting flat ({each_listing}) vs sectioned
      * ({each_current}/{each_upcoming}/{each_pending}) mode from the template
      * string itself, exactly as embed/owned.php does for its own
-     * site-owner-authored templates (docs/PUBLIC-TEMPLATES-PLAN.md Phase 2).
+     * site-owner-authored templates.
      *
      * Shared by owned.php (many listings, any status pool), latest-listing.php,
      * and random-listing.php (always exactly one listing) so every owned-template

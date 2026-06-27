@@ -67,11 +67,11 @@ final class EmailsController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        // ── Shared: all listings ──────────────────────────────────────────
+        // --- Shared: all listings
         $listingRepo = new ListingRepo($db, $config);
         $allListings = $listingRepo->getAll();
 
-        // ── Email Templates tab ───────────────────────────────────────────
+        // --- Email Templates tab
         $emailRepo       = new EmailTemplateRepo($db);
         $globalTemplates = $emailRepo->getAllGlobal();
 
@@ -133,7 +133,7 @@ final class EmailsController extends AdminController
             ];
         }
 
-        // ── Bulk Email tab ────────────────────────────────────────────────
+        // --- Bulk Email tab
         $savedEmailRepo = new SavedEmailRepo($db);
         $savedEmails    = $savedEmailRepo->getAll();
 
@@ -205,7 +205,7 @@ final class EmailsController extends AdminController
         $fromEmail = (string) $config->get('owner_email', '');
         $fromName  = (string) $config->get('owner_name',  '');
 
-        // ── Render ────────────────────────────────────────────────────────
+        // --- Render
         $tabLabel = match ($tab) {
             'bulk'   => 'Bulk Email',
             'custom' => 'Saved Templates',

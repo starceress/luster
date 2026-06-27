@@ -1,5 +1,5 @@
-# ✨ Luster ✦
-*Where fandoms can shine.*
+# ✨ Luster
+*Where fandoms can shine! ✦*
 
 Luster is a free, open-source management script for fanlistings, cliques, 
 collectives, and other hobby listings. It is meant to feel familiar if you've 
@@ -16,67 +16,49 @@ previous script to Luster.
 
 
 
-## 🌟 Overview & Unique Features
+## ✦ Overview & Unique Features
 Nearly everything in Luster is edited and configured directly from your admin
 panel. No need to create or upload additional files - the script takes care of
 it for you.
 
-- **One admin panel, multiple listings & types.** Run a single listing or a
-  whole collective, including cliques, webrings, shrines, and more, all side by
-  side. Manage owned and joined listings, affiliates, codes, and member activity 
-  from one place.
-- **Dashboard to-do list.** See pending members, overdue listing
-  updates, affiliate applications, code donations, adoption requests, and Keep In
-  Mind signups right away when you sign in, with shortcuts to review or update 
-  each item directly from the dashboard.
-- **Multiple admin users.** Give co-owners or trusted helpers their own separate
-  accounts and logins instead of sharing one password.
-- **Admin panel customization.** Switch between light and dark mode, change your
+- **One admin panel, multiple listings & types:** Run a single listing or a whole 
+  collective all side by side.
+- **Guided migration & wrappers:** The Import Data Wizard brings over your
+  data from other scripts. Compatibility wrappers keep your previous script working 
+  while you transition to Luster.
+- **Dashboard to-do list:** See pending members, overdue listings, affiliate 
+  applications, code donations, adoption requests, and KIM signups right 
+  away when you sign in, with shortcuts to review or update each item directly 
+  from the dashboard.
+- **Multiple admin users:** Give co-owners their own separate accounts and logins 
+  instead of sharing one password.
+- **Admin panel customization:** Switch between light & dark mode, change your
   admin panel's appearance with different skins, create your own admin panel
   look, or download skins made by others in the community.
-- **Custom networks & categories.** Use the built-in TFL/TAFL-style categories,
-  add your own networks, or create custom category groups for collectives that do
-  not fit neatly into one directory structure.
-- **Customizable public embeds with editor previews.** Add member
-  lists, stats, affiliates, codes, joined listings, latest listings, random
-  listings, news feeds, wishlists, and more with a small include. Then customize
-  each output with clickable tokens, targetable CSS classes, and rendered previews
-  before changes reach your live site.
-- **Embed Wizard for quick snippets.** Build ready-to-copy embed snippets with
-  live previews and guided settings.
-- **Three-tier template system.** Set global defaults that apply to every
-  listing, override per listing when needed, and reset everything back with one
-  click. Every template has a rendered preview so you can see exactly what your
-  visitors will see before you save.
-- **Per-listing customization.** Granular control over join settings, extra form
-  fields, per-listing rules, stats blocks, affiliate output, code donations,
-  contact forms, and redirect behavior per listing so each individual listing
-  can function exactly the way you want it.
-- **Drag-and-drop reordering.** Rearrange codes and affiliates in the admin
-  panel with drag-and-drop, and have your live site reflect the exact order you
-  chose.
-- **Communication tools with live previews.** Send emails (bulk or single),
-  create and save reusable email templates, preview rendered email content before
-  it goes out, and enable or disable outgoing emails on a global or per-listing
-  scale.
-- **Extra features, when you want them.** Optional add-ons include news feeds,
-  a wishlist, "keep in mind" lists, adoption applications, and per-listing join
-  rules, so you only turn on the pieces your site needs.
-- **Link checker, network directory, and more.** Check dead links and redirects,
-  verify your TFL/TAFL registration status, review admin activity, browse error
-  logs, and keep your collective tidy without living in the database.
-- **Guided migration from other scripts.** The Import Data Wizard can bring over
-  listings, members, affiliates, categories, codes, images, email templates,
-  saved settings, and related history from other tools including Enthusiast,
-  Listing Admin, Fanatically, BellaBuffs, CodeSort, and FanUpdate.
-- **Security-first foundations.** Luster uses modern password handling, CSRF
-  protection, careful validation, output escaping, safer upload/import handling,
-  CSS served without exposing install paths, and an automated test suite of
-  1,300+ tests to help protect your site by default.
+- **Custom networks & categories:** Use the built-in TFL/TAFL-style categories or
+  add your own custom networks and category groups to accomodate other directories.
+- **Customizable public embeds & live previews:** Add the script to your existing 
+  website with a small snippet of code, then customize each output with clickable 
+  tokens or the Embed Wizard, targetable CSS classes, and rendered previews.
+- **Three-tier template system:** Set global defaults that apply to every
+  listing, override per listing when needed, or reset everything back with one click.
+- **Drag-and-drop reordering:** Rearrange codes and affiliates with drag-and-drop 
+  and have your live site reflect the exact order you chose.
+- **Communication tools with live previews:** Send emails (bulk or single),
+  create and save email templates, preview rendered email content before sending, 
+  and enable or disable outgoing emails on a global or per-listing scale.
+- **Extra features when you want them:** Optional add-ons include news feeds,
+  a wishlist, "keep in mind" lists, adoption applications, and join rules, so you 
+  only turn on the pieces your site needs.
+- **Link Checker & maintenance tools:** Check dead links and redirects, review admin 
+  activity with IP tracking, and browse error logs.
+- **Security-first foundations:** Modern password handling, CSRF protection, output 
+  escaping, safer upload/import handling, concealed install paths, and an automated 
+  test suite of 1,300+ tests to help protect your site by default.
 
 
 
-## ⚙️ Requirements
+## ✦ Requirements
 - **PHP 8.1 or newer**
 - **MySQL or MariaDB**
 - **PDO and PDO MySQL extension**
@@ -84,7 +66,7 @@ it for you.
 
 
 
-## 🚀 Installation
+## ✦ Installation
 1. Head to the [Releases page][releases] and download the latest
    `luster-x.y.z.zip`.
 2. Unzip it, then upload everything inside to a folder on your web host. Name
@@ -99,14 +81,14 @@ it for you.
 
 
 
-## 🔮 Admin Panel
+## ✦ Admin Panel
 To access your admin panel, go to `http://yoursite.com/luster/public/admin`
 and log in with the username and password you set for Luster during
 installation.
 
 
 
-## 🔄 Migrating from Another Script
+## ✦ Migrating from Another Script
 Already running a fanlisting, collective, or clique with another script?
 Luster includes an Import Data Wizard to help you seamlessly migrate your data
 without rebuilding everything by hand.
@@ -119,7 +101,7 @@ related history into place for you.
 
 
 
-## ❓ Brief FAQ
+## ✦ Brief FAQ
 For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 
 - **Is Luster free?**
@@ -148,17 +130,17 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 - **What if something doesn't go as expected during setup?**
   Double-check the steps above first — most hiccups come down to database
   details or the web folder pointing somewhere other than `public/`. If you're
-  still stuck, [contact me](#-need-help-found-a-bug-etc) and let me know what
+  still stuck, [contact me](#need-help-found-a-bug-etc) and let me know what
   you tried so I can help you figure it out!
 
 - **Can you implement [insert fix]/[insert new feature]?**
   Of course! Your feedback means a lot to me and helps Luster grow! Please let me
-  know by [contacting me](#-need-help-found-a-bug-etc) and let's see what we can
+  know by [contacting me](#need-help-found-a-bug-etc) and let's see what we can
   build together!
 
 
 
-## 💬 Need Help, Found a Bug, etc?
+## ✦ Need Help, Found a Bug, etc?
 - Click *Send a Report* in your Luster admin panel's navigation sidebar
 - Use the *Contact Form* at [https://luster.nu/contact.php](https://luster.nu/contact.php)
 - *Email me* directly at `support@luster.nu`
@@ -167,13 +149,13 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 
 
 
-## 💖 Credits
+## ✦ Credits
 [Luster](https://luster.nu/) © [Star](https://dreamesque.net/) 2026.
 - Full credits are available on the [Luster credits page](https://luster.nu/credits.php).
 
 
 
-## 📜 License
+## ✦ License
 Luster is open-source software released under the [GNU General Public License v3.0](LICENSE).
 In plain terms: you're free to use it, change it, and share it — including
 for your own fan site or collective — but any distributed version must also

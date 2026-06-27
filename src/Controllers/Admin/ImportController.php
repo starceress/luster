@@ -1054,7 +1054,7 @@ final class ImportController extends AdminController
             $connMode = (string) $request->post('bb_conn_mode', 'path');
 
             if ($connMode === 'upload') {
-                // ── File upload mode ─────────────────────────────────────
+                // --- File upload mode
                 $membersFile = $request->file('members_file') ?? [];
                 if (empty($membersFile['tmp_name']) || ($membersFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
                     $error = 'Please upload a members.txt file.';
@@ -1086,7 +1086,7 @@ final class ImportController extends AdminController
                     }
                 }
             } else {
-                // ── Server path mode ─────────────────────────────────────
+                // --- Server path mode
                 $folderPath = rtrim(trim((string) $request->post('bb_folder_path', '')), '/\\');
                 $adapter    = new BellaBuffsImportSource();
                 $connError  = $adapter->testConnection(['bb_path' => $folderPath, 'bb_mode' => 'path']);

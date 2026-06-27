@@ -128,7 +128,7 @@ final class BellaBuffsImportSource implements ImportSourceInterface
             );
         }
 
-        // ── Approved members ─────────────────────────────────────────────
+        // --- Approved members
         if ($options->bbImportApproved && $options->bbMembersPath !== '') {
             $approved = $this->parseMemberFile($options->bbMembersPath);
             $dupes    = $this->countMemberDupes($targetPdo, $dbtable, $approved);
@@ -141,7 +141,7 @@ final class BellaBuffsImportSource implements ImportSourceInterface
             ];
         }
 
-        // ── Pending members ──────────────────────────────────────────────
+        // --- Pending members
         if ($options->bbImportPending && $options->bbNewbiesPath !== '') {
             $pending = $this->parseMemberFile($options->bbNewbiesPath);
             $dupes   = $this->countMemberDupes($targetPdo, $dbtable, $pending);
@@ -154,7 +154,7 @@ final class BellaBuffsImportSource implements ImportSourceInterface
             ];
         }
 
-        // ── Affiliates ───────────────────────────────────────────────────
+        // --- Affiliates
         if ($options->bbImportAffiliates) {
             $affPath = $options->bbAffiliatesPath;
             if ($affPath !== '' && is_readable($affPath)) {
@@ -182,7 +182,7 @@ final class BellaBuffsImportSource implements ImportSourceInterface
             }
         }
 
-        // ── Codes / Buttons ──────────────────────────────────────────────
+        // --- Codes / Buttons
         if ($options->bbImportCodes) {
             $btnPath = $options->bbButtonsPath;
             if ($btnPath !== '' && is_readable($btnPath)) {
@@ -247,19 +247,19 @@ final class BellaBuffsImportSource implements ImportSourceInterface
 
         $today = date('Y-m-d');
 
-        // ── Approved members ─────────────────────────────────────────────
+        // --- Approved members
         if ($options->bbImportApproved && $options->bbMembersPath !== '') {
             $approved = $this->parseMemberFile($options->bbMembersPath);
             $rows[]   = $this->insertMembers($target, $dbtable, $approved, 0, $today);
         }
 
-        // ── Pending members ──────────────────────────────────────────────
+        // --- Pending members
         if ($options->bbImportPending && $options->bbNewbiesPath !== '') {
             $pending = $this->parseMemberFile($options->bbNewbiesPath);
             $rows[]  = $this->insertMembers($target, $dbtable, $pending, 1, $today);
         }
 
-        // ── Affiliates ───────────────────────────────────────────────────
+        // --- Affiliates
         if ($options->bbImportAffiliates && $options->bbAffiliatesPath !== '') {
             [$affRow, $affImageRow] = $this->insertAffiliates($target, $fanlistingId, $options, $migrator);
             $rows[] = $affRow;
@@ -268,7 +268,7 @@ final class BellaBuffsImportSource implements ImportSourceInterface
             }
         }
 
-        // ── Codes / Buttons ──────────────────────────────────────────────
+        // --- Codes / Buttons
         if ($options->bbImportCodes && $options->bbButtonsPath !== '') {
             [$codeRow, $codeImageRow] = $this->insertCodes($target, $fanlistingId, $options, $migrator);
             $rows[] = $codeRow;

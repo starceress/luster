@@ -43,7 +43,7 @@ use Throwable;
  *   Controllers accept Application $app as their only constructor argument and
  *   call $app->getDatabase(), $app->getCSRF(), etc. as needed.
  *
- * Middleware pipeline (Phase 2):
+ * Middleware pipeline:
  *   run()      → CsrfMiddleware → Router
  *   runAdmin() → AuthMiddleware → CsrfMiddleware → Router
  *

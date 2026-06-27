@@ -35,7 +35,7 @@ use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
 
-// ── Network lookup: category name → network key ──────────────────────────────
+// --- Network lookup: category name → network key
 $catNetwork = [];
 foreach ($tfl_cats ?? [] as $c) { $catNetwork[$c['name']] = 'tfl'; }
 foreach ($tafl_cats ?? [] as $c) { $catNetwork[$c['name']] = 'tafl'; }
@@ -51,7 +51,7 @@ $networkBadge = static function (string $net): string {
     };
 };
 
-// ── Group distinct-used categories for the filter <optgroup> dropdown ────────
+// --- Group distinct-used categories for the filter <optgroup> dropdown
 $tflFilter    = [];
 $taflFilter   = [];
 $customFilter = [];
@@ -65,7 +65,7 @@ foreach ($categories as $cat) {
 }
 $hasGroups = !empty($tflFilter) || !empty($taflFilter) || !empty($customFilter);
 
-// ── Sort helpers ─────────────────────────────────────────────────────────────
+// --- Sort helpers
 $sort = $sort ?? 'subject';
 $dir  = $dir  ?? 'asc';
 
@@ -81,7 +81,7 @@ $sortUrl = static function (string $col) use ($b, $sort, $dir, $filter_type, $se
     return $b . '/admin/wishlist' . ($qs !== '' ? '?' . $qs : '');
 };
 
-// ── Tab data ─────────────────────────────────────────────────────────────────
+// --- Tab data
 $tabTotal = array_sum($type_counts);
 $tabs = [
     'all'      => ['label' => 'All',        'count' => $tabTotal,                      'badge' => 'badge-inactive'],
@@ -94,7 +94,7 @@ $typeTabs = ['wanted' => true, 'top' => true, 'granted' => true];
 
 $typeQs = $filter_type !== 'all' ? '?type=' . View::e($filter_type) : '';
 
-// ── Drag-to-reorder state ─────────────────────────────────────────────────
+// --- Drag-to-reorder state
 // Enabled only on a type tab, sorted by sort_order ASC, with no active filters.
 // Filters are excluded because sort_order is per-type-global; reordering a
 // filtered subset would silently shuffle hidden items.

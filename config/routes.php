@@ -56,7 +56,7 @@ use Luster\Core\Router;
 return [
 
     // ------------------------------------------------------------------
-    // Public routes  (Phase 4)
+    // Public routes
     // ------------------------------------------------------------------
     'public' => function (Router $router): void {
         // Join
@@ -83,11 +83,11 @@ return [
     },
 
     // ------------------------------------------------------------------
-    // Admin routes  (Phase 2 auth + Phase 5 full panel)
+    // Admin routes
     // ------------------------------------------------------------------
     'admin' => function (Router $router): void {
 
-        // ── Authentication ──────────────────────────────────────────
+        // --- Authentication
         $router->get('/admin',         DashboardController::class, 'index');
         $router->get('/admin/login',   AuthController::class,      'loginForm');
         $router->post('/admin/login',  AuthController::class,      'login');
@@ -97,7 +97,7 @@ return [
         $router->get('/admin/reset/{token}',   AuthController::class,      'resetForm');
         $router->post('/admin/reset/{token}',  AuthController::class,      'reset');
 
-        // ── Maintenance ──────────────────────────────────────────────
+        // --- Maintenance
         $router->post('/admin/maintenance/touch-all-updated',
             DashboardController::class, 'touchAllUpdated');
         $router->post('/admin/maintenance/bulk-touch-updated',
@@ -117,7 +117,7 @@ return [
         $router->post('/admin/update/discard',
             AdminUpdateController::class, 'discard');
 
-        // ── Listings ────────────────────────────────────────────────
+        // --- Listings
         $router->get('/admin/listings',
             ListingController::class, 'index');
         $router->get('/admin/listings/add',      ListingController::class, 'addForm');
@@ -172,7 +172,7 @@ return [
         $router->post('/admin/listings/{id}/edit-prefix',
             ListingController::class, 'editPrefix');
 
-        // ── Members overview (pending across all listings) ────────
+        // --- Members overview (pending across all listings)
         $router->get('/admin/members',
             MemberController::class, 'overview');
         $router->get('/admin/members/settings',
@@ -191,7 +191,7 @@ return [
         $router->get('/admin/members/export-pending',
             MemberController::class, 'exportPending');
 
-        // ── Members for a specific listing ───────────────────────
+        // --- Members for a specific listing
         $router->get('/admin/members/{id}',
             MemberController::class, 'index');
         $router->get('/admin/members/{id}/edit',
@@ -223,7 +223,7 @@ return [
         $router->post('/admin/members/{id}/email-selected/save-template',
             MemberController::class, 'emailSelectedSaveTemplate');
 
-        // ── Codes for a specific listing ─────────────────────────
+        // --- Codes for a specific listing
         //    Specific literal paths are registered before parameterised ones
         //    to prevent e.g. 'upload' or 'sizes' matching as {id}.
         $router->post('/admin/listings/{fid}/codes/upload',
@@ -267,7 +267,7 @@ return [
         $router->post('/admin/listings/{fid}/codes/{id}/update',
             CodesController::class, 'updateCode');
 
-        // ── Additional fields for a specific listing ──────────────
+        // --- Additional fields for a specific listing
         $router->get('/admin/listings/{fid}/fields',
             FieldController::class, 'index');
         $router->post('/admin/listings/{fid}/fields/add',
@@ -279,13 +279,13 @@ return [
         $router->post('/admin/listings/{fid}/fields/{name}/delete',
             FieldController::class, 'delete');
 
-        // ── Per-listing affiliate add
+        // --- Per-listing affiliate add
         $router->get('/admin/listings/{fid}/affiliates/add',
             AffiliateController::class, 'add');
         $router->post('/admin/listings/{fid}/affiliates/add',
             AffiliateController::class, 'add');
 
-        // ── Affiliates ──────────────────────────────────────────────
+        // --- Affiliates
         $router->get('/admin/affiliates',
             AffiliateController::class, 'index');
         // Literal sub-paths registered before parameterised {id} routes
@@ -318,7 +318,7 @@ return [
         $router->post('/admin/affiliates/{id}/re-approve',
             AffiliateController::class, 'reApprove');
 
-        // ── Admin user management (list lives in Settings › Admin Details) ──
+        // --- Admin user management (list lives in Settings › Admin Details)
         $router->get('/admin/admin-users/add',
             AdminUsersController::class, 'addForm');
         $router->post('/admin/admin-users/add',
@@ -330,7 +330,7 @@ return [
         $router->post('/admin/admin-users/{id}/delete',
             AdminUsersController::class, 'delete');
 
-        // ── Email Templates ───────────────────────────────────────────
+        // --- Email Templates
         // Old URL → redirect to unified Emails page
         $router->get('/admin/email-templates', EmailTemplatesController::class, 'indexRedirect');
         $router->post('/admin/email-templates/save',
@@ -340,7 +340,7 @@ return [
         $router->post('/admin/email-templates/toggle',
             EmailTemplatesController::class, 'toggleEnabled');
 
-        // ── Settings ────────────────────────────────────────────────
+        // --- Settings
         $router->get('/admin/settings',
             SettingsController::class, 'index');
         $router->post('/admin/settings',
@@ -368,7 +368,7 @@ return [
         $router->post('/admin/settings/skin',
             SettingsController::class, 'saveSkin');
 
-        // ── Joined listings ───────────────────────────────────────
+        // --- Joined listings
         $router->get('/admin/joined',
             JoinedController::class, 'index');
         $router->get('/admin/joined/add',
@@ -390,7 +390,7 @@ return [
         $router->post('/admin/joined/settings',
             JoinedController::class, 'settings');
 
-        // ── Global Codes ─────────────────────────────────────────────
+        // --- Global Codes
         $router->get('/admin/codes',
             \Luster\Controllers\Admin\GlobalCodesController::class, 'index');
         $router->get('/admin/codes/collective/export',
@@ -414,7 +414,7 @@ return [
         $router->post('/admin/codes/{id}/reject',
             \Luster\Controllers\Admin\GlobalCodesController::class, 'reject');
 
-        // ── Categories ───────────────────────────────────────────────
+        // --- Categories
         $router->get('/admin/categories',
             CategoryController::class, 'index');
         $router->get('/admin/categories/add',
@@ -436,7 +436,7 @@ return [
         $router->post('/admin/categories/settings',
             CategoryController::class, 'saveSettings');
 
-        // ── Add-ons ───────────────────────────────────────────────────
+        // --- Add-ons
         $router->get('/admin/addons',
             AddonsController::class, 'index');
         $router->post('/admin/addons/install',
@@ -444,7 +444,7 @@ return [
         $router->post('/admin/addons/uninstall',
             AddonsController::class, 'uninstall');
 
-        // ── Activity log ─────────────────────────────────────────────
+        // --- Activity log
         $router->get('/admin/activitylog',
             ActivityLogController::class, 'index');
         $router->get('/admin/activitylog/export',
@@ -452,7 +452,7 @@ return [
         $router->post('/admin/activitylog/flush',
             ActivityLogController::class, 'flush');
 
-        // ── Error log ────────────────────────────────────────────────
+        // --- Error log
         $router->get('/admin/errorlog',
             ErrorLogController::class, 'index');
         $router->get('/admin/errorlog/export',
@@ -460,11 +460,11 @@ return [
         $router->post('/admin/errorlog/flush',
             ErrorLogController::class, 'flush');
 
-        // ── System info ──────────────────────────────────────────────
+        // --- System info
         $router->get('/admin/sysinfo',
             SysInfoController::class, 'index');
 
-        // ── Link Checker ─────────────────────────────────────────────────
+        // --- Link Checker
         $router->get('/admin/link-checker',
             LinkCheckerController::class, 'index');
         $router->get('/admin/link-checker/settings',
@@ -500,11 +500,11 @@ return [
         $router->post('/admin/link-checker/scan-member-ajax',
             LinkCheckerController::class, 'scanMemberAjax');
 
-        // ── Feedback ──────────────────────────────────────────────────
+        // --- Feedback
         $router->get('/admin/feedback',  FeedbackController::class, 'showForm');
         $router->post('/admin/feedback', FeedbackController::class, 'submit');
 
-        // ── Pending update approvals (list + detail live in Members overview) ──
+        // --- Pending update approvals (list + detail live in Members overview)
         $router->post('/admin/pending-updates/approve-all',
             PendingUpdateController::class, 'approveAll');
         $router->post('/admin/pending-updates/bulk',
@@ -514,7 +514,7 @@ return [
         $router->post('/admin/pending-updates/{id}/reject',
             PendingUpdateController::class, 'reject');
 
-        // ── Blacklist ─────────────────────────────────────────────────
+        // --- Blacklist
         $router->get('/admin/blacklist',
             BlacklistController::class, 'index');
         $router->post('/admin/blacklist/add',
@@ -523,7 +523,7 @@ return [
             BlacklistController::class, 'delete');
 
 
-        // ── Import wizard ─────────────────────────────────────────────
+        // --- Import wizard
         // Literal sub-paths registered before parameterised {source} routes
         $router->get('/admin/import',
             ImportController::class, 'index');
@@ -571,7 +571,7 @@ return [
             ImportController::class, 'uploadDump');
 
 
-        // ── Embed codes + compat test ─────────────────────────────────
+        // --- Embed codes + compat test
         $router->get('/admin/embed-codes',
             EmbedCodesController::class, 'index');
         $router->get('/admin/embed-codes/preview',
@@ -581,11 +581,11 @@ return [
         $router->post('/admin/compat-test',
             EmbedCodesController::class, 'compatTest');
 
-        // ── Compat bridge downloads ───────────────────────────────────
+        // --- Compat bridge downloads
         $router->get('/admin/compat-bridge/{set}',
             SettingsController::class, 'compatBridgeDownload');
 
-        // ── Import members (targeted SQL member import) ───────────────
+        // --- Import members (targeted SQL member import)
         $router->get('/admin/import-members',
             ImportMembersController::class, 'landing');
         $router->post('/admin/import-members/upload',
@@ -597,7 +597,7 @@ return [
         $router->get('/admin/import-members/result',
             ImportMembersController::class, 'result');
 
-// ── Unified Emails page ───────────────────────────────────────
+// --- Unified Emails page
         $router->get('/admin/emails',
             EmailsController::class, 'index');
         $router->post('/admin/emails/preview',
@@ -605,7 +605,7 @@ return [
         $router->post('/admin/emails/send',
             BulkEmailController::class, 'send');
 
-        // ── Saved email templates (old URL → redirect) ────────────────
+        // --- Saved email templates (old URL → redirect)
         $router->get('/admin/new-email-template',
             BulkEmailController::class, 'savedEmailsRedirect');
         $router->post('/admin/new-email-template/save',

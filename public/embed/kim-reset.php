@@ -148,7 +148,7 @@ $_lusterResetRecoveryUrl = $_lusterRedirectToClean !== ''
     : (($luster_kim_reset_url ?? null) ?? ($_lusterLinkReset ?? ''));
 
 if ($_lusterKimResetStep === 'confirm') {
-    // ── Confirm step: validate token, show new-password form ─────────────────
+    // --- Confirm step: validate token, show new-password form
     // $_lusterError is already populated from flash data consumed above.
 
     $_lusterRawToken   = trim((string) ($_GET['token'] ?? ''));
@@ -212,7 +212,7 @@ if ($_lusterKimResetStep === 'confirm') {
         'base_url'          => $_lusterBaseUrl,
     ]);
 } else {
-    // ── Request step: email-entry form ────────────────────────────────────────
+    // --- Request step: email-entry form
 
     $_lusterWrapperTpl = '';
 

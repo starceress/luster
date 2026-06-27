@@ -642,7 +642,7 @@ final class CollectiveStatsRepo
      */
     public function getGrowthRates(int $approvedTotal, int $activeOwned, int $activeJoined): array
     {
-        // ── Oldest opened owned listing ──────────────────────────────────
+        // --- Oldest opened owned listing
         $ownedPerYear    = '0.00';
         $membersPerDay   = '0.00';
 
@@ -664,7 +664,7 @@ final class CollectiveStatsRepo
             }
         } catch (\Throwable) {}
 
-        // ── Oldest joined listing ─────────────────────────────────────────
+        // --- Oldest joined listing
         $joinedPerYear = '0.00';
 
         try {

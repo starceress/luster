@@ -13,7 +13,7 @@ use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the collective Adoption Form (PLAN-collective-templates-selector.md, Phase B):
+ * Tests for the collective Adoption Form template:
  *  - ListingSettingsRepo::getAdoptableListings()
  *  - SiteSettingsRepo::defaultCollectiveAdoptionFormTemplate()
  *  - SiteSettingsRepo::collectiveDefaults()['collective_adoption_form_template']

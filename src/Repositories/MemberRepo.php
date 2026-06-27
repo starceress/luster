@@ -39,10 +39,8 @@ use RuntimeException;
  */
 final class MemberRepo
 {
-    /** SQL fragment that selects approved members. */
     private string $approvedWhere;
 
-    /** SQL fragment that selects pending (queued) members. */
     private string $pendingWhere;
 
     /** SQL fragment that selects rejected members (unprefixed schema only). */

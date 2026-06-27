@@ -25,7 +25,7 @@ $app = require LUSTER_BASE . '/bootstrap.php';
 $db       = $app->getDatabase();
 $settings = new \Luster\Repositories\SiteSettingsRepo($db);
 
-// ── Token auth ──────────────────────────────────────────────────────────────
+// --- Token auth
 
 $expected  = (string) ($settings->get('auto_link_check_token', '') ?? '');
 $submitted = (string) ($_GET['token'] ?? '');
@@ -36,7 +36,7 @@ if ($expected === '' || !hash_equals($expected, $submitted)) {
     exit();
 }
 
-// ── Enabled check ───────────────────────────────────────────────────────────
+// --- Enabled check
 
 $enabled = ($settings->get('auto_link_check_enabled', '0') ?? '0') === '1';
 if (!$enabled) {
@@ -44,7 +44,7 @@ if (!$enabled) {
     exit();
 }
 
-// ── 30-day interval check ───────────────────────────────────────────────────
+// --- 30-day interval check
 
 $force   = isset($_GET['force']) && $_GET['force'] === '1';
 $lastRun = (string) ($settings->get('auto_link_check_last_run', '') ?? '');
@@ -58,7 +58,7 @@ if (!$force && $lastRun !== '') {
     }
 }
 
-// ── Run checks ──────────────────────────────────────────────────────────────
+// --- Run checks
 
 $affRepo    = new \Luster\Repositories\AffiliateRepo($db);
 $joinedRepo = new \Luster\Repositories\JoinedListingRepo($db);
@@ -98,7 +98,7 @@ foreach ($joined as $jl) {
     }
 }
 
-// ── Record completion ────────────────────────────────────────────────────────
+// --- Record completion
 
 $checkedAt = date('Y-m-d H:i:s');
 $settings->set('auto_link_check_last_run', $checkedAt);

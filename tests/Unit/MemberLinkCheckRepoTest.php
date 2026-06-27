@@ -14,7 +14,7 @@ use ReflectionProperty;
 
 final class MemberLinkCheckRepoTest extends TestCase
 {
-    // ── DDL ─────────────────────────────────────────────────────────────────
+    // --- DDL
 
     private const CHECK_DDL = <<<SQL
 CREATE TABLE lstr_member_link_checks (
@@ -51,7 +51,7 @@ CREATE TABLE enth_fl_members (
 )
 SQL;
 
-    // ── Helpers ─────────────────────────────────────────────────────────────
+    // --- Helpers
 
     private function makeDb(string $extraDdl = ''): Database
     {
@@ -92,7 +92,7 @@ SQL;
         return (int) $db->pdo()->lastInsertId();
     }
 
-    // ── syncFromListing (unprefixed schema) ─────────────────────────────────
+    // --- syncFromListing (unprefixed schema)
 
     public function testSyncFromListingReturnsZeroWhenNoMembersHaveUrl(): void
     {
@@ -154,7 +154,7 @@ SQL;
         self::assertSame('Bob', $items[0]->member_name);
     }
 
-    // ── syncFromListing (standard enth_ schema) ──────────────────────────────
+    // --- syncFromListing (standard enth_ schema)
 
     public function testSyncFromListingStandardSchemaUsesApprovedColumn(): void
     {
@@ -176,7 +176,7 @@ SQL;
         self::assertSame('Carol', $items[0]->member_name);
     }
 
-    // ── getById ─────────────────────────────────────────────────────────────
+    // --- getById
 
     public function testGetByIdReturnsNullWhenNotFound(): void
     {
@@ -199,7 +199,7 @@ SQL;
         self::assertSame('https://eve.test', $row->member_url);
     }
 
-    // ── paginate ─────────────────────────────────────────────────────────────
+    // --- paginate
 
     public function testPaginateReturnsEmptyWhenNoRows(): void
     {
@@ -282,7 +282,7 @@ SQL;
         self::assertCount(2, $page2['items']);
     }
 
-    // ── getLinkStats ─────────────────────────────────────────────────────────
+    // --- getLinkStats
 
     public function testGetLinkStatsReturnsZerosWhenEmpty(): void
     {
@@ -313,7 +313,7 @@ SQL;
         self::assertSame(1, $stats['unchecked']);
     }
 
-    // ── getAllIds ─────────────────────────────────────────────────────────────
+    // --- getAllIds
 
     public function testGetAllIdsReturnsEmptyArrayWhenNone(): void
     {
@@ -337,7 +337,7 @@ SQL;
         self::assertSame([$id1, $id2], array_values(array_map('intval', $ids)));
     }
 
-    // ── getByLinkStatus ──────────────────────────────────────────────────────
+    // --- getByLinkStatus
 
     public function testGetByLinkStatusReturnsMatchingRows(): void
     {
@@ -364,7 +364,7 @@ SQL;
         self::assertCount(1, $repo->getByLinkStatus('dead', 1));
     }
 
-    // ── updateLinkStatus ─────────────────────────────────────────────────────
+    // --- updateLinkStatus
 
     public function testUpdateLinkStatusChangesStatusAndSetsCheckedAt(): void
     {
@@ -393,7 +393,7 @@ SQL;
         self::assertSame('https://new.test', $row->link_redirect_url);
     }
 
-    // ── applyRedirectUrl ─────────────────────────────────────────────────────
+    // --- applyRedirectUrl
 
     public function testApplyRedirectUrlReturnsFalseWhenNotRedirect(): void
     {
@@ -445,7 +445,7 @@ SQL;
         self::assertSame('https://new.test', $memberRow['url']);
     }
 
-    // ── resetLinkStatus ──────────────────────────────────────────────────────
+    // --- resetLinkStatus
 
     public function testResetLinkStatusResetsAllToUnchecked(): void
     {
@@ -474,7 +474,7 @@ SQL;
         self::assertSame('ok', $row3->link_status);
     }
 
-    // ── clearListing ────────────────────────────────────────────────────────
+    // --- clearListing
 
     public function testClearListingDeletesOnlyThatListing(): void
     {
@@ -491,7 +491,7 @@ SQL;
         self::assertNotNull($repo->getById($id3));
     }
 
-    // ── upsertMember ────────────────────────────────────────────────────────
+    // --- upsertMember
 
     public function testUpsertMemberInsertsNewRow(): void
     {
@@ -559,7 +559,7 @@ SQL;
         self::assertSame(1, $result1['total']);
     }
 
-    // ── removeMember ────────────────────────────────────────────────────────
+    // --- removeMember
 
     public function testRemoveMemberDeletesTheRow(): void
     {

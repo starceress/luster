@@ -73,7 +73,7 @@ final class UpdatesAddon implements AddonInterface
     /** Registers admin (/admin/updates/*) routes. Public output is embed-only. */
     public function registerRoutes(Router $router): void
     {
-        // ── Admin routes ──────────────────────────────────────────────────
+        // --- Admin routes
         // Specific literal paths must be registered before parameterised ones.
 
         // Overview
