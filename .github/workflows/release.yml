@@ -57,6 +57,13 @@ jobs:
             --exclude='phpunit.xml' \
             --exclude='samples' \
             --exclude='tests' \
+            --exclude='vendor/phpmailer/phpmailer/language' \
+            --exclude='vendor/phpmailer/phpmailer/README.md' \
+            --exclude='vendor/phpmailer/phpmailer/SECURITY.md' \
+            --exclude='vendor/phpmailer/phpmailer/SMTPUTF8.md' \
+            --exclude='vendor/phpmailer/phpmailer/VERSION' \
+            --exclude='vendor/phpmailer/phpmailer/composer.json' \
+            --exclude='vendor/phpmailer/phpmailer/get_oauth_token.php' \
             ./ "dist/${PKG}/"
 
           echo "PKG=${PKG}" >> "$GITHUB_ENV"
@@ -64,7 +71,7 @@ jobs:
 
       - name: Create zip
         working-directory: dist/${{ env.PKG }}
-        run: zip -r "../../${PKG}.zip" *
+        run: zip -9 -r "../../${PKG}.zip" .
 
       - name: Generate SHA256SUMS
         run: sha256sum "${PKG}.zip" > SHA256SUMS

@@ -287,10 +287,11 @@ final class MemberRepo
         $p    = $this->resolveTable($prefix);
         $stmt = $this->db->prepare(
             "SELECT * FROM {$p}
-             WHERE name LIKE :term OR email LIKE :term OR url LIKE :term
+             WHERE name LIKE :t1 OR email LIKE :t2 OR url LIKE :t3
              ORDER BY name ASC"
         );
-        $stmt->execute(['term' => '%' . $term . '%']);
+        $like = '%' . $term . '%';
+        $stmt->execute(['t1' => $like, 't2' => $like, 't3' => $like]);
 
         return array_map(static fn(array $r) => Member::fromRow($r), $stmt->fetchAll());
     }
