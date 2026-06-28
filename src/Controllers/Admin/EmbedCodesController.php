@@ -353,7 +353,7 @@ final class EmbedCodesController
 
             $settingsRepo   = new ListingSettingsRepo($db);
             $wrapperTpl     = $settingsRepo->getWrapperTemplate($listingId) ?? '';
-            $embedSettings  = $settingsRepo->getEmbedSettings($listingId);
+            $embedSettings  = $settingsRepo->getResolvedEmbedSettings($listingId);
             $resetPage = (string) ($embedSettings['form_url_reset'] ?? '');
             // Inert preview: '#' instead of a real reset-page URL, so "Forgot your
             // password?" cannot navigate the admin out of the preview into a real,
@@ -417,8 +417,8 @@ final class EmbedCodesController
 
             $member = Member::fromRow([
                 'id'      => 0,
-                'name'    => 'Jane Fan',
-                'email'   => 'fan@example.com',
+                'name'    => 'Jane Doe',
+                'email'   => 'jane@example.com',
                 'url'     => 'https://example.com',
                 'country' => 'United States',
                 'pending' => 0,
@@ -525,8 +525,8 @@ final class EmbedCodesController
             ], '');
 
             $sampleEntries = [
-                ['id' => 1, 'fanlisting_id' => 1, 'listing_title' => 'Sample Fanlisting A', 'name' => 'Jane Fan', 'url' => 'https://example.com', 'email' => 'fan@example.com', 'pending' => false],
-                ['id' => 2, 'fanlisting_id' => 2, 'listing_title' => 'Sample Fanlisting B', 'name' => 'Jane Fan', 'url' => '',                    'email' => 'fan@example.com', 'pending' => false],
+                ['id' => 1, 'fanlisting_id' => 1, 'listing_title' => 'Sample Fanlisting A', 'name' => 'Jane Doe', 'url' => 'https://example.com', 'email' => 'jane@example.com', 'pending' => false],
+                ['id' => 2, 'fanlisting_id' => 2, 'listing_title' => 'Sample Fanlisting B', 'name' => 'John Doe', 'url' => '',                    'email' => 'john@example.com', 'pending' => false],
             ];
 
             return $this->app->getView()->renderFragment('addons/kim/update-dashboard.php', [

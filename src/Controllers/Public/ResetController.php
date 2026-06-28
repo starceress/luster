@@ -82,11 +82,13 @@ final class ResetController
             return Response::notFound('That listing does not exist.');
         }
 
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $formUrl       = ListingFormUrlResolver::resolve(
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings   = $settingsRepo->getResolvedEmbedSettings($listingId);
+        $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
+        $formUrl         = ListingFormUrlResolver::resolve(
             (string) $embedSettings['form_url_reset'],
             $listing->url,
+            $globalDefaults['form_url_reset'],
         );
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_RESET)) {
@@ -162,12 +164,15 @@ final class ResetController
                     fanEmail:       $email,
                     resetUrl:       $resetUrl,
                     listingEmail:   $listing->email,
-                    formUrlJoin:    (string) $embedSettings['form_url_join'],
-                    formUrlUpdate:  (string) $embedSettings['form_url_update'],
-                    formUrlReset:   (string) $embedSettings['form_url_reset'],
+                    formUrlJoin:    (string) ($embedSettings['form_url_join']   ?: $globalDefaults['form_url_join']),
+                    formUrlUpdate:  (string) ($embedSettings['form_url_update'] ?: $globalDefaults['form_url_update']),
+                    formUrlReset:   (string) ($embedSettings['form_url_reset']  ?: $globalDefaults['form_url_reset']),
+                    listingType:    $settingsRepo->getListingType($listingId),
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_RESET, $tokens);
-                $mailer->send($email, $member->name, $subject, $body);
+                if ($subject !== '') {
+                    $mailer->send($email, $member->name, $subject, $body);
+                }
             } catch (\Throwable $e) {
                 error_log('[Luster] Fan password reset email failed: ' . $e->getMessage());
             }
@@ -205,11 +210,13 @@ final class ResetController
             return Response::notFound('That listing does not exist.');
         }
 
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $resetPageUrl  = ListingFormUrlResolver::resolve(
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings   = $settingsRepo->getResolvedEmbedSettings($listingId);
+        $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
+        $resetPageUrl    = ListingFormUrlResolver::resolve(
             (string) $embedSettings['form_url_reset'],
             $listing->url,
+            $globalDefaults['form_url_reset'],
         );
 
         $rawToken = trim((string) $request->post('token', ''));

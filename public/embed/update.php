@@ -131,8 +131,9 @@ if ($_lusterListing === null) {
     return;
 }
 
-$_lusterSettingsRepo  = new ListingSettingsRepo($_lusterApp->getDatabase());
-$_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
+$_lusterSettingsRepo    = new ListingSettingsRepo($_lusterApp->getDatabase());
+$_lusterEmbedSettings   = $_lusterSettingsRepo->getResolvedEmbedSettings($_lusterListingId);
+$_lusterGlobalDefaults  = $_lusterSettingsRepo->getGlobalFormUrlDefaults();
 
 // ---------------------------------------------------------------------------
 // 4. Consume flash data
@@ -180,8 +181,9 @@ if (isset($luster_lost_password_url)) {
     $_lusterLostPasswordUrl = (string) $luster_lost_password_url;
 } else {
     $_lusterResetPage = (string) ($_lusterEmbedSettings['form_url_reset'] ?? '');
-    $_lusterLostPasswordUrl = $_lusterResetPage !== ''
-        ? \Luster\Support\ListingFormUrlResolver::resolve($_lusterResetPage, $_lusterListing->url)
+    $_lusterResetGlobal = $_lusterGlobalDefaults['form_url_reset'] ?? '';
+    $_lusterLostPasswordUrl = ($_lusterResetPage !== '' || $_lusterResetGlobal !== '')
+        ? \Luster\Support\ListingFormUrlResolver::resolve($_lusterResetPage, $_lusterListing->url, $_lusterResetGlobal)
         : '';
 }
 

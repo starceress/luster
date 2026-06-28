@@ -85,15 +85,15 @@ $allTokenDesc = [
     '{fan_email}'       => "The fan or donor's email address",
     '{fan_url}'         => "The fan or donor's website link, if they gave one",
     '{fan_country}'     => "Fan's country",
-    '{fan_password}'    => "The fan's auto-generated password (blank when the fan chose their own; join email only)",
+    '{fan_password}'    => "The fan's password (user-chosen or auto-generated; join email only)",
     '{reset_url}'       => "The secure link the fan clicks to set a new password",
     '{listing_title}'    => "The listing's display name",
     '{listing_subject}' => "What the listing is about",
+    '{listing_type}'    => "Type of listing (listing, clique, etc.)",
     '{listing_url}'     => "The listing's website link",
     '{listing_email}'   => "The listing's own contact email (distinct from your collective owner email)",
-    '{form_url_join}'   => "Direct link to the join form (falls back to the listing URL when no custom form URL is set)",
-    '{form_url_update}' => "Direct link to the update form (falls back to the listing URL when no custom form URL is set)",
-    '{form_url_reset}'  => "Direct link to the password reset form (falls back to the listing URL when no custom form URL is set)",
+    '{join_url}'   => "Direct link to the join form",
+    '{update_url}' => "Direct link to the update form",
     '{site_name}'       => "Your collective or site name",
     '{owner_name}'      => "Your owner/admin name",
     '{owner_email}'     => "Your owner/admin email address",
@@ -108,33 +108,36 @@ $allTokenDesc = [
     '{kim_name}'           => "KIM member's name",
     '{kim_email}'          => "KIM member's email address",
     '{kim_url}'            => "KIM member's website link",
+    '{kim_password}'       => "KIM member's password (user-chosen or auto-generated)",
+    '{kim_update_url}'     => "Link to the KIM update form",
 ];
 
-$commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_url}', '{listing_email}', '{form_url_join}', '{form_url_update}', '{form_url_reset}', '{site_name}', '{owner_name}', '{owner_email}'];
+$commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{listing_email}', '{join_url}', '{update_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens   = array_fill_keys(EmailTemplateRepo::TYPES, $commonTokens);
 $typeTokens[EmailTemplateRepo::TYPE_JOIN] = array_merge($commonTokens, ['{reset_url}', '{fan_password}']);
 $typeTokens[EmailTemplateRepo::TYPE_RESET] = array_merge(
     ['{fan_name}', '{fan_email}', '{reset_url}'],
     array_slice($commonTokens, 2)
 );
-$affiliateTokens = ['{aff_name}', '{aff_url}', '{aff_email}', '{aff_message}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$affiliateTokens = ['{aff_name}', '{aff_url}', '{aff_email}', '{aff_message}', '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPLIED]  = $affiliateTokens;
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPROVED] = $affiliateTokens;
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_REJECTED] = $affiliateTokens;
-$typeTokens[EmailTemplateRepo::TYPE_CODE_APPROVED] = ['{fan_name}', '{fan_email}', '{fan_url}', '{listing_title}', '{listing_subject}', '{listing_url}', '{listing_email}', '{site_name}', '{owner_name}', '{owner_email}'];
-$adoptionTokens = ['{applicant_name}', '{applicant_email}', '{applicant_url}', '{applicant_message}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$typeTokens[EmailTemplateRepo::TYPE_CODE_APPROVED] = ['{fan_name}', '{fan_email}', '{fan_url}', '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{listing_email}', '{site_name}', '{owner_name}', '{owner_email}'];
+$adoptionTokens = ['{applicant_name}', '{applicant_email}', '{applicant_url}', '{applicant_message}', '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens[EmailTemplateRepo::TYPE_ADOPTION_APPLIED]   = $adoptionTokens;
 $typeTokens[EmailTemplateRepo::TYPE_ADOPTION_APPROVED]  = $adoptionTokens;
 $typeTokens[EmailTemplateRepo::TYPE_ADOPTION_REJECTED]  = $adoptionTokens;
-$kimTokens = ['{kim_name}', '{kim_email}', '{kim_url}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$kimTokens = ['{kim_name}', '{kim_email}', '{kim_url}', '{kim_password}', '{kim_update_url}', '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens[EmailTemplateRepo::TYPE_KIM_SIGNUP]   = array_merge(['{reset_url}'], $kimTokens);
 $typeTokens[EmailTemplateRepo::TYPE_KIM_APPLIED]  = $kimTokens;
 $typeTokens[EmailTemplateRepo::TYPE_KIM_APPROVED] = $kimTokens;
 $typeTokens[EmailTemplateRepo::TYPE_KIM_UPDATE]   = $kimTokens;
-$typeTokens[EmailTemplateRepo::TYPE_KIM_RESET]    = array_merge(['{reset_url}'], $kimTokens);
+$kimResetTokens = ['{kim_name}', '{kim_email}', '{kim_url}', '{kim_update_url}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$typeTokens[EmailTemplateRepo::TYPE_KIM_RESET]    = array_merge(['{reset_url}'], $kimResetTokens);
 
 $typeExtraHints = [
-    EmailTemplateRepo::TYPE_JOIN  => 'Include {reset_url} so fans can reset their password later. {fan_password} is available but only fills for auto-generated passwords — it is blank when the fan chose their own.',
+    EmailTemplateRepo::TYPE_JOIN  => '{fan_password} is always populated (user-chosen or auto-generated). Include {reset_url} so fans can reset their password later.',
     EmailTemplateRepo::TYPE_RESET => 'This email needs {reset_url}. Without it, the fan will not have a password reset link to click.',
     EmailTemplateRepo::TYPE_AFFILIATE_APPLIED => 'Affiliate emails use {aff_*} tokens instead of {fan_*} tokens because the person is applying with a website, not joining as a member.',
     EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate emails use {aff_*} tokens instead of {fan_*} tokens because the person is applying with a website, not joining as a member.',
@@ -143,7 +146,7 @@ $typeExtraHints = [
     EmailTemplateRepo::TYPE_ADOPTION_APPLIED  => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This notification goes to the listing admin email when an application arrives.',
     EmailTemplateRepo::TYPE_ADOPTION_APPROVED => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This email is sent to the applicant when you approve their application.',
     EmailTemplateRepo::TYPE_ADOPTION_REJECTED => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This email is sent to the applicant when you reject their application.',
-    EmailTemplateRepo::TYPE_KIM_SIGNUP   => 'KIM emails use {kim_*} tokens. This email is sent to the fan who just signed up. Always include {reset_url} — it is the only way for them to set a password after sign-up.',
+    EmailTemplateRepo::TYPE_KIM_SIGNUP   => 'KIM emails use {kim_*} tokens. This email is sent to the fan who just signed up. {kim_password} is always populated (user-chosen or auto-generated). Include {reset_url} so they can reset their password later.',
     EmailTemplateRepo::TYPE_KIM_APPLIED  => 'KIM emails use {kim_*} tokens instead of {fan_*} tokens. This notification goes to the listing admin email when someone signs up to the KIM List.',
     EmailTemplateRepo::TYPE_KIM_APPROVED => 'KIM emails use {kim_*} tokens instead of {fan_*} tokens. This email is sent to the KIM member when you approve their sign-up.',
     EmailTemplateRepo::TYPE_KIM_UPDATE   => 'KIM emails use {kim_*} tokens. This email is sent to the KIM member after their entry details are changed.',
@@ -157,6 +160,7 @@ $bulkTokens = [
     '{fan_country}'     => $allTokenDesc['{fan_country}'],
     '{listing_title}'    => $allTokenDesc['{listing_title}'],
     '{listing_subject}' => $allTokenDesc['{listing_subject}'],
+    '{listing_type}'    => $allTokenDesc['{listing_type}'],
     '{listing_url}'     => $allTokenDesc['{listing_url}'],
     '{listing_email}'   => $allTokenDesc['{listing_email}'],
     '{site_name}'       => $allTokenDesc['{site_name}'],
@@ -164,14 +168,27 @@ $bulkTokens = [
     '{owner_email}'     => $allTokenDesc['{owner_email}'],
 ];
 
-$isGlobal     = ($scope === 'global');
-$visibleTypes = $isGlobal
-    ? EmailTemplateRepo::TYPES
-    : array_values(array_filter(
+$isGlobal      = ($scope === 'global');
+$isCollective  = ($isCollective ?? false);
+
+if ($isCollective) {
+    $visibleTypes = array_values(array_filter(
         EmailTemplateRepo::TYPES,
-        fn(string $t) => !in_array($t, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)
+        fn(string $t) => in_array($t, EmailTemplateRepo::COLLECTIVE_TYPES, true)
     ));
-$resetConfirm = $isGlobal
+} elseif ($isGlobal) {
+    $visibleTypes = array_values(array_filter(
+        EmailTemplateRepo::TYPES,
+        fn(string $t) => in_array($t, EmailTemplateRepo::LISTING_TYPES, true)
+    ));
+} else {
+    $visibleTypes = array_values(array_filter(
+        EmailTemplateRepo::TYPES,
+        fn(string $t) => in_array($t, EmailTemplateRepo::LISTING_TYPES, true)
+    ));
+}
+
+$resetConfirm = ($isGlobal || $isCollective)
     ? 'Reset this template to the built-in default? Your edits will be lost.'
     : 'Reset this template to the global version? Your per-listing customisation will be removed.';
 
@@ -208,45 +225,55 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 </div>
 
 <div id="tab-templates" class="tabs-panel<?= $active_tab === 'templates' ? ' active' : '' ?>">
-  <form method="GET" action="<?= $b ?>/admin/emails" class="email-scope-row">
-    <input type="hidden" name="tab" value="templates">
-    <div class="select-wrap email-scope-select">
-      <select name="listing" class="js-autosubmit">
-        <option value="global"<?= $isGlobal ? ' selected' : '' ?>>Collective &amp; Global Listings (Default)</option>
-        <?php if (!empty($all_listings)):
-          $sortedListings = $all_listings;
-          usort($sortedListings, fn($a, $b) => strnatcasecmp($a->subject, $b->subject));
-        ?>
-          <option disabled></option>
-          <?php foreach ($sortedListings as $l): ?>
-            <?php $sel = (!$isGlobal && (int) $scope === $l->id); ?>
-            <option value="<?= (int) $l->id ?>"<?= $sel ? ' selected' : '' ?>>
-              <?= View::e($l->subject) ?>
-            </option>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </select>
-    </div>
-    <?php if (!$isGlobal && $listing !== null): ?>
-      <span class="text-dim">
-        Cards showing <span class="badge badge-info">Custom</span> override the global template.
-        Cards showing <span class="badge badge-info3">Global</span> inherit global templates.
-      </span>
-    <?php else: ?>
-      <span class="text-dim">
-        <span class="badge badge-info3">Global</span> templates apply to all listings unless a per-listing override exists.
-      </span>
-    <?php endif; ?>
-  </form>
+  <div class="filter-panel is-open">
+    <form method="GET" action="<?= $b ?>/admin/emails" class="filter-row">
+      <input type="hidden" name="tab" value="templates">
+      <div class="select-wrap email-scope-select">
+        <select name="listing" class="js-autosubmit">
+          <option value="global"<?= $isGlobal ? ' selected' : '' ?>>Global Listings (Default)</option>
+          <optgroup label="────────────────────────"></optgroup>
+          <option value="collective"<?= $isCollective ? ' selected' : '' ?>><?= View::e($site_name_val) ?> (Collective)</option>
+          <?php if (!empty($all_listings)):
+            $sortedListings = $all_listings;
+            usort($sortedListings, fn($a, $b) => strnatcasecmp($a->subject, $b->subject));
+          ?>
+            <optgroup label="────────────────────────"></optgroup>
+            <?php foreach ($sortedListings as $l): ?>
+              <?php $sel = (!$isGlobal && !$isCollective && (int) $scope === $l->id); ?>
+              <option value="<?= (int) $l->id ?>"<?= $sel ? ' selected' : '' ?>>
+                <?= View::e($l->subject) ?>
+              </option>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </select>
+      </div>
+      <?php if ($isCollective): ?>
+        <span class="text-dim">
+          Collective templates apply to site-wide actions like collective affiliates, adoptions, and KIM.
+        </span>
+      <?php elseif (!$isGlobal && $listing !== null): ?>
+        <span class="text-dim">
+          Cards showing <span class="badge badge-info">Custom</span> override the global template.
+          Cards showing <span class="badge badge-info3">Global</span> inherit global templates.
+        </span>
+      <?php else: ?>
+        <span class="text-dim">
+          <span class="badge badge-info3">Global</span> templates apply to all listings unless a per-listing override exists.
+        </span>
+      <?php endif; ?>
+    </form>
+  </div>
 
   <div id="et-preview-data"
        data-site-name="<?= View::e($site_name_val) ?>"
        data-owner-name="<?= View::e($owner_name) ?>"
        data-owner-email="<?= View::e($owner_email) ?>"
-       data-listing-name="<?= View::e($listing?->title ?? 'My Fanlisting') ?>"
+       data-listing-name="<?= View::e($isCollective ? ($site_name_val ?: 'My Collective') : ($listing?->title ?? 'My Fanlisting')) ?>"
        data-listing-subject="<?= View::e($listing?->subject ?? 'Music') ?>"
+       data-listing-type="<?= View::e($listing_type ?? 'listing') ?>"
        data-listing-url="<?= View::e($listing?->url ?? 'https://myfanlisting.com') ?>"
        data-is-global="<?= $isGlobal ? '1' : '0' ?>"
+       data-is-collective="<?= $isCollective ? '1' : '0' ?>"
        class="is-hidden"></div>
 
   <form id="et-save-form" method="POST" action="<?= $b ?>/admin/email-templates/save">
@@ -284,7 +311,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         <div class="et-panel<?= $i === 0 ? ' active' : '' ?>"
              id="et-tab-<?= View::e($type) ?>">
 
-          <div class="card card--gradient<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>">
+          <div class="card card-gradient<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>">
 
             <!-- Card header -->
             <div class="panel-header">
@@ -293,7 +320,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                 <div class="panel-header-sub"><?= View::e($typeHints[$type]) ?></div>
               </div>
               <div class="panel-header-actions">
-                <?php if (!$isGlobal): ?>
+                <?php if (!$isGlobal && !$isCollective): ?>
                   <?php if ($card['isCustomised']): ?>
                     <span class="badge badge-info">Custom</span>
                   <?php else: ?>
@@ -342,7 +369,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
               <div class="et-preview-panel email-preview-panel is-hidden" id="et-preview-<?= View::e($type) ?>">
                 <div class="email-preview-panel-head">
                   Preview <span>(example values)</span>
-                  <?php if ($isGlobal): ?>
+                  <?php if ($isGlobal || $isCollective): ?>
                     <span class="email-preview-note">&middot; listing tokens show generic placeholders</span>
                   <?php endif; ?>
                 </div>
@@ -362,7 +389,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
               <button type="submit"
                       form="et-reset-<?= View::e($type) ?>"
                       class="btn btn-quaternary">
-                <?= $isGlobal ? 'Reset to Default' : 'Reset to Global' ?>
+                <?= ($isGlobal || $isCollective) ? 'Reset to Default' : 'Reset to Global' ?>
               </button>
             </div>
 
@@ -518,12 +545,12 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     </div>
     
 <!-- ──── MAIN COMPOSE AREA ──────────────────────────────────────────── -->
-    <div class="card card--gradient ">
+    <div class="card card-gradient ">
       <form method="POST" action="<?= $b ?>/admin/emails/preview" id="compose-form">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+          <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
           <div class="panel-header-title">Bulk Email</div>
           <span class="badge badge-info2 panel-header-badge" id="me-listing-chip">
             <span id="me-chip-label">All Listings</span>
@@ -560,6 +587,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                             data-count="<?= (int) ($listing_counts[$lst->id] ?? 0) ?>"
                             data-label="<?= View::e($lst->subject) ?>"
                             data-subject="<?= View::e($lst->subject) ?>"
+                            data-type="<?= View::e($listing_types[$lst->id] ?? 'listing') ?>"
                             data-url="<?= View::e($lst->url) ?>"
                             <?= ($old_listing_id ?? 0) === (int) $lst->id ? ' selected' : '' ?>>
                       <?= View::e($lst->subject) ?>
@@ -648,9 +676,9 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
 <div id="tab-custom" class="tabs-panel<?= $active_tab === 'custom' ? ' active' : '' ?>">
   <div class="composer-grid">
-    <div class="card card--gradient">
+    <div class="card card-gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
         
     <div class="panel-header-meta">
         <div class="panel-header-title">Add New Template</div>

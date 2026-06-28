@@ -183,13 +183,15 @@ if ($_lusterRuleSet->gateType === 'button') {
 }
 
 $_lusterSettingsRepo = new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase());
-$_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
+$_lusterEmbedSettings = $_lusterSettingsRepo->getResolvedEmbedSettings($_lusterListingId);
+$_lusterGlobalDefaults = $_lusterSettingsRepo->getGlobalFormUrlDefaults();
 $_lusterListingUrl = $_lusterListing?->url ?? '';
 
-$_lusterResolveUrl = static function (string $settingKey) use ($_lusterEmbedSettings, $_lusterListingUrl): string {
+$_lusterResolveUrl = static function (string $settingKey) use ($_lusterEmbedSettings, $_lusterGlobalDefaults, $_lusterListingUrl): string {
     return \Luster\Support\ListingFormUrlResolver::resolve(
         (string) ($_lusterEmbedSettings[$settingKey] ?? ''),
         $_lusterListingUrl,
+        (string) ($_lusterGlobalDefaults[$settingKey] ?? ''),
     );
 };
 
@@ -198,6 +200,7 @@ $_lusterRulesBodyHtml = \Luster\Support\RulesBodyRenderer::render(
     [
         'subject'       => $_lusterListing?->subject ?? '',
         'listing_title' => $_lusterListing?->title ?? '',
+        'listing_type'  => $_lusterSettingsRepo->getListingType($_lusterListingId),
         'listing_url'   => $_lusterListingUrl,
         'join_url'      => $_lusterResolveUrl('form_url_join'),
         'update_url'    => $_lusterResolveUrl('form_url_update'),

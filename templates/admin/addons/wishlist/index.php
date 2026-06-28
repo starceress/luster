@@ -235,21 +235,19 @@ $showDragHint = isset($typeTabs[$filter_type])
 
 <!-- ──── TABLE ──────────────────────────────────────────────────────── -->
 <?php if (empty($entries)): ?>
-<div class="card">
-  <div class="empty">
-    <div class="empty-icon"><?= View::icon('wishlist', ['width' => 32, 'height' => 32]) ?></div>
-    <?php if ($filter_type === 'hidden'): ?>
-      <div class="empty-title">There are no hidden wishlist entries.</div>
-      <a href="<?= $b ?>/admin/wishlist/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add an Entry</a>
-    <?php elseif (($filters_active ?? false) || $filter_type !== 'all'): ?>
-      <div class="empty-title">There are no wishlist entries yet for this type.</div>
-      <a href="<?= $b ?>/admin/wishlist/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add an Entry</a>
-    <?php else: ?>
-      <div class="empty-title">Your wishlist is empty.</div>
-      <div>Add a listing to your wishlist to track what you want next.</div>
-      <a href="<?= $b ?>/admin/wishlist/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add an Entry</a>
-    <?php endif; ?>
-  </div>
+<div class="card empty">
+  <?= View::icon('wishlist', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+  <?php if ($filter_type === 'hidden'): ?>
+    <div><strong>There are no hidden wishlist entries.</strong></div>
+    <a href="<?= $b ?>/admin/wishlist/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add an Entry</a>
+  <?php elseif (($filters_active ?? false) || $filter_type !== 'all'): ?>
+    <div><strong>There are no wishlist entries yet for this type.</strong></div>
+    <a href="<?= $b ?>/admin/wishlist/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add an Entry</a>
+  <?php else: ?>
+    <div><strong>Your wishlist is empty.</strong></div>
+    <div>Add a listing to your wishlist to track what you want next.</div>
+    <a href="<?= $b ?>/admin/wishlist/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add an Entry</a>
+  <?php endif; ?>
 </div>
 <?php else: ?>
 

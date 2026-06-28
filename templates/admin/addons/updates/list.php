@@ -114,20 +114,18 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
 
 <?php if (empty($updates)): ?>
 
-<div class="card">
-    <div class="empty">
-      <div class="empty-icon"><?= View::icon('updates', ['width' => 32, 'height' => 32]) ?></div>
-      <?php if ($filtersActive): ?>
-        <div class="empty-title">No updates match those filters.</div>
-        <a href="<?= View::e($listBase) ?>" class="btn btn-ghost btn-sm">Clear Filters</a>
-      <?php else: ?>
-        <div class="empty-title">No updates posted yet.</div>
-        <div>Post your first update to let visitors know what's new.</div>
-        <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm">
-          <?= View::icon('add') ?> Add Update
-        </a>
-      <?php endif; ?>
-    </div>
+<div class="card empty">
+    <?= View::icon('updates', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+    <?php if ($filtersActive): ?>
+      <div><strong>No updates match those filters.</strong></div>
+      <a href="<?= View::e($listBase) ?>" class="btn btn-ghost btn-sm">Clear Filters</a>
+    <?php else: ?>
+      <div><strong>No updates posted yet.</strong></div>
+      <div>Post your first update to let visitors know what's new.</div>
+      <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm">
+        <?= View::icon('add') ?> Add Update
+      </a>
+    <?php endif; ?>
   </div>
 
 <?php else: ?>

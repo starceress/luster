@@ -208,11 +208,11 @@ $collLastDate = $latest_coll !== null
           <tr>
             <td colspan="5">
               <div class="empty">
-                <div class="empty-icon"><?= View::icon('updates', ['width' => 32, 'height' => 32]) ?></div>
+                <?= View::icon('updates', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
                 <?php if ($search !== ''): ?>
-                  <div class="empty-title">No listings match &ldquo;<?= View::e($search) ?>&rdquo;.</div>
+                  <div><strong>No listings match &ldquo;<?= View::e($search) ?>&rdquo;.</strong></div>
                 <?php else: ?>
-                  <div class="empty-title">No listings found.</div>
+                  <div><strong>No listings found.</strong></div>
                   <div>Add a listing first to post per-listing updates.</div>
                 <?php endif; ?>
               </div>

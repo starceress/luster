@@ -9,7 +9,7 @@ use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the Join Form template (Migration 70) and the country_field_enabled
+ * Tests for the Join Form template and the country_field_enabled
  * wiring (N1):
  *  - ListingSettingsRepo::getJoinFormTemplate()
  *  - ListingSettingsRepo::getTemplates()['join_form_template']

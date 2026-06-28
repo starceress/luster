@@ -12,8 +12,8 @@ use PHPUnit\Framework\TestCase;
  * Tests for ListingSettingsRepo::getRenderSettingsBatch() and getRenderSettings().
  *
  * Covers:
- *   - Normal fetch when lstr_fanlisting_settings.description exists (Migration 74+).
- *   - Pre-Migration-74 fallback: schema WITHOUT description column still returns
+ *   - Normal fetch when lstr_fanlisting_settings.description exists.
+ *   - Schema WITHOUT description column still returns
  *     image/last_updated/approved_by without throwing or silently losing them.
  *   - Empty input returns empty array.
  *   - Single-listing convenience wrapper delegates to batch method.
@@ -26,7 +26,8 @@ CREATE TABLE lstr_fanlisting_settings (
     image         TEXT NULL,
     last_updated  TEXT NULL,
     approved_by   TEXT NOT NULL DEFAULT '',
-    description   TEXT NULL
+    description   TEXT NULL,
+    listing_type  TEXT NOT NULL DEFAULT 'listing'
 )
 SQL;
 
@@ -35,7 +36,8 @@ CREATE TABLE lstr_fanlisting_settings (
     fanlisting_id INTEGER PRIMARY KEY,
     image         TEXT NULL,
     last_updated  TEXT NULL,
-    approved_by   TEXT NOT NULL DEFAULT ''
+    approved_by   TEXT NOT NULL DEFAULT '',
+    listing_type  TEXT NOT NULL DEFAULT 'listing'
 )
 SQL;
 
@@ -45,8 +47,8 @@ SQL;
         $repo = new ListingSettingsRepo($db);
 
         $db->pdo()->exec(
-            "INSERT INTO lstr_fanlisting_settings (fanlisting_id, image, last_updated, approved_by, description)
-             VALUES (1, 'fl_img.png', '2025-01-15', 'tfl', 'About this listing.')"
+            "INSERT INTO lstr_fanlisting_settings (fanlisting_id, image, last_updated, approved_by, description, listing_type)
+             VALUES (1, 'fl_img.png', '2025-01-15', 'tfl', 'About this listing.', 'clique')"
         );
 
         $map = $repo->getRenderSettingsBatch([1]);
@@ -56,6 +58,7 @@ SQL;
         $this->assertSame('2025-01-15',            (string) $map[1]['last_updated']);
         $this->assertSame('tfl',                   (string) $map[1]['approved_by']);
         $this->assertSame('About this listing.',   (string) $map[1]['description']);
+        $this->assertSame('clique',                (string) $map[1]['listing_type']);
     }
 
     public function testGetRenderSettingsBatchFallsBackWhenDescriptionColumnMissing(): void
@@ -64,17 +67,17 @@ SQL;
         $repo = new ListingSettingsRepo($db);
 
         $db->pdo()->exec(
-            "INSERT INTO lstr_fanlisting_settings (fanlisting_id, image, last_updated, approved_by)
-             VALUES (2, 'old_img.png', '2024-06-01', 'tafl')"
+            "INSERT INTO lstr_fanlisting_settings (fanlisting_id, image, last_updated, approved_by, listing_type)
+             VALUES (2, 'old_img.png', '2024-06-01', 'tafl', 'shrine')"
         );
 
-        // Must NOT throw — should fall back to query without description
         $map = $repo->getRenderSettingsBatch([2]);
 
         $this->assertArrayHasKey(2, $map, 'Fallback path must still return the row');
         $this->assertSame('old_img.png', (string) $map[2]['image'],        'image must survive fallback');
         $this->assertSame('2024-06-01',  (string) $map[2]['last_updated'], 'last_updated must survive fallback');
         $this->assertSame('tafl',        (string) $map[2]['approved_by'],  'approved_by must survive fallback');
+        $this->assertSame('shrine',      (string) $map[2]['listing_type'], 'listing_type must survive fallback');
     }
 
     public function testGetRenderSettingsBatchBatchFetchesMultipleRows(): void

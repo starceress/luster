@@ -210,7 +210,7 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
                 $_lusterListingCategoryMap[$_lcId] = implode(', ', $_lcNames);
             }
         } catch (\Exception) {
-            // Junction table absent (pre-migration 51): fall back to primary category_id
+            // Junction table absent: fall back to primary category_id
             foreach ($_lusterListings as $_fl) {
                 if (($_fl->categoryId ?? null) !== null) {
                     $_lusterListingCategoryMap[$_fl->id] = '';

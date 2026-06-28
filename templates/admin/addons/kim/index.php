@@ -178,16 +178,14 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
 
 <!-- ──── TABLE ───────────────────────────────────────────────────── -->
 <?php if (empty($members)): ?>
-<div class="card">
-  <div class="empty">
-    <div class="empty-icon"><?= View::icon('kim', ['width' => 32, 'height' => 32]) ?></div>
-    <?php if ($filters_active || $tab !== 'all'): ?>
-      <div class="empty-title">No members found for this filter.</div>
-    <?php else: ?>
-      <div class="empty-title">No KIM members yet.</div>
-      <div>Members who sign up via the KIM form will appear here for review.</div>
-    <?php endif; ?>
-  </div>
+<div class="card empty">
+  <?= View::icon('kim', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+  <?php if ($filters_active || $tab !== 'all'): ?>
+    <div><strong>No members found for this filter.</strong></div>
+  <?php else: ?>
+    <div><strong>No KIM members yet.</strong></div>
+    <div>Members who sign up via the KIM form will appear here for review.</div>
+  <?php endif; ?>
 </div>
 <?php else: ?>
 

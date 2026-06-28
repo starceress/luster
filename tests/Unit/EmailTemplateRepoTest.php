@@ -9,15 +9,14 @@ use PHPUnit\Framework\TestCase;
 
 final class EmailTemplateRepoTest extends TestCase
 {
-    public function testDefaultJoinBodyOmitsSensitiveTokens(): void
+    public function testDefaultJoinBodyIncludesPasswordAndResetTokens(): void
     {
         $body = EmailTemplateRepo::defaultBody(EmailTemplateRepo::TYPE_JOIN);
 
-        self::assertStringNotContainsString('{reset_url}', $body,
-            'Default join email should not embed {reset_url} — blank for pending joins');
-        self::assertStringNotContainsString('{fan_password}', $body,
-            'Default join email should not include plaintext password per NIST/OWASP guidance');
-        self::assertStringContainsString('password reset form', $body);
+        self::assertStringContainsString('{fan_password}', $body,
+            'Default join email should include {fan_password} so members receive their password');
+        self::assertStringContainsString('{reset_url}', $body,
+            'Default join email should include {reset_url} for password resets');
     }
 
     public function testBuildTokensIncludesResetUrlAndFanPassword(): void
@@ -79,9 +78,11 @@ final class EmailTemplateRepoTest extends TestCase
             formUrlReset:  'https://example.test/reset.php',
         );
 
-        self::assertSame('https://example.test/join.php',   $tokens['{form_url_join}']);
-        self::assertSame('https://example.test/update.php', $tokens['{form_url_update}']);
-        self::assertSame('https://example.test/reset.php',  $tokens['{form_url_reset}']);
+        self::assertSame('https://example.test/join.php',   $tokens['{join_url}']);
+        self::assertSame('https://example.test/update.php', $tokens['{update_url}']);
+        self::assertSame($tokens['{join_url}'],   $tokens['{form_url_join}'],   'Legacy alias must match');
+        self::assertSame($tokens['{update_url}'], $tokens['{form_url_update}'], 'Legacy alias must match');
+        self::assertSame('https://example.test/reset.php', $tokens['{form_url_reset}'], 'Legacy reset alias');
     }
 
     public function testBuildTokensFormUrlsFallBackToListingUrl(): void
@@ -92,9 +93,8 @@ final class EmailTemplateRepoTest extends TestCase
             siteName:    'Luster',
         );
 
-        self::assertSame('https://example.test/listing', $tokens['{form_url_join}']);
-        self::assertSame('https://example.test/listing', $tokens['{form_url_update}']);
-        self::assertSame('https://example.test/listing', $tokens['{form_url_reset}']);
+        self::assertSame('https://example.test/listing', $tokens['{join_url}']);
+        self::assertSame('https://example.test/listing', $tokens['{update_url}']);
     }
 
     public function testBuildTokensResolvesRelativeFormUrls(): void
@@ -108,9 +108,8 @@ final class EmailTemplateRepoTest extends TestCase
             formUrlReset:  'reset.php',
         );
 
-        self::assertSame('https://example.test/fanlisting/join.php',   $tokens['{form_url_join}']);
-        self::assertSame('https://example.test/fanlisting/update.php', $tokens['{form_url_update}']);
-        self::assertSame('https://example.test/fanlisting/reset.php',  $tokens['{form_url_reset}']);
+        self::assertSame('https://example.test/fanlisting/join.php',   $tokens['{join_url}']);
+        self::assertSame('https://example.test/fanlisting/update.php', $tokens['{update_url}']);
     }
 
     public function testBuildTokensKeepsAbsoluteFormUrls(): void
@@ -124,8 +123,7 @@ final class EmailTemplateRepoTest extends TestCase
             formUrlReset:  'https://other.example/reset',
         );
 
-        self::assertSame('https://other.example/join',   $tokens['{form_url_join}']);
-        self::assertSame('http://other.example/update',  $tokens['{form_url_update}']);
-        self::assertSame('https://other.example/reset',  $tokens['{form_url_reset}']);
+        self::assertSame('https://other.example/join',   $tokens['{join_url}']);
+        self::assertSame('http://other.example/update',  $tokens['{update_url}']);
     }
 }

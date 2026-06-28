@@ -122,7 +122,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $se
   </div>
   <div>
     <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add', ['width' => 20, 'height' => 20]) ?> Add Listing</a>
-    <a href="<?= $b ?>/admin/listings/global-templates" class="btn btn-secondary btn-sm"><?= View::icon('template') ?> Global Templates</a>
+    <a href="<?= $b ?>/admin/listings/global-templates" class="btn btn-secondary btn-sm"><?= View::icon('template') ?> Global Templates & Embed URLs</a>
     <a href="<?= $b ?>/admin/listings/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?> Owned Settings</a>
   </div>
 </div>
@@ -296,7 +296,7 @@ $_flTabCounts = $tab_counts ?? [];
         Showing <?= $flFrom ?>&#8211;<?= $flTo ?> of <?= number_format((int) $total) ?> listing<?= (int) $total !== 1 ? 's' : '' ?><?php if ($total_pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $total_pages ?><?php endif; ?>
       </span>
     </div>
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
       <select id="bulk-action" name="action" class="select-xs">
@@ -316,6 +316,7 @@ $_flTabCounts = $tab_counts ?? [];
       <thead>
         <tr>
           <th class="checkbox-col"><input type="checkbox" id="fl-select-all"></th>
+          <th></th>
           <th><a href="<?= View::e($flSortUrl('id')) ?>" class="sort-th<?= $flSort === 'id' ? ' sort-active' : '' ?>"># <?= View::sortIcon('id', $flSort, $flDir) ?></a></th>
           <th><a href="<?= View::e($flSortUrl('subject')) ?>" class="sort-th<?= $flSort === 'subject' ? ' sort-active' : '' ?>">Subject / Title <?= View::sortIcon('subject', $flSort, $flDir) ?></a></th>
           <th><a href="<?= View::e($flSortUrl('category')) ?>" class="sort-th<?= $flSort === 'category' ? ' sort-active' : '' ?>">Category <?= View::sortIcon('category', $flSort, $flDir) ?></a></th>
@@ -331,6 +332,15 @@ $_flTabCounts = $tab_counts ?? [];
           <!-- Checkbox -->
           <td class="checkbox-col" data-label="">
             <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb" data-name="<?= View::e($fl->title) ?>">
+          </td>
+
+          <!-- Image -->
+          <td data-label="">
+            <?php $flImg = $images[$fl->id] ?? ''; ?>
+            <?php if ($flImg !== ''): ?>
+              <img src="<?= $b ?>/uploads/listings/<?= View::e($flImg) ?>"
+                   alt="" style="max-width:50px;max-height:50px;display:block">
+            <?php endif; ?>
           </td>
 
           <!-- Listing # -->

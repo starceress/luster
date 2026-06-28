@@ -33,8 +33,8 @@ $id = (int) $listing->id;
   <div class="card-head">Existing Fields</div>
   <?php if (empty($fields)): ?>
     <div class="empty">
-      <div class="empty-icon"><?= View::icon('tag', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No additional fields defined yet.</div>
+      <?= View::icon('tag', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+      <div><strong>No additional fields defined yet.</strong></div>
       <div>Extra member questions you add or import will appear here.</div>
     </div>
   <?php else: ?>
@@ -90,7 +90,7 @@ $id = (int) $listing->id;
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('add') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('add') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Add New Field</div>
         <div class="panel-header-sub">Add an extra question to this listing's join and update forms.</div>
@@ -98,7 +98,7 @@ $id = (int) $listing->id;
     </div>
 
     <div class="card-body">
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="af-name">Field Name <span class="req">*</span></label>
         <div>
           <input type="text" class="form" id="af-name" name="name"
@@ -109,7 +109,7 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="af-label">Label <span class="req">*</span></label>
         <div>
           <input type="text" class="form" id="af-label" name="label"
@@ -118,7 +118,7 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="af-type">Type</label>
         <div>
           <div class="select-wrap">
@@ -133,7 +133,7 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div id="af-options-row" class="field-row field-row--top is-hidden">
+      <div id="af-options-row" class="field-row is-hidden">
         <label class="field-label" for="af-options">Options</label>
         <div>
           <textarea class="form" id="af-options" name="options" rows="2"
@@ -142,7 +142,7 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Required</span>
         <div>
           <div class="flex-row">

@@ -121,7 +121,7 @@ $flName     = View::e($listing->subject ?? '');
       </div>
 
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
         <div class="panel-header-title">Email Selected Members</div>
         <span class="badge badge-info2 panel-header-badge">
           <?= $flName ?> &middot; <span id="es-count-label"><?= $count ?> member<?= $count !== 1 ? 's' : '' ?></span>

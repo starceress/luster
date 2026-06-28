@@ -156,18 +156,22 @@ final class AdoptPublicController
                     applicantEmail   : $email,
                     applicantUrl     : $url,
                     applicantMessage : $message,
+                    listingSubject   : $listing->subject,
+                    listingType      : (new ListingSettingsRepo($this->app->getDatabase()))->getListingType($listingId),
                 );
                 [$subject, $body] = $emailRepo->resolveForListing(
                     $listingId,
                     EmailTemplateRepo::TYPE_ADOPTION_APPLIED,
                     $tokens,
                 );
-                (new Mailer($config))->send(
-                    $adminTo,
-                    (string) $config->get('owner_name', ''),
-                    $subject,
-                    $body,
-                );
+                if ($subject !== '') {
+                    (new Mailer($config))->send(
+                        $adminTo,
+                        (string) $config->get('owner_name', ''),
+                        $subject,
+                        $body,
+                    );
+                }
             }
         } catch (\Throwable) {
             // Email failures are non-fatal
@@ -309,18 +313,24 @@ final class AdoptPublicController
                     applicantEmail   : $email,
                     applicantUrl     : $url,
                     applicantMessage : $message,
+                    listingSubject   : $listing?->subject ?? '',
+                    listingType      : $listing !== null
+                        ? (new ListingSettingsRepo($this->app->getDatabase()))->getListingType($listingId)
+                        : 'listing',
                 );
                 [$subject, $body] = $emailRepo->resolveForListing(
                     $listingId,
                     EmailTemplateRepo::TYPE_ADOPTION_APPLIED,
                     $tokens,
                 );
-                (new Mailer($config))->send(
-                    $adminTo,
-                    (string) $config->get('owner_name', ''),
-                    $subject,
-                    $body,
-                );
+                if ($subject !== '') {
+                    (new Mailer($config))->send(
+                        $adminTo,
+                        (string) $config->get('owner_name', ''),
+                        $subject,
+                        $body,
+                    );
+                }
             }
         } catch (\Throwable) {
             // Email failures are non-fatal

@@ -33,7 +33,6 @@ for you.
   an entire collective.
 - Embed-only public frontend: 28 drop-in embeds for join forms, member
   lists, stats, codes, affiliates, wishlists, news feeds, and more.
-  No standalone public pages — everything lives on your own site.
 - Three-tier template system with rendered previews: set global defaults,
   override per listing, and reset with one click.
 - Embed Wizard for building ready-to-copy snippets with live previews.
@@ -45,7 +44,6 @@ for you.
   skins, and community skin support.
 - Bulk and single email with reusable templates and live token previews.
 - Link Checker for dead/moved affiliate and joined-listing URLs.
-- Network Directory for checking your TFL/TAFL registration status.
 - Import Data Wizard for migrating from Enthusiast, Listing Admin,
   Fanatically, BellaBuffs, CodeSort, and FanUpdate.
 - Compatibility bridges for Enthusiast, Listing Admin, and CodeSort so

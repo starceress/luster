@@ -127,12 +127,10 @@ $rangeLast  = min($page * $per_page, $total);
 
 <!-- ──── TABLE ───────────────────────────────────────────────────────── -->
 <?php if ($total === 0 && !$filtersActive): ?>
-<div class="card">
-  <div class="empty">
-    <div class="empty-icon"><?= View::icon('rules', ['width' => 32, 'height' => 32]) ?></div>
-    <div class="empty-title">No listings found.</div>
-    <p>Add a listing first, then come back here to write join rules for it.</p>
-  </div>
+<div class="card empty">
+  <?= View::icon('rules', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+  <div><strong>No listings found.</strong></div>
+  <p>Add a listing first, then come back here to write join rules for it.</p>
 </div>
 <?php else: ?>
 

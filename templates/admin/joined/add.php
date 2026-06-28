@@ -62,14 +62,14 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('add') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('add') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title"><?= $isEdit ? 'Edit Joined Listing' : 'Add Joined Listing' ?></div>
       </div>
     </div>
 
     <div class="card-body">
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Network &amp; Category</span>
         <div>
           <div class="cat-widget"
@@ -113,7 +113,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Image</span>
         <div>
           <?php if ($isEdit && ($joined->image ?? '') !== ''): ?>
@@ -135,7 +135,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="jf-status">Status</label>
         <div>
           <div class="select-wrap">

@@ -164,7 +164,6 @@ final class AuthController
         try {
             (new AdminUserRepo($db))->updateLastLogin($userId);
         } catch (\Throwable) {
-            // Column may not exist on older installs; migrate.php migration 25 adds it
         }
 
         // Remember-me cookie

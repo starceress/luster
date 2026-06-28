@@ -71,13 +71,11 @@ $pageUrl = static function (int $p) use ($b, $sort, $dir): string {
 </div>
 
 <?php if (empty($fanlistings_data)): ?>
-  <div class="card">
-    <div class="empty">
-      <div class="empty-icon"><?= View::icon('kim', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No listings found.</div>
-      <div>Add a listing first to use the KIM list.</div>
-      <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
-    </div>
+  <div class="card empty">
+    <?= View::icon('kim', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+    <div><strong>No listings found.</strong></div>
+    <div>Add a listing first to use the KIM list.</div>
+    <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
   </div>
 <?php else: ?>
 

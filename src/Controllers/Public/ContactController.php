@@ -73,10 +73,12 @@ final class ContactController
 
         $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
         $contactSettings = $settingsRepo->getContactSettings($listingId);
+        $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
 
         $fallbackUrl = \Luster\Support\ListingFormUrlResolver::resolve(
             (string) $contactSettings['form_url_contact'],
             $listing->url,
+            $globalDefaults['form_url_contact'],
         );
 
         if (!$contactSettings['enabled']) {

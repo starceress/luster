@@ -148,7 +148,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       </div>
 
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
         <div class="panel-header-title"><?= $selected_only ? 'Email Selected Members' : 'Bulk Email' ?></div>
         <span class="badge badge-info2 panel-header-badge">
           <?= $flSubject ?> &middot; <span id="es-count-label"><?= $count ?> member<?= $count !== 1 ? 's' : '' ?></span>

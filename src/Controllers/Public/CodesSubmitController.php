@@ -80,7 +80,8 @@ final class CodesSubmitController
                 return Response::notFound('Listing not found.');
             }
 
-            $embedSettings = $settingsRepo->getEmbedSettings($listingId);
+            $embedSettings  = $settingsRepo->getResolvedEmbedSettings($listingId);
+            $globalDefaults = $settingsRepo->getGlobalFormUrlDefaults();
             if (!($embedSettings['codes_submit_enabled'] ?? true)) {
                 return Response::notFound('Code donations are not enabled for this listing.');
             }
@@ -88,6 +89,7 @@ final class CodesSubmitController
             $submitUrl = \Luster\Support\ListingFormUrlResolver::resolve(
                 (string) ($embedSettings['form_url_codes_submit'] ?? ''),
                 $listing->url,
+                $globalDefaults['form_url_codes_submit'],
             );
         }
 

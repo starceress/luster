@@ -38,7 +38,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('database') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('database') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Rename Member Storage</div>
         <div class="panel-header-sub">Changes the internal name Luster uses for this listing's member records.</div>
@@ -50,7 +50,7 @@ $b = rtrim(View::e($base_url), '/');
         <div><strong>High-risk change.</strong> This renames where this listing's members are stored. If anything goes wrong, Luster may not be able to find those members. There is no undo - <b>back up your database before proceeding.</b></div>
     </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Current Prefix</span>
         <div>
           <div class="readonly-field"><?= View::e($listing->dbprefix) ?></div>
@@ -58,7 +58,7 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="ep-new-prefix">
           New Prefix <span class="req">*</span>
         </label>
@@ -68,7 +68,7 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="ep-confirm">
           Confirm Prefix <span class="req">*</span>
         </label>

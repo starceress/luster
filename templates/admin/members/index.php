@@ -194,7 +194,7 @@ $pendingNewCnt = count($pendingNew);
         </form>
       </div>
     </div>
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select name="bulk_action" class="select-xs" id="new-join-bulk-action">
@@ -298,7 +298,7 @@ $pendingNewCnt = count($pendingNew);
         </form>
       </div>
     </div>
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select name="bulk_action" class="select-xs">
@@ -435,7 +435,7 @@ endif;
         Showing <?= $from ?>&#8211;<?= $to ?> of <?= number_format((int) $total) ?> member<?= (int) $total !== 1 ? 's' : '' ?><?php if (($pages ?? 1) > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $pages ?><?php endif; ?>
       </span>
     </div>
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select id="bulk-action-sel" name="bulk_action">
@@ -676,7 +676,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
         </form>
       </div>
     </div>
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select name="action" class="select-xs" id="pending-bulk-action">
@@ -692,8 +692,8 @@ $_newTo         = min($_totalNew, $page * $per_page);
         <thead>
           <tr>
             <th class="checkbox-col"><input type="checkbox" id="pending-check-all"></th>
-            <th><a href="<?= View::e($sortUrl('listing')) ?>" class="sort-th<?= $sort === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('name')) ?>"    class="sort-th<?= $sort === 'name'    ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
+            <th><a href="<?= View::e($sortUrl('listing')) ?>" class="sort-th<?= $sort === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $sort, $dir) ?></a></th>
             <th>Email</th>
             <th><a href="<?= View::e($sortUrl('country')) ?>" class="sort-th<?= $sort === 'country' ? ' sort-active' : '' ?>">Country <?= View::sortIcon('country', $sort, $dir) ?></a></th>
             <th class="actions-col">Actions</th>
@@ -712,20 +712,20 @@ $_newTo         = min($_totalNew, $page * $per_page);
                      value="<?= $flId ?>:<?= View::e($m->email) ?>"
                      data-name="<?= View::e($m->name) ?>">
             </td>
-            <td data-label="Listing">
-              <div class="subject-title-stack">
-                <a href="<?= $b ?>/admin/members?listing_id=<?= $flId ?>&status=pending" class="link"><b><?= View::e($fl->subject ?: $fl->title) ?></b></a>
-                <?php if ($fl->subject !== ''): ?>
-                  <span class="mem-url"><?= View::e($fl->title) ?></span>
-                <?php endif; ?>
-              </div>
-            </td>
             <td data-label="Name">
               <div class="subject-title-stack">
                 <b><?= View::e($m->name) ?></b>
                 <?php if ($m->url !== ''): ?>
                   <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
                      class="link mem-url"><?= View::e($m->url) ?></a>
+                <?php endif; ?>
+              </div>
+            </td>
+            <td data-label="Listing">
+              <div class="subject-title-stack">
+                <a href="<?= $b ?>/admin/members?listing_id=<?= $flId ?>&status=pending" class="link"><b><?= View::e($fl->subject ?: $fl->title) ?></b></a>
+                <?php if ($fl->subject !== ''): ?>
+                  <span class="mem-url"><?= View::e($fl->title) ?></span>
                 <?php endif; ?>
               </div>
             </td>
@@ -797,7 +797,7 @@ endif;
         </form>
       </div>
     </div>
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select name="bulk_action" class="select-xs">
@@ -813,8 +813,8 @@ endif;
         <thead>
           <tr>
             <th class="checkbox-col"><input type="checkbox" class="sel-all" data-fid="pu"></th>
-            <th><a href="<?= View::e($sortUrl('listing')) ?>" class="sort-th<?= $sort === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('name')) ?>"    class="sort-th<?= $sort === 'name'    ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
+            <th><a href="<?= View::e($sortUrl('listing')) ?>" class="sort-th<?= $sort === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $sort, $dir) ?></a></th>
             <th>Email</th>
             <th>Fields Changed</th>
             <th>Submitted</th>
@@ -845,6 +845,15 @@ endif;
           ?>
           <tr>
             <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
+            <td data-label="Name">
+              <div class="subject-title-stack">
+                <b><?= View::e($puMember?->name ?? $pu->member_email) ?></b>
+                <?php if (($puMember?->url ?? '') !== ''): ?>
+                  <a href="<?= View::e($puMember->url) ?>" target="_blank" rel="noopener noreferrer"
+                     class="link mem-url"><?= View::e($puMember->url) ?></a>
+                <?php endif; ?>
+              </div>
+            </td>
             <td data-label="Listing">
               <?php if ($puListing !== null): ?>
                 <div class="subject-title-stack">
@@ -856,15 +865,6 @@ endif;
               <?php else: ?>
                 <span class="text-dim">#<?= $puFlId ?></span>
               <?php endif; ?>
-            </td>
-            <td data-label="Name">
-              <div class="subject-title-stack">
-                <b><?= View::e($puMember?->name ?? $pu->member_email) ?></b>
-                <?php if (($puMember?->url ?? '') !== ''): ?>
-                  <a href="<?= View::e($puMember->url) ?>" target="_blank" rel="noopener noreferrer"
-                     class="link mem-url"><?= View::e($puMember->url) ?></a>
-                <?php endif; ?>
-              </div>
             </td>
             <td data-label="Email"><?= View::e($pu->member_email) ?></td>
             <td data-label="Changes">
@@ -1000,7 +1000,7 @@ $_ovSortUrl = static function (string $col) use ($buildUrl, $_ovSort, $_ovDir): 
               </td>
               <td style="text-align:center;white-space:nowrap" data-label="Rejected">
                 <?php if ($_lc['rejected'] > 0): ?>
-                  <a href="<?= $b ?>/admin/members?listing_id=<?= $_flId ?>&status=rejected" class="text-muted"><?= $_lc['rejected'] ?></a>
+                  <a href="<?= $b ?>/admin/members?listing_id=<?= $_flId ?>&status=rejected" class="badge badge-error"><?= $_lc['rejected'] ?></a>
                 <?php else: ?>
                   <span class="text-dim">&mdash;</span>
                 <?php endif; ?>

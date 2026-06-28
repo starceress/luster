@@ -20,7 +20,7 @@ $listingName = (string) ($result['listing_title'] ?? '');
 
 <div class="card card--gradient" style="margin-bottom:1.5rem">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('check') ?></div>
+    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('check') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Import Complete</div>
       <div class="panel-header-sub">Luster finished adding members to <strong><?= View::e($listingName) ?></strong>.</div>

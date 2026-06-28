@@ -156,9 +156,11 @@ $_lusterApplyMembersTemplate = static function (
 };
 
 // Shared data for all rendering paths
+$_lusterGlobalDefaults = $_lusterSettingsRepo->getGlobalFormUrlDefaults();
 $_lusterJoinUrl = \Luster\Support\ListingFormUrlResolver::resolve(
-    (string) ($_lusterSettingsRepo->getEmbedSettings($_lusterListingId)['form_url_join'] ?? ''),
+    (string) ($_lusterSettingsRepo->getResolvedEmbedSettings($_lusterListingId)['form_url_join'] ?? ''),
     $_lusterListing->url,
+    $_lusterGlobalDefaults['form_url_join'],
 );
 $_lusterCommonData = [
     'listing'      => $_lusterListing,

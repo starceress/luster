@@ -111,7 +111,7 @@ if ($_lusterListing === null) {
 $_lusterFieldRepo     = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
 $_lusterFields        = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
 $_lusterSettingsRepo  = new ListingSettingsRepo($_lusterApp->getDatabase());
-$_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
+$_lusterEmbedSettings = $_lusterSettingsRepo->getResolvedEmbedSettings($_lusterListingId);
 
 // ---------------------------------------------------------------------------
 // 4. Consume flash data (set by the controller after a failed POST)

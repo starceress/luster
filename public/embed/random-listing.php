@@ -98,7 +98,7 @@ try {
     $_lcNames = $_st->fetchAll(\PDO::FETCH_COLUMN);
     $_lusterCategoryName = implode(', ', $_lcNames);
 } catch (\Exception) {
-    // Junction table absent (pre-migration 51): fall back to primary categoryId
+    // Junction table absent: fall back to primary categoryId
     if ($_lusterListing->categoryId !== null && $_lusterListing->categoryId > 0) {
         try {
             $_st = $_lusterApp->getDatabase()->prepare(

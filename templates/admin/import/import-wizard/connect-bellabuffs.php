@@ -50,7 +50,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('import') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Connect to BellaBuffs</div>
         <div class="panel-header-sub">BellaBuffs keeps its data in text files, so no database login is needed.</div>
@@ -82,7 +82,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
     <div id="js-bb-path-section" class="card-body<?= $bbMode === 'upload' ? ' is-hidden' : '' ?>">
       <div class="section-label">BellaBuffs Folder Path</div>
       <div class="card-body">
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="bb_folder_path">Folder Path</label>
         <div>
           <input id="bb_folder_path" type="text" name="bb_folder_path" class="form"
@@ -104,7 +104,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
         <div><strong>Upload mode imports members only.</strong> To migrate affiliates and fan codes, use the server folder path instead.</div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="members_file"><code>members.txt</code> <span class="req">*</span></label>
         <div>
           <label class="file-drop-zone" for="members_file">
@@ -115,7 +115,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
           </label>
         </div>
       </div>
-      <div class="field-row field-row--top" style="margin-top:.5rem">
+      <div class="field-row" style="margin-top:.5rem">
         <label class="field-label" for="newbies_file"><code>newbies.txt</code> <span class="text-dim">(optional)</span></label>
         <div>
           <label class="file-drop-zone" for="newbies_file">

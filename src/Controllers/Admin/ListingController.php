@@ -95,7 +95,7 @@ final class ListingController extends AdminController
 
         // First pass: resolve category network+name and listing type for all listings.
         // Primary source: junction table (lstr_listing_categories) via batch query.
-        // Fallback: getCatItems() for pre-migration-51 installs where the junction table
+        // Fallback: getCatItems() for installs where the junction table
         // doesn't exist yet.
         $allCategoryData  = [];
         $allCategoryNames = [];
@@ -109,7 +109,7 @@ final class ListingController extends AdminController
             if ($junctionData !== null) {
                 $catItems = $junctionData[$fl->id] ?? [];
             } else {
-                // Pre-migration 51: fall back to catid pipe-string resolution
+                // Dall back to catid pipe-string resolution
                 $catItems = $listingRepo->getCatItems((string) ($fl->catid ?? ''), $fl->categoryId);
             }
             $allCategoryData[$fl->id]  = $catItems;
@@ -510,14 +510,15 @@ final class ListingController extends AdminController
 
         $newId = $listingRepo->insert($title, $subject, $url, $email, $status, $image, !empty($catIds) ? $catIds[0] : null, $opened, $catidStr, $catIds);
 
-        // Pre-fill default embed page names for the new listing.
+        // Create embed settings row — leave form URLs blank so they inherit
+        // from the global defaults in Global Templates & URLs.
         $settingsRepo = new ListingSettingsRepo($db);
         $settingsRepo->saveEmbedSettings(
             $newId,
-            'join.php',          // form_url_join
-            'update.php',        // form_url_update
-            'reset.php',         // form_url_reset
-            'codes-submit.php',  // form_url_codes_submit
+            '',                  // form_url_join (inherits global)
+            '',                  // form_url_update (inherits global)
+            '',                  // form_url_reset (inherits global)
+            '',                  // form_url_codes_submit (inherits global)
             true,                // codes_submit_enabled
             '',                  // db_host
             '',                  // db_name
@@ -1043,7 +1044,9 @@ final class ListingController extends AdminController
         $fields               = $fieldRepo->getFieldsForListing($id);
         $templates            = $settingsRepo->getTemplates($id);
         $templates['codes_template'] = $settingsRepo->getCodesTemplate($id);
-        $globalTemplates      = (new SiteSettingsRepo($db))->getGlobalTemplates();
+        $siteSettingsRepo     = new SiteSettingsRepo($db);
+        $globalTemplates      = $siteSettingsRepo->getGlobalTemplates();
+        $globalFormUrls       = $siteSettingsRepo->getGlobalFormUrls();
         $tplBuiltIns = [
             'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
             'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
@@ -1150,6 +1153,7 @@ final class ListingController extends AdminController
             'fields'              => $fields,
             'templates'           => $templates,
             'global_templates'    => $globalTemplates,
+            'global_form_urls'    => $globalFormUrls,
             'template_sources'    => $templateSources,
             'categories'          => $categories,
             'current_category_id'  => $currentCategoryId,
@@ -2452,14 +2456,20 @@ final class ListingController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        $siteRepo = new SiteSettingsRepo($db);
-        $globals  = $siteRepo->getGlobalTemplates();
+        $siteRepo  = new SiteSettingsRepo($db);
+        $globals   = $siteRepo->getGlobalTemplates();
+        $activeTab = in_array($request->query('tab', 'templates'), ['templates', 'urls'], true)
+            ? (string) $request->query('tab', 'templates')
+            : 'templates';
+        $formUrls  = $siteRepo->getGlobalFormUrls();
 
-        return $this->adminLayout('admin/listings/global-templates.php', 'Global Listing Templates', 'listings', [
+        return $this->adminLayout('admin/listings/global-templates.php', 'Global Templates & URLs', 'listings', [
             'success'                => $success,
             'error'                  => $error,
             'globals'                => $globals,
             'stat_newmembers_limit'  => $siteRepo->get('stat_newmembers_limit'),
+            'active_tab'             => $activeTab,
+            'form_urls'              => $formUrls,
         ], '', [
             $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
@@ -2480,6 +2490,19 @@ final class ListingController extends AdminController
         $session  = $this->app->getSession();
         $baseUrl  = $this->app->getBaseUrl();
 
+        // ── URL save branch ──────────────────────────────────────────────
+        if ($request->post('_save_urls') !== null) {
+            $siteRepo = new SiteSettingsRepo($db);
+            $urlKeys  = SiteSettingsRepo::GLOBAL_FORM_URL_KEYS;
+            foreach ($urlKeys as $key => $_default) {
+                $submitted = ltrim(trim((string) $request->post($key, '')), '/');
+                $siteRepo->set($key, $submitted !== '' ? $submitted : null);
+            }
+            $session->set('lstr_flash_success', 'Default form page URLs saved.');
+            return Response::redirect($baseUrl . '/admin/listings/global-templates?tab=urls');
+        }
+
+        // ── Template save branch ─────────────────────────────────────────
         $types = [
             'listing_default_members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
             'listing_default_stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),

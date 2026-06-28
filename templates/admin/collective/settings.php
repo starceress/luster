@@ -27,9 +27,9 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 <form method="POST" action="<?= $b ?>/admin/collective/settings" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="card card--gradient">
+  <div class="card card-gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('general') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('general') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Collective Settings</div>
         <div class="panel-header-sub">Turn site-wide collective features on or off, and choose where their messages go.</div>
@@ -97,7 +97,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
         <div>
           <input id="s-form-url-affiliate-apply" type="text" name="collective_form_url_affiliate_apply" class="form" maxlength="200"
                  value="<?= View::e($site_settings['collective_form_url_affiliate_apply'] ?? '') ?>"
-                 placeholder="affiliate-apply.php">
+                 placeholder="affiliates.php">
           <p class="form-hint">The public page on your site where other sites can apply to affiliate with your collective.</p>
         </div>
       </div>

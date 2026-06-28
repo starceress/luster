@@ -31,7 +31,7 @@ $fe = $field_errors ?? [];
   <div class="card card--gradient">
     <div class="card-body">
 
-      <div class="field-row field-row--top<?= !empty($fe['name']) ? ' has-error' : '' ?>">
+      <div class="field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="field-label" for="cat-name">
           Category Name <span class="req">*</span>
         </label>
@@ -46,7 +46,7 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="cat-slug">URL Slug</label>
         <div>
           <input id="cat-slug" type="text" name="slug" class="form"
@@ -57,7 +57,7 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="cat-parent">Parent Category</label>
         <div>
           <div class="select-wrap">
@@ -77,7 +77,7 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="add-network-toggle">Add to a Network?</label>
         <div>
           <div class="select-wrap">
@@ -90,7 +90,7 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="field-row field-row--top is-hidden" id="network-name-row">
+      <div class="field-row is-hidden" id="network-name-row">
         <label class="field-label" for="cat-network">Network Name</label>
         <div>
           <input id="cat-network" type="text" name="network_name" class="form"

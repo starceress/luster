@@ -9,8 +9,8 @@ use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the Codes Submit Form template (Migration 70) and the retirement of
- * codes_submit_intro_template (Migration 72):
+ * Tests for the Codes Submit Form template and the retirement of
+ * codes_submit_intro_template:
  *  - ListingSettingsRepo::defaultCodesSubmitFormTemplate()
  *  - ListingSettingsRepo::getCodesSubmitFormTemplate()
  *  - ListingSettingsRepo::getTemplates()['codes_submit_form_template']

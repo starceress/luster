@@ -33,7 +33,7 @@ $_defaults = [
 
 <div class="card card--gradient">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('gear') ?></div>
+    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Display & Embed Settings</div>
       <div class="panel-header-sub">Configure the display settings of the admin panel & the public page URLs used by the KIM List embed.</div>
@@ -43,7 +43,7 @@ $_defaults = [
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <div class="card-body">
       <div class="section-label">Display Settings</div>
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">Default View</label>
         <div>
           <div class="radio-group">

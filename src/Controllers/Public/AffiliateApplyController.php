@@ -329,7 +329,7 @@ final class AffiliateApplyController
 
         $override = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_form_url_affiliate_apply');
 
-        return CollectiveFormUrlResolver::resolve($override, $siteUrl, $siteUrl);
+        return CollectiveFormUrlResolver::resolve($override ?: 'affiliates.php', $siteUrl, $siteUrl);
     }
 
     /**
@@ -340,9 +340,11 @@ final class AffiliateApplyController
      */
     private function resolveFormUrl(int $listingId, string $listingUrl, array $applySettings, string $baseUrl): string
     {
+        $globalDefaults = (new ListingSettingsRepo($this->app->getDatabase()))->getGlobalFormUrlDefaults();
         return \Luster\Support\ListingFormUrlResolver::resolve(
             (string) $applySettings['form_url'],
             $listingUrl,
+            $globalDefaults['form_url_affiliate_apply'],
         );
     }
 
@@ -446,15 +448,19 @@ final class AffiliateApplyController
 
         $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
         $tokens    = EmailTemplateRepo::buildAffiliateTokens(
-            listingName: $listingName,
-            listingUrl:  $listingUrl,
-            siteName:    (string) $config->get('site_name', ''),
-            ownerName:   (string) $config->get('owner_name', ''),
-            ownerEmail:  (string) $config->get('owner_email', ''),
-            affName:     $affName,
-            affUrl:      $affUrl,
-            affEmail:    $affEmail,
-            affMessage:  $affMessage,
+            listingName:    $listingName,
+            listingUrl:     $listingUrl,
+            siteName:       (string) $config->get('site_name', ''),
+            ownerName:      (string) $config->get('owner_name', ''),
+            ownerEmail:     (string) $config->get('owner_email', ''),
+            affName:        $affName,
+            affUrl:         $affUrl,
+            affEmail:       $affEmail,
+            affMessage:     $affMessage,
+            listingSubject: $listing !== null ? (string) $listing->subject : '',
+            listingType:    $listing !== null
+                ? (new ListingSettingsRepo($this->app->getDatabase()))->getListingType($listingId)
+                : 'listing',
         );
 
         [$subject, $body] = $emailRepo->resolveForListing(
@@ -462,6 +468,10 @@ final class AffiliateApplyController
             EmailTemplateRepo::TYPE_AFFILIATE_APPLIED,
             $tokens,
         );
+
+        if ($subject === '') {
+            return;
+        }
 
         try {
             $mailer = new Mailer($config);

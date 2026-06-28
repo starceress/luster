@@ -134,19 +134,17 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
 </div>
 
 <?php if (empty($items ?? [])): ?>
-<div class="card">
-  <div class="empty">
-    <?php if (($search ?? '') !== '' || ($source ?? '') !== ''): ?>
-      <div class="empty-icon"><?= View::icon('tag', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No categories match your search.</div>
-      <a href="<?= $b ?>/admin/categories" class="btn btn-ghost btn-sm">Clear Search</a>
-    <?php else: ?>
-      <div class="empty-icon"><?= View::icon('tag', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No categories yet.</div>
-      <div>Add your first to start organising listings.</div>
-      <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Category</a>
-    <?php endif; ?>
-  </div>
+<div class="card empty">
+  <?php if (($search ?? '') !== '' || ($source ?? '') !== ''): ?>
+    <?= View::icon('tag', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+    <div><strong>No categories match your search.</strong></div>
+    <a href="<?= $b ?>/admin/categories" class="btn btn-ghost btn-sm">Clear Search</a>
+  <?php else: ?>
+    <?= View::icon('tag', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+    <div><strong>No categories yet.</strong></div>
+    <div>Add your first to start organising listings.</div>
+    <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Category</a>
+  <?php endif; ?>
 </div>
 <?php else: ?>
 

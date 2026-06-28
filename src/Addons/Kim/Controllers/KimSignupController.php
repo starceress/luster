@@ -24,6 +24,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\SuccessRenderer;
 
@@ -147,23 +148,17 @@ final class KimSignupController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Password — required
+        // Password — use the supplied value or auto-generate a secure one
         $rawPassword     = (string) $request->post('password',         '');
         $passwordConfirm = (string) $request->post('password_confirm', '');
 
-        if ($rawPassword === '') {
-            $session->set('lstr_flash_error', 'Password is required.');
-            $session->set('lstr_flash_old', $oldFields);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
-        }
-
-        if ($rawPassword !== $passwordConfirm) {
+        if ($rawPassword !== '' && $rawPassword !== $passwordConfirm) {
             $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
             $session->set('lstr_flash_old', $oldFields);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        {
+        if ($rawPassword !== '') {
             $passwordValidator = new Validator(['password' => $rawPassword]);
             PasswordPolicy::apply($passwordValidator->field('password'));
             if ($passwordValidator->fails()) {
@@ -171,6 +166,10 @@ final class KimSignupController
                 $session->set('lstr_flash_old', $oldFields);
                 return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
             }
+        }
+
+        if ($rawPassword === '') {
+            $rawPassword  = bin2hex(random_bytes(8));
         }
 
         $passwordHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
@@ -202,19 +201,33 @@ final class KimSignupController
             // never to the signup page, even in embed context.
             $setupUrl  = $this->issuePasswordSetupUrl($kimRepo, $email, $fanlistingId);
             $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+            $_kimSiteRepo = new SiteSettingsRepo($this->app->getDatabase());
+            $_kimSiteUrl  = (string) $config->get('app_url', '');
             $tokens    = EmailTemplateRepo::buildKimTokens(
-                listingName: $listingName,
-                listingUrl:  $listingUrl,
-                siteName:    $siteName,
-                ownerName:   $ownerName,
-                ownerEmail:  $ownerEmail,
-                kimName:     $name,
-                kimEmail:    $email,
-                kimUrl:      $url,
-                resetUrl:    $setupUrl,
+                listingName:    $listingName,
+                listingUrl:     $listingUrl,
+                siteName:       $siteName,
+                ownerName:      $ownerName,
+                ownerEmail:     $ownerEmail,
+                kimName:        $name,
+                kimEmail:       $email,
+                kimUrl:         $url,
+                resetUrl:       $setupUrl,
+                listingSubject: $selectedListing->subject ?? '',
+                listingType:    $selectedListing !== null
+                    ? (new ListingSettingsRepo($this->app->getDatabase()))->getListingType((int) $selectedListing->id)
+                    : 'listing',
+                kimPassword:    $rawPassword,
+                kimUpdateUrl:   \Luster\Support\CollectiveFormUrlResolver::resolve(
+                    $_kimSiteRepo->get('kim_url_update') ?: 'kim-update.php',
+                    ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                    ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                ),
             );
             [$subject, $body] = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_KIM_SIGNUP, $tokens);
-            (new Mailer($config))->send($email, $name, $subject, $body);
+            if ($subject !== '') {
+                (new Mailer($config))->send($email, $name, $subject, $body);
+            }
         } catch (\Throwable $e) {
             error_log('[KIM] Sign-up confirmation email failed: ' . $e->getMessage());
         }
@@ -228,26 +241,37 @@ final class KimSignupController
             if ($adminTo !== '') {
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
                 $tokens    = EmailTemplateRepo::buildKimTokens(
-                    listingName : $selectedListing?->title ?? '',
-                    listingUrl  : $selectedListing?->url   ?? '',
-                    siteName    : (string) $config->get('site_name',   ''),
-                    ownerName   : (string) $config->get('owner_name',  ''),
-                    ownerEmail  : (string) $config->get('owner_email', ''),
-                    kimName     : $name,
-                    kimEmail    : $email,
-                    kimUrl      : $url,
+                    listingName    : $selectedListing?->title ?? '',
+                    listingUrl     : $selectedListing?->url   ?? '',
+                    siteName       : (string) $config->get('site_name',   ''),
+                    ownerName      : (string) $config->get('owner_name',  ''),
+                    ownerEmail     : (string) $config->get('owner_email', ''),
+                    kimName        : $name,
+                    kimEmail       : $email,
+                    kimUrl         : $url,
+                    listingSubject : $selectedListing?->subject ?? '',
+                    listingType    : $selectedListing !== null
+                        ? (new ListingSettingsRepo($this->app->getDatabase()))->getListingType((int) $selectedListing->id)
+                        : 'listing',
+                    kimUpdateUrl   : \Luster\Support\CollectiveFormUrlResolver::resolve(
+                        (new SiteSettingsRepo($this->app->getDatabase()))->get('kim_url_update') ?: 'kim-update.php',
+                        ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                        ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                    ),
                 );
                 [$notifySubject, $notifyBody] = $emailRepo->resolveForListing(
                     $fanlistingId,
                     EmailTemplateRepo::TYPE_KIM_APPLIED,
                     $tokens,
                 );
-                (new Mailer($config))->send(
-                    $adminTo,
-                    (string) $config->get('owner_name', ''),
-                    $notifySubject,
-                    $notifyBody,
-                );
+                if ($notifySubject !== '') {
+                    (new Mailer($config))->send(
+                        $adminTo,
+                        (string) $config->get('owner_name', ''),
+                        $notifySubject,
+                        $notifyBody,
+                    );
+                }
             }
         } catch (\Throwable) {
             // Email failures are non-fatal

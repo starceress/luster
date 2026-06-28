@@ -13,19 +13,21 @@ $b          = rtrim(View::e($base_url), '/');
 $fe         = $field_errors ?? [];
 $isEdit     = $affiliate !== null;
 $contextFid = (int) ($context_fid ?? 0);
+$fromFid    = (int) ($from_listing ?? 0);
 
-// Form action: listing-context add uses the dedicated route
+// Form action uses $fromFid (route-based origin) not $contextFid (preselect hint)
 if ($isEdit) {
-    $action = $b . '/admin/affiliates/' . (int) $affiliate->id . '/edit';
-} elseif ($contextFid > 0) {
-    $action = $b . '/admin/listings/' . $contextFid . '/affiliates/add';
+    $editQs = $fromFid > 0 ? '?from_listing=' . $fromFid : '';
+    $action = $b . '/admin/affiliates/' . (int) $affiliate->id . '/edit' . $editQs;
+} elseif ($fromFid > 0) {
+    $action = $b . '/admin/listings/' . $fromFid . '/affiliates/add';
 } else {
     $action = $b . '/admin/affiliates/add';
 }
 
-// Back/cancel destination
-$backUrl   = $contextFid > 0 ? $b . '/admin/listings/' . $contextFid : $b . '/admin/affiliates';
-$backLabel = $contextFid > 0 ? 'Back to Listing' : 'Back to Affiliates';
+// Back/cancel destination — based on where the user came from, not the preselect
+$backUrl   = $fromFid > 0 ? $b . '/admin/listings/' . $fromFid . '/edit?tab=affiliates' : $b . '/admin/affiliates';
+$backLabel = $fromFid > 0 ? 'Back to Listing' : 'Back to Affiliates';
 
 // Value helper: prefer $old (re-populate on error), then model, then ''
 $v = static function (string $key, $model, string $prop, string $default = '') use ($old): string {
@@ -39,6 +41,12 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 };
 ?>
 
+<div class="toolbar">
+  <a href="<?= $backUrl ?>" class="link">
+    &larr; <?= View::e($backLabel) ?>
+  </a>
+</div>
+
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
@@ -46,13 +54,13 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 <form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="sort_order" value="<?= View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
-  <?php if ($isEdit && $contextFid > 0): ?>
-    <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
+  <?php if (($from_listing ?? 0) > 0): ?>
+    <input type="hidden" name="from_listing" value="<?= (int) $from_listing ?>">
   <?php endif; ?>
 
-  <div class="card card--gradient">
+  <div class="card card-gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('wrench') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('wrench') ?></div>
         <div class="panel-header-meta">
         <div class="panel-header-title"><?= $isEdit ? View::e($affiliate->name) : 'Add New Affiliate' ?></div>
         <div class="panel-header-sub"><?= $isEdit ? 'Update this affiliate\'s details.' : 'Add a site to your affiliates list.' ?></div>
@@ -241,8 +249,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       data-del-entity="affiliate"
       data-del-name="<?= View::e($affiliate->name) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-  <?php if ($contextFid > 0): ?>
-    <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
+  <?php if (($from_listing ?? 0) > 0): ?>
+    <input type="hidden" name="from_listing" value="<?= (int) $from_listing ?>">
   <?php endif; ?>
 </form>
 <?php endif; ?>

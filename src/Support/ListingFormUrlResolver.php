@@ -18,28 +18,35 @@ namespace Luster\Support;
  * codes-submit, contact, affiliate-apply) based on the admin's configured
  * Host Page URL setting.
  *
- * Resolution rules:
- * - Empty override → listing URL (the owner's listing homepage).
- * - Absolute URL (http/https) → used as-is.
- * - Relative filename (e.g. "reset.php") → resolved against the listing URL.
+ * Resolution rules (cascade):
+ * 1. Per-listing override (non-empty) → used directly.
+ * 2. Global default from lstr_site_settings (non-empty) → used instead.
+ * 3. Both empty → listing URL (the owner's listing homepage).
+ *
+ * Absolute URLs (http/https) are used as-is.
+ * Relative filenames (e.g. "reset.php") are resolved against the listing URL.
  *
  * Pure function — no DB calls, trivially unit-testable.
  */
 final class ListingFormUrlResolver
 {
     /**
-     * @param string $override  The admin-configured form page URL (may be '', relative, or absolute).
-     * @param string $listingUrl The listing's own public URL (used as resolution base and fallback).
+     * @param string $override    The per-listing form page URL (may be '', relative, or absolute).
+     * @param string $listingUrl  The listing's own public URL (used as resolution base and fallback).
+     * @param string $globalDefault Optional global default from lstr_site_settings (may be '' or relative/absolute).
      */
-    public static function resolve(string $override, string $listingUrl): string
+    public static function resolve(string $override, string $listingUrl, string $globalDefault = ''): string
     {
-        $override = trim($override);
-        if ($override === '') {
+        $effective = trim($override);
+        if ($effective === '') {
+            $effective = trim($globalDefault);
+        }
+        if ($effective === '') {
             return $listingUrl;
         }
-        if (preg_match('#^https?://#i', $override)) {
-            return $override;
+        if (preg_match('#^https?://#i', $effective)) {
+            return $effective;
         }
-        return rtrim($listingUrl, '/') . '/' . ltrim($override, '/');
+        return rtrim($listingUrl, '/') . '/' . ltrim($effective, '/');
     }
 }

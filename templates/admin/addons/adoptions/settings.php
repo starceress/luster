@@ -27,7 +27,7 @@ $b = rtrim(View::e($base_url), '/');
 
 <div class="card card--gradient">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('gear') ?></div>
+    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Display Settings</div>
       <div class="panel-header-sub">Configure the default view and pagination for the Adoptions admin panel.</div>
@@ -36,7 +36,7 @@ $b = rtrim(View::e($base_url), '/');
   <form method="POST" action="<?= $b ?>/admin/adoptions/settings">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <div class="card-body">
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">Default View</label>
         <div>
           <div class="radio-group">

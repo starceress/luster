@@ -51,6 +51,18 @@ final class EmailTemplatesController extends AdminController
         return Response::redirect($baseUrl . '/admin/emails' . $qs);
     }
 
+    /**
+     * Resolves the fanlisting_id from the POST scope parameter.
+     * Returns COLLECTIVE_ID for 'collective', 0 for 'global', or the listing ID.
+     */
+    private function scopeToListingId(string $scope): int
+    {
+        if ($scope === 'collective') {
+            return EmailTemplateRepo::COLLECTIVE_ID;
+        }
+        return $scope === 'global' ? 0 : (int) $scope;
+    }
+
     // -----------------------------------------------------------------------
     // POST /admin/email-templates/save
     // -----------------------------------------------------------------------
@@ -70,11 +82,14 @@ final class EmailTemplatesController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $scope     = trim((string) $request->post('scope', 'global'));
-        $listingId = $scope === 'global' ? 0 : (int) $scope;
+        $scope        = trim((string) $request->post('scope', 'global'));
+        $isCollective = $scope === 'collective';
+        $listingId    = $isCollective
+            ? EmailTemplateRepo::COLLECTIVE_ID
+            : ($scope === 'global' ? 0 : (int) $scope);
 
         // Validate per-listing scope
-        if ($listingId !== 0) {
+        if ($listingId > 0) {
             $listingRepo = new ListingRepo($db, $config);
             if ($listingRepo->getById($listingId) === null) {
                 $session->set('lstr_flash_error', 'Listing not found.');
@@ -82,10 +97,17 @@ final class EmailTemplatesController extends AdminController
             }
         }
 
-        $emailRepo = new EmailTemplateRepo($db);
+        $emailRepo    = new EmailTemplateRepo($db);
+        $allowedTypes = $isCollective
+            ? EmailTemplateRepo::COLLECTIVE_TYPES
+            : EmailTemplateRepo::LISTING_TYPES;
 
         foreach (EmailTemplateRepo::TYPES as $type) {
-            if ($listingId !== 0 && in_array($type, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)) {
+            if (!in_array($type, $allowedTypes, true)) {
+                continue;
+            }
+            // Per-listing scope: also skip collective-only types
+            if ($listingId > 0 && in_array($type, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)) {
                 continue;
             }
             $subject = trim((string) $request->post('email_subject_' . $type, ''));
@@ -94,18 +116,25 @@ final class EmailTemplatesController extends AdminController
             $emailRepo->save($listingId, $type, $subject, $body, $enabled);
         }
 
+        $logLabel = match (true) {
+            $isCollective   => 'Saved collective email templates',
+            $listingId === 0 => 'Saved global email templates',
+            default          => "Saved email templates for listing #{$listingId}",
+        };
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             'email_templates.save',
-            $listingId === 0
-                ? 'Saved global email templates'
-                : "Saved email templates for listing #{$listingId}",
+            $logLabel,
             $request->ip(),
         );
 
         $session->set('lstr_flash_success', 'Email templates saved.');
 
-        $qs = $scope === 'global' ? '?tab=templates' : '?tab=templates&listing=' . $listingId;
+        $qs = match (true) {
+            $isCollective    => '?tab=templates&listing=collective',
+            $listingId === 0 => '?tab=templates',
+            default          => '?tab=templates&listing=' . $listingId,
+        };
         return Response::redirect($baseUrl . '/admin/emails' . $qs);
     }
 
@@ -128,20 +157,28 @@ final class EmailTemplatesController extends AdminController
         $config  = $this->app->getConfig();
         $session = $this->app->getSession();
 
-        $scope     = trim((string) $request->post('scope', 'global'));
-        $type      = trim((string) $request->post('type', ''));
-        $enabled   = $request->post('enabled') === '1';
-        $listingId = $scope === 'global' ? 0 : (int) $scope;
+        $scope        = trim((string) $request->post('scope', 'global'));
+        $type         = trim((string) $request->post('type', ''));
+        $enabled      = $request->post('enabled') === '1';
+        $isCollective = $scope === 'collective';
+        $listingId    = $isCollective
+            ? EmailTemplateRepo::COLLECTIVE_ID
+            : ($scope === 'global' ? 0 : (int) $scope);
 
         if (!in_array($type, EmailTemplateRepo::TYPES, true)) {
             return Response::json(['ok' => false, 'error' => 'Invalid type.'], 422);
         }
 
-        if ($listingId !== 0 && in_array($type, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)) {
+        // Validate type is allowed for the given scope
+        if ($isCollective && !in_array($type, EmailTemplateRepo::COLLECTIVE_TYPES, true)) {
+            return Response::json(['ok' => false, 'error' => 'This template type is not available in collective scope.'], 422);
+        }
+
+        if ($listingId > 0 && in_array($type, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)) {
             return Response::json(['ok' => false, 'error' => 'This template type is collective-level only.'], 422);
         }
 
-        if ($listingId !== 0) {
+        if ($listingId > 0) {
             $listingRepo = new ListingRepo($db, $config);
             if ($listingRepo->getById($listingId) === null) {
                 return Response::json(['ok' => false, 'error' => 'Listing not found.'], 422);
@@ -150,11 +187,15 @@ final class EmailTemplatesController extends AdminController
 
         (new EmailTemplateRepo($db))->setEnabled($listingId, $type, $enabled);
 
+        $scopeLabel = match (true) {
+            $isCollective    => ' (collective)',
+            $listingId === 0 => ' (global)',
+            default          => " for listing #{$listingId}",
+        };
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             'email_templates.toggle',
-            ($enabled ? 'Enabled' : 'Disabled') . " {$type} email template"
-                . ($listingId === 0 ? ' (global)' : " for listing #{$listingId}"),
+            ($enabled ? 'Enabled' : 'Disabled') . " {$type} email template" . $scopeLabel,
             $request->ip(),
         );
 
@@ -180,21 +221,29 @@ final class EmailTemplatesController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $scope     = trim((string) $request->post('scope', 'global'));
-        $type      = trim((string) $request->post('type', ''));
-        $listingId = $scope === 'global' ? 0 : (int) $scope;
+        $scope        = trim((string) $request->post('scope', 'global'));
+        $type         = trim((string) $request->post('type', ''));
+        $isCollective = $scope === 'collective';
+        $listingId    = $isCollective
+            ? EmailTemplateRepo::COLLECTIVE_ID
+            : ($scope === 'global' ? 0 : (int) $scope);
 
         if (!in_array($type, EmailTemplateRepo::TYPES, true)) {
             $session->set('lstr_flash_error', 'Invalid template type.');
             return Response::redirect($baseUrl . '/admin/emails?tab=templates');
         }
 
-        if ($listingId !== 0 && in_array($type, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)) {
+        if ($isCollective && !in_array($type, EmailTemplateRepo::COLLECTIVE_TYPES, true)) {
+            $session->set('lstr_flash_error', 'This template type is not available in collective scope.');
+            return Response::redirect($baseUrl . '/admin/emails?tab=templates');
+        }
+
+        if ($listingId > 0 && in_array($type, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)) {
             $session->set('lstr_flash_error', 'This template type is collective-level only.');
             return Response::redirect($baseUrl . '/admin/emails?tab=templates');
         }
 
-        if ($listingId !== 0) {
+        if ($listingId > 0) {
             $listingRepo = new ListingRepo($db, $config);
             if ($listingRepo->getById($listingId) === null) {
                 $session->set('lstr_flash_error', 'Listing not found.');
@@ -204,19 +253,26 @@ final class EmailTemplatesController extends AdminController
 
         (new EmailTemplateRepo($db))->delete($listingId, $type);
 
+        $logLabel = match (true) {
+            $isCollective    => "Reset collective {$type} email template to built-in default",
+            $listingId === 0 => "Reset global {$type} email template to built-in default",
+            default          => "Reset {$type} email template for listing #{$listingId} to global",
+        };
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             'email_templates.reset',
-            $listingId === 0
-                ? "Reset global {$type} email template to built-in default"
-                : "Reset {$type} email template for listing #{$listingId} to global",
+            $logLabel,
             $request->ip(),
         );
 
-        $label = $listingId === 0 ? 'built-in default' : 'global template';
+        $label = $listingId > 0 ? 'global template' : 'built-in default';
         $session->set('lstr_flash_success', "Template reset to {$label}.");
 
-        $qs = $scope === 'global' ? '?tab=templates' : '?tab=templates&listing=' . $listingId;
+        $qs = match (true) {
+            $isCollective    => '?tab=templates&listing=collective',
+            $listingId === 0 => '?tab=templates',
+            default          => '?tab=templates&listing=' . $listingId,
+        };
         return Response::redirect($baseUrl . '/admin/emails' . $qs);
     }
 

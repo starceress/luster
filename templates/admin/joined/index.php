@@ -182,18 +182,16 @@ $bulkOptions = match ($statusTab) {
 
 <!-- ──── TABLE ──────────────────────────────────────────────────────── -->
 <?php if (empty($joined)): ?>
-<div class="card">
-  <div class="empty">
-    <div class="empty-icon"><?= View::icon('heart', ['width' => 32, 'height' => 32]) ?></div>
-    <?php if ($filtersActive || $statusTab !== 'all'): ?>
-      <div class="empty-title">No joined listings match those filters.</div>
-      <a href="<?= View::e($resetUrl) ?>" class="btn btn-ghost btn-sm">Clear Filters</a>
-    <?php else: ?>
-      <div class="empty-title">No joined listings yet.</div>
-      <div>Track the listings you&rsquo;re a member of.</div>
-      <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Joined Listing</a>
-    <?php endif; ?>
-  </div>
+<div class="card empty">
+  <?= View::icon('heart', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+  <?php if ($filtersActive || $statusTab !== 'all'): ?>
+    <div><strong>No joined listings match those filters.</strong></div>
+    <a href="<?= View::e($resetUrl) ?>" class="btn btn-ghost btn-sm">Clear Filters</a>
+  <?php else: ?>
+    <div><strong>No joined listings yet.</strong></div>
+    <div>Track the listings you&rsquo;re a member of.</div>
+    <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Joined Listing</a>
+  <?php endif; ?>
 </div>
 <?php else: ?>
 

@@ -66,7 +66,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
 <!-- ──── MAIN CARD ────────────────────────────────────────────────────── -->
     <div class="card card--gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('updates') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('updates') ?></div>
         <div class="panel-header-meta">
           <div class="panel-header-title"><?= $is_edit ? 'Edit Update' : 'Post Update' ?></div>
         </div>

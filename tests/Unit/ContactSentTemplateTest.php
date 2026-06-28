@@ -10,7 +10,7 @@ use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the per-listing Contact Sent Confirmation template (Migration 64):
+ * Tests for the per-listing Contact Sent Confirmation template:
  *  - ListingSettingsRepo::defaultContactSentTemplate()
  *  - ListingSettingsRepo::getContactSentTemplate()
  *  - ListingSettingsRepo::getTemplates()['contact_sent_template']

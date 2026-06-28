@@ -35,7 +35,7 @@ $id = (int) $listing->id;
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('members') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('members') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title"><?= View::e($member->name) ?></div>
         <div class="panel-header-sub">Editing member &mdash; <?= View::e($listing->subject) ?></div>
@@ -44,7 +44,7 @@ $id = (int) $listing->id;
     <div class="card-body">
       <div class="section-label">General Information</div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Email</span>
         <div>
           <div class="readonly-field"><?= View::e($member->email) ?></div>
@@ -93,7 +93,7 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Show Website?</span>
         <div class="choice-inline-group">
           <label class="form-check">
@@ -118,7 +118,7 @@ $id = (int) $listing->id;
         $fKey     = 'field_' . $field->name;
         $fieldVal = $old[$fKey] ?? ($member->additionalFields[$field->name] ?? '');
       ?>
-        <div class="field-row field-row--top<?= !empty($fe[$fKey]) ? ' has-error' : '' ?>">
+        <div class="field-row<?= !empty($fe[$fKey]) ? ' has-error' : '' ?>">
           <label class="field-label" for="field-<?= View::e($field->name) ?>">
             <?= View::e($field->label) ?>
           </label>
@@ -165,7 +165,7 @@ $id = (int) $listing->id;
           data-del-name="<?= View::e($member->email) ?>">
       <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="merge-dupe-email">Duplicate email to delete</label>
         <div>
           <input id="merge-dupe-email" type="email" name="duplicate_email" class="form"

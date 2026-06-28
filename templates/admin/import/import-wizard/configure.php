@@ -54,7 +54,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('database') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('database') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Connection Method</div>
         <div class="panel-header-sub">Connect to the source database directly, or upload a <code>.sql</code> dump file.</div>
@@ -77,7 +77,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
   <div id="js-live-db-section">
     <div class="card card--gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('database') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('database') ?></div>
         <div class="panel-header-meta">
           <div class="panel-header-title">Source Database</div>
           <div class="panel-header-sub">
@@ -133,7 +133,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
   <div id="js-dump-section" class="is-hidden">
     <div class="card card--gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('import') ?></div>
         <div class="panel-header-meta">
           <div class="panel-header-title">Upload SQL Dump</div>
           <div class="panel-header-sub">Upload a <code>.sql</code> file exported by <code>mysqldump</code>. Only <code>CREATE TABLE</code> and <code>INSERT INTO</code> statements are executed; all other SQL is ignored for safety.</div>
@@ -156,7 +156,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('import') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Import Options</div>
         <div class="panel-header-sub">Choose what data to import and how to handle records that already exist in Luster.</div>
@@ -282,7 +282,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
   <?php if ($source !== 'fanupdate'): ?>
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('image') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('image') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Image Migration <span class="badge badge-inactive">Optional</span></div>
         <div class="panel-header-sub"> Copy affiliate logos, joined listing images, and listing images to Luster's uploads directory. Original files are not deleted.</div>

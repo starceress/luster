@@ -670,7 +670,7 @@ function installTables(PDO $pdo): void
             KEY `idx_fanlisting_id` (`fanlisting_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        // Per-listing Luster settings — column set through Migration 74.
+        // Per-listing Luster settings.
         "CREATE TABLE IF NOT EXISTS `lstr_fanlisting_settings` (
             `fanlisting_id`                INT UNSIGNED          NOT NULL,
             `auto_approve`                 TINYINT(1)            NOT NULL DEFAULT 0,
@@ -801,7 +801,7 @@ function installTables(PDO $pdo): void
         // Per-listing transactional email templates.
         "CREATE TABLE IF NOT EXISTS `lstr_email_templates` (
             `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-            `fanlisting_id` INT UNSIGNED  NOT NULL,
+            `fanlisting_id` INT           NOT NULL,
             `type`          VARCHAR(20)   NOT NULL,
             `enabled`       TINYINT(1)    NOT NULL DEFAULT 1,
             `subject`       VARCHAR(255)  NOT NULL DEFAULT '',
@@ -930,7 +930,7 @@ function installTables(PDO $pdo): void
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        // Migration 78 + 79: member URL link-check tracking (id surrogate PK added in 79)
+        // Member URL link-check tracking.
         "CREATE TABLE IF NOT EXISTS `lstr_member_link_checks` (
             `id`                INT NOT NULL AUTO_INCREMENT,
             `listing_id`        INT NOT NULL,
@@ -1353,7 +1353,7 @@ function renderStep1(string $csrf): void
     ?>
 <div class="main-card">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></div>
+    <div class="panel-header-icon panel-header-icon-filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></div>
     <div class="panel-header-meta">
       <h2 class="panel-header-title">System Requirements</h2>
       <div class="panel-header-sub">Luster needs these checks to pass before installation can begin.</div>
@@ -1407,7 +1407,7 @@ function renderStep2(string $csrf, array $stored, array $errors = []): void
   <input type="hidden" name="install_step" value="2">
   <input type="hidden" name="db_port" value="<?= e((string) ($db['port'] ?? '3306')) ?>">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-icon lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
+    <div class="panel-header-icon panel-header-icon-filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-icon lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
     <div class="panel-header-meta">
       <h2 class="panel-header-title">Database Configuration</h2>
       <div class="panel-header-sub">Luster will test the connection before continuing.</div>
@@ -1482,7 +1482,7 @@ function renderDatabaseCheck(string $csrf, array $stored): void
     ?>
 <div class="main-card">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
+    <div class="panel-header-icon panel-header-icon-filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
     <div class="panel-header-meta">
       <h2 class="panel-header-title">Database Configuration</h2>
       <div class="panel-header-sub">Results of your database connection.</div>
@@ -1572,7 +1572,7 @@ function renderStep3(string $csrf, array $stored): void
   <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
   <input type="hidden" name="install_step" value="3">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></div>
+    <div class="panel-header-icon panel-header-icon-filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></div>
     <div class="panel-header-meta">
       <h2 class="panel-header-title">Site Settings & Admin Account</h2>
       <div class="panel-header-sub">Set your public site details and create the first administrator.</div>
@@ -1687,7 +1687,7 @@ function renderStep4(string $csrf, array $stored): void
     ?>
 <div class="main-card">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-check-icon lucide-clipboard-check"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div>
+    <div class="panel-header-icon panel-header-icon-filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-check-icon lucide-clipboard-check"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div>
     <div class="panel-header-meta">
       <h2 class="panel-header-title">Review &amp; Install</h2>
       <div class="panel-header-sub">Confirm everything before installing.</div>

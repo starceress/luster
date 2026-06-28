@@ -232,7 +232,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
 $_lusterEmbedSettings = $_lusterIsCollective
     ? []
     : (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
-        ->getEmbedSettings($_lusterListingId);
+        ->getResolvedEmbedSettings($_lusterListingId);
 if (($luster_append_submit ?? false) && ($_lusterEmbedSettings['codes_submit_enabled'] ?? true)) {
     $_lusterGalleryHtml  = $_lusterHtml;
     $_lusterReturnOrig   = $luster_return ?? false;

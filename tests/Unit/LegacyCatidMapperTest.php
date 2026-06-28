@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
  * Covers the migration-51 scenarios:
  *   - Legacy 'category' (singular) table  — standard Enthusiast
  *   - Legacy 'categories' (plural) table  — Enthusiast fork variant
- *   - 'Anime/Manga: Foo' prefix stripping — matches Migration 49 normalisation
+ *   - 'Anime/Manga: Foo' prefix stripping
  *   - Source-aware disambiguation (TFL vs TAFL for identical category names)
  */
 final class LegacyCatidMapperTest extends TestCase
@@ -114,7 +114,7 @@ final class LegacyCatidMapperTest extends TestCase
     public function testStripsAnimeMangaPrefixBeforeMatching(): void
     {
         $pdo = $this->makeDb(legacyDdl: "CREATE TABLE category (catid INTEGER PRIMARY KEY, catname TEXT)");
-        // lstr_categories has the stripped name (Migration 49 normalised them)
+        // lstr_categories has the stripped name
         $pdo->exec("INSERT INTO lstr_categories (name) VALUES ('Series')");
         // Legacy table still has the full Enthusiast name
         $pdo->exec("INSERT INTO category (catid, catname) VALUES (5, 'Anime/Manga: Series')");

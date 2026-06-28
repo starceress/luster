@@ -248,7 +248,7 @@ if ($_lusterSuccess !== '') {
 }
 
 $_lusterBaseUrl  = rtrim((string) ($_lusterApp->getConfig()->get('embed_base_url', '') ?: $_lusterApp->getBaseUrl()), '/');
-$_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
+$_lusterEmbedSettings = $_lusterSettingsRepo->getResolvedEmbedSettings($_lusterListingId);
 
 $_lusterFormAction = $_lusterRedirectTo;
 

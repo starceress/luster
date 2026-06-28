@@ -10,7 +10,7 @@ use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the Codes Display template (Migration 64 column codes_template,
+ * Tests for the Codes Display template column codes_template,
  * lstr_site_settings key collective_codes_template):
  *  - ListingSettingsRepo::defaultCodesTemplate()
  *  - ListingSettingsRepo::getCodesTemplate()

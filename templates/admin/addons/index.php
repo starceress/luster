@@ -30,17 +30,16 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <?php if (empty($discovered)): ?>
-  <div class="card">
-    <div class="empty"><span class="empty-icon"><?= View::icon('addon') ?></span>
-      No add-ons found. Place add-on directories inside <code>src/Addons/</code> to make them appear here.
-    </div>
+  <div class="card empty">
+    <?= View::icon('addon', ['class' => 'empty-icon']) ?>
+    No add-ons found. Place add-on directories inside <code>src/Addons/</code> to make them appear here.
   </div>
 <?php else: ?>
   <div class="addon-grid">
     <?php foreach ($discovered as $key => $addon):
       $isInstalled = isset($installed[$key]);
     ?>
-    <div class="import-source-card<?= $isInstalled ? ' addon-card--installed' : '' ?>">
+    <div class="import-source-card<?= $isInstalled ? ' addon-card-installed' : '' ?>">
 
       <div class="import-source-header">
         <span class="panel-header-title"><?= View::e($addon->getName()) ?></span>

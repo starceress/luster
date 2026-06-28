@@ -592,7 +592,7 @@ final class SettingsController extends AdminController
         $siteUrl    = (string) ($this->app->getConfig()->get('site_url', '') ?: $baseUrl);
         $siteRepo   = new SiteSettingsRepo($db);
         $affOverride = $siteRepo->get('collective_form_url_affiliate_apply');
-        $affiliateApplyUrl = CollectiveFormUrlResolver::resolve($affOverride, $siteUrl, $siteUrl);
+        $affiliateApplyUrl = CollectiveFormUrlResolver::resolve($affOverride ?: 'affiliates.php', $siteUrl, $siteUrl);
 
         $applyStyle = (string) ($siteRepo->get('collective_affiliate_apply_style') ?? 'link');
         if (!in_array($applyStyle, ['link', 'button'], true)) {
@@ -1001,8 +1001,8 @@ final class SettingsController extends AdminController
             . $th('Fanlisting') . $th('Name') . $th('Email') . $th('Website URL')
             . $th('Remove?', 'text-align:center')
             . '</tr></thead><tbody>'
-            . $row(true,  'Sample Fanlisting A', 'Jane Fan', 'fan@example.com', 'https://example.com')
-            . $row(true,  'Sample Fanlisting B', 'Jane Fan', 'fan@example.com', '')
+            . $row(true,  'Sample Fanlisting A', 'Jane Doe', 'jane@example.com', 'https://example.com')
+            . $row(true,  'Sample Fanlisting B', 'John Doe', 'john@example.com', '')
             . '</tbody></table>';
 
         $step2Html = '<div class="fl-kim">'

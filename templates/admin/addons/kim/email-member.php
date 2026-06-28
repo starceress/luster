@@ -136,7 +136,7 @@ $backUrl    = $listing !== null
       <input type="hidden" name="member_email"   value="<?= View::e($member->email) ?>">
 
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
         <div class="panel-header-title">Compose New Email</div>
         <?php if ($flSubject !== ''): ?>
           <span class="badge badge-info2 panel-header-badge"><?= $flSubject ?></span>

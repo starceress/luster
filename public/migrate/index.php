@@ -101,7 +101,7 @@ function mig_render_confirm(string $tokenSafe): string
 {
     return <<<HTML
 <div class="panel-header">
-  <div class="panel-header-icon panel-header-icon--filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 12a9 3 0 0 0 5 2.69"/><path d="M21 9.3V5"/><path d="M3 5v14a9 3 0 0 0 6.47 2.88"/><path d="M12 12v4h4"/><path d="M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16"/></svg></div>
+  <div class="panel-header-icon panel-header-icon-filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 12a9 3 0 0 0 5 2.69"/><path d="M21 9.3V5"/><path d="M3 5v14a9 3 0 0 0 6.47 2.88"/><path d="M12 12v4h4"/><path d="M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16"/></svg></div>
   <div class="panel-header-meta">
     <div class="panel-header-title">Run Migrations</div>
     <div class="panel-header-sub">Safe to re-run &mdash; no duplicate operations.</div>
@@ -141,7 +141,7 @@ function mig_render_results(array $done, array $errors): string
 </div>
 <?php else: ?>
 <div class="panel-header">
-  <div class="panel-header-icon panel-header-icon--filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 12a9 3 0 0 0 5 2.69"/><path d="M21 9.3V5"/><path d="M3 5v14a9 3 0 0 0 6.47 2.88"/><path d="M12 12v4h4"/><path d="M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16"/></svg></div>
+  <div class="panel-header-icon panel-header-icon-filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 12a9 3 0 0 0 5 2.69"/><path d="M21 9.3V5"/><path d="M3 5v14a9 3 0 0 0 6.47 2.88"/><path d="M12 12v4h4"/><path d="M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16"/></svg></div>
   <div class="panel-header-meta">
     <div class="panel-header-title">Run Log</div>
     <div class="panel-header-sub"><span class="badge badge-current">&#10003; <?= $doneCount ?> applied</span> <span class="badge badge-error">&#10005; <?= $errorCount ?> failed</span></div>
@@ -191,7 +191,7 @@ if (empty($_SESSION['lstr_admin_id'])) {
     http_response_code(403);
     echo mig_page('Access Denied', 'Access Denied', 'Authentication required.', <<<HTML
 <div class="panel-header">
-  <div class="panel-header-icon panel-header-icon--filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 9-6 6"/><path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="m9 9 6 6"/></svg></div>
+  <div class="panel-header-icon panel-header-icon-filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 9-6 6"/><path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="m9 9 6 6"/></svg></div>
   <div class="panel-header-meta">
     <div class="panel-header-title">Access Denied</div>
     <div class="panel-header-sub">No active admin session detected.</div>
@@ -259,7 +259,7 @@ if (!hash_equals($migrateToken, $submittedToken)) {
     http_response_code(403);
     echo mig_page('Invalid Token', 'Invalid Token', 'Security token missing or expired.', <<<HTML
 <div class="panel-header">
-  <div class="panel-header-icon panel-header-icon--filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 9-6 6"/><path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="m9 9 6 6"/></svg></div>
+  <div class="panel-header-icon panel-header-icon-filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 9-6 6"/><path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="m9 9 6 6"/></svg></div>
   <div class="panel-header-meta">
     <div class="panel-header-title">Invalid Token</div>
     <div class="panel-header-sub">The CSRF token was missing or has expired.</div>
@@ -286,7 +286,7 @@ if (!is_file($configPath)) {
     http_response_code(500);
     echo mig_page('Configuration Missing', 'Configuration Missing', 'Luster is not yet installed.', <<<HTML
 <div class="panel-header">
-  <div class="panel-header-icon panel-header-icon--filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+  <div class="panel-header-icon panel-header-icon-filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div>
   <div class="panel-header-meta">
     <div class="panel-header-title">Configuration Missing</div>
     <div class="panel-header-sub"><code>config/app.php</code> was not found.</div>
@@ -326,7 +326,7 @@ try {
     http_response_code(500);
     echo mig_page('Database Error', 'Database Error', 'Could not connect to the database.', <<<HTML
 <div class="panel-header">
-  <div class="panel-header-icon panel-header-icon--filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>
+  <div class="panel-header-icon panel-header-icon-filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>
   <div class="panel-header-meta">
     <div class="panel-header-title">Database Connection Failed</div>
     <div class="panel-header-sub">Check your <code>config/app.php</code> credentials.</div>
@@ -840,7 +840,7 @@ try {
         $pdo->exec(
             "CREATE TABLE IF NOT EXISTS `lstr_email_templates` (
                `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-               `fanlisting_id` INT UNSIGNED  NOT NULL,
+               `fanlisting_id` INT           NOT NULL,
                `type`          VARCHAR(20)   NOT NULL,
                `enabled`       TINYINT(1)    NOT NULL DEFAULT 1,
                `subject`       VARCHAR(255)  NOT NULL DEFAULT '',
@@ -2608,6 +2608,171 @@ try {
     }
 } catch (PDOException $e) {
     $errors[] = 'Migration 82 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 83: collective email template scope (fanlisting_id = -1) ---
+try {
+    $ran83 = (int) $pdo->query(
+        "SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 83"
+    )->fetchColumn();
+
+    if ($ran83 === 0) {
+        // Change fanlisting_id from UNSIGNED to signed INT
+        $colType = (string) $pdo->query(
+            "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_email_templates'
+                AND COLUMN_NAME  = 'fanlisting_id'"
+        )->fetchColumn();
+
+        if (stripos($colType, 'unsigned') !== false) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_email_templates`
+                 MODIFY COLUMN `fanlisting_id` INT NOT NULL DEFAULT 0"
+            );
+            $done[] = 'Migration 83: changed <code>lstr_email_templates.fanlisting_id</code> from UNSIGNED to signed INT';
+        } else {
+            $done[] = 'Migration 83: <code>fanlisting_id</code> already signed';
+        }
+
+        // Copy collective-type templates from fanlisting_id=0 to -1
+        $collectiveTypes = [
+            'affiliate_applied', 'affiliate_approved', 'affiliate_rejected',
+            'code_approved',
+            'adoption_applied', 'adoption_approved', 'adoption_rejected',
+            'kim_signup', 'kim_applied', 'kim_approved', 'kim_update', 'kim_reset',
+        ];
+        $typePlaceholders = implode(',', array_fill(0, count($collectiveTypes), '?'));
+
+        $existing = $pdo->prepare(
+            "SELECT type FROM `lstr_email_templates`
+              WHERE fanlisting_id = 0 AND type IN ({$typePlaceholders})"
+        );
+        $existing->execute($collectiveTypes);
+        $toCopy = $existing->fetchAll(PDO::FETCH_COLUMN);
+
+        $copied = 0;
+        foreach ($toCopy as $ctype) {
+            // Only copy if -1 row doesn't already exist
+            $check = $pdo->prepare(
+                "SELECT COUNT(*) FROM `lstr_email_templates`
+                  WHERE fanlisting_id = -1 AND type = ?"
+            );
+            $check->execute([$ctype]);
+            if ((int) $check->fetchColumn() > 0) {
+                continue;
+            }
+
+            $pdo->prepare(
+                "INSERT INTO `lstr_email_templates` (fanlisting_id, type, subject, body, enabled)
+                 SELECT -1, type, subject, body, enabled
+                   FROM `lstr_email_templates`
+                  WHERE fanlisting_id = 0 AND type = ?"
+            )->execute([$ctype]);
+            $copied++;
+        }
+
+        if ($copied > 0) {
+            $done[] = "Migration 83: copied {$copied} collective-type template(s) from global to collective scope";
+        } else {
+            $done[] = 'Migration 83: no collective-type templates to copy';
+        }
+
+        // Clean up orphaned per-listing rows for collective-only types
+        // (adoption, KIM) — these were never used by the resolver
+        $collectiveOnlyTypes = [
+            'adoption_applied', 'adoption_approved', 'adoption_rejected',
+            'kim_signup', 'kim_applied', 'kim_approved', 'kim_update', 'kim_reset',
+        ];
+        $coPlaceholders = implode(',', array_fill(0, count($collectiveOnlyTypes), '?'));
+        $cleaned = $pdo->prepare(
+            "DELETE FROM `lstr_email_templates`
+              WHERE fanlisting_id > 0 AND type IN ({$coPlaceholders})"
+        );
+        $cleaned->execute($collectiveOnlyTypes);
+        $cleanedCount = $cleaned->rowCount();
+        if ($cleanedCount > 0) {
+            $done[] = "Migration 83: removed {$cleanedCount} orphaned per-listing row(s) for collective-only types";
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (83)');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 83 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 84: collective code_approved copy + orphaned row cleanup ---
+try {
+    $ran84 = (int) $pdo->query(
+        "SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 84"
+    )->fetchColumn();
+
+    if ($ran84 === 0) {
+        // Copy code_approved from global to collective if not already present
+        $hasCodeGlobal = (int) $pdo->query(
+            "SELECT COUNT(*) FROM `lstr_email_templates`
+              WHERE fanlisting_id = 0 AND type = 'code_approved'"
+        )->fetchColumn();
+        $hasCodeCollective = (int) $pdo->query(
+            "SELECT COUNT(*) FROM `lstr_email_templates`
+              WHERE fanlisting_id = -1 AND type = 'code_approved'"
+        )->fetchColumn();
+
+        if ($hasCodeGlobal > 0 && $hasCodeCollective === 0) {
+            $pdo->exec(
+                "INSERT INTO `lstr_email_templates` (fanlisting_id, type, subject, body, enabled)
+                 SELECT -1, type, subject, body, enabled
+                   FROM `lstr_email_templates`
+                  WHERE fanlisting_id = 0 AND type = 'code_approved'"
+            );
+            $done[] = 'Migration 84: copied <code>code_approved</code> template to collective scope';
+        } else {
+            $done[] = 'Migration 84: collective <code>code_approved</code> already present or no global row to copy';
+        }
+
+        // Clean up orphaned per-listing rows for collective-only types
+        $collectiveOnlyTypes = [
+            'adoption_applied', 'adoption_approved', 'adoption_rejected',
+            'kim_signup', 'kim_applied', 'kim_approved', 'kim_update', 'kim_reset',
+        ];
+        $coPlaceholders = implode(',', array_fill(0, count($collectiveOnlyTypes), '?'));
+        $cleaned = $pdo->prepare(
+            "DELETE FROM `lstr_email_templates`
+              WHERE fanlisting_id > 0 AND type IN ({$coPlaceholders})"
+        );
+        $cleaned->execute($collectiveOnlyTypes);
+        $cleanedCount = $cleaned->rowCount();
+        if ($cleanedCount > 0) {
+            $done[] = "Migration 84: removed {$cleanedCount} orphaned per-listing row(s) for collective-only types";
+        } else {
+            $done[] = 'Migration 84: no orphaned per-listing rows to clean';
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (84)');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 84 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 85: clear hardcoded per-listing form URLs so they inherit globals ---
+try {
+    $ran85 = (int) $pdo->query(
+        "SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 85"
+    )->fetchColumn();
+
+    if ($ran85 === 0) {
+        $cleared = $pdo->exec(
+            "UPDATE `lstr_fanlisting_settings` SET
+                form_url_join         = CASE WHEN form_url_join         = 'join.php'         THEN '' ELSE form_url_join         END,
+                form_url_update       = CASE WHEN form_url_update       = 'update.php'       THEN '' ELSE form_url_update       END,
+                form_url_reset        = CASE WHEN form_url_reset        = 'reset.php'        THEN '' ELSE form_url_reset        END,
+                form_url_codes_submit = CASE WHEN form_url_codes_submit = 'codes-submit.php' THEN '' ELSE form_url_codes_submit END"
+        );
+        $done[] = "Migration 85: cleared default form URLs from {$cleared} listing(s) so they inherit global defaults";
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (85)');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 85 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // Build results HTML

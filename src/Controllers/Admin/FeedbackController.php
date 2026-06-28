@@ -287,6 +287,7 @@ final class FeedbackController extends AdminController
             'sender_warning' => $senderWarning,
             'admin_email'    => (string) $session->get('lstr_admin_email', ''),
             'owner_name'     => (string) $config->get('owner_name', ''),
+            'site_url'       => (string) ($config->get('site_url', '') ?: $config->get('app_url', '')),
         ];
     }
 }

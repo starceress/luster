@@ -144,16 +144,16 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
 
       <a href="<?= $b ?>/admin/members" class="nav-item<?= navActive('members', $s) ?>"><span class="nav-icon"><?= View::icon('members') ?></span> Members
         <?php if (($nav_pending_members ?? 0) > 0): ?>
-          <span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_members ?></span>
+          <span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_members ?></span>
         <?php endif; ?>
       </a>
 
-      <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>"><span class="nav-icon"><?= View::icon('link') ?></span> Affiliates<?php if (($nav_pending_affiliates ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_affiliates ?></span><?php endif; ?></a>
+      <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>"><span class="nav-icon"><?= View::icon('link') ?></span> Affiliates<?php if (($nav_pending_affiliates ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_affiliates ?></span><?php endif; ?></a>
 
       <a href="<?= $b ?>/admin/codes" class="nav-item<?= navActive('codes', $s) ?>">
         <span class="nav-icon"><?= View::icon('image') ?></span> Codes
         <?php if (($nav_pending_codes ?? 0) > 0): ?>
-          <span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_codes ?></span>
+          <span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_codes ?></span>
         <?php endif; ?>
       </a>
 
@@ -166,11 +166,11 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
       <div class="sidebar-label">Tools</div>
       <?php $_navAddons = $nav_installed_addons ?? [];
       if (in_array('Adoption', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/adoptions" class="nav-item<?= navActive('adoptions', $s) ?>"><span class="nav-icon"><?= View::icon('adoptions') ?></span> Adoptions<?php if (($nav_pending_adoptions ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_adoptions ?></span><?php endif; ?></a>
+      <a href="<?= $b ?>/admin/adoptions" class="nav-item<?= navActive('adoptions', $s) ?>"><span class="nav-icon"><?= View::icon('adoptions') ?></span> Adoptions<?php if (($nav_pending_adoptions ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_adoptions ?></span><?php endif; ?></a>
       <?php endif; ?>
 
       <?php if (in_array('Kim', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
+      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
       <?php endif; ?>
 
       <?php if (in_array('Rules', $_navAddons, true)): ?>
@@ -187,7 +187,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
 
       <a href="<?= $b ?>/admin/embed-codes" class="nav-item<?= navActive('embed-codes', $s) ?>"><span class="nav-icon"><?= View::icon('embed') ?></span> Embed Wizard</a>
 
-      <a href="<?= $b ?>/admin/link-checker" class="nav-item<?= navActive('link-checker', $s) ?>"><span class="nav-icon"><?= View::icon('linkcheck') ?></span> Link Checker<?php if (($nav_lc_dead ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) ($nav_lc_dead ?? 0) ?></span><?php endif; ?></a>
+      <a href="<?= $b ?>/admin/link-checker" class="nav-item<?= navActive('link-checker', $s) ?>"><span class="nav-icon"><?= View::icon('linkcheck') ?></span> Link Checker<?php if (($nav_lc_dead ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) ($nav_lc_dead ?? 0) ?></span><?php endif; ?></a>
 
       <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>"><span class="nav-icon"><?= View::icon('addon') ?></span> Manage Add-Ons</a>
     </div>
@@ -208,9 +208,9 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
           <span class="nav-icon nav-group-chevron"><?= View::icon('chevrondown') ?></span>
         </button>
         <div class="nav-group-panel<?= $logsOpen ? ' open' : '' ?>" id="nav-group-logs">
-          <a href="<?= $b ?>/admin/errorlog" class="nav-item nav-sub-item<?= navActive('errorlog', $s) ?>"><span class="nav-icon"><?= View::icon('caution') ?></span> Error Log</a>
+          <a href="<?= $b ?>/admin/errorlog" class="nav-item<?= navActive('errorlog', $s) ?>" style="padding-left: 2rem;"><span class="nav-icon"><?= View::icon('caution') ?></span> Error Log</a>
 
-          <a href="<?= $b ?>/admin/activitylog" class="nav-item nav-sub-item<?= navActive('activitylog', $s) ?>"><span class="nav-icon"><?= View::icon('notes') ?></span> Activity Log</a>
+          <a href="<?= $b ?>/admin/activitylog" class="nav-item<?= navActive('activitylog', $s) ?>" style="padding-left: 2rem;"><span class="nav-icon"><?= View::icon('notes') ?></span> Activity Log</a>
         </div>
       </div>
 
@@ -224,10 +224,10 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
       <div class="user-star">&#10022;</div>
       <div class="user-info">
         <span class="user-name"><?= View::e(($nav_display_name ?? '') !== '' ? $nav_display_name : $admin_username) ?></span>
-        <span class="user-role"><?= View::e($site_name) ?></span>
+        <span class="user-site"><?= View::e($site_name) ?></span>
       </div>
     </div>
-    <form method="POST" action="<?= $b ?>/admin/logout" class="sidebar-footer-form">
+    <form method="POST" action="<?= $b ?>/admin/logout" style="margin-top: 12px;">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <button type="submit" class="btn btn-danger btn-sm btn-block-center"><?= View::icon('signout') ?> Sign Out</button>
     </form>

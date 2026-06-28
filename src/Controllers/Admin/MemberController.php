@@ -657,7 +657,8 @@ final class MemberController extends AdminController
                     try {
                         $cfg       = $this->app->getConfig();
                         $emailRepo = new EmailTemplateRepo($db);
-                        $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
+                        $_lsr      = new ListingSettingsRepo($db);
+                        $_es       = $_lsr->getResolvedEmbedSettings($listingId);
                         $tokens    = EmailTemplateRepo::buildTokens(
                             listingName:    $listing->title,
                             listingUrl:     $listing->url,
@@ -671,9 +672,10 @@ final class MemberController extends AdminController
                             formUrlJoin:    (string) $_es['form_url_join'],
                             formUrlUpdate:  (string) $_es['form_url_update'],
                             formUrlReset:   (string) $_es['form_url_reset'],
+                            listingType:    $_lsr->getListingType($listingId),
                         );
                         [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
-                        $mailer->send($member->email, $member->name, $subject, $body);
+                        if ($subject !== '') { $mailer->send($member->email, $member->name, $subject, $body); }
                     } catch (\Throwable $e) {
                         error_log('[Luster] Bulk approve email failed for ' . $email . ': ' . $e->getMessage());
                     }
@@ -751,8 +753,12 @@ final class MemberController extends AdminController
             return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
         }
 
-        $mailer = new Mailer($config);
-        $count  = 0;
+        $mailer    = new Mailer($config);
+        $emailRepo = new EmailTemplateRepo($db);
+        $_lsr      = new ListingSettingsRepo($db);
+        $_es       = $_lsr->getResolvedEmbedSettings($listingId);
+        $_lt       = $_lsr->getListingType($listingId);
+        $count     = 0;
 
         foreach ($pending as $member) {
             $memberRepo->approve($listing->dbprefix, $member->email);
@@ -764,25 +770,23 @@ final class MemberController extends AdminController
             }
 
             try {
-                $cfg       = $this->app->getConfig();
-                $emailRepo = new EmailTemplateRepo($db);
-                $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
                 $tokens    = EmailTemplateRepo::buildTokens(
                     listingName:    $listing->title,
                     listingUrl:     $listing->url,
-                    siteName:       (string) $cfg->get('site_name', 'Luster'),
+                    siteName:       (string) $config->get('site_name', 'Luster'),
                     listingSubject: $listing->subject,
-                    ownerName:      (string) $cfg->get('owner_name', ''),
-                    ownerEmail:     (string) $cfg->get('owner_email', ''),
+                    ownerName:      (string) $config->get('owner_name', ''),
+                    ownerEmail:     (string) $config->get('owner_email', ''),
                     fanName:        $member->name,
                     fanEmail:       $member->email,
                     listingEmail:   $listing->email,
                     formUrlJoin:    (string) $_es['form_url_join'],
                     formUrlUpdate:  (string) $_es['form_url_update'],
                     formUrlReset:   (string) $_es['form_url_reset'],
+                    listingType:    $_lt,
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
-                $mailer->send($member->email, $member->name, $subject, $body);
+                if ($subject !== '') { $mailer->send($member->email, $member->name, $subject, $body); }
             } catch (\Throwable $e) {
                 error_log('[Luster] Approve-all email failed for ' . $member->email . ': ' . $e->getMessage());
             }
@@ -854,7 +858,7 @@ final class MemberController extends AdminController
                 }
 
                 try {
-                    $_es    = $settingsRepo->getEmbedSettings((int) $fl->id);
+                    $_es    = $settingsRepo->getResolvedEmbedSettings((int) $fl->id);
                     $tokens = EmailTemplateRepo::buildTokens(
                         listingName:    $fl->title,
                         listingUrl:     $fl->url,
@@ -868,13 +872,14 @@ final class MemberController extends AdminController
                         formUrlJoin:    (string) $_es['form_url_join'],
                         formUrlUpdate:  (string) $_es['form_url_update'],
                         formUrlReset:   (string) $_es['form_url_reset'],
+                        listingType:    $settingsRepo->getListingType((int) $fl->id),
                     );
                     [$subject, $body] = $emailTemplateRepo->resolveForListing(
                         (int) $fl->id,
                         EmailTemplateRepo::TYPE_APPROVE,
                         $tokens,
                     );
-                    $mailer->send($member->email, $member->name, $subject, $body);
+                    if ($subject !== '') { $mailer->send($member->email, $member->name, $subject, $body); }
                 } catch (\Throwable $e) {
                     error_log('[Luster] approve-all-overview email failed for ' . $member->email . ': ' . $e->getMessage());
                 }
@@ -906,7 +911,7 @@ final class MemberController extends AdminController
             $pendingUpdateRepo->delete($pu->id);
 
             try {
-                $_es    = $settingsRepo->getEmbedSettings($pu->fanlisting_id);
+                $_es    = $settingsRepo->getResolvedEmbedSettings($pu->fanlisting_id);
                 $tokens = EmailTemplateRepo::buildTokens(
                     listingName:    $listing->title,
                     listingUrl:     $listing->url,
@@ -920,13 +925,14 @@ final class MemberController extends AdminController
                     formUrlJoin:    (string) $_es['form_url_join'],
                     formUrlUpdate:  (string) $_es['form_url_update'],
                     formUrlReset:   (string) $_es['form_url_reset'],
+                    listingType:    $settingsRepo->getListingType($pu->fanlisting_id),
                 );
                 [$subject, $body] = $emailTemplateRepo->resolveForListing(
                     $pu->fanlisting_id,
                     EmailTemplateRepo::TYPE_UPDATE,
                     $tokens,
                 );
-                $mailer->send($member->email, $member->name, $subject, $body);
+                if ($subject !== '') { $mailer->send($member->email, $member->name, $subject, $body); }
             } catch (\Throwable $e) {
                 error_log('[Luster] approve-all-overview update email failed for ' . $pu->member_email . ': ' . $e->getMessage());
             }
@@ -1012,7 +1018,7 @@ final class MemberController extends AdminController
                     if ($member !== null) {
                         try {
                             $emailRepo = new EmailTemplateRepo($db);
-                            $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
+                            $_es       = (new ListingSettingsRepo($db))->getResolvedEmbedSettings($listingId);
                             $tokens    = EmailTemplateRepo::buildTokens(
                                 listingName:    $listing->title,
                                 listingUrl:     $listing->url,
@@ -1026,9 +1032,10 @@ final class MemberController extends AdminController
                                 formUrlJoin:    (string) $_es['form_url_join'],
                                 formUrlUpdate:  (string) $_es['form_url_update'],
                                 formUrlReset:   (string) $_es['form_url_reset'],
+                                listingType:    $settingsRepo->getListingType($listingId),
                             );
                             [$subj, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
-                            $mailer->send($member->email, $member->name, $subj, $body);
+                            if ($subj !== '') { $mailer->send($member->email, $member->name, $subj, $body); }
                         } catch (\Throwable) {}
                     }
                 } else {
@@ -1223,7 +1230,8 @@ final class MemberController extends AdminController
                     $cfg       = $this->app->getConfig();
                     $mailer    = new Mailer($cfg);
                     $emailRepo = new EmailTemplateRepo($db);
-                    $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
+                    $_lsr      = new ListingSettingsRepo($db);
+                    $_es       = $_lsr->getResolvedEmbedSettings($listingId);
                     $tokens    = EmailTemplateRepo::buildTokens(
                         listingName:    $listing->title,
                         listingUrl:     $listing->url,
@@ -1237,9 +1245,10 @@ final class MemberController extends AdminController
                         formUrlJoin:    (string) $_es['form_url_join'],
                         formUrlUpdate:  (string) $_es['form_url_update'],
                         formUrlReset:   (string) $_es['form_url_reset'],
+                        listingType:    $_lsr->getListingType($listingId),
                     );
                     [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
-                    $mailer->send($member->email, $member->name, $subject, $body);
+                    if ($subject !== '') { $mailer->send($member->email, $member->name, $subject, $body); }
                 } catch (\Throwable $e) {
                     error_log('[Luster] Approve email failed: ' . $e->getMessage());
                 }
@@ -1384,6 +1393,7 @@ final class MemberController extends AdminController
 
         return $this->adminLayout('admin/members/email.php', 'Email Member', 'members', [
             'listing'        => $listing,
+            'listing_type'   => (new ListingSettingsRepo($db))->getListingType($id),
             'member_email'   => $email,
             'member_name'    => $member ? $member->name    : '',
             'member_url'     => $member ? $member->url     : '',
@@ -1431,15 +1441,16 @@ final class MemberController extends AdminController
 
         $member = $listing !== null ? (new MemberRepo($db, $config))->getByEmail($listing->dbprefix, $toEmail) : null;
 
-        $_es = $listing ? (new ListingSettingsRepo($db))->getEmbedSettings($id) : ['form_url_join' => '', 'form_url_update' => '', 'form_url_reset' => ''];
+        $_es = $listing ? (new ListingSettingsRepo($db))->getResolvedEmbedSettings($id) : ['form_url_join' => '', 'form_url_update' => '', 'form_url_reset' => ''];
         $_formTokens = $listing ? EmailTemplateRepo::buildTokens(
             listingName: '', listingUrl: $listing->url, siteName: '',
             formUrlJoin: (string) $_es['form_url_join'], formUrlUpdate: (string) $_es['form_url_update'], formUrlReset: (string) $_es['form_url_reset'],
-        ) : ['{form_url_join}' => '', '{form_url_update}' => '', '{form_url_reset}' => ''];
+        ) : ['{join_url}' => '', '{update_url}' => '', '{form_url_reset}' => ''];
 
         $search  = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
-                    '{listing_title}', '{listing_subject}', '{listing_url}', '{listing_email}',
-                    '{form_url_join}', '{form_url_update}', '{form_url_reset}',
+                    '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{listing_email}',
+                    '{join_url}', '{update_url}', '{form_url_reset}',
+                    '{form_url_join}', '{form_url_update}',
                     '{site_name}', '{owner_name}', '{owner_email}'];
         $replace = [
             $member ? $member->name    : '',
@@ -1448,11 +1459,14 @@ final class MemberController extends AdminController
             $member ? $member->country : '',
             $listing ? $listing->title   : '',
             $listing ? $listing->subject : '',
+            $listing ? (new ListingSettingsRepo($db))->getListingType($id) : 'listing',
             $listing ? $listing->url     : '',
             $listing ? $listing->email   : '',
-            $_formTokens['{form_url_join}'],
-            $_formTokens['{form_url_update}'],
+            $_formTokens['{join_url}'],
+            $_formTokens['{update_url}'],
             $_formTokens['{form_url_reset}'],
+            $_formTokens['{join_url}'],
+            $_formTokens['{update_url}'],
             (string) $config->get('site_name', 'Luster'),
             (string) $config->get('owner_name', ''),
             (string) $config->get('owner_email', ''),
@@ -1586,7 +1600,7 @@ final class MemberController extends AdminController
         $ownerEmail  = (string) $config->get('owner_email', '');
         $mailer      = new Mailer($this->app->getConfig());
 
-        $_es = (new ListingSettingsRepo($db))->getEmbedSettings($id);
+        $_es = (new ListingSettingsRepo($db))->getResolvedEmbedSettings($id);
         $_formTokens = EmailTemplateRepo::buildTokens(
             listingName: '', listingUrl: $listing->url, siteName: '',
             formUrlJoin: (string) $_es['form_url_join'], formUrlUpdate: (string) $_es['form_url_update'], formUrlReset: (string) $_es['form_url_reset'],
@@ -1602,12 +1616,14 @@ final class MemberController extends AdminController
             $country = $member ? $member->country : '';
 
             $search  = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
-                        '{listing_title}', '{listing_subject}', '{listing_url}', '{listing_email}',
-                        '{form_url_join}', '{form_url_update}', '{form_url_reset}',
+                        '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{listing_email}',
+                        '{join_url}', '{update_url}', '{form_url_reset}',
+                        '{form_url_join}', '{form_url_update}',
                         '{site_name}', '{owner_name}', '{owner_email}'];
             $replace = [$name,        $email,        $url,        $country,
-                        $listing->title, $listing->subject, $listing->url, $listing->email,
-                        $_formTokens['{form_url_join}'], $_formTokens['{form_url_update}'], $_formTokens['{form_url_reset}'],
+                        $listing->title, $listing->subject, (new ListingSettingsRepo($db))->getListingType($id), $listing->url, $listing->email,
+                        $_formTokens['{join_url}'], $_formTokens['{update_url}'], $_formTokens['{form_url_reset}'],
+                        $_formTokens['{join_url}'], $_formTokens['{update_url}'],
                         $siteName,    $ownerName,    $ownerEmail];
 
             $personalSubject = str_replace($search, $replace, $subject);

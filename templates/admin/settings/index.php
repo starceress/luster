@@ -65,7 +65,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-admin" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon--filled">
+          <div class="panel-header-icon panel-header-icon-filled">
             <?= View::icon('account') ?>
           </div>
           <div class="panel-header-meta">
@@ -79,7 +79,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="card-body">
             <div class="section-label">Login Details</div>
-            <div class="field-row field-row--top<?= !empty($fe['username']) ? ' has-error' : '' ?>">
+            <div class="field-row<?= !empty($fe['username']) ? ' has-error' : '' ?>">
               <label class="field-label" for="p-username">Username <span class="req">*</span></label>
               <div>
                 <input id="p-username" type="text" name="admin_username" class="form"
@@ -90,7 +90,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
             </div>
 
-            <div class="field-row field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+            <div class="field-row<?= !empty($fe['email']) ? ' has-error' : '' ?>">
               <label class="field-label" for="p-email">Email Address <span class="req">*</span></label>
               <div>
                 <input id="p-email" type="email" name="admin_email" class="form"
@@ -101,7 +101,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
             </div>
 
-            <div class="field-row field-row--top">
+            <div class="field-row">
               <label class="field-label" for="p-owner-name">Owner Name <span class="req">*</span></label>
               <div>
                 <input id="p-owner-name" type="text" name="admin_display_name" class="form"
@@ -171,7 +171,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-accounts" class="mini-nav-panel">
       <div class="card card--gradient card--gradient--plain">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon--filled">
+          <div class="panel-header-icon panel-header-icon-filled">
             <?= View::icon('admins') ?>
           </div>
             <div class="panel-header-meta">
@@ -240,7 +240,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-appearance" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('palette') ?></div>
+          <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('palette') ?></div>
           <div class="panel-header-meta">
             <div class="panel-header-title">Appearance</div>
             <div class="panel-header-sub">Choose a colour skin for the admin panel. The skin applies to all admin pages.</div>
@@ -357,7 +357,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <div id="panel-general" class="mini-nav-panel">
         <div class="card card--gradient">
           <div class="panel-header">
-            <div class="panel-header-icon panel-header-icon--filled">
+            <div class="panel-header-icon panel-header-icon-filled">
             <?= View::icon('general') ?>
             </div>
             <div class="panel-header-meta">
@@ -512,7 +512,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <div id="panel-smtp" class="mini-nav-panel">
         <div class="card card--gradient">
           <div class="panel-header">
-            <div class="panel-header-icon panel-header-icon--filled">
+            <div class="panel-header-icon panel-header-icon-filled">
             <?= View::icon('email') ?>
             </div>
             <div class="panel-header-meta">
@@ -625,7 +625,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <div id="panel-embed" class="mini-nav-panel">
         <div class="card card--gradient">
           <div class="panel-header">
-            <div class="panel-header-icon panel-header-icon--filled">
+            <div class="panel-header-icon panel-header-icon-filled">
             <?= View::icon('paths') ?>
             </div>
             <div class="panel-header-meta">
@@ -639,7 +639,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <div>These settings tell copied embed snippets where Luster lives. Most sites can keep the detected values. Edit them only when embedded forms submit to the wrong place or link checks look for the wrong URL.</div>
             </div>
             
-              <div class="field-row field-row--top">
+              <div class="field-row">
                 <label class="field-label" for="s-install-path">Server Install Path</label>
                 <div>
                   <?php $_installPath = cfgVal($cfg, 'install_path') ?: (rtrim(str_replace('\\', '/', LUSTER_BASE), '/') . '/'); ?>
@@ -651,7 +651,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <p class="form-hint">The server folder where Luster is installed, ending with a slash. This is a disk path, not a web address. Only change it if copied embed snippets cannot find Luster.</p>
                 </div>
               </div>
-              <div class="field-row field-row--top">
+              <div class="field-row">
                 <label class="field-label" for="s-embed-url">Embed Form Submission URL</label>
                 <div>
                   <?php $_embedBaseUrl = cfgVal($cfg, 'embed_base_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
@@ -663,7 +663,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <p class="form-hint">The web address embedded forms submit to, without a trailing slash. Change this only if your public fanlisting pages live on a different domain or folder than the Luster admin app.</p>
                 </div>
               </div>
-              <div class="field-row field-row--top">
+              <div class="field-row">
                 <label class="field-label" for="s-reciprocal-url">Reciprocal Link Check URL</label>
                 <div>
                   <?php $_reciprocalUrl = cfgVal($cfg, 'reciprocal_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
@@ -685,7 +685,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-notifications" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon--filled">
+          <div class="panel-header-icon panel-header-icon-filled">
             <?= View::icon('email') ?>
           </div>
           <div class="panel-header-meta">
@@ -811,7 +811,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-blacklist" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon--filled">
+          <div class="panel-header-icon panel-header-icon-filled">
             <?= View::icon('blacklist') ?>
           </div>
           <div class="panel-header-meta">
@@ -848,12 +848,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       </div>
 
       <?php if (empty($blacklist_entries)): ?>
-        <div class="card">
-          <div class="empty">
-            <span class="empty-icon"><?= View::icon('blacklist', ['width' => 32, 'height' => 32]) ?></span>
-            <div class="empty-title">No spam filter patterns found.</div>
-            <div>Add email addresses or domains above to prevent them from joining.</div>
-          </div>
+        <div class="card empty">
+          <?= View::icon('blacklist', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+          <div><strong>No spam filter patterns found.</strong></div>
+          <div>Add email addresses or domains above to prevent them from joining.</div>
         </div>
       <?php else: ?>
         <div class="card">
@@ -899,7 +897,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-system" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon--filled">
+          <div class="panel-header-icon panel-header-icon-filled">
             <?= View::icon('wrench') ?>
           </div>
           <div class="panel-header-meta">

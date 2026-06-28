@@ -29,7 +29,7 @@ $b = rtrim(View::e($base_url), '/');
   <div class="card card--gradient">
 
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('gear') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Display Settings</div>
         <div class="panel-header-sub">Controls how joined fanlistings are grouped and paginated in the admin table.</div>
@@ -40,7 +40,7 @@ $b = rtrim(View::e($base_url), '/');
       <div class="section-label">Display Preferences</div>
 
       <!-- Sort order -->
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="display_mode">Sort Listings By</label>
         <div>
           <div class="select-wrap">
@@ -56,7 +56,7 @@ $b = rtrim(View::e($base_url), '/');
       </div>
 
       <!-- Per page -->
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="per_page">Items Per Page</label>
         <div>
           <input type="number" id="per_page" name="per_page" class="form form--compact"

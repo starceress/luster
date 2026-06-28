@@ -69,7 +69,7 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="cat-parent">Parent Category</label>
         <div>
           <div class="select-wrap">
@@ -89,7 +89,7 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="add-network-toggle">Change Network?</label>
         <div>
           <div class="select-wrap">
@@ -108,7 +108,7 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
         </div>
       </div>
 
-      <div class="field-row field-row--top is-hidden" id="replacement-network-row">
+      <div class="field-row is-hidden" id="replacement-network-row">
         <label class="field-label" for="replacement-network">New Network</label>
         <div>
           <div class="cat-row">

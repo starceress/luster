@@ -1226,7 +1226,7 @@ final class ListingSettingsRepo
 
         try {
             $stmt = $this->db->prepare(
-                "SELECT fanlisting_id, image, last_updated, approved_by, description
+                "SELECT fanlisting_id, image, last_updated, approved_by, description, listing_type
                  FROM lstr_fanlisting_settings WHERE fanlisting_id IN ({$phs})"
             );
             $stmt->execute(array_values($listingIds));
@@ -1238,7 +1238,7 @@ final class ListingSettingsRepo
 
         try {
             $stmt = $this->db->prepare(
-                "SELECT fanlisting_id, image, last_updated, approved_by
+                "SELECT fanlisting_id, image, last_updated, approved_by, listing_type
                  FROM lstr_fanlisting_settings WHERE fanlisting_id IN ({$phs})"
             );
             $stmt->execute(array_values($listingIds));
@@ -1671,7 +1671,7 @@ final class ListingSettingsRepo
         }
 
         if ($row === false) {
-            return $defaults;
+            $row = [];
         }
 
         return [
@@ -1685,6 +1685,46 @@ final class ListingSettingsRepo
             'db_user'               => (string) ($row['db_user']               ?? ''),
             'db_pass'               => (string) ($row['db_pass']               ?? ''),
             'country_field_enabled' => (bool) ($row['country_field_enabled']   ?? true),
+        ];
+    }
+
+    /**
+     * Returns embed settings with empty form URLs resolved against global
+     * defaults (and built-in fallbacks). Use this for runtime URL resolution
+     * and email token building — NOT for populating edit forms.
+     */
+    public function getResolvedEmbedSettings(int $listingId): array
+    {
+        $raw        = $this->getEmbedSettings($listingId);
+        $globalUrls = $this->getGlobalFormUrlDefaults();
+
+        $raw['form_url_join']         = $raw['form_url_join']         ?: $globalUrls['form_url_join'];
+        $raw['form_url_update']       = $raw['form_url_update']       ?: $globalUrls['form_url_update'];
+        $raw['form_url_reset']        = $raw['form_url_reset']        ?: $globalUrls['form_url_reset'];
+        $raw['form_url_codes_submit'] = $raw['form_url_codes_submit'] ?: $globalUrls['form_url_codes_submit'];
+
+        return $raw;
+    }
+
+    /**
+     * Returns the global form URL defaults from lstr_site_settings, keyed
+     * by the per-listing embed field names (form_url_join, form_url_update,
+     * etc.) for direct merging with getEmbedSettings() results.
+     *
+     * @return array<string, string>
+     */
+    public function getGlobalFormUrlDefaults(): array
+    {
+        $siteRepo = new SiteSettingsRepo($this->db);
+        $globals  = $siteRepo->getGlobalFormUrls();
+        $builtIn  = SiteSettingsRepo::GLOBAL_FORM_URL_KEYS;
+        return [
+            'form_url_join'            => ((string) ($globals['global_form_url_join']            ?? '')) ?: $builtIn['global_form_url_join'],
+            'form_url_update'          => ((string) ($globals['global_form_url_update']          ?? '')) ?: $builtIn['global_form_url_update'],
+            'form_url_reset'           => ((string) ($globals['global_form_url_reset']           ?? '')) ?: $builtIn['global_form_url_reset'],
+            'form_url_codes_submit'    => ((string) ($globals['global_form_url_codes_submit']    ?? '')) ?: $builtIn['global_form_url_codes_submit'],
+            'form_url_affiliate_apply' => ((string) ($globals['global_form_url_affiliate_apply'] ?? '')) ?: $builtIn['global_form_url_affiliate_apply'],
+            'form_url_contact'         => ((string) ($globals['global_form_url_contact']         ?? '')) ?: $builtIn['global_form_url_contact'],
         ];
     }
 

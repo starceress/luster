@@ -84,7 +84,7 @@ if ($_lusterIsCollective) {
     $_lusterListingName = $_lusterListing->title;
     $_lusterListingUrl  = $_lusterListing->url ?? '';
 
-    $_lusterEmbedCfg = (new \Luster\Repositories\ListingSettingsRepo($_lusterDb))->getEmbedSettings($_lusterListingId);
+    $_lusterEmbedCfg = (new \Luster\Repositories\ListingSettingsRepo($_lusterDb))->getResolvedEmbedSettings($_lusterListingId);
     if (!($_lusterEmbedCfg['codes_submit_enabled'] ?? true)) {
         if ($luster_return ?? false) { return ''; }
         return;

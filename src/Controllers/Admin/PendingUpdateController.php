@@ -123,7 +123,7 @@ final class PendingUpdateController
             $cfg       = $this->app->getConfig();
             $mailer    = new Mailer($cfg);
             $emailRepo = new EmailTemplateRepo($db);
-            $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($pending->fanlisting_id);
+            $_es       = (new ListingSettingsRepo($db))->getResolvedEmbedSettings($pending->fanlisting_id);
             $tokens    = EmailTemplateRepo::buildTokens(
                 listingName:    $listing->title,
                 listingUrl:     $listing->url,
@@ -137,9 +137,10 @@ final class PendingUpdateController
                 formUrlJoin:    (string) $_es['form_url_join'],
                 formUrlUpdate:  (string) $_es['form_url_update'],
                 formUrlReset:   (string) $_es['form_url_reset'],
+                listingType:    (new ListingSettingsRepo($db))->getListingType($pending->fanlisting_id),
             );
             [$subject, $body] = $emailRepo->resolveForListing($pending->fanlisting_id, EmailTemplateRepo::TYPE_UPDATE, $tokens);
-            $mailer->send($finalEmail, $finalName, $subject, $body);
+            if ($subject !== '') { $mailer->send($finalEmail, $finalName, $subject, $body); }
         } catch (\Throwable $e) {
             error_log('[Luster] Pending update approval email failed: ' . $e->getMessage());
         }
@@ -227,7 +228,7 @@ final class PendingUpdateController
 
             try {
                 $emailRepo = new EmailTemplateRepo($db);
-                $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($pending->fanlisting_id);
+                $_es       = (new ListingSettingsRepo($db))->getResolvedEmbedSettings($pending->fanlisting_id);
                 $tokens    = EmailTemplateRepo::buildTokens(
                     listingName:    $listing->title,
                     listingUrl:     $listing->url,
@@ -241,9 +242,10 @@ final class PendingUpdateController
                     formUrlJoin:    (string) $_es['form_url_join'],
                     formUrlUpdate:  (string) $_es['form_url_update'],
                     formUrlReset:   (string) $_es['form_url_reset'],
+                    listingType:    (new ListingSettingsRepo($db))->getListingType($pending->fanlisting_id),
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($pending->fanlisting_id, EmailTemplateRepo::TYPE_UPDATE, $tokens);
-                $mailer->send($finalEmail, $finalName, $subject, $body);
+                if ($subject !== '') { $mailer->send($finalEmail, $finalName, $subject, $body); }
             } catch (\Throwable $e) {
                 error_log('[Luster] Approve-all-updates email failed for ' . $finalEmail . ': ' . $e->getMessage());
             }

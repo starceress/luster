@@ -23,6 +23,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\SuccessRenderer;
@@ -287,17 +288,28 @@ final class KimUpdateController
                 $recipientName  = $newName  !== '' ? $newName  : $member->name;
 
                 $tokens = EmailTemplateRepo::buildKimTokens(
-                    listingName: $listingName,
-                    listingUrl:  $listingUrl,
-                    siteName:    $siteName,
-                    ownerName:   $ownerName,
-                    ownerEmail:  $ownerEmail,
-                    kimName:     $recipientName,
-                    kimEmail:    $recipientEmail,
-                    kimUrl:      $newUrl !== '' ? $newUrl : ($member->url ?? ''),
+                    listingName:    $listingName,
+                    listingUrl:     $listingUrl,
+                    siteName:       $siteName,
+                    ownerName:      $ownerName,
+                    ownerEmail:     $ownerEmail,
+                    kimName:        $recipientName,
+                    kimEmail:       $recipientEmail,
+                    kimUrl:         $newUrl !== '' ? $newUrl : ($member->url ?? ''),
+                    listingSubject: $listing->subject ?? '',
+                    listingType:    $listing !== null
+                        ? (new ListingSettingsRepo($this->app->getDatabase()))->getListingType((int) $listing->id)
+                        : 'listing',
+                    kimUpdateUrl:   \Luster\Support\CollectiveFormUrlResolver::resolve(
+                        (new \Luster\Repositories\SiteSettingsRepo($this->app->getDatabase()))->get('kim_url_update') ?: 'kim-update.php',
+                        ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                        ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                    ),
                 );
                 [$subject, $body] = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_KIM_UPDATE, $tokens);
-                (new Mailer($config))->send($recipientEmail, $recipientName, $subject, $body);
+                if ($subject !== '') {
+                    (new Mailer($config))->send($recipientEmail, $recipientName, $subject, $body);
+                }
             } catch (\Throwable $e) {
                 error_log('[KIM] Update confirmation email failed: ' . $e->getMessage());
             }

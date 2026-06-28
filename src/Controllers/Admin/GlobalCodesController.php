@@ -988,11 +988,16 @@ final class GlobalCodesController extends AdminController
             return;
         }
 
-        $listingId = (int) $code->fanlisting_id;
+        $listingId   = $code->fanlisting_id !== null ? (int) $code->fanlisting_id : null;
+        $isCollective = $listingId === null || $listingId === 0;
 
         // Resolve send preference: per-listing → global → default on
         $settingsRepo    = new ListingSettingsRepo($db);
-        $perListing      = $settingsRepo->getCodeApprovalEmail($listingId);
+        if (!$isCollective) {
+            $perListing  = $settingsRepo->getCodeApprovalEmail($listingId);
+        } else {
+            $perListing  = null;
+        }
         $globalEnabled   = (new SiteSettingsRepo($db))->get('code_approval_email_enabled', '1') !== '0';
         $shouldSend      = $perListing ?? $globalEnabled;
 
@@ -1002,31 +1007,52 @@ final class GlobalCodesController extends AdminController
 
         try {
             $config      = $this->app->getConfig();
-            $listingRepo = new ListingRepo($db, $config);
-            $listing     = $listingRepo->getById($listingId);
-            if ($listing === null) {
+            $emailRepo   = new EmailTemplateRepo($db);
+            $siteName    = (string) $config->get('site_name', '');
+
+            if ($isCollective) {
+                $tokens = EmailTemplateRepo::buildTokens(
+                    listingName:    $siteName,
+                    listingUrl:     ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                    siteName:       $siteName,
+                    ownerName:      (string) $config->get('owner_name', ''),
+                    ownerEmail:     (string) $config->get('owner_email', ''),
+                    fanName:        (string) ($code->submitter_name ?? ''),
+                    fanEmail:       $email,
+                    fanUrl:         (string) ($code->submitter_url ?? ''),
+                );
+                [$subject, $body] = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_CODE_APPROVED, $tokens);
+            } else {
+                $listingRepo = new ListingRepo($db, $config);
+                $listing     = $listingRepo->getById($listingId);
+                if ($listing === null) {
+                    return;
+                }
+
+                $_es    = $settingsRepo->getResolvedEmbedSettings($listingId);
+                $tokens = EmailTemplateRepo::buildTokens(
+                    listingName:    $listing->title,
+                    listingUrl:     $listing->url,
+                    siteName:       $siteName,
+                    listingSubject: $listing->subject,
+                    ownerName:      (string) $config->get('owner_name', ''),
+                    ownerEmail:     (string) $config->get('owner_email', ''),
+                    fanName:        (string) ($code->submitter_name ?? ''),
+                    fanEmail:       $email,
+                    fanUrl:         (string) ($code->submitter_url ?? ''),
+                    listingEmail:   $listing->email,
+                    formUrlJoin:    (string) $_es['form_url_join'],
+                    formUrlUpdate:  (string) $_es['form_url_update'],
+                    formUrlReset:   (string) $_es['form_url_reset'],
+                    listingType:    $settingsRepo->getListingType($listingId),
+                );
+                [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_CODE_APPROVED, $tokens);
+            }
+
+            if ($subject === '') {
                 return;
             }
 
-            $emailRepo = new EmailTemplateRepo($db);
-            $_es       = (new ListingSettingsRepo($db))->getEmbedSettings($listingId);
-            $tokens = EmailTemplateRepo::buildTokens(
-                listingName:    $listing->title,
-                listingUrl:     $listing->url,
-                siteName:       (string) $config->get('site_name', ''),
-                listingSubject: $listing->subject,
-                ownerName:      (string) $config->get('owner_name', ''),
-                ownerEmail:     (string) $config->get('owner_email', ''),
-                fanName:        (string) ($code->submitter_name ?? ''),
-                fanEmail:       $email,
-                fanUrl:         (string) ($code->submitter_url ?? ''),
-                listingEmail:   $listing->email,
-                formUrlJoin:    (string) $_es['form_url_join'],
-                formUrlUpdate:  (string) $_es['form_url_update'],
-                formUrlReset:   (string) $_es['form_url_reset'],
-            );
-
-            [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_CODE_APPROVED, $tokens);
             (new Mailer($config))->send($email, (string) ($code->submitter_name ?? ''), $subject, $body);
         } catch (\Throwable $e) {
             error_log('[Luster] Code approval email failed: ' . $e->getMessage());

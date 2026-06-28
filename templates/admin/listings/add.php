@@ -33,7 +33,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
 
 <div class="card card--gradient">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('star') ?></div>
+    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('star') ?></div>
     <div class="panel-header-title">Add New Listing</div>
   </div>
   <form method="POST" action="<?= $b ?>/admin/listings/add" enctype="multipart/form-data" class="js-warn-unsaved">

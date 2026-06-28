@@ -275,16 +275,16 @@ $_tabRejected = $_codesBaseUrl !== null
     <?php if ($_totalCodes === 0): ?>
       <div class="card-empty-state">
         <div class="empty">
-        <div class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">No codes yet. Use the Upload Codes panel to add some!</div>
+        <?= View::icon('image', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+        <div><strong>No codes yet. Use the Upload Codes panel to add some!</strong></div>
         </div>
       </div>
     <?php else: ?>
       <?php $_filterEmptyInitial = ($_codeStatusFilter === 'approved' && $_approvedCount === 0) || ($_codeStatusFilter === 'pending' && $_pendingCount === 0) || ($_codeStatusFilter === 'rejected' && $_rejectedCount === 0); ?>
       <div class="card-empty-state<?= $_filterEmptyInitial ? '' : ' is-hidden' ?>" id="codes-filter-empty">
         <div class="empty">
-          <div class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></div>
-          <div class="empty-title">No codes match this filter &mdash; <a href="<?= $_tabApproved ?>" class="link" data-code-filter="approved">show approved</a>.</div>
+          <?= View::icon('image', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+          <div><strong>No codes match this filter &mdash; <a href="<?= $_tabApproved ?>" class="link" data-code-filter="approved">show approved</a>.</strong></div>
         </div>
       </div>
       <?php foreach ($_groupedCodes as $group): ?>

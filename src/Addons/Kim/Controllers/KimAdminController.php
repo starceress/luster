@@ -24,6 +24,7 @@ use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
 /**
@@ -439,21 +440,32 @@ final class KimAdminController extends AdminController
             $listing     = $listingRepo->getById($member->fanlistingId);
             $emailRepo   = new EmailTemplateRepo($db);
             $tokens      = EmailTemplateRepo::buildKimTokens(
-                listingName : $listing?->title ?? '',
-                listingUrl  : $listing?->url   ?? '',
-                siteName    : (string) $config->get('site_name',   ''),
-                ownerName   : (string) $config->get('owner_name',  ''),
-                ownerEmail  : (string) $config->get('owner_email', ''),
-                kimName     : $member->name,
-                kimEmail    : $member->email,
-                kimUrl      : $member->url,
+                listingName    : $listing?->title ?? '',
+                listingUrl     : $listing?->url   ?? '',
+                siteName       : (string) $config->get('site_name',   ''),
+                ownerName      : (string) $config->get('owner_name',  ''),
+                ownerEmail     : (string) $config->get('owner_email', ''),
+                kimName        : $member->name,
+                kimEmail       : $member->email,
+                kimUrl         : $member->url,
+                listingSubject : $listing?->subject ?? '',
+                listingType    : $listing !== null
+                    ? (new ListingSettingsRepo($db))->getListingType($member->fanlistingId)
+                    : 'listing',
+                kimUpdateUrl   : \Luster\Support\CollectiveFormUrlResolver::resolve(
+                    (new \Luster\Repositories\SiteSettingsRepo($db))->get('kim_url_update') ?: 'kim-update.php',
+                    ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                    ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                ),
             );
             [$subject, $body] = $emailRepo->resolveForListing(
                 $member->fanlistingId,
                 EmailTemplateRepo::TYPE_KIM_APPROVED,
                 $tokens,
             );
-            (new Mailer($config))->send($member->email, $member->name, $subject, $body);
+            if ($subject !== '') {
+                (new Mailer($config))->send($member->email, $member->name, $subject, $body);
+            }
         } catch (\Throwable) {
             // Email failures are non-fatal
         }
@@ -639,16 +651,17 @@ final class KimAdminController extends AdminController
         $ownerEmail = (string) $config->get('owner_email', '');
 
         $search = ['{name}', '{email}', '{url}', '{added_at}',
-                   '{listing_subject}', '{listing_url}',
+                   '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}',
                    '{site_name}', '{owner_name}', '{owner_email}'];
 
+        $listingType = (new \Luster\Repositories\ListingSettingsRepo($this->app->getDatabase()))->getListingType($listing->id);
         $mailer = new Mailer($this->app->getConfig());
         $sent   = 0;
         $failed = 0;
 
         foreach ($recipients as $r) {
             $replace = [$r['name'], $r['email'], $r['url'], $r['added_at'],
-                        $listing->subject, $listing->url,
+                        $listing->title, $listing->subject, $listingType, $listing->url,
                         $siteName, $ownerName, $ownerEmail];
 
             $personalSubject = str_replace($search, $replace, $subject);
@@ -778,12 +791,13 @@ final class KimAdminController extends AdminController
             return Response::redirect($redirectBack);
         }
 
+        $listingType = $listing ? (new \Luster\Repositories\ListingSettingsRepo($this->app->getDatabase()))->getListingType($listing->id) : 'listing';
         $search  = ['{name}', '{email}', '{url}', '{added_at}',
-                    '{listing_subject}', '{listing_url}',
+                    '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}',
                     '{site_name}', '{owner_name}', '{owner_email}'];
         $replace = [
             $member->name, $member->email, $member->url, $member->addedAt,
-            $listing ? $listing->subject : '', $listing ? $listing->url : '',
+            $listing ? $listing->title : '', $listing ? $listing->subject : '', $listingType, $listing ? $listing->url : '',
             (string) $config->get('site_name', 'Luster'),
             (string) $config->get('owner_name', ''),
             (string) $config->get('owner_email', ''),
@@ -1215,12 +1229,13 @@ final class KimAdminController extends AdminController
             }
         }
 
-        $siteName   = (string) $config->get('site_name',  '');
-        $ownerName  = (string) $config->get('owner_name',  '');
-        $ownerEmail = (string) $config->get('owner_email', '');
+        $siteName     = (string) $config->get('site_name',  '');
+        $ownerName    = (string) $config->get('owner_name',  '');
+        $ownerEmail   = (string) $config->get('owner_email', '');
+        $settingsRepo = new \Luster\Repositories\ListingSettingsRepo($db);
 
         $search = ['{name}', '{email}', '{url}', '{added_at}',
-                   '{listing_subject}', '{listing_url}',
+                   '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}',
                    '{site_name}', '{owner_name}', '{owner_email}'];
 
         $mailer = new Mailer($config);
@@ -1229,9 +1244,10 @@ final class KimAdminController extends AdminController
 
         foreach ($recipients as $r) {
             $fl = $listingMap[$r['fanlisting_id']] ?? null;
+            $_lt = $fl !== null ? $settingsRepo->getListingType($fl->id) : 'listing';
             $replace = [
                 $r['name'], $r['email'], $r['url'], $r['added_at'],
-                $fl?->subject ?? '', $fl?->url ?? '',
+                $fl?->title ?? '', $fl?->subject ?? '', $_lt, $fl?->url ?? '',
                 $siteName, $ownerName, $ownerEmail,
             ];
 

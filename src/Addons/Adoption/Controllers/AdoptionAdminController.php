@@ -576,9 +576,10 @@ final class AdoptionAdminController
             return Response::redirect($baseUrl . '/admin/adoptions/' . $id . '/email');
         }
 
-        $listing = (new ListingRepo($db, $config))->getById((int) $application['fanlisting_id']);
-        $subject = $this->applyAdoptionTokens($subject, $application, $listing, $config);
-        $body    = $this->applyAdoptionTokens($body,    $application, $listing, $config);
+        $listing     = (new ListingRepo($db, $config))->getById((int) $application['fanlisting_id']);
+        $listingType = $listing !== null ? (new \Luster\Repositories\ListingSettingsRepo($db))->getListingType($listing->id) : 'listing';
+        $subject = $this->applyAdoptionTokens($subject, $application, $listing, $config, $listingType);
+        $body    = $this->applyAdoptionTokens($body,    $application, $listing, $config, $listingType);
 
         try {
             (new Mailer($config))->send(
@@ -765,6 +766,7 @@ final class AdoptionAdminController
 
         $adoptionRepo = new AdoptionRepo($db);
         $listingRepo  = new ListingRepo($db, $config);
+        $settingsRepo = new \Luster\Repositories\ListingSettingsRepo($db);
         $mailer       = new Mailer($config);
 
         $sent   = 0;
@@ -783,8 +785,9 @@ final class AdoptionAdminController
             $seen[$email] = true;
 
             $listing = $listingRepo->getById((int) $app['fanlisting_id']);
-            $sub     = $this->applyAdoptionTokens($subject, $app, $listing, $config);
-            $msg     = $this->applyAdoptionTokens($body,    $app, $listing, $config);
+            $_lt     = $listing !== null ? $settingsRepo->getListingType($listing->id) : 'listing';
+            $sub     = $this->applyAdoptionTokens($subject, $app, $listing, $config, $_lt);
+            $msg     = $this->applyAdoptionTokens($body,    $app, $listing, $config, $_lt);
 
             try {
                 $mailer->send($email, (string) $app['name'], $sub, $msg);
@@ -924,9 +927,17 @@ final class AdoptionAdminController
                 applicantEmail   : (string) $application['email'],
                 applicantUrl     : (string) ($application['url']     ?? ''),
                 applicantMessage : (string) ($application['message'] ?? ''),
+                listingSubject   : $listing?->subject ?? '',
+                listingType      : $listing !== null
+                    ? (new ListingSettingsRepo($db))->getListingType($listingId)
+                    : 'listing',
             );
 
             [$subject, $body] = $emailRepo->resolveForListing($listingId, $type, $tokens);
+
+            if ($subject === '') {
+                return;
+            }
 
             $toEmail = (string) $application['email'];
             if ($toEmail === '') {
@@ -1007,11 +1018,11 @@ final class AdoptionAdminController
      *
      * Used for both single-applicant and bulk email sends.
      */
-    private function applyAdoptionTokens(string $text, array $app, ?Listing $listing, Config $config): string
+    private function applyAdoptionTokens(string $text, array $app, ?Listing $listing, Config $config, string $listingType = 'listing'): string
     {
         return str_replace(
             ['{app_name}', '{app_email}', '{app_url}', '{app_message}', '{app_status}',
-             '{listing_title}', '{listing_url}',
+             '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}',
              '{site_name}', '{owner_name}', '{owner_email}'],
             [
                 (string) ($app['name']    ?? ''),
@@ -1019,8 +1030,10 @@ final class AdoptionAdminController
                 (string) ($app['url']     ?? ''),
                 (string) ($app['message'] ?? ''),
                 (string) ($app['status']  ?? ''),
-                $listing?->title ?? '',
-                $listing?->url   ?? '',
+                $listing?->title   ?? '',
+                $listing?->subject ?? '',
+                $listingType,
+                $listing?->url     ?? '',
                 (string) $config->get('site_name',   ''),
                 (string) $config->get('owner_name',  ''),
                 (string) $config->get('owner_email', ''),

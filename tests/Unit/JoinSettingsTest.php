@@ -10,7 +10,7 @@ use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for per-listing join settings (Migration 50):
+ * Tests for per-listing join settings:
  *  - ListingSettingsRepo::getJoinSettings() / saveJoinSettings() round-trips
  *  - Approval flag logic (auto-approve vs. manual pending)
  *  - Confirmation email tri-state precedence

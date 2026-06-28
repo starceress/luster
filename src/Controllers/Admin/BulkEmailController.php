@@ -305,12 +305,13 @@ final class BulkEmailController extends AdminController
                 return [[], $siteName];
             }
 
-            $es = $settingsRepo->getEmbedSettings($listingId);
+            $es = $settingsRepo->getResolvedEmbedSettings($listingId);
             $formUrls = EmailTemplateRepo::buildTokens(
                 listingName: '', listingUrl: $listing->url, siteName: '',
                 formUrlJoin: (string) $es['form_url_join'], formUrlUpdate: (string) $es['form_url_update'], formUrlReset: (string) $es['form_url_reset'],
             );
 
+            $listingType = $settingsRepo->getListingType($listingId);
             $recipients = [];
             foreach ($memberRepo->getApproved($listing->dbprefix) as $member) {
                 $recipients[$member->email] = [
@@ -320,10 +321,11 @@ final class BulkEmailController extends AdminController
                     'country'          => $member->country,
                     'listing_title'     => $listing->title,
                     'listing_subject'  => $listing->subject,
+                    'listing_type'     => $listingType,
                     'listing_url'      => $listing->url,
                     'listing_email'    => $listing->email,
-                    'form_url_join'    => $formUrls['{form_url_join}'],
-                    'form_url_update'  => $formUrls['{form_url_update}'],
+                    'form_url_join'    => $formUrls['{join_url}'],
+                    'form_url_update'  => $formUrls['{update_url}'],
                     'form_url_reset'   => $formUrls['{form_url_reset}'],
                 ];
             }
@@ -337,11 +339,12 @@ final class BulkEmailController extends AdminController
             if ($listing->dbprefix === '') {
                 continue;
             }
-            $es = $settingsRepo->getEmbedSettings((int) $listing->id);
+            $es = $settingsRepo->getResolvedEmbedSettings((int) $listing->id);
             $formUrls = EmailTemplateRepo::buildTokens(
                 listingName: '', listingUrl: $listing->url, siteName: '',
                 formUrlJoin: (string) $es['form_url_join'], formUrlUpdate: (string) $es['form_url_update'], formUrlReset: (string) $es['form_url_reset'],
             );
+            $listingType = $settingsRepo->getListingType((int) $listing->id);
             foreach ($memberRepo->getApproved($listing->dbprefix) as $member) {
                 if (!isset($recipients[$member->email])) {
                     $recipients[$member->email] = [
@@ -351,10 +354,11 @@ final class BulkEmailController extends AdminController
                         'country'          => $member->country,
                         'listing_title'     => $listing->title,
                         'listing_subject'  => $listing->subject,
+                        'listing_type'     => $listingType,
                         'listing_url'      => $listing->url,
                         'listing_email'    => $listing->email,
-                        'form_url_join'    => $formUrls['{form_url_join}'],
-                        'form_url_update'  => $formUrls['{form_url_update}'],
+                        'form_url_join'    => $formUrls['{join_url}'],
+                        'form_url_update'  => $formUrls['{update_url}'],
                         'form_url_reset'   => $formUrls['{form_url_reset}'],
                     ];
                 }
@@ -379,14 +383,16 @@ final class BulkEmailController extends AdminController
         return str_replace(
             [
                 '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
-                '{listing_title}',            '{listing_subject}',            '{listing_url}', '{listing_email}',
-                '{form_url_join}', '{form_url_update}', '{form_url_reset}',
+                '{listing_title}',            '{listing_subject}',            '{listing_type}',            '{listing_url}', '{listing_email}',
+                '{join_url}', '{update_url}', '{form_url_reset}',
+                '{form_url_join}', '{form_url_update}',
                 '{site_name}',  '{owner_name}', '{owner_email}',
             ],
             [
                 $recipient['name'], $recipient['email'], $recipient['url'], $recipient['country'],
-                $recipient['listing_title'], $recipient['listing_subject'], $recipient['listing_url'], $recipient['listing_email'] ?? '',
+                $recipient['listing_title'], $recipient['listing_subject'], $recipient['listing_type'] ?? 'listing', $recipient['listing_url'], $recipient['listing_email'] ?? '',
                 $recipient['form_url_join'] ?? '', $recipient['form_url_update'] ?? '', $recipient['form_url_reset'] ?? '',
+                $recipient['form_url_join'] ?? '', $recipient['form_url_update'] ?? '',
                 $siteName,      $ownerName,     $ownerEmail,
             ],
             $text,

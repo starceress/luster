@@ -9,7 +9,7 @@ use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the Affiliate Apply Form template (Migration 70):
+ * Tests for the Affiliate Apply Form template:
  *  - ListingSettingsRepo::defaultAffiliateApplyFormTemplate()
  *  - ListingSettingsRepo::getAffiliateApplyFormTemplate()
  *  - ListingSettingsRepo::getTemplates()['affiliate_apply_form_template']

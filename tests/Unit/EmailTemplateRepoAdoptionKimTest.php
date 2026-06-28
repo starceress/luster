@@ -53,16 +53,16 @@ final class EmailTemplateRepoAdoptionKimTest extends TestCase
         self::assertNotSame('', $body, "Default body for {$type} must not be empty");
     }
 
-    public function testAdoptionAppliedDefaultSubjectContainsListingTitleToken(): void
+    public function testAdoptionAppliedDefaultSubjectContainsListingSubjectToken(): void
     {
         $subject = EmailTemplateRepo::defaultSubject(EmailTemplateRepo::TYPE_ADOPTION_APPLIED);
-        self::assertStringContainsString('{listing_title}', $subject);
+        self::assertStringContainsString('{listing_subject}', $subject);
     }
 
-    public function testKimAppliedDefaultSubjectContainsListingTitleToken(): void
+    public function testKimAppliedDefaultSubjectContainsListingSubjectToken(): void
     {
         $subject = EmailTemplateRepo::defaultSubject(EmailTemplateRepo::TYPE_KIM_APPLIED);
-        self::assertStringContainsString('{listing_title}', $subject);
+        self::assertStringContainsString('{listing_subject}', $subject);
     }
 
     // -----------------------------------------------------------------------
@@ -132,7 +132,7 @@ final class EmailTemplateRepoAdoptionKimTest extends TestCase
         foreach ([
             '{listing_title}', '{listing_url}',
             '{site_name}', '{owner_name}', '{owner_email}',
-            '{kim_name}', '{kim_email}', '{kim_url}',
+            '{kim_name}', '{kim_email}', '{kim_url}', '{kim_password}', '{kim_update_url}',
         ] as $key) {
             self::assertArrayHasKey($key, $tokens, "Missing token key: {$key}");
         }

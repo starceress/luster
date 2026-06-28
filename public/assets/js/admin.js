@@ -1200,6 +1200,7 @@ document.addEventListener('drop', function (e) {
       added_at:        '',
       listing_title:    md.listingName    || '',
       listing_subject: md.listingSubject || '',
+      listing_type:    md.listingType    || 'listing',
       listing_url:     md.listingUrl     || '',
       listing_title:   md.listingName    || '',
       site_name:       md.siteName       || '',
@@ -1267,29 +1268,40 @@ document.addEventListener('drop', function (e) {
   if (!pd) return;
 
   // Token substitution map (example/dummy values for preview)
+  var isCollective = pd.dataset.isCollective === '1';
+  var siteName = pd.dataset.siteName || 'Luster';
   var tokens = {
-    '{fan_name}':        'Jane Fan',
-    '{fan_email}':       'jane@example.com',
-    '{fan_url}':         'https://jane.example.com',
+    '{fan_name}':        'Example Fan',
+    '{fan_email}':       'fan@example.com',
+    '{fan_url}':         'https://fan.example.com',
     '{fan_country}':     'United States',
-    '{reset_url}':       'https://example.com/reset/1/confirm?token=abc123',
-    '{listing_title}':    pd.dataset.listingName    || 'My Fanlisting',
+    '{fan_password}':    'mypassword123',
+    '{reset_url}':       'https://myfanlisting.com/reset/1/confirm?token=abc123',
+    '{listing_title}':   isCollective ? siteName : (pd.dataset.listingName || 'My Fanlisting'),
     '{listing_subject}': pd.dataset.listingSubject || 'Music',
+    '{listing_type}':    pd.dataset.listingType    || 'fanlisting',
     '{listing_url}':     pd.dataset.listingUrl     || 'https://myfanlisting.com',
-    '{site_name}':       pd.dataset.siteName       || 'Luster',
-    '{owner_name}':      pd.dataset.ownerName      || 'The Admin',
-    '{owner_email}':     pd.dataset.ownerEmail     || 'admin@example.com',
+    '{join_url}':        pd.dataset.listingUrl     || 'https://myfanlisting.com/join',
+    '{update_url}':      pd.dataset.listingUrl     || 'https://myfanlisting.com/update',
+    '{form_url_join}':   pd.dataset.listingUrl     || 'https://myfanlisting.com/join',
+    '{form_url_update}': pd.dataset.listingUrl     || 'https://myfanlisting.com/update',
+    '{form_url_reset}':  pd.dataset.listingUrl     || 'https://myfanlisting.com/reset',
+    '{site_name}':       siteName,
+    '{owner_name}':      pd.dataset.ownerName      || 'Admin',
+    '{owner_email}':     pd.dataset.ownerEmail     || 'admin@myfanlisting.com',
     '{aff_name}':        'Example Affiliate',
     '{aff_url}':         'https://affiliate.example.com',
     '{aff_email}':       'owner@affiliate.example.com',
     '{aff_message}':     'Message: I would love to affiliate with you.\n\n',
-    '{applicant_name}':    'Alex Applicant',
-    '{applicant_email}':   'alex@example.com',
-    '{applicant_url}':     'https://alex.example.com',
+    '{applicant_name}':    'Example Applicant',
+    '{applicant_email}':   'applicant@example.com',
+    '{applicant_url}':     'https://applicant.example.com',
     '{applicant_message}': 'Message: I would love to adopt this listing.\n\n',
-    '{kim_name}':        'Jamie KIM',
-    '{kim_email}':       'jamie@example.com',
-    '{kim_url}':         'https://jamie.example.com',
+    '{kim_name}':        'KIM Fan',
+    '{kim_email}':       'kimfan@example.com',
+    '{kim_url}':         'https://kimfan.example.com',
+    '{kim_password}':    'password123',
+    '{kim_update_url}':  'https://example.com/kim-update.php',
   };
 
   function updatePreview(type) {
@@ -1332,7 +1344,7 @@ document.addEventListener('drop', function (e) {
 
 (function () {
   document.querySelectorAll('.et-enabled-cb').forEach(function (cb) {
-    var card   = cb.closest('.card--gradient');
+    var card   = cb.closest('.card-gradient');
     var banner = card ? card.querySelector('.modal-warning') : null;
     var label  = cb.parentElement ? cb.parentElement.querySelector('.et-toggle-label') : null;
     function sync() {
@@ -1512,11 +1524,11 @@ document.addEventListener('drop', function (e) {
     btn.classList.add('btn-loading');
     btn.setAttribute('aria-disabled', 'true');
 
-    /* Restore after 8s as a safety net (e.g. server error, back-navigation) */
+    /* Restore after 5s as a safety net (e.g. server error, back-navigation) */
     setTimeout(function () {
       btn.classList.remove('btn-loading');
       btn.removeAttribute('aria-disabled');
-    }, 8000);
+    }, 5000);
   });
 }());
 
@@ -1532,17 +1544,18 @@ document.addEventListener('drop', function (e) {
   var newBodyInp   = document.getElementById('new-tpl-body');
 
   var CT_TOKENS = {
-    '{fan_name}':        'Jane Fan',
+    '{fan_name}':        'Jane Doe',
     '{fan_email}':       'jane@example.com',
     '{fan_url}':         'https://jane.example.com',
     '{fan_country}':     'United States',
-    '{listing_title}':    'My Fanlisting',
+    '{listing_title}':   'My Fanlisting',
     '{listing_subject}': 'Music',
+    '{listing_type}':    'listing',
     '{listing_url}':     'https://myfanlisting.com',
     '{site_name}':       'My Collective',
-    '{owner_name}':      'The Admin',
+    '{owner_name}':      'Admin',
     '{owner_email}':     'admin@example.com',
-    '{name}':            'Jane Fan',
+    '{name}':            'Jane Doe',
     '{email}':           'jane@example.com',
   };
 
@@ -2994,6 +3007,7 @@ document.addEventListener('click', function (e) {
     var listName   = meCurrListingName();
 
     var selSubject = selOpt ? (selOpt.dataset.subject || '') : '';
+    var selType    = selOpt ? (selOpt.dataset.type    || 'listing') : 'listing';
     var selUrl     = selOpt ? (selOpt.dataset.url     || '') : '';
 
     var tokens = {
@@ -3006,6 +3020,7 @@ document.addEventListener('click', function (e) {
       listing_title:    listName,
       listing_title:   listName,
       listing_subject: selSubject,
+      listing_type:    selType,
       listing_url:     selUrl,
       site_name:       md.siteName  || '',
       owner_name:      md.fromName  || '',
@@ -4819,6 +4834,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       .replace(/\{aff_url\}/g,          'https://myfanlisting.example')
       .replace(/\{listing_title\}/g,    sampleListingName  || sampleSite)
       .replace(/\{listing_subject\}/g,  sampleListingSubject)
+      .replace(/\{listing_type\}/g,     'listing')
       .replace(/\{listing_url\}/g,      sampleListingUrl   || sampleSiteUrl)
       .replace(/\{listing_title\}/g,    sampleListingName  || sampleSite)
       .replace(/\{site_name\}/g,        sampleSite)

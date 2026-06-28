@@ -220,8 +220,9 @@ final class AffiliateController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        // Listing context — comes from route {fid}, query param, or ?listing= preselect
-        $contextFid = (int) ($params['fid'] ?? $request->query('context_fid', 0));
+        // Listing context — route {fid} means per-listing tab; ?listing= is a preselect hint
+        $routeFid   = (int) ($params['fid'] ?? 0);
+        $contextFid = $routeFid > 0 ? $routeFid : (int) $request->query('context_fid', 0);
         if ($contextFid === 0) {
             $contextFid = (int) $request->query('listing', 0);
         }
@@ -282,9 +283,9 @@ final class AffiliateController extends AdminController
 
             if (!empty($allErrors)) {
                 // tmp file was never moved — PHP cleans it up automatically
-                if ($contextFid > 0) {
+                if ($routeFid > 0) {
                     $session->set('lstr_flash_error', implode(' ', $allErrors));
-                    return Response::redirect($baseUrl . '/admin/listings/' . $contextFid . '/edit?tab=affiliates');
+                    return Response::redirect($baseUrl . '/admin/listings/' . $routeFid . '/edit?tab=affiliates');
                 }
                 return $this->adminLayout('admin/affiliates/add.php', 'Add Affiliate', 'affiliates', [
                     'listings'     => $listings,
@@ -308,8 +309,8 @@ final class AffiliateController extends AdminController
                 }
                 if (!move_uploaded_file($pendingMove['tmp'], $dir . $pendingMove['filename'])) {
                     $session->set('lstr_flash_error', 'Could not save the uploaded image. Please try again.');
-                    if ($contextFid > 0) {
-                        return Response::redirect($baseUrl . '/admin/listings/' . $contextFid . '/edit?tab=affiliates');
+                    if ($routeFid > 0) {
+                        return Response::redirect($baseUrl . '/admin/listings/' . $routeFid . '/edit?tab=affiliates');
                     }
                     return Response::redirect($baseUrl . '/admin/affiliates/add');
                 }
@@ -331,9 +332,12 @@ final class AffiliateController extends AdminController
 
             $session->set('lstr_flash_success', 'Affiliate added.');
 
-            $redirect = $contextFid > 0
-                ? $baseUrl . '/admin/listings/' . $contextFid . '/edit?tab=affiliates'
-                : $baseUrl . '/admin/affiliates';
+            $fromListing = (int) $request->post('from_listing', 0);
+            if ($fromListing > 0) {
+                $redirect = $baseUrl . '/admin/listings/' . $fromListing . '/edit?tab=affiliates';
+            } else {
+                $redirect = $baseUrl . '/admin/affiliates';
+            }
 
             return Response::redirect($redirect);
         }
@@ -352,6 +356,7 @@ final class AffiliateController extends AdminController
             'error'          => '',
             'old'            => $old,
             'context_fid'    => $contextFid,
+            'from_listing'   => $routeFid,
             'site_name'      => $siteName,
             'next_sort_order' => $nextSortOrder,
         ], '', $addBreadcrumbs);
@@ -444,13 +449,14 @@ final class AffiliateController extends AdminController
             if (!empty($allErrors)) {
                 // tmp file was never moved — PHP cleans it up automatically
                 return $this->adminLayout('admin/affiliates/add.php', 'Edit Affiliate', 'affiliates', [
-                    'listings'     => $listings,
-                    'affiliate'    => $affiliate,
-                    'error'        => implode(' ', $allErrors),
-                    'field_errors' => $v->errors(),
-                    'old'          => $request->postAll(),
-                    'context_fid'  => $fromFl,
-                    'site_name'    => $siteName,
+                    'listings'      => $listings,
+                    'affiliate'     => $affiliate,
+                    'error'         => implode(' ', $allErrors),
+                    'field_errors'  => $v->errors(),
+                    'old'           => $request->postAll(),
+                    'context_fid'   => $fromFl,
+                    'from_listing'  => $fromFl,
+                    'site_name'     => $siteName,
                 ], '', $editBreadcrumbs);
             }
 
@@ -465,7 +471,8 @@ final class AffiliateController extends AdminController
                 }
                 if (!move_uploaded_file($pendingMove['tmp'], $dir . $pendingMove['filename'])) {
                     $session->set('lstr_flash_error', 'Could not save the uploaded image. Please try again.');
-                    return Response::redirect($baseUrl . '/admin/affiliates/' . $id . '/edit');
+                    $editQs = $fromFl > 0 ? '?from_listing=' . $fromFl : '';
+                    return Response::redirect($baseUrl . '/admin/affiliates/' . $id . '/edit' . $editQs);
                 }
                 // New file is on disk — now safe to delete the old one
                 if ($image !== '' && file_exists($dir . $image)) {
@@ -496,7 +503,7 @@ final class AffiliateController extends AdminController
             $session->set('lstr_flash_success', 'Affiliate updated.');
 
             $redirect = $fromFl > 0
-                ? $baseUrl . '/admin/listings/' . $fromFl
+                ? $baseUrl . '/admin/listings/' . $fromFl . '/edit?tab=affiliates'
                 : $baseUrl . '/admin/affiliates';
 
             return Response::redirect($redirect);
@@ -508,12 +515,13 @@ final class AffiliateController extends AdminController
         $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
         return $this->adminLayout('admin/affiliates/add.php', 'Edit Affiliate', 'affiliates', [
-            'listings' => $listings,
-            'affiliate'   => $affiliate,
-            'error'       => '',
-            'old'         => [],
-            'context_fid' => $fromFl,
-            'site_name'   => $siteName,
+            'listings'     => $listings,
+            'affiliate'    => $affiliate,
+            'error'        => '',
+            'old'          => [],
+            'context_fid'  => $fromFl,
+            'from_listing' => $fromFl,
+            'site_name'    => $siteName,
         ], '', $editBreadcrumbs);
     }
 
@@ -702,8 +710,8 @@ final class AffiliateController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * Rejects a pending affiliate application and logs the action.
-     * No email is sent on rejection.
+     * Rejects a pending affiliate application, sends a rejection email if
+     * the template is enabled, and logs the action.
      */
     public function reject(Request $request, array $params): Response
     {
@@ -721,13 +729,18 @@ final class AffiliateController extends AdminController
 
         $affiliateRepo->reject($id);
 
+        $emailNote = '';
+        if ($this->sendAffiliateEmail($affiliate, EmailTemplateRepo::TYPE_AFFILIATE_REJECTED)) {
+            $emailNote = ' Email sent to ' . $affiliate->email . '.';
+        }
+
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             'affiliate.reject',
             "Rejected affiliate application #{$id}: {$affiliate->name} ({$affiliate->url})",
         );
 
-        $session->set('lstr_flash_success', 'Affiliate application rejected.');
+        $session->set('lstr_flash_success', 'Affiliate application rejected.' . $emailNote);
         return Response::redirect($this->redirectAfterStatusChange($request, $baseUrl, 'pending'));
     }
 
@@ -1016,18 +1029,26 @@ final class AffiliateController extends AdminController
 
         $emailRepo = new EmailTemplateRepo($db);
         $tokens    = EmailTemplateRepo::buildAffiliateTokens(
-            listingName: $listingName,
-            listingUrl:  $listingUrl,
-            siteName:    (string) $config->get('site_name', ''),
-            ownerName:   (string) $config->get('owner_name', ''),
-            ownerEmail:  (string) $config->get('owner_email', ''),
-            affName:     $affiliate->name,
-            affUrl:      $affiliate->url,
-            affEmail:    $affiliate->email,
-            affMessage:  $affiliate->applicationMessage ?? '',
+            listingName:    $listingName,
+            listingUrl:     $listingUrl,
+            siteName:       (string) $config->get('site_name', ''),
+            ownerName:      (string) $config->get('owner_name', ''),
+            ownerEmail:     (string) $config->get('owner_email', ''),
+            affName:        $affiliate->name,
+            affUrl:         $affiliate->url,
+            affEmail:       $affiliate->email,
+            affMessage:     $affiliate->applicationMessage ?? '',
+            listingSubject: $listing->subject ?? '',
+            listingType:    $affiliate->listingId !== null
+                ? (new ListingSettingsRepo($db))->getListingType($affiliate->listingId)
+                : 'listing',
         );
 
         [$subject, $body] = $emailRepo->resolveForListing($affiliate->listingId, $type, $tokens);
+
+        if ($subject === '') {
+            return false;
+        }
 
         try {
             $mailer = new Mailer($config);

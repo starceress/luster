@@ -53,7 +53,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('database') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('database') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Connect to <?= View::e($source_name) ?></div>
         <div class="panel-header-sub">Tell Luster where to read the old data from.</div>
@@ -92,7 +92,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
     <div class="card-body">
       <div class="section-label">Database Table Prefix</div>
       <div class="card-body">
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="fn_table_prefix">Table Prefix</label>
         <div>
           <input id="fn_table_prefix" type="text" name="fn_table_prefix" class="form" style="max-width:220px"
@@ -113,7 +113,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
       <div class="card-body">
         <div class="section-label">Auto-detect Credentials</div>
         <div class="card-body">
-          <div class="field-row field-row--top">
+          <div class="field-row">
             <label class="field-label" for="js-config-path">Config file path</label>
             <div>
               <div style="display:flex;gap:.5rem;align-items:flex-start">
@@ -196,7 +196,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
         <?php endif; ?>
         
       <div class="card-body">
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="sql_dump">Upload File <span class="req">*</span></label>
           <div>
             <label class="file-drop-zone" for="sql_dump">

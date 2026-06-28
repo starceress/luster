@@ -377,7 +377,7 @@ $epSafe = View::e($ep);
     </div>
 
 <!-- ──── CONTENT PANE ────────────────────────────────────────────────────── -->
-    <div class="card card--gradient" id="ec-pane" style="margin-top:1.5rem;">
+    <div class="card card-gradient" id="ec-pane" style="margin-top:1.5rem;">
 
       <div id="ec-empty" class="empty">
         <div class="empty-icon"><?= View::icon('embed', ['width' => 32, 'height' => 32]) ?></div>
@@ -387,7 +387,7 @@ $epSafe = View::e($ep);
 
       <!-- Header: icon + title + badge -->
       <div class="panel-header" id="ec-pane-head" style="display:none">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('embed') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
         <div class="panel-header-meta" style="flex:1;min-width:0">
           <div class="panel-header-title" id="ec-head-title"></div>
           <div class="panel-header-sub" id="ec-head-desc"></div>
@@ -458,7 +458,7 @@ $epSafe = View::e($ep);
       </nav>
 <!-- ──── REF PANELS ───────────────────────────────────────────────────────── -->
       <div>
-        <div class="card card--gradient" id="ec-ref-general">
+        <div class="card card-gradient" id="ec-ref-general">
           <div class="panel-header">
             <div class="panel-header-meta">
           <div class="panel-header-title">Basics</div>
@@ -539,6 +539,15 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code>$luster_stats_template</code></td><td>A custom stats layout for this one snippet. Leave this out to use the stats layout saved in Luster.</td></tr>
               </tbody>
             </table>
+            <p class="text-muted" style="margin-top:.5rem">Output variable available after the stats embed runs:</p>
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="actions-col">Variable</th><th>What it contains</th></tr></thead>
+              <tbody>
+                <tr><td class="actions-col"><code>$luster_description</code></td><td>The listing description (pre-escaped, safe to echo directly with <code>&lt;?= $luster_description ?&gt;</code>). Set on the Edit Listing page.</td></tr>
+              </tbody>
+            </table>
+            </div>
             </div>
           </div>
           <p class="text-muted" style="margin-top:.875rem">Settings for affiliate lists.</p>

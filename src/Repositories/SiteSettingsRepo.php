@@ -34,6 +34,20 @@ use Luster\Core\Database;
  */
 class SiteSettingsRepo
 {
+    /**
+     * Global default form page URL keys and their built-in defaults.
+     * Used by the Global Templates & URLs page and by getEmbedSettings()
+     * for the per-listing → global → built-in fallback cascade.
+     */
+    public const GLOBAL_FORM_URL_KEYS = [
+        'global_form_url_join'            => 'join.php',
+        'global_form_url_update'          => 'update.php',
+        'global_form_url_reset'           => 'reset.php',
+        'global_form_url_affiliate_apply' => 'affiliates.php',
+        'global_form_url_codes_submit'    => 'codes-submit.php',
+        'global_form_url_contact'         => 'contact.php',
+    ];
+
     public function __construct(private readonly Database $db) {}
 
     /**
@@ -541,6 +555,17 @@ HTML;
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"
             . '</div>';
+    }
+
+    /**
+     * Returns the six global default form page URLs from lstr_site_settings.
+     * Each key returns null when not stored (meaning use the built-in default).
+     *
+     * @return array<string, string|null>
+     */
+    public function getGlobalFormUrls(): array
+    {
+        return $this->getMany(array_keys(self::GLOBAL_FORM_URL_KEYS));
     }
 
     /**

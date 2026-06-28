@@ -94,7 +94,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('wishlist') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('wishlist') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title"><?= $isEdit ? 'Edit Wishlist Entry' : 'Add Wishlist Entry' ?></div>
         <div class="panel-header-sub"><?= $isEdit ? 'Update the details for this wishlist entry.' : 'Add a fanlisting subject to your wishlist.' ?></div>
@@ -115,7 +115,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="wl-url">URL</label>
         <div>
           <input id="wl-url" type="url" name="url" class="form" maxlength="255"
@@ -125,7 +125,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Image</span>
         <div>
           <?php if ($isEdit && ($entry->image ?? '') !== ''): ?>
@@ -148,7 +148,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       <div class="section-label">Classification</div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">Network &amp; Category</label>
         <div>
           <div class="cat-widget" id="cat-widget"
@@ -164,7 +164,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="wl-type">Status</label>
         <div>
           <?php $currentType = (string) $val('type', 'wanted'); ?>
@@ -185,7 +185,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       <div class="section-label">Public Display</div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="wl-description">Description</label>
         <div>
           <textarea id="wl-description" name="description" class="form" rows="4"
@@ -194,7 +194,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="wl-added-at">Date Added</label>
         <div>
           <input id="wl-added-at" type="date" name="added_at" class="form form--compact"
@@ -203,7 +203,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Show on public wishlist</span>
         <div>
           <?php $isActive = !empty($old) ? ($old['active'] ?? false) : ($entry?->active ?? true); ?>

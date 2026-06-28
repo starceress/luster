@@ -1635,7 +1635,7 @@ final class EnthusiastMemberImportTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // Settings — affiliates_section_template wrapping (Migration 53 guard)
+    // Settings — affiliates_section_template wrapping
     // -----------------------------------------------------------------------
 
     public function testSettingsAffiliatesTemplateWrappedInEachBlockWhenSectionColumnExists(): void
@@ -1658,7 +1658,7 @@ final class EnthusiastMemberImportTest extends TestCase
                     VALUES (1, 'fl', 'http://fl.example.com', '<a href=\"\$\$aff_url\$\$\">\$\$aff_image\$\$</a>')");
         $src->exec("CREATE TABLE fl (email TEXT PRIMARY KEY, added DATE NULL)");
 
-        // Target WITH affiliates_section_template column (Migration 53+)
+        // Target WITH affiliates_section_template column
         $tgt = $this->makePdo();
         $tgt->exec(
             'CREATE TABLE owned (

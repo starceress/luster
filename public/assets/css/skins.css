@@ -255,7 +255,6 @@
   --table-head-color: #ffcb05;
   --strong-color: #e05800;
   --toggle-bg: #fff4ad;
-  --bulk-bg: #fff4ad;
   --card-head-sub-color: #ffcb05;
   --filter-input-bg: #fff;
   --filter-input-color: var(--text);
@@ -289,7 +288,7 @@
 [data-skin="victory-road"][data-theme="light"] .sidebar .nav-group-toggle:hover,
 [data-skin="victory-road"][data-theme="light"] .sidebar .nav-group-toggle.active { background: rgba(0, 0, 0, 0.25); }
 [data-skin="victory-road"][data-theme="light"] .sidebar .sidebar-label::after { background: linear-gradient(to right, rgb(34 204 68 / 0.85), transparent); }
-[data-skin="victory-road"][data-theme="light"] .bulk--flush { background: #3a3a3a; color: #ffffff; border-color: #555555; }
+[data-skin="victory-road"][data-theme="light"] .bulk { background: #3a3a3a; color: #ffffff; border-color: #555555; }
 [data-skin="victory-road"][data-theme="light"] .data-table th { border-bottom-color: #686868; }
 [data-skin="victory-road"][data-theme="light"] .btn-tertiary { background: #7b8ea8; color: #f0f3f7; border-color: #7b8ea8; }
 [data-skin="victory-road"][data-theme="light"] .btn-tertiary:hover { background: #ffd8a8; border-color: #e8a040; color: #ca7505; }
@@ -334,7 +333,7 @@
 [data-skin="victory-road"][data-theme="light"] .card-head { border-bottom-color: #5a0606; }
 [data-skin="victory-road"][data-theme="light"] .panel-header .panel-header-title { color: #fff; }
 [data-skin="victory-road"][data-theme="light"] .panel-header .panel-header-sub   { color: #ffcb05; }
-[data-skin="victory-road"][data-theme="light"] .panel-header .panel-header-icon--filled {
+[data-skin="victory-road"][data-theme="light"] .panel-header .panel-header-icon-filled {
   background: #fff;
   color: var(--brand-primary);
 }
@@ -631,7 +630,7 @@
 [data-skin="floating-lights"][data-theme="light"] .panel-header { background: linear-gradient(135deg, #c48add 0%, #ec82b8 100%); border-bottom-color: transparent; }
 [data-skin="floating-lights"][data-theme="light"] .panel-header .panel-header-title { color: #ffffff; }
 [data-skin="floating-lights"][data-theme="light"] .panel-header .panel-header-sub   { color: rgba(255, 255, 255, 0.85); }
-[data-skin="floating-lights"][data-theme="light"] .panel-header .panel-header-icon--filled { background: rgba(255, 255, 255, 0.25); color: #ffffff; }
+[data-skin="floating-lights"][data-theme="light"] .panel-header .panel-header-icon-filled { background: rgba(255, 255, 255, 0.25); color: #ffffff; }
 
 [data-skin="floating-lights"][data-theme="light"] .btn-tertiary { background: #ffe0ee; color: #a0285a; border-color: #f5a8cc; }
 [data-skin="floating-lights"][data-theme="light"] .btn-tertiary:hover { background: #ffc8e0; border-color: #e07aaa; color: #7a1a42; }

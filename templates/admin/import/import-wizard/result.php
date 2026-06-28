@@ -129,7 +129,7 @@ $hasErr  = $result->hasErrors();
 <!-- ──── RESULT TABLE ───────────────────────────────────────────────── -->
 <div class="card card--gradient">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('import') ?></div>
+    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('import') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Import Details</div>
       <div class="panel-header-sub">See what was added, what was skipped, and whether any images or records need attention.</div>

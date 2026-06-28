@@ -426,6 +426,7 @@ final class RulesAdminController extends AdminController
             $html = RulesBodyRenderer::renderPreview($tpl, [
                 'subject'       => 'Sample Fanlisting',
                 'listing_title' => 'Sample Fanlisting',
+                'listing_type'  => 'listing',
                 'listing_url'   => 'https://example.com/sample-fanlisting',
                 'join_url'      => 'https://example.com/sample-fanlisting/join',
                 'update_url'    => 'https://example.com/sample-fanlisting/update',

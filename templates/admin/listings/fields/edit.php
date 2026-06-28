@@ -35,7 +35,7 @@ $encName = urlencode($field->name);
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('tag') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('tag') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Edit Field</div>
         <div class="panel-header-sub">Update the question members see and how they answer it.</div>
@@ -43,7 +43,7 @@ $encName = urlencode($field->name);
     </div>
 
     <div class="card-body">
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Field Name</span>
         <div>
           <div class="readonly-field"><?= View::e($field->name) ?></div>
@@ -51,7 +51,7 @@ $encName = urlencode($field->name);
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="ef-label">Label <span class="req">*</span></label>
         <div>
           <input type="text" id="ef-label" name="label" class="form"
@@ -61,7 +61,7 @@ $encName = urlencode($field->name);
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="ef-type">Type</label>
         <div>
           <div class="select-wrap">
@@ -76,7 +76,7 @@ $encName = urlencode($field->name);
         </div>
       </div>
 
-      <div id="ef-options-row" class="field-row field-row--top is-hidden">
+      <div id="ef-options-row" class="field-row is-hidden">
         <label class="field-label" for="ef-options">Options</label>
         <div>
           <textarea id="ef-options" name="options" class="form" rows="3"
@@ -85,7 +85,7 @@ $encName = urlencode($field->name);
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Required</span>
         <div>
           <div class="flex-row">

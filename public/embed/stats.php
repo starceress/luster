@@ -96,6 +96,13 @@ $_lusterCountries  = $_lusterMemberRepo->countUniqueCountries($_lusterPrefix);
 $_lusterNewest     = $_lusterMemberRepo->getNewestMembers($_lusterPrefix, $_lusterNewestLimit);
 $_lusterMemberDate = $_lusterMemberRepo->getMostRecentApprovedDate($_lusterPrefix);
 
+// Expose listing description as a standalone PHP variable for host pages (pre-escaped)
+$luster_description = htmlspecialchars(
+    (string) ($_lusterSettingsRepo->getDescription($_lusterListingId) ?? ''),
+    ENT_QUOTES | ENT_SUBSTITUTE,
+    'UTF-8',
+);
+
 // ---------------------------------------------------------------------------
 // 5. Load template from DB (falls back to default)
 // ---------------------------------------------------------------------------

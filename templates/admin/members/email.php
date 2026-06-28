@@ -94,6 +94,7 @@ $listingId  = (int) ($listing->id ?? 0);
             <tr class="tok-row" tabindex="0" role="button" title="Fan's country"           aria-label="Insert {fan_country}. Fan's country"             data-textarea="body" data-token="{fan_country}">    <td class="token-cell" data-desc="Fan's country">           <code>{fan_country}</code></td></tr>
             <tr class="tok-row" tabindex="0" role="button" title="Name of the listing"     aria-label="Insert {listing_title}. Name of the listing"     data-textarea="body" data-token="{listing_title}">   <td class="token-cell" data-desc="Name of the listing">     <code>{listing_title}</code></td></tr>
             <tr class="tok-row" tabindex="0" role="button" title="Subject or topic"        aria-label="Insert {listing_subject}. Subject or topic"      data-textarea="body" data-token="{listing_subject}"><td class="token-cell" data-desc="Subject or topic">        <code>{listing_subject}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Type of listing"         aria-label="Insert {listing_type}. Type of listing"          data-textarea="body" data-token="{listing_type}">   <td class="token-cell" data-desc="Type of listing">         <code>{listing_type}</code></td></tr>
             <tr class="tok-row" tabindex="0" role="button" title="URL of the listing"      aria-label="Insert {listing_url}. URL of the listing"        data-textarea="body" data-token="{listing_url}">    <td class="token-cell" data-desc="URL of the listing">      <code>{listing_url}</code></td></tr>
             <tr class="tok-row" tabindex="0" role="button" title="Listing contact email"   aria-label="Insert {listing_email}. Listing contact email"   data-textarea="body" data-token="{listing_email}">  <td class="token-cell" data-desc="Listing contact email">   <code>{listing_email}</code></td></tr>
             <tr class="tok-row" tabindex="0" role="button" title="Collective or site name" aria-label="Insert {site_name}. Collective or site name"     data-textarea="body" data-token="{site_name}">      <td class="token-cell" data-desc="Collective or site name"> <code>{site_name}</code></td></tr>
@@ -105,13 +106,13 @@ $listingId  = (int) ($listing->id ?? 0);
     </details>
   </div>
 
-  <div class="card card--gradient">
+  <div class="card card-gradient">
     <form method="POST" id="email-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= View::e($member_email ?? '') ?>">
 
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
         <div class="panel-header-title">Compose New Email</div>
         <span class="badge badge-info2 panel-header-badge"><?= $flName ?></span>
       </div>
@@ -163,6 +164,7 @@ $listingId  = (int) ($listing->id ?? 0);
 <div class="modal-backdrop is-hidden" id="preview-modal"
      data-listing-name="<?= View::e($listing->title ?? '') ?>"
      data-listing-subject="<?= View::e($listing->subject ?? '') ?>"
+     data-listing-type="<?= View::e($listing_type ?? 'listing') ?>"
      data-listing-url="<?= View::e($listing->url ?? '') ?>"
      data-fan-name="<?= View::e($member_name ?? '') ?>"
      data-fan-email="<?= View::e($member_email ?? '') ?>"

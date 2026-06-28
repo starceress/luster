@@ -28,12 +28,10 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
 <?php endif; ?>
 
 <?php if (empty($entries)): ?>
-  <div class="card">
-    <div class="empty">
-      <div class="empty-icon"><?= View::icon('notes', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No activity logged yet.</div>
-      <div>Actions you take in the admin panel will appear here.</div>
-    </div>
+  <div class="card empty">
+    <?= View::icon('notes', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+    <div><strong>No activity logged yet.</strong></div>
+    <div>Actions you take in the admin panel will appear here.</div>
   </div>
 <?php else: ?>
 

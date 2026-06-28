@@ -77,10 +77,12 @@ if ($_lusterListingId > 0) {
     $_lusterResult       = $_lusterAffiliateRepo->getActiveByListing($_lusterListingId, $_lusterPerPage, $_lusterPage);
     $_lusterIsCollective = false;
     $_lusterSettingsRepo  = new ListingSettingsRepo($_lusterApp->getDatabase());
-    $_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
+    $_lusterEmbedSettings = $_lusterSettingsRepo->getResolvedEmbedSettings($_lusterListingId);
+    $_lusterGlobalDefaults = $_lusterSettingsRepo->getGlobalFormUrlDefaults();
     $_lusterJoinUrl      = \Luster\Support\ListingFormUrlResolver::resolve(
         (string) ($_lusterEmbedSettings['form_url_join'] ?? ''),
         $_lusterListing->url,
+        $_lusterGlobalDefaults['form_url_join'],
     );
     $_lusterTitle        = $_lusterListing->title;
 } else {
@@ -163,11 +165,16 @@ if ($_lusterSectionTemplate !== null) {
         $_lusterAffApplyUrl      = \Luster\Support\ListingFormUrlResolver::resolve(
             (string) $_lusterAffApplySettings['form_url'],
             $_lusterListing->url,
+            $_lusterGlobalDefaults['form_url_affiliate_apply'] ?? '',
         );
     } else {
         $_lusterSiteUrl  = (string) ($_lusterApp->getConfig()->get('site_url', '') ?: $_lusterBaseUrl);
         $_lusterAffOverride = (new SiteSettingsRepo($_lusterApp->getDatabase()))->get('collective_form_url_affiliate_apply');
-        $_lusterAffApplyUrl = CollectiveFormUrlResolver::resolve($_lusterAffOverride, $_lusterSiteUrl, $_lusterSiteUrl);
+        $_lusterAffApplyUrl = CollectiveFormUrlResolver::resolve(
+            $_lusterAffOverride ?: 'affiliates.php',
+            $_lusterSiteUrl,
+            $_lusterSiteUrl,
+        );
     }
 
     // {affiliate_apply_toggle} — collapsible inline affiliate application form

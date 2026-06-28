@@ -29,7 +29,7 @@ $fe = $field_errors ?? [];
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('admins') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('admins') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Edit Admin Account</div>
         <div class="panel-header-sub">Update login details or set a new password for this admin.</div>
@@ -73,7 +73,7 @@ $fe = $field_errors ?? [];
 
       <div class="section-label">Password</div>
 
-      <div class="field-row field-row--top<?= !empty($fe['new_password']) ? ' has-error' : '' ?>">
+      <div class="field-row<?= !empty($fe['new_password']) ? ' has-error' : '' ?>">
         <label class="field-label" for="au-pass">New Password</label>
         <div>
           <div class="input-icon-wrap">
@@ -90,7 +90,7 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <div class="field-row field-row--top<?= !empty($fe['new_password_confirm']) ? ' has-error' : '' ?>">
+      <div class="field-row<?= !empty($fe['new_password_confirm']) ? ' has-error' : '' ?>">
         <label class="field-label" for="au-confirm">Confirm New Password</label>
         <div>
           <div class="input-icon-wrap">

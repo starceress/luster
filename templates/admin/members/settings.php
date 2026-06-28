@@ -28,7 +28,7 @@ $b = rtrim(View::e($base_url), '/');
   <div class="card card--gradient">
 
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('gear') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Display Settings</div>
         <div class="panel-header-sub">Controls how members are paginated in the admin list view.</div>
@@ -37,7 +37,7 @@ $b = rtrim(View::e($base_url), '/');
 
     <div class="card-body">
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="m-per-page">Members Per Page</label>
         <div>
           <input type="number" id="m-per-page" name="per_page" class="form form--compact"

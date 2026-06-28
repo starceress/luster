@@ -135,11 +135,11 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 
 - **What if something doesn't go as expected during setup?**
   Most hiccups come down to database details or the web folder pointing somewhere
-  other than `public/`. If you're still stuck, [contact me](#need-help-found-a-bug-etc)
+  other than `public/`. If you're still stuck, [contact me](#-need-help-found-a-bug-etc)
   and let me know what you tried so I can help you figure it out!
 
 - **Can you implement [insert fix]/[insert new feature]?**
-  Your feedback means a lot and helps Luster grow! Please [contact me](#need-help-found-a-bug-etc)
+  Your feedback means a lot and helps Luster grow! Please [contact me](#-need-help-found-a-bug-etc)
   and let's see what we can build together!
 
 

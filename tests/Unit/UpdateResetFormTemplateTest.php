@@ -9,8 +9,7 @@ use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the Update Information Form and Lost Password Form templates
- * (Migration 77):
+ * Tests for the Update Information Form and Lost Password Form templates:
  *  - ListingSettingsRepo::getUpdateFormTemplate()
  *  - ListingSettingsRepo::getResetFormTemplate()
  *  - ListingSettingsRepo::defaultUpdateFormTemplate()

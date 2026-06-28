@@ -38,7 +38,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('kim') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('kim') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title"><?= View::e($member->name) ?></div>
         <div class="panel-header-sub">Editing Keep In Mind member &mdash; <?= View::e($fanlisting_name) ?></div>
@@ -66,7 +66,7 @@ $b = rtrim(View::e($base_url), '/');
                value="<?= View::e($member->url) ?>" maxlength="500" placeholder="https://">
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="kim-fanlisting">Fanlisting <span class="req">*</span></label>
         <div>
           <div class="select-wrap">
@@ -98,7 +98,7 @@ $b = rtrim(View::e($base_url), '/');
       <div class="section-label">Password</div>
 
       
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="kim-new-password">New Password</label>
         <div>
           <div class="input-icon-wrap">

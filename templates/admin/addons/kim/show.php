@@ -57,12 +57,10 @@ $fid = (int) $listing->id;
 </div>
 
 <?php if (empty($pending_members)): ?>
-  <div class="card">
-    <div class="empty">
-      <div class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No pending sign-ups.</div>
-      <div>All caught up.</div>
-    </div>
+  <div class="card empty">
+    <?= View::icon('check-badge', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+    <div><strong>No pending sign-ups.</strong></div>
+    <div>All caught up.</div>
   </div>
 <?php else: ?>
   <div class="card">
@@ -156,12 +154,10 @@ $fid = (int) $listing->id;
 </div>
 
 <?php if (empty($approved_members)): ?>
-  <div class="card">
-    <div class="empty">
-      <div class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No approved sign-ups yet.</div>
-      <div>Approved members will appear here once sign-ups are accepted.</div>
-    </div>
+  <div class="card empty">
+    <?= View::icon('check-badge', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+    <div><strong>No approved sign-ups yet.</strong></div>
+    <div>Approved members will appear here once sign-ups are accepted.</div>
   </div>
 <?php else: ?>
   <div class="card">

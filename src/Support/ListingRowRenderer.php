@@ -66,7 +66,9 @@ final class ListingRowRenderer
                 'listing_subject'      => $listing->subject,
                 'listing_status'       => $status,
                 'listing_email'        => $listing->email,
-                'listing_type'         => $listing->listingtype,
+                'listing_type'         => ((string) ($settings['listing_type'] ?? '')) !== ''
+                                            ? (string) $settings['listing_type']
+                                            : (((string) ($listing->listingtype ?? '')) !== '' ? (string) $listing->listingtype : 'listing'),
                 'listing_category'     => $categoryName,
                 'listing_image_url'    => $imageUrl,
                 'date_opened'          => DateFormatter::formatWith($listing->opened ?? '', $dateFormat),

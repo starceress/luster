@@ -257,7 +257,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
       <?php endif; ?>
     </div>
 
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select name="bulk_action" class="select-xs" id="adopt-bulk-action">

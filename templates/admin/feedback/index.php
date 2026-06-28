@@ -33,9 +33,9 @@ use Luster\Core\View;
 <form method="POST" action="<?= View::e($base_url) ?>/admin/feedback">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="card card--gradient">
+  <div class="card card-gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('report') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('report') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Report Form</div>
         <div class="panel-header-sub">Report bugs, ask questions, or suggest features.</div>
@@ -61,7 +61,7 @@ use Luster\Core\View;
         <div>
           <input type="email" id="f-contact" name="contact_email" class="form" required
                  value="<?= View::e($old['contact_email'] ?? $admin_email) ?>" maxlength="254">
-          <p class="form-hint">By default, the report is sent using the email registered with your admin account. If you'd like to use another email, type it above.</p>
+          <p class="form-hint">By default, the report is sent using the email registered with your admin account. If you'd like to use another email, please type it above.</p>
           <?php if (isset($field_errors['contact_email'])): ?>
           <p class="field-error"><?= View::e($field_errors['contact_email']) ?></p>
           <?php endif; ?>
@@ -73,8 +73,8 @@ use Luster\Core\View;
         <label class="field-label" for="f-contact-url">Website URL</label>
         <div>
           <input type="url" id="f-contact-url" name="contact_url" class="form"
-                 value="<?= View::e($old['contact_url'] ?? '') ?>" maxlength="512" placeholder="https://yoursite.example.com">
-          <p class="form-hint">Optional. Include your site URL if you'd like us to follow up via your contact page.</p>
+                 value="<?= View::e($old['contact_url'] ?? $site_url ?? '') ?>" maxlength="512" placeholder="https://yoursite.example.com">
+          <p class="form-hint">Optional. By default, the report is sent using the website/collective URL registered with your admin account. If you'd like to use another website, please include it above.</p>
           <?php if (isset($field_errors['contact_url'])): ?>
           <p class="field-error"><?= View::e($field_errors['contact_url']) ?></p>
           <?php endif; ?>
@@ -173,7 +173,7 @@ use Luster\Core\View;
 </form>
 
 <?php if ($send_failed && $composed_body !== ''): ?>
-<div class="card card--gradient" style="margin-top:1.5rem">
+<div class="card card-gradient" style="margin-top:1.5rem">
   <div class="card-body">
     <div class="field-row field-row--top">
       <label class="field-label">Copy report</label>

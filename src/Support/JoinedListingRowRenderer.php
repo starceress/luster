@@ -33,6 +33,7 @@ final class JoinedListingRowRenderer
                 'listing_subject'   => $listing->name,
                 'listing_url'       => $listing->url,
                 'listing_category'  => $listing->category,
+                'listing_type'      => 'listing',
                 'listing_image_url' => $imageUrl,
                 'date_joined'       => DateFormatter::formatWith($listing->dateJoined ?? '', $dateFormat),
                 'listing_status'    => $listing->status,

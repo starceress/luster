@@ -54,8 +54,6 @@ jobs:
             --exclude='composer.lock' \
             --exclude='dist' \
             --exclude='docs' \
-            --exclude='fanatically' \
-            --exclude='fanatically.zip' \
             --exclude='phpunit.xml' \
             --exclude='samples' \
             --exclude='tests' \

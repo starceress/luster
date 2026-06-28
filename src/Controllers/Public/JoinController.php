@@ -91,14 +91,16 @@ final class JoinController
             return Response::notFound('That listing does not exist.');
         }
 
-        $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields        = $fieldRepo->getFieldsForListing($listingId);
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
+        $fieldRepo       = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
+        $fields          = $fieldRepo->getFieldsForListing($listingId);
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings   = $settingsRepo->getResolvedEmbedSettings($listingId);
+        $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
 
         $formUrl = ListingFormUrlResolver::resolve(
             (string) $embedSettings['form_url_join'],
             $listing->url,
+            $globalDefaults['form_url_join'],
         );
 
         // Rate limiting
@@ -301,7 +303,13 @@ final class JoinController
                 $cfg       = $this->app->getConfig();
                 $mailer    = new Mailer($cfg);
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-                $resetUrl  = $autoApprove ? $this->issuePasswordSetupUrl($listingId, $email) : '';
+                $resetUrl  = $autoApprove
+                    ? $this->issuePasswordSetupUrl($listingId, $email)
+                    : ListingFormUrlResolver::resolve(
+                        (string) ($embedSettings['form_url_reset'] ?? ''),
+                        $listing->url,
+                        $globalDefaults['form_url_reset'],
+                    );
                 $tokens    = EmailTemplateRepo::buildTokens(
                     listingName:    $listing->title,
                     listingUrl:     $listing->url,
@@ -314,14 +322,17 @@ final class JoinController
                     fanUrl:         $url,
                     fanCountry:     $country,
                     resetUrl:       $resetUrl,
-                    fanPassword:    $wasGenerated ? $rawPassword : '',
+                    fanPassword:    $rawPassword,
                     listingEmail:   $listing->email,
-                    formUrlJoin:    (string) $embedSettings['form_url_join'],
-                    formUrlUpdate:  (string) $embedSettings['form_url_update'],
-                    formUrlReset:   (string) $embedSettings['form_url_reset'],
+                    formUrlJoin:    (string) ($embedSettings['form_url_join']   ?: $globalDefaults['form_url_join']),
+                    formUrlUpdate:  (string) ($embedSettings['form_url_update'] ?: $globalDefaults['form_url_update']),
+                    formUrlReset:   (string) ($embedSettings['form_url_reset']  ?: $globalDefaults['form_url_reset']),
+                    listingType:    $settingsRepo->getListingType($listingId),
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_JOIN, $tokens);
-                $mailer->send($email, $name, $subject, $body);
+                if ($subject !== '') {
+                    $mailer->send($email, $name, $subject, $body);
+                }
 
                 if ($wasGenerated && $resetUrl !== '') {
                     [$resetSubject, $resetBody] = $emailRepo->resolveForListing(
@@ -329,7 +340,9 @@ final class JoinController
                         EmailTemplateRepo::TYPE_RESET,
                         $tokens,
                     );
-                    $mailer->send($email, $name, $resetSubject, $resetBody);
+                    if ($resetSubject !== '') {
+                        $mailer->send($email, $name, $resetSubject, $resetBody);
+                    }
                 }
             } catch (\Throwable $e) {
                 error_log('[Luster] Join email failed: ' . $e->getMessage());
@@ -354,14 +367,17 @@ final class JoinController
                     fanUrl:         $url,
                     fanCountry:     $country,
                     listingEmail:   $listing->email,
-                    formUrlJoin:    (string) $embedSettings['form_url_join'],
-                    formUrlUpdate:  (string) $embedSettings['form_url_update'],
-                    formUrlReset:   (string) $embedSettings['form_url_reset'],
+                    formUrlJoin:    (string) ($embedSettings['form_url_join']   ?: $globalDefaults['form_url_join']),
+                    formUrlUpdate:  (string) ($embedSettings['form_url_update'] ?: $globalDefaults['form_url_update']),
+                    formUrlReset:   (string) ($embedSettings['form_url_reset']  ?: $globalDefaults['form_url_reset']),
+                    listingType:    $settingsRepo->getListingType($listingId),
                 );
                 [$notifySubject, $notifyBody] = $notifyRepo->resolveForListing(
                     $listingId, EmailTemplateRepo::TYPE_NOTIFY_JOIN, $notifyTokens,
                 );
-                $notifyMailer->send($listing->email, $listing->title, $notifySubject, $notifyBody);
+                if ($notifySubject !== '') {
+                    $notifyMailer->send($listing->email, $listing->title, $notifySubject, $notifyBody);
+                }
             } catch (\Throwable $e) {
                 error_log('[Luster] Join notification email failed: ' . $e->getMessage());
             }
@@ -403,13 +419,15 @@ final class JoinController
 
         $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
 
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $listingRepo   = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing       = $listingRepo->getById($listingId);
-        $resetPageUrl  = ListingFormUrlResolver::resolve(
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings   = $settingsRepo->getResolvedEmbedSettings($listingId);
+        $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
+        $listingRepo     = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing         = $listingRepo->getById($listingId);
+        $resetPageUrl    = ListingFormUrlResolver::resolve(
             (string) $embedSettings['form_url_reset'],
             (string) ($listing->url ?? ''),
+            $globalDefaults['form_url_reset'],
         );
 
         $sep = str_contains($resetPageUrl, '?') ? '&' : '?';

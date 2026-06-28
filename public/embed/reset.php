@@ -147,9 +147,10 @@ if ($_lusterStep === 'confirm') {
         }
     }
 
-    $_lusterSettingsRepo  = new ListingSettingsRepo($_lusterApp->getDatabase());
-    $_lusterWrapperTpl    = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
-    $_lusterGlobalTpls    = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+    $_lusterSettingsRepo    = new ListingSettingsRepo($_lusterApp->getDatabase());
+    $_lusterGlobalDefaults  = $_lusterSettingsRepo->getGlobalFormUrlDefaults();
+    $_lusterWrapperTpl      = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
+    $_lusterGlobalTpls      = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
     $_lusterRstResolved   = ListingTemplateResolver::resolve(
         $_lusterSettingsRepo->getResetFormTemplate($_lusterListingId),
         $_lusterGlobalTpls['listing_default_reset_form_template'] ?? null,
@@ -162,9 +163,11 @@ if ($_lusterStep === 'confirm') {
         ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ], $_lusterWrapperTpl);
     $_lusterFormAction2   = $_lusterRedirectTo;
+    $_lusterEmbedSettings = $_lusterSettingsRepo->getResolvedEmbedSettings($_lusterListingId);
     $_lusterResetUrl      = \Luster\Support\ListingFormUrlResolver::resolve(
         (string) ($_lusterEmbedSettings['form_url_reset'] ?? ''),
         $_lusterListing->url,
+        $_lusterGlobalDefaults['form_url_reset'],
     );
 
     $_lusterFormHtml = null;

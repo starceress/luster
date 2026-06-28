@@ -146,7 +146,7 @@ $returnSafe = View::e($return_url);
       </div>
 
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
         <div class="panel-header-title">Email Selected KIM Members</div>
         <span class="badge badge-info2 panel-header-badge">
           <span id="es-count-label"><?= $count ?> member<?= $count !== 1 ? 's' : '' ?></span>

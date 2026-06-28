@@ -59,7 +59,7 @@ $defaultGateLabel = $currentGateType === 'button'
 
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon--filled">
+          <div class="panel-header-icon panel-header-icon-filled">
           <?= View::icon('rules') ?>
           </div>
           <div class="panel-header-meta">
@@ -68,7 +68,7 @@ $defaultGateLabel = $currentGateType === 'button'
           </div></div>
         <div class="card-body">
 
-          <div class="field-row field-row--top">
+          <div class="field-row">
             <label class="field-label" for="rules-body">
               Rules Template <span class="req">*</span>
             </label>

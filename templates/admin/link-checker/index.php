@@ -285,12 +285,10 @@ $sumCell = static function (?array $ms, string $key): string {
   <?php if ($listing_id_filter === 0): ?>
 
     <!-- ── Collective — no member table ─────────────────────────────────── -->
-    <div class="card">
-      <div class="empty">
-        <div class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">Members are per-listing.</div>
-        <div>Select a specific listing from the filter above, or choose <strong>All Listings</strong> to see every listing's member URLs.</div>
-      </div>
+    <div class="card empty">
+      <?= View::icon('members', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+      <div><strong>Members are per-listing.</strong></div>
+      <div>Select a specific listing from the filter above, or choose <strong>All Listings</strong> to see every listing's member URLs.</div>
     </div>
 
   <?php elseif ($listing_id_filter === null): ?>
@@ -354,8 +352,8 @@ $sumCell = static function (?array $ms, string $key): string {
       </div>
       <?php if (empty($_allListings)): ?>
       <div class="empty">
-        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">No listings found.</div>
+        <?= View::icon('linkcheck', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+        <div><strong>No listings found.</strong></div>
         <div>Add a listing to start checking member URLs.</div>
       </div>
       <?php else: ?>
@@ -468,8 +466,8 @@ $sumCell = static function (?array $ms, string $key): string {
       </div>
       <?php if (empty($members)): ?>
       <div class="empty">
-        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">No member URLs scanned yet.</div>
+        <?= View::icon('linkcheck', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+        <div><strong>No member URLs scanned yet.</strong></div>
         <div>Click <strong>Scan Members</strong> above to sync member URLs from this listing, then run the checker.</div>
       </div>
       <?php else: ?>
@@ -563,13 +561,11 @@ $sumCell = static function (?array $ms, string $key): string {
     </div>
 
     <?php if (empty($affiliates)): ?>
-    <div class="card">
-      <div class="empty">
-        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">No affiliates found.</div>
-        <div>Add some affiliates to start checking links.</div>
-        <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
-      </div>
+    <div class="card empty">
+      <?= View::icon('linkcheck', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+      <div><strong>No affiliates found.</strong></div>
+      <div>Add some affiliates to start checking links.</div>
+      <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
     </div>
     <?php else: ?>
       <div class="card">
@@ -687,13 +683,11 @@ $sumCell = static function (?array $ms, string $key): string {
     </div>
 
     <?php if (empty($joined)): ?>
-    <div class="card">
-      <div class="empty">
-        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">No joined listings found.</div>
-        <div>Add some joined listings to start checking links.</div>
-        <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-xs"><?= View::icon('add') ?> Add Joined Listing</a>
-      </div>
+    <div class="card empty">
+      <?= View::icon('linkcheck', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+      <div><strong>No joined listings found.</strong></div>
+      <div>Add some joined listings to start checking links.</div>
+      <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-xs"><?= View::icon('add') ?> Add Joined Listing</a>
     </div>
     <?php else: ?>
       <div class="card">
@@ -767,12 +761,10 @@ $sumCell = static function (?array $ms, string $key): string {
   <div id="tab-moved" class="tabs-panel" role="tabpanel">
     <p>These URLs respond with an HTTP redirect, meaning the content has moved to a new address. Click <strong>Update URL</strong> to replace the stored URL with the redirect target. The record will be re-checked on the next run.</p>
     <?php if ($totalMoved === 0): ?>
-    <div class="card">
-      <div class="empty">
-        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">No redirected links found.</div>
-        <div>Run the checker on the Members, Affiliates, or Joined tabs first.</div>
-      </div>
+    <div class="card empty">
+      <?= View::icon('linkcheck', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+      <div><strong>No redirected links found.</strong></div>
+      <div>Run the checker on the Members, Affiliates, or Joined tabs first.</div>
     </div>
     <?php else: ?>
       <div class="card">
@@ -902,12 +894,10 @@ $sumCell = static function (?array $ms, string $key): string {
   <!-- ── Dead Links panel ─────────────────────────────────────────────────── -->
   <div id="tab-dead" class="tabs-panel" role="tabpanel">
     <?php if ($totalDead === 0): ?>
-    <div class="card">
-      <div class="empty">
-        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">No dead links found.</div>
-        <div>Run the checker on the Members, Affiliates, or Joined tabs first.</div>
-      </div>
+    <div class="card empty">
+      <?= View::icon('linkcheck', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+      <div><strong>No dead links found.</strong></div>
+      <div>Run the checker on the Members, Affiliates, or Joined tabs first.</div>
     </div>
     <?php else: ?>
         <p>These URLs returned an error or could not be reached. Review and remove or replace the records as needed.</p>

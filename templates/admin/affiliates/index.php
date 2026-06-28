@@ -224,7 +224,7 @@ $rangeEnd   = min($total, $page * $per_page);
       <?php endif; ?>
     </div>
 
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select name="action" class="select-xs" id="aff-bulk-action">
@@ -422,7 +422,7 @@ $rangeEnd   = min($total, $page * $per_page);
                 </form>
               <?php endif; ?>
 
-              <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit"
+              <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit<?= $_tableOnly && is_numeric($scope) ? '?from_listing=' . (int) $scope : '' ?>"
                  class="btn btn-tertiary btn-xs">Edit</a>
 
               <?php if ($aff->email !== null && $aff->email !== ''): ?>

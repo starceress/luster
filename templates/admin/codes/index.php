@@ -501,7 +501,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
       </div>
     </div>
 
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select name="bulk_action" class="select-xs">

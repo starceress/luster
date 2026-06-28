@@ -25,7 +25,7 @@ $current = Version::CURRENT;
 <div class="update-flow">
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('updatesparkle') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('updatesparkle') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Luster Update Wizard</div>
         <div class="panel-header-sub">This wizard will help you transition to the new Luster update automatically with just a few clicks!

@@ -18,6 +18,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SavedEmailRepo;
 
@@ -72,14 +73,18 @@ final class EmailsController extends AdminController
         $allListings = $listingRepo->getAll();
 
         // --- Email Templates tab
+        $settingsRepo    = new ListingSettingsRepo($db);
         $emailRepo       = new EmailTemplateRepo($db);
         $globalTemplates = $emailRepo->getAllGlobal();
+        $collectiveTemplates = $emailRepo->getAllCollective();
 
         $scope    = $tab === 'templates' ? $request->query('listing', 'global') : 'global';
         $listing  = null;
         $perListingTemplates = [];
 
-        if ($scope !== 'global') {
+        $isCollective = ($scope === 'collective');
+
+        if ($scope !== 'global' && !$isCollective) {
             $listingId = (int) $scope;
             $listing   = $listingRepo->getById($listingId);
             if ($listing === null) {
@@ -94,22 +99,37 @@ final class EmailsController extends AdminController
         // Build cards (pre-filled values and customisation state per template type)
         $cards = [];
         foreach (EmailTemplateRepo::TYPES as $type) {
-            $globalTpl  = $globalTemplates[$type] ?? null;
-            $listingTpl = $perListingTemplates[$type] ?? null;
+            $globalTpl     = $globalTemplates[$type] ?? null;
+            $collectiveTpl = $collectiveTemplates[$type] ?? null;
+            $listingTpl    = $perListingTemplates[$type] ?? null;
 
-            if ($isGlobal) {
+            if ($isCollective) {
+                // Collective scope: show collective templates (fanlisting_id = -1)
+                $savedSubject = $collectiveTpl?->subject ?? '';
+                $savedBody    = $collectiveTpl?->body    ?? '';
+                $fillSubject  = $savedSubject !== '' ? $savedSubject : EmailTemplateRepo::collectiveDefaultSubject($type);
+                $fillBody     = $savedBody    !== '' ? $savedBody    : EmailTemplateRepo::collectiveDefaultBody($type);
+                $isEnabled    = $collectiveTpl === null
+                    ? !in_array($type, EmailTemplateRepo::DISABLED_BY_DEFAULT, true)
+                    : $collectiveTpl->enabled;
+                $isCustomised = false;
+            } elseif ($isGlobal) {
                 $savedSubject = $globalTpl?->subject ?? '';
                 $savedBody    = $globalTpl?->body    ?? '';
                 $fillSubject  = $savedSubject !== '' ? $savedSubject : EmailTemplateRepo::defaultSubject($type);
                 $fillBody     = $savedBody    !== '' ? $savedBody    : EmailTemplateRepo::defaultBody($type);
-                $isEnabled    = $globalTpl === null || $globalTpl->enabled;
+                $isEnabled    = $globalTpl === null
+                    ? !in_array($type, EmailTemplateRepo::DISABLED_BY_DEFAULT, true)
+                    : $globalTpl->enabled;
                 $isCustomised = false;
             } else {
                 $savedSubject = $listingTpl?->subject ?? '';
                 $savedBody    = $listingTpl?->body    ?? '';
                 $isCustomised = $listingTpl !== null && trim($listingTpl->subject) !== '';
                 $isEnabled    = $listingTpl === null
-                    ? ($globalTpl === null || $globalTpl->enabled)
+                    ? ($globalTpl === null
+                        ? !in_array($type, EmailTemplateRepo::DISABLED_BY_DEFAULT, true)
+                        : $globalTpl->enabled)
                     : $listingTpl->enabled;
 
                 if ($isCustomised) {
@@ -190,10 +210,12 @@ final class EmailsController extends AdminController
         // Per-listing approved member counts + deduplicated total
         $memberRepo        = new MemberRepo($db, $config);
         $listingCounts     = [];
+        $listingTypes      = [];
         $allEmails         = [];
         foreach ($allListings as $lst) {
             $count = $lst->dbprefix !== '' ? $memberRepo->countApproved($lst->dbprefix) : 0;
             $listingCounts[$lst->id] = $count;
+            $listingTypes[$lst->id]  = $settingsRepo->getListingType($lst->id);
             if ($lst->dbprefix !== '') {
                 foreach ($memberRepo->getApproved($lst->dbprefix) as $m) {
                     $allEmails[strtolower($m->email)] = true;
@@ -212,13 +234,15 @@ final class EmailsController extends AdminController
             default  => 'Email Templates',
         };
         $breadcrumbs = [];
-        if ($tab !== 'templates' || $listing !== null) {
+        if ($tab !== 'templates' || $listing !== null || $isCollective) {
             $breadcrumbs = [
                 $this->crumb('Emails', $this->adminUrl('/admin/emails')),
                 $this->crumb($tabLabel, $tab !== 'templates' ? $this->adminUrl('/admin/emails?tab=' . $tab) : null),
             ];
             if ($listing !== null) {
                 $breadcrumbs[] = $this->crumb($listing->subject);
+            } elseif ($isCollective) {
+                $breadcrumbs[] = $this->crumb('Collective');
             }
         }
 
@@ -231,13 +255,16 @@ final class EmailsController extends AdminController
             'all_listings'        => $allListings,
             'scope'               => $scope,
             'listing'             => $listing,
+            'listing_type'        => $listing !== null ? $settingsRepo->getListingType($listing->id) : 'listing',
             'cards'               => $cards,
+            'isCollective'        => $isCollective,
             'owner_name'          => (string) $config->get('owner_name', ''),
             'owner_email'         => (string) $config->get('owner_email', ''),
             'site_name_val'       => (string) $config->get('site_name', ''),
 
             // Bulk email tab
             'listings'            => $allListings,
+            'listing_types'       => $listingTypes,
             'listing_counts'      => $listingCounts,
             'deduplicated_total'  => $deduplicatedTotal,
             'saved_emails'        => $savedEmails,

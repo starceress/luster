@@ -17,7 +17,7 @@ $b = rtrim(View::e($base_url), '/');
 
 <div class="card card--gradient" style="margin-bottom:1.5rem">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('embed') ?></div>
+    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Compat Wrapper Test</div>
       <div class="panel-header-sub">

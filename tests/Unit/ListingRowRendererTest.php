@@ -772,6 +772,48 @@ final class ListingRowRendererTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // listing_type — settings override and empty-string fallback
+    // -----------------------------------------------------------------------
+
+    public function testListingTypeFromSettingsOverridesLegacyProperty(): void
+    {
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{listing_type}',
+            ['listing_type' => 'clique'],
+            'https://example.com/uploads/listings',
+        );
+
+        self::assertSame('clique', $html);
+    }
+
+    public function testListingTypeFallsBackToLegacyWhenSettingsEmpty(): void
+    {
+        $listing = new Listing(
+            id: 1, title: 'X', listingtype: 'webring', category: 0,
+            subject: 'X', url: '', dbprefix: '', email: '',
+            additionalInfo: '', upcoming: false, trouble: false,
+            joined: null, opened: null, categoryId: null, catid: '0',
+        );
+        $html = ListingRowRenderer::render($listing, '{listing_type}', ['listing_type' => ''], '');
+
+        self::assertSame('webring', $html);
+    }
+
+    public function testListingTypeDefaultsToListingWhenBothEmpty(): void
+    {
+        $listing = new Listing(
+            id: 1, title: 'X', listingtype: '', category: 0,
+            subject: 'X', url: '', dbprefix: '', email: '',
+            additionalInfo: '', upcoming: false, trouble: false,
+            joined: null, opened: null, categoryId: null, catid: '0',
+        );
+        $html = ListingRowRenderer::render($listing, '{listing_type}', ['listing_type' => ''], '');
+
+        self::assertSame('listing', $html);
+    }
+
+    // -----------------------------------------------------------------------
     // Helper
     // -----------------------------------------------------------------------
 

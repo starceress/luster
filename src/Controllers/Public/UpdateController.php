@@ -80,9 +80,10 @@ final class UpdateController
             return Response::notFound('That listing does not exist.');
         }
 
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $formUrl       = $this->buildFormUrl($listing, $embedSettings);
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings   = $settingsRepo->getResolvedEmbedSettings($listingId);
+        $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
+        $formUrl         = $this->buildFormUrl($listing, $embedSettings, $globalDefaults);
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
@@ -181,9 +182,10 @@ final class UpdateController
 
         $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
         $fields        = $fieldRepo->getFieldsForListing($listingId);
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $formUrl       = $this->buildFormUrl($listing, $embedSettings);
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings   = $settingsRepo->getResolvedEmbedSettings($listingId);
+        $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
+        $formUrl         = $this->buildFormUrl($listing, $embedSettings, $globalDefaults);
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
@@ -246,12 +248,15 @@ final class UpdateController
                     fanName:        $memberName,
                     fanEmail:       $email,
                     listingEmail:   $listing->email,
-                    formUrlJoin:    (string) $embedSettings['form_url_join'],
-                    formUrlUpdate:  (string) $embedSettings['form_url_update'],
-                    formUrlReset:   (string) $embedSettings['form_url_reset'],
+                    formUrlJoin:    (string) ($embedSettings['form_url_join']   ?: $globalDefaults['form_url_join']),
+                    formUrlUpdate:  (string) ($embedSettings['form_url_update'] ?: $globalDefaults['form_url_update']),
+                    formUrlReset:   (string) ($embedSettings['form_url_reset']  ?: $globalDefaults['form_url_reset']),
+                    listingType:    $settingsRepo->getListingType($listingId),
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_REMOVE, $tokens);
-                $mailer->send($email, $memberName, $subject, $body);
+                if ($subject !== '') {
+                    $mailer->send($email, $memberName, $subject, $body);
+                }
             } catch (\Throwable $e) {
                 error_log('[Luster] Remove email failed: ' . $e->getMessage());
             }
@@ -420,31 +425,35 @@ final class UpdateController
 
     /**
      * Resolves the update form URL, using the per-listing form_url_update path
-     * when configured, otherwise falling back to the built-in backend route.
+     * when configured, otherwise falling back to the global default then the listing URL.
      *
      * @param array<string,mixed> $embedSettings
+     * @param array<string,string> $globalDefaults
      */
-    private function buildFormUrl(Listing $listing, array $embedSettings): string
+    private function buildFormUrl(Listing $listing, array $embedSettings, array $globalDefaults = []): string
     {
         return ListingFormUrlResolver::resolve(
             (string) ($embedSettings['form_url_update'] ?? ''),
             $listing->url,
+            $globalDefaults['form_url_update'] ?? '',
         );
     }
 
     /**
      * Resolves the "Forgot your password?" link URL, preferring the per-listing
-     * form_url_reset override and returning an empty string when none is set
-     * (the template then hides the link entirely).
+     * form_url_reset override, then the global default. Returns an empty string
+     * when neither is set (the template then hides the link entirely).
      *
      * @param array<string,mixed> $embedSettings
+     * @param array<string,string> $globalDefaults
      */
-    private function buildResetUrl(Listing $listing, array $embedSettings): string
+    private function buildResetUrl(Listing $listing, array $embedSettings, array $globalDefaults = []): string
     {
-        $resetPage = (string) ($embedSettings['form_url_reset'] ?? '');
-        if ($resetPage === '') {
+        $resetPage   = (string) ($embedSettings['form_url_reset'] ?? '');
+        $resetGlobal = (string) ($globalDefaults['form_url_reset'] ?? '');
+        if ($resetPage === '' && $resetGlobal === '') {
             return '';
         }
-        return ListingFormUrlResolver::resolve($resetPage, $listing->url);
+        return ListingFormUrlResolver::resolve($resetPage, $listing->url, $resetGlobal);
     }
 }

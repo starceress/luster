@@ -9,7 +9,7 @@ use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the Adopt Form template (Migration 70):
+ * Tests for the Adopt Form template:
  *  - ListingSettingsRepo::defaultAdoptFormTemplate()
  *  - ListingSettingsRepo::getAdoptFormTemplate()
  *  - ListingSettingsRepo::getTemplates()['adopt_form_template']

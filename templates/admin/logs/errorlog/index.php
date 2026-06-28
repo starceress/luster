@@ -28,12 +28,10 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
 <?php endif; ?>
 
   <?php if (empty($rows)): ?>
-  <div class="card">
-    <div class="empty">
-      <div class="empty-icon"><?= View::icon('caution', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No errors logged yet.</div>
-      <div>Errors encountered by the application will be recorded here.</div>
-    </div>
+  <div class="card empty">
+    <?= View::icon('caution', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+    <div><strong>No errors logged yet.</strong></div>
+    <div>Errors encountered by the application will be recorded here.</div>
   </div>
   <?php else: ?>
   

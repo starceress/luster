@@ -32,7 +32,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon--filled"><?= View::icon('gear') ?></div>
+      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Display Settings</div>
         <div class="panel-header-sub">Choose how owned listings are shown in the admin area.</div>

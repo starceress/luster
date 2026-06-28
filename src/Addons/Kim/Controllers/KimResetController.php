@@ -150,19 +150,26 @@ final class KimResetController
 
                     $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
                     $tokens    = EmailTemplateRepo::buildKimTokens(
-                        listingName: $siteName,
-                        listingUrl:  (string) $this->app->getConfig()->get('site_url', ''),
-                        siteName:    $siteName,
-                        ownerName:   $ownerName,
-                        ownerEmail:  $ownerEmail,
-                        kimName:     $recipientName,
-                        kimEmail:    $email,
-                        resetUrl:    $resetUrlText,
+                        listingName:  $siteName,
+                        listingUrl:   (string) $this->app->getConfig()->get('site_url', ''),
+                        siteName:     $siteName,
+                        ownerName:    $ownerName,
+                        ownerEmail:   $ownerEmail,
+                        kimName:      $recipientName,
+                        kimEmail:     $email,
+                        resetUrl:     $resetUrlText,
+                        kimUpdateUrl: \Luster\Support\CollectiveFormUrlResolver::resolve(
+                            (new \Luster\Repositories\SiteSettingsRepo($this->app->getDatabase()))->get('kim_url_update') ?: 'kim-update.php',
+                            ((string) $this->app->getConfig()->get('site_url', '')) ?: (string) $this->app->getConfig()->get('app_url', ''),
+                            ((string) $this->app->getConfig()->get('site_url', '')) ?: (string) $this->app->getConfig()->get('app_url', ''),
+                        ),
                     );
                     [$subject, $body] = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_KIM_RESET, $tokens);
 
-                    $mailer = new Mailer($config);
-                    $mailer->send($email, $recipientName, $subject, $body);
+                    if ($subject !== '') {
+                        $mailer = new Mailer($config);
+                        $mailer->send($email, $recipientName, $subject, $body);
+                    }
                 } catch (\Throwable $e) {
                     error_log('[KIM] Password reset email failed: ' . $e->getMessage());
                 }
