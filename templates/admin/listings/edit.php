@@ -186,7 +186,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                  data-custom='<?= $dataCustom ?>'
                  data-custom-cats='<?= $dataCustomCats ?>'
                  data-existing='<?= $dataExisting ?>'>
-              <div id="cat-rows" class="select-auto"></div>
+              <div id="cat-rows"></div>
               <a href="#" class="link btn btn-sm" id="cat-add"><?= View::icon('add') ?> Add another category</a>
             </div>
             <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>

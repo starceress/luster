@@ -49,7 +49,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
                data-custom='<?= $dataCustom ?>'
                data-custom-cats='<?= $dataCustomCats ?>'
                data-existing='[]'>
-            <div class="select-auto"id="cat-rows"></div>
+            <div id="cat-rows"></div>
             <a href="#" class="link" id="cat-add"><?= View::icon('add') ?> Add another category</a>
           </div>
           <p class="form-hint">Choose the network and category this listing belongs to. Add another category if it is listed in more than one place.</p>

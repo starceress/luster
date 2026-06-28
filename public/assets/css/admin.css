@@ -602,8 +602,6 @@ dialog.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
 
 .empty-icon { width: 28px; height: 28px; flex-shrink: 0; color: var(--text-dim); opacity: 0.65; stroke-width: 1.5; }
 
-.empty-title { font-weight: 600; color: var(--text); }
-
 /* ---- JS CONFIRMATION ---------------------------------- */
 
 .confirm-bar { display: inline-flex; align-items: center; gap: 0.375rem; vertical-align: middle; opacity: 0; transform: translateX(-6px); transition: opacity 0.08s ease, transform 0.08s ease; }
@@ -756,8 +754,6 @@ html.fp-codes #codes-filter-panel { display: block; }
 
 .flex-row { display: flex; gap: 1.25rem; }
 
-.text-xs { font-size: var(--fs-xs); }
-
 /* ---- DATA TABLES -------------------------------------- */
 
 .toggle-pill { display: inline-block; padding: .2rem .55rem; border-radius: 20px; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); transition: background .15s, color .15s, border-color .15s; }
@@ -802,7 +798,7 @@ tr.lc-busy td:last-child { opacity: 1; }
 
 /* ---- DRAG AND DROP ------------------------------------ */
 
-.drag-handle        { cursor: grab; color: var(--text-dim); font-size: var(--fs-lg); line-height: 1; padding: 0 4px; user-select: none; }
+.drag-handle { cursor: grab; color: var(--text-dim); font-size: var(--fs-lg); line-height: 1; padding: 0 4px; user-select: none; }
 
 .aff-drag-off .drag-handle { visibility: hidden; }
 
@@ -1002,8 +998,6 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .del-img-check { display: inline-flex; align-items: center; gap: .4rem; font-size: var(--fs-base); color: var(--text-muted); cursor: pointer; margin-top: .3rem; }
 
-.del-img-check input { accent-color: var(--danger); width: 13px; height: 13px; cursor: pointer; }
-
 .existing-upload-preview { margin-bottom: .75rem; }
 
 .existing-upload-preview img { display: block; max-width: 200px; max-height: 80px; margin-bottom: .5rem; border: 1px solid var(--border); border-radius: 6px; }
@@ -1011,8 +1005,6 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 .existing-upload-preview .del-img-check { color: var(--danger); }
 
 .file-meta-name { font-size: .8rem; font-weight: 600; color: var(--text); }
-
-.replace-note { font-size: .72rem; font-weight: 600; color: var(--text-muted); margin-bottom: .35rem; }
 
 .upload-panel-row { margin-bottom: .625rem; }
 
@@ -1030,10 +1022,8 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 /* ---- INLINE LISTING FIELDS ---------------------------- */
 
-.field-row { display: grid; grid-template-columns: 160px 1fr; align-items: center; gap: .75rem; padding: .6rem 0; }
-
-
-.field-row--top { align-items: flex-start; padding-top: .75rem; }
+.field-row { display: grid; grid-template-columns: 160px 1fr; align-items: flex-start; gap: .75rem; padding: .6rem 0; }
+.field-row > div { min-width: 0; }
 
 .field-label { font-size: var(--fs-base); font-weight: 600; color: var(--text-muted); line-height: 1.4; align-self: start; padding-top: .45rem; }
 
@@ -1069,15 +1059,15 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 /* ---- CATEGORY WIDGET ---------------------------------- */
 
-.cat-widget { display: flex; flex-direction: column; gap: 8px; min-width: 0; max-width: 100%; overflow: hidden; }
+.cat-widget { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
 
 .cat-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
-.cat-row > [data-role="cat-network-wrap"] { flex: 0 0 158px; width: 158px; }
+.cat-row > [data-role="cat-network-wrap"] { flex: 0 1 158px; min-width: 0; }
 
 .cat-row > [data-role="cat-category-wrap"],
 .cat-row > [data-role="cat-name-text"],
-.cat-row > [data-role="cat-network-other"] { flex: 1; min-width: 110px; }
+.cat-row > [data-role="cat-network-other"] { flex: 1; min-width: 0; }
 
 .cat-row > [data-role="cat-name-text"],
 .cat-row > [data-role="cat-network-other"] { padding: 8px 10px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 8px; font-size: var(--fs-base); color: var(--text); font-family: var(--font-sans); }
@@ -2141,11 +2131,11 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .theme-mode-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 
-/* -- Add-on manager -- */
+/* ---- ADDON MANAGER ------------------------------------ */
 
 .addon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
 
-.addon-card--installed { border-color: var(--accent); box-shadow: var(--shadow), 0 0 0 1px var(--accent-glow); }
+.addon-card-installed { border-color: var(--accent); box-shadow: var(--shadow), 0 0 0 1px var(--accent-glow); }
 
 .addon-card-desc { font-size: var(--fs-md); color: var(--text-muted); line-height: 1.5; margin: 0 0 .5rem; }
 
@@ -2356,7 +2346,6 @@ div:has(> .mem-table) { overflow-x: visible !important; }
 #wl-filter-row > .search-field-wrap { order: 3; flex: 1 1 auto; min-width: 0; }
 #wl-filter-row > button,
 #wl-filter-row > a { order: 3; }
-.field-row > div { min-width: 0; }
 .existing-image-row,
 .file-drop-zone { width: 100%; max-width: 100%; }
 .existing-image-row { flex-wrap: wrap; }
