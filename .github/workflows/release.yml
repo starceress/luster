@@ -64,7 +64,12 @@ jobs:
             --exclude='vendor/phpmailer/phpmailer/VERSION' \
             --exclude='vendor/phpmailer/phpmailer/composer.json' \
             --exclude='vendor/phpmailer/phpmailer/get_oauth_token.php' \
+            --exclude='vendor/phpmailer/phpmailer/COMMITMENT' \
+            --exclude='.gitkeep' \
             ./ "dist/${PKG}/"
+
+          # Ensure empty directories survive without .gitkeep
+          mkdir -p "dist/${PKG}/storage/logs" "dist/${PKG}/storage/cache"
 
           echo "PKG=${PKG}" >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
