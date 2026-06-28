@@ -75,4 +75,5 @@ jobs:
           files: |
             ${{ env.PKG }}.zip
             SHA256SUMS
-          generate_release_notes: true
+          body: "Full Changelog: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}"
+          make_latest: true
