@@ -199,7 +199,8 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         <span class="reminder-banner-title">New Luster Version Available</span>
         <span class="reminder-banner-msg">
           <strong>Version <?= View::e($update_status->latest ?? '') ?></strong> is available
-          <?php if ($update_status->releaseTitle !== null): ?>
+          <?php if ($update_status->releaseTitle !== null
+                    && !preg_match('/^(Luster\s+)?v?' . preg_quote($update_status->latest ?? '', '/') . '$/i', trim($update_status->releaseTitle))): ?>
             &mdash; <?= View::e($update_status->releaseTitle) ?>
           <?php endif; ?>
         </span>
@@ -394,7 +395,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       <button class="todo-toggle todo-toggle--warn" data-target="todo-kim">
         <div class="todo-toggle-left">
           <span class="todo-toggle-sigil"><?= View::icon('kim') ?></span>
-          <span class="todo-toggle-title">Pending KIM Members</span>
+          <span class="todo-toggle-title">Pending KIM Sign-Ups</span>
           <span class="badge badge-pending"><?= (int) $pending_kim ?></span>
         </div>
         <span class="todo-chev">&#9650;</span>

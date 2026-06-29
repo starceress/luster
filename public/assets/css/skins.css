@@ -188,6 +188,7 @@
   --sidebar-active-rail: linear-gradient(180deg, #fbd30b 0%, #24cbf7 55%, #4a6dd6 100%);
   background: linear-gradient(172deg, #8e1843 0%, #571026 100%);
 }
+[data-skin="prism-power"][data-theme="dark"] .mig-topbar { background: linear-gradient(172deg, #8e1843 0%, #571026 100%); }
 
 
 
@@ -205,11 +206,13 @@
   --gradient-bar: linear-gradient(90deg, #e3350d, #ff6d00, #ffcb05, #22cc44, #00a8cc);
 }
 
+[data-skin="victory-road"] .mig-tb-sub { color: var(--brand-sub-color); }
+
 [data-skin="victory-road"][data-theme="light"] {
-  --bg: #fffcf4;
+  --bg: #eaecf0;
   --bg-card: #ffffff;
   --bg-sidebar: #7a0d0d;
-  --bg-subtle: #f1f1f1;
+  --bg-subtle: #e2e5eb;
   --bg-elevated: #edf8e4;
   --bg-code: #fef5cc;
   --border: #d4cfc0;
@@ -232,8 +235,8 @@
   --danger-bg: rgb(196 48 48 / 0.08);
   --warn: #e86000;
   --warn-bg: rgb(232 96 0 / 0.12);
-  --shadow: 0 4px 24px rgba(255, 203, 5, 0.14), 0 1px 4px rgba(22, 29, 43, 0.06);
-  --shadow-lg: 0 16px 56px rgba(209, 43, 8, 0.12), 0 4px 12px rgba(22, 29, 43, 0.08);
+  --shadow: 0 4px 24px rgba(70, 90, 120, 0.16), 0 1px 4px rgba(40, 55, 80, 0.08);
+  --shadow-lg: 0 16px 56px rgba(70, 90, 120, 0.2), 0 4px 12px rgba(40, 55, 80, 0.1);
   --glow: 0 0 0 3px rgb(255 203 5 / 0.35);
   --card-border-1: #e3350d;
   --card-border-2: #22cc44;
@@ -245,9 +248,9 @@
   --topbar-shadow: 0 4px 16px rgba(22, 29, 43, 0.08), 0 1px 0 rgba(255, 203, 5, 0.18);
   --card-head-bg: #7a0808;
   --card-head-color: #ffffff;
-  --welcome-bg: linear-gradient(135deg, #ffffff 0%, #fffde8 100%);
-  --welcome-border: #f0e8a0;
-  --welcome-blush: radial-gradient(circle at top right, rgb(255 203 5 / 0.1) 0%, rgb(77 173 91 / 0.05) 50%, transparent 70%);
+  --welcome-bg: linear-gradient(135deg, #ffffff 0%, #eef2f8 100%);
+  --welcome-border: #e4e4e4;
+  --welcome-blush: radial-gradient(circle at top right, rgba(70, 90, 130, 0.1) 0%, rgba(180, 40, 20, 0.05) 50%, transparent 70%);
   --brand-gradient: linear-gradient(135deg, #ffcb05 0%, #ff6d00 33%, #22cc44 66%, #00a8cc 100%);
   --link-hover-color: #00a8cc;
   --sidebar-label-color: #e6c900;
@@ -261,6 +264,8 @@
   --scrollbar-thumb: rgb(255 203 5 / .6);
   --scrollbar-thumb-hover: rgb(255 203 5 / .9);
   --scrollbar-arrow: rgb(227 53 13 / .75);
+  --brand-sub-color: rgba(255, 203, 5, 0.8);
+  --ch-brand-muted: 255 203 5;
 }
 
 [data-skin="victory-road"][data-theme="light"] .sidebar {
@@ -276,11 +281,14 @@
   --nav-hover-color: #ffffff;
   --nav-hover-icon-color: #ffcb05;
   --nav-hover-icon-glow: none;
-  --brand-sub-color: rgba(255, 203, 5, 0.8);
-  --ch-brand-muted: 255 203 5;
 }
 
-[data-skin="victory-road"][data-theme="light"] .sidebar { background: linear-gradient(180deg, #8c1212 0%, #6a0808 100%); }
+[data-skin="victory-road"][data-theme="light"] .sidebar,
+[data-skin="victory-road"][data-theme="light"] .mig-topbar { background: linear-gradient(180deg, #8c1212 0%, #6a0808 100%); }
+[data-skin="victory-road"][data-theme="light"] .mig-tb-brand { background: var(--brand-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-decoration: none; }
+
+[data-skin="victory-road"][data-theme="light"] .mig-tb-sub { color: rgb(var(--ch-brand-muted)/0.45); }
+
 [data-skin="victory-road"][data-theme="light"] .sidebar .user-star::before { background: rgb(255 203 5 / 0.55); }
 [data-skin="victory-road"][data-theme="light"] .sidebar .nav-item.active { background: #b84d00; color: #ffffff; }
 [data-skin="victory-road"][data-theme="light"] .sidebar .nav-item.active .nav-icon { color: #ffffff; filter: drop-shadow(0 0 7px rgb(255 144 0 / 0.65)); }
@@ -288,7 +296,8 @@
 [data-skin="victory-road"][data-theme="light"] .sidebar .nav-group-toggle:hover,
 [data-skin="victory-road"][data-theme="light"] .sidebar .nav-group-toggle.active { background: rgba(0, 0, 0, 0.25); }
 [data-skin="victory-road"][data-theme="light"] .sidebar .sidebar-label::after { background: linear-gradient(to right, rgb(34 204 68 / 0.85), transparent); }
-[data-skin="victory-road"][data-theme="light"] .bulk { background: #3a3a3a; color: #ffffff; border-color: #555555; }
+[data-skin="victory-road"][data-theme="light"] .sidebar .btn-danger { background: rgba(0, 0, 0, 0.3); border-color: rgba(255, 255, 255, 0.12); color: #ffffff; }
+[data-skin="victory-road"][data-theme="light"] .sidebar .btn-danger:hover { background: rgba(255, 60, 40, 0.4); color: #ffffff; }
 [data-skin="victory-road"][data-theme="light"] .data-table th { border-bottom-color: #686868; }
 [data-skin="victory-road"][data-theme="light"] .btn-tertiary { background: #7b8ea8; color: #f0f3f7; border-color: #7b8ea8; }
 [data-skin="victory-road"][data-theme="light"] .btn-tertiary:hover { background: #ffd8a8; border-color: #e8a040; color: #ca7505; }
@@ -310,8 +319,8 @@
 [data-skin="victory-road"][data-theme="light"] .btn-ghost { background: #ffffff; border-color: var(--border); color: var(--text-muted); }
 [data-skin="victory-road"][data-theme="light"] .btn-secondary       { background: #e86000; color: #ffffff; }
 [data-skin="victory-road"][data-theme="light"] .btn-secondary:hover { background: #c05000; }
-[data-skin="victory-road"][data-theme="light"] .btn-quaternary { background: #e0f8e4; color: #1a6828; border-color: #90d098; }
-[data-skin="victory-road"][data-theme="light"] .btn-quaternary:hover { background: #c8f0d0; border-color: #60b870; color: #105020; }
+[data-skin="victory-road"][data-theme="light"] .btn-quaternary { background: #e4e8ee; color: #3a4858; border-color: #b8c4d0; }
+[data-skin="victory-road"][data-theme="light"] .btn-quaternary:hover { background: #d0d8e2; border-color: #98a8b8; color: #2a3848; }
 [data-skin="victory-road"][data-theme="light"] .collective-action-item,
 [data-skin="victory-road"][data-theme="light"] .collective-action-tile { background: #f3fcff; color: #005a78; border-color: #a0cce0; }
 [data-skin="victory-road"][data-theme="light"] .collective-action-item:hover,
@@ -319,7 +328,7 @@
 [data-skin="victory-road"][data-theme="light"] .badge-current  { background: #22a840; color: #ffffff; border-color: #1a8832; }
 [data-skin="victory-road"][data-theme="light"] .badge-error    { background: #d02010; color: #ffffff; border-color: #a81808; }
 [data-skin="victory-road"][data-theme="light"] .badge-pending  { background: #ffcb05; color: #2b2b2b; border-color: #e4b600; }
-[data-skin="victory-road"][data-theme="light"] .badge-upcoming { background: #6340d8; color: #ffffff; border-color: #4c2db5; }
+[data-skin="victory-road"][data-theme="light"] .badge-upcoming { background: #2851d8; color: #ffffff; border-color: #1a78b0; }
 [data-skin="victory-road"][data-theme="light"] .btn-success       { background: #22a840; color: #ffffff; border-color: #22a840; }
 [data-skin="victory-road"][data-theme="light"] .btn-success:hover { background: #1a8832; color: #ffffff; border-color: #1a8832; }
 [data-skin="victory-road"][data-theme="light"] .btn-danger        { background: #d02010; color: #ffffff; border-color: #d02010; }
@@ -330,6 +339,7 @@
 [data-skin="victory-road"][data-theme="light"] code { color: #c03030; background: rgb(255 203 5 / 0.14); }
 
 [data-skin="victory-road"][data-theme="light"] .panel-header { background: #2b2b2b; border-bottom-color: #3a3a3a; }
+[data-skin="victory-road"][data-theme="light"] .bulk { background: #3a3a3a; color: #ffffff; border-color: #555555; }
 [data-skin="victory-road"][data-theme="light"] .card-head { border-bottom-color: #5a0606; }
 [data-skin="victory-road"][data-theme="light"] .panel-header .panel-header-title { color: #fff; }
 [data-skin="victory-road"][data-theme="light"] .panel-header .panel-header-sub   { color: #ffcb05; }
@@ -387,6 +397,7 @@
   --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.7), 0 0 32px rgb(227 53 13 / 0.2), 0 0 48px rgb(49 108 217 / 0.1);
   --filter-input-bg: #414752;
   --filter-input-color: var(--text);
+  --brand-sub-color: #5f728f;
 }
 
 
@@ -664,6 +675,7 @@
   --nav-hover-icon-glow: none;
 }
 [data-skin="floating-lights"][data-theme="light"] .sidebar { background: linear-gradient(175deg, #7a489a 0%, #5a2878 60%, #441a62 100%); }
+[data-skin="floating-lights"][data-theme="light"] .mig-topbar { background: linear-gradient(175deg, #7a489a 0%, #5a2878 60%, #441a62 100%); }
 [data-skin="floating-lights"][data-theme="light"] .sidebar .user-star::before { background: rgb(252 163 17 / 0.28); }
 [data-skin="floating-lights"][data-theme="light"] .sidebar .user-role { color: #ffb8d4; }
 [data-skin="floating-lights"][data-theme="light"] .sidebar .sidebar-label::after { background: linear-gradient(to right, rgb(255 184 212 / 0.55), transparent); }

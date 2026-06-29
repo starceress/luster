@@ -116,18 +116,40 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <div class="stat-card">
   <div class="stat-header">Total Members</div>
   <div class="stat-value"><?= (int) $approved ?></div>
+  <?php if ($newest_member ?? null): ?>
+    <div class="stat-extra"><strong>Newest Member:</strong> <?= $newest_member['url'] !== '' ? '<a href="' . View::e($newest_member['url']) . '" target="_blank">' . View::e($newest_member['name']) . '</a>' : View::e($newest_member['name']) ?></div>
+  <?php endif; ?>
 </div>
 <div class="stat-card">
   <div class="stat-header">Pending</div>
   <div class="stat-value"><?= $pending > 0 ? '<a href="' . $pl . '" class="link pending-link">' . $pending . '</a>' : $pending ?></div>
+  <?php if ($pending > 0): ?>
+    <div class="stat-extra"><a href="<?= $pl ?>">Review Pending &rarr;</a></div>
+  <?php endif; ?>
 </div>
 <div class="stat-card">
   <div class="stat-header">Total Countries</div>
   <div class="stat-value"><?= (int) ($countries ?? 0) ?></div>
+  <?php if (!empty($top_countries)): ?>
+    <div class="stat-extra"><strong>Top 3 Countries:</strong> <?php
+      $parts = [];
+      foreach ($top_countries as $_tc) {
+          $pct = $approved > 0 ? round($_tc['fan_count'] / $approved * 100) : 0;
+          $parts[] = View::e($_tc['country']) . ' (' . $pct . '%)';
+      }
+      echo implode(', ', $parts);
+    ?></div>
+  <?php endif; ?>
 </div>
 <div class="stat-card">
   <div class="stat-header">Last Updated</div>
   <div class="stat-value"><?= View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : '-') ?></div>
+  <?php $_opened = (string) ($listing->opened ?? ''); ?>
+  <?php if ($_opened !== '' && $_opened !== 'TBA'): ?>
+    <div class="stat-extra"><strong>Opened On:</strong> <?= View::e(date($admin_date_format, strtotime($_opened))) ?></div>
+  <?php elseif ($_opened === 'TBA'): ?>
+    <div class="stat-extra"><strong>Opened:</strong> TBA</div>
+  <?php endif; ?>
 </div>
 </div>
 
@@ -135,13 +157,24 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <div class="tabs">
   <button class="tabs-btn active" data-tab="general">General</button>
   <button class="tabs-btn" data-tab="fields">Additional Fields</button>
-  <button class="tabs-btn" data-tab="codes">Codes</button>
-  <button class="tabs-btn" data-tab="affiliates">Affiliates<?php if (!empty($affiliates)): ?> <span class="badge badge-inactive badge-inline-sm"><?= count($affiliates) ?></span><?php endif; ?></button>
-  <button class="tabs-btn" data-tab="templates">Templates</button>
+  <button class="tabs-btn" data-tab="codes">Codes<?php
+    $_codesApproved = $code_status_counts['approved'] ?? 0;
+    $_codesPending  = $code_status_counts['pending'] ?? 0;
+    if ($_codesApproved > 0): ?> <span class="badge badge-current badge-inline-sm"><?= $_codesApproved ?></span><?php endif;
+    if ($_codesPending > 0): ?> <span class="badge badge-pending badge-inline-sm"><?= $_codesPending ?></span><?php endif;
+  ?></button>
+  <button class="tabs-btn" data-tab="affiliates">Affiliates<?php
+    $_affApproved = 0; $_affPending = 0;
+    foreach ($affiliates ?? [] as $_aff) { if ($_aff->status === 'approved') { $_affApproved++; } else { $_affPending++; } }
+    if ($_affApproved > 0): ?> <span class="badge badge-current badge-inline-sm"><?= $_affApproved ?></span><?php endif;
+    if ($_affPending > 0): ?> <span class="badge badge-pending badge-inline-sm"><?= $_affPending ?></span><?php endif;
+  ?></button>
   <?php if ($rules_addon_installed ?? false): ?>
   <button class="tabs-btn" data-tab="rules">Rules</button>
   <?php endif; ?>
-  <button class="tabs-btn" data-tab="embed">Embed</button>
+  <button class="tabs-btn" data-tab="templates">Templates</button>
+  <button class="tabs-btn" data-tab="embed">Form URLs</button>
+  <button class="tabs-btn" data-tab="snippets">Code Snippets</button>
   <button class="tabs-btn" data-tab="advanced">Advanced</button>
 </div>
 <div class="tabs-select-wrap">
@@ -150,13 +183,14 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     <select class="tabs-select">
       <option value="general">General</option>
       <option value="fields">Additional Fields</option>
-      <option value="codes">Codes</option>
-      <option value="affiliates">Affiliates<?= !empty($affiliates) ? ' (' . count($affiliates) . ')' : '' ?></option>
-      <option value="templates">Templates</option>
+      <option value="codes">Codes<?= $_codesApproved > 0 || $_codesPending > 0 ? ' (' . $_codesApproved . '/' . $_codesPending . ')' : '' ?></option>
+      <option value="affiliates">Affiliates<?= $_affApproved > 0 || $_affPending > 0 ? ' (' . $_affApproved . '/' . $_affPending . ')' : '' ?></option>
       <?php if ($rules_addon_installed ?? false): ?>
       <option value="rules">Rules</option>
       <?php endif; ?>
-      <option value="embed">Embed</option>
+      <option value="templates">Templates</option>
+      <option value="embed">Form URLs</option>
+      <option value="snippets">Code Snippets</option>
       <option value="advanced">Advanced</option>
     </select>
   </div>
@@ -353,7 +387,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <?php $_nmlVal = ($stat_newmembers_limit ?? null) !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : null; ?>
             <div class="select-wrap select-auto">
               <select id="fl-newmembers-limit" name="stat_newmembers_limit" class="form">
-                <option value=""<?= $_nmlVal === null ? ' selected' : '' ?>>Use default</option>
+                <option value=""<?= $_nmlVal === null ? ' selected' : '' ?>>Use global default</option>
                 <option value="0"<?= $_nmlVal === 0 ? ' selected' : '' ?>>Show all</option>
                 <option value="5"<?= $_nmlVal !== null && $_nmlVal > 0 ? ' selected' : '' ?>>Truncate after 5</option>
               </select>
@@ -409,7 +443,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      <?= ($embed_settings['codes_submit_enabled'] ?? true) ? 'checked' : '' ?>>
               <span class="toggle-label">Allow fans to donate codes for this listing</span>
             </label>
-            <p class="form-hint">Enables the public code submission form. Submissions appear in the <a href="#" class="link" onclick="document.querySelector('[data-tab=codes]').click(); return false;">Codes tab</a> for review.</p>
+            <p class="form-hint">Enables the public code submission form and the <code>{codes_submit_toggle}</code> token in your codes template. Submissions appear in the <a href="#" class="link" onclick="document.querySelector('[data-tab=codes]').click(); return false;">Codes tab</a> for review.</p>
             <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
             <div style="margin-top:.75rem">
               <?php
@@ -646,10 +680,13 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
           <div class="section-label">Members List <?= $srcBadge('members_template') ?></div>
-          <div class="tpl-layout-presets tpl-layout-presets--above">
-            <strong>Display Style:</strong>
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__list">List</button>
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__table">Table</button>
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label">Display style</label>
+            <div>
+              <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__list">List</button>
+              <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__table">Table</button>
+              <p class="form-hint">Switches the template between a list layout and a table layout.</p>
+            </div>
           </div>
           <div class="field-group">
             <textarea id="members_template" name="members_template" class="form form-mono" spellcheck="false"><?= View::e($tplMembersVal) ?></textarea>
@@ -992,6 +1029,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('codes_template', '{if_code_name}{/if_code_name}',   '{if_code_name}...{/if_code_name}',   'Shows only when the code has a saved name.') ?>
             <?= $ltok('codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
             <?= $ltok('codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
+            <?= $ltok('codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Shows a toggle that reveals the full submission form inline. Empty when code donations are disabled for this listing.') ?>
           </tbody></table>
         </div>
       </details>
@@ -1549,7 +1587,7 @@ require LUSTER_BASE . '/templates/admin/codes/_listing_panel.php';
   $affiliates = $affiliates ?? [];  // restore for any subsequent use
 ?>
 </div>
-<!-- ──── TAB: EMBED ─────────────────────────────────────────────────── -->
+<!-- ──── TAB: FORM URLS ─────────────────────────────────────────────── -->
 <div id="tab-embed" class="tabs-panel">
 <?php
 /** @var array  $embed_settings */
@@ -1561,13 +1599,13 @@ $installPath    = rtrim((string) ($cfg['install_path']   ?? ''), '/');
 $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((string) ($cfg['site_url'] ?? ''), '/');
 ?>
 
-<div class="embed-grid">
+<div>
 
 <div class="card card-gradient">
   <div class="panel-header">
     <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
     <div class="panel-header-meta">
-      <div class="panel-header-title">Embed Settings</div>
+      <div class="panel-header-title">Embed Form URLs</div>
       <div class="panel-header-sub">Tell Luster where your host pages are so it can build email links and redirects.</div>
     </div>
   </div>
@@ -1646,17 +1684,23 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     </div>
 
   <div class="composer-footer">
-    <button type="submit" class="btn btn-primary">Save Embed Settings</button>
+    <button type="submit" class="btn btn-primary">Save Form URLs</button>
   </div>
   </form>
   </div>
 
-<!-- ──── EMBED SNIPPETS ───────────────────────────────────────────── -->
+
+</div>
+</div><!-- /#tab-embed -->
+
+<!-- ──── TAB: CODE SNIPPETS ────────────────────────────────────────── -->
+<div id="tab-snippets" class="tabs-panel">
+
 <div class="card card-gradient">
   <div class="panel-header">
     <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
     <div class="panel-header-meta">
-      <div class="panel-header-title">Embed Snippets</div>
+      <div class="panel-header-title">Code Snippets</div>
       <div class="panel-header-sub">Ready-to-use PHP include snippets for your site pages.</div>
     </div>
   </div>
@@ -1716,8 +1760,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   </div>
 </div>
 
-</div><!-- /.embed-grid -->
-</div><!-- /#tab-embed -->
+</div><!-- /#tab-snippets -->
 
 
 <!-- ──── TAB: ADVANCED ──────────────────────────────────────────────── -->

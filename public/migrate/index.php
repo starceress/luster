@@ -62,7 +62,7 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
 
 <div class="mig-topbar">
   <div class="mig-tb-left">
-    <span class="mig-tb-logo" aria-hidden="true">&#x2726;</span>
+    <span class="mig-tb-star" aria-hidden="true">&#x2726;</span>
     <a class="mig-tb-brand" href="../admin">Luster</a>
     <div class="mig-tb-sep"></div>
     <span class="mig-tb-sub">Migration Runner</span>
@@ -87,7 +87,7 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
 
   {$innerHtml}
 
-<p class="login-footer"><a href="https://luster.nu/" target="_blank" title="Luster ✦ Fanlisting Management Script" class="link"><b>Luster</b></a> &copy; <a href="https://dreamesque.net/" target="_blank" title="Star ✦ Dreamesque.Net" class="link">Star</a>, <?= date('Y') === '2026' ? '2026' : '2026&#x2013;' . date('Y') ?></p>
+<p class="login-footer"><a href="https://luster.nu/" target="_blank" title="Luster ✦ Fanlisting Management Script" class="link"><b>Luster</b></a> &copy; <a href="https://dreamesque.net/" target="_blank" title="Star ✦ Dreamesque.Net" class="link">Star</a>, {$copyrightYear}.</p>
 </div>
 
 <script src="../assets/js/admin.js"></script>
@@ -104,7 +104,7 @@ function mig_render_confirm(string $tokenSafe): string
   <div class="panel-header-icon panel-header-icon-filled"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 12a9 3 0 0 0 5 2.69"/><path d="M21 9.3V5"/><path d="M3 5v14a9 3 0 0 0 6.47 2.88"/><path d="M12 12v4h4"/><path d="M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16"/></svg></div>
   <div class="panel-header-meta">
     <div class="panel-header-title">Run Migrations</div>
-    <div class="panel-header-sub">Safe to re-run &mdash; no duplicate operations.</div>
+    <div class="panel-header-sub">Safe to re-run with no duplicate operations.</div>
   </div>
 </div>
 <div class="mig-card-body">
@@ -249,7 +249,7 @@ $migSelectedSkin = '';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Show confirmation page — nothing runs on GET.
-    echo mig_page('Run Migrations', 'Migration Runner', 'Apply pending database updates to your current installed version of Luster.', mig_render_confirm($tokenSafe), false, $migSelectedSkin);
+    echo mig_page('Run Migrations', 'Migration Runner', 'Apply pending database updates to your installed version of Luster.', mig_render_confirm($tokenSafe), false, $migSelectedSkin);
     exit;
 }
 

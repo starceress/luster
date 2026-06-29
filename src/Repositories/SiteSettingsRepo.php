@@ -36,7 +36,7 @@ class SiteSettingsRepo
 {
     /**
      * Global default form page URL keys and their built-in defaults.
-     * Used by the Global Templates & URLs page and by getEmbedSettings()
+     * Used by Owned Listings Settings and by getEmbedSettings()
      * for the per-listing → global → built-in fallback cascade.
      */
     public const GLOBAL_FORM_URL_KEYS = [

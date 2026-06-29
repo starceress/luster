@@ -109,7 +109,7 @@ if ($_lusterListingId < 0) {
 if ($_lusterListingId === 0) {
     $_lusterSiteRepo = new SiteSettingsRepo($_lusterApp->getDatabase());
 
-    if ($_lusterSiteRepo->get('collective_affiliate_apply_enabled') !== '1') {
+    if (($_lusterSiteRepo->get('collective_affiliate_apply_enabled') ?? '1') !== '1') {
         $_lusterHtml = '<p class="fl-errors">Collective affiliate applications are not open.</p>';
         if ($luster_return ?? false) {
             return $_lusterHtml;

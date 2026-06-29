@@ -95,6 +95,7 @@ $allTokenDesc = [
     '{join_url}'   => "Direct link to the join form",
     '{update_url}' => "Direct link to the update form",
     '{site_name}'       => "Your collective or site name",
+    '{site_url}'        => "Your collective or site URL",
     '{owner_name}'      => "Your owner/admin name",
     '{owner_email}'     => "Your owner/admin email address",
     '{aff_name}'           => "Affiliate applicant's site name",
@@ -112,7 +113,7 @@ $allTokenDesc = [
     '{kim_update_url}'     => "Link to the KIM update form",
 ];
 
-$commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{listing_email}', '{join_url}', '{update_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{listing_email}', '{join_url}', '{update_url}', '{site_name}', '{site_url}', '{owner_name}', '{owner_email}'];
 $typeTokens   = array_fill_keys(EmailTemplateRepo::TYPES, $commonTokens);
 $typeTokens[EmailTemplateRepo::TYPE_JOIN] = array_merge($commonTokens, ['{reset_url}', '{fan_password}']);
 $typeTokens[EmailTemplateRepo::TYPE_RESET] = array_merge(
@@ -266,12 +267,13 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
   <div id="et-preview-data"
        data-site-name="<?= View::e($site_name_val) ?>"
+       data-site-url="<?= View::e((string) ($cfg['site_url'] ?? '')) ?>"
        data-owner-name="<?= View::e($owner_name) ?>"
        data-owner-email="<?= View::e($owner_email) ?>"
-       data-listing-name="<?= View::e($isCollective ? ($site_name_val ?: 'My Collective') : ($listing?->title ?? 'My Fanlisting')) ?>"
-       data-listing-subject="<?= View::e($listing?->subject ?? 'Music') ?>"
-       data-listing-type="<?= View::e($listing_type ?? 'listing') ?>"
-       data-listing-url="<?= View::e($listing?->url ?? 'https://myfanlisting.com') ?>"
+       data-listing-name="<?= View::e($listing?->title ?? 'The Dark Knight') ?>"
+       data-listing-subject="<?= View::e($listing?->subject ?? 'Batman') ?>"
+       data-listing-type="<?= View::e($listing_type ?? 'fanlisting') ?>"
+       data-listing-url="<?= View::e($listing?->url ?? 'https://batmanfan.com/') ?>"
        data-is-global="<?= $isGlobal ? '1' : '0' ?>"
        data-is-collective="<?= $isCollective ? '1' : '0' ?>"
        class="is-hidden"></div>

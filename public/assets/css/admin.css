@@ -58,7 +58,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .luster-glow { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; text-decoration: none; color: inherit; }
 
-.luster-glow::before { content: ''; position: absolute; top: 50%; left: 25px; width: 90px; height: 90px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgb(var(--ch-brand-primary)/0.28) 25%, rgb(var(--ch-brand-secondary)/0.1) 45%, transparent 70%); pointer-events: none; z-index: -1; }
+.luster-glow::before { content: ''; position: absolute; top: 50%; left: 25px; width: 110px; height: 110px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgb(var(--ch-brand-primary)/0.28) 25%, rgb(var(--ch-brand-secondary)/0.1) 45%, transparent 70%); pointer-events: none; z-index: -1; }
 
 /* ---- THEME TOGGLE ------------------------------------- */
 
@@ -243,11 +243,11 @@ main { margin-left: 232px; flex: 1; min-width: 0; display: flex; flex-direction:
 [data-theme="light"] .login-wordmark { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; }
 
 .login-brand-sub { font-size: var(--fs-sm); color: rgb(var(--ch-brand-muted)/0.45); letter-spacing: 0.22em; text-transform: uppercase; }
-[data-theme="light"] .login-brand-sub { color: var(--text-muted); }
+[data-theme="light"] .login-brand-sub { color: var(--text-dim); }
 
 .login-footer { text-align: center; font-size: var(--fs-base); color: var(--text-muted); margin-top: 1.5rem; }
 
-.login-remember { display: flex; align-items: center; gap: 8px; font-size: var(--fs-base); color: var(--text-muted); cursor: pointer; user-select: none; }
+.login-remember { display: flex; align-items: center; gap: 8px; font-size: var(--fs-base); color: var(--text-muted); cursor: pointer; user-select: none; margin: 0.5rem 0 1rem; }
 
 /* ---- LINKS -------------------------------------------- */
 
@@ -1016,10 +1016,6 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .tpl-reset-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .15rem; margin-top: .25rem; margin-bottom: 1.25rem; }
 
-.tpl-layout-presets { display: inline-flex; align-items: center; gap: .3rem; order: -1; margin-right: auto; font-size: .75rem; color: var(--text-muted); }
-
-.tpl-layout-presets--above { justify-content: center; order: unset; margin: 0 0 .5rem; width: 100%; }
-
 /* ---- INLINE LISTING FIELDS ---------------------------- */
 
 .field-row { display: grid; grid-template-columns: 160px 1fr; align-items: flex-start; gap: .75rem; padding: .6rem 0; }
@@ -1301,7 +1297,7 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .todo-section { border-top: 1px solid var(--border); }
 
-.todo-section:first-of-type { border-top: none; }
+.card-head + .todo-section { border-top: none; }
 
 .todo-toggle { width: 100%; background: var(--bg-elevated); border: none; border-left: 4px solid var(--warn); border-bottom: 1px solid var(--border); padding: 0.625rem 1rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer; color: var(--accent); font-family: inherit; font-size: var(--fs-md); }
 

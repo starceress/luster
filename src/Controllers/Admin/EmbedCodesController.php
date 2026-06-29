@@ -22,6 +22,7 @@ use Luster\Models\Member;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Support\SampleTemplateData;
 
 /**
  * Renders the Embed Codes page, which generates copy-paste PHP snippets for every
@@ -417,10 +418,10 @@ final class EmbedCodesController
 
             $member = Member::fromRow([
                 'id'      => 0,
-                'name'    => 'Jane Doe',
-                'email'   => 'jane@example.com',
-                'url'     => 'https://example.com',
-                'country' => 'United States',
+                'name'    => 'Usagi',
+                'email'   => 'usagi@example.com',
+                'url'     => 'https://example.com/usagi',
+                'country' => 'Japan',
                 'pending' => 0,
             ]);
 
@@ -525,8 +526,8 @@ final class EmbedCodesController
             ], '');
 
             $sampleEntries = [
-                ['id' => 1, 'fanlisting_id' => 1, 'listing_title' => 'Sample Fanlisting A', 'name' => 'Jane Doe', 'url' => 'https://example.com', 'email' => 'jane@example.com', 'pending' => false],
-                ['id' => 2, 'fanlisting_id' => 2, 'listing_title' => 'Sample Fanlisting B', 'name' => 'John Doe', 'url' => '',                    'email' => 'john@example.com', 'pending' => false],
+                ['id' => 1, 'fanlisting_id' => 1, 'listing_title' => SampleTemplateData::LISTING_TITLE_A, 'name' => 'Usagi', 'url' => 'https://example.com/usagi', 'email' => 'usagi@example.com', 'pending' => false],
+                ['id' => 2, 'fanlisting_id' => 2, 'listing_title' => SampleTemplateData::LISTING_TITLE_B, 'name' => 'Misty', 'url' => '',                         'email' => 'misty@example.com', 'pending' => false],
             ];
 
             return $this->app->getView()->renderFragment('addons/kim/update-dashboard.php', [

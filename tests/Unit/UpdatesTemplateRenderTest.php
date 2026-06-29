@@ -59,7 +59,7 @@ final class UpdatesTemplateRenderTest extends TestCase
             '{each_update}{update_body_html}{/each_update}',
         );
 
-        self::assertStringContainsString('brand new layout', $result);
+        self::assertStringContainsString('Crystal Tokyo', $result);
         self::assertStringNotContainsString('{update_body_html}', $result);
     }
 

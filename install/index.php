@@ -1337,7 +1337,7 @@ function renderFooter(): void
     ?>
 </div>
 
-<p class="login-footer"><a href="https://luster.nu/" target="_blank" title="Luster ✦ Fanlisting Management Script" class="link"><b>Luster</b></a> &copy; <a href="https://dreamesque.net/" target="_blank" title="Star ✦ Dreamesque.Net" class="link">Star</a>, <?= date('Y') === '2026' ? '2026' : '2026&#x2013;' . date('Y') ?></p>
+<p class="login-footer"><a href="https://luster.nu/" target="_blank" title="Luster ✦ Fanlisting Management Script" class="link"><b>Luster</b></a> &copy; <a href="https://dreamesque.net/" target="_blank" title="Star ✦ Dreamesque.Net" class="link">Star</a>, <?= date('Y') === '2026' ? '2026' : '2026&#x2013;' . date('Y') ?>.</p>
 
 <?php $installJsV = filemtime(__DIR__ . '/../public/assets/js/install.js') ?: ''; ?>
 <script src="../public/assets/js/install.js?v=<?= $installJsV ?>"></script>

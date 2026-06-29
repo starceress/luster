@@ -87,6 +87,13 @@ use Luster\Core\Database;
  */
 final class EmailTemplateRepo
 {
+    private static string $globalSiteUrl = '';
+
+    public static function setGlobalSiteUrl(string $url): void
+    {
+        self::$globalSiteUrl = $url;
+    }
+
     // -----------------------------------------------------------------------
     // Type constants
     // -----------------------------------------------------------------------
@@ -220,11 +227,11 @@ final class EmailTemplateRepo
         'Hi {fan_name},' . "\n\n"
         . 'Thank you for joining "{listing_title}", the {listing_type} for {listing_subject}.' . "\n\n"
         . 'Here are your membership details:' . "\n"
-        . '  Name:         {fan_name}' . "\n"
-        . '  Email:        {fan_email}' . "\n"
-        . '  Website:      {fan_url}' . "\n"
-        . '  Country:      {fan_country}' . "\n"
-        . '  Password:     {fan_password}' . "\n\n"
+        . '  Name: {fan_name}' . "\n"
+        . '  Email: {fan_email}' . "\n"
+        . '  Website: {fan_url}' . "\n"
+        . '  Country: {fan_country}' . "\n"
+        . '  Password: {fan_password}' . "\n\n"
         . 'Your membership is currently in queue for approval. You\'ll receive another email once you\'ve been approved.' . "\n\n"
         . 'Keep your password somewhere safe! If you ever need to reset your password, you can do so at: {reset_url}. If you need to update your information, you can do so at: {update_url}.' . "\n\n"
         . '-- {owner_name}' . "\n"
@@ -260,21 +267,21 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_NOTIFY_JOIN =
         'A new member has joined "{listing_title}" - {listing_subject} {listing_type}!' . "\n\n"
-        . '  Name:         {fan_name}' . "\n"
-        . '  Email:        {fan_email}' . "\n"
-        . '  Website:      {fan_url}' . "\n"
-        . '  Country:      {fan_country}' . "\n\n"
+        . '  Name: {fan_name}' . "\n"
+        . '  Email: {fan_email}' . "\n"
+        . '  Website: {fan_url}' . "\n"
+        . '  Country: {fan_country}' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{listing_title} ({listing_url})';
 
     private const DEFAULT_BODY_AFFILIATE_APPLIED =
         'A new affiliate application has been received for "{listing_title}" - {listing_subject} {listing_type}!' . "\n\n"
-        . '  Site Name:    {aff_name}' . "\n"
-        . '  Email:        {aff_email}' . "\n"
-        . '  Website:      {aff_url}' . "\n"
-        . '  Message:      {aff_message}' . "\n\n"
+        . '  Name: {aff_name}' . "\n"
+        . '  Email: {aff_email}' . "\n"
+        . '  Website: {aff_url}' . "\n"
+        . '  Message: {aff_message}' . "\n\n"
         . 'Review and approve or reject this application from your admin panel.' . "\n\n"
-        . '-- {site_name}';
+        . '-- {site_name} ({site_url})';
 
     private const DEFAULT_BODY_AFFILIATE_APPROVED =
         'Hi {aff_name},' . "\n\n"
@@ -282,77 +289,77 @@ final class EmailTemplateRepo
         . 'Your site is now listed as an affiliate at: {listing_url}' . "\n\n"
         . 'Thank you!' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const DEFAULT_BODY_AFFILIATE_REJECTED =
         'Hello {aff_name},' . "\n\n"
         . 'Thank you for applying to affiliate with "{listing_title}", the {listing_type} for {listing_subject}.' . "\n\n"
         . 'Unfortunately, I am not able to accept you as an affiliate at this time. Nevertheless, thank you for reaching out.' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const DEFAULT_BODY_CODE_APPROVED =
         'Hi {fan_name},' . "\n\n"
         . 'Thank you for donating a code to "{listing_title}", the {listing_type} for {listing_subject}. Your code has been approved and is now live!' . "\n\n"
         . 'View the codes at: {listing_url}' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const DEFAULT_BODY_ADOPTION_APPLIED =
         'A new adoption application has been received for "{listing_title}" - {listing_subject} {listing_type}.' . "\n\n"
-        . '  Name:         {applicant_name}' . "\n"
-        . '  Email:        {applicant_email}' . "\n"
-        . '  Website:      {applicant_url}' . "\n\n"
-        . '  Message:      {applicant_message}'
+        . '  Name: {applicant_name}' . "\n"
+        . '  Email: {applicant_email}' . "\n"
+        . '  Website: {applicant_url}' . "\n"
+        . '  Message: {applicant_message}' . "\n\n"
         . 'Review this application from your admin panel.' . "\n\n"
-        . '-- {site_name}';
+        . '-- {site_name} ({site_url})';
 
     private const DEFAULT_BODY_ADOPTION_APPROVED =
         'Hi {applicant_name},' . "\n\n"
         . 'Your adoption application for "{listing_title}", the {listing_type} for {listing_subject}, has been approved!' . "\n\n"
         . 'We will be in touch soon with the next steps. Thank you!' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const DEFAULT_BODY_ADOPTION_REJECTED =
         'Hi {applicant_name},' . "\n\n"
         . 'Thank you for your interest in adopting "{listing_title}", the {listing_type} for {listing_subject}.' . "\n\n"
         . 'Unfortunately, I am not able to approve your application at this time. Nevertheless, thank you for reaching out and showing your interest.' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const DEFAULT_BODY_KIM_APPLIED =
         'A new Keep In Mind sign-up has been received for {listing_subject}.' . "\n\n"
-        . '  Name:         {kim_name}' . "\n"
-        . '  Email:        {kim_email}' . "\n"
-        . '  Website:      {kim_url}' . "\n\n"
+        . '  Name: {kim_name}' . "\n"
+        . '  Email: {kim_email}' . "\n"
+        . '  Website: {kim_url}' . "\n\n"
         . 'Review and approve or reject from your admin panel.' . "\n\n"
-        . '-- {site_name}';
+        . '-- {site_name} ({site_url})';
 
     private const DEFAULT_BODY_KIM_APPROVED =
         'Hi {kim_name},' . "\n\n"
         . 'Your Keep In Mind sign-up for {listing_subject} has been approved.' . "\n\n"
         . 'We will let you know when the listing is open for members.' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const DEFAULT_BODY_KIM_UPDATE =
         'Hi {kim_name},' . "\n\n"
         . 'Your Keep In Mind entry has been updated successfully.' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const DEFAULT_BODY_KIM_SIGNUP =
         'Hi {kim_name},' . "\n\n"
         . 'You have signed up for the KIM List for {listing_subject}.' . "\n\n"
-        . '  Name:         {kim_name}' . "\n"
-        . '  Email:        {kim_email}' . "\n"
-        . '  Website:      {kim_url}' . "\n"
-        . '  Password:     {kim_password}' . "\n\n"
+        . '  Name: {kim_name}' . "\n"
+        . '  Email: {kim_email}' . "\n"
+        . '  Website: {kim_url}' . "\n"
+        . '  Password: {kim_password}' . "\n\n"
         . 'Your entry is currently in queue for approval. You\'ll receive another email once you\'ve been approved.' . "\n\n"
         . 'Keep your password somewhere safe! If you ever need to reset it, you can do so at: {reset_url}. If you need to update your information, you can do so at: {kim_update_url}.' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const DEFAULT_BODY_KIM_RESET =
         'Hi {kim_name},' . "\n\n"
@@ -361,7 +368,7 @@ final class EmailTemplateRepo
         . '  {reset_url}' . "\n\n"
         . 'If you did not request this, you can safely ignore this email. Your password will not change.' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     // -----------------------------------------------------------------------
     // Collective default subjects (for collective-scope templates)
@@ -390,30 +397,30 @@ final class EmailTemplateRepo
         'Hi {fan_name},' . "\n\n"
         . 'Thank you for donating a code to {site_name}. Your code has been approved and is now live!' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const COLLECTIVE_DEFAULT_BODY_AFFILIATE_APPLIED =
         'A new affiliate application has been received for {site_name}.' . "\n\n"
-        . '  Site Name:    {aff_name}' . "\n"
-        . '  Email:        {aff_email}' . "\n"
-        . '  Website:      {aff_url}' . "\n"
-        . '  Message:      {aff_message}' . "\n\n"
+        . '  Name: {aff_name}' . "\n"
+        . '  Email: {aff_email}' . "\n"
+        . '  Website: {aff_url}' . "\n"
+        . '  Message: {aff_message}' . "\n\n"
         . 'Review and approve or reject this application from your admin panel.' . "\n\n"
-        . '-- {site_name}';
+        . '-- {site_name} ({site_url})';
 
     private const COLLECTIVE_DEFAULT_BODY_AFFILIATE_APPROVED =
         'Hi {aff_name},' . "\n\n"
         . 'Your affiliate application for {site_name} has been approved!' . "\n\n"
         . 'Your site is now listed as an affiliate. Thank you!' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     private const COLLECTIVE_DEFAULT_BODY_AFFILIATE_REJECTED =
         'Hello {aff_name},' . "\n\n"
         . 'Thank you for applying to affiliate with {site_name}.' . "\n\n"
         . 'Unfortunately, I am not able to accept you as an affiliate at this time. Nevertheless, thank you for reaching out.' . "\n\n"
         . '-- {owner_name}' . "\n"
-        . '{site_name}';
+        . '{site_name} ({site_url})';
 
     // -----------------------------------------------------------------------
 
@@ -742,6 +749,7 @@ final class EmailTemplateRepo
         string $formUrlUpdate  = '',
         string $formUrlReset   = '',
         string $listingType    = '',
+        string $siteUrl        = '',
     ): array {
         return [
             '{fan_name}'         => $fanName,
@@ -756,6 +764,7 @@ final class EmailTemplateRepo
             '{listing_url}'      => $listingUrl,
             '{listing_email}'    => $listingEmail,
             '{site_name}'        => $siteName,
+            '{site_url}'         => $siteUrl !== '' ? $siteUrl : self::$globalSiteUrl,
             '{owner_name}'       => $ownerName,
             '{owner_email}'      => $ownerEmail,
             '{join_url}'         => self::resolveFormUrl($formUrlJoin, $listingUrl),
@@ -794,6 +803,7 @@ final class EmailTemplateRepo
         string $affMessage      = '',
         string $listingSubject  = '',
         string $listingType     = '',
+        string $siteUrl         = '',
     ): array {
         $messageBlock = $affMessage !== ''
             ? 'Message: ' . $affMessage . "\n\n"
@@ -805,6 +815,7 @@ final class EmailTemplateRepo
             '{listing_type}'     => $listingType,
             '{listing_url}'      => $listingUrl,
             '{site_name}'        => $siteName,
+            '{site_url}'         => $siteUrl !== '' ? $siteUrl : self::$globalSiteUrl,
             '{owner_name}'       => $ownerName,
             '{owner_email}'      => $ownerEmail,
             '{aff_name}'         => $affName,
@@ -832,6 +843,7 @@ final class EmailTemplateRepo
         string $applicantMessage = '',
         string $listingSubject   = '',
         string $listingType      = '',
+        string $siteUrl          = '',
     ): array {
         $messageBlock = $applicantMessage !== ''
             ? 'Message: ' . $applicantMessage . "\n\n"
@@ -843,6 +855,7 @@ final class EmailTemplateRepo
             '{listing_type}'       => $listingType,
             '{listing_url}'        => $listingUrl,
             '{site_name}'          => $siteName,
+            '{site_url}'           => $siteUrl !== '' ? $siteUrl : self::$globalSiteUrl,
             '{owner_name}'         => $ownerName,
             '{owner_email}'        => $ownerEmail,
             '{applicant_name}'     => $applicantName,
@@ -872,6 +885,7 @@ final class EmailTemplateRepo
         string $listingType    = '',
         string $kimPassword    = '',
         string $kimUpdateUrl   = '',
+        string $siteUrl        = '',
     ): array {
         return [
             '{listing_title}'    => $listingName,
@@ -879,6 +893,7 @@ final class EmailTemplateRepo
             '{listing_type}'     => $listingType,
             '{listing_url}'      => $listingUrl,
             '{site_name}'        => $siteName,
+            '{site_url}'         => $siteUrl !== '' ? $siteUrl : self::$globalSiteUrl,
             '{owner_name}'       => $ownerName,
             '{owner_email}'      => $ownerEmail,
             '{kim_name}'         => $kimName,

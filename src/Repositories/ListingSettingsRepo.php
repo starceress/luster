@@ -843,7 +843,8 @@ final class ListingSettingsRepo
             . '{/each_size_group}' . "\n"
             . '</div>' . "\n"
             . "\n"
-            . '{/if_codes}';
+            . '{/if_codes}' . "\n"
+            . '{codes_submit_toggle}';
     }
 
     /**

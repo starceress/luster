@@ -21,6 +21,7 @@ use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\RulesBodyRenderer;
+use Luster\Support\SampleTemplateData;
 
 /**
  * Admin management of per-listing rules.
@@ -424,12 +425,12 @@ final class RulesAdminController extends AdminController
 
         try {
             $html = RulesBodyRenderer::renderPreview($tpl, [
-                'subject'       => 'Sample Fanlisting',
-                'listing_title' => 'Sample Fanlisting',
+                'subject'       => SampleTemplateData::LISTING_SUBJECT,
+                'listing_title' => SampleTemplateData::LISTING_TITLE,
                 'listing_type'  => 'listing',
-                'listing_url'   => 'https://example.com/sample-fanlisting',
-                'join_url'      => 'https://example.com/sample-fanlisting/join',
-                'update_url'    => 'https://example.com/sample-fanlisting/update',
+                'listing_url'   => SampleTemplateData::LISTING_URL,
+                'join_url'      => SampleTemplateData::LISTING_URL . '/join',
+                'update_url'    => SampleTemplateData::LISTING_URL . '/update',
             ], $gateLabel, $gateEnabled, $gateType);
         } catch (\Throwable $e) {
             $html = '<p style="color:#c00;font-family:monospace">Preview error: '

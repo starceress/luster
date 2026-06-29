@@ -40,7 +40,7 @@ require_once __DIR__ . '/../_css_assets.php';
 
     <div class="login-brand">
       <span class="login-wordmark">Luster</span>
-      <span class="login-luster-sub">Admin Panel</span>
+      <span class="login-brand-sub">Admin Panel</span>
     </div>
 
     <?php if ($error !== '') : ?>
@@ -69,19 +69,20 @@ require_once __DIR__ . '/../_css_assets.php';
         </div>
       </div>
 
-      <div class="login-between">
         <label class="login-remember">
-          <input type="checkbox" name="remember_me" value="1">
-          Remember me
+          <input type="checkbox" name="remember_me" value="1" id="remember_me">
+          Remember Me
         </label>
-        <a href="<?= rtrim(View::e($base_url ?? ''), '/') ?>/admin/forgot" class="link">Forgot password?</a>
-      </div>
 
       <button type="submit" class="btn btn-primary btn-block-center">Sign in</button>
     </form>
 
+      <div class="login-footer">
+        <a href="<?= rtrim(View::e($base_url ?? ''), '/') ?>/admin/forgot" class="link">Forgot password?</a>
+      </div>
+
   </div>
-  <p class="login-footer"><a href="https://luster.nu/" target="_blank" title="Luster ✦ Fanlisting Management Script" class="link"><b>Luster</b></a> &copy; <a href="https://dreamesque.net/" target="_blank" title="Star ✦ Dreamesque.Net" class="link">Star</a>, <?= date('Y') === '2026' ? '2026' : '2026&#x2013;' . date('Y') ?></p>
+  <p class="login-footer"><a href="https://luster.nu/" target="_blank" title="Luster ✦ Fanlisting Management Script" class="link"><b>Luster</b></a> &copy; <a href="https://dreamesque.net/" target="_blank" title="Star ✦ Dreamesque.Net" class="link">Star</a>, <?= date('Y') === '2026' ? '2026' : '2026&#x2013;' . date('Y') ?>.</p>
 </div>
 
 <?php $jsV = filemtime(LUSTER_BASE . '/public/assets/js/admin.js') ?: 0; ?>

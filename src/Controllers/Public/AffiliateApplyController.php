@@ -214,7 +214,7 @@ final class AffiliateApplyController
 
         $siteRepo = new SiteSettingsRepo($db);
 
-        if ($siteRepo->get('collective_affiliate_apply_enabled') !== '1') {
+        if (($siteRepo->get('collective_affiliate_apply_enabled') ?? '1') !== '1') {
             return Response::notFound('Collective affiliate applications are not open.');
         }
 

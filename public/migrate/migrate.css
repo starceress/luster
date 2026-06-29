@@ -1,19 +1,21 @@
-/* =============================================================
-   Luster — Migration Runner CSS
-   Loaded after tokens.css + admin.css; overrides that apply
-   only to the migration runner.
-   ============================================================= */
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Loaded after tokens.css + admin.css; overrides that apply
+ only to the migration runner.
+*/
 
 body { display: flex; flex-direction: column; min-height: 100vh; padding: 0; margin: 0; }
 
-.mig-topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 74px; background: #1a1830; box-shadow: 0 2px 16px rgba(0,0,0,.4); }
+.mig-topbar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 74px; background: var(--bg-sidebar); box-shadow: 0 2px 16px rgba(0,0,0,.4); }
 
 .mig-topbar::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent 0%, rgb(var(--ch-brand-primary)/0.4) 40%, rgb(var(--ch-brand-secondary)/0.25) 70%, transparent 100%); pointer-events: none; }
 [data-theme="light"] .mig-topbar::after { background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fd4fb0 40%, transparent) 40%, color-mix(in srgb, #19ded9 25%, transparent) 70%, transparent 100%); }
 
 .mig-tb-left { display: grid; grid-template-columns: auto auto auto auto; align-items: center; gap: 12px; }
 
-.mig-tb-logo { font-size: 1.35rem; font-weight: 600; background: linear-gradient(90deg, var(--gradient)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.mig-tb-star { font-size: 1.35rem; font-weight: 600; background: linear-gradient(90deg, var(--gradient)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
 .mig-tb-brand { font-family: var(--font-serif); font-size: 1.55rem; font-weight: 700; background: linear-gradient(90deg, var(--gradient) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-decoration: none; }
 
@@ -22,6 +24,7 @@ body { display: flex; flex-direction: column; min-height: 100vh; padding: 0; mar
 .mig-tb-sub { font-size: var(--fs-sm); color: rgb(var(--ch-brand-muted)/0.45); text-transform: uppercase; letter-spacing: .08em; }
 
 .mig-tb-right { display: flex; align-items: center; }
+.mig-topbar .theme-toggle-icon { color: var(--text-sidebar); }
 
 .mig-tb-theme { padding: 6px; }
 
@@ -29,7 +32,7 @@ body { display: flex; flex-direction: column; min-height: 100vh; padding: 0; mar
 
 .mig-ph { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0; margin-bottom: 45px; position: relative; }
 
-.mig-ph::before { content: ''; position: absolute; top: 25px; left: 50%; width: 160px; height: 160px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgb(var(--ch-brand-primary)/0.28) 0%, rgb(var(--ch-brand-secondary)/0.1) 45%, transparent 70%); pointer-events: none; }
+.mig-ph::before { content: ''; position: absolute; top: 25px; left: 50%; width: 110px; height: 110px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgb(var(--ch-brand-primary)/0.28) 0%, rgb(var(--ch-brand-secondary)/0.1) 45%, transparent 70%); pointer-events: none; }
 [data-theme="light"] .mig-ph::before { background: radial-gradient(circle, rgb(var(--ch-brand-primary)/0.55) 0%, rgb(var(--ch-brand-secondary)/0.2) 45%, transparent 70%); }
 
 .mig-ph-logo { width: 50px; height: 50px; display: block; margin: 0 auto 1rem; position: relative; }

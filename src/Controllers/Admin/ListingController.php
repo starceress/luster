@@ -511,7 +511,7 @@ final class ListingController extends AdminController
         $newId = $listingRepo->insert($title, $subject, $url, $email, $status, $image, !empty($catIds) ? $catIds[0] : null, $opened, $catidStr, $catIds);
 
         // Create embed settings row — leave form URLs blank so they inherit
-        // from the global defaults in Global Templates & URLs.
+        // from the global defaults in Owned Listings Settings.
         $settingsRepo = new ListingSettingsRepo($db);
         $settingsRepo->saveEmbedSettings(
             $newId,
@@ -806,7 +806,7 @@ final class ListingController extends AdminController
             $affiliateApplyStyle = in_array($affiliateApplyStylePost, ['link', 'button'], true) ? $affiliateApplyStylePost : 'link';
 
             $statNewmembersLimitRaw = trim((string) $request->post('stat_newmembers_limit', ''));
-            $statNewmembersLimit = $statNewmembersLimitRaw !== '' ? max(0, min(255, (int) $statNewmembersLimitRaw)) : null;
+            $statNewmembersLimit = $statNewmembersLimitRaw !== '' ? ((int) $statNewmembersLimitRaw === 0 ? 0 : 5) : null;
 
             $jceRaw = $request->post('join_confirmation_email', '');
             $joinConfirmEmail = match ($jceRaw) {
@@ -1033,6 +1033,20 @@ final class ListingController extends AdminController
         $pending            = $listing->dbprefix !== '' ? $memberRepo->countPending($listing->dbprefix) : 0;
         $countries          = $listing->dbprefix !== '' ? $memberRepo->countUniqueCountries($listing->dbprefix) : 0;
         $lastUpdated        = $listing->dbprefix !== '' ? $memberRepo->getLastUpdated($listing->dbprefix) : null;
+
+        $newestMember = null;
+        if ($listing->dbprefix !== '' && $approved > 0) {
+            $newest = $memberRepo->getNewestMembers($listing->dbprefix, 1);
+            $newestMember = $newest[0] ?? null;
+        }
+
+        $topCountries = [];
+        if ($listing->dbprefix !== '' && $approved > 0) {
+            $countrySummary = $memberRepo->getCountrySummary($listing->dbprefix);
+            usort($countrySummary, static fn(array $a, array $b): int => $b['fan_count'] <=> $a['fan_count']);
+            $topCountries = array_slice($countrySummary, 0, 3);
+        }
+
         $tflCats            = $categoryRepo->getBySource('tfl');
         $taflCats           = $categoryRepo->getBySource('tafl');
         $customNetworks     = $categoryRepo->getCustomSources();
@@ -1143,6 +1157,8 @@ final class ListingController extends AdminController
             'approved'            => $approved,
             'pending'             => $pending,
             'countries'           => $countries,
+            'newest_member'       => $newestMember,
+            'top_countries'       => $topCountries,
             'last_updated'        => $lastUpdated,
             'fl_last_updated'     => $flLastUpdated,
             'tfl_cats'            => $tflCats,
@@ -1984,6 +2000,10 @@ final class ListingController extends AdminController
             return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
         });
 
+        $csToggle      = $this->renderCodesSubmitTogglePreview($tpl, $listing, $db);
+        $csPlaceholder = '<!--lstr-cs-toggle-preview-->';
+        $tpl = str_replace('{codes_submit_toggle}', $csPlaceholder, $tpl);
+
         $html = CodesTemplateRenderer::render(
             $tpl, $codes, $grouped, $donorMap, $uploadsUrl,
             $catMap, $categoryMap, $listing->title ?? '',
@@ -1997,8 +2017,44 @@ final class ListingController extends AdminController
             $tpl, [], [], [], $uploadsUrl, [], [], $listing->title ?? '',
         );
 
+        $html  = str_replace($csPlaceholder, $csToggle, (string) $html);
+        $empty = str_replace($csPlaceholder, '', (string) $empty);
+
         return $this->previewSectionLabel(empty($codes) ? 'Empty State' : 'Active Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>')
             . (empty($codes) ? '' : $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>'));
+    }
+
+    private function renderCodesSubmitTogglePreview(string $tpl, object $listing, \Luster\Core\Database $db): string
+    {
+        if (!str_contains($tpl, '{codes_submit_toggle}')) {
+            return '';
+        }
+
+        $settingsRepo = new ListingSettingsRepo($db);
+        $embedCfg     = $settingsRepo->getResolvedEmbedSettings((int) $listing->id);
+        if (!($embedCfg['codes_submit_enabled'] ?? true)) {
+            return '';
+        }
+
+        $csFormTpl    = $settingsRepo->getCodesSubmitFormTemplate((int) $listing->id);
+        $globalTpls   = (new SiteSettingsRepo($db))->getGlobalTemplates();
+        $resolved     = ListingTemplateResolver::resolve(
+            $csFormTpl,
+            $globalTpls['listing_default_codes_submit_form_template'] ?? null,
+            ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+        );
+        $formHtml = $this->renderCodesSubmitFormPreview($resolved['value'], $listing->title, $listing->url, (string) $listing->subject);
+
+        if ($formHtml === '') {
+            return '';
+        }
+
+        return '<details class="fl-codes-submit-collapsible">'
+            . '<summary class="fl-codes-submit-toggle">Donate a code?</summary>'
+            . '<div class="fl-codes-submit-form-wrap">'
+            . $formHtml
+            . '</div>'
+            . '</details>';
     }
 
     private function ltplPreviewRules(string $tpl, object $listing, string $gateLabel = '', bool $gateEnabled = true, string $gateType = ''): string
@@ -2458,18 +2514,12 @@ final class ListingController extends AdminController
 
         $siteRepo  = new SiteSettingsRepo($db);
         $globals   = $siteRepo->getGlobalTemplates();
-        $activeTab = in_array($request->query('tab', 'templates'), ['templates', 'urls'], true)
-            ? (string) $request->query('tab', 'templates')
-            : 'templates';
-        $formUrls  = $siteRepo->getGlobalFormUrls();
 
-        return $this->adminLayout('admin/listings/global-templates.php', 'Global Templates & URLs', 'listings', [
+        return $this->adminLayout('admin/listings/global-templates.php', 'Global Templates', 'listings', [
             'success'                => $success,
             'error'                  => $error,
             'globals'                => $globals,
             'stat_newmembers_limit'  => $siteRepo->get('stat_newmembers_limit'),
-            'active_tab'             => $activeTab,
-            'form_urls'              => $formUrls,
         ], '', [
             $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
@@ -2490,19 +2540,6 @@ final class ListingController extends AdminController
         $session  = $this->app->getSession();
         $baseUrl  = $this->app->getBaseUrl();
 
-        // ── URL save branch ──────────────────────────────────────────────
-        if ($request->post('_save_urls') !== null) {
-            $siteRepo = new SiteSettingsRepo($db);
-            $urlKeys  = SiteSettingsRepo::GLOBAL_FORM_URL_KEYS;
-            foreach ($urlKeys as $key => $_default) {
-                $submitted = ltrim(trim((string) $request->post($key, '')), '/');
-                $siteRepo->set($key, $submitted !== '' ? $submitted : null);
-            }
-            $session->set('lstr_flash_success', 'Default form page URLs saved.');
-            return Response::redirect($baseUrl . '/admin/listings/global-templates?tab=urls');
-        }
-
-        // ── Template save branch ─────────────────────────────────────────
         $types = [
             'listing_default_members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
             'listing_default_stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
@@ -2527,7 +2564,8 @@ final class ListingController extends AdminController
         }
 
         $snlRaw = trim((string) $request->post('stat_newmembers_limit', ''));
-        $siteRepo->set('stat_newmembers_limit', $snlRaw !== '' ? (string) max(0, min(255, (int) $snlRaw)) : null);
+        $snlVal = $snlRaw !== '' ? (int) $snlRaw : null;
+        $siteRepo->set('stat_newmembers_limit', $snlVal !== null ? ($snlVal === 0 ? '0' : '5') : null);
 
         $session->set('lstr_flash_success', 'Global listing templates saved.');
         $returnGroup = (string) $request->post('return_group', '');
@@ -2686,7 +2724,7 @@ final class ListingController extends AdminController
                 $globalTpls['listing_default_affiliate_apply_form_template'] ?? null,
                 ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
             );
-            $applyFormHtml = $this->renderAffiliateApplyFormPreview($resolved['value'], 'Sample Fanlisting', 'https://example.com/sample-fanlisting', 'Sample Subject');
+            $applyFormHtml = $this->renderAffiliateApplyFormPreview($resolved['value'], SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_URL, SampleTemplateData::LISTING_SUBJECT);
         }
 
         $sample = self::renderAffiliatesSection($tpl, SampleTemplateData::affiliates(), $sampleImagesUrl, $affiliateApplyUrl, 'link', $applyFormHtml);
@@ -2720,9 +2758,9 @@ final class ListingController extends AdminController
             'stat_countries'  => '12',
             'stat_newmembers' => $sampleNewest,
             'stat_growth'     => '0.71 members/day',
-            'listing_title'   => 'Sample Fanlisting',
-            'listing_subject' => 'Sample Subject',
-            'listing_url'     => 'https://example.com/sample-fanlisting',
+            'listing_title'   => SampleTemplateData::LISTING_TITLE,
+            'listing_subject' => SampleTemplateData::LISTING_SUBJECT,
+            'listing_url'     => SampleTemplateData::LISTING_URL,
         ];
         $sampleConditions = [
             'approved_by'  => true,
@@ -2738,9 +2776,9 @@ final class ListingController extends AdminController
             'stat_countries'  => '0',
             'stat_newmembers' => '',
             'stat_growth'     => '0.00 members/day',
-            'listing_title'   => 'Sample Fanlisting',
-            'listing_subject' => 'Sample Subject',
-            'listing_url'     => 'https://example.com/sample-fanlisting',
+            'listing_title'   => SampleTemplateData::LISTING_TITLE,
+            'listing_subject' => SampleTemplateData::LISTING_SUBJECT,
+            'listing_url'     => SampleTemplateData::LISTING_URL,
         ];
         $emptyConditions = [
             'approved_by'  => false,
@@ -2764,7 +2802,7 @@ final class ListingController extends AdminController
     {
         $tplResolved = str_replace(
             ['{listing_title}', '{listing_subject}'],
-            ['Sample Fanlisting', 'Sample Subject'],
+            [SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_SUBJECT],
             $tpl,
         );
 
@@ -2787,9 +2825,9 @@ final class ListingController extends AdminController
     {
         return $this->renderJoinFormPreview(
             $tpl,
-            'Sample Fanlisting',
-            'https://example.com/sample-fanlisting',
-            'Sample Subject',
+            SampleTemplateData::LISTING_TITLE,
+            SampleTemplateData::LISTING_URL,
+            SampleTemplateData::LISTING_SUBJECT,
             true,
             SampleTemplateData::additionalFields(),
         );
@@ -2800,7 +2838,7 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewCodesSubmitForm(string $tpl): string
     {
-        return $this->renderCodesSubmitFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting', 'Sample Subject');
+        return $this->renderCodesSubmitFormPreview($tpl, SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_URL, SampleTemplateData::LISTING_SUBJECT);
     }
 
     /**
@@ -2808,7 +2846,7 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewAffiliateApplyForm(string $tpl): string
     {
-        return $this->renderAffiliateApplyFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting', 'Sample Subject');
+        return $this->renderAffiliateApplyFormPreview($tpl, SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_URL, SampleTemplateData::LISTING_SUBJECT);
     }
 
     private function gtplPreviewUpdateForm(string $tpl): string
@@ -2849,9 +2887,9 @@ final class ListingController extends AdminController
         ]);
 
         $tokens = [
-            '{listing_title}'          => 'Sample Fanlisting',
-            '{listing_url}'            => 'https://example.com/sample-fanlisting',
-            '{listing_subject}'        => 'Sample Subject',
+            '{listing_title}'          => SampleTemplateData::LISTING_TITLE,
+            '{listing_url}'            => SampleTemplateData::LISTING_URL,
+            '{listing_subject}'        => SampleTemplateData::LISTING_SUBJECT,
             '{field_signin_email}'     => $fSignIn['email'],
             '{field_signin_password}'  => $fSignIn['password'],
             '{field_new_name}'         => $fUpdate['new_name'],
@@ -2896,9 +2934,9 @@ final class ListingController extends AdminController
         ]);
 
         $tokens = [
-            '{listing_title}'             => 'Sample Fanlisting',
-            '{listing_url}'               => 'https://example.com/sample-fanlisting',
-            '{listing_subject}'           => 'Sample Subject',
+            '{listing_title}'             => SampleTemplateData::LISTING_TITLE,
+            '{listing_url}'               => SampleTemplateData::LISTING_URL,
+            '{listing_subject}'           => SampleTemplateData::LISTING_SUBJECT,
             '{field_email}'               => $fEmail['email'],
             '{field_email_input}'         => $fEmail['email_input'],
             '{captcha_block}'             => '',
@@ -2957,9 +2995,32 @@ final class ListingController extends AdminController
             return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
         });
 
+        $csToggle      = '';
+        $csPlaceholder = '<!--lstr-cs-toggle-gpreview-->';
+        if (str_contains($tpl, '{codes_submit_toggle}')) {
+            $siteRepo   = new SiteSettingsRepo($db);
+            $globalTpls = $siteRepo->getGlobalTemplates();
+            $csFormTpl  = $globalTpls['listing_default_codes_submit_form_template'] ?? null;
+            $resolved   = ListingTemplateResolver::resolve(
+                null,
+                $csFormTpl,
+                ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+            );
+            $formHtml = $this->renderCodesSubmitFormPreview($resolved['value'], SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_URL, SampleTemplateData::LISTING_SUBJECT);
+            if ($formHtml !== '') {
+                $csToggle = '<details class="fl-codes-submit-collapsible">'
+                    . '<summary class="fl-codes-submit-toggle">Donate a code?</summary>'
+                    . '<div class="fl-codes-submit-form-wrap">'
+                    . $formHtml
+                    . '</div>'
+                    . '</details>';
+            }
+        }
+        $tpl = str_replace('{codes_submit_toggle}', $csPlaceholder, $tpl);
+
         $html = CodesTemplateRenderer::render(
             $tpl, $codes, $grouped, $donorMap, $uploadsUrl,
-            $catMap, $categoryMap, 'Sample Fanlisting',
+            $catMap, $categoryMap, SampleTemplateData::LISTING_TITLE,
         );
 
         if ($html === null) {
@@ -2967,8 +3028,11 @@ final class ListingController extends AdminController
         }
 
         $empty = CodesTemplateRenderer::render(
-            $tpl, [], [], [], $uploadsUrl, [], [], 'Sample Fanlisting',
+            $tpl, [], [], [], $uploadsUrl, [], [], SampleTemplateData::LISTING_TITLE,
         );
+
+        $html  = str_replace($csPlaceholder, $csToggle, (string) $html);
+        $empty = str_replace($csPlaceholder, '', (string) $empty);
 
         return $this->previewSectionLabel(empty($codes) ? 'Empty State' : 'Sample Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>')
             . (empty($codes) ? '' : $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>'));
@@ -2979,7 +3043,7 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewContactForm(string $tpl): string
     {
-        return $this->renderContactFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting', 'Sample Subject');
+        return $this->renderContactFormPreview($tpl, SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_URL, SampleTemplateData::LISTING_SUBJECT);
     }
 
     /**
@@ -3039,8 +3103,8 @@ final class ListingController extends AdminController
         return SuccessRenderer::render($tpl, 'contact-sent', [
             'sender_name'   => 'Alice',
             'sender_email'  => 'alice@example.com',
-            'listing_title' => 'Sample Fanlisting',
-            'listing_url'   => 'https://example.com/sample-fanlisting',
+            'listing_title' => SampleTemplateData::LISTING_TITLE,
+            'listing_url'   => SampleTemplateData::LISTING_URL,
             'site_name'     => (string) ($this->app->getConfig()->get('site_name', '') ?: 'My Site'),
             'owner_name'    => (string) ($this->app->getConfig()->get('owner_name', '') ?: 'Site Owner'),
             'owner_email'   => (string) ($this->app->getConfig()->get('owner_email', '') ?: 'owner@example.com'),
@@ -3063,10 +3127,13 @@ final class ListingController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+
         return $this->adminLayout('admin/listings/settings.php', 'Owned Listings Settings', 'listings', [
-            'cfg'     => $this->app->getConfig()->all(),
-            'success' => $success,
-            'error'   => $error,
+            'cfg'       => $this->app->getConfig()->all(),
+            'form_urls' => $siteRepo->getGlobalFormUrls(),
+            'success'   => $success,
+            'error'     => $error,
         ], '', [
             $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
@@ -3109,12 +3176,19 @@ final class ListingController extends AdminController
             return Response::redirect($baseUrl . '/admin/settings#panel-notifications');
         }
 
-        $db           = $this->app->getDatabase();
+        $db       = $this->app->getDatabase();
+        $siteRepo = new SiteSettingsRepo($db);
+        $urlKeys  = SiteSettingsRepo::GLOBAL_FORM_URL_KEYS;
+        foreach ($urlKeys as $key => $_default) {
+            $submitted = ltrim(trim((string) $request->post($key, '')), '/');
+            $siteRepo->set($key, $submitted !== '' ? $submitted : null);
+        }
+
         $activityRepo = new ActivityRepo($db);
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'listings.settings.save',
-            'Owned listings display settings updated',
+            'Owned listing settings updated',
             $request->ip(),
         );
 

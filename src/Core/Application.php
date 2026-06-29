@@ -86,6 +86,10 @@ final class Application
         $fieldWrapper          = new FieldWrapper();
         $this->formFieldBuilder = new FormFieldBuilder($fieldRenderer, $fieldWrapper);
 
+        \Luster\Repositories\EmailTemplateRepo::setGlobalSiteUrl(
+            (string) $this->config->get('site_url', '')
+        );
+
         // Give the router a resolver so controllers receive this Application
         $this->router->setResolver(function (string $class): object {
             return new $class($this);

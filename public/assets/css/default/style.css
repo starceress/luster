@@ -591,6 +591,19 @@
 .fl-affiliate-apply-form-wrap {
   margin-top: 1em;
 }
+.fl-codes-submit-collapsible {
+  margin-top: 1em;
+}
+.fl-codes-submit-toggle {
+  cursor: pointer;
+  text-decoration: underline;
+  list-style: none;
+}
+.fl-codes-submit-toggle::-webkit-details-marker,
+.fl-codes-submit-toggle::marker { display: none; content: ''; }
+.fl-codes-submit-form-wrap {
+  margin-top: 1em;
+}
 
 /* ------------------------------------------------------------------------
    OWNED LISTINGS

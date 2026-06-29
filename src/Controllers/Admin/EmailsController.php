@@ -261,6 +261,7 @@ final class EmailsController extends AdminController
             'owner_name'          => (string) $config->get('owner_name', ''),
             'owner_email'         => (string) $config->get('owner_email', ''),
             'site_name_val'       => (string) $config->get('site_name', ''),
+            'cfg'                 => $config->all(),
 
             // Bulk email tab
             'listings'            => $allListings,

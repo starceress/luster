@@ -177,6 +177,31 @@ document.addEventListener('click', function (e) {
   if (btn) togglePwd(btn);
 });
 
+// ── 6b. Remember Me checkbox persistence ─────────────────────────────────────
+
+(function () {
+  var cb = document.getElementById('remember_me');
+  if (!cb) return;
+  if (localStorage.getItem('lstr_remember_me') === '1') cb.checked = true;
+  cb.addEventListener('change', function () {
+    localStorage.setItem('lstr_remember_me', cb.checked ? '1' : '0');
+  });
+}());
+
+// ── 6c. Checkbox → row visibility toggle ([data-toggle-row]) ─────────────────
+
+(function () {
+  document.querySelectorAll('[data-toggle-row]').forEach(function (cb) {
+    var ids = cb.getAttribute('data-toggle-row').split(',');
+    var targets = ids.map(function (id) { return document.getElementById(id.trim()); }).filter(Boolean);
+    if (!targets.length) return;
+    cb.addEventListener('change', function () {
+      var show = cb.checked ? '' : 'none';
+      targets.forEach(function (t) { t.style.display = show; });
+    });
+  });
+}());
+
 // ── 7. Mobile sidebar ─────────────────────────────────────────────────────────
 
 (function () {
@@ -1271,37 +1296,38 @@ document.addEventListener('drop', function (e) {
   var isCollective = pd.dataset.isCollective === '1';
   var siteName = pd.dataset.siteName || 'Luster';
   var tokens = {
-    '{fan_name}':        'Example Fan',
-    '{fan_email}':       'fan@example.com',
-    '{fan_url}':         'https://fan.example.com',
+    '{fan_name}':        'Bruce Wayne',
+    '{fan_email}':       'bruce@waynetech.net',
+    '{fan_url}':         'https://waynetech.net/bruce',
     '{fan_country}':     'United States',
-    '{fan_password}':    'mypassword123',
-    '{reset_url}':       'https://myfanlisting.com/reset/1/confirm?token=abc123',
-    '{listing_title}':   isCollective ? siteName : (pd.dataset.listingName || 'My Fanlisting'),
-    '{listing_subject}': pd.dataset.listingSubject || 'Music',
+    '{fan_password}':    'darkknight123',
+    '{reset_url}':       'https://batmanfan.com/reset/1/confirm?token=abc123',
+    '{listing_title}':   pd.dataset.listingName || 'The Dark Knight',
+    '{listing_subject}': pd.dataset.listingSubject || 'Batman',
     '{listing_type}':    pd.dataset.listingType    || 'fanlisting',
-    '{listing_url}':     pd.dataset.listingUrl     || 'https://myfanlisting.com',
-    '{join_url}':        pd.dataset.listingUrl     || 'https://myfanlisting.com/join',
-    '{update_url}':      pd.dataset.listingUrl     || 'https://myfanlisting.com/update',
-    '{form_url_join}':   pd.dataset.listingUrl     || 'https://myfanlisting.com/join',
-    '{form_url_update}': pd.dataset.listingUrl     || 'https://myfanlisting.com/update',
-    '{form_url_reset}':  pd.dataset.listingUrl     || 'https://myfanlisting.com/reset',
+    '{listing_url}':     pd.dataset.listingUrl     || 'https://batmanfan.com/',
+    '{join_url}':        pd.dataset.listingUrl     || 'https://batmanfan.com/join',
+    '{update_url}':      pd.dataset.listingUrl     || 'https://batmanfan.com/update',
+    '{form_url_join}':   pd.dataset.listingUrl     || 'https://batmanfan.com/join',
+    '{form_url_update}': pd.dataset.listingUrl     || 'https://batmanfan.com/update',
+    '{form_url_reset}':  pd.dataset.listingUrl     || 'https://batmanfan.com/reset',
     '{site_name}':       siteName,
-    '{owner_name}':      pd.dataset.ownerName      || 'Admin',
-    '{owner_email}':     pd.dataset.ownerEmail     || 'admin@myfanlisting.com',
-    '{aff_name}':        'Example Affiliate',
-    '{aff_url}':         'https://affiliate.example.com',
-    '{aff_email}':       'owner@affiliate.example.com',
-    '{aff_message}':     'Message: I would love to affiliate with you.\n\n',
-    '{applicant_name}':    'Example Applicant',
-    '{applicant_email}':   'applicant@example.com',
-    '{applicant_url}':     'https://applicant.example.com',
-    '{applicant_message}': 'Message: I would love to adopt this listing.\n\n',
-    '{kim_name}':        'KIM Fan',
-    '{kim_email}':       'kimfan@example.com',
-    '{kim_url}':         'https://kimfan.example.com',
-    '{kim_password}':    'password123',
-    '{kim_update_url}':  'https://example.com/kim-update.php',
+    '{site_url}':        pd.dataset.siteUrl        || 'https://waynetech.net',
+    '{owner_name}':      pd.dataset.ownerName      || 'Alfred',
+    '{owner_email}':     pd.dataset.ownerEmail     || 'alfred@waynetech.net',
+    '{aff_name}':        'James Gordon',
+    '{aff_url}':         'https://gcpd.org/',
+    '{aff_email}':       'gordon@gcpd.org',
+    '{aff_message}':     "I've had my eye on your site for a while now. It's solid work. The GCPD covers similar ground, and I think our visitors would get along. Think of it as a good old-fashioned alliance. I'll bring the coffee.",
+    '{applicant_name}':    'Selina Kyle',
+    '{applicant_email}':   'selina@catlady.net',
+    '{applicant_url}':     'https://catlady.net/',
+    '{applicant_message}': "This listing has piqued my interest... let's just say I have a habit of making things mine. You won't find a better candidate. I've got an eye for design and impeccable taste. You can trust me. Mostly.",
+    '{kim_name}':        'Dick Grayson',
+    '{kim_email}':       'hello@nightwing.com',
+    '{kim_url}':         'https://theboywonder.com/',
+    '{kim_password}':    'darkknight123',
+    '{kim_update_url}':  'https://batmanfan.com/kim-update.php',
   };
 
   function updatePreview(type) {
@@ -1544,19 +1570,20 @@ document.addEventListener('drop', function (e) {
   var newBodyInp   = document.getElementById('new-tpl-body');
 
   var CT_TOKENS = {
-    '{fan_name}':        'Jane Doe',
-    '{fan_email}':       'jane@example.com',
-    '{fan_url}':         'https://jane.example.com',
+    '{fan_name}':        'Bruce Wayne',
+    '{fan_email}':       'bruce@waynetech.net',
+    '{fan_url}':         'https://waynetech.net/bruce',
     '{fan_country}':     'United States',
-    '{listing_title}':   'My Fanlisting',
-    '{listing_subject}': 'Music',
+    '{listing_title}':   'The Dark Knight',
+    '{listing_subject}': 'Batman',
     '{listing_type}':    'listing',
-    '{listing_url}':     'https://myfanlisting.com',
-    '{site_name}':       'My Collective',
-    '{owner_name}':      'Admin',
-    '{owner_email}':     'admin@example.com',
-    '{name}':            'Jane Doe',
-    '{email}':           'jane@example.com',
+    '{listing_url}':     'https://waynetech.net/the-dark-knight',
+    '{site_name}':       'Wayne Enterprises',
+    '{site_url}':        'https://waynetech.net',
+    '{owner_name}':      'Alfred',
+    '{owner_email}':     'alfred@waynetech.net',
+    '{name}':            'Bruce Wayne',
+    '{email}':           'bruce@waynetech.net',
   };
 
   function updateCtPreview() {
@@ -2426,7 +2453,7 @@ document.addEventListener('drop', function (e) {
 
   // ── (static preview renderer removed — preview opens via buildPreviewUrl) ───
   function buildPreview(key, vals) {
-    var listing = listings[0] || { id: 1, name: 'My Fanlisting' };
+    var listing = listings[0] || { id: 1, name: 'The Dark Knight' };
     var lid = parseInt(vals.lid || listing.id, 10);
     listing = listings.find(function (l) { return l.id === lid; }) || listing;
     var name = esc(listing.name);
@@ -2438,15 +2465,15 @@ document.addEventListener('drop', function (e) {
           + '<label>Name</label><input class="fld" placeholder="Your name" />'
           + '<label>Email</label><input class="fld" placeholder="you@example.com" />'
           + '<label>Website <span style="color:#a39cbb;font-weight:400">(optional)</span></label><input class="fld" placeholder="https://" />'
-          + '<label>Country</label><select class="fld fld--select"><option>Philippines</option><option>United States</option></select>'
+          + '<label>Country</label><select class="fld fld--select"><option>Japan</option><option>United States</option></select>'
           + '<button class="site-btn">Join the fanlisting</button>';
 
       case 'members': {
         var showCtrl = vals.show_search !== 'false';
         var sortBy = vals.sort_by || 'country';
         var memberRows = sortBy === 'name'
-          ? [['Alexia','Philippines'],['Bea','United States'],['Cara','Japan'],['Devon','Canada'],['Elise','France']]
-          : [['Devon','Canada'],['Elise','France'],['Cara','Japan'],['Alexia','Philippines'],['Bea','United States']];
+          ? [['Misty','United States'],['Naminé','Canada'],['Sakura','Japan'],['Usagi','Japan'],['Winry','Germany']]
+          : [['Winry','Germany'],['Sakura','Japan'],['Usagi','Japan'],['Naminé','Canada'],['Misty','United States']];
         return '<h4>Members <span style="color:#a39cbb;font-weight:400;font-size:.85rem">(33)</span></h4>'
           + (showCtrl ? '<p class="site-sub">Sort: <a class="site-link" href="#">' + (sortBy === 'name' ? '<u>Name</u>' : 'Name') + '</a> &middot; <a class="site-link" href="#">' + (sortBy !== 'name' ? '<u>Country</u>' : 'Country') + '</a></p>' : '')
           + memberRows.map(function (r) {
@@ -2465,7 +2492,7 @@ document.addEventListener('drop', function (e) {
           + '<div class="site-stat"><span class="k">Opened</span><span class="v">Jan 29, 2026</span></div>'
           + '<div class="site-stat"><span class="k">Updated</span><span class="v">May 12, 2026</span></div>'
           + '<div class="site-stat"><span class="k">Growth</span><span class="v">0.31/day</span></div>'
-          + '<div class="site-stat"><span class="k">Newest</span><span class="v">Elise</span></div>'
+          + '<div class="site-stat"><span class="k">Newest</span><span class="v">Usagi</span></div>'
           + '</div>'
           + '<div class="site-note">Shown using the stats template saved in Luster.</div>'
           + statsDfNote;
@@ -2507,7 +2534,7 @@ document.addEventListener('drop', function (e) {
       case 'col-updates': {
         var showCats = vals.show_cats !== 'false';
         return '<h4>' + (key === 'col-updates' ? 'Updates' : name + ' -- Updates') + '</h4>'
-          + [['Site launch', 'May 10, 2026', 'Anime'],['New members', 'Apr 28, 2026', 'News']].map(function (e) {
+          + [['Silver Crystal relaunched!', 'May 10, 2026', 'Anime'],['Welcome new Scouts!', 'Apr 28, 2026', 'Members']].map(function (e) {
               return '<div style="padding:.5rem 0;border-bottom:1px solid #ece8f4">'
                 + (showCats ? '<span style="font-size:.68rem;color:#a39cbb;margin-bottom:.2rem;display:block">' + e[2] + '</span>' : '')
                 + '<div style="font-weight:600;color:#1f1b33;font-size:.82rem">' + e[0] + '</div>'
@@ -2519,7 +2546,7 @@ document.addEventListener('drop', function (e) {
       case 'adopt':
         return '<h4>Apply to Adopt a Fanlisting</h4>'
           + '<p class="site-sub">Interested in taking over a fanlisting? Choose one and fill in your details.</p>'
-          + '<label>Fanlisting</label><select class="fld fld--select"><option>— Choose a fanlisting —</option><option>Sample Fanlisting A</option><option>Sample Fanlisting B</option></select>'
+          + '<label>Fanlisting</label><select class="fld fld--select"><option>— Choose a fanlisting —</option><option>Silver Crystal</option><option>Jedi Order</option></select>'
           + '<label>Name</label><input class="fld" placeholder="Your name" />'
           + '<label>Email</label><input class="fld" placeholder="you@example.com" />'
           + '<label>Website</label><input class="fld" placeholder="https://" />'
@@ -2530,9 +2557,9 @@ document.addEventListener('drop', function (e) {
       case 'wishlist': {
         var wtype = vals.wishlist_type || 'all';
         var wItems = [
-          { label: 'Hayley Williams', type: 'Wanted' },
-          { label: 'Taylor Swift', type: 'Top' },
-          { label: 'Paramore -- Misery Business', type: 'Wanted' },
+          { label: 'Tifa Lockhart', type: 'Wanted' },
+          { label: 'Sailor Saturn', type: 'Top' },
+          { label: 'Kingdom Hearts -- Destiny Islands', type: 'Wanted' },
         ].filter(function (w) { return wtype === 'all' || w.type.toLowerCase() === wtype; });
         return '<h4>Wishlist</h4>'
           + (wItems.length ? wItems.map(function (w) {
@@ -2543,7 +2570,7 @@ document.addEventListener('drop', function (e) {
       case 'affiliates':
       case 'aff-col':
         return '<h4>Affiliates</h4><div class="site-aff">'
-          + ['Stardust','Moonbeam','Velvet','Aurora','Petal','Coda'].map(function (a) {
+          + ['Moon Kingdom','Pallet Town','Jedi Archives','Hyrule','Midgar','Destiny Islands'].map(function (a) {
               return '<a href="#">' + a + '</a>';
             }).join('')
           + '</div>';
@@ -2585,19 +2612,19 @@ document.addEventListener('drop', function (e) {
         var ownedDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','Y-m-d':'2026-11-15'};
         var ownedDfNote = vals.date_format && ownedDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + ownedDfMap[vals.date_format] + '</div>' : '';
         var allSamplesO = {
-          '':        [['Huntrix', ''],            ['Witch King', ''],      ['The Force', '']],
-          'upcoming':[['Golden Hour', 'Upcoming'],['The Magicians', 'Upcoming']],
-          'pending': [['New Series', 'Pending'],  ['Untitled', 'Pending']],
-          'all':     [['Huntrix', 'Current'],     ['Golden Hour', 'Upcoming'], ['New Series', 'Pending']]
+          '':        [['Silver Crystal', ''],         ['Jedi Order', ''],       ['Pallet Town', '']],
+          'upcoming':[['Hyrule Castle', 'Upcoming'],  ['Mako Reactor', 'Upcoming']],
+          'pending': [['Destiny Islands', 'Pending'], ['Traverse Town', 'Pending']],
+          'all':     [['Silver Crystal', 'Current'],  ['Hyrule Castle', 'Upcoming'], ['Destiny Islands', 'Pending']]
         };
         var samplesO = allSamplesO[statusVal] || allSamplesO[''];
         var rowsO = samplesO.map(function (it) {
           return '<div class="site-row"><a class="site-link" href="#">' + it[0] + '</a>'
             + (it[1] ? '<span class="site-flag">' + it[1] + '</span>' : '') + '</div>';
         }).join('');
-        var catDropdownO = '<select class="fld fld--select"><option>— Choose a category —</option><option>Anime (5)</option><option>Music (3)</option><option>Games (2)</option></select>';
-        var catListO = '<ul style="margin:0 0 .25rem;padding-left:18px"><li><a class="site-link" href="#">Anime (5)</a></li><li><a class="site-link" href="#">Music (3)</a></li><li><a class="site-link" href="#">Games (2)</a></li></ul>';
-        var switcherO = '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Music</option><option>Games</option></select>';
+        var catDropdownO = '<select class="fld fld--select"><option>— Choose a category —</option><option>Anime (5)</option><option>Games (3)</option><option>Movies (2)</option></select>';
+        var catListO = '<ul style="margin:0 0 .25rem;padding-left:18px"><li><a class="site-link" href="#">Anime (5)</a></li><li><a class="site-link" href="#">Games (3)</a></li><li><a class="site-link" href="#">Movies (2)</a></li></ul>';
+        var switcherO = '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Games</option><option>Movies</option></select>';
         if (modeO === 'browse') {
           return '<h4>Owned fanlistings</h4>'
             + '<div class="site-note" style="margin-bottom:.25rem">Category list:</div>'
@@ -2619,12 +2646,12 @@ document.addEventListener('drop', function (e) {
         var showAllFirst2 = vals.show_all_by_default === 'true';
         var joinedDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','Y-m-d':'2026-11-15'};
         var joinedDfNote = vals.date_format && joinedDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + joinedDfMap[vals.date_format] + '</div>' : '';
-        var sampleRows2 = [['Sailor Moon','Anime'],['Cowboy Bebop','Anime'],['Radiohead','Music']].map(function (it) {
+        var sampleRows2 = [['Sailor Moon','Anime'],['Pokémon','Games'],['Star Wars','Movies']].map(function (it) {
           return '<div class="site-row"><a class="site-link" href="#">' + it[0] + '</a><span class="site-flag">' + it[1] + '</span></div>';
         }).join('');
-        var catDropdown2 = '<select class="fld fld--select"><option>— Choose a category —</option><option>Anime (12)</option><option>Music (8)</option></select>';
-        var catList2 = '<ul style="margin:0 0 .25rem;padding-left:18px"><li><a class="site-link" href="#">Anime (12)</a></li><li><a class="site-link" href="#">Music (8)</a></li></ul>';
-        var switcher2 = '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Music</option></select>';
+        var catDropdown2 = '<select class="fld fld--select"><option>— Choose a category —</option><option>Anime (12)</option><option>Games (8)</option><option>Movies (5)</option></select>';
+        var catList2 = '<ul style="margin:0 0 .25rem;padding-left:18px"><li><a class="site-link" href="#">Anime (12)</a></li><li><a class="site-link" href="#">Games (8)</a></li><li><a class="site-link" href="#">Movies (5)</a></li></ul>';
+        var switcher2 = '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Games</option><option>Movies</option></select>';
         if (mode2 === 'browse') {
           return '<h4>Joined fanlistings</h4>'
             + '<div class="site-note" style="margin-bottom:.25rem">Category index:</div>'
@@ -2706,8 +2733,8 @@ document.addEventListener('drop', function (e) {
         var kimAll = vals.only_with_signups === 'false';
         return '<h4>KIM List</h4>'
           + '<p class="site-sub">' + (kimAll ? 'All fanlistings, including those with no sign-ups.' : 'Fanlistings that have at least one approved sign-up.') + '</p>'
-          + '<div class="site-row"><span>Jane Doe</span><span class="site-flag">Wanted: Paramore</span></div>'
-          + '<div class="site-row"><span>Alex Smith</span><span class="site-flag">Wanted: Taylor Swift</span></div>'
+          + '<div class="site-row"><span>Usagi</span><span class="site-flag">Wanted: Sailor Moon</span></div>'
+          + '<div class="site-row"><span>Misty</span><span class="site-flag">Wanted: Pokémon</span></div>'
           + (kimAll ? '<div class="site-note" style="margin-top:.35rem">+ Listings with no sign-ups also shown.</div>' : '');
       }
 
@@ -4829,9 +4856,9 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       .replace(/\{email\}/g,            sampleEmail)
       .replace(/\{url\}/g,              'https://example.com')
       .replace(/\{added_at\}/g,         new Date().toLocaleDateString())
-      .replace(/\{aff_name\}/g,         'My Fanlisting')
-      .replace(/\{aff_email\}/g,        'contact@myfanlisting.example')
-      .replace(/\{aff_url\}/g,          'https://myfanlisting.example')
+      .replace(/\{aff_name\}/g,         'James Gordon')
+      .replace(/\{aff_email\}/g,        'gordon@gcpd.org')
+      .replace(/\{aff_url\}/g,          'https://gcpd.org/')
       .replace(/\{listing_title\}/g,    sampleListingName  || sampleSite)
       .replace(/\{listing_subject\}/g,  sampleListingSubject)
       .replace(/\{listing_type\}/g,     'listing')

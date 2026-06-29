@@ -26,6 +26,13 @@ use Luster\Models\Member;
  */
 final class SampleTemplateData
 {
+    public const LISTING_TITLE   = 'Silver Crystal';
+    public const LISTING_SUBJECT = 'Sailor Moon';
+    public const LISTING_URL     = 'https://example.com/silver-crystal';
+
+    public const LISTING_TITLE_A = 'Silver Crystal';
+    public const LISTING_TITLE_B = 'Jedi Order';
+
     private function __construct()
     {
     }
@@ -46,11 +53,11 @@ final class SampleTemplateData
     public static function members(): array
     {
         $rows = [
-            ['name' => 'Sora Akiyama', 'email' => 'sora@example.com',  'url' => 'https://example.com/sora',  'country' => 'Japan',         'fave' => 'Sailor Moon'],
-            ['name' => 'Jamie Lee',    'email' => 'jamie@example.com', 'url' => '',                           'country' => 'United States', 'fave' => 'Naruto'],
-            ['name' => 'Priya Sharma', 'email' => 'priya@example.com', 'url' => 'https://example.com/priya', 'country' => '',              'fave' => 'Totoro'],
-            ['name' => 'Alex Morgan',  'email' => 'alex@example.com',  'url' => '',                           'country' => '',              'fave' => 'Pikachu'],
-            ['name' => 'Yuki Tanaka',  'email' => 'yuki@example.com',  'url' => 'https://example.com/yuki',  'country' => 'Canada',        'fave' => 'Goku'],
+            ['name' => 'Usagi',   'email' => 'usagi@example.com',   'url' => 'https://example.com/usagi',   'country' => 'Japan',         'fave' => 'Sailor Moon'],
+            ['name' => 'Misty',   'email' => 'misty@example.com',   'url' => '',                              'country' => 'United States', 'fave' => 'Togepi'],
+            ['name' => 'Sakura',  'email' => 'sakura@example.com',  'url' => 'https://example.com/sakura',  'country' => '',              'fave' => 'Kero'],
+            ['name' => 'Winry',   'email' => 'winry@example.com',   'url' => '',                              'country' => '',              'fave' => 'Automail'],
+            ['name' => 'Naminé',  'email' => 'namine@example.com',  'url' => 'https://example.com/namine',  'country' => 'Canada',        'fave' => 'Sora'],
         ];
 
         $members = [];
@@ -80,9 +87,9 @@ final class SampleTemplateData
     public static function affiliates(): array
     {
         return [
-            self::makeAffiliate(1, 'Star Crossed Listings',   'https://example.com/star-crossed',  'affiliate-placeholder.svg'),
-            self::makeAffiliate(2, 'Moonlit Path Fanlisting', 'https://example.com/moonlit-path',  'affiliate-placeholder.svg'),
-            self::makeAffiliate(3, 'Crimson Tide Network',    'https://example.com/crimson-tide',  'affiliate-placeholder.svg'),
+            self::makeAffiliate(1, 'Moon Kingdom',    'https://example.com/moon-kingdom',   'affiliate-placeholder.svg'),
+            self::makeAffiliate(2, 'Pallet Town',    'https://example.com/pallet-town',   'affiliate-placeholder.svg'),
+            self::makeAffiliate(3, 'Jedi Archives',  'https://example.com/jedi-archives',  'affiliate-placeholder.svg'),
         ];
     }
 
@@ -116,9 +123,9 @@ final class SampleTemplateData
     public static function updates(): array
     {
         return [
-            new Update(1, null, 'Site Relaunch', 'We have relaunched the fanlisting with a brand new layout and updated member list. Thanks for your patience!', 'News, Site', 'Admin', '2026-06-10', '2026-06-10 09:00:00'),
-            new Update(2, null, 'New Members Welcome', 'A warm welcome to everyone who joined this month!', 'Members', '', '2026-06-05', '2026-06-05 09:00:00'),
-            new Update(3, null, 'Affiliates Updated', 'Added a few new affiliates to the directory.', '', 'Admin', '2026-05-28', '2026-05-28 09:00:00'),
+            new Update(1, null, 'Site Relaunch', 'The fanlisting has been relaunched with a new layout inspired by the Crystal Tokyo arc. Welcome back, everyone!', 'News, Site', 'Admin', '2026-06-10', '2026-06-10 09:00:00'),
+            new Update(2, null, 'New Members Welcome', 'Welcome to all the new members who joined this month! The Silver Crystal keeps growing.', 'Members', '', '2026-06-05', '2026-06-05 09:00:00'),
+            new Update(3, null, 'Affiliates Updated', 'Added Pallet Town and Jedi Archives to our affiliates.', '', 'Admin', '2026-05-28', '2026-05-28 09:00:00'),
         ];
     }
 }

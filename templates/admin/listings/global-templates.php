@@ -3,17 +3,13 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- Global Templates & URLs page. Two-tab layout:
- - Templates tab: edit the default templates that new listings inherit for members row,
-   stats, affiliates section, codes display, news feed, join form, update form, reset form,
-   codes-submit form, affiliate-apply form, and contact form.
- - Form Page URLs tab: set site-wide default filenames for form host pages (join, update,
-   reset, affiliate-apply, codes-submit, contact). Per-listing overrides cascade on top.
+ Global listing templates. Edit the default templates that new listings inherit for
+ members row, stats, affiliates section, codes display, news feed, join form, update
+ form, reset form, codes-submit form, affiliate-apply form, and contact form.
 */
 declare(strict_types=1);
 use Luster\Core\View;
 use Luster\Repositories\ListingSettingsRepo;
-use Luster\Repositories\SiteSettingsRepo;
 
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $g  = $globals ?? [];
@@ -58,16 +54,6 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<?php $_activeTab = $active_tab ?? 'templates'; ?>
-
-<div class="tabs-wrap">
-  <div class="tabs">
-    <a href="?tab=templates" class="tabs-btn<?= $_activeTab === 'templates' ? ' active' : '' ?>">Templates</a>
-    <a href="?tab=urls" class="tabs-btn<?= $_activeTab === 'urls' ? ' active' : '' ?>">Form Page URLs</a>
-  </div>
-</div>
-
-<?php if ($_activeTab === 'templates'): ?>
 <?php
 $activeGroup = (string) ($_GET['group'] ?? 'all');
 $_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'contact-form', 'affiliates', 'affiliate-form', 'updates'];
@@ -134,10 +120,13 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
           <div class="section-label">Members List</div>
           <p class="form-hint form-hint--spaced">Default for all listings. Wrap your row design in <code>{each_member}&hellip;{/each_member}</code>.</p>
-          <div class="tpl-layout-presets tpl-layout-presets--above">
-            <strong style="color: var(--accent2); text-transform: uppercase; letter-spacing: .08em;">Choose Display Style:</strong>
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template">List</button>
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template__table">Table</button>
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label">Display style</label>
+            <div>
+              <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template">List</button>
+              <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template__table">Table</button>
+              <p class="form-hint">Switches the template between a list layout and a table layout.</p>
+            </div>
           </div>
           <div class="field-group">
             <textarea name="listing_default_members_template" id="listing_default_members_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_members_template')) ?></textarea>
@@ -187,14 +176,17 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
           <div class="section-label">Statistics</div>
 
+          <?php $_glNml = ($stat_newmembers_limit ?? null) !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : null; ?>
           <div class="field-row field-row--top" style="margin-bottom: 1em">
             <label class="field-label" for="gl-newmembers-limit">Default newest members shown</label>
             <div>
-              <input id="gl-newmembers-limit" type="number" name="stat_newmembers_limit" class="form form--compact"
-                     min="0" max="255"
-                     value="<?= View::e((string) ($stat_newmembers_limit ?? '')) ?>"
-                     placeholder="5">
-              <p class="form-hint">Global default for <code>{stat_newmembers}</code>. Leave blank for the built-in default (5). Set 0 to show all. Per-listing overrides this.</p>
+              <div class="select-wrap select-auto">
+                <select id="gl-newmembers-limit" name="stat_newmembers_limit" class="form">
+                  <option value="0"<?= $_glNml !== null && $_glNml === 0 ? ' selected' : '' ?>>Show all</option>
+                  <option value="5"<?= $_glNml === null || $_glNml > 0 ? ' selected' : '' ?>>Truncate after 5</option>
+                </select>
+              </div>
+              <p class="form-hint">Global default for <code>{stat_newmembers}</code>. &ldquo;Show all&rdquo; lists every member. &ldquo;Truncate&rdquo; shows the 5 most recent and adds &ldquo;&hellip;and more&rdquo;. Per-listing overrides this.</p>
             </div>
           </div>
 
@@ -480,6 +472,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_codes_template', '{if_code_name}{/if_code_name}', '{if_code_name}...{/if_code_name}', 'Shows only when the code has a saved name.') ?>
             <?= $tok('listing_default_codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
             <?= $tok('listing_default_codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
+            <?= $tok('listing_default_codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Shows a toggle that reveals the full submission form inline. Empty when code donations are disabled for the listing.') ?>
           </tbody></table>
         </div>
       </details>
@@ -639,62 +632,3 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
     </div>
   </div>
 </div>
-
-<?php else: ?>
-<!-- ══════════════════════════════════════════════════════════════════════
-     TAB: Form Page URLs
-     ══════════════════════════════════════════════════════════════════════ -->
-<?php
-$_formUrls    = $form_urls ?? [];
-$_urlDefaults = SiteSettingsRepo::GLOBAL_FORM_URL_KEYS;
-$_urlFields   = [
-    'global_form_url_join'            => ['Join Form',               'The page where visitors can join your listing.'],
-    'global_form_url_update'          => ['Update Membership Form',       'The page where members can update their details.'],
-    'global_form_url_reset'           => ['Password Reset Form',          'The page where members can reset their password.'],
-    'global_form_url_affiliate_apply' => ['Affiliate Application',   'The page where sites can apply to affiliate.'],
-    'global_form_url_codes_submit'    => ['Code Donation Form',           'The page where fans can submit codes.'],
-    'global_form_url_contact'         => ['Contact Form',            'The page with the contact form.'],
-];
-?>
-
-<form method="POST" action="<?= $b ?>/admin/listings/global-templates" class="js-warn-unsaved">
-  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-  <input type="hidden" name="_save_urls" value="1">
-
-  <div class="card card-gradient">
-    <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
-      <div class="panel-header-meta">
-        <div class="panel-header-title">Default Form Page URLs</div>
-        <div class="panel-header-sub">Tell Luster what your pages are called so it can point your visitors to the right place.</div>
-      </div>
-    </div>
-
-    <div class="card-body">
-      <p>
-        When someone joins a listing, resets their password, or applies to affiliate, Luster needs to know which page on your
-        site hosts that form. Set those filenames here and they&rsquo;ll apply to every listing by default. If a specific listing
-        uses a different page, you can override it from that listing&rsquo;s <strong>Embed</strong> tab.
-      </p>
-      <?php $first = true; foreach ($_urlFields as $key => [$label, $hint]): ?>
-        <div class="field-row<?= $first ? ' field-row--top' : '' ?>">
-          <label class="field-label" for="<?= View::e($key) ?>"><?= View::e($label) ?></label>
-          <div>
-            <input id="<?= View::e($key) ?>" type="text" name="<?= View::e($key) ?>" class="form"
-                   maxlength="200"
-                   value="<?= View::e((string) ($_formUrls[$key] ?? '')) ?>"
-                   placeholder="<?= View::e($_urlDefaults[$key]) ?>">
-            <p class="form-hint"><?= View::e($hint) ?> Leave blank to use the built-in default (<code><?= View::e($_urlDefaults[$key]) ?></code>).</p>
-          </div>
-        </div>
-      <?php $first = false; endforeach; ?>
-    </div>
-
-    <div class="composer-footer">
-      <button type="submit" class="btn btn-primary">Save URLs</button>
-      <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
-    </div>
-  </div>
-</form>
-
-<?php endif; ?>

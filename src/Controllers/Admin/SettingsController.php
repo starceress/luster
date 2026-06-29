@@ -787,8 +787,8 @@ final class SettingsController extends AdminController
 
         $listingSelectHtml = '<select class="fl-select" id="adopt-listing" name="listing_id" required>'
                            . '<option value="">&#8212; Select a Listing &#8212;</option>'
-                           . '<option value="1">Sample Fanlisting A</option>'
-                           . '<option value="2">Sample Fanlisting B</option>'
+                           . '<option value="1">' . SampleTemplateData::LISTING_TITLE_A . '</option>'
+                           . '<option value="2">' . SampleTemplateData::LISTING_TITLE_B . '</option>'
                            . '</select>';
 
         $descriptors = [
@@ -831,7 +831,7 @@ final class SettingsController extends AdminController
 
         $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
                       . '<option value="">&#8212; Select a Listing &#8212;</option>'
-                      . '<option value="1">Sample Fanlisting</option>'
+                      . '<option value="1">' . SampleTemplateData::LISTING_TITLE . '</option>'
                       . '</select>';
 
         $descriptors = [
@@ -937,8 +937,8 @@ final class SettingsController extends AdminController
         return TemplateEngine::tokens(
             $tpl,
             [
-                'listing_title'    => 'Sample Fanlisting',
-                'listing_subject'  => 'Sample Fanlisting',
+                'listing_title'    => SampleTemplateData::LISTING_TITLE,
+                'listing_subject'  => SampleTemplateData::LISTING_SUBJECT,
                 'listing_url'      => '#',
                 'kim_overview_url' => '#',
                 'kim_signup_url'   => '#',
@@ -1001,8 +1001,8 @@ final class SettingsController extends AdminController
             . $th('Fanlisting') . $th('Name') . $th('Email') . $th('Website URL')
             . $th('Remove?', 'text-align:center')
             . '</tr></thead><tbody>'
-            . $row(true,  'Sample Fanlisting A', 'Jane Doe', 'jane@example.com', 'https://example.com')
-            . $row(true,  'Sample Fanlisting B', 'John Doe', 'john@example.com', '')
+            . $row(true,  SampleTemplateData::LISTING_TITLE_A, 'Usagi', 'usagi@example.com', 'https://example.com/usagi')
+            . $row(true,  SampleTemplateData::LISTING_TITLE_B, 'Misty', 'misty@example.com', '')
             . '</tbody></table>';
 
         $step2Html = '<div class="fl-kim">'
@@ -1396,12 +1396,18 @@ final class SettingsController extends AdminController
             'collective_form_url_affiliate_apply',
             'collective_form_url_adopt',
             'collective_form_url_contact',
+            'kim_url_signup',
+            'kim_url_update',
+            'kim_url_reset',
+            'kim_url_list',
         ]);
 
         return $this->adminLayout('admin/collective/settings.php', 'Collective Settings', 'collective', [
-            'site_settings' => $siteSettings,
-            'success'       => $success,
-            'error'         => $error,
+            'site_settings'       => $siteSettings,
+            'adoption_installed'  => $this->app->isAddonInstalled('Adoption'),
+            'kim_installed'       => $this->app->isAddonInstalled('Kim'),
+            'success'             => $success,
+            'error'               => $error,
         ], '', [
             $this->crumb('Collective',     $this->adminUrl('/admin/collective')),
         ]);
@@ -1434,12 +1440,22 @@ final class SettingsController extends AdminController
 
         $codesSubmitUrl     = trim((string) $request->post('collective_form_url_codes_submit',    ''));
         $affiliateApplyUrl  = trim((string) $request->post('collective_form_url_affiliate_apply', ''));
-        $adoptUrl           = trim((string) $request->post('collective_form_url_adopt',           ''));
         $contactUrl         = trim((string) $request->post('collective_form_url_contact',         ''));
         $siteSettings->set('collective_form_url_codes_submit',    $codesSubmitUrl    !== '' ? $codesSubmitUrl    : null);
         $siteSettings->set('collective_form_url_affiliate_apply', $affiliateApplyUrl !== '' ? $affiliateApplyUrl : null);
-        $siteSettings->set('collective_form_url_adopt',           $adoptUrl          !== '' ? $adoptUrl          : null);
         $siteSettings->set('collective_form_url_contact',         $contactUrl        !== '' ? $contactUrl        : null);
+
+        if ($this->app->isAddonInstalled('Adoption')) {
+            $adoptUrl = trim((string) $request->post('collective_form_url_adopt', ''));
+            $siteSettings->set('collective_form_url_adopt', $adoptUrl !== '' ? $adoptUrl : null);
+        }
+
+        if ($this->app->isAddonInstalled('Kim')) {
+            foreach (['kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list'] as $kimKey) {
+                $kimVal = trim((string) $request->post($kimKey, ''));
+                $siteSettings->set($kimKey, $kimVal !== '' ? $kimVal : null);
+            }
+        }
 
         (new ActivityRepo($this->app->getDatabase()))->log(
             (int) $session->get('lstr_admin_id'),

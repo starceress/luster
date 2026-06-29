@@ -187,6 +187,14 @@ if ($_lusterIsCollective) {
     $_lusterCodesTemplate = $_lusterCodesResolved['should_render_template'] ? $_lusterCodesResolved['value'] : null;
 }
 
+// Extract {codes_submit_toggle} from raw template BEFORE rendering so
+// user-supplied donor names or code titles can never match the token.
+$_lusterCsToggleRendered = false;
+$_lusterCsPlaceholder    = '<!--lstr-cs-toggle-' . bin2hex(random_bytes(8)) . '-->';
+if ($_lusterCodesTemplate !== null && str_contains($_lusterCodesTemplate, '{codes_submit_toggle}')) {
+    $_lusterCodesTemplate = str_replace('{codes_submit_toggle}', $_lusterCsPlaceholder, $_lusterCodesTemplate);
+}
+
 if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
     $_lusterCodesTemplate = str_replace('{site_name}', htmlspecialchars($_lusterListingName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterCodesTemplate);
     $_lusterCodesTemplateHtml = CodesTemplateRenderer::render(
@@ -199,6 +207,38 @@ if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
         $_lusterCategoryMap,
         $_lusterListingName,
     );
+}
+
+// {codes_submit_toggle} — collapsible inline code donation form
+if ($_lusterCodesTemplateHtml !== null && str_contains($_lusterCodesTemplateHtml, $_lusterCsPlaceholder)) {
+    $_lusterCsToggleHtml = '';
+    $_lusterCsEnabled    = false;
+
+    if (!$_lusterIsCollective && $_lusterListingId !== null) {
+        $_lusterCsEmbedCfg = (new ListingSettingsRepo($_lusterDb))->getResolvedEmbedSettings($_lusterListingId);
+        $_lusterCsEnabled  = (bool) ($_lusterCsEmbedCfg['codes_submit_enabled'] ?? true);
+    }
+
+    if ($_lusterCsEnabled) {
+        $_lusterCsHasFeedback = $_lusterApp->getSession()->get('lstr_flash_success_html') !== null
+                             || $_lusterApp->getSession()->get('lstr_flash_error') !== null;
+        $_lusterReturnOrig = $luster_return ?? false;
+        $luster_return     = true;
+        $_lusterCsFormHtml = (string) require __DIR__ . '/codes-submit.php';
+        $luster_return     = $_lusterReturnOrig;
+
+        if ($_lusterCsFormHtml !== '') {
+            $_lusterCsToggleRendered = true;
+            $_lusterCsToggleHtml = '<details class="fl-codes-submit-collapsible"' . ($_lusterCsHasFeedback ? ' open' : '') . '>'
+                . '<summary class="fl-codes-submit-toggle">Donate a code?</summary>'
+                . '<div class="fl-codes-submit-form-wrap">'
+                . $_lusterCsFormHtml
+                . '</div>'
+                . '</details>';
+        }
+    }
+
+    $_lusterCodesTemplateHtml = str_replace($_lusterCsPlaceholder, $_lusterCsToggleHtml, $_lusterCodesTemplateHtml);
 }
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
@@ -233,7 +273,7 @@ $_lusterEmbedSettings = $_lusterIsCollective
     ? []
     : (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
         ->getResolvedEmbedSettings($_lusterListingId);
-if (($luster_append_submit ?? false) && ($_lusterEmbedSettings['codes_submit_enabled'] ?? true)) {
+if (($luster_append_submit ?? false) && !($_lusterCsToggleRendered ?? false) && ($_lusterEmbedSettings['codes_submit_enabled'] ?? true)) {
     $_lusterGalleryHtml  = $_lusterHtml;
     $_lusterReturnOrig   = $luster_return ?? false;
     $luster_return       = true;   // make codes-submit.php return, not echo
