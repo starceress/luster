@@ -1809,7 +1809,7 @@ document.addEventListener('drop', function (e) {
   var cstatsSampleValues = {
     luster_owned_active: '12', luster_owned_upcoming: '2', luster_owned_pending: '1', luster_owned: '15',
     luster_joined_active: '48', luster_joined_approved: '45', luster_joined_upcoming: '3', luster_joined_pending: '0', luster_joined: '48',
-    luster_affiliates: '8', luster_members_approved: '3,450', luster_members_pending: '12',
+    luster_affiliates: '8', luster_affiliates_sitewide: '8', luster_affiliates_total: '22', luster_members_approved: '3,450', luster_members_pending: '12',
     luster_countries_count: '27', luster_total_cats: '9', luster_joined_total_cats: '6',
     luster_owned_growth_rate: '2.50', luster_joined_growth_rate: '4.80', luster_members_growth_rate: '1.25',
   };
@@ -2116,7 +2116,8 @@ document.addEventListener('drop', function (e) {
             { name: 'luster_joined_upcoming',     label: 'Upcoming joined listings', desc: '' },
             { name: 'luster_joined_pending',      label: 'Pending joined listings',  desc: '' },
             { name: 'luster_joined',              label: 'Total joined listings',    desc: '' },
-            { name: 'luster_affiliates',          label: 'Collective affiliates',    desc: '' },
+            { name: 'luster_affiliates_sitewide', label: 'Site-wide affiliates',      desc: '' },
+            { name: 'luster_affiliates_total',    label: 'All affiliates (any scope)', desc: '' },
             { name: 'luster_members_approved',    label: 'Approved members',         desc: '', checked: true },
             { name: 'luster_members_pending',     label: 'Pending members',          desc: '', checked: true },
             { name: 'luster_countries_count',     label: 'Countries represented',    desc: '' },
@@ -2680,7 +2681,7 @@ document.addEventListener('drop', function (e) {
         var sampleValues = {
           luster_owned_active: '12', luster_owned_upcoming: '2', luster_owned_pending: '1', luster_owned: '15',
           luster_joined_active: '48', luster_joined_approved: '45', luster_joined_upcoming: '3', luster_joined_pending: '0', luster_joined: '48',
-          luster_affiliates: '8', luster_members_approved: '3,450', luster_members_pending: '12',
+          luster_affiliates: '8', luster_affiliates_sitewide: '8', luster_affiliates_total: '22', luster_members_approved: '3,450', luster_members_pending: '12',
           luster_countries_count: '27', luster_total_cats: '9', luster_joined_total_cats: '6',
           luster_owned_growth_rate: '2.50', luster_joined_growth_rate: '4.80', luster_members_growth_rate: '1.25',
         };

@@ -669,6 +669,9 @@ final class SettingsController extends AdminController
 
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
+        $affiliatesSitewide = $repo->getSitewideAffiliateCount();
+        $affiliatesTotal    = $repo->getTotalAffiliateCount();
+
         $tpl = (string) preg_replace(
             '/\{if_countries\}(.*?)\{\/if_countries\}/s',
             $countries > 0 ? '$1' : '',
@@ -689,6 +692,16 @@ final class SettingsController extends AdminController
             $owned['trouble'] > 0 ? '$1' : '',
             $tpl,
         );
+        $tpl = (string) preg_replace(
+            '/\{if_affiliates_sitewide\}(.*?)\{\/if_affiliates_sitewide\}/s',
+            $affiliatesSitewide > 0 ? '$1' : '',
+            $tpl,
+        );
+        $tpl = (string) preg_replace(
+            '/\{if_affiliates_total\}(.*?)\{\/if_affiliates_total\}/s',
+            $affiliatesTotal > 0 ? '$1' : '',
+            $tpl,
+        );
 
         $siteName = (string) $config->get('site_name', 'Collective');
 
@@ -700,6 +713,7 @@ final class SettingsController extends AdminController
                 '{joined_active}', '{joined_pending}', '{joined_upcoming}', '{joined_approved}',
                 '{joined_tfl_count}', '{joined_tafl_count}',
                 '{members_total}', '{members_approved}', '{members_pending}',
+                '{affiliates}', '{affiliates_sitewide}', '{affiliates_total}',
                 '{countries_count}',
                 '{collective_last_updated}',
                 '{joined_total_cats}',
@@ -723,6 +737,9 @@ final class SettingsController extends AdminController
                 (string) $members['total'],
                 (string) $members['approved'],
                 (string) $members['pending'],
+                (string) $affiliatesSitewide,
+                (string) $affiliatesSitewide,
+                (string) $affiliatesTotal,
                 (string) $countries,
                 $e($collectiveLastUpdated),
                 (string) count($joinedCats),

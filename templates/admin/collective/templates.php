@@ -638,6 +638,11 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('collective_stats_template', '{members_total}',     '{members_total}',     'Total members across your owned listings, approved and pending.') ?>
             <?= $tok('collective_stats_template', '{members_approved}',  '{members_approved}',  'Approved members across your owned listings.') ?>
             <?= $tok('collective_stats_template', '{members_pending}',   '{members_pending}',   'Members waiting for approval across your owned listings.') ?>
+            <?= $tok('collective_stats_template', '{affiliates}',           '{affiliates}',           'Number of active site-wide affiliates (same as {affiliates_sitewide}).') ?>
+            <?= $tok('collective_stats_template', '{affiliates_sitewide}',  '{affiliates_sitewide}',  'Number of active site-wide affiliates (fanlisting_id is empty).') ?>
+            <?= $tok('collective_stats_template', '{affiliates_total}',     '{affiliates_total}',     'Number of all active affiliates, including those attached to specific listings.') ?>
+            <?= $tok('collective_stats_template', '{if_affiliates_sitewide}{/if_affiliates_sitewide}', '{if_affiliates_sitewide}...{/if_affiliates_sitewide}', 'Shows only when there is at least one active site-wide affiliate.') ?>
+            <?= $tok('collective_stats_template', '{if_affiliates_total}{/if_affiliates_total}',       '{if_affiliates_total}...{/if_affiliates_total}',       'Shows only when there is at least one active affiliate of any kind.') ?>
             <?= $tok('collective_stats_template', '{owned_newest_title}',   '{owned_newest_title}',   'The title of your newest owned listing.') ?>
             <?= $tok('collective_stats_template', '{owned_newest_subject}', '{owned_newest_subject}', 'What your newest owned listing is about.') ?>
             <?= $tok('collective_stats_template', '{owned_newest_url}',     '{owned_newest_url}',     'The link to your newest owned listing.') ?>
