@@ -381,21 +381,6 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row field-row--top">
-          <label class="field-label" for="fl-newmembers-limit">Newest Member Names</label>
-          <div>
-            <?php $_nmlVal = ($stat_newmembers_limit ?? null) !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : null; ?>
-            <div class="select-wrap select-auto">
-              <select id="fl-newmembers-limit" name="stat_newmembers_limit" class="form">
-                <option value=""<?= $_nmlVal === null ? ' selected' : '' ?>>Use global default</option>
-                <option value="0"<?= $_nmlVal === 0 ? ' selected' : '' ?>>Show all</option>
-                <option value="5"<?= $_nmlVal !== null && $_nmlVal > 0 ? ' selected' : '' ?>>Truncate after 5</option>
-              </select>
-            </div>
-            <p class="form-hint">Controls how the <code>{stat_newmembers}</code> token displays names. &ldquo;Show all&rdquo; lists every member. &ldquo;Truncate&rdquo; shows the 5 most recent and adds &ldquo;&hellip;and more&rdquo; if there are additional members.</p>
-          </div>
-        </div>
-
         <?php $ab = $approved_by ?? ''; ?>
         <div class="field-row field-row--top">
           <label class="field-label" for="fl-approved-by">Approved By</label>
@@ -421,17 +406,6 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <span class="toggle-label">Accept affiliate applications for this listing</span>
             </label>
             <p class="form-hint">When enabled, the <code>{affiliate_apply_toggle}</code> token in your affiliates template shows a collapsible application form.</p>
-
-            <div id="fl-aff-apply-style-row" style="margin-top: 0.75em;<?= ($affiliate_apply_enabled ?? false) ? '' : ' display:none' ?>">
-              <label class="field-label" for="fl-aff-apply-style" style="font-weight: normal; margin-bottom: 0.25em;">Toggle style</label>
-              <div class="select-wrap select-auto">
-                <select id="fl-aff-apply-style" name="affiliate_apply_style">
-                  <option value="link" <?= ($affiliate_apply_style ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
-                  <option value="button" <?= ($affiliate_apply_style ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
-                </select>
-              </div>
-              <p class="form-hint">How the &ldquo;Apply to become an affiliate?&rdquo; toggle appears &mdash; as a plain underlined link or a styled button.</p>
-            </div>
           </div>
         </div>
 
@@ -452,7 +426,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               ?>
               <div class="select-wrap select-auto">
                 <select name="code_approval_email">
-                  <option value=""  <?= $_caeVal === ''  ? 'selected' : '' ?>>Follow global setting (email donor on approval)</option>
+                  <option value=""  <?= $_caeVal === ''  ? 'selected' : '' ?>>Use default (email donor on approval)</option>
                   <option value="1" <?= $_caeVal === '1' ? 'selected' : '' ?>>Always email donor on approval</option>
                   <option value="0" <?= $_caeVal === '0' ? 'selected' : '' ?>>Never email donor on approval</option>
                 </select>
@@ -735,6 +709,22 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
         <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
           <div class="section-label">Listing Statistics <?= $srcBadge('stats_template') ?></div>
+
+          <?php $_nmlVal = ($stat_newmembers_limit ?? null) !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : null; ?>
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="fl-newmembers-limit">Newest member names</label>
+            <div>
+              <div class="select-wrap select-auto">
+                <select id="fl-newmembers-limit" name="stat_newmembers_limit" class="form">
+                  <option value=""<?= $_nmlVal === null ? ' selected' : '' ?>>Use global default</option>
+                  <option value="0"<?= $_nmlVal === 0 ? ' selected' : '' ?>>Show all</option>
+                  <option value="5"<?= $_nmlVal !== null && $_nmlVal > 0 ? ' selected' : '' ?>>Truncate after 5</option>
+                </select>
+              </div>
+              <p class="form-hint">Controls how the <code>{stat_newmembers}</code> token displays names. &ldquo;Show all&rdquo; lists every member. &ldquo;Truncate&rdquo; shows the 5 most recent and adds &ldquo;&hellip;and more&rdquo;. Per-listing overrides the global default.</p>
+            </div>
+          </div>
+
           <div class="field-group">
             <textarea id="stats_template" name="stats_template" class="form form-mono" spellcheck="false"><?= View::e($tplStatsVal) ?></textarea>
           </div>
@@ -747,6 +737,33 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
           <div class="section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
+
+          <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="fl-cs-toggle-style">Donation toggle style</label>
+            <div>
+              <div class="select-wrap select-auto">
+                <select id="fl-cs-toggle-style" name="codes_submit_style">
+                  <option value="" <?= ($codes_submit_style ?? '') === '' ? 'selected' : '' ?>>Use global default</option>
+                  <option value="link" <?= ($codes_submit_style ?? '') === 'link' ? 'selected' : '' ?>>Text link</option>
+                  <option value="button" <?= ($codes_submit_style ?? '') === 'button' ? 'selected' : '' ?>>Button</option>
+                </select>
+              </div>
+              <p class="form-hint">How the <code>{codes_submit_toggle}</code> appears &mdash; as a plain underlined link or a styled button.</p>
+            </div>
+          </div>
+
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="fl-cs-toggle-label">Toggle label</label>
+            <div>
+              <input id="fl-cs-toggle-label" type="text" name="codes_submit_toggle_label" class="form" maxlength="200"
+                     value="<?= View::e($codes_submit_toggle_label ?? '') ?>"
+                     placeholder="Donate a code?">
+              <p class="form-hint">The text shown on the collapsible toggle. Leave blank for the default.</p>
+            </div>
+          </div>
+          <?php endif; ?>
+
           <div class="field-group">
             <textarea id="codes_template" name="codes_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesVal) ?></textarea>
           </div>
@@ -775,6 +792,33 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
           <div class="section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
+
+          <?php if ($affiliate_apply_enabled ?? false): ?>
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="fl-aff-apply-style">Application toggle style</label>
+            <div>
+              <div class="select-wrap select-auto">
+                <select id="fl-aff-apply-style" name="affiliate_apply_style">
+                  <option value="" <?= ($affiliate_apply_style ?? '') === '' ? 'selected' : '' ?>>Use global default</option>
+                  <option value="link" <?= ($affiliate_apply_style ?? '') === 'link' ? 'selected' : '' ?>>Text link</option>
+                  <option value="button" <?= ($affiliate_apply_style ?? '') === 'button' ? 'selected' : '' ?>>Button</option>
+                </select>
+              </div>
+              <p class="form-hint">How the <code>{affiliate_apply_toggle}</code> appears &mdash; as a plain underlined link or a styled button.</p>
+            </div>
+          </div>
+
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="fl-aff-toggle-label">Toggle label</label>
+            <div>
+              <input id="fl-aff-toggle-label" type="text" name="affiliate_apply_toggle_label" class="form" maxlength="200"
+                     value="<?= View::e($affiliate_apply_toggle_label ?? '') ?>"
+                     placeholder="Apply to become an affiliate?">
+              <p class="form-hint">The text shown on the collapsible toggle. Leave blank for the default.</p>
+            </div>
+          </div>
+          <?php endif; ?>
+
           <div class="field-group">
             <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
           </div>
@@ -985,7 +1029,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
             <?= $ltok('stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
             <?= $ltok('stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
-            <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Newest approved members, linked to their websites when available. Count is set in Preferences (per-listing) or Global Templates (global default). Shows &ldquo;&hellip;and more&rdquo; when there are more total.') ?>
+            <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Newest approved members, linked to their websites when available. Count is set in the Statistics template section (per-listing) or Global Templates (global default). Shows &ldquo;&hellip;and more&rdquo; when there are more total.') ?>
             <?= $ltok('stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
             <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average members per day, with unit (e.g. &ldquo;0.15 members/day&rdquo;).') ?>
             <?= $ltok('stats_template', '{stat_growth_rate}',       '{stat_growth_rate}',       'Numeric growth rate only (e.g. &ldquo;0.15&rdquo;). Use this to build your own formatting.') ?>
@@ -1029,7 +1073,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('codes_template', '{if_code_name}{/if_code_name}',   '{if_code_name}...{/if_code_name}',   'Shows only when the code has a saved name.') ?>
             <?= $ltok('codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
             <?= $ltok('codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
-            <?= $ltok('codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Shows a toggle that reveals the full submission form inline. Empty when code donations are disabled for this listing.') ?>
+            <?= $ltok('codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Label, style (link or button) are configurable above. Empty when code donations are disabled.') ?>
           </tbody></table>
         </div>
       </details>
@@ -1074,7 +1118,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
             <?= $ltok('affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
             <?= $ltok('affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
-            <?= $ltok('affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Shows a text link or button (set in Preferences) that reveals the full application form inline. Empty when applications are disabled.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Label, style (link or button) are configurable above. Empty when applications are disabled.') ?>
             <?= $ltok('affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
             <?= $ltok('affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
             <?= $ltok('affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>

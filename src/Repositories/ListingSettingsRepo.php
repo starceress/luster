@@ -1590,13 +1590,22 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Saves (upserts) per-listing join settings.
-     *
-     * Pass null for $confirmEmail to inherit the fan's send_info preference.
-     * Does not touch other columns on existing rows.
-     *
-     * Requires Migration 50.
+     * Saves the per-listing auto-approve-joins flag. Requires Migration 50.
      */
+    public function saveAutoApproveJoins(int $listingId, bool $autoApprove): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, auto_approve_joins)
+                 VALUES (:id, :auto)
+                 ON DUPLICATE KEY UPDATE auto_approve_joins = VALUES(auto_approve_joins)'
+            );
+            $stmt->execute(['id' => $listingId, 'auto' => (int) $autoApprove]);
+        } catch (\Exception) {
+            // Migration 50 not run yet
+        }
+    }
+
     public function saveJoinSettings(int $listingId, ?bool $confirmEmail, bool $autoApprove): void
     {
         try {
@@ -1998,7 +2007,7 @@ final class ListingSettingsRepo
     /**
      * Returns the affiliate-apply toggle style for this listing: 'link' or 'button'.
      */
-    public function getAffiliateApplyStyle(int $listingId): string
+    public function getAffiliateApplyStyle(int $listingId): ?string
     {
         try {
             $stmt = $this->db->prepare(
@@ -2007,21 +2016,24 @@ final class ListingSettingsRepo
             $stmt->execute(['id' => $listingId]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         } catch (\PDOException) {
-            return 'link';
+            return null;
         }
         if ($row === false || !array_key_exists('affiliate_apply_style', $row)) {
-            return 'link';
+            return null;
         }
-        $val = (string) $row['affiliate_apply_style'];
-        return in_array($val, ['link', 'button'], true) ? $val : 'link';
+        $val = $row['affiliate_apply_style'];
+        if ($val === null) {
+            return null;
+        }
+        return in_array((string) $val, ['link', 'button'], true) ? (string) $val : null;
     }
 
     /**
      * Saves the affiliate-apply toggle style ('link' or 'button').
      */
-    public function setAffiliateApplyStyle(int $listingId, string $style): void
+    public function setAffiliateApplyStyle(int $listingId, ?string $style): void
     {
-        $style = in_array($style, ['link', 'button'], true) ? $style : 'link';
+        $style = $style !== null && in_array($style, ['link', 'button'], true) ? $style : null;
         try {
             $stmt = $this->db->prepare(
                 'INSERT INTO lstr_fanlisting_settings (fanlisting_id, affiliate_apply_style)
@@ -2029,6 +2041,102 @@ final class ListingSettingsRepo
                  ON DUPLICATE KEY UPDATE affiliate_apply_style = VALUES(affiliate_apply_style)'
             );
             $stmt->execute(['id' => $listingId, 'val' => $style]);
+        } catch (\PDOException) {}
+    }
+
+    public function getCodesSubmitToggleStyle(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT codes_submit_style FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            return null;
+        }
+        if ($row === false || !array_key_exists('codes_submit_style', $row)) {
+            return null;
+        }
+        $val = $row['codes_submit_style'];
+        if ($val === null) {
+            return null;
+        }
+        return in_array((string) $val, ['link', 'button'], true) ? (string) $val : null;
+    }
+
+    public function setCodesSubmitToggleStyle(int $listingId, ?string $style): void
+    {
+        $style = $style !== null && in_array($style, ['link', 'button'], true) ? $style : null;
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, codes_submit_style)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE codes_submit_style = VALUES(codes_submit_style)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => $style]);
+        } catch (\PDOException) {}
+    }
+
+    public function getAffiliateApplyToggleLabel(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT affiliate_apply_toggle_label FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            return null;
+        }
+        if ($row === false || !array_key_exists('affiliate_apply_toggle_label', $row)) {
+            return null;
+        }
+        $val = $row['affiliate_apply_toggle_label'];
+        return $val !== null && trim((string) $val) !== '' ? trim((string) $val) : null;
+    }
+
+    public function setAffiliateApplyToggleLabel(int $listingId, ?string $label): void
+    {
+        $label = $label !== null && trim($label) !== '' ? trim($label) : null;
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, affiliate_apply_toggle_label)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE affiliate_apply_toggle_label = VALUES(affiliate_apply_toggle_label)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => $label]);
+        } catch (\PDOException) {}
+    }
+
+    public function getCodesSubmitToggleLabel(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT codes_submit_toggle_label FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            return null;
+        }
+        if ($row === false || !array_key_exists('codes_submit_toggle_label', $row)) {
+            return null;
+        }
+        $val = $row['codes_submit_toggle_label'];
+        return $val !== null && trim((string) $val) !== '' ? trim((string) $val) : null;
+    }
+
+    public function setCodesSubmitToggleLabel(int $listingId, ?string $label): void
+    {
+        $label = $label !== null && trim($label) !== '' ? trim($label) : null;
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, codes_submit_toggle_label)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE codes_submit_toggle_label = VALUES(codes_submit_toggle_label)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => $label]);
         } catch (\PDOException) {}
     }
 }

@@ -802,18 +802,15 @@ final class ListingController extends AdminController
             $affiliateApplyFormUrl = $existingAffApplySettings['form_url'];
             $affiliateApplyRedirectUrl = $existingAffApplySettings['redirect_url'];
 
-            $affiliateApplyStylePost = trim((string) $request->post('affiliate_apply_style', 'link'));
-            $affiliateApplyStyle = in_array($affiliateApplyStylePost, ['link', 'button'], true) ? $affiliateApplyStylePost : 'link';
+            $affiliateApplyStylePost = trim((string) $request->post('affiliate_apply_style', ''));
+            $affiliateApplyStyle = in_array($affiliateApplyStylePost, ['link', 'button'], true) ? $affiliateApplyStylePost : null;
+
+            $codesSubmitStylePost = trim((string) $request->post('codes_submit_style', ''));
+            $codesSubmitStyle = in_array($codesSubmitStylePost, ['link', 'button'], true) ? $codesSubmitStylePost : null;
 
             $statNewmembersLimitRaw = trim((string) $request->post('stat_newmembers_limit', ''));
             $statNewmembersLimit = $statNewmembersLimitRaw !== '' ? ((int) $statNewmembersLimitRaw === 0 ? 0 : 5) : null;
 
-            $jceRaw = $request->post('join_confirmation_email', '');
-            $joinConfirmEmail = match ($jceRaw) {
-                '1'     => true,
-                '0'     => false,
-                default => null,
-            };
             $autoApproveJoins = $request->post('auto_approve_joins') === '1';
             $queueUpdates     = $request->post('queue_updates') === '1';
 
@@ -915,7 +912,6 @@ final class ListingController extends AdminController
                     'members_per_page'        => $membersPerPage,
                     'contact_enabled'         => $contactEnabled,
                     'contact_recipient'       => $contactRecipient,
-                    'join_confirmation_email' => $joinConfirmEmail,
                     'auto_approve_joins'      => $autoApproveJoins,
                     'queue_updates'           => $queueUpdates,
                     'description'             => $description,
@@ -946,14 +942,34 @@ final class ListingController extends AdminController
                 $settingsRepo->saveForAdoption($id, $forAdoptionInput);
             }
             $settingsRepo->saveAffiliateApplySettings($id, $affiliateApplyEnabled, $affiliateApplyFormUrl, $affiliateApplyRedirectUrl);
-            $settingsRepo->setAffiliateApplyStyle($id, $affiliateApplyStyle);
+            $postData = $request->postAll();
+            if ($affiliateApplyEnabled && array_key_exists('affiliate_apply_style', $postData)) {
+                $settingsRepo->setAffiliateApplyStyle($id, $affiliateApplyStyle);
+            }
+            if ($affiliateApplyEnabled && array_key_exists('affiliate_apply_toggle_label', $postData)) {
+                $affLabel = trim((string) $request->post('affiliate_apply_toggle_label', ''));
+                $settingsRepo->setAffiliateApplyToggleLabel($id, $affLabel !== '' ? $affLabel : null);
+            }
+
+            $codesSubmitEnabled = $request->post('codes_submit_enabled') === '1';
+            if ($codesSubmitEnabled && array_key_exists('codes_submit_style', $postData)) {
+                $settingsRepo->setCodesSubmitToggleStyle($id, $codesSubmitStyle);
+            }
+            if ($codesSubmitEnabled && array_key_exists('codes_submit_toggle_label', $postData)) {
+                $csLabel = trim((string) $request->post('codes_submit_toggle_label', ''));
+                $settingsRepo->setCodesSubmitToggleLabel($id, $csLabel !== '' ? $csLabel : null);
+            }
+
             $settingsRepo->setStatNewmembersLimit($id, $statNewmembersLimit);
 
             // code_approval_email: null=inherit global, true=on, false=off
-            $codeEmailPost = $request->post('code_approval_email', '');
-            $codeEmailVal  = $codeEmailPost === '' ? null : ($codeEmailPost === '1');
-            $settingsRepo->setCodeApprovalEmail($id, $codeEmailVal);
-            $settingsRepo->saveJoinSettings($id, $joinConfirmEmail, $autoApproveJoins);
+            // Only save when the dropdown was present in the form (codes_submit was enabled at page load)
+            if (array_key_exists('code_approval_email', $postData)) {
+                $codeEmailPost = $request->post('code_approval_email', '');
+                $codeEmailVal  = $codeEmailPost === '' ? null : ($codeEmailPost === '1');
+                $settingsRepo->setCodeApprovalEmail($id, $codeEmailVal);
+            }
+            $settingsRepo->saveAutoApproveJoins($id, $autoApproveJoins);
             $settingsRepo->setQueueUpdates($id, $queueUpdates);
             if ($lastUpdatedInput !== '' || $request->post('fl_last_updated') !== null) {
                 $settingsRepo->setLastUpdated($id, $lastUpdatedInput !== '' ? $lastUpdatedInput : null);
@@ -1191,11 +1207,13 @@ final class ListingController extends AdminController
             'adoption_count'                 => $adoptionCount,
             'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
             'affiliate_apply_style'          => $settingsRepo->getAffiliateApplyStyle($id),
+            'codes_submit_style'             => $settingsRepo->getCodesSubmitToggleStyle($id),
+            'affiliate_apply_toggle_label'   => $settingsRepo->getAffiliateApplyToggleLabel($id),
+            'codes_submit_toggle_label'      => $settingsRepo->getCodesSubmitToggleLabel($id),
             'form_url_affiliate_apply'       => $affiliateApplySettings['form_url'],
             'redirect_url_affiliate_apply'   => $affiliateApplySettings['redirect_url'],
             'stat_newmembers_limit'          => $settingsRepo->getStatNewmembersLimit($id),
             'code_approval_email'            => $codeApprovalEmail,
-            'join_confirmation_email'        => $joinSettings['confirmation_email'],
             'auto_approve_joins'             => $joinSettings['auto_approve'],
             'queue_updates'                  => $queueUpdates,
             'codes'               => $codes,
@@ -1644,10 +1662,10 @@ final class ListingController extends AdminController
             $uploadsBase = $appUrl . '/uploads';
             $html = match ($type) {
                 'members'            => $this->ltplPreviewMembers($tpl, $listing, $db, $config, $uploadsBase . '/members'),
-                'affiliates_section' => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates', $appUrl),
-                'stats'              => $this->ltplPreviewStats($tpl, $listing, $db, $config),
+                'affiliates_section' => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates', $appUrl, $request),
+                'stats'              => $this->ltplPreviewStats($tpl, $listing, $db, $config, $request),
                 'updates'            => $this->ltplPreviewUpdates($tpl, $listing, $db),
-                'codes'              => $this->ltplPreviewCodes($tpl, $listing, $db),
+                'codes'              => $this->ltplPreviewCodes($tpl, $listing, $db, $request),
                 'rules'              => $this->ltplPreviewRules(
                     $tpl,
                     $listing,
@@ -1740,21 +1758,27 @@ final class ListingController extends AdminController
         return $result;
     }
 
-    private function ltplPreviewAffiliates(string $tpl, object $listing, \Luster\Core\Database $db, string $uploadsUrl, string $appUrl): string
+    private function ltplPreviewAffiliates(string $tpl, object $listing, \Luster\Core\Database $db, string $uploadsUrl, string $appUrl, ?\Luster\Core\Request $request = null): string
     {
-        $affiliateRepo = new AffiliateRepo($db);
-        $affiliates    = $affiliateRepo->getByListing((int) $listing->id)['items'];
-
-        if (empty($affiliates)) {
-            return '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>';
-        }
-
+        $affiliateRepo    = new AffiliateRepo($db);
+        $affiliates       = $affiliateRepo->getByListing((int) $listing->id)['items'];
         $affiliateApplyUrl = $appUrl . '/affiliate-apply/' . (int) $listing->id;
         $settingsRepo = new ListingSettingsRepo($db);
-        $applyStyle   = $settingsRepo->getAffiliateApplyStyle((int) $listing->id);
+        $siteRepoAff  = new SiteSettingsRepo($db);
 
+        // null = key absent from POST (not a live preview); '' = sent as empty ("Use global default")
+        $previewStyle = $request ? $request->post('toggle_style', null) : null;
+        $previewLabel = $request ? $request->post('toggle_label', null) : null;
+        $applyStyle   = $previewStyle !== null
+            ? (in_array(trim($previewStyle), ['link', 'button'], true) ? trim($previewStyle) : ($siteRepoAff->get('global_affiliate_apply_style') ?? 'link'))
+            : ($settingsRepo->getAffiliateApplyStyle((int) $listing->id)
+                ?? $siteRepoAff->get('global_affiliate_apply_style')
+                ?? 'link');
+
+        // Check if affiliate applications are enabled for this listing (matches production behaviour)
+        $applyEnabled  = $settingsRepo->getAffiliateApplySettings((int) $listing->id)['enabled'] ?? false;
         $applyFormHtml = '';
-        if (str_contains($tpl, '{affiliate_apply_toggle}')) {
+        if ($applyEnabled && str_contains($tpl, '{affiliate_apply_toggle}')) {
             $affApplyTpl = $settingsRepo->getAffiliateApplyFormTemplate((int) $listing->id);
             $globalTpls  = (new SiteSettingsRepo($db))->getGlobalTemplates();
             $resolved    = ListingTemplateResolver::resolve(
@@ -1765,7 +1789,20 @@ final class ListingController extends AdminController
             $applyFormHtml = $this->renderAffiliateApplyFormPreview($resolved['value'], $listing->title, $listing->url, (string) $listing->subject);
         }
 
-        return self::renderAffiliatesSection($tpl, $affiliates, $uploadsUrl, $affiliateApplyUrl, $applyStyle, $applyFormHtml);
+        $applyLabel = $previewLabel !== null
+            ? (trim($previewLabel) !== '' ? trim($previewLabel) : ($siteRepoAff->get('global_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?'))
+            : ($settingsRepo->getAffiliateApplyToggleLabel((int) $listing->id)
+                ?? $siteRepoAff->get('global_affiliate_apply_toggle_label')
+                ?? 'Apply to become an affiliate?');
+
+        $sample = self::renderAffiliatesSection($tpl, $affiliates, $uploadsUrl, $affiliateApplyUrl, $applyStyle, $applyFormHtml, $applyLabel);
+        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl, $applyStyle, $applyFormHtml, $applyLabel);
+
+        if (empty($affiliates)) {
+            return $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>');
+        }
+        return $this->previewSectionLabel('Active Data') . $sample
+            . $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>');
     }
 
     /**
@@ -1775,7 +1812,7 @@ final class ListingController extends AdminController
      *
      * @param \Luster\Models\Affiliate[] $affiliates
      */
-    private static function renderAffiliatesSection(string $tpl, array $affiliates, string $uploadsUrl, string $affiliateApplyUrl = '', string $applyStyle = 'link', string $applyFormHtml = ''): string
+    private static function renderAffiliatesSection(string $tpl, array $affiliates, string $uploadsUrl, string $affiliateApplyUrl = '', string $applyStyle = 'link', string $applyFormHtml = '', string $applyLabel = 'Apply to become an affiliate?'): string
     {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -1804,7 +1841,7 @@ final class ListingController extends AdminController
         if ($applyFormHtml !== '') {
             $toggleHtml = '<details class="fl-affiliate-apply-collapsible">'
                 . '<summary class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '">'
-                . 'Apply to become an affiliate?'
+                . $e($applyLabel)
                 . '</summary>'
                 . '<div class="fl-affiliate-apply-form-wrap">'
                 . $applyFormHtml
@@ -1820,17 +1857,32 @@ final class ListingController extends AdminController
         );
     }
 
-    private function ltplPreviewStats(string $tpl, object $listing, \Luster\Core\Database $db, \Luster\Core\Config $config): string
+    private function ltplPreviewStats(string $tpl, object $listing, \Luster\Core\Database $db, \Luster\Core\Config $config, ?\Luster\Core\Request $request = null): string
     {
         $settingsRepo = new ListingSettingsRepo($db);
         $approvedBy   = (string) ($settingsRepo->getApprovedBy((int) $listing->id) ?? '');
+
+        // null = key absent (not live preview); '' = "Use global default"; '0'/'5' = explicit choice
+        $limitRaw = $request ? $request->post('stat_newmembers_limit', null) : null;
+        if ($limitRaw !== null) {
+            if (trim($limitRaw) === '') {
+                $globalVal   = (new SiteSettingsRepo($db))->get('stat_newmembers_limit');
+                $newestLimit = ($globalVal === '0') ? 0 : 5;
+            } else {
+                $newestLimit = trim($limitRaw) === '0' ? 0 : 5;
+            }
+        } else {
+            $siteRepo    = new SiteSettingsRepo($db);
+            $savedLimit  = $settingsRepo->getStatNewmembersLimit((int) $listing->id);
+            $newestLimit = $savedLimit ?? (int) ($siteRepo->get('stat_newmembers_limit') ?? '5');
+        }
 
         $prefix     = (string) ($listing->dbprefix ?? '');
         $memberRepo = new MemberRepo($db, $config);
         $approved   = $prefix !== '' ? $memberRepo->countApproved($prefix) : 0;
         $pending    = $prefix !== '' ? $memberRepo->countPending($prefix) : 0;
         $countries  = $prefix !== '' ? $memberRepo->countUniqueCountries($prefix) : 0;
-        $newest     = $prefix !== '' ? $memberRepo->getNewestMembers($prefix, 5) : [];
+        $newest     = $prefix !== '' ? $memberRepo->getNewestMembers($prefix, $newestLimit) : [];
         $memberDate = $prefix !== '' ? $memberRepo->getMostRecentApprovedDate($prefix) : null;
 
         $newestFormatted = self::formatNewestMembers($newest, $approved);
@@ -1953,7 +2005,7 @@ final class ListingController extends AdminController
             . $empty;
     }
 
-    private function ltplPreviewCodes(string $tpl, object $listing, \Luster\Core\Database $db): string
+    private function ltplPreviewCodes(string $tpl, object $listing, \Luster\Core\Database $db, ?\Luster\Core\Request $request = null): string
     {
         $listingId = (int) $listing->id;
         $appUrl     = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
@@ -2000,7 +2052,7 @@ final class ListingController extends AdminController
             return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
         });
 
-        $csToggle      = $this->renderCodesSubmitTogglePreview($tpl, $listing, $db);
+        $csToggle      = $this->renderCodesSubmitTogglePreview($tpl, $listing, $db, $request);
         $csPlaceholder = '<!--lstr-cs-toggle-preview-->';
         $tpl = str_replace('{codes_submit_toggle}', $csPlaceholder, $tpl);
 
@@ -2024,7 +2076,7 @@ final class ListingController extends AdminController
             . (empty($codes) ? '' : $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>'));
     }
 
-    private function renderCodesSubmitTogglePreview(string $tpl, object $listing, \Luster\Core\Database $db): string
+    private function renderCodesSubmitTogglePreview(string $tpl, object $listing, \Luster\Core\Database $db, ?\Luster\Core\Request $request = null): string
     {
         if (!str_contains($tpl, '{codes_submit_toggle}')) {
             return '';
@@ -2036,8 +2088,21 @@ final class ListingController extends AdminController
             return '';
         }
 
+        $siteRepo     = new SiteSettingsRepo($db);
+        $previewCsStyle = $request ? $request->post('toggle_style', null) : null;
+        $previewCsLabel = $request ? $request->post('toggle_label', null) : null;
+        $csStyle = $previewCsStyle !== null
+            ? (in_array(trim($previewCsStyle), ['link', 'button'], true) ? trim($previewCsStyle) : ($siteRepo->get('global_codes_submit_toggle_style') ?? 'link'))
+            : ($settingsRepo->getCodesSubmitToggleStyle((int) $listing->id)
+                ?? $siteRepo->get('global_codes_submit_toggle_style')
+                ?? 'link');
+        $csLabel = $previewCsLabel !== null
+            ? (trim($previewCsLabel) !== '' ? trim($previewCsLabel) : ($siteRepo->get('global_codes_submit_toggle_label') ?? 'Donate a code?'))
+            : ($settingsRepo->getCodesSubmitToggleLabel((int) $listing->id)
+                ?? $siteRepo->get('global_codes_submit_toggle_label')
+                ?? 'Donate a code?');
         $csFormTpl    = $settingsRepo->getCodesSubmitFormTemplate((int) $listing->id);
-        $globalTpls   = (new SiteSettingsRepo($db))->getGlobalTemplates();
+        $globalTpls   = $siteRepo->getGlobalTemplates();
         $resolved     = ListingTemplateResolver::resolve(
             $csFormTpl,
             $globalTpls['listing_default_codes_submit_form_template'] ?? null,
@@ -2049,8 +2114,9 @@ final class ListingController extends AdminController
             return '';
         }
 
+        $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         return '<details class="fl-codes-submit-collapsible">'
-            . '<summary class="fl-codes-submit-toggle">Donate a code?</summary>'
+            . '<summary class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '">' . $e($csLabel) . '</summary>'
             . '<div class="fl-codes-submit-form-wrap">'
             . $formHtml
             . '</div>'
@@ -2516,10 +2582,14 @@ final class ListingController extends AdminController
         $globals   = $siteRepo->getGlobalTemplates();
 
         return $this->adminLayout('admin/listings/global-templates.php', 'Global Templates', 'listings', [
-            'success'                => $success,
-            'error'                  => $error,
-            'globals'                => $globals,
-            'stat_newmembers_limit'  => $siteRepo->get('stat_newmembers_limit'),
+            'success'                    => $success,
+            'error'                      => $error,
+            'globals'                    => $globals,
+            'stat_newmembers_limit'      => $siteRepo->get('stat_newmembers_limit'),
+            'affiliate_apply_style'          => $siteRepo->get('global_affiliate_apply_style') ?? 'link',
+            'codes_submit_toggle_style'      => $siteRepo->get('global_codes_submit_toggle_style') ?? 'link',
+            'affiliate_apply_toggle_label'   => $siteRepo->get('global_affiliate_apply_toggle_label'),
+            'codes_submit_toggle_label'      => $siteRepo->get('global_codes_submit_toggle_label'),
         ], '', [
             $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
@@ -2566,6 +2636,17 @@ final class ListingController extends AdminController
         $snlRaw = trim((string) $request->post('stat_newmembers_limit', ''));
         $snlVal = $snlRaw !== '' ? (int) $snlRaw : null;
         $siteRepo->set('stat_newmembers_limit', $snlVal !== null ? ($snlVal === 0 ? '0' : '5') : null);
+
+        $affStyle = (string) $request->post('affiliate_apply_style', 'link');
+        $siteRepo->set('global_affiliate_apply_style', in_array($affStyle, ['link', 'button'], true) ? $affStyle : 'link');
+
+        $csStyle = (string) $request->post('codes_submit_toggle_style', 'link');
+        $siteRepo->set('global_codes_submit_toggle_style', in_array($csStyle, ['link', 'button'], true) ? $csStyle : 'link');
+
+        $gAffLabel = trim((string) $request->post('affiliate_apply_toggle_label', ''));
+        $siteRepo->set('global_affiliate_apply_toggle_label', $gAffLabel !== '' ? $gAffLabel : null);
+        $gCsLabel = trim((string) $request->post('codes_submit_toggle_label', ''));
+        $siteRepo->set('global_codes_submit_toggle_label', $gCsLabel !== '' ? $gCsLabel : null);
 
         $session->set('lstr_flash_success', 'Global listing templates saved.');
         $returnGroup = (string) $request->post('return_group', '');
@@ -2641,15 +2722,15 @@ final class ListingController extends AdminController
         try {
             $html = match ($type) {
                 'members'              => $this->gtplPreviewMembers($tpl),
-                'affiliates_section'   => $this->gtplPreviewAffiliates($tpl),
-                'stats'                => $this->gtplPreviewStats($tpl),
+                'affiliates_section'   => $this->gtplPreviewAffiliates($tpl, $request),
+                'stats'                => $this->gtplPreviewStats($tpl, $request),
                 'updates'              => $this->gtplPreviewUpdates($tpl),
                 'join_form'            => $this->gtplPreviewJoinForm($tpl),
                 'codes_submit_form'    => $this->gtplPreviewCodesSubmitForm($tpl),
                 'affiliate_apply_form' => $this->gtplPreviewAffiliateApplyForm($tpl),
                 'update_form'          => $this->gtplPreviewUpdateForm($tpl),
                 'reset_form'           => $this->gtplPreviewResetForm($tpl),
-                'codes'                => $this->gtplPreviewCodes($tpl),
+                'codes'                => $this->gtplPreviewCodes($tpl, $request),
                 'contact_form'         => $this->gtplPreviewContactForm($tpl),
             };
         } catch (\Throwable $e) {
@@ -2705,7 +2786,7 @@ final class ListingController extends AdminController
      * Affiliates Section preview using generic sample affiliates, plus an
      * empty-state render with zero affiliates.
      */
-    private function gtplPreviewAffiliates(string $tpl): string
+    private function gtplPreviewAffiliates(string $tpl, ?\Luster\Core\Request $request = null): string
     {
         $appUrl          = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
         $uploadsUrl      = $appUrl . '/uploads/affiliates';
@@ -2727,8 +2808,17 @@ final class ListingController extends AdminController
             $applyFormHtml = $this->renderAffiliateApplyFormPreview($resolved['value'], SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_URL, SampleTemplateData::LISTING_SUBJECT);
         }
 
-        $sample = self::renderAffiliatesSection($tpl, SampleTemplateData::affiliates(), $sampleImagesUrl, $affiliateApplyUrl, 'link', $applyFormHtml);
-        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl, 'link', $applyFormHtml);
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $previewStyle = $request ? $request->post('toggle_style', null) : null;
+        $previewLabel = $request ? $request->post('toggle_label', null) : null;
+        $gAffStyle = $previewStyle !== null
+            ? (in_array(trim($previewStyle), ['link', 'button'], true) ? trim($previewStyle) : ($siteRepo->get('global_affiliate_apply_style') ?? 'link'))
+            : ($siteRepo->get('global_affiliate_apply_style') ?? 'link');
+        $gAffLabel = $previewLabel !== null
+            ? (trim($previewLabel) !== '' ? trim($previewLabel) : 'Apply to become an affiliate?')
+            : ($siteRepo->get('global_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
+        $sample = self::renderAffiliatesSection($tpl, SampleTemplateData::affiliates(), $sampleImagesUrl, $affiliateApplyUrl, $gAffStyle, $applyFormHtml, $gAffLabel);
+        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl, $gAffStyle, $applyFormHtml, $gAffLabel);
 
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>';
@@ -2742,13 +2832,19 @@ final class ListingController extends AdminController
      * Statistics preview using generic sample stats, plus an empty-state
      * render representing a brand-new listing with no members yet.
      */
-    private function gtplPreviewStats(string $tpl): string
+    private function gtplPreviewStats(string $tpl, ?\Luster\Core\Request $request = null): string
     {
+        $limitRaw    = $request ? $request->post('stat_newmembers_limit', null) : null;
+        $newestLimit = $limitRaw !== null ? (trim($limitRaw) === '0' ? 0 : 5) : 5;
+
         $sampleMembers = array_map(
             fn($m) => ['name' => $m->name, 'url' => $m->showurl ? $m->url : ''],
             SampleTemplateData::members(),
         );
-        $sampleNewest = self::formatNewestMembers($sampleMembers, 42);
+        $sliced = $newestLimit === 0 ? $sampleMembers : array_slice($sampleMembers, 0, $newestLimit);
+        // When truncating, inflate totalApproved so "…and more" appears in preview
+        $totalForPreview = $newestLimit === 0 ? count($sliced) : count($sliced) + 3;
+        $sampleNewest = self::formatNewestMembers($sliced, $totalForPreview);
 
         $sampleValues = [
             'stat_opened'     => '2020-01-15',
@@ -2955,7 +3051,7 @@ final class ListingController extends AdminController
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
     }
 
-    private function gtplPreviewCodes(string $tpl): string
+    private function gtplPreviewCodes(string $tpl, ?\Luster\Core\Request $request = null): string
     {
         $appUrl     = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
         $uploadsUrl = $appUrl . '/uploads/codes';
@@ -3006,10 +3102,19 @@ final class ListingController extends AdminController
                 $csFormTpl,
                 ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
             );
-            $formHtml = $this->renderCodesSubmitFormPreview($resolved['value'], SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_URL, SampleTemplateData::LISTING_SUBJECT);
+            $formHtml     = $this->renderCodesSubmitFormPreview($resolved['value'], SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_URL, SampleTemplateData::LISTING_SUBJECT);
+            $previewCsStyle = $request ? $request->post('toggle_style', null) : null;
+            $previewCsLabel = $request ? $request->post('toggle_label', null) : null;
+            $csGStyle = $previewCsStyle !== null
+                ? (in_array(trim($previewCsStyle), ['link', 'button'], true) ? trim($previewCsStyle) : ($siteRepo->get('global_codes_submit_toggle_style') ?? 'link'))
+                : ($siteRepo->get('global_codes_submit_toggle_style') ?? 'link');
+            $csGLabel = $previewCsLabel !== null
+                ? (trim($previewCsLabel) !== '' ? trim($previewCsLabel) : 'Donate a code?')
+                : ($siteRepo->get('global_codes_submit_toggle_label') ?? 'Donate a code?');
+            $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             if ($formHtml !== '') {
                 $csToggle = '<details class="fl-codes-submit-collapsible">'
-                    . '<summary class="fl-codes-submit-toggle">Donate a code?</summary>'
+                    . '<summary class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csGStyle) . '">' . $e($csGLabel) . '</summary>'
                     . '<div class="fl-codes-submit-form-wrap">'
                     . $formHtml
                     . '</div>'

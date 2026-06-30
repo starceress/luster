@@ -710,7 +710,7 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{stat_countries}</code></td><td>Number of different countries represented by approved members.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{stat_opened}</code></td><td>Date you opened the listing.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{stat_updated}</code></td><td>The most recent activity date: whichever is more recent of the newest approved member's join date and the &ldquo;last updated&rdquo; date you set for the listing. Shows <em>N/A</em> if neither is set.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Newest approved members, linked to their websites when available. Count set in listing Preferences (or global default). Shows <em>&hellip;and more</em> when there are more total.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Newest approved members, linked to their websites when available. Count set in the Statistics template section (or global default). Shows <em>&hellip;and more</em> when there are more total.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{stat_growth}</code></td><td>Average members per day, with unit (e.g. &ldquo;0.15 members/day&rdquo;).</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{stat_growth_rate}</code></td><td>Numeric growth rate only (e.g. &ldquo;0.15&rdquo;). Use to build your own formatting.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>

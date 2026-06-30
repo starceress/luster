@@ -24,7 +24,6 @@ use Luster\Repositories\CodesRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
-use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Cross-listing codes hub for the admin panel.
@@ -977,9 +976,9 @@ final class GlobalCodesController extends AdminController
     /**
      * Sends a code-approval notification to the submitter if they provided an email.
      *
-     * Respects the per-listing `code_approval_email` setting, falling back to the
-     * global `code_approval_email_enabled` site setting. Failures are logged to the
-     * PHP error log but do not interrupt the approval flow.
+     * Respects the per-listing `code_approval_email` setting; defaults to enabled
+     * when no per-listing override is set. Failures are logged to the PHP error log
+     * but do not interrupt the approval flow.
      */
     private function maybeSendDonorEmail(\Luster\Core\Database $db, object $code): void
     {
@@ -991,15 +990,14 @@ final class GlobalCodesController extends AdminController
         $listingId   = $code->fanlisting_id !== null ? (int) $code->fanlisting_id : null;
         $isCollective = $listingId === null || $listingId === 0;
 
-        // Resolve send preference: per-listing → global → default on
+        // Resolve send preference: per-listing override → default on
         $settingsRepo    = new ListingSettingsRepo($db);
         if (!$isCollective) {
             $perListing  = $settingsRepo->getCodeApprovalEmail($listingId);
         } else {
             $perListing  = null;
         }
-        $globalEnabled   = (new SiteSettingsRepo($db))->get('code_approval_email_enabled', '1') !== '0';
-        $shouldSend      = $perListing ?? $globalEnabled;
+        $shouldSend      = $perListing ?? true;
 
         if (!$shouldSend) {
             return;

@@ -73,7 +73,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Lost Password Form</option>
         <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Statistics</option>
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
-        <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
+        <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Codes Donation Form</option>
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
         <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
         <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
@@ -202,6 +202,30 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
           <div class="section-label">Codes Display</div>
           <p class="form-hint form-hint--spaced">Default layout for the codes/buttons gallery. Use <code>{each_size_group}</code> for grouped mode or <code>{each_code}</code> for flat mode.</p>
+
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="gl-cs-toggle-style">Donation toggle style</label>
+            <div>
+              <div class="select-wrap select-auto">
+                <select id="gl-cs-toggle-style" name="codes_submit_toggle_style" class="form">
+                  <option value="link" <?= ($codes_submit_toggle_style ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
+                  <option value="button" <?= ($codes_submit_toggle_style ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
+                </select>
+              </div>
+              <p class="form-hint">How the <code>{codes_submit_toggle}</code> appears &mdash; as a plain underlined link or a styled button. Per-listing overrides this.</p>
+            </div>
+          </div>
+
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="gl-cs-toggle-label">Toggle label</label>
+            <div>
+              <input id="gl-cs-toggle-label" type="text" name="codes_submit_toggle_label" class="form" maxlength="200"
+                     value="<?= View::e($codes_submit_toggle_label ?? '') ?>"
+                     placeholder="Donate a code?">
+              <p class="form-hint">Default text for the <code>{codes_submit_toggle}</code>. Per-listing overrides this. Leave blank for the built-in default.</p>
+            </div>
+          </div>
+
           <div class="field-group">
             <textarea name="listing_default_codes_template" id="listing_default_codes_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_template')) ?></textarea>
           </div>
@@ -226,6 +250,30 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
           <div class="section-label">Affiliates Display</div>
           <p class="form-hint form-hint--spaced">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
+
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="gl-aff-apply-style">Application toggle style</label>
+            <div>
+              <div class="select-wrap select-auto">
+                <select id="gl-aff-apply-style" name="affiliate_apply_style" class="form">
+                  <option value="link" <?= ($affiliate_apply_style ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
+                  <option value="button" <?= ($affiliate_apply_style ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
+                </select>
+              </div>
+              <p class="form-hint">How the <code>{affiliate_apply_toggle}</code> appears &mdash; as a plain underlined link or a styled button. Per-listing overrides this.</p>
+            </div>
+          </div>
+
+          <div class="field-row field-row--top" style="margin-bottom: 1em">
+            <label class="field-label" for="gl-aff-toggle-label">Toggle label</label>
+            <div>
+              <input id="gl-aff-toggle-label" type="text" name="affiliate_apply_toggle_label" class="form" maxlength="200"
+                     value="<?= View::e($affiliate_apply_toggle_label ?? '') ?>"
+                     placeholder="Apply to become an affiliate?">
+              <p class="form-hint">Default text for the <code>{affiliate_apply_toggle}</code>. Per-listing overrides this. Leave blank for the built-in default.</p>
+            </div>
+          </div>
+
           <div class="field-group">
             <textarea name="listing_default_affiliates_section_template" id="listing_default_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliates_section_template')) ?></textarea>
           </div>
@@ -472,7 +520,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_codes_template', '{if_code_name}{/if_code_name}', '{if_code_name}...{/if_code_name}', 'Shows only when the code has a saved name.') ?>
             <?= $tok('listing_default_codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
             <?= $tok('listing_default_codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
-            <?= $tok('listing_default_codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Shows a toggle that reveals the full submission form inline. Empty when code donations are disabled for the listing.') ?>
+            <?= $tok('listing_default_codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Label, style (link or button) are configurable above. Empty when code donations are disabled.') ?>
           </tbody></table>
         </div>
       </details>
@@ -515,7 +563,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Shows a text link or button that reveals the full application form inline. Empty when applications are disabled for the listing.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Label, style (link or button) are configurable above. Empty when applications are disabled.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>
