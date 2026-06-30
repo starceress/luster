@@ -33,7 +33,8 @@ it for you.
 - **Multiple admin users:** Give co-owners their own separate accounts and logins
   instead of sharing one password.
 - **Admin panel customization:** Switch between light & dark mode, change your
-  admin panel's appearance with different skins, create your own admin panel
+  admin panel's appearance with different skins, with future personalized and
+  community skin support.
   look, or download skins made by others in the community.
 - **Custom networks & categories:** Use the built-in TFL/TAFL-style categories or
   add your own custom networks and category groups to accomodate other directories.
@@ -71,7 +72,7 @@ it for you.
    `luster-x.y.z.zip`.
 2. Unzip it, then upload everything inside to a folder on your web host. Name
    the folder whatever you like, such as `luster`.
-3. In your browser, go to `http://yoursite.com/luster/`, swapping in the folder
+3. In your browser, go to `http://example.com/luster/`, swapping in the folder
    name you chose/your specific Luster path.
 4. Luster will take you to the setup wizard automatically. It checks your
    server, sets up your database tables, and creates your first admin account.
@@ -82,7 +83,7 @@ it for you.
 
 
 ## ✦ Admin Panel
-To access your admin panel, go to `http://yoursite.com/luster/public/admin`
+To access your admin panel, go to `http://example.com/luster/public/admin`
 and log in with the username and password you set for Luster during
 installation.
 
