@@ -142,8 +142,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $pendingUpdateCount = (int) ($st ? $st->fetchColumn() : 0);
             } catch (\Throwable) {}
         }
-        if ($pendingUpdateCount > 0) {
-            $droppedNotes[] = "Data dropped — {$pendingUpdateCount} member(s) had queued updates (pending_update) that cannot be migrated in v1.";
+        if ($pendingUpdateCount > 0 && !$options->importMembers) {
+            $droppedNotes[] = "Data dropped — {$pendingUpdateCount} member(s) have queued update requests (pending_update). Enable Members to migrate them to the pending updates queue.";
         }
 
         $fansCount = 0;
@@ -269,6 +269,15 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $rows[] = $this->previewTable($source, "{$p}members", 'Members', [
                 'Members are stored centrally in Fanatically and will be split into per-listing tables in Luster.',
             ]);
+            if ($caps['has_pending_update'] && $pendingUpdateCount > 0) {
+                $rows[] = [
+                    'type'     => 'Pending Member Updates',
+                    'found'    => $pendingUpdateCount,
+                    'import'   => $pendingUpdateCount,
+                    'skip'     => 0,
+                    'warnings' => ['Queued update requests will be migrated to the pending updates queue.'],
+                ];
+            }
         }
         if ($options->importAffiliates) {
             $rows[] = $this->previewTable($source, "{$p}affiliates", 'Affiliates', [
@@ -368,6 +377,11 @@ final class FanaticallyImportSource implements ImportSourceInterface
         // ── Phase 4: Members ──────────────────────────────────────────────
         if ($options->importMembers && !empty($listingIdMap)) {
             $rows[] = $this->runMembers($source, $target, $targetSchema, $options, $p, $caps, $listingIdMap, $listingDbtables);
+        }
+
+        // ── Phase 11: Pending Member Updates ─────────────────────────────
+        if ($options->importMembers && $caps['has_pending_update'] && !empty($listingIdMap)) {
+            $rows[] = $this->runPendingUpdates($source, $target, $targetSchema, $p, $listingIdMap, $options);
         }
 
         // ── Phase 5: Affiliates ───────────────────────────────────────────
@@ -1905,6 +1919,143 @@ final class FanaticallyImportSource implements ImportSourceInterface
         return [
             'type' => 'Adoption Applications', 'imported' => $imported, 'skipped' => $skipped,
             'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems,
+        ];
+    }
+
+    // -----------------------------------------------------------------------
+    // Phase 11 — Pending Member Updates
+    // -----------------------------------------------------------------------
+
+    /**
+     * Migrates Fanatically pending_update JSON into lstr_pending_updates rows.
+     *
+     * Fanatically stores a JSON blob on the member row when a fan submits an update
+     * that requires admin approval. The blob contains the proposed name/email/url/
+     * country values plus a 'custom_field_values' JSON string for additional fields.
+     * Password hashes in the blob are skipped — Luster never queues password changes.
+     *
+     * @param array<int,int> $listingIdMap fanatic listing_id → Luster registry pk
+     */
+    private function runPendingUpdates(
+        PDO $source, PDO $target, string $targetSchema,
+        string $p, array $listingIdMap, ImportOptions $options
+    ): array {
+        $imported     = 0;
+        $skipped      = 0;
+        $errors       = 0;
+        $skippedItems = [];
+
+        [,, $isOwned] = $this->targetRegistryInfo($targetSchema);
+
+        $insertStmt = $target->prepare(
+            'INSERT INTO lstr_pending_updates (fanlisting_id, member_email, changes)
+             VALUES (:fid, :email, :changes)'
+        );
+
+        $existsStmt = null;
+        if ($options->conflictStrategy === 'skip') {
+            $existsStmt = $target->prepare(
+                'SELECT COUNT(*) FROM lstr_pending_updates
+                 WHERE fanlisting_id = :fid AND member_email = :email'
+            );
+        }
+
+        $offset = 0;
+        while (true) {
+            try {
+                $st = $source->prepare(
+                    "SELECT listing_id, email, pending_update
+                     FROM `{$p}members`
+                     WHERE pending_update IS NOT NULL AND pending_update != ''
+                     ORDER BY id ASC
+                     LIMIT :limit OFFSET :offset"
+                );
+                $st->bindValue(':limit',  self::CHUNK, PDO::PARAM_INT);
+                $st->bindValue(':offset', $offset,     PDO::PARAM_INT);
+                $st->execute();
+                $chunk = $st->fetchAll();
+            } catch (\Throwable $e) {
+                $errors++;
+                break;
+            }
+
+            if (empty($chunk)) {
+                break;
+            }
+
+            foreach ($chunk as $mem) {
+                $srcListingId = (int) ($mem['listing_id'] ?? 0);
+                $newListingId = $listingIdMap[$srcListingId] ?? null;
+                if ($newListingId === null) {
+                    $skippedItems[] = ['label' => (string) ($mem['email'] ?? '?'), 'reason' => 'Listing not imported'];
+                    $skipped++;
+                    continue;
+                }
+
+                $raw = json_decode((string) ($mem['pending_update'] ?? ''), true);
+                if (!is_array($raw)) {
+                    $skipped++;
+                    continue;
+                }
+
+                // Standard fields — map directly
+                $changes = [];
+                foreach (['name', 'email', 'url', 'country'] as $f) {
+                    if (array_key_exists($f, $raw)) {
+                        $changes[$f] = (string) $raw[$f];
+                    }
+                }
+
+                // Custom fields: stored as a JSON-encoded string inside the blob
+                $cfJson = $raw['custom_field_values'] ?? '';
+                if (is_string($cfJson) && $cfJson !== '') {
+                    $cfValues = json_decode($cfJson, true);
+                    if (is_array($cfValues)) {
+                        foreach ($cfValues as $fieldName => $value) {
+                            $key           = $isOwned ? (string) $fieldName : 'additional_' . $fieldName;
+                            $changes[$key] = (string) $value;
+                        }
+                    }
+                }
+
+                // Password hashes are never queued in Luster — skip them
+                if (empty($changes)) {
+                    $skipped++;
+                    continue;
+                }
+
+                $email = (string) ($mem['email'] ?? '');
+
+                try {
+                    if ($existsStmt !== null) {
+                        $existsStmt->execute(['fid' => $newListingId, 'email' => $email]);
+                        if ((int) $existsStmt->fetchColumn() > 0) {
+                            $skipped++;
+                            continue;
+                        }
+                    }
+
+                    $insertStmt->execute([
+                        'fid'     => $newListingId,
+                        'email'   => $email,
+                        'changes' => json_encode($changes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    ]);
+                    $imported++;
+                } catch (\Throwable) {
+                    $errors++;
+                }
+            }
+
+            $offset += self::CHUNK;
+        }
+
+        return [
+            'type'         => 'Pending Member Updates',
+            'imported'     => $imported,
+            'skipped'      => $skipped,
+            'warnings'     => [],
+            'errors'       => $errors,
+            'skipped_items' => $skippedItems,
         ];
     }
 
