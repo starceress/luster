@@ -1942,7 +1942,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
     ): array {
         $imported     = 0;
         $skipped      = 0;
-        $errors       = 0;
+        $errors       = [];
         $skippedItems = [];
 
         [,, $isOwned] = $this->targetRegistryInfo($targetSchema);
@@ -2006,13 +2006,19 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     }
                 }
 
-                // Custom fields: stored as a JSON-encoded string inside the blob
+                // Custom fields: stored as a JSON-encoded string inside the blob.
+                // Keys must go through the same sanitizeFieldName() pass that member
+                // import uses when creating columns, so the keys match actual DB columns.
                 $cfJson = $raw['custom_field_values'] ?? '';
                 if (is_string($cfJson) && $cfJson !== '') {
                     $cfValues = json_decode($cfJson, true);
                     if (is_array($cfValues)) {
                         foreach ($cfValues as $fieldName => $value) {
-                            $key           = $isOwned ? (string) $fieldName : 'additional_' . $fieldName;
+                            $safe = $this->sanitizeFieldName((string) $fieldName);
+                            if ($safe === '') {
+                                continue;
+                            }
+                            $key           = $isOwned ? $safe : 'additional_' . $safe;
                             $changes[$key] = (string) $value;
                         }
                     }
@@ -2041,8 +2047,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
                         'changes' => json_encode($changes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                     ]);
                     $imported++;
-                } catch (\Throwable) {
-                    $errors++;
+                } catch (\Throwable $e) {
+                    $errors[] = $e->getMessage();
                 }
             }
 
