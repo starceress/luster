@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace Luster\Import;
 
+use Luster\Addons\Updates\UpdatesAddon;
 use PDO;
 
 /**
@@ -151,7 +152,7 @@ final class FanUpdateImportSource implements ImportSourceInterface
         $warns = [];
 
         if (!$this->tableExists($target, 'lstr_updates')) {
-            $warns[] = 'News Feed add-on is not installed — lstr_updates table not found. Updates will be skipped.';
+            $warns[] = 'News Feed add-on is not installed yet — running the import will install it automatically so this data is not lost.';
         }
 
         if (!$this->tableExists($source, $prefix)) {
@@ -188,21 +189,20 @@ final class FanUpdateImportSource implements ImportSourceInterface
         $errors    = 0;
         $warnings  = [];
 
-        // Gate: lstr_updates must exist (requires News Feed add-on)
-        $chk = $target->query("SHOW TABLES LIKE 'lstr_updates'");
-        if (!$chk || $chk->fetchColumn() === false) {
+        // Gate: lstr_updates must exist (requires News Feed add-on); auto-install if absent.
+        // ensureInstalled() runs first so a disabled-but-table-present add-on is re-registered.
+        if (!AddonAutoInstaller::ensureInstalled($target, UpdatesAddon::class) && !$this->tableExists($target, 'lstr_updates')) {
             return [
                 'type'     => 'Updates (blog entries)',
                 'imported' => 0,
                 'skipped'  => 0,
-                'warnings' => ['News Feed add-on is not installed — lstr_updates table not found.'],
+                'warnings' => ['News Feed add-on could not be installed automatically — updates were skipped.'],
                 'errors'   => 1,
             ];
         }
 
         // Gate: source table exists
-        $chk = $source->query("SHOW TABLES LIKE '{$prefix}'");
-        if (!$chk || $chk->fetchColumn() === false) {
+        if (!$this->tableExists($source, $prefix)) {
             return [
                 'type'     => 'Updates (blog entries)',
                 'imported' => 0,
@@ -218,8 +218,7 @@ final class FanUpdateImportSource implements ImportSourceInterface
         // Load FanUpdate fanlisting registry: fl_id → fl_subject
         $csFlMap   = [];
         $hasCatTbl = false;
-        $chk = $source->query("SHOW TABLES LIKE '{$prefix}_category'");
-        if ($chk && $chk->fetchColumn() !== false) {
+        if ($this->tableExists($source, "{$prefix}_category")) {
             $hasCatTbl = true;
             $stmt = $source->query("SELECT fl_id, fl_subject FROM `{$prefix}_category`");
             foreach ($stmt->fetchAll() as $row) {
@@ -228,11 +227,7 @@ final class FanUpdateImportSource implements ImportSourceInterface
         }
 
         // Check catjoin table
-        $hasCatjoin = false;
-        $chk = $source->query("SHOW TABLES LIKE '{$prefix}_catjoin'");
-        if ($chk && $chk->fetchColumn() !== false) {
-            $hasCatjoin = true;
-        }
+        $hasCatjoin = $this->tableExists($source, "{$prefix}_catjoin");
 
         // Prepared statements
         $insertStmt = $target->prepare(
@@ -382,8 +377,7 @@ final class FanUpdateImportSource implements ImportSourceInterface
     private function buildListingMap(PDO $target): array
     {
         try {
-            $chk = $target->query("SHOW TABLES LIKE 'owned'");
-            if ($chk && $chk->fetchColumn() !== false) {
+            if ($this->tableExists($target, 'owned')) {
                 $stmt = $target->query("SELECT listingid, title FROM `owned`");
                 $map  = [];
                 foreach ($stmt->fetchAll() as $row) {
@@ -394,8 +388,7 @@ final class FanUpdateImportSource implements ImportSourceInterface
         } catch (\Throwable) {}
 
         try {
-            $chk = $target->query("SHOW TABLES LIKE 'enth_fanlistings'");
-            if ($chk && $chk->fetchColumn() !== false) {
+            if ($this->tableExists($target, 'enth_fanlistings')) {
                 $stmt = $target->query("SELECT id, name FROM `enth_fanlistings`");
                 $map  = [];
                 foreach ($stmt->fetchAll() as $row) {

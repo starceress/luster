@@ -101,7 +101,7 @@ final class FanUpdateImportSourceTest extends TestCase
         $this->assertSame(0, $row['import']);
         $this->assertSame(0, $row['skip']);
         $this->assertSame([
-            'News Feed add-on is not installed — lstr_updates table not found. Updates will be skipped.',
+            'News Feed add-on is not installed yet — running the import will install it automatically so this data is not lost.',
             'Table `blog` not found — check the Blog Table Name setting.',
         ], $row['warnings']);
     }
@@ -119,7 +119,7 @@ final class FanUpdateImportSourceTest extends TestCase
         $this->assertSame(3, $row['import']);
         $this->assertSame(0, $row['skip']);
         $this->assertSame([
-            'News Feed add-on is not installed — lstr_updates table not found. Updates will be skipped.',
+            'News Feed add-on is not installed yet — running the import will install it automatically so this data is not lost.',
         ], $row['warnings']);
     }
 
@@ -136,7 +136,7 @@ final class FanUpdateImportSourceTest extends TestCase
         $this->assertSame(3, $row['import']);
         $this->assertSame(2, $row['skip']);
         $this->assertSame([
-            'News Feed add-on is not installed — lstr_updates table not found. Updates will be skipped.',
+            'News Feed add-on is not installed yet — running the import will install it automatically so this data is not lost.',
             '2 non-public entries will be skipped.',
         ], $row['warnings']);
     }

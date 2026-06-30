@@ -16,6 +16,9 @@ declare(strict_types=1);
 
 namespace Luster\Import;
 
+use Luster\Addons\Adoption\AdoptionAddon;
+use Luster\Addons\Kim\KimAddon;
+use Luster\Addons\Wishlist\WishlistAddon;
 use PDO;
 
 /**
@@ -260,7 +263,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $rows[] = $this->previewTable($source, "{$p}categories", 'Categories');
         }
         if ($options->importListings) {
-            $rows[] = $this->previewTable($source, "{$p}listings", 'Owned Listings');
+            $rows[] = $this->previewTable($source, "{$p}listings", 'Owned Listings', $this->previewListingStatusWarnings($source, "{$p}listings"));
         }
         if ($options->importMembers) {
             $rows[] = $this->previewTable($source, "{$p}members", 'Members', [
@@ -282,32 +285,26 @@ final class FanaticallyImportSource implements ImportSourceInterface
         }
         if ($options->importWishlist) {
             if ($caps['has_wishlist']) {
-                if ($this->wishlistAddonInstalled($addonCheckPdo)) {
-                    $rows[] = $this->previewTable($source, "{$p}wishlist", 'Wishlist');
-                } else {
-                    $rows[] = ['type' => 'Wishlist', 'found' => 0, 'import' => 0, 'skip' => 0,
-                               'warnings' => ['Needs decision — Wishlist add-on is not installed in Luster; wishlist rows will be skipped.']];
-                }
+                $wishlistWarns = $this->wishlistAddonInstalled($addonCheckPdo) ? [] : [
+                    'Wishlist add-on is not installed — running the import will install it automatically so this data is not lost.',
+                ];
+                $rows[] = $this->previewTable($source, "{$p}wishlist", 'Wishlist', $wishlistWarns);
             }
         }
         if ($options->importKim) {
             if ($caps['has_kim']) {
-                if ($this->kimAddonInstalled($addonCheckPdo)) {
-                    $rows[] = $this->previewTable($source, "{$p}kim", 'KIM List');
-                } else {
-                    $rows[] = ['type' => 'KIM List', 'found' => 0, 'import' => 0, 'skip' => 0,
-                               'warnings' => ['Needs decision — KIM add-on is not installed in Luster; KIM entries will be skipped.']];
-                }
+                $kimWarns = $this->kimAddonInstalled($addonCheckPdo) ? [] : [
+                    'KIM add-on is not installed — running the import will install it automatically so this data is not lost.',
+                ];
+                $rows[] = $this->previewTable($source, "{$p}kim", 'KIM List', $kimWarns);
             }
         }
         if ($options->fnImportAdoption) {
             if ($caps['has_adoption']) {
-                if ($this->adoptionAddonInstalled($addonCheckPdo)) {
-                    $rows[] = $this->previewTable($source, "{$p}adoption_applications", 'Adoption Applications');
-                } else {
-                    $rows[] = ['type' => 'Adoption Applications', 'found' => 0, 'import' => 0, 'skip' => 0,
-                               'warnings' => ['Needs decision — Adoption add-on is not installed in Luster; adoption applications will be skipped.']];
-                }
+                $adoptionWarns = $this->adoptionAddonInstalled($addonCheckPdo) ? [] : [
+                    'Adoption add-on is not installed — running the import will install it automatically so this data is not lost.',
+                ];
+                $rows[] = $this->previewTable($source, "{$p}adoption_applications", 'Adoption Applications', $adoptionWarns);
             }
         }
 
@@ -401,22 +398,40 @@ final class FanaticallyImportSource implements ImportSourceInterface
         }
 
         // ── Phase 8: Wishlist (conditional) ───────────────────────────────
-        if ($options->importWishlist && $caps['has_wishlist'] && $this->wishlistAddonInstalled($target)) {
-            [$wlRow, $imgWl] = $this->runWishlist($source, $target, $options, $p, $migrator);
-            $rows[] = $wlRow;
-            if ($imgWl['copied'] + $imgWl['skipped'] > 0) {
-                $imgRows[] = array_merge(['type' => 'Images (wishlist)'], $imgWl);
+        if ($options->importWishlist && $caps['has_wishlist']) {
+            if (AddonAutoInstaller::ensureInstalled($target, WishlistAddon::class) || $this->wishlistAddonInstalled($target)) {
+                [$wlRow, $imgWl] = $this->runWishlist($source, $target, $options, $p, $migrator);
+                $rows[] = $wlRow;
+                if ($imgWl['copied'] + $imgWl['skipped'] > 0) {
+                    $imgRows[] = array_merge(['type' => 'Images (wishlist)'], $imgWl);
+                }
+            } else {
+                $rows[] = ['type' => 'Wishlist', 'imported' => 0, 'skipped' => 0,
+                           'warnings' => ['Wishlist add-on could not be installed automatically — wishlist entries were skipped.'],
+                           'errors' => [], 'skipped_items' => []];
             }
         }
 
         // ── Phase 9: KIM (conditional) ────────────────────────────────────
-        if ($options->importKim && $caps['has_kim'] && $this->kimAddonInstalled($target)) {
-            $rows[] = $this->runKim($source, $target, $options, $p, $listingIdMap);
+        if ($options->importKim && $caps['has_kim']) {
+            if (AddonAutoInstaller::ensureInstalled($target, KimAddon::class) || $this->kimAddonInstalled($target)) {
+                $rows[] = $this->runKim($source, $target, $options, $p, $listingIdMap);
+            } else {
+                $rows[] = ['type' => 'KIM List', 'imported' => 0, 'skipped' => 0,
+                           'warnings' => ['KIM add-on could not be installed automatically — KIM entries were skipped.'],
+                           'errors' => [], 'skipped_items' => []];
+            }
         }
 
         // ── Phase 10: Adoption applications (conditional) ─────────────────
-        if ($options->fnImportAdoption && $caps['has_adoption'] && $this->adoptionAddonInstalled($target)) {
-            $rows[] = $this->runAdoption($source, $target, $options, $p, $listingIdMap);
+        if ($options->fnImportAdoption && $caps['has_adoption']) {
+            if (AddonAutoInstaller::ensureInstalled($target, AdoptionAddon::class) || $this->adoptionAddonInstalled($target)) {
+                $rows[] = $this->runAdoption($source, $target, $options, $p, $listingIdMap);
+            } else {
+                $rows[] = ['type' => 'Adoption Applications', 'imported' => 0, 'skipped' => 0,
+                           'warnings' => ['Adoption add-on could not be installed automatically — adoption applications were skipped.'],
+                           'errors' => [], 'skipped_items' => []];
+            }
         }
 
         // ── Phase 12: Site settings (optional) ────────────────────────────
@@ -618,11 +633,32 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $uKey = strtolower(rtrim((string) $row['url'], '/'));
                 $rid  = (int) $row[$pkCol];
                 $dt   = (string) $row[$dtCol];
-                $existingUrls[$uKey]       = $rid;
+                if ($uKey !== '') {
+                    $existingUrls[$uKey] = $rid;
+                }
                 $usedDbtables[$dt]         = true;
                 $existingIdToDbtable[$rid] = $dt;
             }
         } catch (\Throwable) {}
+
+        // Map of fanatically external_id → Luster listing_id, used as fallback
+        // matching when a source listing has a blank URL (URL match is always primary).
+        // Refs pointing to listings that no longer exist in the registry are filtered out
+        // so a deleted listing does not silently absorb a re-imported blank-URL listing.
+        $existingByExternalId = []; // (string) fanatically_id → int luster_id
+        try {
+            $stmt = $target->prepare(
+                "SELECT listing_id, external_id FROM lstr_listing_external_refs WHERE source = 'fanatically'"
+            );
+            $stmt->execute();
+            foreach ($stmt->fetchAll() as $row) {
+                $existingByExternalId[(string) $row['external_id']] = (int) $row['listing_id'];
+            }
+        } catch (\Throwable) {}
+        $existingByExternalId = array_filter(
+            $existingByExternalId,
+            fn(int $id): bool => isset($existingIdToDbtable[$id])
+        );
 
         try {
             $srcListings = $source->query("SELECT * FROM `{$p}listings` ORDER BY id ASC")->fetchAll();
@@ -661,16 +697,26 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $url    = rtrim(trim((string) ($lst['url'] ?? '')), '/');
             $urlKey = strtolower($url);
 
-            if ($url === '') {
-                $skippedItems[] = ['label' => "Listing #{$srcId}", 'reason' => 'No URL'];
-                $skipped++;
-                continue;
-            }
-
-            // Status mapping (needed for both skip and write paths)
+            // Status mapping — whitelist-only: only 'current' and 'upcoming' get their
+            // corresponding Luster states; closed, adopted_out, pending, and any future
+            // unknown status all map to inactive (trouble=1) to fail safe.
             $status   = (string) ($lst['status'] ?? 'current');
             $upcoming = $status === 'upcoming' ? 1 : 0;
-            $trouble  = $status === 'pending'  ? 1 : 0;
+            $trouble  = ($status !== 'current' && $status !== 'upcoming') ? 1 : 0;
+
+            // Blank-URL listings are imported as inactive regardless of their source status;
+            // they can still be matched on re-import via the external-ref map.
+            if ($url === '') {
+                $trouble  = 1;
+                $upcoming = 0;
+            }
+
+            // Preserve unmappable source states so a future lifecycle enhancement can
+            // recover them without requiring a full re-import. Only written when the
+            // status or blank-URL state produced a lossy mapping.
+            $sourceStatusMeta = (($trouble === 1 && $status !== 'pending') || $url === '')
+                ? ['source_status' => $status]
+                : null;
 
             // approved_by: '' → '', 'tfl' → 'tfl', 'afl' → 'tafl'
             $approvedBy = (string) ($lst['approved_by'] ?? '');
@@ -681,9 +727,14 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $openedDate  = (string) ($lst['opened_date'] ?? '');
             $description = (string) ($lst['description'] ?? '');
 
-            if (isset($existingUrls[$urlKey])) {
+            // URL match is primary (authoritative Luster state); external-ref is fallback
+            // only when URL is blank (handles listings that have no web presence yet).
+            $existingId = ($url !== '' ? ($existingUrls[$urlKey] ?? null) : null)
+                ?? $existingByExternalId[(string) $srcId]
+                ?? null;
+
+            if ($existingId !== null) {
                 if ($options->conflictStrategy === 'skip') {
-                    $existingId = $existingUrls[$urlKey];
                     $listingIdMap[$srcId] = $existingId;
                     $this->upsertListingSettings($target, $existingId, $approvedBy, $lst['last_updated'] ?? null, $globalSettings, (int) ($lst['for_adoption'] ?? 0), $description);
                     // Backfill opened date only if target row currently has none
@@ -698,7 +749,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     }
                     // Record external ref even in skip mode — ensures a re-run
                     // backfills the mapping without needing an overwrite pass.
-                    $this->upsertExternalRef($target, $existingId, 'fanatically', (string) $srcId);
+                    $this->upsertExternalRef($target, $existingId, 'fanatically', (string) $srcId, $sourceStatusMeta);
                     $fansFansId = trim((string) ($lst['fansfansfans_id'] ?? ''));
                     if ($fansFansId !== '') {
                         $this->upsertExternalRef($target, $existingId, 'fansfansfans', $fansFansId);
@@ -715,7 +766,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
             // Overwrite: reuse the existing listing's actual dbtable so that member
             // rows land in the correct table, not a freshly generated orphan.
             // Insert: generate a new unique slug.
-            $existingIdForOverwrite = $existingUrls[$urlKey] ?? null;
+            $existingIdForOverwrite = $existingId;
             if ($existingIdForOverwrite !== null && isset($existingIdToDbtable[$existingIdForOverwrite])) {
                 $dbtable = $existingIdToDbtable[$existingIdForOverwrite];
             } else {
@@ -731,7 +782,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
             try {
                 if ($isOwned) {
-                    if (isset($existingUrls[$urlKey])) {
+                    if ($existingId !== null) {
                         $target->prepare(
                             "UPDATE `owned` SET title=:title, subject=:subject, url=:url,
                              catid=:catid, status=:status, opened=:opened
@@ -741,9 +792,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
                             'catid' => $primaryCatId,
                             'status' => ($upcoming ? 1 : ($trouble ? 0 : 2)),
                             'opened' => $openedDate ?: null,
-                            'id' => $existingUrls[$urlKey],
+                            'id' => $existingId,
                         ]);
-                        $newId = $existingUrls[$urlKey];
+                        $newId = $existingId;
                     } else {
                         $target->prepare(
                             "INSERT INTO `owned` (dbtable, title, subject, url, catid, status, opened)
@@ -755,11 +806,13 @@ final class FanaticallyImportSource implements ImportSourceInterface
                             'opened' => $openedDate ?: null,
                         ]);
                         $newId = (int) $target->lastInsertId();
-                        $existingUrls[$urlKey] = $newId;
+                        if ($urlKey !== '') {
+                            $existingUrls[$urlKey] = $newId;
+                        }
                         $imported++;
                     }
                 } else {
-                    if (isset($existingUrls[$urlKey])) {
+                    if ($existingId !== null) {
                         $target->prepare(
                             "UPDATE `enth_fanlistings` SET name=:name, subject=:subject, url=:url,
                              catid=:catid, upcoming=:upcoming, trouble=:trouble, opened=:opened
@@ -768,9 +821,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
                             'name' => $title, 'subject' => $subject, 'url' => $url,
                             'catid' => $primaryCatId, 'upcoming' => $upcoming, 'trouble' => $trouble,
                             'opened' => $openedDate ?: null,
-                            'id' => $existingUrls[$urlKey],
+                            'id' => $existingId,
                         ]);
-                        $newId = $existingUrls[$urlKey];
+                        $newId = $existingId;
                     } else {
                         $target->prepare(
                             "INSERT INTO `enth_fanlistings` (dbprefix, name, subject, url, catid, upcoming, trouble, opened)
@@ -781,7 +834,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
                             'upcoming' => $upcoming, 'trouble' => $trouble, 'opened' => $openedDate ?: null,
                         ]);
                         $newId = (int) $target->lastInsertId();
-                        $existingUrls[$urlKey] = $newId;
+                        if ($urlKey !== '') {
+                            $existingUrls[$urlKey] = $newId;
+                        }
                         $imported++;
                     }
                 }
@@ -791,7 +846,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
                 // Record external refs. REPLACE INTO repairs a stale mapping when
                 // the same external ID re-imports to a different Luster listing.
-                $this->upsertExternalRef($target, $newId, 'fanatically', (string) $srcId);
+                $this->upsertExternalRef($target, $newId, 'fanatically', (string) $srcId, $sourceStatusMeta);
+                $existingByExternalId[(string) $srcId] = $newId;
                 $fansFansId = trim((string) ($lst['fansfansfans_id'] ?? ''));
                 if ($fansFansId !== '') {
                     $this->upsertExternalRef($target, $newId, 'fansfansfans', $fansFansId);
@@ -2741,19 +2797,38 @@ final class FanaticallyImportSource implements ImportSourceInterface
     }
 
     // -----------------------------------------------------------------------
-    // Preview helper
+    // External-ref helpers
     /**
-     * Inserts or repairs an external ref mapping.
-     * REPLACE INTO is supported by both MySQL/MariaDB and SQLite and atomically
-     * replaces a stale listing_id for an existing (source, external_id) pair.
+     * Writes or replaces a listing→external-ID mapping. When $metadata is provided
+     * and the lstr_listing_external_refs table has a metadata_json column (added by
+     * Migration 91), the JSON-encoded payload is stored alongside the row.
+     *
+     * @param array<string,mixed>|null $metadata
      */
-    private function upsertExternalRef(PDO $target, int $listingId, string $source, string $externalId): void
-    {
+    private function upsertExternalRef(
+        PDO    $target,
+        int    $listingId,
+        string $source,
+        string $externalId,
+        ?array $metadata = null,
+    ): void {
         try {
-            $target->prepare(
-                'REPLACE INTO lstr_listing_external_refs (listing_id, source, external_id)
-                 VALUES (:lid, :src, :eid)'
-            )->execute(['lid' => $listingId, 'src' => $source, 'eid' => $externalId]);
+            if ($metadata !== null && $this->tableHasColumn($target, 'lstr_listing_external_refs', 'metadata_json')) {
+                $target->prepare(
+                    'REPLACE INTO lstr_listing_external_refs (listing_id, source, external_id, metadata_json)
+                     VALUES (:lid, :src, :eid, :meta)'
+                )->execute([
+                    'lid'  => $listingId,
+                    'src'  => $source,
+                    'eid'  => $externalId,
+                    'meta' => json_encode($metadata),
+                ]);
+            } else {
+                $target->prepare(
+                    'REPLACE INTO lstr_listing_external_refs (listing_id, source, external_id)
+                     VALUES (:lid, :src, :eid)'
+                )->execute(['lid' => $listingId, 'src' => $source, 'eid' => $externalId]);
+            }
         } catch (\Throwable) {}
     }
 
@@ -2788,6 +2863,38 @@ final class FanaticallyImportSource implements ImportSourceInterface
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    /** @return string[] */
+    private function previewListingStatusWarnings(PDO $source, string $table): array
+    {
+        $warns = [];
+        try {
+            $st = $source->query(
+                "SELECT
+                    SUM(CASE WHEN TRIM(COALESCE(url, '')) = '' THEN 1 ELSE 0 END) AS blank_url,
+                    SUM(CASE WHEN status = 'closed'       THEN 1 ELSE 0 END) AS closed,
+                    SUM(CASE WHEN status = 'adopted_out'  THEN 1 ELSE 0 END) AS adopted_out
+                 FROM `{$table}`"
+            );
+            $row = $st ? $st->fetch() : null;
+            if ($row !== null && $row !== false) {
+                $blankUrl   = (int) ($row['blank_url']   ?? 0);
+                $closed     = (int) ($row['closed']      ?? 0);
+                $adoptedOut = (int) ($row['adopted_out'] ?? 0);
+
+                if ($blankUrl > 0) {
+                    $warns[] = "Data transformed — {$blankUrl} listing(s) have no URL and will be imported as inactive; they can be matched again on re-import.";
+                }
+                if ($closed > 0) {
+                    $warns[] = "Data transformed — {$closed} closed listing(s) will be imported as inactive; original status is preserved in metadata.";
+                }
+                if ($adoptedOut > 0) {
+                    $warns[] = "Data transformed — {$adoptedOut} adopted-out listing(s) will be imported as inactive; original status is preserved in metadata.";
+                }
+            }
+        } catch (\Throwable) {}
+        return $warns;
     }
 
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */

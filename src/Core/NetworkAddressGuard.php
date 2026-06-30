@@ -6,8 +6,8 @@
  SSRF protection guard for all outbound HTTP requests. Validates that a
  hostname resolves to a public IP address before allowing a connection,
  blocking private, loopback, and reserved ranges. Used by LinkChecker and
- NetworkDirectoryService to ensure server-side fetches never reach internal
- network resources.
+ ImageMigrator to ensure server-side fetches never reach internal network
+ resources.
 */
 
 declare(strict_types=1);
@@ -19,8 +19,7 @@ namespace Luster\Core;
  *
  * Validates that a hostname resolves exclusively to public IP addresses before
  * any connection is attempted, blocking private RFC 1918 ranges, loopback,
- * link-local, and other reserved ranges. Used by LinkChecker and
- * NetworkDirectoryService.
+ * link-local, and other reserved ranges. Used by LinkChecker and ImageMigrator.
  */
 final class NetworkAddressGuard
 {

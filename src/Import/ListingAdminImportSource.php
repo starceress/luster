@@ -15,6 +15,10 @@ declare(strict_types=1);
 
 namespace Luster\Import;
 
+use Luster\Addons\Kim\KimAddon;
+use Luster\Addons\Rules\RulesAddon;
+use Luster\Addons\Updates\UpdatesAddon;
+use Luster\Addons\Wishlist\WishlistAddon;
 use PDO;
 
 /**
@@ -170,14 +174,11 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $rows[] = $this->previewTable($source, $sp . 'joined', 'Joined listings');
         }
         if ($options->importUpdates) {
-            if ($this->updatesAddonInstalled($addonCheckPdo)) {
-                $rows[] = $this->previewTable($source, $sp . 'updates', 'Updates', [
-                    'LA crossposting fields (uDW, uIJ, uLJ) will be dropped.',
-                ]);
-            } else {
-                $rows[] = ['type' => 'Updates', 'found' => 0, 'import' => 0, 'skip' => 0,
-                           'warnings' => ['News Feed add-on is not installed — updates will be skipped.']];
+            $updatesWarns = ['LA crossposting fields (uDW, uIJ, uLJ) will be dropped.'];
+            if (!$this->updatesAddonInstalled($addonCheckPdo)) {
+                $updatesWarns[] = 'News Feed add-on is not installed — running the import will install it automatically so this data is not lost.';
             }
+            $rows[] = $this->previewTable($source, $sp . 'updates', 'Updates', $updatesWarns);
         }
         if ($options->importWishlist) {
             $rows[] = $this->previewWishlist($source, $addonCheckPdo, $sp);
@@ -1258,9 +1259,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<array{label:string,reason:string}>} */
     private function runUpdates(PDO $source, PDO $target, ImportOptions $options, array $listingIdMap, string $tp = ''): array
     {
-        if (!$this->updatesAddonInstalled($target)) {
+        if (!AddonAutoInstaller::ensureInstalled($target, UpdatesAddon::class) && !$this->updatesAddonInstalled($target)) {
             return ['type' => 'Updates', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => ['News Feed add-on is not installed — skipped.'], 'errors' => [],
+                    'warnings' => ['News Feed add-on could not be installed automatically — updates were skipped.'], 'errors' => [],
                     'skipped_items' => []];
         }
 
@@ -1331,13 +1332,11 @@ final class ListingAdminImportSource implements ImportSourceInterface
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewKim(PDO $source, PDO $target, string $tp): array
     {
+        $kimWarns = ['Fan adoption-interest entries import as pending KIM members.'];
         if (!$this->kimAddonInstalled($target)) {
-            return ['type' => 'KIM List', 'found' => 0, 'import' => 0, 'skip' => 0,
-                    'warnings' => ['Keep In Mind add-on is not installed — KIM entries will be skipped.']];
+            $kimWarns[] = 'Keep In Mind add-on is not installed — running the import will install it automatically so this data is not lost.';
         }
-        return $this->previewTable($source, $tp . 'kim', 'KIM List', [
-            'Fan adoption-interest entries import as pending KIM members.',
-        ]);
+        return $this->previewTable($source, $tp . 'kim', 'KIM List', $kimWarns);
     }
 
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array} */
@@ -1345,9 +1344,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
         PDO $source, PDO $target, ImportOptions $options,
         array $listingIdMap, string $tp
     ): array {
-        if (!$this->kimAddonInstalled($target)) {
+        if (!AddonAutoInstaller::ensureInstalled($target, KimAddon::class) && !$this->kimAddonInstalled($target)) {
             return ['type' => 'KIM List', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => ['Keep In Mind add-on is not installed — KIM entries were skipped.'],
+                    'warnings' => ['Keep In Mind add-on could not be installed automatically — KIM entries were skipped.'],
                     'errors' => [], 'skipped_items' => []];
         }
 
@@ -1477,9 +1476,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewRules(PDO $source, PDO $target, string $sreg): array
     {
+        $rulesWarns = ['Listings that already have join rules configured in Luster are left unchanged.'];
         if (!$this->rulesAddonInstalled($target)) {
-            return ['type' => 'Join Rules', 'found' => 0, 'import' => 0, 'skip' => 0,
-                    'warnings' => ['Join Rules add-on is not installed — join rules will be skipped.']];
+            $rulesWarns[] = 'Join Rules add-on is not installed — running the import will install it automatically so this data is not lost.';
         }
 
         try {
@@ -1489,16 +1488,15 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $found = 0;
         }
 
-        return ['type' => 'Join Rules', 'found' => $found, 'import' => $found, 'skip' => 0,
-                'warnings' => ['Listings that already have join rules configured in Luster are left unchanged.']];
+        return ['type' => 'Join Rules', 'found' => $found, 'import' => $found, 'skip' => 0, 'warnings' => $rulesWarns];
     }
 
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array} */
     private function runRules(PDO $source, PDO $target, array $listingIdMap, string $sreg): array
     {
-        if (!$this->rulesAddonInstalled($target)) {
+        if (!AddonAutoInstaller::ensureInstalled($target, RulesAddon::class) && !$this->rulesAddonInstalled($target)) {
             return ['type' => 'Join Rules', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => ['Join Rules add-on is not installed — join rules were skipped.'],
+                    'warnings' => ['Join Rules add-on could not be installed automatically — join rules were skipped.'],
                     'errors' => [], 'skipped_items' => []];
         }
 
@@ -1582,13 +1580,11 @@ final class ListingAdminImportSource implements ImportSourceInterface
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewWishlist(PDO $source, PDO $target, string $tp): array
     {
+        $wishlistWarns = ['Owner\'s fanlisting wishlist entries. wType values are mapped to Luster\'s wanted/top/granted types.'];
         if (!$this->wishlistAddonInstalled($target)) {
-            return ['type' => 'Wishlist', 'found' => 0, 'import' => 0, 'skip' => 0,
-                    'warnings' => ['Wishlist add-on is not installed — wishlist entries will be skipped.']];
+            $wishlistWarns[] = 'Wishlist add-on is not installed — running the import will install it automatically so this data is not lost.';
         }
-        return $this->previewTable($source, $tp . 'wishlist', 'Wishlist', [
-            'Owner\'s fanlisting wishlist entries. wType values are mapped to Luster\'s wanted/top/granted types.',
-        ]);
+        return $this->previewTable($source, $tp . 'wishlist', 'Wishlist', $wishlistWarns);
     }
 
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array} */
@@ -1596,9 +1592,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
         PDO $source, PDO $target, ImportOptions $options,
         ?ImageMigrator $migrator, array $imageSettings, string $tp
     ): array {
-        if (!$this->wishlistAddonInstalled($target)) {
+        if (!AddonAutoInstaller::ensureInstalled($target, WishlistAddon::class) && !$this->wishlistAddonInstalled($target)) {
             return ['type' => 'Wishlist', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => ['Wishlist add-on is not installed — wishlist entries were skipped.'],
+                    'warnings' => ['Wishlist add-on could not be installed automatically — wishlist entries were skipped.'],
                     'errors' => [], 'skipped_items' => []];
         }
 

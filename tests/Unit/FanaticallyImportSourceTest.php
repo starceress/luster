@@ -242,6 +242,7 @@ final class FanaticallyImportSourceTest extends TestCase
                 source      TEXT    NOT NULL,
                 external_id TEXT    NOT NULL,
                 external_slug_or_url TEXT NOT NULL DEFAULT \'\',
+                metadata_json TEXT NULL,
                 UNIQUE (source, external_id)
             )'
         );
@@ -906,6 +907,178 @@ final class FanaticallyImportSourceTest extends TestCase
         self::assertSame('0', (string) $row['status'], 'pending status should map to owned.status=0 (trouble)');
     }
 
+    public function testStatusClosedMapsToInactiveNotCurrent(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $this->insertListing($src, 'https://example.com/fl/', status: 'closed');
+
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $row = $tgt->query('SELECT status FROM owned LIMIT 1')->fetch();
+        self::assertSame('0', (string) $row['status'], 'closed status should map to owned.status=0 (inactive)');
+    }
+
+    public function testStatusAdoptedOutMapsToInactiveNotCurrent(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $this->insertListing($src, 'https://example.com/fl/', status: 'adopted_out');
+
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $row = $tgt->query('SELECT status FROM owned LIMIT 1')->fetch();
+        self::assertSame('0', (string) $row['status'], 'adopted_out status should map to owned.status=0 (inactive)');
+    }
+
+    public function testUnrecognizedFutureStatusFailsSafeToInactive(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $this->insertListing($src, 'https://example.com/fl/', status: 'suspended');
+
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $row = $tgt->query('SELECT status FROM owned LIMIT 1')->fetch();
+        self::assertSame('0', (string) $row['status'], 'unknown status should fail safe to owned.status=0 (inactive)');
+    }
+
+    public function testClosedStatusPreservedInExternalRefMetadata(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $this->insertListing($src, 'https://example.com/fl/', status: 'closed');
+
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $row = $tgt->query("SELECT metadata_json FROM lstr_listing_external_refs WHERE source='fanatically'")->fetch();
+        self::assertNotFalse($row, 'External ref row must exist');
+        $meta = json_decode((string) ($row['metadata_json'] ?? ''), true);
+        self::assertSame('closed', $meta['source_status'] ?? null, 'closed source_status must be preserved in metadata_json');
+    }
+
+    public function testCurrentStatusDoesNotWriteSourceStatusMetadata(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $this->insertListing($src, 'https://example.com/fl/', status: 'current');
+
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $row = $tgt->query("SELECT metadata_json FROM lstr_listing_external_refs WHERE source='fanatically'")->fetch();
+        self::assertNotFalse($row, 'External ref row must exist');
+        self::assertNull($row['metadata_json'], 'metadata_json should be NULL for current status (no lossless mapping needed)');
+    }
+
+    public function testBlankUrlListingIsImportedNotSkipped(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $this->insertListing($src, '', status: 'current');
+
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $count = (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn();
+        self::assertSame(1, $count, 'Blank-URL listing should be imported, not skipped');
+    }
+
+    public function testBlankUrlListingImportedAsInactiveEvenWhenStatusCurrent(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $this->insertListing($src, '', status: 'current');
+
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $row = $tgt->query('SELECT status FROM owned LIMIT 1')->fetch();
+        self::assertSame('0', (string) $row['status'], 'Blank-URL listing must be inactive regardless of source status');
+    }
+
+    public function testBlankUrlListingPreservesOriginalStatusAsMetadata(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $this->insertListing($src, '', status: 'current');
+
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $row = $tgt->query("SELECT metadata_json FROM lstr_listing_external_refs WHERE source='fanatically'")->fetch();
+        self::assertNotFalse($row, 'External ref row must exist for blank-URL listing');
+        $meta = json_decode((string) ($row['metadata_json'] ?? ''), true);
+        self::assertSame('current', $meta['source_status'] ?? null, 'Original source status must be in metadata even for blank-URL listings');
+    }
+
+    public function testMultipleBlankUrlListingsDoNotCollideWithEachOther(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $src->exec("INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption) VALUES (1, 'FL One', 'One', '', 'current', '', 0)");
+        $src->exec("INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption) VALUES (2, 'FL Two', 'Two', '', 'current', '', 0)");
+
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $count = (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn();
+        self::assertSame(2, $count, 'Each blank-URL listing must produce a separate owned row');
+    }
+
+    public function testBlankUrlListingMatchedByExternalIdOnReimport(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        // First import — blank-URL listing gets its own owned row
+        $this->insertListing($src, '', status: 'current');
+        $opts = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $firstCount = (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn();
+        self::assertSame(1, $firstCount, 'First import should create one row');
+
+        // Second import (skip strategy) — must re-use the existing row, not create a duplicate
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $secondCount = (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn();
+        self::assertSame(1, $secondCount, 'Re-import must match blank-URL listing by external_id and not create a duplicate');
+    }
+
     // -----------------------------------------------------------------------
     // Existing-listing overwrite
     // -----------------------------------------------------------------------
@@ -1006,6 +1179,36 @@ final class FanaticallyImportSourceTest extends TestCase
         self::assertStringContainsString('Members', $joined,
             'Preview should warn that Members selected without Listings will produce empty results');
         self::assertStringContainsString('Listings', $joined);
+    }
+
+    public function testPreviewWarnsAboutClosedAdoptedOutAndBlankUrlCounts(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $src->exec("INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption) VALUES (1, 'FL One',   'One', 'https://one.example.com/', 'current',      '', 0)");
+        $src->exec("INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption) VALUES (2, 'FL Two',   'Two', 'https://two.example.com/', 'closed',       '', 0)");
+        $src->exec("INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption) VALUES (3, 'FL Three', 'Thr', 'https://thr.example.com/', 'adopted_out',  '', 0)");
+        $src->exec("INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption) VALUES (4, 'FL Four',  'Fou', '',                         'current',      '', 0)");
+
+        $opts    = $this->makeOptions(['import_listings' => '1']);
+        $preview = $this->adapter()->preview($src, $tgt, $opts);
+
+        $listRow = null;
+        foreach ($preview->rows as $row) {
+            if ($row['type'] === 'Owned Listings') {
+                $listRow = $row;
+                break;
+            }
+        }
+        self::assertNotNull($listRow, 'Preview must include an Owned Listings row');
+
+        $warns = implode(' ', $listRow['warnings'] ?? []);
+        self::assertStringContainsString('1 listing(s) have no URL', $warns, 'Preview must warn about blank-URL listings');
+        self::assertStringContainsString('1 closed listing(s)',       $warns, 'Preview must warn about closed listings');
+        self::assertStringContainsString('1 adopted-out listing(s)',  $warns, 'Preview must warn about adopted-out listings');
     }
 
     public function testPreviewWarnsUpcomingJoinedStatus(): void
@@ -1533,6 +1736,7 @@ final class FanaticallyImportSourceTest extends TestCase
                 source      TEXT    NOT NULL,
                 external_id TEXT    NOT NULL,
                 external_slug_or_url TEXT NOT NULL DEFAULT \'\',
+                metadata_json TEXT NULL,
                 UNIQUE (source, external_id)
             )'
         );

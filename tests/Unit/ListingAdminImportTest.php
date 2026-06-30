@@ -618,7 +618,13 @@ final class ListingAdminImportTest extends TestCase
     // KIM List — reads from LA `kim` table
     // -----------------------------------------------------------------------
 
-    public function testKimSkippedWhenAddonNotInstalled(): void
+    /**
+     * The real KimAddon::install() uses MySQL-only DDL (AUTO_INCREMENT, ENGINE=InnoDB)
+     * that fails under SQLite, so AddonAutoInstaller::ensureInstalled() returns false here.
+     * This test covers the graceful-failure path; happy-path auto-install is tested in
+     * AddonAutoInstallerTest using a SQLite-safe FakeTestAddon.
+     */
+    public function testKimGracefullyHandlesFailedAutoInstall(): void
     {
         $src = $this->makePdo();
         $tgt = $this->makePdo();
@@ -626,7 +632,7 @@ final class ListingAdminImportTest extends TestCase
         $this->seedLaSource($src);
         $this->seedTarget($tgt);
         $this->createLaKimTable($src);
-        // Deliberately do NOT create lstr_kim_members in $tgt.
+        // lstr_kim_members absent; real KimAddon DDL fails on SQLite so auto-install returns false.
 
         $this->insertSourceListing($src, 'http://test.com');
         $this->insertLaKim($src, 1, 'fan@test.com');
@@ -642,7 +648,7 @@ final class ListingAdminImportTest extends TestCase
         }
         $this->assertNotNull($kimRow);
         $this->assertSame(0, $kimRow['imported']);
-        $this->assertStringContainsString('not installed', implode(' ', $kimRow['warnings']));
+        $this->assertStringContainsString('could not be installed automatically', implode(' ', $kimRow['warnings']));
     }
 
     public function testKimImportsFromKimTableWithCorrectColumns(): void
@@ -731,7 +737,13 @@ final class ListingAdminImportTest extends TestCase
     // Wishlist — reads from LA `wishlist` table, writes to lstr_wishlist
     // -----------------------------------------------------------------------
 
-    public function testWishlistSkippedWhenAddonNotInstalled(): void
+    /**
+     * The real WishlistAddon::install() uses MySQL-only DDL (AUTO_INCREMENT, ENGINE=InnoDB)
+     * that fails under SQLite, so AddonAutoInstaller::ensureInstalled() returns false here.
+     * This test covers the graceful-failure path; happy-path auto-install is tested in
+     * AddonAutoInstallerTest using a SQLite-safe FakeTestAddon.
+     */
+    public function testWishlistGracefullyHandlesFailedAutoInstall(): void
     {
         $src = $this->makePdo();
         $tgt = $this->makePdo();
@@ -739,7 +751,7 @@ final class ListingAdminImportTest extends TestCase
         $this->seedLaSource($src);
         $this->seedTarget($tgt);
         $this->createLaWishlistTable($src);
-        // Do NOT create lstr_wishlist in target.
+        // lstr_wishlist absent; real WishlistAddon DDL fails on SQLite so auto-install returns false.
 
         $this->insertLaWishlist($src, 'http://want.com', 'Subject I Want');
 
@@ -753,7 +765,7 @@ final class ListingAdminImportTest extends TestCase
         }
         $this->assertNotNull($wRow);
         $this->assertSame(0, $wRow['imported']);
-        $this->assertStringContainsString('not installed', implode(' ', $wRow['warnings']));
+        $this->assertStringContainsString('could not be installed automatically', implode(' ', $wRow['warnings']));
     }
 
     public function testWishlistImportsFromOwnerWishlistTable(): void

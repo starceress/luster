@@ -2931,6 +2931,23 @@ try {
     $errors[] = 'Migration 90 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 91: add metadata_json column to lstr_listing_external_refs to
+// preserve source statuses (closed, adopted_out, blank-URL) that have no direct
+// Luster mapping, for lossless round-tripping during re-imports. ---
+try {
+    $check = $pdo->query('SELECT migration_number FROM `lstr_migrations` WHERE migration_number = 91');
+    if ($check === false || $check->fetch() === false) {
+        $col = $pdo->query("SHOW COLUMNS FROM `lstr_listing_external_refs` LIKE 'metadata_json'")->fetchAll();
+        if (empty($col)) {
+            $pdo->exec("ALTER TABLE `lstr_listing_external_refs` ADD COLUMN `metadata_json` TEXT NULL AFTER `external_slug_or_url`");
+        }
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (91)');
+        $done[] = 'Migration 91: added <code>metadata_json</code> column to <code>lstr_listing_external_refs</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 91 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

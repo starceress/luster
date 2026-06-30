@@ -722,6 +722,11 @@ function installTables(PDO $pdo): void
             `adopt_form_template`          TEXT                  NULL DEFAULT NULL,
             `update_form_template`         TEXT                  NULL DEFAULT NULL,
             `reset_form_template`          TEXT                  NULL DEFAULT NULL,
+            `stat_newmembers_limit`        TINYINT UNSIGNED      NULL DEFAULT NULL,
+            `affiliate_apply_style`        VARCHAR(10)           NULL DEFAULT NULL,
+            `codes_submit_style`           VARCHAR(10)           NULL DEFAULT NULL,
+            `affiliate_apply_toggle_label` VARCHAR(200)          NULL DEFAULT NULL,
+            `codes_submit_toggle_label`    VARCHAR(200)          NULL DEFAULT NULL,
             `updated_at`                   DATETIME              NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`fanlisting_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
@@ -862,14 +867,15 @@ function installTables(PDO $pdo): void
             UNIQUE KEY `uq_pattern` (`pattern`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        // External listing ID references (M57) — links Luster listings to IDs in
-        // third-party scripts (fanatically, codesort, fansfansfans).
+        // External listing ID references (M57, metadata_json added M91) — links
+        // Luster listings to IDs in third-party scripts (fanatically, codesort, fansfansfans).
         "CREATE TABLE IF NOT EXISTS `lstr_listing_external_refs` (
             `id`                   INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `listing_id`           INT UNSIGNED NOT NULL,
             `source`               VARCHAR(50)  NOT NULL,
             `external_id`          VARCHAR(100) NOT NULL,
             `external_slug_or_url` VARCHAR(500) NOT NULL DEFAULT '',
+            `metadata_json`        TEXT         NULL,
             `created_at`           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uq_ext_refs` (`source`, `external_id`),
@@ -1010,7 +1016,8 @@ function installTables(PDO $pdo): void
          (36),(37),(38),(39),(40),(41),(42),(43),(44),(45),(46),
          (47),(48),(49),(50),(51),(52),(53),(55),(56),(57),
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
-         (69),(70),(71),(72),(73),(74),(75),(76),(77),(78)'
+         (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
+         (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91)'
     );
 }
 
