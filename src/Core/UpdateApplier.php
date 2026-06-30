@@ -52,6 +52,7 @@ final class UpdateApplier
         private readonly string $basePath,
         private readonly Database $db,
         ?callable $httpFetcher = null,
+        private readonly string $enthTablePrefix = '',
     ) {
         $this->httpFetcher = $httpFetcher ?? $this->defaultFetcher();
     }
@@ -213,7 +214,7 @@ final class UpdateApplier
      */
     public function createBackupZip(): array
     {
-        return (new BackupService($this->db, $this->basePath))->createZip('rollback');
+        return (new BackupService($this->db, $this->basePath, $this->enthTablePrefix))->createZip('rollback');
     }
 
     /**

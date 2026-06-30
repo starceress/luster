@@ -437,7 +437,12 @@ final class AdminUpdateController extends AdminController
      */
     private function applier(): UpdateApplier
     {
-        return new UpdateApplier($this->app->getBasePath(), $this->app->getDatabase());
+        return new UpdateApplier(
+            $this->app->getBasePath(),
+            $this->app->getDatabase(),
+            null,
+            (string) $this->app->getConfig()->get('enth_table_prefix', ''),
+        );
     }
 
     /**

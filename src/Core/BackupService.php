@@ -38,7 +38,14 @@ final class BackupService
     public function __construct(
         private readonly Database $db,
         private readonly string $basePath,
-    ) {}
+        private readonly string $enthTablePrefix = '',
+    ) {
+        if ($enthTablePrefix !== '' && !preg_match('/^[a-zA-Z0-9_]+$/', $enthTablePrefix)) {
+            throw new \InvalidArgumentException(
+                "Invalid enth_table_prefix '{$enthTablePrefix}': only [a-zA-Z0-9_] allowed."
+            );
+        }
+    }
 
     /**
      * Creates a backup ZIP in storage/cache and returns its path and filename.
@@ -178,23 +185,11 @@ final class BackupService
             }
         }
 
-        // Resolve the actual registry table from the configured enth_table_prefix.
-        // ListingRepo builds this as ($prefix === '') ? 'owned' : $prefix . 'listings',
+        // Derive the registry table the same way ListingRepo does:
+        // ($prefix === '') ? 'owned' : $prefix . 'listings'
         // so enth_table_prefix='enth_' gives 'enth_listings', not 'enth_fanlistings'.
-        $enthPrefix = '';
-        try {
-            $stmt = $pdo->prepare(
-                "SELECT setting_value FROM lstr_site_settings WHERE setting_key = 'enth_table_prefix'"
-            );
-            $stmt->execute();
-            $fetched = $stmt->fetch(PDO::FETCH_NUM);
-            if ($fetched !== false && preg_match('/^[a-zA-Z0-9_]*$/', (string) ($fetched[0] ?? ''))) {
-                $enthPrefix = (string) ($fetched[0] ?? '');
-            }
-        } catch (\Throwable) {}
-
-        $isOwnedSchema = ($enthPrefix === '');
-        $registry      = $isOwnedSchema ? 'owned' : $enthPrefix . 'listings';
+        $isOwnedSchema = ($this->enthTablePrefix === '');
+        $registry      = $isOwnedSchema ? 'owned' : $this->enthTablePrefix . 'listings';
         $memberCol     = $isOwnedSchema ? 'dbtable' : 'dbprefix';
 
         if (in_array($registry, $allTables, true)) {

@@ -53,7 +53,8 @@ final class SysInfoController
         $baseUrl = $this->app->getBaseUrl();
 
         try {
-            $backup = (new BackupService($this->app->getDatabase(), LUSTER_BASE))->createZip('complete');
+            $enthPrefix = (string) $this->app->getConfig()->get('enth_table_prefix', '');
+            $backup     = (new BackupService($this->app->getDatabase(), LUSTER_BASE, $enthPrefix))->createZip('complete');
             return Response::streamFile($backup['path'], $backup['filename'], 'application/zip');
         } catch (\Throwable $e) {
             $session->set('lstr_flash_error', 'Backup failed: ' . $e->getMessage());
