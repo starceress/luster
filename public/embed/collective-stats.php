@@ -68,44 +68,54 @@ if ($_lusterCacheTtl > 0 && is_file($_lusterCacheFile)) {
     }
 }
 
-// Old caches written before countries_count was added report 0 silently.
-// Treat their absence as a miss so the live value is fetched instead.
-if ($_lusterCached !== null && !array_key_exists('countries_count', $_lusterCached)) {
+// Invalidate stale caches that are missing required keys.
+// - 'countries_count' was added later; its absence means the count is missing.
+// - 'affiliates_sitewide' and 'affiliates_total' replaced the single 'affiliates'
+//   key (which was produced by a buggy all-active query). Old caches missing
+//   these keys would supply the wrong number for {affiliates_sitewide}.
+if ($_lusterCached !== null && (
+    !array_key_exists('countries_count', $_lusterCached) ||
+    !array_key_exists('affiliates_sitewide', $_lusterCached) ||
+    !array_key_exists('affiliates_total', $_lusterCached)
+)) {
     $_lusterCached = null;
 }
 
 if ($_lusterCached !== null) {
     // Restore scalar data from cache
-    $_lusterOwnedCounts    = $_lusterCached['owned_counts'];
-    $_lusterJoinedCounts   = $_lusterCached['joined_counts'];
-    $_lusterAffiliates     = (int) $_lusterCached['affiliates'];
-    $_lusterMembers        = $_lusterCached['members'];
-    $_lusterGrowthRates    = $_lusterCached['growth_rates'];
-    $_lusterCategories     = $_lusterCached['categories'];
-    $_lusterCountriesCount = (int) ($_lusterCached['countries_count'] ?? 0);
+    $_lusterOwnedCounts         = $_lusterCached['owned_counts'];
+    $_lusterJoinedCounts        = $_lusterCached['joined_counts'];
+    $_lusterAffiliatesSitewide  = (int) $_lusterCached['affiliates_sitewide'];
+    $_lusterAffiliatesTotal     = (int) $_lusterCached['affiliates_total'];
+    $_lusterMembers             = $_lusterCached['members'];
+    $_lusterGrowthRates         = $_lusterCached['growth_rates'];
+    $_lusterCategories          = $_lusterCached['categories'];
+    $_lusterCountriesCount      = (int) ($_lusterCached['countries_count'] ?? 0);
 } else {
-    $_lusterOwnedCounts    = $_lusterStatsRepo->getOwnedCounts();
-    $_lusterJoinedCounts   = $_lusterStatsRepo->getJoinedCounts();
-    $_lusterAffiliates     = $_lusterStatsRepo->getAffiliateCount();
-    $_lusterMembers        = $_lusterStatsRepo->getMemberTotals();
-    $_lusterGrowthRates    = $_lusterStatsRepo->getGrowthRates(
+    $_lusterOwnedCounts         = $_lusterStatsRepo->getOwnedCounts();
+    $_lusterJoinedCounts        = $_lusterStatsRepo->getJoinedCounts();
+    $_lusterAffiliatesSitewide  = $_lusterStatsRepo->getSitewideAffiliateCount();
+    $_lusterAffiliatesTotal     = $_lusterStatsRepo->getTotalAffiliateCount();
+    $_lusterMembers             = $_lusterStatsRepo->getMemberTotals();
+    $_lusterGrowthRates         = $_lusterStatsRepo->getGrowthRates(
         $_lusterMembers['approved'],
         $_lusterOwnedCounts['active'],
         $_lusterJoinedCounts['active'],
     );
-    $_lusterCategories     = $_lusterStatsRepo->getOwnedCategoryBreakdown();
-    $_lusterCountriesCount = $_lusterStatsRepo->getDistinctCountryCount();
+    $_lusterCategories          = $_lusterStatsRepo->getOwnedCategoryBreakdown();
+    $_lusterCountriesCount      = $_lusterStatsRepo->getDistinctCountryCount();
 
     // Write cache
     if ($_lusterCacheTtl > 0 && is_dir($_lusterCacheDir) && is_writable($_lusterCacheDir)) {
         file_put_contents($_lusterCacheFile, json_encode([
-            'owned_counts'   => $_lusterOwnedCounts,
-            'joined_counts'  => $_lusterJoinedCounts,
-            'affiliates'     => $_lusterAffiliates,
-            'members'        => $_lusterMembers,
-            'growth_rates'   => $_lusterGrowthRates,
-            'categories'     => $_lusterCategories,
-            'countries_count' => $_lusterCountriesCount,
+            'owned_counts'       => $_lusterOwnedCounts,
+            'joined_counts'      => $_lusterJoinedCounts,
+            'affiliates_sitewide' => $_lusterAffiliatesSitewide,
+            'affiliates_total'   => $_lusterAffiliatesTotal,
+            'members'            => $_lusterMembers,
+            'growth_rates'       => $_lusterGrowthRates,
+            'categories'         => $_lusterCategories,
+            'countries_count'    => $_lusterCountriesCount,
         ], JSON_THROW_ON_ERROR));
     }
 }
@@ -142,7 +152,9 @@ $luster_joined_approved     = (int) ($_lusterJoinedCounts['approved'] ?? 0);
 $luster_joined_upcoming     = $_lusterJoinedCounts['upcoming'];
 $luster_joined_pending      = $_lusterJoinedCounts['pending'];
 
-$luster_affiliates          = $_lusterAffiliates;
+$luster_affiliates          = $_lusterAffiliatesSitewide; // backward compat: site-wide only
+$luster_affiliates_sitewide = $_lusterAffiliatesSitewide;
+$luster_affiliates_total    = $_lusterAffiliatesTotal;
 $luster_members_approved    = $_lusterMembers['approved'];
 $luster_members_pending     = $_lusterMembers['pending'];
 $luster_members_total       = $_lusterMembers['total'];
@@ -237,6 +249,16 @@ if ($_lusterCStatsTemplate !== null) {
         $luster_owned_pending > 0 ? '$1' : '',
         $_lusterCStatsTemplate,
     );
+    $_lusterCStatsTemplate = (string) preg_replace(
+        '/\{if_affiliates_sitewide\}(.*?)\{\/if_affiliates_sitewide\}/s',
+        $luster_affiliates_sitewide > 0 ? '$1' : '',
+        $_lusterCStatsTemplate,
+    );
+    $_lusterCStatsTemplate = (string) preg_replace(
+        '/\{if_affiliates_total\}(.*?)\{\/if_affiliates_total\}/s',
+        $luster_affiliates_total > 0 ? '$1' : '',
+        $_lusterCStatsTemplate,
+    );
 
     $_lusterSiteName = (string) $_lusterApp->getConfig()->get('site_name', 'Collective');
 
@@ -264,6 +286,8 @@ if ($_lusterCStatsTemplate !== null) {
             '{owned_random_url}',
             '{collective_last_updated}',
             '{joined_total_cats}',
+            '{affiliates_sitewide}',
+            '{affiliates_total}',
             '{tfl_url}',
             '{tafl_url}',
         ],
@@ -290,6 +314,8 @@ if ($_lusterCStatsTemplate !== null) {
             $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->url     : ''),
             $_lusterE($luster_collective_last_updated),
             (string) $luster_joined_total_cats,
+            (string) $luster_affiliates_sitewide,
+            (string) $luster_affiliates_total,
             'https://thefanlistings.org/',
             'https://www.animefanlistings.com/',
         ],

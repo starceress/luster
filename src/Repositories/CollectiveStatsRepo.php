@@ -273,16 +273,35 @@ final class CollectiveStatsRepo
     }
 
     // -----------------------------------------------------------------------
-    // Affiliate count
+    // Affiliate counts
     // -----------------------------------------------------------------------
 
     /**
-     * Returns the total number of active collective affiliates
-     * (fanlisting_id IS NULL AND active = 1).
+     * Returns the number of active site-wide (collective) affiliates:
+     * rows where fanlisting_id IS NULL and active = 1.
      *
-     * Returns 0 if the table does not exist or the active column is absent.
+     * Returns 0 on error.
      */
-    public function getAffiliateCount(): int
+    public function getSitewideAffiliateCount(): int
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id IS NULL AND active = 1'
+            );
+            $stmt->execute();
+            return (int) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    /**
+     * Returns the total number of active affiliates across every scope:
+     * site-wide and all per-listing combined (active = 1, any fanlisting_id).
+     *
+     * Returns 0 on error.
+     */
+    public function getTotalAffiliateCount(): int
     {
         try {
             $stmt = $this->db->prepare(
@@ -293,6 +312,16 @@ final class CollectiveStatsRepo
         } catch (\Throwable) {
             return 0;
         }
+    }
+
+    /**
+     * @deprecated Use getSitewideAffiliateCount() instead.
+     *             This method previously lacked the fanlisting_id IS NULL filter
+     *             and silently returned all active affiliates regardless of scope.
+     */
+    public function getAffiliateCount(): int
+    {
+        return $this->getSitewideAffiliateCount();
     }
 
     // -----------------------------------------------------------------------
