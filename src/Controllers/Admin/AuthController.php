@@ -168,17 +168,47 @@ final class AuthController
 
         // Remember-me cookie
         if ($rememberMe) {
-            $rawToken  = bin2hex(random_bytes(32));
-            $tokenHash = hash('sha256', $rawToken);
-            $expiresAt = (new DateTimeImmutable())->modify('+30 days')->format('Y-m-d H:i:s');
+            $rawToken       = bin2hex(random_bytes(32));
+            $tokenHash      = hash('sha256', $rawToken);
+            $expiresAt      = (new DateTimeImmutable())->modify('+30 days')->format('Y-m-d H:i:s');
+            $ua             = substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 100);
+            $deviceLabel    = self::labelFromUserAgent($ua);
 
-            // One active token per user
-            $db->prepare('DELETE FROM lstr_admin_remember_tokens WHERE admin_user_id = :uid')
-               ->execute(['uid' => $userId]);
-            $db->prepare(
-                'INSERT INTO lstr_admin_remember_tokens (admin_user_id, token_hash, expires_at)
-                 VALUES (:uid, :hash, :expires)'
-            )->execute(['uid' => $userId, 'hash' => $tokenHash, 'expires' => $expiresAt]);
+            // Multi-device: insert without deleting other tokens; cap at 10 per user.
+            try {
+                $db->prepare(
+                    'INSERT INTO lstr_admin_remember_tokens
+                     (admin_user_id, token_hash, expires_at, device_label, last_used_at, user_agent_hint)
+                     VALUES (:uid, :hash, :expires, :label, NOW(), :ua)'
+                )->execute([
+                    'uid'    => $userId,
+                    'hash'   => $tokenHash,
+                    'expires' => $expiresAt,
+                    'label'  => $deviceLabel,
+                    'ua'     => $ua,
+                ]);
+            } catch (\PDOException) {
+                // Pre-migration columns absent — fall back to basic insert
+                $db->prepare(
+                    'INSERT INTO lstr_admin_remember_tokens (admin_user_id, token_hash, expires_at)
+                     VALUES (:uid, :hash, :expires)'
+                )->execute(['uid' => $userId, 'hash' => $tokenHash, 'expires' => $expiresAt]);
+            }
+
+            // Prune oldest tokens if the user now has more than 10.
+            $countRow = $db->prepare(
+                'SELECT id FROM lstr_admin_remember_tokens
+                 WHERE admin_user_id = :uid
+                 ORDER BY created_at ASC, id ASC'
+            );
+            $countRow->execute(['uid' => $userId]);
+            $allIds = $countRow->fetchAll(\PDO::FETCH_COLUMN);
+            if (count($allIds) > 10) {
+                $toPrune = array_slice($allIds, 0, count($allIds) - 10);
+                $ph = implode(',', array_fill(0, count($toPrune), '?'));
+                $db->prepare("DELETE FROM lstr_admin_remember_tokens WHERE id IN ({$ph})")
+                   ->execute($toPrune);
+            }
 
             $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
                     || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
@@ -455,6 +485,41 @@ final class AuthController
     /**
      * Returns the active skin slug for the auth pages (login/forgot/reset).
      */
+    /**
+     * Derives a short human-readable device label from the User-Agent string.
+     * Best-effort; uses no external library.
+     */
+    private static function labelFromUserAgent(string $ua): string
+    {
+        $browser = 'Browser';
+        if (str_contains($ua, 'Edg/') || str_contains($ua, 'Edge/')) {
+            $browser = 'Edge';
+        } elseif (str_contains($ua, 'Firefox/')) {
+            $browser = 'Firefox';
+        } elseif (str_contains($ua, 'OPR/') || str_contains($ua, 'Opera/')) {
+            $browser = 'Opera';
+        } elseif (str_contains($ua, 'Chrome/')) {
+            $browser = 'Chrome';
+        } elseif (str_contains($ua, 'Safari/')) {
+            $browser = 'Safari';
+        }
+
+        $os = 'Unknown OS';
+        if (str_contains($ua, 'iPhone') || str_contains($ua, 'iPad')) {
+            $os = 'iOS';
+        } elseif (str_contains($ua, 'Android')) {
+            $os = 'Android';
+        } elseif (str_contains($ua, 'Windows')) {
+            $os = 'Windows';
+        } elseif (str_contains($ua, 'Macintosh') || str_contains($ua, 'Mac OS')) {
+            $os = 'macOS';
+        } elseif (str_contains($ua, 'Linux')) {
+            $os = 'Linux';
+        }
+
+        return $browser . ' on ' . $os;
+    }
+
     private function selectedSkin(): string
     {
         return $this->selectedSkinAndTheme()['skin'];

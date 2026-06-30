@@ -357,6 +357,10 @@ return [
             SettingsController::class, 'resetAllTemplates');
         $router->post('/admin/settings/profile',
             SettingsController::class, 'updateProfile');
+        $router->post('/admin/settings/devices/{id}/revoke',
+            SettingsController::class, 'revokeDevice');
+        $router->post('/admin/settings/devices/revoke-all',
+            SettingsController::class, 'revokeAllDevices');
         $router->post('/admin/settings/test-email',
             SettingsController::class, 'testEmail');
         $router->post('/admin/settings/check-update',

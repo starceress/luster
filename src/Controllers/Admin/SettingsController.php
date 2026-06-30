@@ -1634,6 +1634,7 @@ final class SettingsController extends AdminController
             'error_log_count'      => $errorLogCount,
             'update_status'        => $updateStatus,
             'session_path_diagnostics' => $session->getPathDiagnostics(),
+            'remembered_devices'   => $this->getRememberedDevices($adminId),
         ]);
     }
 
@@ -1954,8 +1955,103 @@ final class SettingsController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // POST /admin/settings/devices/{id}/revoke
+    // -----------------------------------------------------------------------
+
+    /**
+     * Revokes a single remembered device token. Only the currently logged-in
+     * admin may revoke their own tokens.
+     */
+    public function revokeDevice(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $session  = $this->app->getSession();
+        $adminId  = (int) $session->get('lstr_admin_id');
+        $deviceId = (int) ($params['id'] ?? 0);
+        $db       = $this->app->getDatabase();
+
+        $db->prepare(
+            'DELETE FROM lstr_admin_remember_tokens
+             WHERE id = :id AND admin_user_id = :uid'
+        )->execute(['id' => $deviceId, 'uid' => $adminId]);
+
+        $session->set('lstr_flash_success', 'Device revoked.');
+        return Response::redirect($this->app->getBaseUrl() . '/admin/settings#panel-devices');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/devices/revoke-all
+    // -----------------------------------------------------------------------
+
+    /**
+     * Revokes all remembered device tokens for the current admin.
+     */
+    public function revokeAllDevices(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $session = $this->app->getSession();
+        $adminId = (int) $session->get('lstr_admin_id');
+        $db      = $this->app->getDatabase();
+
+        $db->prepare(
+            'DELETE FROM lstr_admin_remember_tokens WHERE admin_user_id = :uid'
+        )->execute(['uid' => $adminId]);
+
+        $session->set('lstr_flash_success', 'All remembered devices have been revoked.');
+        return Response::redirect($this->app->getBaseUrl() . '/admin/settings#panel-devices');
+    }
+
+    // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    /**
+     * Returns remembered devices for the given admin, newest first.
+     *
+     * @return list<array{id: int, device_label: string, created_at: string, last_used_at: string|null}>
+     */
+    private function getRememberedDevices(int $adminId): array
+    {
+        try {
+            $stmt = $this->app->getDatabase()->prepare(
+                'SELECT id, device_label, created_at, last_used_at, user_agent_hint
+                 FROM lstr_admin_remember_tokens
+                 WHERE admin_user_id = :uid
+                   AND expires_at > NOW()
+                 ORDER BY COALESCE(last_used_at, created_at) DESC, id DESC'
+            );
+            $stmt->execute(['uid' => $adminId]);
+            $rows = $stmt->fetchAll();
+
+            return array_map(static fn(array $r): array => [
+                'id'           => (int) $r['id'],
+                'device_label' => (string) ($r['device_label'] ?? 'Unknown device'),
+                'created_at'   => (string) $r['created_at'],
+                'last_used_at' => $r['last_used_at'] !== null ? (string) $r['last_used_at'] : null,
+            ], $rows ?: []);
+        } catch (\PDOException) {
+            // Pre-migration — column may not exist yet.
+            try {
+                $stmt = $this->app->getDatabase()->prepare(
+                    'SELECT id, created_at FROM lstr_admin_remember_tokens
+                     WHERE admin_user_id = :uid AND expires_at > NOW()
+                     ORDER BY created_at DESC, id DESC'
+                );
+                $stmt->execute(['uid' => $adminId]);
+                $rows = $stmt->fetchAll();
+                return array_map(static fn(array $r): array => [
+                    'id'           => (int) $r['id'],
+                    'device_label' => 'Remembered device',
+                    'created_at'   => (string) $r['created_at'],
+                    'last_used_at' => null,
+                ], $rows ?: []);
+            } catch (\PDOException) {
+                return [];
+            }
+        }
+    }
 
     // -----------------------------------------------------------------------
     // POST /admin/settings/templates

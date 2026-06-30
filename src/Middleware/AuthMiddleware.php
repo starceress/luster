@@ -123,7 +123,7 @@ final class AuthMiddleware
         // already rotated (rowCount = 0) does not silently succeed here.
         $updateStmt = $this->db->prepare(
             'UPDATE lstr_admin_remember_tokens
-             SET token_hash = :hash, expires_at = :expires
+             SET token_hash = :hash, expires_at = :expires, last_used_at = NOW()
              WHERE id = :id AND token_hash = :old_hash'
         );
         $updateStmt->execute([

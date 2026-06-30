@@ -3087,6 +3087,28 @@ try {
     $errors[] = 'Migration 95 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 96: add device metadata columns to lstr_admin_remember_tokens.
+try {
+    $chkLabel = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME   = 'lstr_admin_remember_tokens'
+            AND COLUMN_NAME  = 'device_label'"
+    );
+    if ((int) $chkLabel->fetchColumn() === 0) {
+        $pdo->exec(
+            "ALTER TABLE `lstr_admin_remember_tokens`
+             ADD COLUMN `device_label`    VARCHAR(255) NULL AFTER `expires_at`,
+             ADD COLUMN `last_used_at`    DATETIME     NULL AFTER `device_label`,
+             ADD COLUMN `user_agent_hint` VARCHAR(100) NULL AFTER `last_used_at`"
+        );
+        $done[] = 'Migration 96: added device metadata columns (<code>device_label</code>, <code>last_used_at</code>, <code>user_agent_hint</code>) to <code>lstr_admin_remember_tokens</code>';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (96)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 96 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

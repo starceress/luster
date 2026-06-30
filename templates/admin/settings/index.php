@@ -36,6 +36,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div class="panel-body">
       <a href="#panel-general" class="mini-nav-item"><?= View::icon('general') ?> General</a>
       <a href="#panel-admin" class="mini-nav-item"><?= View::icon('account') ?> Account Details</a>
+      <a href="#panel-devices" class="mini-nav-item"><?= View::icon('general') ?> Remembered Devices</a>
       <a href="#panel-accounts" class="mini-nav-item"><?= View::icon('admins') ?> Admin Accounts</a>
       <a href="#panel-notifications" class="mini-nav-item"><?= View::icon('email') ?> Notifications</a>
       <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
@@ -47,6 +48,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <select id="settings-nav-select">
           <option value="panel-general">General</option>
           <option value="panel-admin">Account Details</option>
+          <option value="panel-devices">Remembered Devices</option>
           <option value="panel-accounts">Admin Accounts</option>
           <option value="panel-notifications">Notifications</option>
           <option value="panel-appearance">Appearance</option>
@@ -164,6 +166,52 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <button type="reset" class="btn btn-ghost">Clear</button>
           </div>
         </form>
+      </div>
+    </div>
+
+<?php $devices = $remembered_devices ?? []; $devCsrf = View::e($csrf_token ?? ''); ?>
+<!-- ──── PANEL: REMEMBERED DEVICES ───────────────────────────────────── -->
+    <div id="panel-devices" class="mini-nav-panel">
+      <div class="card card--gradient card--gradient--plain">
+        <div class="panel-header">
+          <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('general') ?></div>
+          <div class="panel-header-meta">
+            <div class="panel-header-title">Remembered Devices</div>
+            <div class="panel-header-sub">Devices where you have selected &ldquo;Keep me signed in&rdquo;. Each stores a unique token that auto-signs you back in. Revoke any device you no longer trust, or revoke all at once.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <?php if ($devices === []): ?>
+            <p class="form-hint">No remembered devices. Use &ldquo;Keep me signed in&rdquo; on the login form to add one.</p>
+          <?php else: ?>
+            <table class="data-table">
+              <thead><tr><th>Device</th><th>First remembered</th><th>Last used</th><th></th></tr></thead>
+              <tbody>
+                <?php foreach ($devices as $dev): ?>
+                <tr>
+                  <td><?= View::e($dev['device_label']) ?></td>
+                  <td><?= View::e($dev['created_at']) ?></td>
+                  <td><?= $dev['last_used_at'] !== null ? View::e($dev['last_used_at']) : '<em>Not yet used</em>' ?></td>
+                  <td>
+                    <form method="POST" action="<?= $b ?>/admin/settings/devices/<?= (int) $dev['id'] ?>/revoke" style="display:inline">
+                      <input type="hidden" name="_csrf" value="<?= $devCsrf ?>">
+                      <button type="submit" class="btn btn-xs btn-danger-ghost">Revoke</button>
+                    </form>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+            <div style="margin-top:1rem">
+              <form method="POST" action="<?= $b ?>/admin/settings/devices/revoke-all">
+                <input type="hidden" name="_csrf" value="<?= $devCsrf ?>">
+                <button type="submit" class="btn btn-danger-ghost btn-sm"
+                        onclick="return confirm('Revoke all remembered devices? You will need to sign in again on each device.')">Revoke All Devices</button>
+              </form>
+            </div>
+          <?php endif; ?>
+          <p class="form-hint" style="margin-top:1rem">Tokens are also revoked automatically when you change your password. Up to 10 devices can be remembered at once; the oldest is removed when the limit is reached.</p>
+        </div>
       </div>
     </div>
 
