@@ -760,6 +760,9 @@ final class ListingController extends AdminController
                        ->execute(['id' => $id]);
                 } catch (\Throwable) {}
 
+                // Template revisions — silent if not installed
+                (new \Luster\Repositories\TemplateRevisionRepo($db))->deleteForListing($id);
+
                 $imageFilename = $settingsRepo->getImage($id);
                 if ($imageFilename !== null) {
                     $imagePath = $this->ensureUploadDirectory() . '/' . $imageFilename;
@@ -1458,6 +1461,9 @@ final class ListingController extends AdminController
                ->execute(['id' => $id]);
         } catch (\Throwable) {}
 
+        // Template revisions — silent if not installed
+        (new \Luster\Repositories\TemplateRevisionRepo($db))->deleteForListing($id);
+
         // 3. Delete the image file if one exists
         $imageFilename = $settingsRepo->getImage($id);
         if ($imageFilename !== null) {
@@ -1711,8 +1717,27 @@ final class ListingController extends AdminController
 
         // Preserve templates not editable via this form so they are not cleared on save.
         // adopt_form_template is managed by the Adoption addon.
-        $existingTemplates     = $settingsRepo->getTemplates($id);
-        $adoptFormTemplate     = $existingTemplates['adopt_form_template'];
+        $existingTemplates  = $settingsRepo->getTemplates($id);
+        $adoptFormTemplate  = $existingTemplates['adopt_form_template'];
+        $existingCodesTemplate = $settingsRepo->getCodesTemplate($id);
+
+        // Record revisions for any templates about to change.
+        $incoming = [
+            'stats_template'                => $statsTemplate,
+            'members_template'              => $membersTemplate,
+            'affiliates_section_template'   => $affiliatesSectionTemplate,
+            'updates_template'              => $updatesTemplate,
+            'codes_submit_form_template'    => $codesSubmitFormTemplate,
+            'join_form_template'            => $joinFormTemplate,
+            'affiliate_apply_form_template' => $affiliateApplyFormTemplate,
+            'contact_form_template'         => $contactFormTemplate,
+            'update_form_template'          => $updateFormTemplate,
+            'reset_form_template'           => $resetFormTemplate,
+            'codes_template'                => $codesTemplate,
+        ];
+        $oldValues = array_merge($existingTemplates, ['codes_template' => $existingCodesTemplate]);
+        $adminId   = (int) $this->app->getSession()->get('lstr_admin_id');
+        (new \Luster\Repositories\TemplateRevisionRepo($db))->recordChanged($id, $oldValues, $incoming, $adminId);
 
         $settingsRepo->saveTemplates(
             $id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate,

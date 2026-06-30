@@ -96,12 +96,21 @@ $_lusterCountries  = $_lusterMemberRepo->countUniqueCountries($_lusterPrefix);
 $_lusterNewest     = $_lusterMemberRepo->getNewestMembers($_lusterPrefix, $_lusterNewestLimit);
 $_lusterMemberDate = $_lusterMemberRepo->getMostRecentApprovedDate($_lusterPrefix);
 
-// Expose listing description as a standalone PHP variable for host pages (pre-escaped)
-$luster_description = htmlspecialchars(
+// Expose output variables for host pages — all pre-escaped with htmlspecialchars.
+// These are available after the embed runs, for use in the host page's <head> or body.
+$luster_description     = htmlspecialchars(
     (string) ($_lusterSettingsRepo->getDescription($_lusterListingId) ?? ''),
     ENT_QUOTES | ENT_SUBSTITUTE,
     'UTF-8',
 );
+$luster_page_title      = htmlspecialchars($_lusterListing->title,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$luster_listing_title   = $luster_page_title;
+$luster_listing_subject = htmlspecialchars($_lusterListing->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$luster_listing_url     = htmlspecialchars($_lusterListing->url,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+// $luster_meta_description: description if set, else constructed from subject
+$luster_meta_description = $luster_description !== ''
+    ? $luster_description
+    : htmlspecialchars('A fanlisting for ' . $_lusterListing->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
 // ---------------------------------------------------------------------------
 // 5. Load template from DB (falls back to default)

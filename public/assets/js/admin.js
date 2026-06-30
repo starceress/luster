@@ -6842,6 +6842,339 @@ document.addEventListener('click', function (e) {
   });
 });
 
+// ── Template pack: export / import / copy / revision history ─────────────────
+(function () {
+  'use strict';
+
+  var tplPanel = document.getElementById('tab-templates');
+  if (!tplPanel) return;
+
+  var tplBase = tplPanel.dataset.tplBase || '';
+  var tplCsrf = tplPanel.dataset.tplCsrf || '';
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // --- Inject "History" buttons into each template section ---
+  tplPanel.querySelectorAll('.tpl-group-section').forEach(function (section) {
+    var textarea = section.querySelector('textarea[name]');
+    var resetRow = section.querySelector('.tpl-reset-row');
+    if (!textarea || !resetRow) return;
+
+    var key = textarea.name;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-ghost btn-xs tpl-history-btn';
+    btn.dataset.tplKey = key;
+    btn.textContent = 'History';
+    resetRow.appendChild(document.createTextNode('  '));
+    resetRow.appendChild(btn);
+  });
+
+  // ── Export ────────────────────────────────────────────────────────────────
+  var exportBtn = document.getElementById('fl-tpack-export-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function () {
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = exportBtn.dataset.endpoint || '';
+
+      var csrf = document.createElement('input');
+      csrf.type = 'hidden'; csrf.name = '_csrf'; csrf.value = exportBtn.dataset.csrf || '';
+      form.appendChild(csrf);
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    });
+  }
+
+  // ── Import ────────────────────────────────────────────────────────────────
+  var importBtn  = document.getElementById('fl-tpack-import-btn');
+  var fileInput  = document.getElementById('fl-tpack-file-input');
+
+  if (importBtn && fileInput) {
+    importBtn.addEventListener('click', function () { fileInput.click(); });
+
+    fileInput.addEventListener('change', function () {
+      var file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+
+      var fd = new FormData();
+      fd.append('_csrf', importBtn.dataset.csrf || '');
+      fd.append('template_pack', file);
+
+      importBtn.disabled = true;
+      importBtn.textContent = 'Parsing…';
+
+      fetch(importBtn.dataset.endpoint || '', { method: 'POST', body: fd })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          importBtn.disabled = false;
+          importBtn.textContent = 'Import Templates…';
+          fileInput.value = '';
+
+          if (data.error) { window.lstrToast('error', data.error); return; }
+
+          showTpackModal('Import Templates', buildImportPreviewHtml(data), function (modal) {
+            var applyBtn = modal.querySelector('.tpack-modal-apply');
+            if (!applyBtn) return;
+
+            applyBtn.addEventListener('click', function () {
+              var selected = {};
+              modal.querySelectorAll('.tpack-key-check:checked').forEach(function (cb) {
+                var key = cb.dataset.key;
+                var val = cb.dataset.value;
+                selected[key] = val === '__null__' ? null : val;
+              });
+
+              var body = new URLSearchParams();
+              var applyEndpoint = importBtn.dataset.applyEndpoint || '';
+              body.append('_csrf', tplCsrf);
+              body.append('templates_json', JSON.stringify(selected));
+
+              applyBtn.disabled = true;
+              applyBtn.textContent = 'Applying…';
+              fetch(applyEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                  closeTpackModal(modal);
+                  if (d.ok) {
+                    window.lstrToast('success', 'Imported ' + (d.saved || 0) + ' template(s). Reloading…');
+                    setTimeout(function () { window.location.reload(); }, 1000);
+                  } else {
+                    window.lstrToast('error', d.error || 'Import failed.');
+                  }
+                })
+                .catch(function () { applyBtn.disabled = false; applyBtn.textContent = 'Apply'; window.lstrToast('error', 'Request failed.'); });
+            });
+          });
+        })
+        .catch(function () {
+          importBtn.disabled = false;
+          importBtn.textContent = 'Import Templates…';
+          window.lstrToast('error', 'Failed to parse pack. Please try again.');
+        });
+    });
+  }
+
+  function buildImportPreviewHtml(data) {
+    var meta = data.metadata || {};
+    var changes = data.changes || [];
+    var html = '<p class="form-hint" style="margin-bottom:.5rem">';
+    if (meta.listing_title) html += 'From: <strong>' + esc(meta.listing_title) + '</strong>.  ';
+    if (meta.luster_version) html += 'Luster v' + esc(meta.luster_version) + '.  ';
+    if (meta.exported_at) html += 'Exported: ' + esc(meta.exported_at.replace('T', ' ').replace('Z', ' UTC')) + '.';
+    html += '</p>';
+
+    if (meta.missing_addons && meta.missing_addons.length > 0) {
+      html += '<p class="form-hint" style="color:var(--color-warning)">Warning: pack requires add-on(s) not installed: ' + esc(meta.missing_addons.join(', ')) + '</p>';
+    }
+
+    var hasChanges = changes.some(function (c) { return c.changed; });
+    if (!hasChanges) {
+      html += '<p class="form-hint">All incoming templates are identical to current values.</p>';
+    }
+
+    html += '<table class="data-table" style="width:100%;font-size:.85rem"><thead><tr><th>Template</th><th>Status</th><th style="width:1px">Apply</th></tr></thead><tbody>';
+    changes.forEach(function (c) {
+      var statusText = c.changed ? '<span class="badge badge-current badge-inline-sm">Changed</span>' : '<span class="badge badge-inactive badge-inline-sm">Same</span>';
+      var encodedVal = encodeURIComponent(c.incoming === null ? '__null__' : c.incoming);
+      html += '<tr>'
+        + '<td>' + esc(c.label) + '</td>'
+        + '<td>' + statusText + '</td>'
+        + '<td><input type="checkbox" class="tpack-key-check" data-key="' + esc(c.key) + '" data-value="' + esc(c.incoming === null ? '__null__' : c.incoming) + '"' + (c.changed ? ' checked' : '') + '></td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div style="margin-top:1rem;display:flex;gap:.5rem"><button type="button" class="btn btn-primary tpack-modal-apply">Apply Selected</button><button type="button" class="btn btn-ghost tpack-modal-cancel">Cancel</button></div>';
+    return html;
+  }
+
+  // ── Copy From ─────────────────────────────────────────────────────────────
+  var copyBtn = document.getElementById('fl-tpack-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      fetch(copyBtn.dataset.listingsEndpoint || '', { method: 'GET' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) { window.lstrToast('error', data.error || 'Could not load listings.'); return; }
+          showTpackModal('Copy Templates From Another Listing', buildCopyPickerHtml(data.listings), function (modal) {
+            var sel = modal.querySelector('#tpack-copy-listing-sel');
+            var previewArea = modal.querySelector('#tpack-copy-preview');
+            var applyBtn = modal.querySelector('.tpack-modal-apply');
+            if (!sel || !previewArea || !applyBtn) return;
+
+            function loadSource() {
+              var fromId = sel.value;
+              if (!fromId) { previewArea.innerHTML = ''; return; }
+              previewArea.innerHTML = '<p class="form-hint">Loading…</p>';
+              fetch((copyBtn.dataset.sourceEndpoint || '') + '?from=' + encodeURIComponent(fromId))
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                  if (!d.ok) { previewArea.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">' + esc(d.error || 'Error') + '</p>'; return; }
+                  previewArea.innerHTML = buildCopyChangesHtml(d.changes, d.listing_title);
+                });
+            }
+
+            sel.addEventListener('change', loadSource);
+
+            applyBtn.addEventListener('click', function () {
+              var fromId = sel.value;
+              if (!fromId) { window.lstrToast('error', 'Select a source listing first.'); return; }
+              var keys = [];
+              modal.querySelectorAll('.tpack-key-check:checked').forEach(function (cb) { keys.push(cb.dataset.key); });
+              if (!keys.length) { window.lstrToast('error', 'Select at least one template to copy.'); return; }
+
+              var body = new URLSearchParams();
+              body.append('_csrf', tplCsrf);
+              body.append('from', fromId);
+              body.append('keys_json', JSON.stringify(keys));
+
+              applyBtn.disabled = true; applyBtn.textContent = 'Copying…';
+              fetch(copyBtn.dataset.applyEndpoint || '', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                  closeTpackModal(modal);
+                  if (d.ok) {
+                    window.lstrToast('success', 'Copied ' + (d.saved || 0) + ' template(s). Reloading…');
+                    setTimeout(function () { window.location.reload(); }, 1000);
+                  } else {
+                    window.lstrToast('error', d.error || 'Copy failed.');
+                  }
+                })
+                .catch(function () { applyBtn.disabled = false; applyBtn.textContent = 'Apply'; window.lstrToast('error', 'Request failed.'); });
+            });
+          });
+        })
+        .catch(function () { window.lstrToast('error', 'Failed to load listings.'); });
+    });
+  }
+
+  function buildCopyPickerHtml(listings) {
+    var html = '<div class="field-row"><label class="field-label" for="tpack-copy-listing-sel">Source Listing</label><div><div class="select-wrap"><select id="tpack-copy-listing-sel" class="form"><option value="">Select a listing&hellip;</option>';
+    listings.forEach(function (l) { html += '<option value="' + esc(l.id) + '">' + esc(l.title) + '</option>'; });
+    html += '</select></div></div></div><div id="tpack-copy-preview" style="margin-top:1rem"></div>';
+    html += '<div style="margin-top:1rem;display:flex;gap:.5rem"><button type="button" class="btn btn-primary tpack-modal-apply">Copy Selected</button><button type="button" class="btn btn-ghost tpack-modal-cancel">Cancel</button></div>';
+    return html;
+  }
+
+  function buildCopyChangesHtml(changes, fromTitle) {
+    var html = '<p class="form-hint">Templates from <strong>' + esc(fromTitle || '') + '</strong>:</p>';
+    html += '<table class="data-table" style="width:100%;font-size:.85rem"><thead><tr><th>Template</th><th>Status</th><th style="width:1px">Copy</th></tr></thead><tbody>';
+    changes.forEach(function (c) {
+      var statusText = c.changed ? '<span class="badge badge-current badge-inline-sm">Different</span>' : '<span class="badge badge-inactive badge-inline-sm">Same</span>';
+      html += '<tr><td>' + esc(c.label) + '</td><td>' + statusText + '</td><td><input type="checkbox" class="tpack-key-check" data-key="' + esc(c.key) + '" checked></td></tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+  }
+
+  // ── Revision History ──────────────────────────────────────────────────────
+  tplPanel.addEventListener('click', function (e) {
+    var btn = e.target.closest('.tpl-history-btn');
+    if (!btn) return;
+
+    var key    = btn.dataset.tplKey || '';
+    var url    = tplBase + '/template-revisions?key=' + encodeURIComponent(key);
+    var section = btn.closest('.tpl-group-section');
+    var textarea = section ? section.querySelector('textarea[name="' + key + '"]') : null;
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) { window.lstrToast('error', data.error || 'Could not load history.'); return; }
+        showTpackModal('Revision History: ' + key.replace(/_/g, ' '), buildHistoryHtml(data.revisions), function (modal) {
+          modal.addEventListener('click', function (ev) {
+            var restoreBtn = ev.target.closest('.tpack-restore-btn');
+            if (!restoreBtn) return;
+            var revId = restoreBtn.dataset.revId;
+            fetch(tplBase + '/template-revisions/' + encodeURIComponent(revId))
+              .then(function (r) { return r.json(); })
+              .then(function (d) {
+                if (!d.ok) { window.lstrToast('error', 'Could not load revision.'); return; }
+                if (textarea) {
+                  textarea.value = d.value !== null ? d.value : '';
+                  textarea.dispatchEvent(new Event('input'));
+                  window.lstrToast('success', 'Revision loaded into editor. Save the form to keep it.');
+                }
+                closeTpackModal(modal);
+              });
+          });
+
+          var cancelBtn = modal.querySelector('.tpack-modal-cancel');
+          if (cancelBtn) {
+            cancelBtn.addEventListener('click', function () { closeTpackModal(modal); });
+          }
+        });
+      })
+      .catch(function () { window.lstrToast('error', 'Failed to load history.'); });
+  });
+
+  function buildHistoryHtml(revisions) {
+    if (!revisions || !revisions.length) {
+      return '<p class="form-hint">No revision history yet. Revisions are recorded each time you save the template.</p><div style="margin-top:1rem"><button type="button" class="btn btn-ghost tpack-modal-cancel">Close</button></div>';
+    }
+    var html = '<p class="form-hint" style="margin-bottom:.5rem">Clicking &ldquo;Restore&rdquo; puts the old value into the editor — save the form to keep it.</p>';
+    html += '<table class="data-table" style="width:100%;font-size:.85rem"><thead><tr><th>Saved At</th><th>Preview</th><th></th></tr></thead><tbody>';
+    revisions.forEach(function (r) {
+      var preview = r.preview ? r.preview.substring(0, 60).replace(/\s+/g, ' ') : '(empty)';
+      html += '<tr><td style="white-space:nowrap">' + esc(r.saved_at) + '</td><td style="font-family:monospace;font-size:.8em">' + esc(preview) + (r.preview && r.preview.length > 60 ? '…' : '') + '</td><td><button type="button" class="btn btn-xs btn-ghost tpack-restore-btn" data-rev-id="' + esc(r.id) + '"' + (!r.has_value ? ' disabled' : '') + '>Restore</button></td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div style="margin-top:1rem"><button type="button" class="btn btn-ghost tpack-modal-cancel">Close</button></div>';
+    return html;
+  }
+
+  // ── Modal helpers ─────────────────────────────────────────────────────────
+  function showTpackModal(title, bodyHtml, onReady) {
+    var existing = document.getElementById('tpack-modal');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'tpack-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:1rem';
+
+    var dialog = document.createElement('div');
+    dialog.style.cssText = 'background:var(--bg-surface,#fff);border-radius:var(--radius-card,8px);padding:1.5rem;max-width:680px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)';
+
+    var h3 = document.createElement('h3');
+    h3.style.cssText = 'margin:0 0 1rem;font-size:1.1rem';
+    h3.textContent = title;
+
+    var body = document.createElement('div');
+    body.innerHTML = bodyHtml;
+
+    // Delegate Cancel button
+    body.addEventListener('click', function (e) {
+      if (e.target.closest('.tpack-modal-cancel')) closeTpackModal(overlay);
+    });
+
+    dialog.appendChild(h3);
+    dialog.appendChild(body);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeTpackModal(overlay);
+    });
+
+    document.addEventListener('keydown', function escHandler(e) {
+      if (e.key === 'Escape') { closeTpackModal(overlay); document.removeEventListener('keydown', escHandler); }
+    }, { once: true });
+
+    if (onReady) onReady(body);
+    return overlay;
+  }
+
+  function closeTpackModal(el) {
+    var modal = el.closest ? el.closest('#tpack-modal') : (el.id === 'tpack-modal' ? el : document.getElementById('tpack-modal'));
+    if (modal) modal.remove();
+  }
+}());
+
 // ── TFL/TAFL approval URL lookup ─────────────────────────────────────────────
 (function () {
   'use strict';

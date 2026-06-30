@@ -3061,6 +3061,32 @@ try {
     $errors[] = 'Migration 94 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 95: create lstr_template_revisions table for per-listing template history.
+try {
+    $check = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME   = 'lstr_template_revisions'"
+    );
+    if ((int) $check->fetchColumn() === 0) {
+        $pdo->exec(
+            "CREATE TABLE `lstr_template_revisions` (
+              `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+              `fanlisting_id`   INT UNSIGNED NOT NULL,
+              `template_key`    VARCHAR(80)  NOT NULL,
+              `value`           TEXT         NULL,
+              `saved_at`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `saved_by_admin_id` INT UNSIGNED NULL,
+              INDEX `idx_tpl_rev_lookup` (`fanlisting_id`, `template_key`, `saved_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $done[] = 'Migration 95: created <code>lstr_template_revisions</code> table for template revision history';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (95)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 95 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

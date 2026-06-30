@@ -652,7 +652,13 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     . '<td class="token-cell" data-desc="' . View::e($desc) . '"><code>' . View::e($label) . '</code></td>'
     . '</tr>' . "\n";
 ?>
-<div id="tab-templates" class="tabs-panel">
+<?php
+$_tplBaseEndpoint = $b . '/admin/listings/' . (int) $listing->id;
+$_tplCsrf = View::e($csrf_token ?? '');
+?>
+<div id="tab-templates" class="tabs-panel"
+     data-tpl-base="<?= View::e($_tplBaseEndpoint) ?>"
+     data-tpl-csrf="<?= $_tplCsrf ?>">
 
 <div class="filter-panel is-open">
   <div class="filter-row" id="tpl-filter-row">
@@ -699,13 +705,29 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </div>
 
       <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
-        <div style="text-align:center; padding: 0.75rem 0;">
-          <button type="button" class="btn btn-tertiary btn-block-center"
+        <div style="display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; padding:0.75rem 0;">
+          <button type="button" class="btn btn-tertiary"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates/reset-all"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>"
                   data-confirm="Reset every template for this listing to the global default?&#10;&#10;Any per-listing customisations will be lost.">Reset All Templates to Default</button>
+          <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-export-btn"
+                  data-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/export"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export Templates&hellip;</button>
+          <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-import-btn"
+                  data-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/import-preview"
+                  data-apply-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/import-apply"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Import Templates&hellip;</button>
+          <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-copy-btn"
+                  data-listings-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/listings-for-copy"
+                  data-source-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/copy-source"
+                  data-apply-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/copy-apply"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Copy From&hellip;</button>
         </div>
+        <input type="file" id="fl-tpack-file-input" accept=".json" style="display:none">
       </div>
 
       <div class="card-body">

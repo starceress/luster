@@ -14,6 +14,7 @@ declare(strict_types=1);
 use Luster\Controllers\Admin\AddonsController;
 use Luster\Controllers\Admin\LinkCheckerController;
 use Luster\Controllers\Admin\TflLookupController;
+use Luster\Controllers\Admin\TemplatePackController;
 use Luster\Controllers\Admin\FeedbackController;
 use Luster\Controllers\Admin\ImportController;
 use Luster\Controllers\Admin\ImportMembersController;
@@ -469,6 +470,26 @@ return [
 
         // --- TFL/TAFL approval URL lookup
         $router->post('/admin/tfl-lookup', TflLookupController::class, 'lookup');
+
+        // --- Template packs (export/import/copy/revisions)
+        $router->post('/admin/listings/{id}/template-pack/export',
+            TemplatePackController::class, 'export');
+        $router->post('/admin/listings/{id}/template-pack/import-preview',
+            TemplatePackController::class, 'importPreview');
+        $router->post('/admin/listings/{id}/template-pack/import-apply',
+            TemplatePackController::class, 'importApply');
+        $router->get('/admin/listings/{id}/template-pack/copy-source',
+            TemplatePackController::class, 'copySource');
+        $router->post('/admin/listings/{id}/template-pack/copy-apply',
+            TemplatePackController::class, 'copyApply');
+        $router->get('/admin/listings/{id}/template-pack/listings-for-copy',
+            TemplatePackController::class, 'listingsForCopy');
+        $router->get('/admin/listings/{id}/template-revisions',
+            TemplatePackController::class, 'revisions');
+        $router->get('/admin/listings/{id}/template-revisions/{revisionId}',
+            TemplatePackController::class, 'revisionValue');
+        $router->post('/admin/listings/{id}/template-revisions/{revisionId}/restore',
+            TemplatePackController::class, 'restoreRevision');
 
         // --- Link Checker
         $router->get('/admin/link-checker',
