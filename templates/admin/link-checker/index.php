@@ -502,6 +502,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 <span class="badge <?= View::e($statusBadgeClass((string) $mem->link_status)) ?>" data-lc-link-badge>
                   <?= View::e($statusLabel((string) $mem->link_status)) ?>
                 </span>
+                <span class="badge badge-pending" data-lc-content-badge hidden></span>
               </td>
               <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?>
@@ -630,6 +631,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 <span class="badge <?= View::e($statusBadgeClass($aff->linkStatus)) ?>" data-lc-link-badge>
                   <?= View::e($statusLabel($aff->linkStatus)) ?>
                 </span>
+                <span class="badge badge-pending" data-lc-content-badge hidden></span>
               </td>
               <td data-label="Reciprocal">
                 <span class="badge <?= View::e($statusBadgeClass($aff->reciprocalStatus)) ?>" data-lc-recip-badge>
@@ -730,6 +732,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 <span class="badge <?= View::e($statusBadgeClass($jl->linkStatus)) ?>" data-lc-link-badge>
                   <?= View::e($statusLabel($jl->linkStatus)) ?>
                 </span>
+                <span class="badge badge-pending" data-lc-content-badge hidden></span>
               </td>
               <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $jl->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($jl->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?>

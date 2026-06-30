@@ -463,6 +463,7 @@ final class LinkCheckerController extends AdminController
             'http_code'         => $result['http_code'],
             'redirect_url'      => $result['redirect_url'],
             'reciprocal_status' => $reciprocalStatus,
+            'content_flags'     => $result['content_flags'],
             'checked_at'        => date($this->dateFormat()),
         ]);
     }
@@ -501,10 +502,11 @@ final class LinkCheckerController extends AdminController
         $repo->updateLinkStatus($id, $result['status'], $result['redirect_url']);
 
         return Response::json([
-            'link_status'  => $result['status'],
-            'http_code'    => $result['http_code'],
-            'redirect_url' => $result['redirect_url'],
-            'checked_at'   => date('Y-m-d H:i'),
+            'link_status'   => $result['status'],
+            'http_code'     => $result['http_code'],
+            'redirect_url'  => $result['redirect_url'],
+            'content_flags' => $result['content_flags'],
+            'checked_at'    => date('Y-m-d H:i'),
         ]);
     }
 
@@ -790,10 +792,11 @@ final class LinkCheckerController extends AdminController
         $repo->updateLinkStatus($id, $result['status'], $result['redirect_url']);
 
         return Response::json([
-            'link_status'  => $result['status'],
-            'http_code'    => $result['http_code'],
-            'redirect_url' => $result['redirect_url'],
-            'checked_at'   => date('Y-m-d H:i'),
+            'link_status'   => $result['status'],
+            'http_code'     => $result['http_code'],
+            'redirect_url'  => $result['redirect_url'],
+            'content_flags' => $result['content_flags'],
+            'checked_at'    => date('Y-m-d H:i'),
         ]);
     }
 

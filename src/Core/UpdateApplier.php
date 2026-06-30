@@ -14,7 +14,6 @@ declare(strict_types=1);
 
 namespace Luster\Core;
 
-use PDO;
 use RuntimeException;
 use ZipArchive;
 
@@ -46,18 +45,7 @@ final class UpdateApplier
         'config',
     ];
 
-    private const BACKUP_PATHS = [
-        'src',
-        'templates',
-        'bootstrap.php',
-        'composer.json',
-        'composer.lock',
-        'config/app.php',
-        'config/routes.php',
-        'public',
-    ];
-
-    /** @var callable(string): string|false */
+/** @var callable(string): string|false */
     private $httpFetcher;
 
     public function __construct(
@@ -219,43 +207,13 @@ final class UpdateApplier
     }
 
     /**
-     * Creates a complete updater backup ZIP in storage/cache.
+     * Creates a rollback-profile backup ZIP in storage/cache (excludes public/uploads/).
      *
      * @return array{path:string,filename:string}
      */
     public function createBackupZip(): array
     {
-        $this->ensureZipAvailable();
-
-        $cacheDir = $this->cacheDir();
-        $filename = 'luster_backup_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.zip';
-        $path = $cacheDir . DIRECTORY_SEPARATOR . $filename;
-
-        $zip = new ZipArchive();
-        if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            throw new RuntimeException('Could not create backup ZIP.');
-        }
-
-        $zip->addFromString(
-            'BACKUP-NOTES.txt',
-            "Luster backup created " . date('c') . "\n\n"
-            . "This backup contains Luster application files, lstr_* database tables,\n"
-            . "the listing registry (owned/enth_fanlistings), and all per-listing member tables.\n"
-        );
-
-        foreach (self::BACKUP_PATHS as $rel) {
-            $full = $this->path($rel);
-            if (is_file($full)) {
-                $zip->addFile($full, 'files/' . $this->zipPath($rel));
-            } elseif (is_dir($full)) {
-                $this->addDirectoryToZip($zip, $full, 'files/' . $this->zipPath($rel));
-            }
-        }
-
-        $zip->addFromString('database/luster_database.sql', $this->dumpDatabase());
-        $zip->close();
-
-        return ['path' => $path, 'filename' => $filename];
+        return (new BackupService($this->db, $this->basePath))->createZip('rollback');
     }
 
     /**
@@ -710,130 +668,6 @@ final class UpdateApplier
     }
 
     /**
-     * Produces a SQL dump of all lstr_* tables, the listing registry (owned /
-     * enth_fanlistings), and per-listing member tables, formatted as a single
-     * string suitable for inclusion in a backup ZIP.
-     */
-    private function dumpDatabase(): string
-    {
-        $pdo = $this->db->pdo();
-        $tables = $this->lusterTableNames($pdo);
-
-        $out = [];
-        $out[] = '-- Luster updater backup';
-        $out[] = '-- Created: ' . date('c');
-        $out[] = '-- Includes lstr_* tables, listing registry, and per-listing member tables.';
-        $out[] = 'SET FOREIGN_KEY_CHECKS=0;';
-        $out[] = '';
-
-        foreach ($tables as $table) {
-            $quoted = $this->quoteIdentifier($table);
-            $row = $pdo->query('SHOW CREATE TABLE ' . $quoted)->fetch(PDO::FETCH_ASSOC);
-            $create = is_array($row) ? (string) ($row['Create Table'] ?? array_values($row)[1] ?? '') : '';
-            if ($create !== '') {
-                $out[] = 'DROP TABLE IF EXISTS ' . $quoted . ';';
-                $out[] = $create . ';';
-                $out[] = '';
-            }
-
-            $stmt = $pdo->query('SELECT * FROM ' . $quoted);
-            while (($record = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-                $columns = array_map(fn(string $col): string => $this->quoteIdentifier($col), array_keys($record));
-                $values = array_map(fn(mixed $value): string => $this->sqlLiteral($pdo, $value), array_values($record));
-                $out[] = 'INSERT INTO ' . $quoted . ' (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ');';
-            }
-            $out[] = '';
-        }
-
-        $out[] = 'SET FOREIGN_KEY_CHECKS=1;';
-        $out[] = '';
-
-        return implode("\n", $out);
-    }
-
-    /**
-     * @return array<int,string>
-     */
-    private function lusterTableNames(PDO $pdo): array
-    {
-        $allTables = [];
-        foreach ($pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_NUM) as $row) {
-            $allTables[] = (string) ($row[0] ?? '');
-        }
-
-        $tables = [];
-
-        // Luster's own tables
-        foreach ($allTables as $table) {
-            if (str_starts_with($table, 'lstr_') && preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
-                $tables[] = $table;
-            }
-        }
-
-        // Enthusiast registry tables
-        foreach (['owned', 'enth_fanlistings'] as $registry) {
-            if (in_array($registry, $allTables, true)) {
-                $tables[] = $registry;
-            }
-        }
-
-        // Per-listing member tables (from owned.dbtable or enth_fanlistings.dbprefix)
-        foreach (['owned' => 'dbtable', 'enth_fanlistings' => 'dbprefix'] as $registry => $col) {
-            if (!in_array($registry, $allTables, true)) {
-                continue;
-            }
-            try {
-                $stmt = $pdo->query("SELECT `{$col}` FROM `{$registry}`");
-                while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
-                    $prefix = (string) ($row[0] ?? '');
-                    if ($prefix === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
-                        continue;
-                    }
-                    $memberTable = $registry === 'enth_fanlistings' ? $prefix . 'members' : $prefix;
-                    if (in_array($memberTable, $allTables, true) && !in_array($memberTable, $tables, true)) {
-                        $tables[] = $memberTable;
-                    }
-                }
-            } catch (\Throwable) {}
-        }
-
-        sort($tables);
-        return $tables;
-    }
-
-    private function addDirectoryToZip(ZipArchive $zip, string $dir, string $zipPrefix): void
-    {
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST,
-        );
-
-        foreach ($iterator as $item) {
-            $full = $item->getPathname();
-            $rel = $this->normalizeRelative(substr($full, strlen($dir) + 1));
-            if ($this->shouldSkipBackupPath($this->normalizeRelative($zipPrefix . '/' . $rel))) {
-                continue;
-            }
-
-            $zipPath = $this->zipPath($zipPrefix . '/' . $rel);
-            if ($item->isDir()) {
-                $zip->addEmptyDir($zipPath);
-            } elseif ($item->isFile()) {
-                $zip->addFile($full, $zipPath);
-            }
-        }
-    }
-
-    /** Returns true when a path should be excluded from the backup ZIP (vendor, storage, uploads). */
-    private function shouldSkipBackupPath(string $rel): bool
-    {
-        $rel = $this->normalizeRelative(preg_replace('#^files/#', '', $rel) ?? $rel);
-        return str_starts_with($rel, 'vendor/')
-            || str_starts_with($rel, 'storage/')
-            || str_starts_with($rel, 'public/uploads/');
-    }
-
-    /**
      * Returns true when a staged file should not be copied to the live install.
      *
      * Skipped paths: config/app.php (user credentials), public/.htaccess
@@ -848,28 +682,6 @@ final class UpdateApplier
             || str_starts_with($rel, 'public/uploads/')
             || str_starts_with($rel, 'vendor/')
             || str_starts_with($rel, '.git/');
-    }
-
-    /**
-     * Backtick-quotes a database identifier after validating it is alphanumeric.
-     * Throws RuntimeException on any character outside [a-zA-Z0-9_].
-     */
-    private function quoteIdentifier(string $identifier): string
-    {
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $identifier)) {
-            throw new RuntimeException('Unsafe database identifier in backup.');
-        }
-
-        return '`' . $identifier . '`';
-    }
-
-    /** Returns a SQL literal for $value: NULL for null, a PDO-quoted string otherwise. */
-    private function sqlLiteral(PDO $pdo, mixed $value): string
-    {
-        if ($value === null) {
-            return 'NULL';
-        }
-        return (string) $pdo->quote((string) $value);
     }
 
     /** Creates the update lock file. Throws RuntimeException when a lock already exists. */

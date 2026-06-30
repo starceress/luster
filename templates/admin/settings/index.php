@@ -1036,6 +1036,21 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?php endif; ?>
         </div>
 
+        <!-- Backup -->
+        <div class="card-body">
+          <div class="section-label">Backup</div>
+          <p class="text-dim" style="margin-bottom:1.25rem">
+            Downloads a ZIP of all Luster files (including uploaded images) and a SQL dump of
+            every Luster and member table. Nothing is stored on the server after the download starts.
+          </p>
+          <form method="post" action="<?= View::e($b) ?>/admin/sysinfo/backup">
+            <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+            <button type="submit" class="btn btn-download">
+              <?= View::icon('download') ?> Download Full Backup
+            </button>
+          </form>
+        </div>
+
         <!-- Database Connection -->
         <div class="card-body">
           <div class="section-label">

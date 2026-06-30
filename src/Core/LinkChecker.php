@@ -46,22 +46,27 @@ final class LinkChecker
             return ['status' => 'dead', 'redirect_url' => null, 'http_code' => 0];
         }
 
-        [$code, , $location] = self::singleGet($url);
+        [$code, $body, $location] = self::singleGet($url);
 
         if ($code === 0) {
-            return ['status' => 'dead', 'redirect_url' => null, 'http_code' => 0];
+            return ['status' => 'dead', 'redirect_url' => null, 'http_code' => 0, 'content_flags' => null];
         }
 
         if ($code >= 200 && $code < 300) {
-            return ['status' => 'ok', 'redirect_url' => null, 'http_code' => $code];
+            return [
+                'status'        => 'ok',
+                'redirect_url'  => null,
+                'http_code'     => $code,
+                'content_flags' => LinkContentClassifier::classify($body),
+            ];
         }
 
         if ($code >= 300 && $code < 400) {
             $resolved = $location !== null ? UrlNormalizer::resolveLocation($url, $location) : null;
-            return ['status' => 'redirect', 'redirect_url' => $resolved, 'http_code' => $code];
+            return ['status' => 'redirect', 'redirect_url' => $resolved, 'http_code' => $code, 'content_flags' => null];
         }
 
-        return ['status' => 'dead', 'redirect_url' => null, 'http_code' => $code];
+        return ['status' => 'dead', 'redirect_url' => null, 'http_code' => $code, 'content_flags' => null];
     }
 
     /**

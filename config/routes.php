@@ -463,6 +463,8 @@ return [
         // --- System info
         $router->get('/admin/sysinfo',
             SysInfoController::class, 'index');
+        $router->post('/admin/sysinfo/backup',
+            SysInfoController::class, 'backup');
 
         // --- Link Checker
         $router->get('/admin/link-checker',

@@ -5395,9 +5395,10 @@ document.addEventListener('click', function (e) {
   }
 
   function applyResult(row, data, panelId) {
-    var linkBadge  = row.querySelector('[data-lc-link-badge]');
-    var recipBadge = row.querySelector('[data-lc-recip-badge]');
-    var checkedCell = row.querySelector('[data-lc-checked]');
+    var linkBadge    = row.querySelector('[data-lc-link-badge]');
+    var recipBadge   = row.querySelector('[data-lc-recip-badge]');
+    var contentBadge = row.querySelector('[data-lc-content-badge]');
+    var checkedCell  = row.querySelector('[data-lc-checked]');
 
     var statusClasses = ['badge-current', 'badge-error', 'badge-redirect', 'badge-inactive'];
 
@@ -5417,6 +5418,21 @@ document.addEventListener('click', function (e) {
       statusClasses.forEach(function (c) { recipBadge.classList.remove(c); });
       recipBadge.classList.add(statusClass(data.reciprocal_status));
       recipBadge.textContent = statusLabel(data.reciprocal_status);
+    }
+    if (contentBadge) {
+      var flags = data.content_flags;
+      var flagLabel = '';
+      if (flags) {
+        if (flags.parked)             flagLabel = 'Parked?';
+        else if (flags.directory_listing) flagLabel = 'Directory';
+        else if (flags.meta_refresh)  flagLabel = 'Meta redirect';
+      }
+      if (flagLabel) {
+        contentBadge.textContent = flagLabel;
+        contentBadge.removeAttribute('hidden');
+      } else {
+        contentBadge.setAttribute('hidden', '');
+      }
     }
     if (checkedCell) {
       checkedCell.textContent = data.checked_at || '';

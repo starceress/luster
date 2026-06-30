@@ -34,6 +34,7 @@ final class Response
     private array   $headers     = [];
     private string  $body        = '';
     private ?string $redirectUrl = null;
+    private ?string $streamPath  = null;
 
     // -----------------------------------------------------------------------
     // Static factories
@@ -109,6 +110,28 @@ final class Response
             ->withBody($body);
     }
 
+    /**
+     * Creates a streamed file download response that pipes $path directly via
+     * readfile() without loading it into memory first. Deletes the file after
+     * streaming. Use this instead of download() for large files (e.g. backup ZIPs).
+     */
+    public static function streamFile(string $path, string $filename, string $mime = 'application/octet-stream'): static
+    {
+        $safe = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $filename);
+        $r    = (new static())
+            ->withStatus(200)
+            ->withHeader('Content-Type', $mime)
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $safe . '"')
+            ->withHeader('Cache-Control', 'no-cache, no-store');
+
+        $size = @filesize($path);
+        if ($size !== false) {
+            $r = $r->withHeader('Content-Length', (string) $size);
+        }
+
+        return $r->withStreamPath($path);
+    }
+
     /** Creates a 500 Internal Server Error HTML response. */
     public static function serverError(string $message = 'An unexpected error occurred.'): static
     {
@@ -154,6 +177,15 @@ final class Response
         return $clone;
     }
 
+    /** Returns a clone of this response that streams the file at $path on send(). */
+    private function withStreamPath(string $path): static
+    {
+        $clone             = clone $this;
+        $clone->streamPath = $path;
+
+        return $clone;
+    }
+
     // -----------------------------------------------------------------------
     // Dispatch
     // -----------------------------------------------------------------------
@@ -172,6 +204,13 @@ final class Response
 
         if ($this->redirectUrl !== null) {
             header('Location: ' . $this->redirectUrl);
+
+            return;
+        }
+
+        if ($this->streamPath !== null) {
+            @readfile($this->streamPath);
+            @unlink($this->streamPath);
 
             return;
         }
