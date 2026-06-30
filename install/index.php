@@ -919,15 +919,14 @@ function installTables(PDO $pdo): void
 
         // Per-listing template revision history, up to 5 per (listing, key). Migration 95.
         "CREATE TABLE IF NOT EXISTS `lstr_template_revisions` (
-            `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            `fanlisting_id` INT UNSIGNED NOT NULL,
-            `template_key` VARCHAR(60)  NOT NULL,
-            `old_value`    MEDIUMTEXT   NULL,
-            `saved_by`     INT UNSIGNED NOT NULL,
-            `saved_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `fanlisting_id`     INT UNSIGNED NOT NULL,
+            `template_key`      VARCHAR(80)  NOT NULL,
+            `value`             TEXT         NULL,
+            `saved_at`          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `saved_by_admin_id` INT UNSIGNED NULL,
             PRIMARY KEY (`id`),
-            KEY `idx_tr_listing_key` (`fanlisting_id`, `template_key`),
-            KEY `idx_tr_saved_at` (`saved_at`)
+            KEY `idx_tpl_rev_lookup` (`fanlisting_id`, `template_key`, `saved_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // Multi-category junction table for listings (M51).
