@@ -308,6 +308,44 @@ SQL;
     }
 
     // -----------------------------------------------------------------------
+    // Re-archiving (Closed → Adopted Out) snapshot preservation
+    // -----------------------------------------------------------------------
+
+    public function testRearchivingPreservesOriginalSnapshot(): void
+    {
+        [$service, , $lifecycleRepo, $db] = $this->makeOwned();
+        $id = $this->insertOwned($db, status: 1); // upcoming
+
+        // First archive: snapshots upcoming=true, trouble=false
+        $service->archive($id, 'closed');
+        $rowAfterFirst = $lifecycleRepo->getByListingId($id);
+        self::assertNotNull($rowAfterFirst);
+        self::assertTrue($rowAfterFirst['legacy_upcoming']);
+        self::assertFalse($rowAfterFirst['legacy_trouble']);
+
+        // Re-archive to a different lifecycle status: original snapshot must survive
+        $service->archive($id, 'adopted_out');
+        $rowAfterSecond = $lifecycleRepo->getByListingId($id);
+        self::assertSame('adopted_out', $rowAfterSecond['lifecycle_status']);
+        self::assertTrue($rowAfterSecond['legacy_upcoming'], 'Original upcoming snapshot must be preserved on re-archive');
+        self::assertFalse($rowAfterSecond['legacy_trouble'], 'Original trouble snapshot must be preserved on re-archive');
+    }
+
+    public function testReopenAfterRearchivingRestoresOriginalState(): void
+    {
+        [$service, $listingRepo, , $db] = $this->makeOwned();
+        $id = $this->insertOwned($db, status: 1); // upcoming
+
+        $service->archive($id, 'closed');
+        $service->archive($id, 'adopted_out');
+        $service->reopen($id);
+
+        $listing = $listingRepo->getById($id);
+        self::assertTrue($listing->upcoming, 'Reopen must restore original upcoming state, not the archived inactive state');
+        self::assertFalse($listing->trouble);
+    }
+
+    // -----------------------------------------------------------------------
     // ListingLifecycleService::isLifecycleStatus()
     // -----------------------------------------------------------------------
 

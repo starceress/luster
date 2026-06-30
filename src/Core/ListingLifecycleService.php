@@ -65,24 +65,36 @@ final class ListingLifecycleService
             return false;
         }
 
+        // When changing between archived statuses (e.g. Closed → Adopted Out), the
+        // registry flags are already inactive (upcoming=false, trouble=true). Re-snapshotting
+        // them would overwrite the original pre-archive state and break Reopen. Preserve the
+        // existing snapshot instead.
+        $existingRow      = $this->lifecycleRepo->getByListingId($listingId);
+        $snapshotUpcoming = $existingRow !== null ? $existingRow['legacy_upcoming'] : $listing->upcoming;
+        $snapshotTrouble  = $existingRow !== null ? $existingRow['legacy_trouble']  : $listing->trouble;
+
         $this->lifecycleRepo->upsert(
             $listingId,
             $status,
-            $listing->upcoming,
-            $listing->trouble,
+            $snapshotUpcoming,
+            $snapshotTrouble,
             $status === self::STATUS_ADOPTED_OUT ? $adoptedToName : null,
             $status === self::STATUS_ADOPTED_OUT ? $adoptedToUrl  : null,
             $archiveNote,
         );
 
-        $this->listingRepo->updateMeta(
-            $listingId,
-            $listing->title,
-            $listing->url,
-            $listing->email,
-            upcoming: false,
-            trouble: true,
-        );
+        // Only write the legacy inactive state when first archiving; already-archived
+        // listings already have the correct inactive flags in the registry.
+        if ($existingRow === null) {
+            $this->listingRepo->updateMeta(
+                $listingId,
+                $listing->title,
+                $listing->url,
+                $listing->email,
+                upcoming: false,
+                trouble: true,
+            );
+        }
 
         return true;
     }

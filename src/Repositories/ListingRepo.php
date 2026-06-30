@@ -822,10 +822,18 @@ final class ListingRepo
     public function getCategoryList(string $status = 'current', bool $excludePending = false): array
     {
         // Mirrors getFiltered() exactly — only current-status listings count toward categories.
+        // Archived listings (lstr_listing_lifecycle) share the same legacy flags as 'pending'
+        // so the pending branch must exclude them; closed/adopted_out use EXISTS to target only
+        // the relevant archived subset.
+        $notArchived   = "NOT EXISTS (SELECT 1 FROM lstr_listing_lifecycle l WHERE l.fanlisting_id = lc.fanlisting_id)";
+        $legacyPending = $this->isOwnedSchema ? 'f.status = 0' : 'f.trouble = 1';
+
         $active = match (true) {
             $status === 'current'                => $this->isOwnedSchema ? 'f.status = 2' : 'f.upcoming = 0 AND f.trouble = 0',
             $status === 'upcoming'              => $this->isOwnedSchema ? 'f.status = 1'  : 'f.upcoming = 1',
-            $status === 'pending'               => $this->isOwnedSchema ? 'f.status = 0'  : 'f.trouble = 1',
+            $status === 'pending'               => "{$legacyPending} AND {$notArchived}",
+            $status === 'closed'               => "{$legacyPending} AND EXISTS (SELECT 1 FROM lstr_listing_lifecycle l WHERE l.fanlisting_id = lc.fanlisting_id AND l.lifecycle_status = 'closed')",
+            $status === 'adopted_out'          => "{$legacyPending} AND EXISTS (SELECT 1 FROM lstr_listing_lifecycle l WHERE l.fanlisting_id = lc.fanlisting_id AND l.lifecycle_status = 'adopted_out')",
             $status === 'all' && $excludePending => $this->isOwnedSchema ? 'f.status != 0' : 'f.trouble = 0',
             default                             => '1 = 1',
         };

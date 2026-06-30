@@ -25,22 +25,23 @@ final class SessionPathResolver
     /**
      * Returns the resolved writable path and whether a fallback was needed.
      *
-     * @return array{path: string, usedFallback: bool}
+     * @return array{path: string, usedFallback: bool, probeOk: bool}
      */
     public function resolve(): array
     {
         $configured = $this->normalizeConfiguredPath((string) ini_get('session.save_path'));
 
         if ($configured !== '' && $this->isWritable($configured)) {
-            return ['path' => $configured, 'usedFallback' => false];
+            return ['path' => $configured, 'usedFallback' => false, 'probeOk' => true];
         }
 
         $temp = sys_get_temp_dir();
         if ($temp !== '' && $this->isWritable($temp)) {
-            return ['path' => $temp, 'usedFallback' => true];
+            return ['path' => $temp, 'usedFallback' => true, 'probeOk' => true];
         }
 
-        return ['path' => $this->prepareStorageFallback(), 'usedFallback' => true];
+        $fallback = $this->prepareStorageFallback();
+        return ['path' => $fallback, 'usedFallback' => true, 'probeOk' => $this->isWritable($fallback)];
     }
 
     /**

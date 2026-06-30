@@ -3955,6 +3955,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   var archiveNoteRow = document.getElementById('archive-note-row');
   var adoptedNameRow = document.getElementById('adopted-to-name-row');
   var adoptedUrlRow  = document.getElementById('adopted-to-url-row');
+  var urlInput       = document.getElementById('fl-url');
 
   function setArchiveRowsState(val) {
     var isArchived   = val === 'closed' || val === 'adopted_out';
@@ -3962,6 +3963,10 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     if (archiveNoteRow) { archiveNoteRow.style.display = isArchived   ? '' : 'none'; }
     if (adoptedNameRow) { adoptedNameRow.style.display = isAdoptedOut ? '' : 'none'; }
     if (adoptedUrlRow)  { adoptedUrlRow.style.display  = isAdoptedOut ? '' : 'none'; }
+    if (urlInput) {
+      if (isArchived) { urlInput.removeAttribute('required'); }
+      else            { urlInput.setAttribute('required', ''); }
+    }
   }
 
   radios.forEach(function (r) {

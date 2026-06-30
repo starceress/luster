@@ -97,14 +97,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($luster_return ?? false) { return ''; }
         return;
     }
-    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
-        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
-        if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
-        echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
-        return;
+    // Session-backed CSRF is validated first. When the PHP session has been lost
+    // between sign-in and submit (broken cookie, GC, etc.), CSRF fails — but a
+    // DB-backed form session token in POST is equivalent CSRF proof: it is a
+    // 32-byte cryptographic random embedded by Luster's own form renderer, bound
+    // to this listing + action, and single-use. Only bypass CSRF when it actually
+    // fails AND a non-empty form token is present; the token is still validated by
+    // consume() in submit() before any action is taken.
+    $csrfOk = $_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''));
+    if (!$csrfOk) {
+        $hasFallbackToken = ($_POST['_form_token_update'] ?? '') !== ''
+                         || ($_POST['_form_token_delete'] ?? '') !== '';
+        if (!$hasFallbackToken) {
+            $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+            if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
+            echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
+            return;
+        }
+    } else {
+        $hasFallbackToken = false;
     }
     $_lusterAuthedNow = $_lusterApp->getSession()->get('lstr_update_authed_' . $_lusterListingId, '') !== '';
-    if ($_lusterAuthedNow) {
+    if ($_lusterAuthedNow || $hasFallbackToken) {
         $response = (new \Luster\Controllers\Public\UpdateController($_lusterApp))
             ->submit(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
     } else {

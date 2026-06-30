@@ -1009,14 +1009,22 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="sysinfo-row">
               <span class="field-label">Session Storage</span>
               <span class="status-inline">
-                <?php if ($spd['usedFallback']): ?>
+                <?php if (!($spd['probeOk'] ?? true)): ?>
+                  <span class="badge badge-error">Not writable</span>
+                <?php elseif ($spd['usedFallback']): ?>
                   <span class="badge badge-pending">Fallback in use</span>
                 <?php else: ?>
                   <span class="badge badge-current">Default path</span>
                 <?php endif; ?>
                 <span class="text-mono text-dim"><?= View::e($spd['path']) ?></span>
               </span>
-              <?php if ($spd['usedFallback']): ?>
+              <?php if (!($spd['probeOk'] ?? true)): ?>
+                <p class="form-hint" style="color:var(--color-error)">
+                  Luster could not write to any session storage location. Logins will not
+                  work until write permissions are fixed on the storage path above or on
+                  your server's <code>session.save_path</code>. Contact your host.
+                </p>
+              <?php elseif ($spd['usedFallback']): ?>
                 <p class="form-hint">
                   Your server's configured session storage location was not writable, so Luster
                   is using a fallback location instead. Logins and member sessions still work

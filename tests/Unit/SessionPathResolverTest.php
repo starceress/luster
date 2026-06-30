@@ -71,6 +71,7 @@ final class SessionPathResolverTest extends TestCase
 
         self::assertSame($dir, $result['path']);
         self::assertFalse($result['usedFallback']);
+        self::assertTrue($result['probeOk']);
     }
 
     public function testResolveFallsBackToTempWhenConfiguredPathDoesNotExist(): void
@@ -82,6 +83,7 @@ final class SessionPathResolverTest extends TestCase
 
         self::assertSame(sys_get_temp_dir(), $result['path']);
         self::assertTrue($result['usedFallback']);
+        self::assertTrue($result['probeOk']);
     }
 
     public function testResolveFallsBackToTempWhenConfiguredPathEmpty(): void
@@ -93,6 +95,7 @@ final class SessionPathResolverTest extends TestCase
 
         self::assertSame(sys_get_temp_dir(), $result['path']);
         self::assertTrue($result['usedFallback']);
+        self::assertTrue($result['probeOk']);
     }
 
     public function testResolveHandlesMultiLevelSavePathFormat(): void
@@ -106,6 +109,30 @@ final class SessionPathResolverTest extends TestCase
 
         self::assertSame($dir, $result['path']);
         self::assertFalse($result['usedFallback']);
+        self::assertTrue($result['probeOk']);
+    }
+
+    public function testResolveFallbackPathIsProbeValidated(): void
+    {
+        // Force both configured path and sys_get_temp_dir() to fail so
+        // resolve() reaches prepareStorageFallback() — then confirm probeOk
+        // reflects writability of the created storage/sessions/ directory.
+        $base = $this->makeTempDir();
+        ini_set('session.save_path', $base . '/lstr_spr_nonexistent_' . bin2hex(random_bytes(6)));
+
+        // Temp dir is writable on the test machine, so we can't force the full
+        // fallback from resolve() portably. Test the fallback branch directly by
+        // confirming a newly-created storage/sessions/ dir is probe-validated.
+        $resolver  = new SessionPathResolver($base);
+        $method    = new \ReflectionMethod($resolver, 'prepareStorageFallback');
+        $method->setAccessible(true);
+        $fallback  = (string) $method->invoke($resolver);
+
+        $isWritable = new \ReflectionMethod($resolver, 'isWritable');
+        $isWritable->setAccessible(true);
+
+        self::assertTrue((bool) $isWritable->invoke($resolver, $fallback), 'Freshly-created storage/sessions/ must pass probe-file validation');
+        self::assertArrayHasKey('probeOk', $resolver->resolve(), 'resolve() must include probeOk key');
     }
 
     // -----------------------------------------------------------------------

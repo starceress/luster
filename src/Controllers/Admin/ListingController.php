@@ -1027,7 +1027,13 @@ final class ListingController extends AdminController
             // upcoming/trouble/lifecycle reflect the prior state.
             $wasArchived = $listing->lifecycle !== null;
             if ($isArchiving) {
-                $lifecycleRepo->upsert($id, $status, $listing->upcoming, $listing->trouble, $adoptedToName, $adoptedToUrl, $archiveNote);
+                // Preserve the original pre-archive snapshot when changing between archived
+                // statuses (e.g. Closed → Adopted Out). If we re-snapshot from the current
+                // registry flags they are already inactive (upcoming=false, trouble=true),
+                // which would overwrite the true original state and break Reopen.
+                $snapshotUpcoming = $wasArchived ? (bool) ($lifecycleRow['legacy_upcoming'] ?? false) : $listing->upcoming;
+                $snapshotTrouble  = $wasArchived ? (bool) ($lifecycleRow['legacy_trouble']  ?? false) : $listing->trouble;
+                $lifecycleRepo->upsert($id, $status, $snapshotUpcoming, $snapshotTrouble, $adoptedToName, $adoptedToUrl, $archiveNote);
                 $activityRepo->log(
                     (int) $session->get('lstr_admin_id'),
                     'listing.archive',
