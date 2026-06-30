@@ -139,12 +139,14 @@ final class JoinedController extends AdminController
         $baseUrl      = $this->app->getBaseUrl();
 
         if ($request->isPost()) {
-            $name       = trim((string) $request->post('name', ''));
-            $url        = self::httpsify(trim((string) $request->post('url', '')));
-            $category   = trim((string) $request->post('category', ''));
-            $dateJoined = trim((string) $request->post('date_joined', ''));
-            $active     = $request->post('active') === '1';
-            $status     = trim((string) $request->post('status', 'approved'));
+            $name        = trim((string) $request->post('name', ''));
+            $url         = self::httpsify(trim((string) $request->post('url', '')));
+            $category    = trim((string) $request->post('category', ''));
+            $dateJoined  = trim((string) $request->post('date_joined', ''));
+            $active      = $request->post('active') === '1';
+            $status      = trim((string) $request->post('status', 'approved'));
+            $description = trim((string) $request->post('description', ''));
+            $comments    = trim((string) $request->post('comments', ''));
 
             if (!in_array($status, ['approved', 'pending'], true)) {
                 $status = 'approved';
@@ -242,6 +244,8 @@ final class JoinedController extends AdminController
                 'active'          => $active,
                 'status'          => $status,
                 'categories_json' => $categoriesJson,
+                'description'     => $description !== '' ? $description : null,
+                'comments'        => $comments    !== '' ? $comments    : null,
             ]);
 
             $session->set('lstr_flash_success', 'Joined listing added.');
@@ -291,13 +295,15 @@ final class JoinedController extends AdminController
         $baseUrl = $this->app->getBaseUrl();
 
         if ($request->isPost()) {
-            $name       = trim((string) $request->post('name', ''));
-            $url        = self::httpsify(trim((string) $request->post('url', '')));
-            $category   = trim((string) $request->post('category', ''));
-            $dateJoined = trim((string) $request->post('date_joined', ''));
+            $name        = trim((string) $request->post('name', ''));
+            $url         = self::httpsify(trim((string) $request->post('url', '')));
+            $category    = trim((string) $request->post('category', ''));
+            $dateJoined  = trim((string) $request->post('date_joined', ''));
             $active      = $request->post('active') === '1';
             $deleteImage = $request->post('delete_image') === '1';
             $status      = trim((string) $request->post('status', 'approved'));
+            $description = trim((string) $request->post('description', ''));
+            $comments    = trim((string) $request->post('comments', ''));
 
             if (!in_array($status, ['approved', 'pending'], true)) {
                 $status = 'approved';
@@ -413,6 +419,8 @@ final class JoinedController extends AdminController
                 'active'          => $active,
                 'status'          => $status,
                 'categories_json' => $categoriesJson,
+                'description'     => $description !== '' ? $description : null,
+                'comments'        => $comments    !== '' ? $comments    : null,
             ]);
 
             $session->set('lstr_flash_success', 'Joined listing updated.');

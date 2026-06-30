@@ -29,6 +29,10 @@ namespace Luster\Models;
  * support multi-category joined listings (may be null for manually added entries).
  *
  * linkStatus and linkRedirectUrl are set by the Link Checker feature.
+ *
+ * description and comments are private admin-only notes (never shown on the
+ * public joined-listings embed), preserved from Enthusiast's joined-listing
+ * `desc` and `comments` fields on import.
  */
 final class JoinedListing
 {
@@ -56,6 +60,10 @@ final class JoinedListing
         public readonly ?string $linkCheckedAt,
         /** Final redirect destination detected by the link checker; null if no redirect was followed. */
         public readonly ?string $linkRedirectUrl,
+        /** Free-text "about this listing" note, preserved from Enthusiast's joined-listing desc field. Admin-only, not shown publicly. */
+        public readonly ?string $description,
+        /** Free-text admin note, preserved from Enthusiast's joined-listing comments field. Admin-only, not shown publicly. */
+        public readonly ?string $comments,
     ) {}
 
     /**
@@ -77,6 +85,8 @@ final class JoinedListing
             linkStatus:      (string) ($row['link_status']       ?? 'unchecked'),
             linkCheckedAt:   isset($row['link_checked_at'])   && $row['link_checked_at']   !== null ? (string) $row['link_checked_at']   : null,
             linkRedirectUrl: isset($row['link_redirect_url']) && $row['link_redirect_url'] !== null ? (string) $row['link_redirect_url'] : null,
+            description:     isset($row['description']) && $row['description'] !== null ? (string) $row['description'] : null,
+            comments:        isset($row['comments'])    && $row['comments']    !== null ? (string) $row['comments']    : null,
         );
     }
 }

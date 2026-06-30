@@ -574,15 +574,15 @@ final class JoinedListingRepo
     /**
      * Inserts a new joined listing and returns the new primary key.
      *
-     * @param array{name: string, url: string, image?: ?string, category?: string, categories_json?: ?string, date_joined?: ?string, active?: bool, status?: string} $data
+     * @param array{name: string, url: string, image?: ?string, category?: string, categories_json?: ?string, date_joined?: ?string, active?: bool, status?: string, description?: ?string, comments?: ?string} $data
      */
     public function insert(array $data): int
     {
         $stmt = $this->db->prepare(
             'INSERT INTO lstr_joined
-                (name, url, image, category, categories_json, date_joined, active, status)
+                (name, url, image, category, categories_json, date_joined, active, status, description, comments)
              VALUES
-                (:name, :url, :image, :category, :categories_json, :date_joined, :active, :status)'
+                (:name, :url, :image, :category, :categories_json, :date_joined, :active, :status, :description, :comments)'
         );
 
         $stmt->execute([
@@ -594,32 +594,36 @@ final class JoinedListingRepo
             'date_joined'     => isset($data['date_joined'])     && $data['date_joined']     !== null ? (string) $data['date_joined']     : null,
             'active'          => isset($data['active'])          ? (int) (bool) $data['active'] : 1,
             'status'          => (string) ($data['status']          ?? 'approved'),
+            'description'     => isset($data['description']) && $data['description'] !== null && $data['description'] !== '' ? (string) $data['description'] : null,
+            'comments'        => isset($data['comments'])    && $data['comments']    !== null && $data['comments']    !== '' ? (string) $data['comments']    : null,
         ]);
 
         return (int) $this->db->lastInsertId();
     }
 
     /**
-     * Replaces all editable fields on an existing row.
+     * Replaces the core editable fields on an existing row.
      *
-     * @param array{name: string, url: string, image: ?string, category: string, categories_json: ?string, date_joined: ?string, active: bool, status: string} $data
+     * description and comments are write-if-present: omitting either key
+     * entirely leaves the stored value untouched (so older/other callers
+     * that don't know about these fields can't silently erase imported
+     * notes). Passing the key with a null or empty-string value clears it.
+     *
+     * @param array{name: string, url: string, image: ?string, category: string, categories_json: ?string, date_joined: ?string, active: bool, status: string, description?: ?string, comments?: ?string} $data
      */
     public function update(int $id, array $data): bool
     {
-        $stmt = $this->db->prepare(
-            'UPDATE lstr_joined
-             SET name            = :name,
-                 url             = :url,
-                 image           = :image,
-                 category        = :category,
-                 categories_json = :categories_json,
-                 date_joined     = :date_joined,
-                 active          = :active,
-                 status          = :status
-             WHERE id = :id'
-        );
-
-        return $stmt->execute([
+        $setParts = [
+            'name = :name',
+            'url = :url',
+            'image = :image',
+            'category = :category',
+            'categories_json = :categories_json',
+            'date_joined = :date_joined',
+            'active = :active',
+            'status = :status',
+        ];
+        $params = [
             'name'            => (string) $data['name'],
             'url'             => (string) $data['url'],
             'image'           => isset($data['image'])           && $data['image']           !== null ? (string) $data['image']           : null,
@@ -629,7 +633,20 @@ final class JoinedListingRepo
             'active'          => (int) (bool) ($data['active']   ?? true),
             'status'          => (string) ($data['status']          ?? 'approved'),
             'id'              => $id,
-        ]);
+        ];
+
+        if (array_key_exists('description', $data)) {
+            $setParts[] = 'description = :description';
+            $params['description'] = $data['description'] !== null && $data['description'] !== '' ? (string) $data['description'] : null;
+        }
+        if (array_key_exists('comments', $data)) {
+            $setParts[] = 'comments = :comments';
+            $params['comments'] = $data['comments'] !== null && $data['comments'] !== '' ? (string) $data['comments'] : null;
+        }
+
+        $stmt = $this->db->prepare('UPDATE lstr_joined SET ' . implode(', ', $setParts) . ' WHERE id = :id');
+
+        return $stmt->execute($params);
     }
 
     /**

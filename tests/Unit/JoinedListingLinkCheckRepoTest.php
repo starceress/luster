@@ -24,7 +24,9 @@ CREATE TABLE lstr_joined (
     created_at        TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     link_status       TEXT    NOT NULL DEFAULT 'unchecked',
     link_checked_at   TEXT    NULL,
-    link_redirect_url TEXT    NULL
+    link_redirect_url TEXT    NULL,
+    description       TEXT    NULL,
+    comments          TEXT    NULL
 )
 SQL;
 

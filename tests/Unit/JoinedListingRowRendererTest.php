@@ -257,6 +257,8 @@ final class JoinedListingRowRendererTest extends TestCase
             linkStatus:      'unchecked',
             linkCheckedAt:   null,
             linkRedirectUrl: null,
+            description:     null,
+            comments:        null,
         );
     }
 }
