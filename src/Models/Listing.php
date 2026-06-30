@@ -60,7 +60,41 @@ final class Listing
         public readonly ?int    $categoryId = null,
         /** Raw catid/category string from the registry row (pipe-delimited or int). */
         public readonly string  $catid = '',
+        /**
+         * Lifecycle status from lstr_listing_lifecycle: null (no row — not
+         * archived), 'closed', or 'adopted_out'. Never populated by fromRow()
+         * since it requires a separate lookup/join; callers that need it use
+         * withLifecycle() after a batch lookup (see ListingLifecycleRepo).
+         */
+        public readonly ?string $lifecycle = null,
     ) {}
+
+    /**
+     * Returns a clone of this Listing with $lifecycle applied. Used by
+     * callers that batch-fetch lstr_listing_lifecycle status separately
+     * from the main listing query (mirrors the MemberStatsService pattern).
+     */
+    public function withLifecycle(?string $lifecycle): self
+    {
+        return new self(
+            id:             $this->id,
+            title:          $this->title,
+            listingtype:    $this->listingtype,
+            category:       $this->category,
+            subject:        $this->subject,
+            url:            $this->url,
+            dbprefix:       $this->dbprefix,
+            email:          $this->email,
+            additionalInfo: $this->additionalInfo,
+            upcoming:       $this->upcoming,
+            trouble:        $this->trouble,
+            joined:         $this->joined,
+            opened:         $this->opened,
+            categoryId:     $this->categoryId,
+            catid:          $this->catid,
+            lifecycle:      $lifecycle,
+        );
+    }
 
     /**
      * Hydrates a Listing from a PDO FETCH_ASSOC row.

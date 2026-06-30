@@ -61,10 +61,17 @@ final class PublicCategoryPresenter
         bool   $showPending   = true,
         int    $upcomingCount = 0,
         bool   $showUpcoming  = true,
+        int    $closedCount     = 0,
+        bool   $showClosed      = true,
+        int    $adoptedOutCount = 0,
+        bool   $showAdoptedOut  = true,
     ): array {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        $pseudoEntries = self::ownedPseudoEntries($view, $pendingCount, $showPending, $upcomingCount, $showUpcoming);
+        $pseudoEntries = self::ownedPseudoEntries(
+            $view, $pendingCount, $showPending, $upcomingCount, $showUpcoming,
+            $closedCount, $showClosed, $adoptedOutCount, $showAdoptedOut,
+        );
 
         // Browse-by-category: index view only when no category AND no pseudo-view selected
         if ($browseMode && $currentId === 0 && !$browseShowAll && $view === '') {
@@ -110,6 +117,10 @@ final class PublicCategoryPresenter
         bool   $showPending,
         int    $upcomingCount,
         bool   $showUpcoming,
+        int    $closedCount     = 0,
+        bool   $showClosed      = true,
+        int    $adoptedOutCount = 0,
+        bool   $showAdoptedOut  = true,
     ): array {
         $entries = [];
         if ($showPending && $pendingCount > 0) {
@@ -126,6 +137,22 @@ final class PublicCategoryPresenter
                 'value'  => '__upcoming__',
                 'count'  => $upcomingCount,
                 'active' => $view === 'upcoming',
+            ];
+        }
+        if ($showClosed && $closedCount > 0) {
+            $entries[] = [
+                'label'  => 'Closed',
+                'value'  => '__closed__',
+                'count'  => $closedCount,
+                'active' => $view === 'closed',
+            ];
+        }
+        if ($showAdoptedOut && $adoptedOutCount > 0) {
+            $entries[] = [
+                'label'  => 'Adopted Out',
+                'value'  => '__adopted_out__',
+                'count'  => $adoptedOutCount,
+                'active' => $view === 'adopted_out',
             ];
         }
         return $entries;

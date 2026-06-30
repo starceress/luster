@@ -103,6 +103,12 @@ final class JoinController
             $globalDefaults['form_url_join'],
         );
 
+        // Archived listings (Closed/Adopted Out) no longer accept new joins.
+        if ((new \Luster\Repositories\ListingLifecycleRepo($this->app->getDatabase()))->getByListingId($listingId) !== null) {
+            $session->set('lstr_flash_error', 'This fanlisting is no longer accepting new members.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_JOIN)) {
             $session->set('lstr_flash_error', 'Too many join attempts. Please try again later.');

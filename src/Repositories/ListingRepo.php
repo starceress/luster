@@ -150,6 +150,31 @@ final class ListingRepo
         ];
     }
 
+    /**
+     * Returns Closed/Adopted Out counts from lstr_listing_lifecycle. These
+     * listings are already included in getStats()'s 'trouble' count (the
+     * legacy inactive representation), so this is additive context, not a
+     * replacement — subtract both from 'trouble' to get the true pending count.
+     *
+     * @return array{closed: int, adopted_out: int}
+     */
+    public function getLifecycleCounts(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT
+                SUM(lifecycle_status = 'closed')      AS closed,
+                SUM(lifecycle_status = 'adopted_out') AS adopted_out
+             FROM lstr_listing_lifecycle"
+        );
+        $stmt->execute();
+        $row = $stmt->fetch();
+
+        return [
+            'closed'      => (int) ($row['closed']      ?? 0),
+            'adopted_out' => (int) ($row['adopted_out'] ?? 0),
+        ];
+    }
+
     // -----------------------------------------------------------------------
     // Writes
     // -----------------------------------------------------------------------
@@ -505,30 +530,52 @@ final class ListingRepo
      * Returns listings filtered by status and optional Luster category ID.
      *
      * Status values:
-     *   'current'  — active/open listings (status=2 or upcoming=0 AND trouble=0)
-     *   'upcoming' — upcoming listings (status=1 or upcoming=1)
-     *   'pending'  — pending/inactive listings (status=0 or trouble=1)
-     *   'all'      — no status filter (combine with $excludePending to omit pending listings)
+     *   'current'     — active/open listings (status=2 or upcoming=0 AND trouble=0)
+     *   'upcoming'    — upcoming listings (status=1 or upcoming=1)
+     *   'pending'     — pending/inactive listings (status=0 or trouble=1) that are NOT archived
+     *   'closed'      — archived as Closed (lstr_listing_lifecycle.lifecycle_status = 'closed')
+     *   'adopted_out' — archived as Adopted Out (lifecycle_status = 'adopted_out')
+     *   'all'         — no status filter (combine with $excludePending to omit pending/archived listings)
+     *
+     * Closed/Adopted Out listings are layered on top of the legacy inactive
+     * representation (status=0 / trouble=1) via lstr_listing_lifecycle — they
+     * are excluded from plain 'pending' results so the two concepts don't
+     * overlap. Returned Listing objects for 'closed'/'adopted_out' have their
+     * lifecycle property set directly (every row matched the WHERE clause for
+     * that exact status); other status values leave it null — callers that
+     * need lifecycle on a mixed-status result set should batch-apply it via
+     * ListingLifecycleRepo::getMapForListings() + Listing::withLifecycle().
      *
      * @param int|null $categoryId    Filter to a Luster category (lstr_categories.id), or null for all
-     * @param bool     $excludePending When true and $status is 'all', pending/inactive listings
-     *                                 are silently omitted. Has no effect for other status values.
+     * @param bool     $excludePending When true and $status is 'all', pending/inactive/archived
+     *                                 listings are silently omitted. Has no effect for other status values.
      * @return Listing[]
      */
     public function getFiltered(string $status = 'current', ?int $categoryId = null, bool $excludePending = false): array
     {
-        // These fragments are built from a controlled match on internal values — safe to interpolate
-        $statusWhere = match (true) {
-            $status === 'current'               => $this->isOwnedSchema ? 'status = 2'  : 'upcoming = 0 AND trouble = 0',
-            $status === 'upcoming'              => $this->isOwnedSchema ? 'status = 1'  : 'upcoming = 1',
-            $status === 'pending'               => $this->isOwnedSchema ? 'status = 0'  : 'trouble = 1',
-            $status === 'all' && $excludePending => $this->isOwnedSchema ? 'status != 0' : 'trouble = 0',
-            default                             => '1 = 1',
-        };
+        $t  = $this->table;
+        $pk = $this->pkCol;
 
-        $t      = $this->table;
-        $pk     = $this->pkCol;
+        $notArchived = "NOT EXISTS (SELECT 1 FROM lstr_listing_lifecycle ll WHERE ll.fanlisting_id = {$t}.{$pk})";
+
         $params = [];
+
+        if ($status === 'closed' || $status === 'adopted_out') {
+            $statusWhere = "EXISTS (
+                SELECT 1 FROM lstr_listing_lifecycle ll
+                WHERE ll.fanlisting_id = {$t}.{$pk} AND ll.lifecycle_status = :lifecycle_status
+            )";
+            $params['lifecycle_status'] = $status;
+        } else {
+            // These fragments are built from a controlled match on internal values — safe to interpolate
+            $statusWhere = match (true) {
+                $status === 'current'                => $this->isOwnedSchema ? 'status = 2'  : 'upcoming = 0 AND trouble = 0',
+                $status === 'upcoming'               => $this->isOwnedSchema ? 'status = 1'  : 'upcoming = 1',
+                $status === 'pending'                => ($this->isOwnedSchema ? 'status = 0'  : 'trouble = 1') . " AND {$notArchived}",
+                $status === 'all' && $excludePending => $this->isOwnedSchema ? 'status != 0' : 'trouble = 0',
+                default                              => '1 = 1',
+            };
+        }
 
         if ($categoryId !== null) {
             // Expand to include child categories (max depth=1) so clicking a parent
@@ -555,10 +602,30 @@ final class ListingRepo
              ORDER BY {$orderCol} ASC"
         );
         $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+
+        if ($status === 'closed' || $status === 'adopted_out') {
+            return array_map(
+                static fn(array $row) => Listing::fromRow($row)->withLifecycle($status),
+                $rows
+            );
+        }
+
+        if ($status === 'all') {
+            $ids          = array_map(static fn(array $row) => (int) ($row['listingid'] ?? $row['id'] ?? 0), $rows);
+            $lifecycleMap = (new ListingLifecycleRepo($this->db))->getMapForListings($ids);
+
+            return array_map(
+                static fn(array $row) => Listing::fromRow($row)->withLifecycle(
+                    $lifecycleMap[(int) ($row['listingid'] ?? $row['id'] ?? 0)] ?? null
+                ),
+                $rows
+            );
+        }
 
         return array_map(
             static fn(array $row) => Listing::fromRow($row),
-            $stmt->fetchAll()
+            $rows
         );
     }
 

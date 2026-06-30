@@ -3925,8 +3925,9 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 
   function isTba(val) {
     // Add listing uses numeric strings: '0'=pending, '1'=upcoming, '2'=current
-    // Edit listing uses: 'pending', 'upcoming', 'current'
-    return val === '0' || val === '1' || val === 'upcoming' || val === 'pending';
+    // Edit listing uses: 'pending', 'upcoming', 'current', 'closed', 'adopted_out'
+    return val === '0' || val === '1' || val === 'upcoming' || val === 'pending'
+        || val === 'closed' || val === 'adopted_out';
   }
 
   function setTbaState(tba) {
@@ -3948,6 +3949,26 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   });
 
   setTbaState(isTba(getStatusVal()));
+
+  // Archive note shows for Closed or Adopted Out; the "Adopted By" name/URL
+  // fields only make sense for Adopted Out specifically.
+  var archiveNoteRow = document.getElementById('archive-note-row');
+  var adoptedNameRow = document.getElementById('adopted-to-name-row');
+  var adoptedUrlRow  = document.getElementById('adopted-to-url-row');
+
+  function setArchiveRowsState(val) {
+    var isArchived   = val === 'closed' || val === 'adopted_out';
+    var isAdoptedOut = val === 'adopted_out';
+    if (archiveNoteRow) { archiveNoteRow.style.display = isArchived   ? '' : 'none'; }
+    if (adoptedNameRow) { adoptedNameRow.style.display = isAdoptedOut ? '' : 'none'; }
+    if (adoptedUrlRow)  { adoptedUrlRow.style.display  = isAdoptedOut ? '' : 'none'; }
+  }
+
+  radios.forEach(function (r) {
+    r.addEventListener('change', function () { setArchiveRowsState(this.value); });
+  });
+
+  setArchiveRowsState(getStatusVal());
 }());
 
 // ── 39. Global delete / destructive-action confirmation modal ────────────────────

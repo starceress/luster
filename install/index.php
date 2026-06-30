@@ -898,6 +898,21 @@ function installTables(PDO $pdo): void
             KEY `idx_listing_id` (`listing_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+        // Listing lifecycle current-state (Closed / Adopted Out), layered on top of the
+        // legacy upcoming/trouble columns without ever widening their meaning. One row
+        // only for listings that are currently archived. Migration 93.
+        "CREATE TABLE IF NOT EXISTS `lstr_listing_lifecycle` (
+            `fanlisting_id`    INT UNSIGNED  NOT NULL,
+            `lifecycle_status` VARCHAR(20)   NOT NULL,
+            `archived_at`      DATETIME      NOT NULL,
+            `legacy_upcoming`  TINYINT(1)    NOT NULL DEFAULT 0,
+            `legacy_trouble`   TINYINT(1)    NOT NULL DEFAULT 0,
+            `adopted_to_name`  VARCHAR(255)  NULL,
+            `adopted_to_url`   VARCHAR(500)  NULL,
+            `archive_note`     TEXT          NULL,
+            PRIMARY KEY (`fanlisting_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
         // Multi-category junction table for listings (M51).
         "CREATE TABLE IF NOT EXISTS `lstr_listing_categories` (
             `fanlisting_id` INT NOT NULL,
@@ -1033,7 +1048,7 @@ function installTables(PDO $pdo): void
          (47),(48),(49),(50),(51),(52),(53),(55),(56),(57),
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
-         (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92)'
+         (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93)'
     );
 }
 

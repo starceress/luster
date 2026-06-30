@@ -25,7 +25,9 @@ $oldUrl    = $old['url']    ?? $listing->url;
 $oldEmail  = $old['email']  ?? $listing->email;
 
 // Resolve current status string
-if ($listing->upcoming) {
+if ($listing->lifecycle !== null) {
+    $currentStatus = $listing->lifecycle;
+} elseif ($listing->upcoming) {
     $currentStatus = 'upcoming';
 } elseif ($listing->trouble) {
     $currentStatus = 'pending';
@@ -33,6 +35,9 @@ if ($listing->upcoming) {
     $currentStatus = 'current';
 }
 $oldStatus = $old['status'] ?? $currentStatus;
+$oldAdoptedToName = $old['adopted_to_name'] ?? ($lifecycle_meta['adopted_to_name'] ?? '');
+$oldAdoptedToUrl  = $old['adopted_to_url']  ?? ($lifecycle_meta['adopted_to_url']  ?? '');
+$oldArchiveNote   = $old['archive_note']    ?? ($lifecycle_meta['archive_note']    ?? '');
 
 // Cat-widget JSON data
 $dataTfl       = json_encode($tfl_cats       ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
@@ -290,6 +295,39 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <label class="status-pill status-pill--pending">
               <input type="radio" name="status" value="pending"  <?= $oldStatus === 'pending'  ? 'checked' : '' ?>> Pending
             </label>
+            <label class="status-pill status-pill--pending">
+              <input type="radio" name="status" value="closed"  <?= $oldStatus === 'closed'  ? 'checked' : '' ?>> Closed
+            </label>
+            <label class="status-pill status-pill--pending">
+              <input type="radio" name="status" value="adopted_out"  <?= $oldStatus === 'adopted_out'  ? 'checked' : '' ?>> Adopted Out
+            </label>
+          </div>
+          <p class="form-hint">Closed and Adopted Out archive the listing: it stops accepting joins/updates/contact/codes on its public forms, and its URL is no longer required. Member, code, and affiliate data are kept and remain manageable here.</p>
+        </div>
+
+        <div class="field-row field-row--top" id="archive-note-row">
+          <label class="field-label" for="fl-archive-note">Archive Note</label>
+          <div>
+            <textarea id="fl-archive-note" name="archive_note" class="form" rows="2"
+                      placeholder="Optional internal note about why this listing was archived&hellip;"><?= View::e((string) $oldArchiveNote) ?></textarea>
+          </div>
+        </div>
+
+        <div class="field-row" id="adopted-to-name-row">
+          <label class="field-label" for="fl-adopted-to-name">Adopted By (Name)</label>
+          <div>
+            <input id="fl-adopted-to-name" type="text" name="adopted_to_name" class="form"
+                   value="<?= View::e((string) $oldAdoptedToName) ?>" maxlength="255"
+                   placeholder="Name of the new owner or successor listing">
+          </div>
+        </div>
+
+        <div class="field-row" id="adopted-to-url-row">
+          <label class="field-label" for="fl-adopted-to-url">Adopted By (URL)</label>
+          <div>
+            <input id="fl-adopted-to-url" type="url" name="adopted_to_url" class="form"
+                   value="<?= View::e((string) $oldAdoptedToUrl) ?>" maxlength="500"
+                   placeholder="https://">
           </div>
         </div>
 

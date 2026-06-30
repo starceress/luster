@@ -85,6 +85,12 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
+        // Archived listings (Closed/Adopted Out) no longer accept contact messages.
+        if ((new \Luster\Repositories\ListingLifecycleRepo($this->app->getDatabase()))->getByListingId($listingId) !== null) {
+            $session->set('lstr_flash_error', 'This fanlisting is no longer accepting messages.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
+        }
+
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_CONTACT)) {
             $session->set('lstr_flash_error', 'Too many messages sent. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);

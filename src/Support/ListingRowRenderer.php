@@ -25,7 +25,10 @@ final class ListingRowRenderer
      * Replace all {token} placeholders for one listing and return the HTML row.
      *
      * @param array<string, mixed> $settings    Row from lstr_fanlisting_settings
-     *                                           (keys: image, last_updated, approved_by, description).
+     *                                           (keys: image, last_updated, approved_by, description),
+     *                                           plus optional lifecycle metadata when $listing is
+     *                                           archived: adopted_to_name, adopted_to_url,
+     *                                           archive_note, archived_at (see ListingLifecycleRepo).
      * @param array{approved?: int, pending?: int, country_count?: int} $memberStats
      */
     public static function render(
@@ -38,9 +41,10 @@ final class ListingRowRenderer
         string  $dateFormat   = '',
     ): string {
         $status = match (true) {
-            $listing->trouble  => 'pending',
-            $listing->upcoming => 'upcoming',
-            default            => 'current',
+            $listing->lifecycle !== null => $listing->lifecycle,
+            $listing->trouble            => 'pending',
+            $listing->upcoming           => 'upcoming',
+            default                      => 'current',
         };
 
         $image    = (string) ($settings['image'] ?? '');
@@ -85,20 +89,28 @@ final class ListingRowRenderer
                 'tfl_url'              => 'https://thefanlistings.org/',
                 'tafl_url'             => 'https://www.animefanlistings.com/',
                 'listing_description'  => $description,
+                'adopted_to_name'      => (string) ($settings['adopted_to_name'] ?? ''),
+                'adopted_to_url'       => (string) ($settings['adopted_to_url']  ?? ''),
+                'archive_note'         => (string) ($settings['archive_note']    ?? ''),
+                'archived_at'          => (string) ($settings['archived_at']     ?? ''),
             ],
             conditions: [
-                'listing_image'    => $imageUrl !== '',
-                'no_listing_image' => $imageUrl === '',
-                'countries'       => $countryCount > 0,
-                'pending'         => $pendingCount > 0,
-                'status_current'  => $status === 'current',
-                'status_upcoming' => $status === 'upcoming',
-                'status_pending'  => $status === 'pending',
-                'tfl'             => $approvedBy === 'tfl',
-                'tafl'            => $approvedBy === 'tafl',
-                'approved_by'     => $approvedBy !== '',
-                'date_updated'    => DateFormatter::mostRecent((string) ($memberStats['newest_date'] ?? ''), (string) ($settings['last_updated'] ?? '')) !== null,
-                'description'     => $description !== '',
+                'listing_image'      => $imageUrl !== '',
+                'no_listing_image'   => $imageUrl === '',
+                'listing_url'        => $listing->url !== '',
+                'no_listing_url'     => $listing->url === '',
+                'countries'          => $countryCount > 0,
+                'pending'            => $pendingCount > 0,
+                'status_current'     => $status === 'current',
+                'status_upcoming'    => $status === 'upcoming',
+                'status_pending'     => $status === 'pending',
+                'status_closed'      => $status === 'closed',
+                'status_adopted_out' => $status === 'adopted_out',
+                'tfl'                => $approvedBy === 'tfl',
+                'tafl'               => $approvedBy === 'tafl',
+                'approved_by'        => $approvedBy !== '',
+                'date_updated'       => DateFormatter::mostRecent((string) ($memberStats['newest_date'] ?? ''), (string) ($settings['last_updated'] ?? '')) !== null,
+                'description'        => $description !== '',
             ],
         );
     }
@@ -189,17 +201,25 @@ final class ListingRowRenderer
     ): string {
         $isSectioned = str_contains($template, '{each_current}')
                     || str_contains($template, '{each_upcoming}')
-                    || str_contains($template, '{each_pending}');
+                    || str_contains($template, '{each_pending}')
+                    || str_contains($template, '{each_closed}')
+                    || str_contains($template, '{each_adopted_out}');
 
         if (!$isSectioned) {
             return self::renderGroup('listing', $template, $listings, $uploadsUrl, $settingsMap, $statsMap, $categoryMap, $dateFormat);
         }
 
-        $current  = [];
-        $upcoming = [];
-        $pending  = [];
+        $current     = [];
+        $upcoming    = [];
+        $pending     = [];
+        $closed      = [];
+        $adoptedOut  = [];
         foreach ($listings as $listing) {
-            if ($listing->trouble) {
+            if ($listing->lifecycle === 'closed') {
+                $closed[] = $listing;
+            } elseif ($listing->lifecycle === 'adopted_out') {
+                $adoptedOut[] = $listing;
+            } elseif ($listing->trouble) {
                 $pending[] = $listing;
             } elseif ($listing->upcoming) {
                 $upcoming[] = $listing;
@@ -211,19 +231,30 @@ final class ListingRowRenderer
         $html = TemplateEngine::render(
             $template,
             escaped: [
-                'current_owned_count'  => count($current),
-                'upcoming_owned_count' => count($upcoming),
-                'pending_owned_count'  => count($pending),
-                'total_count'          => count($listings),
+                'current_owned_count'     => count($current),
+                'upcoming_owned_count'    => count($upcoming),
+                'pending_owned_count'     => count($pending),
+                'closed_owned_count'      => count($closed),
+                'adopted_out_owned_count' => count($adoptedOut),
+                'total_count'             => count($listings),
             ],
             conditions: [
-                'current_listings'  => $current !== [],
-                'upcoming_listings' => $upcoming !== [],
-                'pending_listings'  => $pending !== [],
+                'current_listings'      => $current !== [],
+                'upcoming_listings'     => $upcoming !== [],
+                'pending_listings'      => $pending !== [],
+                'closed_listings'       => $closed !== [],
+                'adopted_out_listings'  => $adoptedOut !== [],
             ],
         );
 
-        foreach (['current' => $current, 'upcoming' => $upcoming, 'pending' => $pending] as $name => $group) {
+        $groups = [
+            'current'     => $current,
+            'upcoming'    => $upcoming,
+            'pending'     => $pending,
+            'closed'      => $closed,
+            'adopted_out' => $adoptedOut,
+        ];
+        foreach ($groups as $name => $group) {
             $html = self::renderGroup($name, $html, $group, $uploadsUrl, $settingsMap, $statsMap, $categoryMap, $dateFormat);
         }
 

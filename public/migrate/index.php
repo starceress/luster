@@ -2977,6 +2977,66 @@ try {
     $errors[] = 'Migration 92 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 93: create lstr_listing_lifecycle table (Closed / Adopted Out
+// states layered on top of the existing legacy upcoming/trouble columns,
+// never widening their meaning) and backfill rows for any Fanatically import
+// that already preserved a closed/adopted_out source status in
+// lstr_listing_external_refs.metadata_json (Migration 91). Backfilled rows
+// default their legacy snapshot to upcoming=0, trouble=1 (Pending) since the
+// original pre-import legacy state was never captured by that importer. ---
+try {
+    $check = $pdo->query('SELECT migration_number FROM `lstr_migrations` WHERE migration_number = 93');
+    if ($check === false || $check->fetch() === false) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_listing_lifecycle` (
+               `fanlisting_id`    INT UNSIGNED  NOT NULL,
+               `lifecycle_status` VARCHAR(20)   NOT NULL,
+               `archived_at`      DATETIME      NOT NULL,
+               `legacy_upcoming`  TINYINT(1)    NOT NULL DEFAULT 0,
+               `legacy_trouble`   TINYINT(1)    NOT NULL DEFAULT 0,
+               `adopted_to_name`  VARCHAR(255)  NULL,
+               `adopted_to_url`   VARCHAR(500)  NULL,
+               `archive_note`     TEXT          NULL,
+               PRIMARY KEY (`fanlisting_id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        $backfilled = 0;
+        $refCol     = $pdo->query("SHOW COLUMNS FROM `lstr_listing_external_refs` LIKE 'metadata_json'")->fetchAll();
+        if (!empty($refCol)) {
+            $refRows = $pdo->query(
+                "SELECT listing_id, metadata_json FROM `lstr_listing_external_refs`
+                 WHERE source = 'fanatically' AND metadata_json IS NOT NULL"
+            )->fetchAll();
+
+            $insertLifecycle = $pdo->prepare(
+                "INSERT IGNORE INTO `lstr_listing_lifecycle`
+                    (fanlisting_id, lifecycle_status, archived_at, legacy_upcoming, legacy_trouble)
+                 VALUES (:id, :status, NOW(), 0, 1)"
+            );
+
+            foreach ($refRows as $refRow) {
+                $meta = json_decode((string) $refRow['metadata_json'], true);
+                $sourceStatus = is_array($meta) ? ($meta['source_status'] ?? null) : null;
+                if (!in_array($sourceStatus, ['closed', 'adopted_out'], true)) {
+                    continue;
+                }
+                $insertLifecycle->execute([
+                    'id'     => (int) $refRow['listing_id'],
+                    'status' => $sourceStatus,
+                ]);
+                $backfilled++;
+            }
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (93)');
+        $done[] = 'Migration 93: created <code>lstr_listing_lifecycle</code> table'
+            . ($backfilled > 0 ? " and backfilled {$backfilled} row(s) from preserved Fanatically import metadata" : '');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 93 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

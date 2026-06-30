@@ -96,6 +96,12 @@ final class UpdateController
         $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
         $formUrl         = $this->buildFormUrl($listing, $embedSettings, $globalDefaults);
 
+        // Archived listings (Closed/Adopted Out) no longer accept sign-ins for updates.
+        if ((new \Luster\Repositories\ListingLifecycleRepo($this->app->getDatabase()))->getByListingId($listingId) !== null) {
+            $session->set('lstr_flash_error', 'This fanlisting is no longer accepting membership updates.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
@@ -209,6 +215,13 @@ final class UpdateController
         $embedSettings   = $settingsRepo->getResolvedEmbedSettings($listingId);
         $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
         $formUrl         = $this->buildFormUrl($listing, $embedSettings, $globalDefaults);
+
+        // Archived listings (Closed/Adopted Out) no longer accept updates or deletions,
+        // even from a member who was already signed in before the listing was archived.
+        if ((new \Luster\Repositories\ListingLifecycleRepo($this->app->getDatabase()))->getByListingId($listingId) !== null) {
+            $session->set('lstr_flash_error', 'This fanlisting is no longer accepting membership updates.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');

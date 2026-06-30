@@ -16,6 +16,7 @@ namespace Luster\Controllers\Admin;
 
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
+use Luster\Core\ListingLifecycleService;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -30,6 +31,7 @@ use Luster\Repositories\CodeDonorsRepo;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\EmailTemplateRepo;
+use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
@@ -80,7 +82,7 @@ final class ListingController extends AdminController
 
         $tabExplicit = $request->query('tab', null) !== null;
         $tab         = trim((string) $request->query('tab', 'all'));
-        if (!in_array($tab, ['all', 'current', 'upcoming', 'pending'], true)) {
+        if (!in_array($tab, ['all', 'current', 'upcoming', 'pending', 'closed', 'adopted_out'], true)) {
             $tab = 'all';
         }
 
@@ -92,6 +94,20 @@ final class ListingController extends AdminController
         $listings = $search !== ''
             ? $listingRepo->search($search)
             : $listingRepo->getAll();
+
+        // Batch-apply lifecycle status (Closed/Adopted Out) so tab filtering, the
+        // status column, and bulk actions all see it without a per-row query.
+        $lifecycleMap = (new ListingLifecycleRepo($db))->getMapForListings(
+            array_map(static fn($fl) => $fl->id, $listings)
+        );
+        if (!empty($lifecycleMap)) {
+            $listings = array_map(
+                static fn($fl) => $lifecycleMap[$fl->id] ?? null
+                    ? $fl->withLifecycle($lifecycleMap[$fl->id])
+                    : $fl,
+                $listings
+            );
+        }
 
         // First pass: resolve category network+name and listing type for all listings.
         // Primary source: junction table (lstr_listing_categories) via batch query.
@@ -246,7 +262,13 @@ final class ListingController extends AdminController
             });
         } elseif ($activeSort === 'status') {
             usort($listings, static function ($a, $b) use ($activeDir): int {
-                $rank = static fn($fl): int => $fl->trouble ? 2 : ($fl->upcoming ? 1 : 0);
+                $rank = static fn($fl): int => match (true) {
+                    $fl->lifecycle === 'closed'      => 4,
+                    $fl->lifecycle === 'adopted_out' => 3,
+                    $fl->trouble                     => 2,
+                    $fl->upcoming                    => 1,
+                    default                           => 0,
+                };
                 $cmp  = $rank($a) <=> $rank($b);
                 return $activeDir === 'desc' ? -$cmp : $cmp;
             });
@@ -259,11 +281,13 @@ final class ListingController extends AdminController
         // if $activeSort is empty, SQL already sorted by id/name
 
         // Count per status tab across all currently-filtered listings (before tab filter).
-        $tabCounts = ['all' => count($listings), 'current' => 0, 'upcoming' => 0, 'pending' => 0];
+        $tabCounts = ['all' => count($listings), 'current' => 0, 'upcoming' => 0, 'pending' => 0, 'closed' => 0, 'adopted_out' => 0];
         foreach ($listings as $fl) {
-            if ($fl->upcoming)      { $tabCounts['upcoming']++; }
-            elseif ($fl->trouble)   { $tabCounts['pending']++; }
-            else                    { $tabCounts['current']++; }
+            if ($fl->lifecycle === 'closed')      { $tabCounts['closed']++; }
+            elseif ($fl->lifecycle === 'adopted_out') { $tabCounts['adopted_out']++; }
+            elseif ($fl->upcoming)                { $tabCounts['upcoming']++; }
+            elseif ($fl->trouble)                 { $tabCounts['pending']++; }
+            else                                   { $tabCounts['current']++; }
         }
 
         // When no tab was explicitly requested, land on "pending" if there are pending
@@ -275,6 +299,9 @@ final class ListingController extends AdminController
         // Apply status tab filter.
         if ($tab !== 'all') {
             $listings = array_values(array_filter($listings, static function ($fl) use ($tab): bool {
+                if ($tab === 'closed')      { return $fl->lifecycle === 'closed'; }
+                if ($tab === 'adopted_out') { return $fl->lifecycle === 'adopted_out'; }
+                if ($fl->lifecycle !== null) { return false; }
                 if ($tab === 'current')  { return !$fl->upcoming && !$fl->trouble; }
                 if ($tab === 'upcoming') { return $fl->upcoming; }
                 if ($tab === 'pending')  { return $fl->trouble; }
@@ -625,6 +652,53 @@ final class ListingController extends AdminController
             $session->set('lstr_flash_success', "Last Updated date set to today for {$updated} listing(s).");
         }
 
+        if (($action === 'archive_closed' || $action === 'archive_adopted_out') && !empty($selected)) {
+            $listingRepo     = new ListingRepo($db, $config);
+            $lifecycleRepo   = new ListingLifecycleRepo($db);
+            $lifecycleSvc    = new ListingLifecycleService($listingRepo, $lifecycleRepo);
+            $activityRepo    = new ActivityRepo($db);
+            $targetStatus    = $action === 'archive_closed' ? ListingLifecycleService::STATUS_CLOSED : ListingLifecycleService::STATUS_ADOPTED_OUT;
+            $archived        = 0;
+
+            foreach ($selected as $id) {
+                if ($lifecycleSvc->archive($id, $targetStatus)) {
+                    $archived++;
+                }
+            }
+
+            $activityRepo->log(
+                (int) $session->get('lstr_admin_id'),
+                'listing.archive',
+                "Bulk-archived {$archived} listing(s) as " . ($targetStatus === 'adopted_out' ? 'Adopted Out' : 'Closed'),
+                $request->ip(),
+            );
+
+            $session->set('lstr_flash_success', "Archived {$archived} listing(s).");
+        }
+
+        if ($action === 'reopen' && !empty($selected)) {
+            $listingRepo   = new ListingRepo($db, $config);
+            $lifecycleRepo = new ListingLifecycleRepo($db);
+            $lifecycleSvc  = new ListingLifecycleService($listingRepo, $lifecycleRepo);
+            $activityRepo  = new ActivityRepo($db);
+            $reopened      = 0;
+
+            foreach ($selected as $id) {
+                if ($lifecycleSvc->reopen($id)) {
+                    $reopened++;
+                }
+            }
+
+            $activityRepo->log(
+                (int) $session->get('lstr_admin_id'),
+                'listing.reopen',
+                "Bulk-reopened {$reopened} listing(s)",
+                $request->ip(),
+            );
+
+            $session->set('lstr_flash_success', "Reopened {$reopened} listing(s).");
+        }
+
         if ($action === 'delete' && !empty($selected)) {
             $listingRepo = new ListingRepo($db, $config);
             $settingsRepo   = new ListingSettingsRepo($db);
@@ -644,6 +718,8 @@ final class ListingController extends AdminController
                 }
 
                 $db->prepare('DELETE FROM lstr_fanlisting_settings WHERE fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+                $db->prepare('DELETE FROM lstr_listing_lifecycle WHERE fanlisting_id = :id')
                    ->execute(['id' => $id]);
                 $db->prepare('DELETE FROM lstr_affiliates WHERE fanlisting_id = :id')
                    ->execute(['id' => $id]);
@@ -745,6 +821,10 @@ final class ListingController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
+        $lifecycleRepo  = new ListingLifecycleRepo($db);
+        $lifecycleRow   = $lifecycleRepo->getByListingId($id);
+        $listing        = $listing->withLifecycle($lifecycleRow['lifecycle_status'] ?? null);
+
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
@@ -754,6 +834,14 @@ final class ListingController extends AdminController
             $url         = self::httpsify(trim((string) $request->post('url', '')));
             $email       = trim((string) $request->post('email', ''));
             $status      = (string) $request->post('status', 'current');
+            $allowedStatuses = ['current', 'upcoming', 'pending', 'closed', 'adopted_out'];
+            if (!in_array($status, $allowedStatuses, true)) {
+                $status = 'current';
+            }
+            $isArchiving = ListingLifecycleService::isLifecycleStatus($status);
+            $adoptedToName = $status === 'adopted_out' ? trim((string) $request->post('adopted_to_name', '')) : null;
+            $adoptedToUrl  = $status === 'adopted_out' ? self::httpsify(trim((string) $request->post('adopted_to_url', ''))) : null;
+            $archiveNote   = $isArchiving ? trim((string) $request->post('archive_note', '')) : null;
             $subject     = trim((string) $request->post('subject', ''));
             $opened      = $status !== 'current'
                 ? 'TBA'
@@ -864,7 +952,13 @@ final class ListingController extends AdminController
                 'email' => $email,
             ]);
             $v->field('title')->required()->maxLength(255);
-            $v->field('url')->required()->httpUrl()->maxLength(500);
+            // URL is optional once a listing is archived (Closed/Adopted Out) — still
+            // validated for format/length when present, just not required.
+            $urlField = $v->field('url');
+            if (!$isArchiving) {
+                $urlField->required();
+            }
+            $urlField->httpUrl()->maxLength(500);
             $v->field('email')->required()->email()->maxLength(255);
 
             if ($imageError !== '' || $v->fails()) {
@@ -890,10 +984,14 @@ final class ListingController extends AdminController
                         'url'                => $url,
                         'email'              => $email,
                         'status'             => $status,
+                        'adopted_to_name'    => $adoptedToName ?? '',
+                        'adopted_to_url'     => $adoptedToUrl  ?? '',
+                        'archive_note'       => $archiveNote   ?? '',
                         'cat_network'        => (array) $request->post('cat_network', []),
                         'cat_name'           => (array) $request->post('cat_name', []),
                         'cat_network_other'  => (array) $request->post('cat_network_other', []),
                     ],
+                    'lifecycle_meta'          => $lifecycleRow,
                     'current_image'           => $settingsRepo->getImage($id),
                     'cfg'                     => $config->all(),
                     'approved'                => $memberRepo->countApproved($listing->dbprefix),
@@ -922,8 +1020,34 @@ final class ListingController extends AdminController
             }
 
             // --- All valid: persist ---
-            $upcoming = ($status === 'upcoming');
-            $trouble  = ($status === 'pending');
+            // Lifecycle row: upsert when archiving (snapshotting the PRE-save upcoming/
+            // trouble so a future Reopen restores correctly), delete otherwise (no-op
+            // when the listing wasn't archived). $listing here is the row fetched before
+            // this POST was processed (with lifecycle already applied above), so its
+            // upcoming/trouble/lifecycle reflect the prior state.
+            $wasArchived = $listing->lifecycle !== null;
+            if ($isArchiving) {
+                $lifecycleRepo->upsert($id, $status, $listing->upcoming, $listing->trouble, $adoptedToName, $adoptedToUrl, $archiveNote);
+                $activityRepo->log(
+                    (int) $session->get('lstr_admin_id'),
+                    'listing.archive',
+                    "Archived listing #{$id} ({$title}) as " . ($status === 'adopted_out' ? 'Adopted Out' : 'Closed'),
+                    $request->ip(),
+                );
+            } else {
+                $lifecycleRepo->delete($id);
+                if ($wasArchived) {
+                    $activityRepo->log(
+                        (int) $session->get('lstr_admin_id'),
+                        'listing.reopen',
+                        "Reopened listing #{$id} ({$title})",
+                        $request->ip(),
+                    );
+                }
+            }
+
+            $upcoming = $isArchiving ? false : ($status === 'upcoming');
+            $trouble  = $isArchiving ? true  : ($status === 'pending');
 
             $lastUpdatedInput = trim((string) $request->post('fl_last_updated', ''));
             // Validate: must be empty or a parseable date in YYYY-MM-DD format
@@ -1168,6 +1292,7 @@ final class ListingController extends AdminController
             'success'             => $success,
             'error'               => $error,
             'old'                 => [],
+            'lifecycle_meta'      => $lifecycleRow,
             'current_image'       => $currentImage,
             'cfg'                 => $config->all(),
             'approved'            => $approved,
@@ -1274,6 +1399,8 @@ final class ListingController extends AdminController
 
         // 2. Delete Luster rows that reference this listing
         $db->prepare('DELETE FROM lstr_fanlisting_settings WHERE fanlisting_id = :id')
+           ->execute(['id' => $id]);
+        $db->prepare('DELETE FROM lstr_listing_lifecycle WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);
         $db->prepare('DELETE FROM lstr_affiliates WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);

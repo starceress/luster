@@ -45,7 +45,7 @@ $luster_attribution = \Luster\Core\View::attribution();
 // 2. Resolve parameters
 // ---------------------------------------------------------------------------
 
-$_lusterValidStatuses = ['current', 'upcoming', 'pending', 'all'];
+$_lusterValidStatuses = ['current', 'upcoming', 'pending', 'closed', 'adopted_out', 'all'];
 $_lusterStatus        = in_array($luster_status ?? 'current', $_lusterValidStatuses, true)
                       ? (string) ($luster_status ?? 'current')
                       : 'current';
@@ -57,6 +57,8 @@ $_lusterShowCatSwitcher     = true;
 $_lusterBrowseByCat         = (bool) ($luster_browse_by_category  ?? false);
 $_lusterShowPendingPseudo   = (bool) ($luster_show_pending        ?? true);
 $_lusterShowUpcomingPseudo  = (bool) ($luster_show_upcoming       ?? true);
+$_lusterShowClosedPseudo    = (bool) ($luster_show_closed         ?? true);
+$_lusterShowAdoptedOutPseudo = (bool) ($luster_show_adopted_out   ?? true);
 
 // Category ID resolution order:
 //   1. $luster_category_id (explicit integer) — bypasses URL params entirely
@@ -65,15 +67,21 @@ $_lusterShowUpcomingPseudo  = (bool) ($luster_show_upcoming       ?? true);
 //   4. $_GET['cat'] with 'all' value — browse-show-all mode
 //   5. $_GET['cat'] numeric — legacy ID-based link
 $_lusterBrowseShowAll = false;
-$_lusterPseudoView    = '';   // '' | 'pending' | 'upcoming'
+$_lusterPseudoView    = '';   // '' | 'pending' | 'upcoming' | 'closed' | 'adopted_out'
+
+$_lusterPseudoSentinels = [
+    '__pending__'     => 'pending',
+    '__upcoming__'    => 'upcoming',
+    '__closed__'      => 'closed',
+    '__adopted_out__' => 'adopted_out',
+];
 
 if (isset($luster_category_id) && (int) $luster_category_id > 0) {
     $_lusterCatId = (int) $luster_category_id;
 } else {
     $_lusterRawCat = (string) ($_GET['cat'] ?? '');
-    if ($_lusterStatus === 'current'
-        && ($_lusterRawCat === '__pending__' || $_lusterRawCat === '__upcoming__')) {
-        $_lusterPseudoView = $_lusterRawCat === '__pending__' ? 'pending' : 'upcoming';
+    if ($_lusterStatus === 'current' && isset($_lusterPseudoSentinels[$_lusterRawCat])) {
+        $_lusterPseudoView = $_lusterPseudoSentinels[$_lusterRawCat];
         $_lusterCatId      = 0;
     } elseif ($_lusterRawCat === 'all') {
         $_lusterCatId         = 0;
@@ -111,12 +119,19 @@ if (isset($_lusterCatSlug) && $_lusterCatSlug !== '') {
 }
 
 // Pseudo-view counts (only meaningful for status='current')
-$_lusterPendingCount  = 0;
-$_lusterUpcomingCount = 0;
+$_lusterPendingCount    = 0;
+$_lusterUpcomingCount   = 0;
+$_lusterClosedCount     = 0;
+$_lusterAdoptedOutCount = 0;
 if ($_lusterStatus === 'current') {
-    $_lusterStats         = $_lusterListingRepo->getStats();
-    $_lusterPendingCount  = (int) ($_lusterStats['trouble']  ?? 0);
-    $_lusterUpcomingCount = (int) ($_lusterStats['upcoming'] ?? 0);
+    $_lusterStats           = $_lusterListingRepo->getStats();
+    $_lusterLifecycleCounts = $_lusterListingRepo->getLifecycleCounts();
+    $_lusterClosedCount     = (int) ($_lusterLifecycleCounts['closed']      ?? 0);
+    $_lusterAdoptedOutCount = (int) ($_lusterLifecycleCounts['adopted_out'] ?? 0);
+    // getStats()'s 'trouble' count already includes archived listings (legacy inactive
+    // representation) — subtract them so "All Pending" reflects truly-pending listings only.
+    $_lusterPendingCount    = max(0, (int) ($_lusterStats['trouble'] ?? 0) - $_lusterClosedCount - $_lusterAdoptedOutCount);
+    $_lusterUpcomingCount   = (int) ($_lusterStats['upcoming'] ?? 0);
 }
 
 // When a pseudo-view is active, fetch that status group's listings instead
@@ -158,6 +173,10 @@ $_lusterPresenterResult = PublicCategoryPresenter::renderOwned(
     $_lusterShowPendingPseudo,
     $_lusterUpcomingCount,
     $_lusterShowUpcomingPseudo,
+    $_lusterClosedCount,
+    $_lusterShowClosedPseudo,
+    $_lusterAdoptedOutCount,
+    $_lusterShowAdoptedOutPseudo,
 );
 
 $_lusterCategoryHtml  = $_lusterPresenterResult['html'];
@@ -189,6 +208,24 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     if (!empty($_lusterListingIds)) {
         $_db = $_lusterApp->getDatabase();
         $_lusterSettingsMap = (new ListingSettingsRepo($_db))->getRenderSettingsBatch($_lusterListingIds);
+
+        // Merge lifecycle metadata (adopted_to_name/url, archive_note, archived_at) for
+        // any archived listing so the row template's {adopted_to_*}/{archive_note} tokens
+        // resolve — only relevant when this view actually includes closed/adopted_out rows.
+        if ($_lusterContentStatus === 'closed' || $_lusterContentStatus === 'adopted_out' || $_lusterContentStatus === 'all') {
+            $_lusterLifecycleRepo = new \Luster\Repositories\ListingLifecycleRepo($_db);
+            foreach ($_lusterListingIds as $_lcListingId) {
+                $_lcRow = $_lusterLifecycleRepo->getByListingId($_lcListingId);
+                if ($_lcRow !== null) {
+                    $_lusterSettingsMap[$_lcListingId] = array_merge($_lusterSettingsMap[$_lcListingId] ?? [], [
+                        'adopted_to_name' => $_lcRow['adopted_to_name'] ?? '',
+                        'adopted_to_url'  => $_lcRow['adopted_to_url']  ?? '',
+                        'archive_note'    => $_lcRow['archive_note']    ?? '',
+                        'archived_at'     => $_lcRow['archived_at']     ?? '',
+                    ]);
+                }
+            }
+        }
 
         // Batch-fetch category names via junction table
         try {

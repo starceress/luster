@@ -90,6 +90,11 @@ final class CodesSubmitController
                 return Response::notFound('Code donations are not enabled for this listing.');
             }
 
+            // Archived listings (Closed/Adopted Out) no longer accept code donations.
+            if ((new \Luster\Repositories\ListingLifecycleRepo($db))->getByListingId($listingId) !== null) {
+                return Response::notFound('Code donations are not enabled for this listing.');
+            }
+
             $submitUrl = \Luster\Support\ListingFormUrlResolver::resolve(
                 (string) ($embedSettings['form_url_codes_submit'] ?? ''),
                 $listing->url,

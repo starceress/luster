@@ -228,10 +228,12 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $se
 
 <?php
 $_flStatusTabs = [
-    'all'      => ['label' => 'All',      'badge' => 'badge-inactive'],
-    'pending'  => ['label' => 'Pending',  'badge' => 'badge-pending'],
-    'current'  => ['label' => 'Current',  'badge' => 'badge-current'],
-    'upcoming' => ['label' => 'Upcoming', 'badge' => 'badge-upcoming'],
+    'all'         => ['label' => 'All',          'badge' => 'badge-inactive'],
+    'pending'     => ['label' => 'Pending',      'badge' => 'badge-pending'],
+    'current'     => ['label' => 'Current',      'badge' => 'badge-current'],
+    'upcoming'    => ['label' => 'Upcoming',     'badge' => 'badge-upcoming'],
+    'closed'      => ['label' => 'Closed',       'badge' => 'badge-inactive'],
+    'adopted_out' => ['label' => 'Adopted Out',  'badge' => 'badge-inactive'],
 ];
 $_flTabCounts = $tab_counts ?? [];
 ?>
@@ -302,6 +304,9 @@ $_flTabCounts = $tab_counts ?? [];
       <select id="bulk-action" name="action" class="select-xs">
         <option value="" disabled selected>&mdash; Select &mdash;</option>
         <option value="mark_updated">Mark as Updated</option>
+        <option value="archive_closed">Archive as Closed</option>
+        <option value="archive_adopted_out">Archive as Adopted Out</option>
+        <option value="reopen">Reopen</option>
         <option value="delete">Delete</option>
       </select>
       </div>
@@ -380,7 +385,11 @@ $_flTabCounts = $tab_counts ?? [];
 
           <!-- Status -->
           <td data-label="Status">
-            <?php if ($fl->upcoming): ?>
+            <?php if ($fl->lifecycle === 'closed'): ?>
+              <span class="badge badge-inactive">Closed</span>
+            <?php elseif ($fl->lifecycle === 'adopted_out'): ?>
+              <span class="badge badge-inactive">Adopted Out</span>
+            <?php elseif ($fl->upcoming): ?>
               <span class="badge badge-upcoming">Upcoming</span>
             <?php elseif ($fl->trouble): ?>
               <span class="badge badge-pending">Pending</span>

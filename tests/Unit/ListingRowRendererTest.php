@@ -825,6 +825,7 @@ final class ListingRowRendererTest extends TestCase
         ?string $opened  = null,
         bool    $upcoming = false,
         bool    $trouble  = false,
+        ?string $lifecycle = null,
     ): Listing {
         return new Listing(
             id:             1,
@@ -842,6 +843,117 @@ final class ListingRowRendererTest extends TestCase
             opened:         $opened,
             categoryId:     null,
             catid:          '0',
+            lifecycle:      $lifecycle,
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // Lifecycle (Closed / Adopted Out)
+    // -----------------------------------------------------------------------
+
+    public function testRenderResolvesClosedStatusOverTroubleAndUpcoming(): void
+    {
+        // trouble=true would normally mean 'pending' — lifecycle takes priority.
+        $listing = $this->makeListing(upcoming: true, trouble: true, lifecycle: 'closed');
+        $html = ListingRowRenderer::render($listing, '{listing_status}', [], '');
+
+        self::assertSame('closed', $html);
+    }
+
+    public function testRenderResolvesAdoptedOutStatus(): void
+    {
+        $listing = $this->makeListing(lifecycle: 'adopted_out');
+        $html = ListingRowRenderer::render($listing, '{listing_status}', [], '');
+
+        self::assertSame('adopted_out', $html);
+    }
+
+    public function testRenderWithoutLifecycleStillResolvesNormalStatuses(): void
+    {
+        $listing = $this->makeListing(trouble: true);
+        $html = ListingRowRenderer::render($listing, '{listing_status}', [], '');
+
+        self::assertSame('pending', $html);
+    }
+
+    public function testStatusClosedConditionalOnlyShowsForClosedListings(): void
+    {
+        $closed  = $this->makeListing(lifecycle: 'closed');
+        $current = $this->makeListing();
+
+        $tpl = '{if_status_closed}CLOSED{/if_status_closed}';
+        self::assertSame('CLOSED', ListingRowRenderer::render($closed, $tpl, [], ''));
+        self::assertSame('', ListingRowRenderer::render($current, $tpl, [], ''));
+    }
+
+    public function testStatusAdoptedOutConditionalOnlyShowsForAdoptedOutListings(): void
+    {
+        $adopted = $this->makeListing(lifecycle: 'adopted_out');
+        $closed  = $this->makeListing(lifecycle: 'closed');
+
+        $tpl = '{if_status_adopted_out}ADOPTED{/if_status_adopted_out}';
+        self::assertSame('ADOPTED', ListingRowRenderer::render($adopted, $tpl, [], ''));
+        self::assertSame('', ListingRowRenderer::render($closed, $tpl, [], ''));
+    }
+
+    public function testAdoptedToTokensRenderFromSettings(): void
+    {
+        $listing = $this->makeListing(lifecycle: 'adopted_out');
+        $settings = [
+            'adopted_to_name' => 'New Owner',
+            'adopted_to_url'  => 'https://newowner.example.com',
+            'archive_note'    => 'Handed off amicably.',
+            'archived_at'     => '2026-06-01 12:00:00',
+        ];
+        $tpl = '{adopted_to_name}|{adopted_to_url}|{archive_note}|{archived_at}';
+
+        self::assertSame(
+            'New Owner|https://newowner.example.com|Handed off amicably.|2026-06-01 12:00:00',
+            ListingRowRenderer::render($listing, $tpl, $settings, ''),
+        );
+    }
+
+    public function testNoUrlConditionalsReflectListingUrl(): void
+    {
+        $withUrl    = $this->makeListing(url: 'https://example.com', lifecycle: 'closed');
+        $withoutUrl = $this->makeListing(url: '', lifecycle: 'closed');
+
+        $tpl = '{if_listing_url}HAS{/if_listing_url}{if_no_listing_url}NONE{/if_no_listing_url}';
+        self::assertSame('HAS', ListingRowRenderer::render($withUrl, $tpl, [], ''));
+        self::assertSame('NONE', ListingRowRenderer::render($withoutUrl, $tpl, [], ''));
+    }
+
+    public function testRenderTemplateSectionsClosedAndAdoptedOutSeparately(): void
+    {
+        $current    = $this->makeListing(name: 'Current FL');
+        $closed     = $this->makeListing(name: 'Closed FL', lifecycle: 'closed');
+        $adoptedOut = $this->makeListing(name: 'Adopted FL', lifecycle: 'adopted_out');
+
+        $tpl = '{each_current}C:{listing_title}{/each_current}'
+             . '{each_closed}X:{listing_title}{/each_closed}'
+             . '{each_adopted_out}A:{listing_title}{/each_adopted_out}';
+
+        $html = ListingRowRenderer::renderTemplate($tpl, [$current, $closed, $adoptedOut], '', [], []);
+
+        self::assertStringContainsString('C:Current FL', $html);
+        self::assertStringContainsString('X:Closed FL', $html);
+        self::assertStringContainsString('A:Adopted FL', $html);
+    }
+
+    public function testRenderTemplateClosedAdoptedOutCountsAndConditionals(): void
+    {
+        $closed     = $this->makeListing(lifecycle: 'closed');
+        $adoptedOut = $this->makeListing(lifecycle: 'adopted_out');
+
+        $tpl = '{closed_owned_count}/{adopted_out_owned_count}'
+             . '{if_closed_listings}HAS_CLOSED{/if_closed_listings}'
+             . '{if_adopted_out_listings}HAS_ADOPTED{/if_adopted_out_listings}'
+             . '{each_closed}{/each_closed}{each_adopted_out}{/each_adopted_out}';
+
+        $html = ListingRowRenderer::renderTemplate($tpl, [$closed, $adoptedOut], '', [], []);
+
+        self::assertStringContainsString('1/1', $html);
+        self::assertStringContainsString('HAS_CLOSED', $html);
+        self::assertStringContainsString('HAS_ADOPTED', $html);
     }
 }

@@ -101,6 +101,11 @@ final class AffiliateApplyController
         $formUrl = $embedReturnTo !== '' ? $embedReturnTo
             : $this->resolveFormUrl($listingId, $listing->url, $applySettings, $baseUrl);
 
+        // Archived listings (Closed/Adopted Out) no longer accept affiliate applications.
+        if ((new \Luster\Repositories\ListingLifecycleRepo($this->app->getDatabase()))->getByListingId($listingId) !== null) {
+            return Response::notFound('Affiliate applications are not open for this listing.');
+        }
+
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY)) {
             $session->set('lstr_flash_error', 'Too many requests. Please try again later.');
