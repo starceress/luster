@@ -5489,9 +5489,9 @@ document.addEventListener('click', function (e) {
 
       function next() {
         if (done >= total) {
-          if (progLabel) progLabel.textContent = done + ' / ' + total + ' — done. Reloading…';
+          if (progLabel) progLabel.textContent = done + ' / ' + total + ' — done.';
           if (progBar)   progBar.style.width   = '100%';
-          setTimeout(function () { window.location.reload(); }, 800);
+          startBtn.disabled = false;
           return;
         }
         var id  = ids[done];

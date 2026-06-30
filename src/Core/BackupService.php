@@ -178,24 +178,35 @@ final class BackupService
             }
         }
 
-        foreach (['owned', 'enth_fanlistings'] as $registry) {
-            if (in_array($registry, $allTables, true)) {
-                $tables[] = $registry;
+        // Resolve the actual registry table from the configured enth_table_prefix.
+        // ListingRepo builds this as ($prefix === '') ? 'owned' : $prefix . 'listings',
+        // so enth_table_prefix='enth_' gives 'enth_listings', not 'enth_fanlistings'.
+        $enthPrefix = '';
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT setting_value FROM lstr_site_settings WHERE setting_key = 'enth_table_prefix'"
+            );
+            $stmt->execute();
+            $fetched = $stmt->fetch(PDO::FETCH_NUM);
+            if ($fetched !== false && preg_match('/^[a-zA-Z0-9_]*$/', (string) ($fetched[0] ?? ''))) {
+                $enthPrefix = (string) ($fetched[0] ?? '');
             }
-        }
+        } catch (\Throwable) {}
 
-        foreach (['owned' => 'dbtable', 'enth_fanlistings' => 'dbprefix'] as $registry => $col) {
-            if (!in_array($registry, $allTables, true)) {
-                continue;
-            }
+        $isOwnedSchema = ($enthPrefix === '');
+        $registry      = $isOwnedSchema ? 'owned' : $enthPrefix . 'listings';
+        $memberCol     = $isOwnedSchema ? 'dbtable' : 'dbprefix';
+
+        if (in_array($registry, $allTables, true)) {
+            $tables[] = $registry;
             try {
-                $stmt = $pdo->query("SELECT `{$col}` FROM `{$registry}`");
+                $stmt = $pdo->query("SELECT `{$memberCol}` FROM `{$registry}`");
                 while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
-                    $prefix = (string) ($row[0] ?? '');
-                    if ($prefix === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+                    $memberPrefix = (string) ($row[0] ?? '');
+                    if ($memberPrefix === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $memberPrefix)) {
                         continue;
                     }
-                    $memberTable = $registry === 'enth_fanlistings' ? $prefix . 'members' : $prefix;
+                    $memberTable = $isOwnedSchema ? $memberPrefix : $memberPrefix . 'members';
                     if (in_array($memberTable, $allTables, true) && !in_array($memberTable, $tables, true)) {
                         $tables[] = $memberTable;
                     }

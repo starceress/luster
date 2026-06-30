@@ -43,7 +43,7 @@ final class LinkChecker
     {
         $host = parse_url($url, PHP_URL_HOST);
         if (!is_string($host) || $host === '' || NetworkAddressGuard::validatePublicHost($host) !== null) {
-            return ['status' => 'dead', 'redirect_url' => null, 'http_code' => 0];
+            return ['status' => 'dead', 'redirect_url' => null, 'http_code' => 0, 'content_flags' => null];
         }
 
         [$code, $body, $location] = self::singleGet($url);
