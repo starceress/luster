@@ -563,13 +563,16 @@ function installTables(PDO $pdo): void
             UNIQUE KEY `uk_identifier_action` (`identifier`, `action`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        // Admin remember-me tokens (M26).
+        // Admin remember-me tokens (M26, device metadata M96).
         "CREATE TABLE IF NOT EXISTS `lstr_admin_remember_tokens` (
-            `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
-            `admin_user_id` INT UNSIGNED NOT NULL,
-            `token_hash`    VARCHAR(64)  NOT NULL,
-            `expires_at`    DATETIME     NOT NULL,
-            `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `admin_user_id`   INT UNSIGNED NOT NULL,
+            `token_hash`      VARCHAR(64)  NOT NULL,
+            `expires_at`      DATETIME     NOT NULL,
+            `created_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `device_label`    VARCHAR(255) NULL,
+            `last_used_at`    DATETIME     NULL,
+            `user_agent_hint` VARCHAR(100) NULL,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uk_token_hash` (`token_hash`),
             KEY `idx_user` (`admin_user_id`),
@@ -727,6 +730,7 @@ function installTables(PDO $pdo): void
             `codes_submit_style`           VARCHAR(10)           NULL DEFAULT NULL,
             `affiliate_apply_toggle_label` VARCHAR(200)          NULL DEFAULT NULL,
             `codes_submit_toggle_label`    VARCHAR(200)          NULL DEFAULT NULL,
+            `approval_url`                 VARCHAR(500)          NULL DEFAULT NULL,
             `updated_at`                   DATETIME              NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`fanlisting_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
@@ -913,6 +917,19 @@ function installTables(PDO $pdo): void
             PRIMARY KEY (`fanlisting_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+        // Per-listing template revision history, up to 5 per (listing, key). Migration 95.
+        "CREATE TABLE IF NOT EXISTS `lstr_template_revisions` (
+            `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `fanlisting_id` INT UNSIGNED NOT NULL,
+            `template_key` VARCHAR(60)  NOT NULL,
+            `old_value`    MEDIUMTEXT   NULL,
+            `saved_by`     INT UNSIGNED NOT NULL,
+            `saved_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `idx_tr_listing_key` (`fanlisting_id`, `template_key`),
+            KEY `idx_tr_saved_at` (`saved_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
         // Multi-category junction table for listings (M51).
         "CREATE TABLE IF NOT EXISTS `lstr_listing_categories` (
             `fanlisting_id` INT NOT NULL,
@@ -1048,7 +1065,8 @@ function installTables(PDO $pdo): void
          (47),(48),(49),(50),(51),(52),(53),(55),(56),(57),
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
-         (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93)'
+         (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93),
+         (94),(95),(96)'
     );
 }
 

@@ -121,17 +121,34 @@ final class AuthMiddleware
 
         // Compare-and-swap: include the old hash so a concurrent request that
         // already rotated (rowCount = 0) does not silently succeed here.
-        $updateStmt = $this->db->prepare(
-            'UPDATE lstr_admin_remember_tokens
-             SET token_hash = :hash, expires_at = :expires, last_used_at = NOW()
-             WHERE id = :id AND token_hash = :old_hash'
-        );
-        $updateStmt->execute([
-            'hash'     => $newTokenHash,
-            'expires'  => $newExpiresAt,
-            'id'       => (int) $row['id'],
-            'old_hash' => $tokenHash,
-        ]);
+        // Try with last_used_at first (Migration 96+); fall back to the
+        // original two-column UPDATE on pre-migration installs.
+        try {
+            $updateStmt = $this->db->prepare(
+                'UPDATE lstr_admin_remember_tokens
+                 SET token_hash = :hash, expires_at = :expires, last_used_at = NOW()
+                 WHERE id = :id AND token_hash = :old_hash'
+            );
+            $updateStmt->execute([
+                'hash'     => $newTokenHash,
+                'expires'  => $newExpiresAt,
+                'id'       => (int) $row['id'],
+                'old_hash' => $tokenHash,
+            ]);
+        } catch (\PDOException) {
+            // last_used_at column absent (pre-M96) — retry without it.
+            $updateStmt = $this->db->prepare(
+                'UPDATE lstr_admin_remember_tokens
+                 SET token_hash = :hash, expires_at = :expires
+                 WHERE id = :id AND token_hash = :old_hash'
+            );
+            $updateStmt->execute([
+                'hash'     => $newTokenHash,
+                'expires'  => $newExpiresAt,
+                'id'       => (int) $row['id'],
+                'old_hash' => $tokenHash,
+            ]);
+        }
 
         if ($updateStmt->rowCount() === 0) {
             // A concurrent request rotated the token first; this cookie is stale.

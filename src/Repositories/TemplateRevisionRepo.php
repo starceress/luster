@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Luster\Repositories;
 
+use Luster\Core\Database;
 use PDO;
 
 final class TemplateRevisionRepo
@@ -19,7 +20,7 @@ final class TemplateRevisionRepo
     /** Maximum revisions kept per (fanlisting_id, template_key) pair. */
     public const MAX_REVISIONS = 5;
 
-    public function __construct(private readonly PDO $db) {}
+    public function __construct(private readonly Database $db) {}
 
     /**
      * Records the OLD value of a template before it is overwritten. Prunes
