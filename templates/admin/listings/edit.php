@@ -434,6 +434,26 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
+        <?php $aurl = $approval_url ?? ''; ?>
+        <div class="field-row field-row--top" id="fl-approval-url-row" <?= $ab === '' ? 'style="display:none"' : '' ?>>
+          <label class="field-label" for="fl-approval-url">Approval Page URL</label>
+          <div>
+            <div style="display:flex;gap:.5rem;align-items:flex-start">
+              <input id="fl-approval-url" type="url" name="approval_url" class="form"
+                     value="<?= View::e($aurl) ?>"
+                     placeholder="https://thefanlistings.org/tfl/all/..."
+                     style="flex:1">
+              <button type="button" id="fl-tfl-lookup-btn" class="btn btn-ghost"
+                      data-listing-id="<?= (int) ($listing->id ?? 0) ?>"
+                      data-endpoint="<?= $b ?>/admin/tfl-lookup">Look up</button>
+            </div>
+            <p class="form-hint" id="fl-tfl-lookup-hint">
+              The specific TFL or TAFL page where this fanlisting is listed. Used for the <code>{tfl_url}</code> / <code>{tafl_url}</code> stats token. Click &ldquo;Look up&rdquo; to search the network by this listing&rsquo;s subject, then save to confirm.
+            </p>
+            <div id="fl-tfl-lookup-result" style="display:none;margin-top:.5rem"></div>
+          </div>
+        </div>
+
         <div class="field-row field-row--top">
           <label class="field-label">Allow Affiliate Applications</label>
           <div>
@@ -1076,8 +1096,9 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('stats_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
             <?= $ltok('stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
-            <?= $ltok('stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
-            <?= $ltok('stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
+            <?= $ltok('stats_template', '{tfl_url}',           '{tfl_url}',           'TFL approval page URL (from &ldquo;Approval Page URL&rdquo; field above when set, otherwise <code>https://thefanlistings.org/</code>). Use inside <code>{if_tfl}...{/if_tfl}</code>.') ?>
+            <?= $ltok('stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL approval page URL (from &ldquo;Approval Page URL&rdquo; field above when set, otherwise <code>https://www.animefanlistings.com/</code>). Use inside <code>{if_tafl}...{/if_tafl}</code>.') ?>
+            <?= $ltok('stats_template', '{approval_url}',      '{approval_url}',      'The raw approval page URL as saved, or empty when not set. Use this if you want to build a custom link with your own text.') ?>
             <?= $ltok('stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
             <?= $ltok('stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing is TFL-approved.') ?>
             <?= $ltok('stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing is TAFL-approved.') ?>

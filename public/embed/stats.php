@@ -184,12 +184,17 @@ if ($_lusterListing->joined !== null) {
 // ---------------------------------------------------------------------------
 
 $_lusterApprovedBy   = $_lusterSettingsRepo->getApprovedBy($_lusterListingId);
+$_lusterApprovalUrl  = $_lusterSettingsRepo->getApprovalUrl($_lusterListingId) ?? '';
 $_lusterNetwork      = strtoupper($_lusterApprovedBy);
 $_lusterNetworkName  = match ($_lusterApprovedBy) {
     'tfl'   => 'The Fanlistings Network',
     'tafl'  => 'The Anime Fanlistings Network',
     default => '',
 };
+// {tfl_url} / {tafl_url}: use the per-listing approval URL when set,
+// otherwise fall back to the network's home page.
+$_lusterTflUrl  = ($_lusterApprovedBy === 'tfl'  && $_lusterApprovalUrl !== '') ? $_lusterApprovalUrl : 'https://thefanlistings.org/';
+$_lusterTaflUrl = ($_lusterApprovedBy === 'tafl' && $_lusterApprovalUrl !== '') ? $_lusterApprovalUrl : 'https://www.animefanlistings.com/';
 
 // Conditional blocks — must run before flat str_replace
 $_lusterTemplate = (string) preg_replace(
@@ -230,6 +235,7 @@ $_lusterHtml = str_replace(
         '{network_name}',
         '{tfl_url}',
         '{tafl_url}',
+        '{approval_url}',
     ],
     [
         $_lusterOpened,
@@ -245,8 +251,9 @@ $_lusterHtml = str_replace(
         htmlspecialchars($_lusterListing->url,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         $_lusterNetwork,
         $_lusterNetworkName,
-        'https://thefanlistings.org/',
-        'https://www.animefanlistings.com/',
+        htmlspecialchars($_lusterTflUrl,      ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        htmlspecialchars($_lusterTaflUrl,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        htmlspecialchars($_lusterApprovalUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
     ],
     $_lusterTemplate,
 );

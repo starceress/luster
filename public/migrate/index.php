@@ -3037,6 +3037,30 @@ try {
     $errors[] = 'Migration 93 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 94: add approval_url column to lstr_fanlisting_settings.
+// Stores the per-listing TFL/TAFL approval page URL (e.g. a specific category
+// or listing page on thefanlistings.org). Separate from approved_by — this is
+// the live URL, not just the network name. Discovered via the built-in lookup
+// tool or entered manually; cleared when approved_by changes network.
+try {
+    $check = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME   = 'lstr_fanlisting_settings'
+            AND COLUMN_NAME  = 'approval_url'"
+    );
+    if ((int) $check->fetchColumn() === 0) {
+        $pdo->exec(
+            "ALTER TABLE `lstr_fanlisting_settings`
+             ADD COLUMN `approval_url` VARCHAR(500) NULL AFTER `approved_by`"
+        );
+        $done[] = 'Migration 94: added <code>approval_url</code> column to <code>lstr_fanlisting_settings</code>';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (94)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 94 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

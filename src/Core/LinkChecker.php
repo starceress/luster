@@ -124,6 +124,43 @@ final class LinkChecker
         return 'unchecked';
     }
 
+    /**
+     * Fetches $url (following up to MAX_HOPS redirects, DNS-pinned and TLS-verified)
+     * and returns the response body when the final status is 2xx, or null on any
+     * failure (connection error, SSRF guard rejection, non-2xx final code).
+     *
+     * Uses the same NetworkAddressGuard-validated, 256 KB-capped transport as
+     * check() and checkReciprocal(). Safe for fetching TFL/TAFL category pages.
+     */
+    public static function safeGet(string $url): ?string
+    {
+        for ($hop = 0; $hop <= self::MAX_HOPS; $hop++) {
+            $host = parse_url($url, PHP_URL_HOST);
+            if (!is_string($host) || $host === '' || NetworkAddressGuard::validatePublicHost($host) !== null) {
+                return null;
+            }
+
+            [$code, $body, $location] = self::singleGet($url);
+
+            if ($code === 0) {
+                return null;
+            }
+
+            if ($code >= 200 && $code < 300) {
+                return $body;
+            }
+
+            if ($code >= 300 && $code < 400 && $location !== null) {
+                $url = UrlNormalizer::resolveLocation($url, $location);
+                continue;
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------

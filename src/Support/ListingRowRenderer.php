@@ -53,6 +53,7 @@ final class ListingRowRenderer
         $countryCount = (int) ($memberStats['country_count'] ?? 0);
         $pendingCount = (int) ($memberStats['pending']        ?? 0);
         $approvedBy   = (string) ($settings['approved_by'] ?? '');
+        $approvalUrl  = (string) ($settings['approval_url'] ?? '');
         $description  = (string) ($settings['description'] ?? '');
 
         $network     = strtoupper($approvedBy);
@@ -61,6 +62,11 @@ final class ListingRowRenderer
             'tafl'  => 'The Anime Fanlistings Network',
             default => '',
         };
+
+        // {tfl_url} / {tafl_url}: use the per-listing approval URL when set,
+        // otherwise fall back to the network's home page.
+        $tflUrl  = ($approvedBy === 'tfl'  && $approvalUrl !== '') ? $approvalUrl : 'https://thefanlistings.org/';
+        $taflUrl = ($approvedBy === 'tafl' && $approvalUrl !== '') ? $approvalUrl : 'https://www.animefanlistings.com/';
 
         return TemplateEngine::render(
             $template,
@@ -86,8 +92,9 @@ final class ListingRowRenderer
                 'country_count'        => $countryCount,
                 'approved_by'          => $network,
                 'network_name'         => $networkName,
-                'tfl_url'              => 'https://thefanlistings.org/',
-                'tafl_url'             => 'https://www.animefanlistings.com/',
+                'tfl_url'              => $tflUrl,
+                'tafl_url'             => $taflUrl,
+                'approval_url'         => $approvalUrl,
                 'listing_description'  => $description,
                 'adopted_to_name'      => (string) ($settings['adopted_to_name'] ?? ''),
                 'adopted_to_url'       => (string) ($settings['adopted_to_url']  ?? ''),

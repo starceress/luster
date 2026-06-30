@@ -1227,6 +1227,18 @@ final class ListingSettingsRepo
 
         try {
             $stmt = $this->db->prepare(
+                "SELECT fanlisting_id, image, last_updated, approved_by, approval_url, description, listing_type
+                 FROM lstr_fanlisting_settings WHERE fanlisting_id IN ({$phs})"
+            );
+            $stmt->execute(array_values($listingIds));
+            foreach ($stmt->fetchAll() as $row) {
+                $map[(int) $row['fanlisting_id']] = $row;
+            }
+            return $map;
+        } catch (\Exception) {}
+
+        try {
+            $stmt = $this->db->prepare(
                 "SELECT fanlisting_id, image, last_updated, approved_by, description, listing_type
                  FROM lstr_fanlisting_settings WHERE fanlisting_id IN ({$phs})"
             );
@@ -1519,6 +1531,53 @@ final class ListingSettingsRepo
             $stmt->execute(['id' => $listingId, 'val' => $value]);
         } catch (\Exception) {
             // Migration 39 not run yet
+        }
+    }
+
+    /**
+     * Returns the per-listing TFL/TAFL approval page URL, or null when not set
+     * or when Migration 94 has not been run yet.
+     *
+     * Requires Migration 94.
+     */
+    public function getApprovalUrl(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT approval_url FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            return null;
+        }
+
+        if ($row === false || $row['approval_url'] === null || $row['approval_url'] === '') {
+            return null;
+        }
+
+        return (string) $row['approval_url'];
+    }
+
+    /**
+     * Saves (upserts) the per-listing TFL/TAFL approval page URL.
+     * Pass null or an empty string to clear the stored URL.
+     *
+     * Requires Migration 94.
+     */
+    public function saveApprovalUrl(int $listingId, ?string $url): void
+    {
+        $value = ($url !== null && trim($url) !== '') ? trim($url) : null;
+
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, approval_url)
+                 VALUES (:id, :url)
+                 ON DUPLICATE KEY UPDATE approval_url = VALUES(approval_url)'
+            );
+            $stmt->execute(['id' => $listingId, 'url' => $value]);
+        } catch (\Exception) {
+            // Migration 94 not run yet
         }
     }
 

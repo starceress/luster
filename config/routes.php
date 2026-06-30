@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 use Luster\Controllers\Admin\AddonsController;
 use Luster\Controllers\Admin\LinkCheckerController;
+use Luster\Controllers\Admin\TflLookupController;
 use Luster\Controllers\Admin\FeedbackController;
 use Luster\Controllers\Admin\ImportController;
 use Luster\Controllers\Admin\ImportMembersController;
@@ -465,6 +466,9 @@ return [
             SysInfoController::class, 'index');
         $router->post('/admin/sysinfo/backup',
             SysInfoController::class, 'backup');
+
+        // --- TFL/TAFL approval URL lookup
+        $router->post('/admin/tfl-lookup', TflLookupController::class, 'lookup');
 
         // --- Link Checker
         $router->get('/admin/link-checker',

@@ -6841,3 +6841,114 @@ document.addEventListener('click', function (e) {
     setTimeout(function () { btn.textContent = orig; }, 1500);
   });
 });
+
+// ── TFL/TAFL approval URL lookup ─────────────────────────────────────────────
+(function () {
+  'use strict';
+
+  var approvedBySel = document.getElementById('fl-approved-by');
+  var approvalUrlRow = document.getElementById('fl-approval-url-row');
+  var approvalUrlInput = document.getElementById('fl-approval-url');
+  var lookupBtn = document.getElementById('fl-tfl-lookup-btn');
+  var lookupResult = document.getElementById('fl-tfl-lookup-result');
+
+  if (!approvedBySel) return;
+
+  function showApprovalRow() {
+    if (approvalUrlRow) {
+      approvalUrlRow.style.display = approvedBySel.value !== '' ? '' : 'none';
+    }
+  }
+
+  // Show/hide the approval URL row based on network selection
+  approvedBySel.addEventListener('change', function () {
+    showApprovalRow();
+    // Clear the saved URL when the admin switches networks to avoid stale data
+    if (approvalUrlInput && approvalUrlInput.value !== '') {
+      approvalUrlInput.value = '';
+      if (lookupResult) {
+        lookupResult.style.display = 'none';
+        lookupResult.innerHTML = '';
+      }
+    }
+  });
+
+  // Lookup button
+  if (lookupBtn && lookupResult && approvalUrlInput) {
+    lookupBtn.addEventListener('click', function () {
+      var network = approvedBySel.value;
+      if (network !== 'tfl' && network !== 'tafl') {
+        lookupResult.style.display = '';
+        lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">Select TFL or TAFL first.</p>';
+        return;
+      }
+
+      var listingId = lookupBtn.dataset.listingId || '0';
+      lookupBtn.disabled = true;
+      lookupBtn.textContent = 'Searching…';
+      lookupResult.style.display = '';
+      lookupResult.innerHTML = '<p class="form-hint">Searching ' + network.toUpperCase() + '…</p>';
+
+      var csrf = (document.querySelector('input[name="_csrf"]') || {}).value || '';
+      var params = new URLSearchParams({ _csrf: csrf, listing_id: listingId, network: network });
+      var endpoint = lookupBtn.dataset.endpoint || '';
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          lookupBtn.disabled = false;
+          lookupBtn.textContent = 'Look up';
+
+          if (data.error) {
+            lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">' + esc(data.error) + '</p>';
+            return;
+          }
+
+          var html = '';
+
+          if (data.url) {
+            html += '<p class="form-hint"><strong>Exact match found:</strong> '
+              + '<a href="' + esc(data.url) + '" target="_blank" rel="noopener noreferrer">' + esc(data.url) + '</a> '
+              + '&mdash; <button type="button" class="link" data-use-url="' + esc(data.url) + '">Use this URL</button></p>';
+          } else if (data.candidates && data.candidates.length > 0) {
+            html += '<p class="form-hint"><strong>No exact match. Possible matches:</strong></p><ul style="margin:.25rem 0 0 1rem;font-size:.85rem">';
+            data.candidates.forEach(function (c) {
+              html += '<li><a href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer">' + esc(c.text) + '</a> '
+                + '&mdash; <button type="button" class="link" data-use-url="' + esc(c.url) + '">Use</button></li>';
+            });
+            html += '</ul>';
+          } else {
+            html += '<p class="form-hint">No match found. Try entering the URL manually.</p>';
+          }
+
+          if (data.cache_age !== null && data.cache_age !== undefined) {
+            var ageMin = Math.round(data.cache_age / 60);
+            html += '<p class="form-hint" style="color:var(--color-muted);font-size:.8rem">Index cache: '
+              + (ageMin < 1 ? 'just fetched' : ageMin + ' min old') + '</p>';
+          }
+
+          lookupResult.innerHTML = html;
+        })
+        .catch(function () {
+          lookupBtn.disabled = false;
+          lookupBtn.textContent = 'Look up';
+          lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">Request failed. Please try again.</p>';
+        });
+    });
+
+    // "Use this URL" button delegation
+    lookupResult.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-use-url]');
+      if (!btn) return;
+      approvalUrlInput.value = btn.dataset.useUrl;
+    });
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+}());

@@ -1066,7 +1066,16 @@ final class ListingController extends AdminController
             $settingsRepo->saveListingType($id, $listingType);
             $settingsRepo->saveMembersPerPage($id, $membersPerPage);
             $settingsRepo->saveContactSettings($id, $contactEnabled, $contactRecipient !== '' ? $contactRecipient : null);
+            // Read the current network before overwriting so we can detect changes.
+            $prevApprovedBy   = $settingsRepo->getApprovedBy($id);
             $settingsRepo->saveApprovedBy($id, $approvedByInput);
+            // Clear approval URL when the network changes so a stale TFL URL is
+            // never shown next to a freshly selected TAFL badge (and vice versa).
+            $approvalUrlInput = trim((string) $request->post('approval_url', ''));
+            if ($prevApprovedBy !== $approvedByInput) {
+                $approvalUrlInput = '';
+            }
+            $settingsRepo->saveApprovalUrl($id, $approvalUrlInput !== '' ? $approvalUrlInput : null);
             $settingsRepo->saveDescription($id, $description);
             if ($this->app->isAddonInstalled('Adoption')) {
                 $settingsRepo->saveForAdoption($id, $forAdoptionInput);
@@ -1154,6 +1163,7 @@ final class ListingController extends AdminController
         $embedSettings      = $settingsRepo->getEmbedSettings($id);
         $contactSettings    = $settingsRepo->getContactSettings($id);
         $approvedBy         = $settingsRepo->getApprovedBy($id);
+        $approvalUrl        = $settingsRepo->getApprovalUrl($id);
         $description        = $settingsRepo->getDescription($id);
         $affiliateApplySettings = $settingsRepo->getAffiliateApplySettings($id);
         $codeApprovalEmail  = $settingsRepo->getCodeApprovalEmail($id);
@@ -1328,6 +1338,7 @@ final class ListingController extends AdminController
             'contact_recipient'   => $contactSettings['recipient'] ?? '',
             'form_url_contact'    => $contactSettings['form_url_contact'] ?? '',
             'approved_by'         => $approvedBy,
+            'approval_url'        => $approvalUrl,
             'description'         => $description,
             'adoption_addon_installed'       => $adoptionAddonInstalled,
             'updates_addon_installed'        => $updatesAddonInstalled,
