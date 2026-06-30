@@ -214,12 +214,28 @@ if ($_lusterCodesTemplateHtml !== null && str_contains($_lusterCodesTemplateHtml
     $_lusterCsToggleHtml = '';
     $_lusterCsEnabled    = false;
 
+    $_lusterCsToggleStyle = 'link';
+    $_lusterCsToggleLabel = 'Donate a code?';
+    $_lusterCsSiteRepo    = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterDb);
     if (!$_lusterIsCollective && $_lusterListingId !== null) {
-        $_lusterCsEmbedCfg = (new ListingSettingsRepo($_lusterDb))->getResolvedEmbedSettings($_lusterListingId);
-        $_lusterCsEnabled  = (bool) ($_lusterCsEmbedCfg['codes_submit_enabled'] ?? true);
+        $_lusterCsSettingsRepo = new ListingSettingsRepo($_lusterDb);
+        $_lusterCsEmbedCfg     = $_lusterCsSettingsRepo->getResolvedEmbedSettings($_lusterListingId);
+        $_lusterCsEnabled      = (bool) ($_lusterCsEmbedCfg['codes_submit_enabled'] ?? true);
+        $_lusterCsToggleStyle  = $_lusterCsSettingsRepo->getCodesSubmitToggleStyle($_lusterListingId)
+            ?? $_lusterCsSiteRepo->get('global_codes_submit_toggle_style')
+            ?? 'link';
+        $_lusterCsToggleLabel  = $_lusterCsSettingsRepo->getCodesSubmitToggleLabel($_lusterListingId)
+            ?? $_lusterCsSiteRepo->get('global_codes_submit_toggle_label')
+            ?? 'Donate a code?';
+    } else {
+        $_lusterCsEnabled     = ($_lusterCsSiteRepo->get('collective_codes_submit_enabled') ?? '1') === '1';
+        $_lusterCsToggleStyle = (string) ($_lusterCsSiteRepo->get('collective_codes_submit_style') ?? 'link');
+        if (!in_array($_lusterCsToggleStyle, ['link', 'button'], true)) { $_lusterCsToggleStyle = 'link'; }
+        $_lusterCsToggleLabel = (string) ($_lusterCsSiteRepo->get('collective_codes_submit_toggle_label') ?? 'Donate a code?');
     }
 
     if ($_lusterCsEnabled) {
+        $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $_lusterCsHasFeedback = $_lusterApp->getSession()->get('lstr_flash_success_html') !== null
                              || $_lusterApp->getSession()->get('lstr_flash_error') !== null;
         $_lusterReturnOrig = $luster_return ?? false;
@@ -230,7 +246,7 @@ if ($_lusterCodesTemplateHtml !== null && str_contains($_lusterCodesTemplateHtml
         if ($_lusterCsFormHtml !== '') {
             $_lusterCsToggleRendered = true;
             $_lusterCsToggleHtml = '<details class="fl-codes-submit-collapsible"' . ($_lusterCsHasFeedback ? ' open' : '') . '>'
-                . '<summary class="fl-codes-submit-toggle">Donate a code?</summary>'
+                . '<summary class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($_lusterCsToggleStyle) . '">' . $e($_lusterCsToggleLabel) . '</summary>'
                 . '<div class="fl-codes-submit-form-wrap">'
                 . $_lusterCsFormHtml
                 . '</div>'
@@ -269,11 +285,15 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
 // By default (false) codes.php shows only the gallery; use codes-submit.php separately.
 // NOTE: codes-submit.php is required in the same scope and reassigns $_lusterHtml,
 // so we save the gallery output and restore $luster_return after the sub-require.
-$_lusterEmbedSettings = $_lusterIsCollective
-    ? []
-    : (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
+$_lusterAppendEnabled = false;
+if ($_lusterIsCollective) {
+    $_lusterAppendEnabled = (($_lusterCsSiteRepo ?? new SiteSettingsRepo($_lusterDb))->get('collective_codes_submit_enabled') ?? '1') === '1';
+} else {
+    $_lusterEmbedSettings = (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
         ->getResolvedEmbedSettings($_lusterListingId);
-if (($luster_append_submit ?? false) && !($_lusterCsToggleRendered ?? false) && ($_lusterEmbedSettings['codes_submit_enabled'] ?? true)) {
+    $_lusterAppendEnabled = (bool) ($_lusterEmbedSettings['codes_submit_enabled'] ?? true);
+}
+if (($luster_append_submit ?? false) && !($_lusterCsToggleRendered ?? false) && $_lusterAppendEnabled) {
     $_lusterGalleryHtml  = $_lusterHtml;
     $_lusterReturnOrig   = $luster_return ?? false;
     $luster_return       = true;   // make codes-submit.php return, not echo

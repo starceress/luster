@@ -43,6 +43,12 @@ if ($_lusterRedirectTo === '') {
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
 
+$_lusterCsRepo = new \Luster\Repositories\SiteSettingsRepo($_lusterApp->getDatabase());
+if (($_lusterCsRepo->get('collective_codes_submit_enabled') ?? '1') !== '1') {
+    if ($luster_return ?? false) { return ''; }
+    return;
+}
+
 // ---------------------------------------------------------------------------
 // POST handler — process form submissions inline (self-post)
 // ---------------------------------------------------------------------------

@@ -681,6 +681,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('collective_codes_template', '{if_donor_url}{/if_donor_url}', '{if_donor_url}...{/if_donor_url}', 'Shows only when the donor has a website URL saved.') ?>
             <?= $tok('collective_codes_template', '{if_no_donor_url}{/if_no_donor_url}', '{if_no_donor_url}...{/if_no_donor_url}', 'Shows only when the donor has no website URL.') ?>
             <?= $tok('collective_codes_template', '{if_code_name}{/if_code_name}',   '{if_code_name}...{/if_code_name}',   'Shows only when the code has a saved name.') ?>
+            <?= $tok('collective_codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Shows a text link or button that reveals the full donation form inline. Empty when collective code donations are disabled.') ?>
             <?= $tok('collective_codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when there is at least one approved collective code. Place outside the loop.') ?>
             <?= $tok('collective_codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when there are no approved collective codes (empty state). Place outside the loop.') ?>
           </tbody></table>

@@ -145,18 +145,16 @@ class SiteSettingsRepo
                                          . '</div>',
             'collective_affiliates_section_template' => '<div class="fl-affiliates-section">' . "\n"
                                                     . '{if_affiliates}' . "\n"
-                                                    . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n"
-                                                    . "\n"
                                                     . '{each_affiliate}' . "\n"
                                                     . '{if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}' . "\n"
                                                     . '{if_no_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank">{aff_name}</a>{/if_no_aff_image}' . "\n"
                                                     . '{/each_affiliate}' . "\n"
-                                                    . "\n"
                                                     . '{/if_affiliates}' . "\n"
                                                     . "\n"
                                                     . '{if_no_affiliates}' . "\n"
-                                                    . 'No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a>' . "\n"
+                                                    . 'No affiliates yet.' . "\n"
                                                     . '{/if_no_affiliates}' . "\n"
+                                                    . '{affiliate_apply_toggle}' . "\n"
                                                     . '</div>',
             // Single-listing embeds — each has its own separate template so site
             // owners can style them independently from the full owned-listings list.
@@ -400,7 +398,8 @@ HTML;
             . '{/each_size_group}' . "\n"
             . '</div>' . "\n"
             . "\n"
-            . '{/if_codes}';
+            . '{/if_codes}' . "\n"
+            . '{codes_submit_toggle}';
     }
 
     /**

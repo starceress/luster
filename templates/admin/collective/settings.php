@@ -84,7 +84,7 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
         <div>
           <label class="toggle-wrap">
             <input type="checkbox" name="collective_affiliate_apply_enabled" value="1"
-                   data-toggle-row="row-url-affiliate-apply"
+                   data-toggle-row="row-url-affiliate-apply,row-aff-style,row-aff-toggle-label"
                    <?= $_affiliateOn ? 'checked' : '' ?>>
             <span class="toggle-label">Enable collective affiliate applications</span>
           </label>
@@ -101,13 +101,75 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
           <p class="form-hint">The public page on your site where other sites can apply to affiliate with your collective.</p>
         </div>
       </div>
+
+      <div class="field-row" id="row-aff-style"<?= !$_affiliateOn ? ' style="display:none"' : '' ?>>
+        <label class="field-label" for="s-aff-style">Toggle style</label>
+        <div>
+          <div class="select-wrap select-auto">
+            <select id="s-aff-style" name="collective_affiliate_apply_style" class="form">
+              <option value="link" <?= ($site_settings['collective_affiliate_apply_style'] ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
+              <option value="button" <?= ($site_settings['collective_affiliate_apply_style'] ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
+            </select>
+          </div>
+          <p class="form-hint">How the <code>{affiliate_apply_toggle}</code> appears &mdash; as a plain underlined link or a styled button.</p>
+        </div>
+      </div>
+
+      <div class="field-row" id="row-aff-toggle-label"<?= !$_affiliateOn ? ' style="display:none"' : '' ?>>
+        <label class="field-label" for="s-aff-toggle-label">Toggle label</label>
+        <div>
+          <input id="s-aff-toggle-label" type="text" name="collective_affiliate_apply_toggle_label" class="form" maxlength="200"
+                 value="<?= View::e($site_settings['collective_affiliate_apply_toggle_label'] ?? '') ?>"
+                 placeholder="Apply to become an affiliate?">
+          <p class="form-hint">The text on the collapsible <code>{affiliate_apply_toggle}</code>. Leave blank for the default.</p>
+        </div>
+      </div>
     </div>
 
+    <?php
+      $_csCollOn = ($site_settings['collective_codes_submit_enabled'] ?? '1') === '1';
+    ?>
     <div class="card-body">
       <div class="section-label">Code Donations</div>
 
       <div class="field-row field-row--top">
-        <label class="field-label" for="s-form-url-codes-submit">Code Donation Form</label>
+        <label class="field-label">Code Donations</label>
+        <div>
+          <label class="toggle-wrap">
+            <input type="checkbox" name="collective_codes_submit_enabled" value="1"
+                   data-toggle-row="row-cs-style,row-cs-toggle-label,row-cs-url"
+                   <?= $_csCollOn ? 'checked' : '' ?>>
+            <span class="toggle-label">Enable collective code donations</span>
+          </label>
+          <p class="form-hint">Lets visitors submit fan codes to your collective. This is separate from per-listing code donations.</p>
+        </div>
+      </div>
+
+      <div class="field-row" id="row-cs-style"<?= !$_csCollOn ? ' style="display:none"' : '' ?>>
+        <label class="field-label" for="s-cs-style">Toggle style</label>
+        <div>
+          <div class="select-wrap select-auto">
+            <select id="s-cs-style" name="collective_codes_submit_style" class="form">
+              <option value="link" <?= ($site_settings['collective_codes_submit_style'] ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
+              <option value="button" <?= ($site_settings['collective_codes_submit_style'] ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
+            </select>
+          </div>
+          <p class="form-hint">How the <code>{codes_submit_toggle}</code> appears in collective codes templates.</p>
+        </div>
+      </div>
+
+      <div class="field-row" id="row-cs-toggle-label"<?= !$_csCollOn ? ' style="display:none"' : '' ?>>
+        <label class="field-label" for="s-cs-toggle-label">Toggle label</label>
+        <div>
+          <input id="s-cs-toggle-label" type="text" name="collective_codes_submit_toggle_label" class="form" maxlength="200"
+                 value="<?= View::e($site_settings['collective_codes_submit_toggle_label'] ?? '') ?>"
+                 placeholder="Donate a code?">
+          <p class="form-hint">The text on the collapsible <code>{codes_submit_toggle}</code>. Leave blank for the default.</p>
+        </div>
+      </div>
+
+      <div class="field-row" id="row-cs-url"<?= !$_csCollOn ? ' style="display:none"' : '' ?>>
+        <label class="field-label" for="s-form-url-codes-submit">Host page URL</label>
         <div>
           <input id="s-form-url-codes-submit" type="text" name="collective_form_url_codes_submit" class="form" maxlength="200"
                  value="<?= View::e($site_settings['collective_form_url_codes_submit'] ?? '') ?>"
@@ -117,11 +179,11 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
       </div>
     </div>
 
-      <?php if ($adoption_installed ?? false): ?>
+    <?php if ($adoption_installed ?? false): ?>
     <div class="card-body">
       <div class="section-label">Adoptions</div>
-      <div class="field-row">
-        <label class="field-label" for="s-form-url-adopt">Adoption Form</label>
+      <div class="field-row field-row--top">
+        <label class="field-label" for="s-form-url-adopt">Host page URL</label>
         <div>
           <input id="s-form-url-adopt" type="text" name="collective_form_url_adopt" class="form" maxlength="200"
                  value="<?= View::e($site_settings['collective_form_url_adopt'] ?? '') ?>"
@@ -129,8 +191,8 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
           <p class="form-hint">The public page on your site hosting the collective adoption application form.</p>
         </div>
       </div>
-      <?php endif; ?>
     </div>
+    <?php endif; ?>
 
     <?php if ($kim_installed ?? false): ?>
     <div class="card-body">

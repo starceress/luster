@@ -183,10 +183,17 @@ if ($_lusterSectionTemplate !== null) {
         $_lusterApplyEnabled = false;
         $_lusterApplyStyle   = 'link';
 
+        $_lusterApplyLabel = 'Apply to become an affiliate?';
         if ($_lusterListingId > 0) {
             $_lusterAffApplySettings = $_lusterSettingsRepo->getAffiliateApplySettings($_lusterListingId);
             $_lusterApplyEnabled     = (bool) ($_lusterAffApplySettings['enabled'] ?? false);
-            $_lusterApplyStyle       = $_lusterSettingsRepo->getAffiliateApplyStyle($_lusterListingId);
+            $_lusterSiteRepoFallback = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterApp->getDatabase());
+            $_lusterApplyStyle       = $_lusterSettingsRepo->getAffiliateApplyStyle($_lusterListingId)
+                ?? $_lusterSiteRepoFallback->get('global_affiliate_apply_style')
+                ?? 'link';
+            $_lusterApplyLabel       = $_lusterSettingsRepo->getAffiliateApplyToggleLabel($_lusterListingId)
+                ?? $_lusterSiteRepoFallback->get('global_affiliate_apply_toggle_label')
+                ?? 'Apply to become an affiliate?';
         } else {
             $_lusterSiteRepoToggle  = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterApp->getDatabase());
             $_lusterApplyEnabled    = ($_lusterSiteRepoToggle->get('collective_affiliate_apply_enabled') ?? '1') === '1';
@@ -194,6 +201,7 @@ if ($_lusterSectionTemplate !== null) {
             if (!in_array($_lusterApplyStyle, ['link', 'button'], true)) {
                 $_lusterApplyStyle = 'link';
             }
+            $_lusterApplyLabel = (string) ($_lusterSiteRepoToggle->get('collective_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
         }
 
         if ($_lusterApplyEnabled) {
@@ -204,7 +212,7 @@ if ($_lusterSectionTemplate !== null) {
 
             $_lusterToggleHtml = '<details class="fl-affiliate-apply-collapsible">'
                 . '<summary class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($_lusterApplyStyle) . '">'
-                . 'Apply to become an affiliate?'
+                . $e($_lusterApplyLabel)
                 . '</summary>'
                 . '<div class="fl-affiliate-apply-form-wrap">'
                 . $_lusterApplyFormHtml

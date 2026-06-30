@@ -65,6 +65,10 @@ $_lusterDb     = $_lusterApp->getDatabase();
 $_lusterConfig = $_lusterApp->getConfig();
 
 if ($_lusterIsCollective) {
+    if (((new SiteSettingsRepo($_lusterDb))->get('collective_codes_submit_enabled') ?? '1') !== '1') {
+        if ($luster_return ?? false) { return ''; }
+        return;
+    }
     $_lusterListing     = null;
     $_lusterListingName = (string) ($_lusterConfig->get('site_name', '') ?: 'Collective');
     $_lusterListingUrl  = '';

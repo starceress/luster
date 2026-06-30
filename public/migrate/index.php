@@ -2775,6 +2775,162 @@ try {
     $errors[] = 'Migration 85 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 86: add codes_submit_style to lstr_fanlisting_settings ---
+try {
+    $check = $pdo->query('SELECT migration_number FROM `lstr_migrations` WHERE migration_number = 86');
+    if ($check === false || $check->fetch() === false) {
+        $cols = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'codes_submit_style'");
+        if ($cols !== false && $cols->fetch() !== false) {
+            $done[] = 'Migration 86: <code>codes_submit_style</code> column already exists';
+        } else {
+            $pdo->exec("ALTER TABLE `lstr_fanlisting_settings`
+                 ADD COLUMN `codes_submit_style` VARCHAR(10) NOT NULL DEFAULT 'link'");
+            $done[] = 'Migration 86: added <code>codes_submit_style</code> column to <code>lstr_fanlisting_settings</code>';
+        }
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (86)');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 86 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 87: add toggle label columns to lstr_fanlisting_settings ---
+try {
+    $check = $pdo->query('SELECT migration_number FROM `lstr_migrations` WHERE migration_number = 87');
+    if ($check === false || $check->fetch() === false) {
+        $added = [];
+        $cols = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'affiliate_apply_toggle_label'");
+        if ($cols === false || $cols->fetch() === false) {
+            $pdo->exec("ALTER TABLE `lstr_fanlisting_settings`
+                 ADD COLUMN `affiliate_apply_toggle_label` VARCHAR(200) NULL");
+            $added[] = 'affiliate_apply_toggle_label';
+        }
+        $cols = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'codes_submit_toggle_label'");
+        if ($cols === false || $cols->fetch() === false) {
+            $pdo->exec("ALTER TABLE `lstr_fanlisting_settings`
+                 ADD COLUMN `codes_submit_toggle_label` VARCHAR(200) NULL");
+            $added[] = 'codes_submit_toggle_label';
+        }
+        $done[] = empty($added)
+            ? 'Migration 87: toggle label columns already exist'
+            : 'Migration 87: added <code>' . implode('</code>, <code>', $added) . '</code> to <code>lstr_fanlisting_settings</code>';
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (87)');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 87 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 88: make style columns nullable so they cascade to global defaults ---
+try {
+    $check = $pdo->query('SELECT migration_number FROM `lstr_migrations` WHERE migration_number = 88');
+    if ($check === false || $check->fetch() === false) {
+        $pdo->exec("ALTER TABLE `lstr_fanlisting_settings`
+             MODIFY COLUMN `affiliate_apply_style` VARCHAR(10) NULL DEFAULT NULL,
+             MODIFY COLUMN `codes_submit_style` VARCHAR(10) NULL DEFAULT NULL");
+        $pdo->exec("UPDATE `lstr_fanlisting_settings` SET `affiliate_apply_style` = NULL WHERE `affiliate_apply_style` = 'link'");
+        $pdo->exec("UPDATE `lstr_fanlisting_settings` SET `codes_submit_style` = NULL WHERE `codes_submit_style` = 'link'");
+        $done[] = 'Migration 88: made <code>affiliate_apply_style</code> and <code>codes_submit_style</code> nullable, reset defaults to NULL for global cascade';
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (88)');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 88 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 89: refresh collective defaults that predate the affiliate/codes
+// donation toggle tokens. Only resets rows whose stored value is an EXACT,
+// byte-for-byte match for the old hardcoded default (i.e. the admin never
+// customized the template) — genuine custom templates are left untouched.
+//
+// Uses a BINARY comparison (lstr_site_settings is utf8mb4_unicode_ci, so a
+// plain `=` comparison is case-insensitive and could otherwise match — and
+// erase — a customization that differs from the old default only by case)
+// and checks both LF and CRLF variants of the old default, since HTML
+// <textarea> submissions normalize line endings to CRLF while the PHP
+// source literal below uses LF. ---
+try {
+    $check = $pdo->query('SELECT migration_number FROM `lstr_migrations` WHERE migration_number = 89');
+    if ($check === false || $check->fetch() === false) {
+        $legacyCollectiveDefaults = require __DIR__ . '/legacy-collective-template-defaults.php';
+        $oldAffiliatesDefaultLf   = $legacyCollectiveDefaults['collective_affiliates_section_template'];
+        $oldAffiliatesDefaultCrlf = str_replace("\n", "\r\n", $oldAffiliatesDefaultLf);
+        $oldCodesDefaultLf        = $legacyCollectiveDefaults['collective_codes_template'];
+        $oldCodesDefaultCrlf      = str_replace("\n", "\r\n", $oldCodesDefaultLf);
+
+        $resetStmt = $pdo->prepare(
+            'UPDATE `lstr_site_settings` SET `setting_value` = NULL
+              WHERE `setting_key` = :key AND BINARY `setting_value` = BINARY :old_value'
+        );
+
+        $affRows = 0;
+        foreach ([$oldAffiliatesDefaultLf, $oldAffiliatesDefaultCrlf] as $variant) {
+            $resetStmt->execute(['key' => 'collective_affiliates_section_template', 'old_value' => $variant]);
+            $affRows += $resetStmt->rowCount();
+        }
+
+        $codesRows = 0;
+        foreach ([$oldCodesDefaultLf, $oldCodesDefaultCrlf] as $variant) {
+            $resetStmt->execute(['key' => 'collective_codes_template', 'old_value' => $variant]);
+            $codesRows += $resetStmt->rowCount();
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (89)');
+        $done[] = 'Migration 89: reset ' . $affRows . ' unmodified <code>collective_affiliates_section_template</code> row(s) and '
+                . $codesRows . ' unmodified <code>collective_codes_template</code> row(s) to NULL so they pick up the new '
+                . '<code>{affiliate_apply_toggle}</code> / <code>{codes_submit_toggle}</code> built-in defaults. Customized templates were left untouched.';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 89 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 90: corrected re-run of Migration 89's stale-default reset,
+// for installs that already recorded Migration 89 before it was fixed to use
+// a binary, CRLF-aware comparison (Migration 89's original release used a
+// plain `setting_value = :old_value` comparison; lstr_site_settings is
+// utf8mb4_unicode_ci, so that comparison was case-insensitive and could have
+// incorrectly matched — and erased — a customization differing from the old
+// default only by case, and it only compared against LF line endings while
+// HTML <textarea> submissions normalize to CRLF). Migration 89 itself has
+// since been corrected, so this migration is a no-op on any install that
+// runs 89 fresh; it exists only to retroactively apply the correct reset on
+// installs whose `lstr_migrations` table already has row 89 recorded under
+// the old, unsafe logic. Safe to run regardless of what (if anything) 89
+// already matched, since it only ever resets exact byte-for-byte matches of
+// the old default to NULL. ---
+try {
+    $check = $pdo->query('SELECT migration_number FROM `lstr_migrations` WHERE migration_number = 90');
+    if ($check === false || $check->fetch() === false) {
+        $legacyCollectiveDefaults = require __DIR__ . '/legacy-collective-template-defaults.php';
+        $oldAffiliatesDefaultLf   = $legacyCollectiveDefaults['collective_affiliates_section_template'];
+        $oldAffiliatesDefaultCrlf = str_replace("\n", "\r\n", $oldAffiliatesDefaultLf);
+        $oldCodesDefaultLf        = $legacyCollectiveDefaults['collective_codes_template'];
+        $oldCodesDefaultCrlf      = str_replace("\n", "\r\n", $oldCodesDefaultLf);
+
+        $resetStmt = $pdo->prepare(
+            'UPDATE `lstr_site_settings` SET `setting_value` = NULL
+              WHERE `setting_key` = :key AND BINARY `setting_value` = BINARY :old_value'
+        );
+
+        $affRows = 0;
+        foreach ([$oldAffiliatesDefaultLf, $oldAffiliatesDefaultCrlf] as $variant) {
+            $resetStmt->execute(['key' => 'collective_affiliates_section_template', 'old_value' => $variant]);
+            $affRows += $resetStmt->rowCount();
+        }
+
+        $codesRows = 0;
+        foreach ([$oldCodesDefaultLf, $oldCodesDefaultCrlf] as $variant) {
+            $resetStmt->execute(['key' => 'collective_codes_template', 'old_value' => $variant]);
+            $codesRows += $resetStmt->rowCount();
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (90)');
+        $done[] = 'Migration 90: corrected re-run of Migration 89 with a binary, CRLF-aware comparison. '
+                . 'Reset ' . $affRows . ' unmodified <code>collective_affiliates_section_template</code> row(s) and '
+                . $codesRows . ' unmodified <code>collective_codes_template</code> row(s) to NULL. '
+                . 'Customized templates were left untouched.';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 90 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

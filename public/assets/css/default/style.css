@@ -596,11 +596,20 @@
 }
 .fl-codes-submit-toggle {
   cursor: pointer;
+}
+.fl-codes-submit-toggle--link {
   text-decoration: underline;
   list-style: none;
 }
-.fl-codes-submit-toggle::-webkit-details-marker,
-.fl-codes-submit-toggle::marker { display: none; content: ''; }
+.fl-codes-submit-toggle--link::-webkit-details-marker,
+.fl-codes-submit-toggle--link::marker { display: none; content: ''; }
+.fl-codes-submit-toggle--button {
+  display: inline-block;
+  padding: 0.4em 1em;
+  list-style: none;
+}
+.fl-codes-submit-toggle--button::-webkit-details-marker,
+.fl-codes-submit-toggle--button::marker { display: none; content: ''; }
 .fl-codes-submit-form-wrap {
   margin-top: 1em;
 }

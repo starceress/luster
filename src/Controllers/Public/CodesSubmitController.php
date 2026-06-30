@@ -67,9 +67,13 @@ final class CodesSubmitController
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
         if ($isCollective) {
+            $siteRepo = new SiteSettingsRepo($db);
+            if (($siteRepo->get('collective_codes_submit_enabled') ?? '1') !== '1') {
+                return Response::notFound('Collective code donations are not open.');
+            }
             $listing  = null;
             $siteUrl  = (string) ($config->get('site_url', '') ?: $baseUrl);
-            $override = (new SiteSettingsRepo($db))->get('collective_form_url_codes_submit');
+            $override = $siteRepo->get('collective_form_url_codes_submit');
             $submitUrl = CollectiveFormUrlResolver::resolve($override, $siteUrl, $siteUrl);
         } else {
             $listingRepo  = new ListingRepo($db, $config);

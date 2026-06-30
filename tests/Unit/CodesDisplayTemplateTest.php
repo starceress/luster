@@ -123,6 +123,18 @@ SQL;
         self::assertStringNotContainsString('{listing_subject}', $tpl);
     }
 
+    /**
+     * Regression: the collective codes default must include {codes_submit_toggle}
+     * (mirroring ListingSettingsRepo::defaultCodesTemplate()) so that enabling
+     * collective code donations actually has a visible effect on fresh installs.
+     */
+    public function testDefaultCollectiveCodesTemplateContainsSubmitToggleToken(): void
+    {
+        $tpl = SiteSettingsRepo::defaultCollectiveCodesTemplate();
+
+        self::assertStringContainsString('{codes_submit_toggle}', $tpl);
+    }
+
     public function testCollectiveDefaultsIncludesCollectiveCodesTemplate(): void
     {
         $defaults = SiteSettingsRepo::collectiveDefaults();

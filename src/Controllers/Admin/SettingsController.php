@@ -594,12 +594,13 @@ final class SettingsController extends AdminController
         $affOverride = $siteRepo->get('collective_form_url_affiliate_apply');
         $affiliateApplyUrl = CollectiveFormUrlResolver::resolve($affOverride ?: 'affiliates.php', $siteUrl, $siteUrl);
 
+        $applyEnabled = ($siteRepo->get('collective_affiliate_apply_enabled') ?? '1') === '1';
         $applyStyle = (string) ($siteRepo->get('collective_affiliate_apply_style') ?? 'link');
         if (!in_array($applyStyle, ['link', 'button'], true)) {
             $applyStyle = 'link';
         }
         $applyFormHtml = '';
-        if (str_contains($rawTpl, '{affiliate_apply_toggle}')) {
+        if ($applyEnabled && str_contains($rawTpl, '{affiliate_apply_toggle}')) {
             $collectiveAffTpl = $siteRepo->get('collective_affiliate_apply_form_template') ?? '';
             if ($collectiveAffTpl === '') {
                 $collectiveAffTpl = SiteSettingsRepo::defaultCollectiveAffiliateApplyFormTemplate();
@@ -607,11 +608,12 @@ final class SettingsController extends AdminController
             $config    = $this->app->getConfig();
             $applyFormHtml = $this->coltplPreviewAffiliateApplyForm($collectiveAffTpl, $config);
         }
+        $applyLabel = (string) ($siteRepo->get('collective_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
         $toggleHtml = '';
         if ($applyFormHtml !== '') {
             $toggleHtml = '<details class="fl-affiliate-apply-collapsible">'
                 . '<summary class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '">'
-                . 'Apply to become an affiliate?'
+                . $e($applyLabel)
                 . '</summary>'
                 . '<div class="fl-affiliate-apply-form-wrap">'
                 . $applyFormHtml
@@ -1219,8 +1221,52 @@ final class SettingsController extends AdminController
             return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
         });
 
+        $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        // Extract {codes_submit_toggle} from the raw template BEFORE any other
+        // substitution so a site name or other token value can never inject a
+        // toggle that the raw template didn't actually request.
+        $csPlaceholder = '<!--lstr-cs-toggle-' . bin2hex(random_bytes(8)) . '-->';
+        $hasCsToggle   = str_contains($tpl, '{codes_submit_toggle}');
+        if ($hasCsToggle) {
+            $tpl = str_replace('{codes_submit_toggle}', $csPlaceholder, $tpl);
+        }
+
         $siteName = (string) ($this->app->getConfig()->get('site_name', '') ?: 'Collective');
         $tpl = str_replace('{site_name}', htmlspecialchars($siteName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $tpl);
+
+        // {codes_submit_toggle} — collapsible inline code donation form.
+        // The placeholder is left in $tpl through rendering (just like production's
+        // codes.php) and swapped for the real form HTML afterward, so codes-template
+        // syntax that happens to appear inside a customized donation-form template
+        // is never re-interpreted by CodesTemplateRenderer.
+        $toggleHtml = '';
+        if ($hasCsToggle) {
+            $siteRepo   = new SiteSettingsRepo($db);
+            $csEnabled  = ($siteRepo->get('collective_codes_submit_enabled') ?? '1') === '1';
+            if ($csEnabled) {
+                $csStyle = (string) ($siteRepo->get('collective_codes_submit_style') ?? 'link');
+                if (!in_array($csStyle, ['link', 'button'], true)) {
+                    $csStyle = 'link';
+                }
+                $csLabel = (string) ($siteRepo->get('collective_codes_submit_toggle_label') ?? 'Donate a code?');
+                $csFormTpl = $siteRepo->get('collective_codes_submit_form_template') ?? '';
+                if ($csFormTpl === '') {
+                    $csFormTpl = SiteSettingsRepo::defaultCollectiveCodesSubmitFormTemplate();
+                }
+                $csFormHtml = $this->coltplPreviewCodesSubmitForm($csFormTpl, $this->app->getConfig());
+
+                $toggleHtml = '<details class="fl-codes-submit-collapsible">'
+                    . '<summary class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '">'
+                    . $e($csLabel)
+                    . '</summary>'
+                    . '<div class="fl-codes-submit-form-wrap">'
+                    . $csFormHtml
+                    . '</div>'
+                    . '</details>';
+            }
+        }
+
         $html = CodesTemplateRenderer::render(
             $tpl, $codes, $grouped, $donorMap, $uploadsUrl,
             $catMap, $categoryMap, $siteName,
@@ -1233,6 +1279,11 @@ final class SettingsController extends AdminController
         $empty = CodesTemplateRenderer::render(
             $tpl, [], [], [], $uploadsUrl, [], [], $siteName,
         );
+
+        if ($hasCsToggle) {
+            $html  = $html  !== null ? str_replace($csPlaceholder, $toggleHtml, $html)  : $html;
+            $empty = $empty !== null ? str_replace($csPlaceholder, $toggleHtml, $empty) : $empty;
+        }
 
         return self::previewSectionLabel(empty($codes) ? 'Empty State' : 'Active Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved collective codes to preview with.</p>')
             . (empty($codes) ? '' : self::previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved collective codes to preview with.</p>'));
@@ -1400,6 +1451,11 @@ final class SettingsController extends AdminController
             'kim_url_update',
             'kim_url_reset',
             'kim_url_list',
+            'collective_affiliate_apply_style',
+            'collective_affiliate_apply_toggle_label',
+            'collective_codes_submit_enabled',
+            'collective_codes_submit_style',
+            'collective_codes_submit_toggle_label',
         ]);
 
         return $this->adminLayout('admin/collective/settings.php', 'Collective Settings', 'collective', [
@@ -1456,6 +1512,18 @@ final class SettingsController extends AdminController
                 $siteSettings->set($kimKey, $kimVal !== '' ? $kimVal : null);
             }
         }
+
+        $collAffStyle = (string) $request->post('collective_affiliate_apply_style', 'link');
+        $siteSettings->set('collective_affiliate_apply_style', in_array($collAffStyle, ['link', 'button'], true) ? $collAffStyle : 'link');
+        $collAffLabel = trim((string) $request->post('collective_affiliate_apply_toggle_label', ''));
+        $siteSettings->set('collective_affiliate_apply_toggle_label', $collAffLabel !== '' ? $collAffLabel : null);
+
+        $collCsEnabled = $request->post('collective_codes_submit_enabled') === '1' ? '1' : '0';
+        $siteSettings->set('collective_codes_submit_enabled', $collCsEnabled);
+        $collCsStyle = (string) $request->post('collective_codes_submit_style', 'link');
+        $siteSettings->set('collective_codes_submit_style', in_array($collCsStyle, ['link', 'button'], true) ? $collCsStyle : 'link');
+        $collCsLabel = trim((string) $request->post('collective_codes_submit_toggle_label', ''));
+        $siteSettings->set('collective_codes_submit_toggle_label', $collCsLabel !== '' ? $collCsLabel : null);
 
         (new ActivityRepo($this->app->getDatabase()))->log(
             (int) $session->get('lstr_admin_id'),
