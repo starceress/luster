@@ -71,6 +71,8 @@ if (isset($form_html)) {
   <form class="fl-form fl-form-update" method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
+    <?php if (!empty($form_token_update ?? '')): ?><input type="hidden" name="_form_token_update" value="<?= View::e($form_token_update) ?>"><?php endif; ?>
+    <?php if (!empty($form_token_delete ?? '')): ?><input type="hidden" name="_form_token_delete" value="<?= View::e($form_token_delete) ?>"><?php endif; ?>
 
     <?= $f['new_name'] ?>
     <?= $f['new_email'] ?>

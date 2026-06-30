@@ -2948,6 +2948,35 @@ try {
     $errors[] = 'Migration 91 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 92: create lstr_member_form_sessions table. Single-use,
+// short-lived opaque tokens that let the public member update/delete forms
+// recover from a lost PHP session (broken cookies, session GC, restrictive
+// shared hosting) without falling back to a long-lived replayable token. ---
+try {
+    $check = $pdo->query('SELECT migration_number FROM `lstr_migrations` WHERE migration_number = 92');
+    if ($check === false || $check->fetch() === false) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_member_form_sessions` (
+               `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+               `token_hash`     VARCHAR(64)   NOT NULL,
+               `fanlisting_id`  INT UNSIGNED  NOT NULL,
+               `member_email`   VARCHAR(255)  NOT NULL,
+               `allowed_action` VARCHAR(20)   NOT NULL,
+               `expires_at`     DATETIME      NOT NULL,
+               `used_at`        DATETIME      NULL,
+               `created_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+               PRIMARY KEY (`id`),
+               INDEX `idx_token`    (`token_hash`),
+               INDEX `idx_email_fl` (`fanlisting_id`, `member_email`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (92)');
+        $done[] = 'Migration 92: created <code>lstr_member_form_sessions</code> table';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 92 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

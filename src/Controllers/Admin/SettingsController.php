@@ -1633,6 +1633,7 @@ final class SettingsController extends AdminController
             'db_version'           => $dbVersion,
             'error_log_count'      => $errorLogCount,
             'update_status'        => $updateStatus,
+            'session_path_diagnostics' => $session->getPathDiagnostics(),
         ]);
     }
 

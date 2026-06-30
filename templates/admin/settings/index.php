@@ -1004,6 +1004,28 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="sysinfo-row">
               <span class="field-label">Database</span> <?= View::e($db_version) ?>
             </div>
+            <?php $spd = $session_path_diagnostics ?? null; ?>
+            <?php if ($spd !== null): ?>
+            <div class="sysinfo-row">
+              <span class="field-label">Session Storage</span>
+              <span class="status-inline">
+                <?php if ($spd['usedFallback']): ?>
+                  <span class="badge badge-pending">Fallback in use</span>
+                <?php else: ?>
+                  <span class="badge badge-current">Default path</span>
+                <?php endif; ?>
+                <span class="text-mono text-dim"><?= View::e($spd['path']) ?></span>
+              </span>
+              <?php if ($spd['usedFallback']): ?>
+                <p class="form-hint">
+                  Your server's configured session storage location was not writable, so Luster
+                  is using a fallback location instead. Logins and member sessions still work
+                  normally, but consider asking your host to fix write permissions on the
+                  default <code>session.save_path</code>.
+                </p>
+              <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Database Connection -->

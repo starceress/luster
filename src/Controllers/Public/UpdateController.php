@@ -17,6 +17,7 @@ namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
 use Luster\Core\Mailer;
+use Luster\Core\MemberFormSessionService;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
@@ -28,6 +29,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
+use Luster\Repositories\MemberFormSessionRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 use Luster\Support\ListingFormUrlResolver;
@@ -52,6 +54,15 @@ final class UpdateController
 {
     /** Session key prefix for the authenticated member email. */
     private const AUTH_KEY = 'lstr_update_authed_';
+
+    /**
+     * Session key prefixes for the fallback single-use form tokens, issued
+     * alongside AUTH_KEY at sign-in and embedded as hidden form fields so the
+     * update form can still be submitted if the session is lost between
+     * sign-in and submit (e.g. cross-subdomain cookie issues, session GC).
+     */
+    private const FORM_TOKEN_UPDATE_KEY = 'lstr_update_formtoken_update_';
+    private const FORM_TOKEN_DELETE_KEY = 'lstr_update_formtoken_delete_';
 
     public function __construct(private readonly Application $app) {}
 
@@ -144,6 +155,18 @@ final class UpdateController
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_UPDATE);
         $session->set(self::AUTH_KEY . $listingId, $email);
 
+        // Issue fallback form-session tokens so the update form still works if
+        // the session is lost before the member submits step 2.
+        $formSessionService = new MemberFormSessionService(new MemberFormSessionRepo($this->app->getDatabase()));
+        $updateToken = $formSessionService->issue($listingId, $email, 'update');
+        $deleteToken = $formSessionService->issue($listingId, $email, 'delete');
+        if ($updateToken !== null) {
+            $session->set(self::FORM_TOKEN_UPDATE_KEY . $listingId, $updateToken);
+        }
+        if ($deleteToken !== null) {
+            $session->set(self::FORM_TOKEN_DELETE_KEY . $listingId, $deleteToken);
+        }
+
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
@@ -199,8 +222,19 @@ final class UpdateController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
-        // Must be authenticated before reaching the update form
+        // Must be authenticated before reaching the update form. If the session
+        // auth key is missing (e.g. lost between sign-in and submit), fall back
+        // to the single-use form token embedded as a hidden field — bound to
+        // this listing and to the specific action being attempted.
         $email = (string) $session->get(self::AUTH_KEY . $listingId, '');
+        if ($email === '') {
+            $action    = ((string) $request->post('delete_membership', '') === '1') ? 'delete' : 'update';
+            $formToken = (string) $request->post('_form_token_' . $action, '');
+            if ($formToken !== '') {
+                $formSessionService = new MemberFormSessionService(new MemberFormSessionRepo($this->app->getDatabase()));
+                $email = (string) ($formSessionService->consume($listingId, $formToken, $action) ?? '');
+            }
+        }
         if ($email === '') {
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
@@ -210,6 +244,8 @@ final class UpdateController
 
         if ($member === null) {
             $session->remove(self::AUTH_KEY . $listingId);
+            $session->remove(self::FORM_TOKEN_UPDATE_KEY . $listingId);
+            $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -262,6 +298,8 @@ final class UpdateController
             }
 
             $session->remove(self::AUTH_KEY . $listingId);
+            $session->remove(self::FORM_TOKEN_UPDATE_KEY . $listingId);
+            $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
             $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'removed', [
@@ -400,6 +438,8 @@ final class UpdateController
             $pendingRepo->insert($listingId, $email, $updateData);
 
             $session->remove(self::AUTH_KEY . $listingId);
+            $session->remove(self::FORM_TOKEN_UPDATE_KEY . $listingId);
+            $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
             $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'updated-pending', [
@@ -412,6 +452,8 @@ final class UpdateController
             }
 
             $session->remove(self::AUTH_KEY . $listingId);
+            $session->remove(self::FORM_TOKEN_UPDATE_KEY . $listingId);
+            $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
             $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'updated', [

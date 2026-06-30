@@ -81,6 +81,8 @@ $_lusterMarker = 'update:' . $_lusterListingId;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['_luster_update_sign_out'] ?? '') === '1') {
     $_lusterApp->getSession()->remove('lstr_update_authed_' . $_lusterListingId);
+    $_lusterApp->getSession()->remove('lstr_update_formtoken_update_' . $_lusterListingId);
+    $_lusterApp->getSession()->remove('lstr_update_formtoken_delete_' . $_lusterListingId);
     if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
     echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
     return;
@@ -275,6 +277,11 @@ if (!$_lusterSignedIn) {
         . (str_contains($_lusterRedirectTo, '?') ? '&' : '?')
         . '_luster_update_sign_out=1';
 
+    // Fallback form-session tokens issued at sign-in, embedded as hidden
+    // fields so the form still submits if the session is lost before step 2.
+    $_lusterFormTokenUpdate = (string) $_lusterSession->get('lstr_update_formtoken_update_' . $_lusterListingId, '');
+    $_lusterFormTokenDelete = (string) $_lusterSession->get('lstr_update_formtoken_delete_' . $_lusterListingId, '');
+
     $_lusterUrlVal = htmlspecialchars(
         (string) (($_lusterOld['url'] ?? '') !== '' ? ($_lusterOld['url'] ?? '') : $_lusterMember->url),
         ENT_QUOTES | ENT_SUBSTITUTE,
@@ -340,7 +347,14 @@ if (!$_lusterSignedIn) {
             '{lost_password_url}'      => '',
         ];
         $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterProcessed, $_lusterTokens);
-        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker);
+        $_lusterExtraHidden = '';
+        if ($_lusterFormTokenUpdate !== '') {
+            $_lusterExtraHidden .= '<input type="hidden" name="_form_token_update" value="' . View::e($_lusterFormTokenUpdate) . '">';
+        }
+        if ($_lusterFormTokenDelete !== '') {
+            $_lusterExtraHidden .= '<input type="hidden" name="_form_token_delete" value="' . View::e($_lusterFormTokenDelete) . '">';
+        }
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker, $_lusterExtraHidden);
     }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
@@ -360,6 +374,8 @@ if (!$_lusterSignedIn) {
         'f'             => $_lusterF,
         'form_html'     => $_lusterFormHtml,
         'form_marker'   => $_lusterMarker,
+        'form_token_update' => $_lusterFormTokenUpdate,
+        'form_token_delete' => $_lusterFormTokenDelete,
         'base_url'      => $_lusterApp->getBaseUrl(),
         'theme_path'    => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);

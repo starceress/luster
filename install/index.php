@@ -828,6 +828,22 @@ function installTables(PDO $pdo): void
             INDEX `idx_email_fl` (`fanlisting_id`, `email`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+        // Single-use, short-lived tokens letting the public update/delete forms recover
+        // from a lost PHP session without a long-lived replayable token. Migration 92.
+        "CREATE TABLE IF NOT EXISTS `lstr_member_form_sessions` (
+            `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `token_hash`     VARCHAR(64)   NOT NULL,
+            `fanlisting_id`  INT UNSIGNED  NOT NULL,
+            `member_email`   VARCHAR(255)  NOT NULL,
+            `allowed_action` VARCHAR(20)   NOT NULL,
+            `expires_at`     DATETIME      NOT NULL,
+            `used_at`        DATETIME      NULL,
+            `created_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            INDEX `idx_token`    (`token_hash`),
+            INDEX `idx_email_fl` (`fanlisting_id`, `member_email`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
         // Member-submitted updates awaiting admin review.
         "CREATE TABLE IF NOT EXISTS `lstr_pending_updates` (
             `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
@@ -1017,7 +1033,7 @@ function installTables(PDO $pdo): void
          (47),(48),(49),(50),(51),(52),(53),(55),(56),(57),
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
-         (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91)'
+         (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92)'
     );
 }
 

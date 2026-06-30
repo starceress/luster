@@ -77,7 +77,7 @@ final class Application
     ) {
         $this->config          = new Config($configPath);
         $this->database        = new Database($this->config);
-        $this->session         = new Session((string) $this->config->get('session_cookie_domain', ''));
+        $this->session         = new Session((string) $this->config->get('session_cookie_domain', ''), $this->basePath);
         $this->router          = new Router();
         $this->view            = new View($this->basePath . '/templates');
         $this->csrf            = new CSRF($this->session);

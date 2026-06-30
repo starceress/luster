@@ -26,12 +26,22 @@ final class Session
 {
     private bool $started = false;
 
+    /** @var array{path: string, usedFallback: bool}|null */
+    private ?array $pathDiagnostics = null;
+
     /**
      * @param string $cookieDomain  Optional session cookie domain (e.g. '.nebuluna.com').
      *                              Pass an empty string for single-domain setups (PHP default).
      *                              Read from config key 'session_cookie_domain' in Application.
+     * @param string $basePath      Absolute path to LUSTER_BASE, used to resolve a writable
+     *                              session save path via SessionPathResolver. Pass an empty
+     *                              string to skip path resolution and use the PHP default
+     *                              unconditionally (e.g. in tests).
      */
-    public function __construct(private readonly string $cookieDomain = '') {}
+    public function __construct(
+        private readonly string $cookieDomain = '',
+        private readonly string $basePath = '',
+    ) {}
 
     /**
      * Starts the session with all required security settings applied.
@@ -67,6 +77,11 @@ final class Session
             ini_set('session.cookie_domain', $this->cookieDomain);
         }
 
+        if ($this->basePath !== '') {
+            $this->pathDiagnostics = (new SessionPathResolver($this->basePath))->resolve();
+            session_save_path($this->pathDiagnostics['path']);
+        }
+
         session_name('luster_session');
 
         if (!session_start()) {
@@ -74,6 +89,19 @@ final class Session
         }
 
         $this->started = true;
+    }
+
+    /**
+     * Returns the resolved session save path and whether a fallback was
+     * needed, or null when path resolution was skipped (no basePath given,
+     * or start() has not been called yet). Used by the System Information
+     * panel to surface a warning when a fallback path is in use.
+     *
+     * @return array{path: string, usedFallback: bool}|null
+     */
+    public function getPathDiagnostics(): ?array
+    {
+        return $this->pathDiagnostics;
     }
 
     /** Returns the session value for $key, or $default when absent. */
