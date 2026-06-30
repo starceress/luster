@@ -1079,6 +1079,78 @@ final class FanaticallyImportSourceTest extends TestCase
         self::assertSame(1, $secondCount, 'Re-import must match blank-URL listing by external_id and not create a duplicate');
     }
 
+    public function testBlankUrlListingMembersStillImport(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $listingId = $this->insertListing($src, '', status: 'current');
+
+        $src->exec(
+            "CREATE TABLE IF NOT EXISTS members (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                listing_id          INTEGER NOT NULL,
+                name                TEXT    NOT NULL DEFAULT '',
+                email               TEXT    NOT NULL DEFAULT '',
+                url                 TEXT    NOT NULL DEFAULT '',
+                country             TEXT    NOT NULL DEFAULT '',
+                password_hash       TEXT    NOT NULL DEFAULT '',
+                custom_field_values TEXT    NULL,
+                is_approved         INTEGER NOT NULL DEFAULT 1,
+                joined_at           TEXT    NULL
+            )"
+        );
+        $src->prepare(
+            "INSERT INTO members (listing_id, name, email, url, country, password_hash, is_approved)
+             VALUES (:lid, 'Fan One', 'fan@example.com', 'https://fan.example.com', 'AU', '', 1)"
+        )->execute(['lid' => $listingId]);
+
+        $opts = $this->makeOptions(['import_listings' => '1', 'import_members' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $ownedRow = $tgt->query('SELECT listingid, dbtable FROM owned LIMIT 1')->fetch();
+        self::assertNotFalse($ownedRow, 'Blank-URL listing must still produce an owned row');
+        self::assertNotSame('', $ownedRow['dbtable'], 'Blank-URL listing must still get a member dbtable');
+
+        $memberRow = $tgt->query("SELECT email FROM `{$ownedRow['dbtable']}`")->fetch();
+        self::assertNotFalse($memberRow, 'Member tied to a blank-URL listing must still be imported, not dropped via an empty listingIdMap entry');
+        self::assertSame('fan@example.com', $memberRow['email']);
+    }
+
+    public function testBlankUrlListingAffiliatesStillImport(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $listingId = $this->insertListing($src, '', status: 'current');
+
+        $src->exec(
+            "CREATE TABLE IF NOT EXISTS affiliates (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                name         TEXT    NOT NULL DEFAULT '',
+                url          TEXT    NOT NULL DEFAULT '',
+                image_file   TEXT    NOT NULL DEFAULT '',
+                listing_ids  TEXT    NOT NULL DEFAULT '[]',
+                is_approved  INTEGER NOT NULL DEFAULT 1,
+                link_status  TEXT    NOT NULL DEFAULT 'unchecked'
+            )"
+        );
+        $src->prepare(
+            "INSERT INTO affiliates (name, url, listing_ids, is_approved)
+             VALUES ('Aff One', 'https://aff.example.com', :lids, 1)"
+        )->execute(['lids' => json_encode([$listingId])]);
+
+        $opts = $this->makeOptions(['import_listings' => '1', 'import_affiliates' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $count = (int) $tgt->query('SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id IS NOT NULL')->fetchColumn();
+        self::assertSame(1, $count, 'Affiliate tied to a blank-URL listing must still be imported with its fanlisting_id link, not dropped');
+    }
+
     // -----------------------------------------------------------------------
     // Existing-listing overwrite
     // -----------------------------------------------------------------------
