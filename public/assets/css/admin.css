@@ -2001,6 +2001,9 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .import-choice-item input[type="radio"] { margin-top: 2px; flex-shrink: 0; accent-color: var(--wizard-active); width: 15px; height: 15px; cursor: pointer; }
 
+.import-choice-item strong { display: block; margin-bottom: 4px; }
+.import-choice-item .form-hint { display: block; padding-top: 0; }
+
 .import-chk { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
 
 .import-chk:last-child { border-bottom: none; }

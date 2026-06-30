@@ -95,16 +95,16 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
           <input type="radio" name="conflict_strategy" value="skip"
                  <?= $conflictMode === 'skip' ? 'checked' : '' ?>>
           <div>
-            <strong>Skip - keep existing</strong>
-            <span class="form-hint" style="margin:2px 0 0">Adds new records only. This is the safest choice when you are re-running an import.</span>
+            <strong>Keep existing (recommended)</strong>
+            <span class="form-hint" style="margin:2px 0 0">Keep values already in Luster and add records that are missing. Luster may still fill in a few blank linked details, such as a missing image or last-updated date.</span>
           </div>
         </label>
         <label class="import-choice-item">
           <input type="radio" name="conflict_strategy" value="overwrite"
                  <?= $conflictMode === 'overwrite' ? 'checked' : '' ?>>
           <div>
-            <strong>Overwrite - replace with source values</strong>
-            <span class="form-hint" style="margin:2px 0 0">Changes matching Luster records to the old script's values. Use this only when you intentionally want the old data to win.</span>
+            <strong>Update matching records</strong>
+            <span class="form-hint" style="margin:2px 0 0">Applies the source's available values to records Luster can match — including passwords, where applicable. Blank fields in the source generally leave your existing Luster data alone. Use this to correct a failed import or intentionally refresh from the source; review the preview carefully first.</span>
           </div>
         </label>
       </div>
