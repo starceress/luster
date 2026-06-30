@@ -1975,7 +1975,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $st->execute();
                 $chunk = $st->fetchAll();
             } catch (\Throwable $e) {
-                $errors++;
+                $errors[] = $e->getMessage();
                 break;
             }
 
