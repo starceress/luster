@@ -144,18 +144,25 @@ final class CollectiveUpdateController
         }
 
         $tokenRepo = new CollectiveUpdateTokenRepo($this->app->getDatabase());
-        $email     = $tokenRepo->verifyAndConsume($rawToken);
+        $tokenRow  = $tokenRepo->findValid($rawToken);
 
-        if ($email === null) {
+        if ($tokenRow === null) {
             $session->set('lstr_flash_error', 'That update link is invalid or has expired. Please request a new one.');
             return Response::redirect($embedReturnTo);
         }
+
+        $email = (string) $tokenRow['email'];
+
+        // Build the token URL so validation errors redirect back to Step 2
+        // rather than to the clean host URL (which would drop the form entirely).
+        $sep      = str_contains($embedReturnTo, '?') ? '&' : '?';
+        $tokenUrl = $embedReturnTo . $sep . '_luster_cu_token=' . urlencode($rawToken);
 
         $memberships = self::findMembershipsForEmail($email, $this->app);
 
         if ($memberships === []) {
             $session->set('lstr_flash_error', 'No active memberships were found for your email address.');
-            return Response::redirect($embedReturnTo);
+            return Response::redirect($tokenUrl);
         }
 
         // Build a map of valid listing IDs to their membership entry
@@ -188,11 +195,19 @@ final class CollectiveUpdateController
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            return Response::redirect($embedReturnTo);
+            return Response::redirect($tokenUrl);
         }
 
         if ($selectedIds === []) {
             $session->set('lstr_flash_error', 'Please select at least one fanlisting to update.');
+            return Response::redirect($tokenUrl);
+        }
+
+        // All validation passed — atomically consume the token now.
+        // verifyAndConsume() returning null here means a race beat us to it;
+        // treat it as an expired token rather than applying updates twice.
+        if ($tokenRepo->verifyAndConsume($rawToken) === null) {
+            $session->set('lstr_flash_error', 'That update link is invalid or has expired. Please request a new one.');
             return Response::redirect($embedReturnTo);
         }
 
