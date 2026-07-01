@@ -1443,10 +1443,12 @@ final class SettingsController extends AdminController
         // Step 2: update form (hardcoded — listing checkboxes are dynamic, not template-controlled)
         $_e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $f2 = $fb->build([
-            ['type' => 'text',   'name' => 'name',    'id' => 'cu-name',    'label' => 'Name',        'required' => false, 'attrs' => ['maxlength' => '100', 'value' => 'Usagi']],
-            ['type' => 'url',    'name' => 'url',     'id' => 'cu-url',     'label' => 'Website URL', 'required' => false, 'attrs' => ['maxlength' => '500', 'value' => 'https://example.com']],
-            ['type' => 'select', 'name' => 'country', 'id' => 'cu-country', 'label' => 'Country',     'required' => false,
+            ['type' => 'text',     'name' => 'name',                'id' => 'cu-name',            'label' => 'Name',                 'required' => false, 'attrs' => ['maxlength' => '100', 'value' => 'Usagi']],
+            ['type' => 'url',      'name' => 'url',                 'id' => 'cu-url',             'label' => 'Website URL',          'required' => false, 'attrs' => ['maxlength' => '500', 'value' => 'https://example.com']],
+            ['type' => 'select',   'name' => 'country',             'id' => 'cu-country',         'label' => 'Country',              'required' => false,
                 'raw_input' => '<select class="fl-select" id="cu-country" name="country"><option value="US" selected>United States</option></select>'],
+            ['type' => 'password', 'name' => 'new_password',        'id' => 'cu-password',        'label' => 'New password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep your current password.'],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'cu-password-confirm', 'label' => 'Confirm new password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ], '');
         $listingsHtml = '<div class="fl-field fl-collective-update-listings">'
             . '<p class="fl-label">Apply to these fanlistings:</p>'
@@ -1459,6 +1461,7 @@ final class SettingsController extends AdminController
         $step2Html = '<div class="fl-collective-update">'
             . '<p class="fl-hint">Updating memberships for: <strong>' . $_e('fan@example.com') . '</strong></p>'
             . $f2['name'] . $f2['url'] . $f2['country']
+            . $f2['new_password'] . $f2['new_password_confirm']
             . $listingsHtml
             . '<div class="fl-form-actions"><button class="fl-submit fl-btn" disabled>Update memberships</button></div>'
             . '</div>';
