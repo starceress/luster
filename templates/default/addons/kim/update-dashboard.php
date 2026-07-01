@@ -20,11 +20,11 @@ $_linkReset = (($link_reset ?? null) !== null && $link_reset !== '') ? $link_res
 $_linkList  = (($link_list  ?? null) !== null && $link_list  !== '') ? $link_list  : null;
 
 if (($success_html ?? '') !== '') {
-    echo '<div class="fl-kim">' . $success_html . '</div>';
+    echo '<div class="fl-embed fl-embed--kim-update"><div class="fl-kim">' . $success_html . '</div></div>';
     return;
 }
 ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-update"><div class="fl-kim">
 
   <p class="fl-hint">
     Signed in as <strong><?= View::e($auth_email) ?></strong>.
@@ -103,4 +103,4 @@ if (($success_html ?? '') !== '') {
   <p class="fl-kim-meta"><a href="<?= View::e($_linkReset) ?>">Forgot password?</a></p>
   <?php endif; ?>
 
-</div>
+</div></div>

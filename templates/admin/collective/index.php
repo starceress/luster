@@ -278,22 +278,16 @@ foreach (array_keys($quickActions) as $qaKey) {
         </span>
       </a>
 
-      <?php if ($hasUpdates): ?>
-      <a href="<?= $b ?>/admin/updates/collective" class="collective-action-item">
-        <span class="panel-header-icon panel-header-icon-filled"><?= View::icon('updates') ?></span>
-        <span>
-          <span class="collective-action-label">Collective News Index</span>
-          <?php if ($addons['updates'] !== null): ?>
-            <span class="badge badge-info3 badge-inline-sm"><?= (int) $addons['updates'] ?> <?= (int) $addons['updates'] === 1 ? 'Update' : 'Updates' ?></span>
-          <?php endif; ?>
-        </span>
-      </a>
-      <?php endif; ?>
-
       <?php if ($hasAdoption): ?>
       <a href="<?= $b ?>/admin/adoptions" class="collective-action-item">
         <span class="panel-header-icon panel-header-icon-filled"><?= View::icon('adoptions') ?></span>
-        <span class="collective-action-label">Adoptions Index</span>
+        <span>
+          <span class="collective-action-label">Adoptions Index</span>
+          <?php if (($addons['adoptions'] ?? null) !== null): ?>
+            <?php $_adoptCount = (int) $addons['adoptions']; ?>
+            <span class="badge <?= $_adoptCount > 0 ? 'badge-info3' : 'badge-inactive' ?> badge-inline-sm"><?= $_adoptCount ?> <?= $_adoptCount === 1 ? 'Application' : 'Applications' ?></span>
+          <?php endif; ?>
+        </span>
       </a>
       <?php endif; ?>
 
@@ -307,7 +301,26 @@ foreach (array_keys($quickActions) as $qaKey) {
       <?php if ($hasKim): ?>
       <a href="<?= $b ?>/admin/kim" class="collective-action-item">
         <span class="panel-header-icon panel-header-icon-filled"><?= View::icon('kim') ?></span>
-        <span class="collective-action-label">Keep In Mind Index<?php if (($addons['kim'] ?? null) !== null): ?> <span class="badge badge-info3 badge-inline-sm"><?= (int) $addons['kim'] ?> sign-up<?= (int) $addons['kim'] !== 1 ? 's' : '' ?></span><?php endif; ?></span>
+        <span>
+          <span class="collective-action-label">Keep In Mind Index</span>
+          <?php if (($addons['kim'] ?? null) !== null): ?>
+            <?php $_kimCount = (int) $addons['kim']; ?>
+            <span class="badge <?= $_kimCount > 0 ? 'badge-info3' : 'badge-inactive' ?> badge-inline-sm"><?= $_kimCount ?> Sign-Up<?= $_kimCount !== 1 ? 's' : '' ?></span>
+          <?php endif; ?>
+        </span>
+      </a>
+      <?php endif; ?>
+
+      <?php if ($hasUpdates): ?>
+      <a href="<?= $b ?>/admin/updates/collective" class="collective-action-item">
+        <span class="panel-header-icon panel-header-icon-filled"><?= View::icon('updates') ?></span>
+        <span>
+          <span class="collective-action-label">News Feed</span>
+          <?php if ($addons['updates'] !== null): ?>
+            <?php $_updCount = (int) $addons['updates']; ?>
+            <span class="badge <?= $_updCount > 0 ? 'badge-info3' : 'badge-inactive' ?> badge-inline-sm"><?= $_updCount ?> <?= $_updCount === 1 ? 'Update' : 'Updates' ?></span>
+          <?php endif; ?>
+        </span>
       </a>
       <?php endif; ?>
 
@@ -317,7 +330,8 @@ foreach (array_keys($quickActions) as $qaKey) {
         <span>
           <span class="collective-action-label">Wishlist Index</span>
           <?php if ($addons['wishlist'] !== null): ?>
-            <span class="badge badge-info3 badge-inline-sm"><?= (int) $addons['wishlist'] ?> <?= (int) $addons['wishlist'] === 1 ? 'Entry' : 'Entries' ?></span>
+            <?php $_wlCount = (int) $addons['wishlist']; ?>
+            <span class="badge <?= $_wlCount > 0 ? 'badge-info3' : 'badge-inactive' ?> badge-inline-sm"><?= $_wlCount ?> <?= $_wlCount === 1 ? 'Entry' : 'Entries' ?></span>
           <?php endif; ?>
         </span>
       </a>

@@ -17,15 +17,16 @@ use Luster\Core\View;
 $signed_in = $signed_in ?? false;
 
 if (isset($form_html)) {
-    ?>
-<?php if ($errors !== ''): ?>
-  <div class="fl-errors"><?= $errors ?></div>
-<?php endif; ?>
-<?= $form_html ?>
-    <?php
+    echo '<div class="fl-embed fl-embed--update">';
+    if ($errors !== '') {
+        echo '<div class="fl-errors">' . $errors . '</div>';
+    }
+    echo $form_html;
+    echo '</div>';
     return;
 }
 ?>
+<div class="fl-embed fl-embed--update">
 <?php if ($errors !== ''): ?>
   <div class="fl-errors"><?= $errors ?></div>
 <?php endif; ?>
@@ -113,3 +114,4 @@ if (isset($form_html)) {
   <?php endif; ?>
 
 <?php endif; ?>
+</div>

@@ -490,8 +490,11 @@ final class ImportController extends AdminController
         }
 
         if ($request->isPost()) {
-            $scopePost             = $request->postAll();
-            $scopePost['source']   = $source;
+            $scopePost           = $request->postAll();
+            $scopePost['source'] = $source;
+            // Never accept _zip_path from POST — derive it exclusively from session so a
+            // crafted request cannot point the importer at an arbitrary server path.
+            unset($scopePost['_zip_path']);
 
             // Carry over dump metadata so ImportOptions can find it
             if ($hasDump) {
@@ -511,10 +514,14 @@ final class ImportController extends AdminController
                 }
             }
 
-            // Carry over pre-uploaded ZIP path if present
-            $zipPath = (string) ($session->get(self::SESSION_ZIP_PATH) ?? '');
-            if ($zipPath !== '' && is_file($zipPath)) {
-                $scopePost['_zip_path'] = $zipPath;
+            // Carry over pre-uploaded ZIP path from session only; validate it is still
+            // inside storage/cache/ so a tampered session value cannot escape the sandbox.
+            $zipPath    = (string) ($session->get(self::SESSION_ZIP_PATH) ?? '');
+            $cacheDir   = str_replace('\\', '/', LUSTER_BASE . '/storage/cache');
+            $realZip    = $zipPath !== '' ? realpath($zipPath) : false;
+            $realZipFwd = $realZip !== false ? str_replace('\\', '/', $realZip) : '';
+            if ($realZipFwd !== '' && is_file($realZipFwd) && str_starts_with($realZipFwd, $cacheDir . '/')) {
+                $scopePost['_zip_path'] = $realZipFwd;
             }
 
             $session->set(self::SESSION_SCOPE, $scopePost);

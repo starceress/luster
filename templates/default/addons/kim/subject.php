@@ -20,10 +20,10 @@ $_linkList   = isset($link_list) && $link_list !== '' ? $link_list : null;
 $_linkSignup = isset($link_signup) && $link_signup !== '' ? $link_signup : null;
 ?>
 <?php if (isset($subject_template_html) && $subject_template_html !== null): ?>
-<?= $subject_template_html ?>
+<div class="fl-embed fl-embed--kim-list"><?= $subject_template_html ?></div>
 <?php return; ?>
 <?php endif; ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-list"><div class="fl-kim">
   <h2 class="fl-kim-heading fl-kim-subject-heading">KIM — <?= View::e($listing->subject) ?></h2>
 
   <p class="fl-kim-meta">
@@ -60,4 +60,4 @@ $_linkSignup = isset($link_signup) && $link_signup !== '' ? $link_signup : null;
   <p class="fl-kim-meta">
     <a href="<?= $_linkSignup !== null ? View::e($_linkSignup) : $b . '/kim' ?>">Sign up to be on this list</a>
   </p>
-</div>
+</div></div>

@@ -70,12 +70,13 @@ final class BackupService
 
         $includeUploads = $profile === 'complete';
 
+        $registry = $this->enthTablePrefix === '' ? 'owned' : $this->enthTablePrefix . 'listings';
         $zip->addFromString(
             'BACKUP-NOTES.txt',
             "Luster backup created " . date('c') . "\n\n"
             . "Profile: {$profile}\n"
             . "This backup contains Luster application files, lstr_* database tables,\n"
-            . "the listing registry (owned/enth_fanlistings), and all per-listing member tables.\n"
+            . "the listing registry ({$registry}), and all per-listing member tables.\n"
         );
 
         foreach (self::BACKUP_PATHS as $rel) {
@@ -130,7 +131,7 @@ final class BackupService
 
     /**
      * Produces a SQL dump of all lstr_* tables, the listing registry
-     * (owned / enth_fanlistings), and per-listing member tables.
+     * table, and per-listing member tables.
      */
     private function dumpDatabase(): string
     {

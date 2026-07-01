@@ -15,7 +15,10 @@ $val = static function (string $k, string $def = '') use ($old): string {
     return isset($old[$k]) ? (string) $old[$k] : $def;
 };
 
-$selStatus = isset($old['status']) ? (int) $old['status'] : 2;
+$selStatus        = isset($old['status']) ? (string) $old['status'] : 'current';
+$oldAdoptedToName = (string) ($old['adopted_to_name'] ?? '');
+$oldAdoptedToUrl  = (string) ($old['adopted_to_url']  ?? '');
+$oldArchiveNote   = (string) ($old['archive_note']    ?? '');
 
 $dataTfl        = json_encode($tfl_cats       ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 $dataTafl       = json_encode($tafl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
@@ -40,6 +43,24 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="card-body">
+      <div class="field-row">
+        <label class="field-label" for="fl-listing-type">Listing Type</label>
+        <div>
+          <div class="select-wrap select-auto">
+            <select id="fl-listing-type" name="listing_type">
+              <?php $lt = $val('listing_type', 'listing'); ?>
+              <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Fanlisting</option>
+              <option value="clique"     <?= $lt === 'clique'     ? 'selected' : '' ?>>Clique</option>
+              <option value="collective" <?= $lt === 'collective' ? 'selected' : '' ?>>Collective</option>
+              <option value="shrine"     <?= $lt === 'shrine'     ? 'selected' : '' ?>>Shrine</option>
+              <option value="webring"    <?= $lt === 'webring'    ? 'selected' : '' ?>>Webring</option>
+              <option value="other"      <?= $lt === 'other'      ? 'selected' : '' ?>>Other</option>
+            </select>
+          </div>
+          <p class="form-hint">Helps categorize your listing by type (e.g. fanlisting, clique, shrine).</p>
+        </div>
+      </div>
+
       <div class="field-row">
         <span class="field-label">Network & Category</span>
         <div>
@@ -94,6 +115,15 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
+      <div class="field-row field-row--top">
+        <label class="field-label" for="fl-description">Description</label>
+        <div>
+          <textarea id="fl-description" name="description" class="form" rows="4" maxlength="65535"
+                    placeholder="A short description of this listing&hellip;"><?= View::e($val('description')) ?></textarea>
+          <p class="form-hint">Optional. Available in embed templates as <code>{listing_description}</code> and on your site pages as <code>&lt;?= $luster_description ?&gt;</code> (via the stats embed).</p>
+        </div>
+      </div>
+
       <div class="field-row">
         <span class="field-label">Image</span>
         <label class="file-drop-zone">
@@ -106,19 +136,56 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
 
       <div class="field-row">
         <span class="field-label">Status</span>
-        <div class="status-pill-row">
-          <label class="status-pill status-pill--current">
-            <input type="radio" name="status" value="2" <?= $selStatus === 2 ? 'checked' : '' ?>>
-            Current
-          </label>
-          <label class="status-pill status-pill--upcoming">
-            <input type="radio" name="status" value="1" <?= $selStatus === 1 ? 'checked' : '' ?>>
-            Upcoming
-          </label>
-          <label class="status-pill status-pill--pending">
-            <input type="radio" name="status" value="0" <?= $selStatus === 0 ? 'checked' : '' ?>>
-            Pending
-          </label>
+        <div>
+          <div class="status-pill-row">
+            <label class="status-pill status-pill--current">
+              <input type="radio" name="status" value="current" <?= $selStatus === 'current' ? 'checked' : '' ?>>
+              Current
+            </label>
+            <label class="status-pill status-pill--upcoming">
+              <input type="radio" name="status" value="upcoming" <?= $selStatus === 'upcoming' ? 'checked' : '' ?>>
+              Upcoming
+            </label>
+            <label class="status-pill status-pill--pending">
+              <input type="radio" name="status" value="pending" <?= $selStatus === 'pending' ? 'checked' : '' ?>>
+              Pending
+            </label>
+            <label class="status-pill status-pill--archived">
+              <input type="radio" name="status" value="closed" <?= $selStatus === 'closed' ? 'checked' : '' ?>>
+              Closed
+            </label>
+            <label class="status-pill status-pill--archived">
+              <input type="radio" name="status" value="adopted_out" <?= $selStatus === 'adopted_out' ? 'checked' : '' ?>>
+              Adopted Out
+            </label>
+          </div>
+          <p class="form-hint">Closed and Adopted Out archive the listing: it stops accepting joins/updates/contact/codes on its public forms, and its URL is no longer required.</p>
+        </div>
+      </div>
+
+      <div class="field-row field-row--top" id="archive-note-row">
+        <label class="field-label" for="fl-archive-note">Archive Note</label>
+        <div>
+          <textarea id="fl-archive-note" name="archive_note" class="form" rows="2"
+                    placeholder="Optional internal note about why this listing was archived&hellip;"><?= View::e($oldArchiveNote) ?></textarea>
+        </div>
+      </div>
+
+      <div class="field-row" id="adopted-to-name-row">
+        <label class="field-label" for="fl-adopted-to-name">Adopted By (Name)</label>
+        <div>
+          <input id="fl-adopted-to-name" type="text" name="adopted_to_name" class="form"
+                 value="<?= View::e($oldAdoptedToName) ?>" maxlength="255"
+                 placeholder="Name of the new owner or successor listing">
+        </div>
+      </div>
+
+      <div class="field-row" id="adopted-to-url-row">
+        <label class="field-label" for="fl-adopted-to-url">Adopted By (URL)</label>
+        <div>
+          <input id="fl-adopted-to-url" type="url" name="adopted_to_url" class="form"
+                 value="<?= View::e($oldAdoptedToUrl) ?>" maxlength="500"
+                 placeholder="https://">
         </div>
       </div>
 

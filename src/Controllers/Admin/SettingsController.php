@@ -239,9 +239,10 @@ final class SettingsController extends AdminController
         } catch (\Throwable) {}
 
         $addonCounts = [
-            'wishlist' => null,
-            'updates'  => null,
-            'kim'      => null,
+            'wishlist'  => null,
+            'updates'   => null,
+            'kim'       => null,
+            'adoptions' => null,
         ];
         if ($this->tableExists($db, 'lstr_wishlist')) {
             try {
@@ -262,6 +263,13 @@ final class SettingsController extends AdminController
                 $stmt = $db->prepare('SELECT COUNT(*) FROM lstr_kim_members');
                 $stmt->execute();
                 $addonCounts['kim'] = (int) $stmt->fetchColumn();
+            } catch (\Throwable) {}
+        }
+        if ($this->tableExists($db, 'lstr_adoption_applications')) {
+            try {
+                $stmt = $db->prepare('SELECT COUNT(*) FROM lstr_adoption_applications');
+                $stmt->execute();
+                $addonCounts['adoptions'] = (int) $stmt->fetchColumn();
             } catch (\Throwable) {}
         }
 

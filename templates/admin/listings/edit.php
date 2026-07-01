@@ -216,6 +216,24 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       </div>
       <div class="card-body">
         <div class="section-label">Details</div>
+        <?php $lt = $listing_type ?? 'listing'; ?>
+        <div class="field-row">
+          <label class="field-label" for="fl-listing-type">Listing Type</label>
+          <div>
+            <div class="select-wrap select-auto">
+              <select id="fl-listing-type" name="listing_type">
+                <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Fanlisting</option>
+                <option value="clique"     <?= $lt === 'clique'     ? 'selected' : '' ?>>Clique</option>
+                <option value="collective" <?= $lt === 'collective' ? 'selected' : '' ?>>Collective</option>
+                <option value="shrine"     <?= $lt === 'shrine'     ? 'selected' : '' ?>>Shrine</option>
+                <option value="webring"    <?= $lt === 'webring'    ? 'selected' : '' ?>>Webring</option>
+                <option value="other"      <?= $lt === 'other'      ? 'selected' : '' ?>>Other</option>
+              </select>
+            </div>
+            <p class="form-hint">Helps categorize your listing by type (e.g. fanlisting, clique, shrine).</p>
+          </div>
+        </div>
+
         <div class="field-row field-row--top">
           <label class="field-label">Network &amp; Category</label>
           <div>
@@ -232,12 +250,13 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row field-row--top">
-          <label class="field-label" for="fl-subject">Subject</label>
+        <div class="field-row<?= !empty($fe['subject']) ? ' has-error' : '' ?> field-row--top">
+          <label class="field-label" for="fl-subject">Subject <span class="req">*</span></label>
           <div>
             <input id="fl-subject" type="text" name="subject" class="form"
-                   value="<?= View::e($listing->subject ?? '') ?>" maxlength="255">
+                   value="<?= View::e($old['subject'] ?? $listing->subject ?? '') ?>" maxlength="255" required>
             <p class="form-hint">The subject of your listing (e.g. character name, show title).</p>
+            <?php if (!empty($fe['subject'])): ?><p class="field-error"><?= View::e($fe['subject'][0]) ?></p><?php endif; ?>
           </div>
         </div>
 
@@ -246,7 +265,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <div>
             <input id="fl-title" type="text" name="title" class="form"
                    value="<?= View::e((string) $oldTitle) ?>"
-                   maxlength="255" required>
+                   maxlength="255">
             <p class="form-hint">Optional display name for your listing. If you leave it blank, Luster uses the subject.</p>
             <?php if (!empty($fe['title'])): ?><p class="field-error"><?= View::e($fe['title'][0]) ?></p><?php endif; ?>
           </div>
@@ -263,7 +282,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <div class="field-row field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
-          <label class="field-label" for="fl-email">Contact Email</label>
+          <label class="field-label" for="fl-email">Email</label>
           <div>
             <input id="fl-email" type="email" name="email" class="form"
                    value="<?= View::e((string) $oldEmail) ?>"
@@ -285,24 +304,26 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
         <div class="field-row">
           <label class="field-label">Status</label>
-          <div class="status-pill-row" id="status-pills">
-            <label class="status-pill status-pill--current">
-              <input type="radio" name="status" value="current"  <?= $oldStatus === 'current'  ? 'checked' : '' ?>> Current
-            </label>
-            <label class="status-pill status-pill--upcoming">
-              <input type="radio" name="status" value="upcoming" <?= $oldStatus === 'upcoming' ? 'checked' : '' ?>> Upcoming
-            </label>
-            <label class="status-pill status-pill--pending">
-              <input type="radio" name="status" value="pending"  <?= $oldStatus === 'pending'  ? 'checked' : '' ?>> Pending
-            </label>
-            <label class="status-pill status-pill--pending">
-              <input type="radio" name="status" value="closed"  <?= $oldStatus === 'closed'  ? 'checked' : '' ?>> Closed
-            </label>
-            <label class="status-pill status-pill--pending">
-              <input type="radio" name="status" value="adopted_out"  <?= $oldStatus === 'adopted_out'  ? 'checked' : '' ?>> Adopted Out
-            </label>
+          <div>
+            <div class="status-pill-row" id="status-pills">
+              <label class="status-pill status-pill--current">
+                <input type="radio" name="status" value="current"  <?= $oldStatus === 'current'  ? 'checked' : '' ?>> Current
+              </label>
+              <label class="status-pill status-pill--upcoming">
+                <input type="radio" name="status" value="upcoming" <?= $oldStatus === 'upcoming' ? 'checked' : '' ?>> Upcoming
+              </label>
+              <label class="status-pill status-pill--pending">
+                <input type="radio" name="status" value="pending"  <?= $oldStatus === 'pending'  ? 'checked' : '' ?>> Pending
+              </label>
+              <label class="status-pill status-pill--archived">
+                <input type="radio" name="status" value="closed"  <?= $oldStatus === 'closed'  ? 'checked' : '' ?>> Closed
+              </label>
+              <label class="status-pill status-pill--archived">
+                <input type="radio" name="status" value="adopted_out"  <?= $oldStatus === 'adopted_out'  ? 'checked' : '' ?>> Adopted Out
+              </label>
+            </div>
+            <p class="form-hint">Closed and Adopted Out archive the listing: it stops accepting joins/updates/contact/codes on its public forms, and its URL is no longer required. Member, code, and affiliate data are kept and remain manageable here.</p>
           </div>
-          <p class="form-hint">Closed and Adopted Out archive the listing: it stops accepting joins/updates/contact/codes on its public forms, and its URL is no longer required. Member, code, and affiliate data are kept and remain manageable here.</p>
         </div>
 
         <div class="field-row field-row--top" id="archive-note-row">
@@ -357,23 +378,6 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <?php $lt = $listing_type ?? 'listing'; ?>
-        <div class="field-row">
-          <label class="field-label" for="fl-listing-type">Listing Type</label>
-          <div>
-            <div class="select-wrap select-auto">
-              <select id="fl-listing-type" name="listing_type">
-                <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Fanlisting</option>
-                <option value="clique"     <?= $lt === 'clique'     ? 'selected' : '' ?>>Clique</option>
-                <option value="collective" <?= $lt === 'collective' ? 'selected' : '' ?>>Collective</option>
-                <option value="shrine"     <?= $lt === 'shrine'     ? 'selected' : '' ?>>Shrine</option>
-                <option value="webring"    <?= $lt === 'webring'    ? 'selected' : '' ?>>Webring</option>
-                <option value="other"      <?= $lt === 'other'      ? 'selected' : '' ?>>Other</option>
-              </select>
-            </div>
-            <p class="form-hint">Helps categorize your listings according to its type (e.g. fanlisting, clique, shrine, etc...).</p>
-          </div>
-        </div>
       </div>
 
 
@@ -381,29 +385,40 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="section-label">Listing Image</div>
         <div class="field-row field-row--top">
           <label class="field-label">Image</label>
-          <div>
-            <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
-              <div class="existing-image-row upload-panel-row">
-                <div class="existing-img-placeholder">
-                  <img src="<?= $b ?>/uploads/listings/<?= View::e($current_image) ?>"
-                       alt="<?= View::e($current_image) ?>">
-                </div>
-                <div>
-                  <div class="file-meta-name"><?= View::e($current_image) ?></div>
-                  <label class="del-img-check">
-                    <input type="checkbox" id="fl-delete-image" name="delete_image" value="1">
-                    Delete current image
-                  </label>
-                </div>
+          <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
+          <div class="img-upload-panel img-upload-panel--two-col">
+            <div class="img-current-card" id="fl-img-current-card">
+              <div class="img-current-preview">
+                <img src="<?= $b ?>/uploads/listings/<?= View::e($current_image) ?>"
+                     alt="<?= View::e($current_image) ?>">
               </div>
-              <p class="replace-note">Replace with new image</p>
-            <?php endif; ?>
+              <div class="img-current-footer">
+                <span class="img-current-name"><?= View::e($current_image) ?></span>
+                <button type="button" class="btn btn-danger btn-sm img-delete-btn" id="fl-delete-image-btn"
+                        data-delete-url="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete-image"
+                        data-csrf="<?= View::e($csrf_token ?? '') ?>">Delete Image</button>
+              </div>
+            </div>
+            <div class="img-replace-col">
+              <div class="img-replace-label">Replace with a new image</div>
+              <label class="file-drop-zone file-drop-zone--sm">
+                <input type="file" id="thumbnail" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+                <span class="file-drop-icon"><?= View::icon('image') ?></span>
+                <strong>Drag &amp; drop or click to browse</strong>
+                <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
+              </label>
+            </div>
+          </div>
+          <?php else: ?>
+          <div class="img-upload-panel">
             <label class="file-drop-zone">
-              <input type="file" id="thumbnail" name="image" accept="image/jpeg,image/png,image/gif,image/webp"><span class="file-drop-icon"><?= View::icon('image') ?></span>
+              <input type="file" id="thumbnail" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+              <span class="file-drop-icon"><?= View::icon('image') ?></span>
               <strong>Drag &amp; drop or click to browse</strong>
               <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
             </label>
           </div>
+          <?php endif; ?>
         </div>
       </div>
 
@@ -475,7 +490,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      <?= ($embed_settings['codes_submit_enabled'] ?? true) ? 'checked' : '' ?>>
               <span class="toggle-label">Allow fans to donate codes for this listing</span>
             </label>
-            <p class="form-hint">Enables the public code submission form and the <code>{codes_submit_toggle}</code> token in your codes template. Submissions appear in the <a href="#" class="link" onclick="document.querySelector('[data-tab=codes]').click(); return false;">Codes tab</a> for review.</p>
+            <p class="form-hint">Enables the public code submission form and the <code>{codes_submit_toggle}</code> token in your codes template shows a collapsible code donation form. Submissions appear in the <a href="#" class="link" onclick="document.querySelector('[data-tab=codes]').click(); return false;">Codes</a> tab for review.</p>
             <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
             <div style="margin-top:.75rem">
               <?php
@@ -489,7 +504,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                   <option value="0" <?= $_caeVal === '0' ? 'selected' : '' ?>>Never email donor on approval</option>
                 </select>
               </div>
-              <p class="form-hint">Whether to email the donor when their submitted code is approved for this listing.</p>
+              <p class="form-hint">Toggles whether to email the donor when their submitted code is approved for this listing.</p>
             </div>
             <?php endif; ?>
           </div>
@@ -503,6 +518,10 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      <?= ($contact_enabled ?? true) ? 'checked' : '' ?>>
               <span class="toggle-label">Enable contact form for this listing</span>
             </label>
+
+          <p class="form-hint">Enable a contact form for this specific listing.</p>
+          </div>
+          <div>
           </div>
         </div>
 
@@ -516,13 +535,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      <?= ($for_adoption ?? false) ? 'checked' : '' ?>>
               <span class="toggle-label">Accept adoption applications</span>
             </label>
-            <p class="form-hint">Make this listing available in the collective adoption form and collect applications in <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $listing->id ?>" class="link">Adoptions</a>.</p>
+            <p class="form-hint">Make this listing available in the collective adoption form. Pending applications can be reviewed at the <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $listing->id ?>" class="link">Adoptions</a> page.</p>
             <?php if (($for_adoption ?? false) && ($adoption_count ?? 0) > 0): ?>
-            <p class="form-hint">
-              <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $listing->id ?>" class="link">
-                View <?= (int) $adoption_count ?> application<?= $adoption_count !== 1 ? 's' : '' ?> &rarr;
-              </a>
-            </p>
             <?php endif; ?>
           </div>
         </div>
@@ -536,7 +550,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      <?= ($auto_approve_joins ?? false) ? 'checked' : '' ?>>
               <span class="toggle-label">Auto-approve new joins for this listing</span>
             </label>
-            <p class="form-hint">New joins are held for manual approval by default. Enable to approve them automatically for this listing only.</p>
+            <p class="form-hint">New joins are held for manual approval by default. Enabling this will approve new joins automatically (for this listing only).</p>
           </div>
         </div>
 
@@ -662,7 +676,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
 
 <div class="filter-panel is-open">
   <div class="filter-row" id="tpl-filter-row">
-    <label for="tpl-group-select" style="font-weight:600; white-space:nowrap">Select Template:</label>
+    <label for="tpl-group-select" class="tpl-filter-label">Select Template:</label>
     <div class="select-wrap">
       <select id="tpl-group-select" class="form">
         <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
@@ -705,7 +719,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
       </div>
 
       <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
-        <div style="display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; padding:0.75rem 0;">
+        <div class="tpl-actions-row">
           <button type="button" class="btn btn-tertiary"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates/reset-all"
@@ -1335,6 +1349,23 @@ $_tplCsrf = View::e($csrf_token ?? '');
     </div>
   </div>
 </div>
+
+<div id="tpl-hist-modal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-label="Revision history">
+  <div class="modal modal--wide">
+    <div class="modal-header">
+      <span id="tpl-hist-title" class="modal-title">Revision History</span>
+      <div class="modal-header-actions">
+        <button type="button" id="tpl-hist-close" class="btn btn-tertiary btn-sm" aria-label="Close">&times;&ensp;Close</button>
+      </div>
+    </div>
+    <div class="modal-body" id="tpl-hist-body"></div>
+    <div class="modal-footer">
+      <button type="button" id="tpl-hist-flush" class="btn btn-danger btn-sm">Flush History</button>
+      <button type="button" id="tpl-hist-cancel" class="btn btn-ghost btn-sm">Close</button>
+    </div>
+  </div>
+</div>
+
 <?php if ($rules_addon_installed ?? false): ?>
 <!-- ──── TAB: RULES ─────────────────────────────────────────────────── -->
 <div id="tab-rules" class="tabs-panel">

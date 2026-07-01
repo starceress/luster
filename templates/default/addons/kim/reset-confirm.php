@@ -19,15 +19,15 @@ $b = rtrim(View::e($base_url), '/');
 
 if (isset($form_html) && $form_html !== null) {
     ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-reset"><div class="fl-kim">
   <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
   <?= $form_html ?>
-</div>
+</div></div>
     <?php
     return;
 }
 ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-reset"><div class="fl-kim">
   <h2 class="fl-kim-heading">KIM List &mdash; Set New Password</h2>
 
   <?php if (!$token_valid): ?>
@@ -62,4 +62,4 @@ if (isset($form_html) && $form_html !== null) {
     </form>
 
   <?php endif; ?>
-</div>
+</div></div>

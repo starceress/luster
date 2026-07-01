@@ -14,13 +14,16 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 if (isset($form_html)) {
-    ?>
-<?php if ($errors !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
-<?= $form_html ?>
-    <?php
+    echo '<div class="fl-embed fl-embed--reset">';
+    if ($errors !== '') {
+        echo '<div class="fl-errors">' . $errors . '</div>';
+    }
+    echo $form_html;
+    echo '</div>';
     return;
 }
 ?>
+<div class="fl-embed fl-embed--reset">
 <?php if ($errors !== ''): ?>
   <div class="fl-errors"><?= $errors ?></div>
 <?php endif; ?>
@@ -44,3 +47,4 @@ if (isset($form_html)) {
     <button type="submit" class="fl-submit">Send Reset Link</button>
   </div>
 </form>
+</div>

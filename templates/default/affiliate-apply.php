@@ -14,11 +14,13 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 ?>
+<div class="fl-embed fl-embed--affiliate-apply">
 <?php if (isset($form_html)): ?>
 <?php if ($errors !== ''): ?>
   <div class="fl-errors"><?= $errors ?></div>
 <?php endif; ?>
 <?= $form_html ?>
+</div>
 <?php return; ?>
 <?php endif; ?>
 <?php if ($errors !== ''): ?>
@@ -47,3 +49,4 @@ use Luster\Core\View;
     <button type="reset" class="fl-btn-secondary">Clear</button>
   </div>
 </form>
+</div>

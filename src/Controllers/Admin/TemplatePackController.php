@@ -18,7 +18,9 @@ use Luster\Core\Response;
 use Luster\Core\Version;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Repositories\TemplateRevisionRepo;
+use Luster\Support\ListingTemplateResolver;
 
 final class TemplatePackController
 {
@@ -50,6 +52,72 @@ final class TemplatePackController
         'contact_form_template'         => 'Contact Form',
         'update_form_template'          => 'Update Form',
         'reset_form_template'           => 'Password Reset Form',
+    ];
+
+    /**
+     * Maps pack logical key → lstr_site_settings storage key for global templates.
+     * The pack uses the same logical keys as per-listing so packs are cross-context portable.
+     */
+    private const GLOBAL_KEY_MAP = [
+        'stats_template'                => 'listing_default_stats_template',
+        'members_template'              => 'listing_default_members_template',
+        'affiliates_section_template'   => 'listing_default_affiliates_section_template',
+        'updates_template'              => 'listing_default_updates_template',
+        'codes_template'                => 'listing_default_codes_template',
+        'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
+        'join_form_template'            => 'listing_default_join_form_template',
+        'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
+        'contact_form_template'         => 'listing_default_contact_form_template',
+        'update_form_template'          => 'listing_default_update_form_template',
+        'reset_form_template'           => 'listing_default_reset_form_template',
+    ];
+
+    /** Collective template keys — storage key names are the pack key names. */
+    private const COLLECTIVE_TEMPLATE_KEYS = [
+        'owned_template',
+        'joined_template',
+        'collective_stats_template',
+        'collective_affiliates_section_template',
+        'random_listing_template',
+        'latest_listing_template',
+        'random_joined_listing_template',
+        'latest_joined_listing_template',
+        'collective_affiliate_apply_form_template',
+        'kim_signup_form_template',
+        'wishlist_template',
+        'collective_updates_template',
+        'collective_codes_template',
+        'collective_codes_submit_form_template',
+        'collective_kim_list_overview_template',
+        'collective_kim_list_subject_template',
+        'kim_update_form_template',
+        'kim_reset_form_template',
+        'collective_contact_form_template',
+        'collective_adoption_form_template',
+    ];
+
+    /** Human-readable labels for collective template keys. */
+    private const COLLECTIVE_TEMPLATE_LABELS = [
+        'owned_template'                           => 'Owned Listings',
+        'joined_template'                          => 'Joined Listings',
+        'collective_stats_template'                => 'Collective Stats',
+        'collective_affiliates_section_template'   => 'Affiliates Section',
+        'random_listing_template'                  => 'Random Listing',
+        'latest_listing_template'                  => 'Latest Listing',
+        'random_joined_listing_template'           => 'Random Joined Listing',
+        'latest_joined_listing_template'           => 'Latest Joined Listing',
+        'collective_affiliate_apply_form_template' => 'Affiliate Apply Form',
+        'kim_signup_form_template'                 => 'KIM Sign-up Form',
+        'wishlist_template'                        => 'Wishlist',
+        'collective_updates_template'              => 'Updates Feed',
+        'collective_codes_template'                => 'Codes',
+        'collective_codes_submit_form_template'    => 'Code Submit Form',
+        'collective_kim_list_overview_template'    => 'KIM List Overview',
+        'collective_kim_list_subject_template'     => 'KIM List Subject',
+        'kim_update_form_template'                 => 'KIM Update Form',
+        'kim_reset_form_template'                  => 'KIM Reset Form',
+        'collective_contact_form_template'         => 'Contact Form',
+        'collective_adoption_form_template'        => 'Adoption Form',
     ];
 
     /** Token substrings that indicate a required add-on. */
@@ -494,6 +562,451 @@ final class TemplatePackController
         $this->applyTemplates($settingsRepo, $listingId, $incoming, $currentValues);
 
         return Response::json(['ok' => true, 'key' => $key, 'value' => $value]);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/listings/{id}/template-revisions/flush
+    // -------------------------------------------------------------------------
+
+    /**
+     * Deletes all revision history for one template key on a listing.
+     * JSON response: {ok}
+     */
+    public function flushRevisions(Request $request, array $params): Response
+    {
+        $id  = (int) ($params['id'] ?? 0);
+        $key = (string) $request->post('key', '');
+
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        if (!in_array($key, self::TEMPLATE_KEYS, true)) {
+            return Response::json(['ok' => false, 'error' => 'Unknown template key.']);
+        }
+
+        $db = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        if ((new ListingRepo($db, $config))->getById($id) === null) {
+            return Response::json(['ok' => false, 'error' => 'Listing not found.'], 404);
+        }
+
+        (new TemplateRevisionRepo($db))->deleteByKey($id, $key);
+
+        return Response::json(['ok' => true]);
+    }
+
+    // =========================================================================
+    // Global template pack endpoints
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // POST /admin/listings/global-templates/template-pack/export
+    // -------------------------------------------------------------------------
+
+    /**
+     * Exports all global template overrides as a versioned JSON pack.
+     * Uses the same logical key names as per-listing packs so packs are portable
+     * across per-listing and global contexts.
+     */
+    public function globalExport(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $stored   = $siteRepo->getGlobalTemplates();
+
+        $templates = [];
+        foreach (self::GLOBAL_KEY_MAP as $packKey => $storageKey) {
+            if (($stored[$storageKey] ?? null) !== null) {
+                $templates[$packKey] = $stored[$storageKey];
+            }
+        }
+
+        $pack = [
+            'luster_template_pack' => '1.0',
+            'luster_version'       => Version::CURRENT,
+            'exported_at'          => gmdate('Y-m-d\TH:i:s\Z'),
+            'scope'                => 'global',
+            'required_addons'      => $this->detectRequiredAddons($templates),
+            'templates'            => $templates,
+        ];
+
+        $siteName = (string) ($siteRepo->get('site_name') ?? 'luster');
+        $filename = 'luster-global-templates-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName)) . '.json';
+        $json = json_encode($pack, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        return Response::download($json, $filename, 'application/json');
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/listings/global-templates/template-pack/import-preview
+    // -------------------------------------------------------------------------
+
+    public function globalImportPreview(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $file = $_FILES['template_pack'] ?? null;
+        if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return Response::json(['error' => 'No file uploaded.']);
+        }
+
+        $raw = file_get_contents($file['tmp_name']);
+        if ($raw === false || strlen($raw) > 2 * 1024 * 1024) {
+            return Response::json(['error' => 'File too large or unreadable.']);
+        }
+
+        $pack = json_decode($raw, true);
+        if (!is_array($pack) || ($pack['luster_template_pack'] ?? '') !== '1.0') {
+            return Response::json(['error' => 'Not a valid Luster template pack (missing or wrong version header).']);
+        }
+
+        $incoming = $pack['templates'] ?? [];
+        if (!is_array($incoming)) {
+            return Response::json(['error' => 'Pack has no templates section.']);
+        }
+
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $stored   = $siteRepo->getGlobalTemplates();
+
+        $changes = [];
+        foreach (self::GLOBAL_KEY_MAP as $packKey => $storageKey) {
+            if (!array_key_exists($packKey, $incoming)) {
+                continue;
+            }
+            $incomingValue = is_string($incoming[$packKey]) ? $incoming[$packKey] : null;
+            $currentValue  = $stored[$storageKey] ?? null;
+            $changes[] = [
+                'key'      => $packKey,
+                'label'    => self::TEMPLATE_LABELS[$packKey] ?? $packKey,
+                'current'  => $currentValue,
+                'incoming' => $incomingValue,
+                'changed'  => ($this->norm($incomingValue) !== $this->norm($currentValue)),
+            ];
+        }
+
+        $requiredAddons = $pack['required_addons'] ?? [];
+        $missingAddons  = array_values(array_filter(
+            is_array($requiredAddons) ? $requiredAddons : [],
+            fn(string $addon): bool => !$this->app->isAddonInstalled($addon),
+        ));
+
+        return Response::json([
+            'ok'       => true,
+            'metadata' => [
+                'luster_version'  => (string) ($pack['luster_version']  ?? ''),
+                'exported_at'     => (string) ($pack['exported_at']     ?? ''),
+                'listing_title'   => (string) ($pack['listing_title']   ?? ''),
+                'listing_subject' => (string) ($pack['listing_subject'] ?? ''),
+                'required_addons' => $requiredAddons,
+                'missing_addons'  => $missingAddons,
+            ],
+            'changes'  => $changes,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/listings/global-templates/template-pack/import-apply
+    // -------------------------------------------------------------------------
+
+    public function globalImportApply(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $body      = (string) $request->post('templates_json', '');
+        $templates = json_decode($body, true);
+        if (!is_array($templates)) {
+            return Response::json(['error' => 'Invalid payload.']);
+        }
+
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $stored   = $siteRepo->getGlobalTemplates();
+
+        $saved = 0;
+        foreach (self::GLOBAL_KEY_MAP as $packKey => $storageKey) {
+            if (!array_key_exists($packKey, $templates)) {
+                continue;
+            }
+            $value = is_string($templates[$packKey]) && $templates[$packKey] !== '' ? $templates[$packKey] : null;
+            $siteRepo->set($storageKey, $value !== $stored[$storageKey] ? $value : $stored[$storageKey]);
+            $saved++;
+        }
+
+        return Response::json(['ok' => true, 'saved' => $saved]);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /admin/listings/global-templates/template-pack/copy-source?from={id}
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the effective template values from a listing for global copy-preview.
+     * JSON response: {ok, listing_title, changes: [{key, label, current, incoming, changed}]}
+     */
+    public function globalCopySource(Request $request, array $params): Response
+    {
+        $sourceId = (int) ($request->query('from', '0'));
+        if ($sourceId === 0) {
+            return Response::json(['error' => 'Invalid source listing.']);
+        }
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $sourceListing = (new ListingRepo($db, $config))->getById($sourceId);
+        if ($sourceListing === null) {
+            return Response::json(['error' => 'Source listing not found.']);
+        }
+
+        $siteRepo = new SiteSettingsRepo($db);
+        $resolved = $this->resolveGlobalSourceTemplates($sourceId, $db, $siteRepo);
+        $stored   = $siteRepo->getGlobalTemplates();
+
+        $changes = [];
+        foreach (self::GLOBAL_KEY_MAP as $packKey => $storageKey) {
+            $incomingValue = $resolved[$packKey];
+            $currentValue  = $stored[$storageKey] ?? null;
+            $changes[] = [
+                'key'      => $packKey,
+                'label'    => self::TEMPLATE_LABELS[$packKey] ?? $packKey,
+                'current'  => $currentValue,
+                'incoming' => $incomingValue,
+                'changed'  => ($this->norm($incomingValue) !== $this->norm($currentValue)),
+            ];
+        }
+
+        return Response::json([
+            'ok'            => true,
+            'listing_title' => $sourceListing->title,
+            'changes'       => $changes,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/listings/global-templates/template-pack/copy-apply
+    // -------------------------------------------------------------------------
+
+    public function globalCopyApply(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $db       = $this->app->getDatabase();
+        $config   = $this->app->getConfig();
+        $sourceId = (int) $request->post('from', 0);
+
+        if ($sourceId === 0) {
+            return Response::json(['error' => 'Invalid source listing.']);
+        }
+        if ((new ListingRepo($db, $config))->getById($sourceId) === null) {
+            return Response::json(['error' => 'Source listing not found.'], 404);
+        }
+
+        $keysJson     = (string) $request->post('keys_json', '[]');
+        $selectedKeys = json_decode($keysJson, true);
+        if (!is_array($selectedKeys)) {
+            return Response::json(['error' => 'Invalid keys payload.']);
+        }
+
+        $siteRepo  = new SiteSettingsRepo($db);
+        $resolved  = $this->resolveGlobalSourceTemplates($sourceId, $db, $siteRepo);
+        $validKeys = array_intersect($selectedKeys, array_keys(self::GLOBAL_KEY_MAP));
+
+        $saved = 0;
+        foreach ($validKeys as $packKey) {
+            $storageKey = self::GLOBAL_KEY_MAP[$packKey];
+            $siteRepo->set($storageKey, $resolved[$packKey]);
+            $saved++;
+        }
+
+        return Response::json(['ok' => true, 'saved' => $saved]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Resolves effective template values for a source listing through the full
+     * three-tier cascade: per-listing override → global default → built-in.
+     * Returns a map of pack key → resolved string (never null).
+     *
+     * @return array<string, string>
+     */
+    private function resolveGlobalSourceTemplates(int $sourceId, \PDO $db, SiteSettingsRepo $siteRepo): array
+    {
+        $settingsRepo    = new ListingSettingsRepo($db);
+        $perListing      = $settingsRepo->getTemplates($sourceId);
+        $perListing['codes_template'] = $settingsRepo->getCodesTemplate($sourceId);
+        $globalTemplates = $siteRepo->getGlobalTemplates();
+
+        $builtIns = [
+            'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
+            'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
+            'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+            'updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
+            'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
+            'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+            'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
+            'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+            'contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
+            'update_form_template'          => ListingSettingsRepo::defaultUpdateFormTemplate(),
+            'reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
+        ];
+
+        $resolved = [];
+        foreach (self::GLOBAL_KEY_MAP as $packKey => $storageKey) {
+            $resolved[$packKey] = ListingTemplateResolver::resolve(
+                $perListing[$packKey] ?? null,
+                $globalTemplates[$storageKey] ?? null,
+                $builtIns[$packKey] ?? '',
+            )['value'];
+        }
+        return $resolved;
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /admin/listings/global-templates/template-pack/listings-for-copy
+    // -------------------------------------------------------------------------
+
+    public function globalListingsForCopy(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $all = (new ListingRepo($db, $config))->getAll();
+        $result = array_values(array_map(
+            static fn(\Luster\Models\Listing $l): array => ['id' => $l->id, 'title' => $l->title],
+            $all,
+        ));
+
+        return Response::json(['ok' => true, 'listings' => $result]);
+    }
+
+    // =========================================================================
+    // Collective template pack endpoints
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // POST /admin/collective/templates/template-pack/export
+    // -------------------------------------------------------------------------
+
+    public function collectiveExport(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $stored   = $siteRepo->getMany(self::COLLECTIVE_TEMPLATE_KEYS);
+
+        $templates = array_filter($stored, static fn(?string $v): bool => $v !== null);
+
+        $pack = [
+            'luster_template_pack' => '1.0',
+            'luster_version'       => Version::CURRENT,
+            'exported_at'          => gmdate('Y-m-d\TH:i:s\Z'),
+            'scope'                => 'collective',
+            'required_addons'      => $this->detectRequiredAddons($templates),
+            'templates'            => $templates,
+        ];
+
+        $siteName = (string) ($siteRepo->get('site_name') ?? 'luster');
+        $filename = 'luster-collective-templates-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName)) . '.json';
+        $json = json_encode($pack, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        return Response::download($json, $filename, 'application/json');
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/collective/templates/template-pack/import-preview
+    // -------------------------------------------------------------------------
+
+    public function collectiveImportPreview(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $file = $_FILES['template_pack'] ?? null;
+        if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return Response::json(['error' => 'No file uploaded.']);
+        }
+
+        $raw = file_get_contents($file['tmp_name']);
+        if ($raw === false || strlen($raw) > 2 * 1024 * 1024) {
+            return Response::json(['error' => 'File too large or unreadable.']);
+        }
+
+        $pack = json_decode($raw, true);
+        if (!is_array($pack) || ($pack['luster_template_pack'] ?? '') !== '1.0') {
+            return Response::json(['error' => 'Not a valid Luster template pack (missing or wrong version header).']);
+        }
+
+        $incoming = $pack['templates'] ?? [];
+        if (!is_array($incoming)) {
+            return Response::json(['error' => 'Pack has no templates section.']);
+        }
+
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $stored   = $siteRepo->getMany(self::COLLECTIVE_TEMPLATE_KEYS);
+
+        $changes = [];
+        foreach (self::COLLECTIVE_TEMPLATE_KEYS as $key) {
+            if (!array_key_exists($key, $incoming)) {
+                continue;
+            }
+            $incomingValue = is_string($incoming[$key]) ? $incoming[$key] : null;
+            $currentValue  = $stored[$key] ?? null;
+            $changes[] = [
+                'key'      => $key,
+                'label'    => self::COLLECTIVE_TEMPLATE_LABELS[$key] ?? $key,
+                'current'  => $currentValue,
+                'incoming' => $incomingValue,
+                'changed'  => ($this->norm($incomingValue) !== $this->norm($currentValue)),
+            ];
+        }
+
+        $requiredAddons = $pack['required_addons'] ?? [];
+        $missingAddons  = array_values(array_filter(
+            is_array($requiredAddons) ? $requiredAddons : [],
+            fn(string $addon): bool => !$this->app->isAddonInstalled($addon),
+        ));
+
+        return Response::json([
+            'ok'       => true,
+            'metadata' => [
+                'luster_version'  => (string) ($pack['luster_version']  ?? ''),
+                'exported_at'     => (string) ($pack['exported_at']     ?? ''),
+                'listing_title'   => (string) ($pack['listing_title']   ?? ''),
+                'listing_subject' => (string) ($pack['listing_subject'] ?? ''),
+                'required_addons' => $requiredAddons,
+                'missing_addons'  => $missingAddons,
+            ],
+            'changes'  => $changes,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/collective/templates/template-pack/import-apply
+    // -------------------------------------------------------------------------
+
+    public function collectiveImportApply(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $body      = (string) $request->post('templates_json', '');
+        $templates = json_decode($body, true);
+        if (!is_array($templates)) {
+            return Response::json(['error' => 'Invalid payload.']);
+        }
+
+        $siteRepo   = new SiteSettingsRepo($this->app->getDatabase());
+        $validKeys  = array_intersect(array_keys($templates), self::COLLECTIVE_TEMPLATE_KEYS);
+
+        $saved = 0;
+        foreach ($validKeys as $key) {
+            $value = is_string($templates[$key]) && $templates[$key] !== '' ? $templates[$key] : null;
+            $siteRepo->set($key, $value);
+            $saved++;
+        }
+
+        return Response::json(['ok' => true, 'saved' => $saved]);
     }
 
     // -------------------------------------------------------------------------

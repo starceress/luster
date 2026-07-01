@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
+<div class="fl-embed fl-embed--members">
 <?php if (($members_html ?? null) !== null && $members_html !== ''): ?>
   <?= $members_html ?>
   <?php if ($pagination !== ''): ?>
@@ -86,3 +87,4 @@ use Luster\Core\View;
     <p class="fl-empty">No members to display yet.</p>
   <?php endif; ?>
 <?php endif; ?>
+</div>

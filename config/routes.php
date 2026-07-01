@@ -128,6 +128,18 @@ return [
         $router->post('/admin/listings/global-templates', ListingController::class, 'saveGlobalTemplates');
         $router->post('/admin/listings/global-templates/reset-all', ListingController::class, 'resetAllGlobalTemplates');
         $router->post('/admin/listings/global-templates/preview', ListingController::class, 'globalTemplatesPreview');
+        $router->post('/admin/listings/global-templates/template-pack/export',
+            TemplatePackController::class, 'globalExport');
+        $router->post('/admin/listings/global-templates/template-pack/import-preview',
+            TemplatePackController::class, 'globalImportPreview');
+        $router->post('/admin/listings/global-templates/template-pack/import-apply',
+            TemplatePackController::class, 'globalImportApply');
+        $router->get('/admin/listings/global-templates/template-pack/copy-source',
+            TemplatePackController::class, 'globalCopySource');
+        $router->post('/admin/listings/global-templates/template-pack/copy-apply',
+            TemplatePackController::class, 'globalCopyApply');
+        $router->get('/admin/listings/global-templates/template-pack/listings-for-copy',
+            TemplatePackController::class, 'globalListingsForCopy');
         $router->get('/admin/listings/settings', ListingController::class, 'indexSettings');
         $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
         $router->post('/admin/listings/settings/send-overdue-now', ListingController::class, 'sendOverdueNow');
@@ -169,6 +181,8 @@ return [
             ListingController::class, 'update');
         $router->post('/admin/listings/{id}/delete',
             ListingController::class, 'delete');
+        $router->post('/admin/listings/{id}/delete-image',
+            ListingController::class, 'deleteImage');
         $router->get('/admin/listings/{id}/edit-prefix',
             ListingController::class, 'editPrefix');
         $router->post('/admin/listings/{id}/edit-prefix',
@@ -475,7 +489,7 @@ return [
         // --- TFL/TAFL approval URL lookup
         $router->post('/admin/tfl-lookup', TflLookupController::class, 'lookup');
 
-        // --- Template packs (export/import/copy/revisions)
+        // --- Template packs (export/import/copy/revisions) — per-listing
         $router->post('/admin/listings/{id}/template-pack/export',
             TemplatePackController::class, 'export');
         $router->post('/admin/listings/{id}/template-pack/import-preview',
@@ -488,12 +502,22 @@ return [
             TemplatePackController::class, 'copyApply');
         $router->get('/admin/listings/{id}/template-pack/listings-for-copy',
             TemplatePackController::class, 'listingsForCopy');
+
+        // --- Template packs — collective templates
+        $router->post('/admin/collective/templates/template-pack/export',
+            TemplatePackController::class, 'collectiveExport');
+        $router->post('/admin/collective/templates/template-pack/import-preview',
+            TemplatePackController::class, 'collectiveImportPreview');
+        $router->post('/admin/collective/templates/template-pack/import-apply',
+            TemplatePackController::class, 'collectiveImportApply');
         $router->get('/admin/listings/{id}/template-revisions',
             TemplatePackController::class, 'revisions');
         $router->get('/admin/listings/{id}/template-revisions/{revisionId}',
             TemplatePackController::class, 'revisionValue');
         $router->post('/admin/listings/{id}/template-revisions/{revisionId}/restore',
             TemplatePackController::class, 'restoreRevision');
+        $router->post('/admin/listings/{id}/template-revisions/flush',
+            TemplatePackController::class, 'flushRevisions');
 
         // --- Link Checker
         $router->get('/admin/link-checker',

@@ -117,19 +117,27 @@ $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->get
 // ---------------------------------------------------------------------------
 
 $_lusterSettingsRepo     = new ListingSettingsRepo($_lusterApp->getDatabase());
+$_lusterSiteRepo         = new SiteSettingsRepo($_lusterApp->getDatabase());
 
-// Resolve per-page: embed override > per-listing setting > global config
+// Resolve per-page: embed override > per-listing setting > global default > app config.
+// Use getMembersPerPageOrNull() so an unset per-listing value (null) falls through to
+// the global default instead of being mistaken for an explicit 25.
 if ($_lusterPerPageOverride > 0) {
     $_lusterPerPage = $_lusterPerPageOverride;
 } else {
-    $_lusterPerPageDb = $_lusterSettingsRepo->getMembersPerPage($_lusterListingId);
-    $_lusterPerPage   = $_lusterPerPageDb > 0
-        ? $_lusterPerPageDb
-        : max(1, (int) $_lusterApp->getConfig()->get('per_page', 50));
+    $_lusterPerPageDb = $_lusterSettingsRepo->getMembersPerPageOrNull($_lusterListingId);
+    if ($_lusterPerPageDb !== null && $_lusterPerPageDb > 0) {
+        $_lusterPerPage = $_lusterPerPageDb;
+    } else {
+        $globalMpp = $_lusterSiteRepo->get('listing_default_members_per_page');
+        $_lusterPerPage = ($globalMpp !== null && (int) $globalMpp > 0)
+            ? (int) $globalMpp
+            : max(1, (int) $_lusterApp->getConfig()->get('per_page', 50));
+    }
 }
 
 $_lusterTemplates        = $_lusterSettingsRepo->getTemplates($_lusterListingId);
-$_lusterGlobalTpls       = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+$_lusterGlobalTpls       = $_lusterSiteRepo->getGlobalTemplates();
 $_lusterMembResolved     = ListingTemplateResolver::resolve(
     $_lusterTemplates['members_template'] ?? null,
     $_lusterGlobalTpls['listing_default_members_template'] ?? null,

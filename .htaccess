@@ -25,7 +25,7 @@ DirectoryIndex index.php
 </IfModule>
 
 # Fallback for servers without mod_rewrite: deny common sensitive paths
-<FilesMatch "\.(php|json|lock|md|yml|yaml|xml|ini|log|sql|sh|txt)$">
+<FilesMatch "\.(php|json|lock|md|yml|yaml|xml|ini|log|sql|sh|txt|zip|tar|gz|bz2|7z|phar)$">
     <IfModule !mod_rewrite.c>
         Require all denied
     </IfModule>

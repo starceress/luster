@@ -1316,6 +1316,16 @@ final class ListingSettingsRepo
      */
     public function getMembersPerPage(int $listingId): int
     {
+        return $this->getMembersPerPageOrNull($listingId) ?? 25;
+    }
+
+    /**
+     * Returns the explicitly-stored per-page override, or null if no row exists
+     * or the column is unset. Callers that need to distinguish "not set" from "25"
+     * (e.g. the members embed's resolution chain) should use this instead.
+     */
+    public function getMembersPerPageOrNull(int $listingId): ?int
+    {
         $stmt = $this->db->prepare(
             'SELECT members_per_page FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
         );
@@ -1323,7 +1333,7 @@ final class ListingSettingsRepo
         $row = $stmt->fetch();
 
         if ($row === false || $row['members_per_page'] === null) {
-            return 25;
+            return null;
         }
 
         return (int) $row['members_per_page'];

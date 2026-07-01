@@ -22,7 +22,7 @@ $_linkList   = ($link_list   !== null && $link_list   !== '') ? $link_list   : n
 
 if (isset($form_html) && $form_html !== null) {
     ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-signup"><div class="fl-kim">
   <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
   <?= $form_html ?>
   <?php
@@ -34,12 +34,12 @@ if (isset($form_html) && $form_html !== null) {
   <?php if (!empty($_metaLinks)): ?>
   <p class="fl-kim-meta">Already signed up? <?= implode(' &middot; ', $_metaLinks) ?></p>
   <?php endif; ?>
-</div>
+</div></div>
     <?php
     return;
 }
 ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-signup"><div class="fl-kim">
     <h2 class="fl-kim-heading">KIM List &mdash; Sign Up</h2>
     <p class="fl-kim-intro">
       KIM (Keep In Mind) is an adoption interest registry. If a fanlisting owner might
@@ -83,4 +83,4 @@ if (isset($form_html) && $form_html !== null) {
       Already signed up? <?= implode(' &middot; ', $_metaLinks) ?>
     </p>
     <?php endif; ?>
-</div>
+</div></div>

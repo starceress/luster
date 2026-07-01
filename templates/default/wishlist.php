@@ -14,17 +14,21 @@ use Luster\Core\View;
 
 // When a custom wishlist_template has been rendered by the embed, use it directly.
 if (isset($wishlist_template_html) && $wishlist_template_html !== null) {
+    echo '<div class="fl-embed fl-embed--wishlist">';
     echo $wishlist_template_html;
     if ($pagination !== '') {
         echo '<div class="fl-pagination-wrap">' . $pagination . '</div>';
     }
+    echo '</div>';
     return;
 }
 
 if (empty($entries)) {
-    echo '<p class="fl-empty">No wishlist entries to display.</p>';
+    echo '<div class="fl-embed fl-embed--wishlist"><p class="fl-empty">No wishlist entries to display.</p></div>';
     return;
 }
+
+echo '<div class="fl-embed fl-embed--wishlist">';
 
 $typeLabels = [
     'top'     => 'Top Wanted',
@@ -102,3 +106,4 @@ if ($filter_type === 'all') {
 if ($pagination !== '') {
     echo '<div class="fl-pagination-wrap">' . $pagination . '</div>';
 }
+echo '</div>';

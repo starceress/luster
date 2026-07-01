@@ -719,6 +719,8 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{network_name}</code></td><td>Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL website URL: <code>https://thefanlistings.org/</code></td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL website URL: <code>https://www.animefanlistings.com/</code></td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{listing_subject}</code></td><td>What the listing is about &mdash; the character, show, game, or topic.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{approval_url}</code></td><td>URL of the listing&rsquo;s approval page on TFL or TAFL. Falls back to the network homepage. Empty when no network is saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_stat_pending}&hellip;{/if_stat_pending}</code></td><td>Shows the text inside only when there are pending members.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the listing has an approved-by network saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_tfl}&hellip;{/if_tfl}</code>, <code class="ec-tk">{if_tafl}&hellip;{/if_tafl}</code></td><td>Shows the text inside only when the listing is registered with that specific network.</td></tr>
@@ -765,10 +767,15 @@ $epSafe = View::e($ep);
               <tbody>
                 <tr><td class="actions-col"><code class="ec-tk">{each_listing}&hellip;{/each_listing}</code></td><td>The normal repeat box. Put one listing row inside it, and Luster repeats that row once for each listing. This is what the built-in default uses.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{each_current}&hellip;{/each_current}</code>, <code class="ec-tk">{each_upcoming}&hellip;{/each_upcoming}</code>, <code class="ec-tk">{each_pending}&hellip;{/each_pending}</code></td><td>Optional separate repeat boxes for Current, Upcoming, and Pending sections. Use these instead of <code>{each_listing}</code> when you want headings like &ldquo;Current&rdquo; and &ldquo;Upcoming&rdquo;. This same owned-listings template is reused by owned, latest, and random listing embeds, so a sectioned layout will show everywhere that template is used.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{each_closed}&hellip;{/each_closed}</code>, <code class="ec-tk">{each_adopted_out}&hellip;{/each_adopted_out}</code></td><td>Optional repeat boxes for Closed and Adopted Out sections. Only shows entries when <code>$luster_show_closed</code> or <code>$luster_show_adopted_out</code> is <code>true</code> (the default).</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_title}</code></td><td>The listing&rsquo;s display name.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing. Empty when no URL is saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_subject}</code></td><td>What the listing is about. For example, the character, show, game, ship, or topic.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{listing_status}</code></td><td>The listing&rsquo;s status word: <code>current</code>, <code>upcoming</code>, or <code>pending</code>.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{listing_status}</code></td><td>The listing&rsquo;s status word: <code>current</code>, <code>upcoming</code>, <code>pending</code>, <code>closed</code>, or <code>adopted_out</code>.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{listing_description}</code></td><td>The description you saved for the listing in Luster. Empty when none is saved.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{approval_url}</code></td><td>URL of the listing&rsquo;s approval page on TFL or TAFL. Falls back to the network homepage. Empty when no network is saved.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{adopted_to_name}</code>, <code class="ec-tk">{adopted_to_url}</code></td><td>Name and link of the person or site the listing was adopted out to. Empty for non-adopted listings.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{archive_note}</code>, <code class="ec-tk">{archived_at}</code></td><td>Optional admin note and date recorded when the listing was closed or adopted out. Both empty for active listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_email}</code></td><td>Contact email for the listing.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_type}</code></td><td>The optional type you saved for the listing, such as fanlisting or shrine.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_category}</code></td><td>The category or categories this listing belongs to.</td></tr>
@@ -782,10 +789,13 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{network_name}</code></td><td>Full network name, or empty.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL website URL.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL website URL.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code></td><td>Shows the text inside only when the listing has an image.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code>, <code class="ec-tk">{if_no_listing_image}&hellip;{/if_no_listing_image}</code></td><td>Shows the text inside only when the listing has (or does not have) an image.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_listing_url}&hellip;{/if_listing_url}</code>, <code class="ec-tk">{if_no_listing_url}&hellip;{/if_no_listing_url}</code></td><td>Shows link or no-link markup depending on whether the listing has a URL. Closed listings may have no URL set.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_description}&hellip;{/if_description}</code></td><td>Shows the text inside only when a listing description is saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_pending}&hellip;{/if_pending}</code></td><td>Shows the text inside only when this listing has members waiting for approval.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_status_current}&hellip;{/if_status_current}</code>, <code class="ec-tk">{if_status_upcoming}&hellip;{/if_status_upcoming}</code>, <code class="ec-tk">{if_status_pending}&hellip;{/if_status_pending}</code></td><td>Shows the text inside only when the listing&rsquo;s status matches.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_status_closed}&hellip;{/if_status_closed}</code>, <code class="ec-tk">{if_status_adopted_out}&hellip;{/if_status_adopted_out}</code></td><td>Shows the text inside only when the listing is closed or adopted out. Use inside the row to show special messaging for archived listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_tfl}&hellip;{/if_tfl}</code>, <code class="ec-tk">{if_tafl}&hellip;{/if_tafl}</code></td><td>Shows the text inside only when the listing is registered with that network.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the listing is registered with either network.</td></tr>
               </tbody>
@@ -801,10 +811,14 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{current_owned_count}</code></td><td>Number of current listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{upcoming_owned_count}</code></td><td>Number of upcoming listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{pending_owned_count}</code></td><td>Number of pending listings.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{closed_owned_count}</code></td><td>Number of closed listings.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{adopted_out_owned_count}</code></td><td>Number of adopted out listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{total_count}</code></td><td>Total listings shown.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Shows the text inside only when there are current listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_upcoming_listings}&hellip;{/if_upcoming_listings}</code></td><td>Shows the text inside only when there are upcoming listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_pending_listings}&hellip;{/if_pending_listings}</code></td><td>Shows the text inside only when there are pending listings.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_closed_listings}&hellip;{/if_closed_listings}</code></td><td>Shows the text inside only when there are closed listings.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_adopted_out_listings}&hellip;{/if_adopted_out_listings}</code></td><td>Shows the text inside only when there are adopted out listings.</td></tr>
               </tbody>
             </table>
             </div>
@@ -826,9 +840,10 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_category}</code></td><td>Listing category.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_image_url}</code></td><td>Just the image&rsquo;s web address as plain text. Empty when there is no image.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{listing_type}</code></td><td>The type label for the listing, such as fanlisting or shrine. Usually empty for joined listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_status}</code></td><td>Listing status.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{date_joined}</code></td><td>Date you joined the listing.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code></td><td>Shows the text inside only when the listing has an image.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code>, <code class="ec-tk">{if_no_listing_image}&hellip;{/if_no_listing_image}</code></td><td>Shows the text inside only when the listing has (or does not have) an image.</td></tr>
               </tbody>
             </table>
             </div>
@@ -896,22 +911,33 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{owned_active}</code></td><td>Number of current owned listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{owned_upcoming}</code></td><td>Number of upcoming owned listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{owned_pending}</code></td><td>Number of pending or inactive owned listings.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{owned_tfl_count}</code></td><td>Number of current owned listings registered with TFL.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{owned_tafl_count}</code></td><td>Number of current owned listings registered with TAFL.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{joined_active}</code></td><td>Number of active joined listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{joined_pending}</code></td><td>Number of joined listings waiting for approval.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{joined_tfl_count}</code></td><td>Number of active joined listings registered with TFL.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{joined_tafl_count}</code></td><td>Number of active joined listings registered with TAFL.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{members_total}</code></td><td>Total members across all your listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{members_approved}</code></td><td>Approved members across all your listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{members_pending}</code></td><td>Members waiting for approval across all your listings.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{affiliates_sitewide}</code></td><td>Number of active site-wide affiliates (not tied to a specific listing).</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{affiliates_total}</code></td><td>Total number of active affiliates across all listings and collective.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL website URL: <code>https://thefanlistings.org/</code></td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL website URL: <code>https://www.animefanlistings.com/</code></td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{owned_newest_title}</code></td><td>Title of your newest current owned listing.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{owned_newest_subject}</code></td><td>What your newest owned listing is about.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{owned_newest_url}</code></td><td>Link to your newest current owned listing.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{owned_random_title}</code></td><td>Title of one random current owned listing.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{owned_random_subject}</code></td><td>What a random owned listing is about.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{owned_random_url}</code></td><td>Link to one random current owned listing.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{site_name}</code></td><td>Your site name from general settings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{countries_count}</code></td><td>Number of different countries represented by approved members across all your listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{collective_last_updated}</code></td><td>Date your newest owned listing was opened &mdash; the last time the collective grew.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{joined_total_cats}</code></td><td>Number of distinct categories across your active joined listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_pending}&hellip;{/if_pending}</code></td><td>Shows the text inside only when at least one member is waiting for approval.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_affiliates_sitewide}&hellip;{/if_affiliates_sitewide}</code></td><td>Shows the text inside only when there is at least one site-wide affiliate.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_affiliates_total}&hellip;{/if_affiliates_total}</code></td><td>Shows the text inside only when there is at least one affiliate anywhere.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_owned_upcoming}&hellip;{/if_owned_upcoming}</code></td><td>Shows the text inside only when at least one owned listing is marked upcoming.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_owned_pending}&hellip;{/if_owned_pending}</code></td><td>Shows the text inside only when at least one owned listing is marked pending.</td></tr>
               </tbody>
@@ -1011,7 +1037,7 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{aff_name}</code>, <code class="ec-tk">{aff_url}</code>, <code class="ec-tk">{aff_email}</code></td><td>Affiliate application details.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_joined}</code>, <code class="ec-tk">{if_joined_pending}</code>, <code class="ec-tk">{if_updated}</code>, <code class="ec-tk">{if_updated_pending}</code>, <code class="ec-tk">{if_removed}</code></td><td>Shows the text inside only for that member action.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_reset_sent}</code>, <code class="ec-tk">{if_reset_done}</code>, <code class="ec-tk">{if_code_submitted}</code></td><td>Shows the text inside only for password reset or code donation success.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{if_kim_signed_up}</code>, <code class="ec-tk">{if_kim_updated}</code>, <code class="ec-tk">{if_kim_reset_done}</code></td><td>Shows the text inside only for that KIM List success.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_kim_signed_up}</code>, <code class="ec-tk">{if_kim_updated}</code>, <code class="ec-tk">{if_kim_reset_done}</code>, <code class="ec-tk">{if_kim_reset_sent}</code></td><td>Shows the text inside only for that KIM List success: sign-up, update saved, reset link emailed, or new password set.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_adopt_submitted}</code>, <code class="ec-tk">{if_contact_sent}</code>, <code class="ec-tk">{if_affiliate_apply_sent}</code></td><td>Shows the text inside only for adoption, contact, or affiliate application success.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_aff_email}</code>, <code class="ec-tk">{if_no_aff_email}</code></td><td>Shows the text inside based on whether an affiliate email was supplied.</td></tr>
               </tbody>
@@ -1042,6 +1068,7 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{if_size_changed}&hellip;{/if_size_changed}</code></td><td>Flat mode only. Shows when the code size differs from the previous code &mdash; useful for size headings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_donor}</code>, <code class="ec-tk">{if_no_donor}</code>, <code class="ec-tk">{if_donor_url}</code>, <code class="ec-tk">{if_no_donor_url}</code></td><td>Shows donor markup only when donor details exist, or alternate markup when they do not.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_code_name}</code></td><td>Shows the text inside only when the code has a saved name.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_codes}&hellip;{/if_codes}</code>, <code class="ec-tk">{if_no_codes}&hellip;{/if_no_codes}</code></td><td>Shows the text inside only when codes exist (or do not). Useful for showing an empty-state message in your template.</td></tr>
               </tbody>
             </table>
             </div>
@@ -1064,6 +1091,7 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{update_author}</code></td><td>Update author, when saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{update_categories}</code></td><td>Update category names, separated by commas.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_author}&hellip;{/if_author}</code>, <code class="ec-tk">{if_categories}&hellip;{/if_categories}</code></td><td>Shows author or category markup only when that information exists.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_updates}&hellip;{/if_updates}</code>, <code class="ec-tk">{if_no_updates}&hellip;{/if_no_updates}</code></td><td>Shows the text inside only when there are updates (or none). Useful for empty-state messaging in your template.</td></tr>
               </tbody>
             </table>
             </div>
@@ -1148,11 +1176,15 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code>$luster_owned_active</code></td><td>Number of current owned listings.</td></tr>
                 <tr><td class="actions-col"><code>$luster_owned_upcoming</code></td><td>Number of upcoming owned listings.</td></tr>
                 <tr><td class="actions-col"><code>$luster_owned_pending</code></td><td>Number of pending or inactive owned listings.</td></tr>
+                <tr><td class="actions-col"><code>$luster_owned_tfl_count</code></td><td>Number of current owned listings registered with TFL.</td></tr>
+                <tr><td class="actions-col"><code>$luster_owned_tafl_count</code></td><td>Number of current owned listings registered with TAFL.</td></tr>
                 <tr><td class="actions-col"><code>$luster_joined</code></td><td>Total number of joined listings.</td></tr>
                 <tr><td class="actions-col"><code>$luster_joined_active</code></td><td>Number of active joined listings.</td></tr>
                 <tr><td class="actions-col"><code>$luster_joined_approved</code></td><td>Number of active joined listings that are approved, not pending or upcoming.</td></tr>
                 <tr><td class="actions-col"><code>$luster_joined_upcoming</code></td><td>Number of upcoming joined listings.</td></tr>
                 <tr><td class="actions-col"><code>$luster_joined_pending</code></td><td>Number of pending joined listings.</td></tr>
+                <tr><td class="actions-col"><code>$luster_joined_tfl_count</code></td><td>Number of active joined listings registered with TFL.</td></tr>
+                <tr><td class="actions-col"><code>$luster_joined_tafl_count</code></td><td>Number of active joined listings registered with TAFL.</td></tr>
                 <tr><td class="actions-col"><code>$luster_affiliates</code></td><td>Number of active site-wide affiliates (same as <code>$luster_affiliates_sitewide</code>).</td></tr>
                 <tr><td class="actions-col"><code>$luster_affiliates_sitewide</code></td><td>Number of active site-wide affiliates (those not attached to a specific listing).</td></tr>
                 <tr><td class="actions-col"><code>$luster_affiliates_total</code></td><td>Number of all active affiliates, including those attached to specific listings.</td></tr>

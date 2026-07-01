@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
+<div class="fl-embed fl-embed--owned">
 <?= $category_html ?? '' ?>
 
 <?php if ((int) ($current_category ?? 0) > 0 && !empty($categories)):
@@ -96,3 +97,4 @@ use Luster\Core\View;
 <?php if (!defined('FL_EMBED_JS_LOADED')): define('FL_EMBED_JS_LOADED', true); ?>
 <script src="<?= View::e($base_url) ?>/assets/js/fl-embed.js"></script>
 <?php endif; ?>
+</div>

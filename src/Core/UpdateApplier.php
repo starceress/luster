@@ -455,7 +455,15 @@ final class UpdateApplier
             ];
         }
 
-        $checksumBody = $this->fetch((string) $checksumAsset['browser_download_url']);
+        $checksumUrl = (string) $checksumAsset['browser_download_url'];
+        if (!$this->isAllowedUpdateUrl($checksumUrl)) {
+            return [
+                'manual_required' => true,
+                'manual_reason' => 'SHA256SUMS download URL is not on an expected GitHub host.',
+            ];
+        }
+
+        $checksumBody = $this->fetch($checksumUrl);
         if ($checksumBody === false || $checksumBody === '') {
             throw new RuntimeException('Could not download SHA256SUMS from the release.');
         }
@@ -469,9 +477,17 @@ final class UpdateApplier
             ];
         }
 
+        $zipUrl = (string) $zipAsset['browser_download_url'];
+        if (!$this->isAllowedUpdateUrl($zipUrl)) {
+            return [
+                'manual_required' => true,
+                'manual_reason' => 'Release ZIP download URL is not on an expected GitHub host.',
+            ];
+        }
+
         return [
             'manual_required' => false,
-            'zip_url' => (string) $zipAsset['browser_download_url'],
+            'zip_url' => $zipUrl,
             'zip_name' => $zipName,
             'sha256' => $sha256,
         ];
@@ -787,6 +803,15 @@ final class UpdateApplier
     private function zipPath(string $rel): string
     {
         return $this->normalizeRelative($rel);
+    }
+
+    /** Returns true when $url is on an expected GitHub host (https only). */
+    private function isAllowedUpdateUrl(string $url): bool
+    {
+        return (bool) preg_match(
+            '#^https://(?:api\.github\.com|github\.com|objects\.githubusercontent\.com|codeload\.github\.com)/#',
+            $url,
+        );
     }
 
     /** Returns true when $path is $base or strictly inside $base (using forward slashes). */

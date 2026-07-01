@@ -16,10 +16,12 @@ use Luster\Core\View;
 
 // When a custom codes_template has been applied in the embed, use it directly.
 if (isset($codes_template_html) && $codes_template_html !== null) {
+    echo '<div class="fl-embed fl-embed--codes">';
     echo $codes_template_html;
     if (($pagination ?? '') !== '') {
         echo '<div class="fl-pagination-wrap">' . $pagination . '</div>';
     }
+    echo '</div>';
     return;
 }
 
@@ -27,6 +29,7 @@ $_hasCategories = !empty($categories);
 $_hasDonors     = !empty($donors);
 $_showHeadings  = count($grouped) > 1;
 ?>
+<div class="fl-embed fl-embed--codes">
 <?php if (empty($codes)): ?>
 <p class="fl-empty">No codes available yet.</p>
 <?php else: ?>
@@ -102,3 +105,4 @@ $_showHeadings  = count($grouped) > 1;
 <?php endif; ?>
 
 <?php endif; ?>
+</div>

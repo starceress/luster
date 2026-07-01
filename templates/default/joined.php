@@ -27,6 +27,7 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
     }
 };
 ?>
+<div class="fl-embed fl-embed--joined">
 <?= $category_html ?? '' ?>
 
 <?php if (($view ?? '') === 'pending'): ?>
@@ -103,3 +104,4 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
 <?php if (!defined('FL_EMBED_JS_LOADED')): define('FL_EMBED_JS_LOADED', true); ?>
 <script src="<?= View::e($base_url) ?>/assets/js/fl-embed.js"></script>
 <?php endif; ?>
+</div>

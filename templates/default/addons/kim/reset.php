@@ -17,24 +17,24 @@ $b = rtrim(View::e($base_url), '/');
 $_linkUpdate = (($link_update ?? null) !== null && $link_update !== '') ? $link_update : null;
 
 if (($success_html ?? '') !== '') {
-    echo '<div class="fl-kim">' . $success_html . '</div>';
+    echo '<div class="fl-embed fl-embed--kim-reset"><div class="fl-kim">' . $success_html . '</div></div>';
     return;
 }
 
 if (isset($form_html) && $form_html !== null) {
     ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-reset"><div class="fl-kim">
   <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
   <?= $form_html ?>
   <?php if ($_linkUpdate !== null): ?>
   <p class="fl-kim-meta"><a href="<?= View::e($_linkUpdate) ?>">&larr; Back to Update</a></p>
   <?php endif; ?>
-</div>
+</div></div>
     <?php
     return;
 }
 ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-reset"><div class="fl-kim">
   <h2 class="fl-kim-heading">KIM List &mdash; Reset Password</h2>
   <p class="fl-kim-intro">
     Enter your email address below. If any matching KIM entries are found,
@@ -66,4 +66,4 @@ if (isset($form_html) && $form_html !== null) {
     <a href="<?= View::e($_linkUpdate) ?>">&larr; Back to Update</a>
   </p>
   <?php endif; ?>
-</div>
+</div></div>

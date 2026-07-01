@@ -169,12 +169,12 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
       <a href="<?= $b ?>/admin/adoptions" class="nav-item<?= navActive('adoptions', $s) ?>"><span class="nav-icon"><?= View::icon('adoptions') ?></span> Adoptions<?php if (($nav_pending_adoptions ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_adoptions ?></span><?php endif; ?></a>
       <?php endif; ?>
 
-      <?php if (in_array('Kim', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
-      <?php endif; ?>
-
       <?php if (in_array('Rules', $_navAddons, true)): ?>
       <a href="<?= $b ?>/admin/rules" class="nav-item<?= navActive('rules', $s) ?>"><span class="nav-icon"><?= View::icon('rules') ?></span> Join Rules</a>
+      <?php endif; ?>
+
+      <?php if (in_array('Kim', $_navAddons, true)): ?>
+      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
       <?php endif; ?>
 
       <?php if (in_array('Updates', $_navAddons, true)): ?>

@@ -363,9 +363,11 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 .card-body strong { color: var(--accent); }
 
-.card-gradient { position: relative; }
+.card--gradient, .card-gradient { position: relative; }
 
-.card-gradient::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--gradient)); }
+.card--gradient::before, .card-gradient::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--gradient)); }
+
+.card--gradient--plain::before { display: none; }
 
 .panel-header { padding: 1.125rem 1.5rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .875rem; background: var(--bg-subtle); }
 
@@ -1008,6 +1010,32 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .upload-panel-row { margin-bottom: .625rem; }
 
+/* ── Redesigned image upload panel (listing edit) ──────── */
+
+.img-upload-panel { display: flex; flex-direction: column; gap: .75rem; max-width: 400px; }
+
+.img-upload-panel--two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 640px; align-items: start; }
+
+.img-current-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-subtle); transition: border-color .2s, opacity .2s; }
+
+.img-current-card.is-marked-delete { opacity: .45; border-color: var(--danger); }
+
+.img-current-preview { background: rgb(var(--ch-brand-primary)/.08); display: flex; align-items: center; justify-content: center; min-height: 140px; }
+
+.img-current-preview img { display: block; max-width: 100%; max-height: 260px; object-fit: contain; }
+
+.img-current-footer { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .5rem .75rem; border-top: 1px solid var(--border); }
+
+.img-current-name { font-size: var(--fs-sm); font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+.img-delete-btn { flex-shrink: 0; }
+
+.img-replace-col { display: flex; flex-direction: column; gap: .5rem; }
+
+.img-replace-label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); letter-spacing: .03em; text-transform: uppercase; margin: 0; }
+
+.file-drop-zone--sm { margin-top: 0; padding: .625rem 1rem; min-height: 80px; }
+
 /* ---- TEMPLATE FORM HELPERS ---------------------------- */
 
 .btn-tpl-reset { font-size: var(--fs-sm); font-weight: 500; color: var(--text-dim); background: none; border: none; padding: 0; cursor: pointer; letter-spacing: .01em; }
@@ -1034,6 +1062,8 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 .status-pill--upcoming:has(input:checked) { background: rgb(var(--ch-upcoming)/.12); border-color: rgb(var(--ch-upcoming)/.3); color: rgb(var(--ch-upcoming)/1); }
 
 .status-pill--pending:has(input:checked) { background: rgb(var(--ch-pending)/.12); border-color: rgb(var(--ch-pending)/.3); color: var(--pending); }
+
+.status-pill--archived:has(input:checked) { background: var(--bg-card); border-color: var(--text-dim); color: var(--text); }
 
 .field-label--tight { margin-bottom: .25rem; }
 
@@ -1095,7 +1125,7 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .mini-nav-panel { display: none; flex-direction: column; gap: 1.25rem; scroll-margin-top: 118px; }
 
-body:not(:has(:target)) #panel-general, #panel-general:target, #panel-admin:target, #panel-accounts:target, #panel-appearance:target, #panel-smtp:target, #panel-embed:target, #panel-blacklist:target, #panel-system:target, #panel-notifications:target { display: flex; }
+body:not(:has(:target)) #panel-general, #panel-general:target, #panel-admin:target, #panel-devices:target, #panel-accounts:target, #panel-appearance:target, #panel-smtp:target, #panel-embed:target, #panel-blacklist:target, #panel-system:target, #panel-notifications:target { display: flex; }
 
 body:has(#panel-admin:target) #panel-general, body:has(#panel-accounts:target) #panel-general, body:has(#panel-appearance:target) #panel-general, body:has(#panel-smtp:target) #panel-general, body:has(#panel-embed:target) #panel-general, body:has(#panel-blacklist:target) #panel-general, body:has(#panel-system:target) #panel-general, body:has(#panel-notifications:target) #panel-general { display: none; }
 
@@ -1489,6 +1519,10 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 .composer-side .card.chevron { overflow: visible; margin-bottom: .45rem; }
 
 .composer-grid { display: grid; grid-template-columns: 1fr 325px; gap: 1rem; align-items: start; }
+
+.tpl-actions-row { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; padding: .75rem 0; }
+
+.tpl-filter-label { font-weight: 600; white-space: nowrap; }
 
 .embed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
 

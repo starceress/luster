@@ -63,7 +63,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
 <div class="filter-panel is-open">
   <div class="filter-row" id="tpl-filter-row">
-    <label for="tpl-group-select" style="font-weight:600; white-space:nowrap">Select Template:</label>
+    <label for="tpl-group-select" class="tpl-filter-label">Select Template:</label>
     <div class="select-wrap">
       <select id="tpl-group-select" class="form">
         <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
@@ -106,13 +106,29 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       </div>
 
       <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
-        <div style="text-align:center; padding: 0.75rem 0;">
-          <button type="button" class="btn btn-tertiary btn-block-center"
+        <div class="tpl-actions-row">
+          <button type="button" class="btn btn-tertiary"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/global-templates/reset-all"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>"
                   data-confirm="Reset all global listing templates to the Luster built-in defaults?&#10;&#10;Any global customisations will be lost. Per-listing overrides are not affected.">Reset All Templates to Default</button>
+          <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-export-btn"
+                  data-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/export"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export Templates&hellip;</button>
+          <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-import-btn"
+                  data-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/import-preview"
+                  data-apply-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/import-apply"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Import Templates&hellip;</button>
+          <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-copy-btn"
+                  data-listings-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/listings-for-copy"
+                  data-source-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/copy-source"
+                  data-apply-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/copy-apply"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Copy From&hellip;</button>
         </div>
+        <input type="file" id="fl-tpack-file-input" accept=".json" style="display:none">
       </div>
 
       <div class="card-body">
@@ -120,6 +136,15 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
           <div class="section-label">Members List</div>
           <p class="form-hint form-hint--spaced">Default for all listings. Wrap your row design in <code>{each_member}&hellip;{/each_member}</code>.</p>
+          <div class="field-row" style="margin-bottom: 1em">
+            <label class="field-label" for="gl-members-per-page">Members per page</label>
+            <div>
+              <input id="gl-members-per-page" type="number" name="listing_default_members_per_page" class="form form--compact"
+                     min="10" max="100" placeholder="25"
+                     value="<?= $global_members_per_page !== null ? (int) $global_members_per_page : '' ?>">
+              <p class="form-hint">Global default members per page. Leave blank to use the <code>per_page</code> app config value. Per-listing setting overrides this.</p>
+            </div>
+          </div>
           <div class="field-row field-row--top" style="margin-bottom: 1em">
             <label class="field-label">Display style</label>
             <div>

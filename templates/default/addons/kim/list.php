@@ -18,10 +18,10 @@ $_linkSignup   = isset($link_signup) && $link_signup !== '' ? $link_signup : nul
 $_linkListBase = isset($link_list_base) && $link_list_base !== '' ? $link_list_base : null;
 ?>
 <?php if (isset($overview_template_html) && $overview_template_html !== null): ?>
-<?= $overview_template_html ?>
+<div class="fl-embed fl-embed--kim-list"><?= $overview_template_html ?></div>
 <?php return; ?>
 <?php endif; ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-list"><div class="fl-kim">
   <h2 class="fl-kim-heading">KIM List</h2>
   <p class="fl-kim-intro">
     KIM (Keep In Mind) is an adoption interest registry. The numbers below show how many
@@ -58,4 +58,4 @@ $_linkListBase = isset($link_list_base) && $link_list_base !== '' ? $link_list_b
     <a href="<?= View::e($_linkSignup) ?>">Sign up for the KIM list</a>
   </p>
   <?php endif; ?>
-</div>
+</div></div>

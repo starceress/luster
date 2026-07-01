@@ -438,13 +438,26 @@ final class ListingController extends AdminController
 
         $title    = trim((string) $request->post('title', ''));
         $subject  = trim((string) $request->post('subject', ''));
+        if ($title === '') {
+            $title = $subject;
+        }
         $url      = self::httpsify(trim((string) $request->post('url', '')));
         $email    = trim((string) $request->post('email', ''));
-        $statusRaw = (int) $request->post('status', 2);
-        $status   = in_array($statusRaw, [0, 1, 2], true) ? $statusRaw : 2;
-        $opened   = $status !== 2
-            ? 'TBA'
-            : (trim((string) $request->post('opened', '')) ?: date('Y-m-d'));
+        $statusRaw = (string) $request->post('status', 'current');
+        $allowedStatuses = ['current', 'upcoming', 'pending', 'closed', 'adopted_out'];
+        $status = in_array($statusRaw, $allowedStatuses, true) ? $statusRaw : 'current';
+        $isArchiving   = ListingLifecycleService::isLifecycleStatus($status);
+        $adoptedToName = $status === 'adopted_out' ? trim((string) $request->post('adopted_to_name', '')) : null;
+        $adoptedToUrl  = $status === 'adopted_out' ? self::httpsify(trim((string) $request->post('adopted_to_url', ''))) : null;
+        $archiveNote   = $isArchiving ? trim((string) $request->post('archive_note', '')) : null;
+        $listingType   = (string) $request->post('listing_type', 'listing');
+        if (!in_array($listingType, ['listing', 'clique', 'collective', 'shrine', 'webring', 'other'], true)) {
+            $listingType = 'listing';
+        }
+        $description = trim((string) $request->post('description', ''));
+        $opened = $status === 'current'
+            ? (trim((string) $request->post('opened', '')) ?: date('Y-m-d'))
+            : 'TBA';
 
         $tflCats        = $categoryRepo->getBySource('tfl');
         $taflCats       = $categoryRepo->getBySource('tafl');
@@ -467,21 +480,22 @@ final class ListingController extends AdminController
         }
         $catidStr = $catIds ? '|' . implode('|', $catIds) . '|' : '';
 
-        if ($subject === '' || $url === '') {
+        $urlRequired = !$isArchiving;
+        if ($subject === '' || ($url === '' && $urlRequired)) {
             $addFieldErrors = [];
             if ($subject === '') {
                 $addFieldErrors['subject'] = ['Subject is required.'];
             }
-            if ($url === '') {
+            if ($url === '' && $urlRequired) {
                 $addFieldErrors['url'] = ['URL is required.'];
             }
             return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
                 'tfl_cats'        => $tflCats,
                 'tafl_cats'       => $taflCats,
                 'custom_networks' => $customNetworks,
-            'custom_cats'     => $customCats,
+                'custom_cats'     => $customCats,
                 'old'             => $request->post(),
-                'error'           => 'Subject and URL are required.',
+                'error'           => $subject === '' ? 'Subject is required.' : 'URL is required.',
                 'field_errors'    => $addFieldErrors,
                 'default_date'    => date('Y-m-d'),
             ], '', [
@@ -489,53 +503,69 @@ final class ListingController extends AdminController
             ]);
         }
 
-        $image      = null;
-        $imageFile  = $request->file('image') ?? [];
-        $uploadErr  = (int) ($imageFile['error'] ?? UPLOAD_ERR_NO_FILE);
-        if ($uploadErr === UPLOAD_ERR_OK) {
-            $tmp      = (string) ($imageFile['tmp_name'] ?? '');
-            $fileSize = (int) ($imageFile['size'] ?? 0);
-            $mime     = (string) (new \finfo(FILEINFO_MIME_TYPE))->file($tmp);
-            $allowed  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $image     = null;
+        $imageFile = $request->file('image') ?? [];
+        $uploadErr = (int) ($imageFile['error'] ?? UPLOAD_ERR_NO_FILE);
+        $imageErr  = '';
 
-            if ($fileSize > 2 * 1024 * 1024) {
-                return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
-                    'tfl_cats'        => $tflCats,
-                    'tafl_cats'       => $taflCats,
-                    'custom_networks' => $customNetworks,
-            'custom_cats'     => $customCats,
-                    'old'             => $request->post(),
-                    'error'           => 'Image must be 2 MB or smaller.',
-                    'default_date'    => date('Y-m-d'),
-                ], '', [
-                    $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
-                ]);
-            }
+        if ($uploadErr !== UPLOAD_ERR_NO_FILE) {
+            if ($uploadErr !== UPLOAD_ERR_OK) {
+                $imageErr = 'Image upload failed (error code ' . $uploadErr . ').';
+            } else {
+                $tmp      = (string) ($imageFile['tmp_name'] ?? '');
+                $fileSize = (int) ($imageFile['size'] ?? 0);
 
-            if (!in_array($mime, $allowed, true)) {
-                return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
-                    'tfl_cats'        => $tflCats,
-                    'tafl_cats'       => $taflCats,
-                    'custom_networks' => $customNetworks,
-            'custom_cats'     => $customCats,
-                    'old'             => $request->post(),
-                    'error'           => 'Invalid image type.',
-                    'default_date'    => date('Y-m-d'),
-                ], '', [
-                    $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
-                ]);
+                if ($tmp === '' || !is_uploaded_file($tmp)) {
+                    $imageErr = 'Invalid image upload. Please try again.';
+                } elseif ($fileSize <= 0) {
+                    $imageErr = 'Image file is empty.';
+                } elseif ($fileSize > 2 * 1024 * 1024) {
+                    $imageErr = 'Image must be 2 MB or smaller.';
+                } else {
+                    $mime     = (string) (new \finfo(FILEINFO_MIME_TYPE))->file($tmp);
+                    $allowed  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    if (!in_array($mime, $allowed, true)) {
+                        $imageErr = 'Image must be JPEG, PNG, GIF, or WebP.';
+                    } elseif (@getimagesize($tmp) === false) {
+                        $imageErr = 'The uploaded file is not a valid image.';
+                    } else {
+                        $extMap   = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+                        $dir      = dirname(__DIR__, 3) . '/public/uploads/listings/';
+                        if (!is_dir($dir)) {
+                            mkdir($dir, 0755, true);
+                        }
+                        $filename = 'fl_' . bin2hex(random_bytes(8)) . '.' . $extMap[$mime];
+                        if (!move_uploaded_file($tmp, $dir . $filename)) {
+                            $imageErr = 'Could not save uploaded image. Please try again.';
+                        } else {
+                            $image = $filename;
+                        }
+                    }
+                }
             }
-            $ext      = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'][$mime];
-            $dir      = dirname(__DIR__, 3) . '/public/uploads/listings/';
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
-            $filename = 'fl_' . bin2hex(random_bytes(8)) . '.' . $ext;
-            move_uploaded_file($tmp, $dir . $filename);
-            $image    = $filename;
         }
 
-        $newId = $listingRepo->insert($title, $subject, $url, $email, $status, $image, !empty($catIds) ? $catIds[0] : null, $opened, $catidStr, $catIds);
+        if ($imageErr !== '') {
+            return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
+                'tfl_cats'        => $tflCats,
+                'tafl_cats'       => $taflCats,
+                'custom_networks' => $customNetworks,
+                'custom_cats'     => $customCats,
+                'old'             => $request->post(),
+                'error'           => $imageErr,
+                'default_date'    => date('Y-m-d'),
+            ], '', [
+                $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
+            ]);
+        }
+
+        $statusInt = match(true) {
+            $status === 'current'  => 2,
+            $status === 'upcoming' => 1,
+            default               => 0,
+        };
+
+        $newId = $listingRepo->insert($title, $subject, $url, $email, $statusInt, $image, !empty($catIds) ? $catIds[0] : null, $opened, $catidStr, $catIds);
 
         // Create embed settings row — leave form URLs blank so they inherit
         // from the global defaults in Owned Listings Settings.
@@ -552,6 +582,26 @@ final class ListingController extends AdminController
             '',                  // db_user
             '',                  // db_pass
         );
+        $settingsRepo->saveListingType($newId, $listingType);
+        $settingsRepo->saveDescription($newId, $description);
+        if ($image !== null) {
+            // The registry insert stores imagefile for Enthusiast compat, but the admin
+            // UI and public renderers read from lstr_fanlisting_settings.image — sync both.
+            $settingsRepo->saveImage($newId, $image);
+        }
+
+        if ($isArchiving) {
+            $lifecycleRepo = new ListingLifecycleRepo($db);
+            $lifecycleRepo->upsert($newId, $status, false, false, $adoptedToName, $adoptedToUrl, $archiveNote);
+            $session      = $this->app->getSession();
+            $activityRepo = new ActivityRepo($db);
+            $activityRepo->log(
+                (int) $session->get('lstr_admin_id'),
+                'listing.archive',
+                "Archived new listing #{$newId} ({$title}) as " . ($status === 'adopted_out' ? 'Adopted Out' : 'Closed'),
+                $request->ip(),
+            );
+        }
 
         return Response::redirect($this->app->getBaseUrl() . '/admin/listings');
     }
@@ -846,6 +896,9 @@ final class ListingController extends AdminController
             $adoptedToUrl  = $status === 'adopted_out' ? self::httpsify(trim((string) $request->post('adopted_to_url', ''))) : null;
             $archiveNote   = $isArchiving ? trim((string) $request->post('archive_note', '')) : null;
             $subject     = trim((string) $request->post('subject', ''));
+            if ($title === '') {
+                $title = $subject;
+            }
             $opened      = $status !== 'current'
                 ? 'TBA'
                 : trim((string) $request->post('opened', ''));
@@ -950,11 +1003,13 @@ final class ListingController extends AdminController
 
             // --- Field validation ---
             $v = new Validator([
-                'title' => $title,
-                'url'   => $url,
-                'email' => $email,
+                'subject' => $subject,
+                'title'   => $title,
+                'url'     => $url,
+                'email'   => $email,
             ]);
-            $v->field('title')->required()->maxLength(255);
+            $v->field('subject')->required()->maxLength(255);
+            $v->field('title')->maxLength(255);
             // URL is optional once a listing is archived (Closed/Adopted Out) — still
             // validated for format/length when present, just not required.
             $urlField = $v->field('url');
@@ -983,6 +1038,7 @@ final class ListingController extends AdminController
                     'error'               => implode(' ', $messages),
                     'field_errors'        => $v->errors(),
                     'old'                 => [
+                        'subject'            => $subject,
                         'title'              => $title,
                         'url'                => $url,
                         'email'              => $email,
@@ -1076,6 +1132,10 @@ final class ListingController extends AdminController
             // never shown next to a freshly selected TAFL badge (and vice versa).
             $approvalUrlInput = trim((string) $request->post('approval_url', ''));
             if ($prevApprovedBy !== $approvedByInput) {
+                $approvalUrlInput = '';
+            }
+            // Reject non-http(s) schemes to prevent javascript:/data: hrefs reaching public templates.
+            if ($approvalUrlInput !== '' && !preg_match('#^https?://#i', $approvalUrlInput)) {
                 $approvalUrlInput = '';
             }
             $settingsRepo->saveApprovalUrl($id, $approvalUrlInput !== '' ? $approvalUrlInput : null);
@@ -1486,6 +1546,53 @@ final class ListingController extends AdminController
 
         $session->set('lstr_flash_success', "Listing \"{$name}\" deleted successfully.");
         return Response::redirect($baseUrl . '/admin/listings');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/listings/{id}/delete-image
+    // -----------------------------------------------------------------------
+
+    /**
+     * Immediately deletes the listing's image from disk and clears the DB
+     * reference. Returns JSON {ok:true} on success or {ok:false,error:...}.
+     */
+    public function deleteImage(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+
+        $db           = $this->app->getDatabase();
+        $config       = $this->app->getConfig();
+        $session      = $this->app->getSession();
+        $listingRepo  = new ListingRepo($db, $config);
+        $settingsRepo = new ListingSettingsRepo($db);
+        $activityRepo = new ActivityRepo($db);
+
+        $listing = $listingRepo->getById($id);
+        if ($listing === null) {
+            return Response::json(['ok' => false, 'error' => 'Listing not found.']);
+        }
+
+        $filename = $settingsRepo->getImage($id);
+        if ($filename === null || $filename === '') {
+            return Response::json(['ok' => false, 'error' => 'No image to delete.']);
+        }
+
+        $uploadDir = $this->ensureUploadDirectory();
+        $path      = $uploadDir . '/' . $filename;
+        if (is_file($path)) {
+            unlink($path);
+        }
+
+        $settingsRepo->saveImage($id, '');
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'listing.image_delete',
+            "Deleted image for listing #{$id} ({$listing->title})",
+            $request->ip(),
+        );
+
+        return Response::json(['ok' => true]);
     }
 
     // -----------------------------------------------------------------------
@@ -2750,11 +2857,13 @@ final class ListingController extends AdminController
         $siteRepo  = new SiteSettingsRepo($db);
         $globals   = $siteRepo->getGlobalTemplates();
 
+        $rawGlobalMpp = $siteRepo->get('listing_default_members_per_page');
         return $this->adminLayout('admin/listings/global-templates.php', 'Global Templates', 'listings', [
             'success'                    => $success,
             'error'                      => $error,
             'globals'                    => $globals,
             'stat_newmembers_limit'      => $siteRepo->get('stat_newmembers_limit'),
+            'global_members_per_page'    => $rawGlobalMpp !== null ? (int) $rawGlobalMpp : null,
             'affiliate_apply_style'          => $siteRepo->get('global_affiliate_apply_style') ?? 'link',
             'codes_submit_toggle_style'      => $siteRepo->get('global_codes_submit_toggle_style') ?? 'link',
             'affiliate_apply_toggle_label'   => $siteRepo->get('global_affiliate_apply_toggle_label'),
@@ -2805,6 +2914,10 @@ final class ListingController extends AdminController
         $snlRaw = trim((string) $request->post('stat_newmembers_limit', ''));
         $snlVal = $snlRaw !== '' ? (int) $snlRaw : null;
         $siteRepo->set('stat_newmembers_limit', $snlVal !== null ? ($snlVal === 0 ? '0' : '5') : null);
+
+        $glMppRaw = trim((string) $request->post('listing_default_members_per_page', ''));
+        $glMppVal = $glMppRaw !== '' ? max(10, min(100, (int) $glMppRaw)) : null;
+        $siteRepo->set('listing_default_members_per_page', $glMppVal !== null ? (string) $glMppVal : null);
 
         $affStyle = (string) $request->post('affiliate_apply_style', 'link');
         $siteRepo->set('global_affiliate_apply_style', in_array($affStyle, ['link', 'button'], true) ? $affStyle : 'link');

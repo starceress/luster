@@ -133,6 +133,21 @@ final class TemplateRevisionRepo
     }
 
     /**
+     * Deletes all revisions for a specific template key within a listing.
+     */
+    public function deleteByKey(int $listingId, string $key): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'DELETE FROM `lstr_template_revisions` WHERE fanlisting_id = :lid AND template_key = :key'
+            );
+            $stmt->execute(['lid' => $listingId, 'key' => $key]);
+        } catch (\PDOException) {
+            // Ignore if table absent.
+        }
+    }
+
+    /**
      * Deletes all revisions for a listing (used when the listing is deleted).
      */
     public function deleteForListing(int $listingId): void

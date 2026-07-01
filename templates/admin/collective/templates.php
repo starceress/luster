@@ -57,7 +57,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
     <a href="<?= $b ?>/admin/collective" class="link">&larr; Back to Collective</a>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/collective/snippets" class="btn btn-quaternary btn-sm">Collective Specific Embed Snippets</a>
+    <a href="<?= $b ?>/admin/collective/snippets" class="btn btn-quaternary btn-sm">Collective Embed Snippets</a>
   </div>
 </div>
 
@@ -70,7 +70,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
 <div class="filter-panel is-open">
   <div class="filter-row" id="tpl-filter-row">
-    <label for="tpl-group-select" style="font-weight:600; white-space:nowrap">Select Template:</label>
+    <label for="tpl-group-select" class="tpl-filter-label">Select Template:</label>
     <div class="select-wrap">
       <select id="tpl-group-select" class="form">
         <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
@@ -122,13 +122,23 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       </div>
 
       <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
-        <div style="text-align:center; padding: 0.75rem 0;">
-          <button type="button" class="btn btn-tertiary btn-block-center"
+        <div class="tpl-actions-row">
+          <button type="button" class="btn btn-tertiary"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/settings/templates/reset-all"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>"
                   data-confirm="Reset all collective templates to the built-in defaults?&#10;&#10;Any collective template customisations will be lost.">Reset All Templates to Default</button>
+          <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-export-btn"
+                  data-endpoint="<?= $b ?>/admin/collective/templates/template-pack/export"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export Templates&hellip;</button>
+          <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-import-btn"
+                  data-endpoint="<?= $b ?>/admin/collective/templates/template-pack/import-preview"
+                  data-apply-endpoint="<?= $b ?>/admin/collective/templates/template-pack/import-apply"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Import Templates&hellip;</button>
         </div>
+        <input type="file" id="fl-tpack-file-input" accept=".json" style="display:none">
       </div>
 
       <div class="card-body">

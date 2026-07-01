@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
+<div class="fl-embed fl-embed--affiliates">
 <?php if (($section_html ?? null) !== null): ?>
   <?= $section_html ?>
   <?php if (($pagination ?? '') !== ''): ?>
@@ -47,3 +48,4 @@ use Luster\Core\View;
     <div class="fl-pagination-wrap"><?= $pagination ?></div>
   <?php endif; ?>
 <?php endif; ?>
+</div>

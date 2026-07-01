@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
+<div class="fl-embed fl-embed--rules-gate">
 <?php if ($already_agreed ?? false): ?>
 
 <div class="fl-rules-agreed">
@@ -33,3 +34,4 @@ use Luster\Core\View;
 </div>
 
 <?php endif; ?>
+</div>

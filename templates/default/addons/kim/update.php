@@ -19,13 +19,13 @@ $_linkReset = (($link_reset ?? null) !== null && $link_reset !== '') ? $link_res
 $_linkList  = (($link_list  ?? null) !== null && $link_list  !== '') ? $link_list  : null;
 
 if (($success_html ?? '') !== '') {
-    echo '<div class="fl-kim">' . $success_html . '</div>';
+    echo '<div class="fl-embed fl-embed--kim-update"><div class="fl-kim">' . $success_html . '</div></div>';
     return;
 }
 
 if (isset($form_html) && $form_html !== null) {
     ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-update"><div class="fl-kim">
   <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
   <?= $form_html ?>
   <?php
@@ -36,12 +36,12 @@ if (isset($form_html) && $form_html !== null) {
   <?php if (!empty($_metaLinks)): ?>
   <p class="fl-kim-meta"><?= implode(' &middot; ', $_metaLinks) ?></p>
   <?php endif; ?>
-</div>
+</div></div>
     <?php
     return;
 }
 ?>
-<div class="fl-kim">
+<div class="fl-embed fl-embed--kim-update"><div class="fl-kim">
   <h2 class="fl-kim-heading">KIM List &mdash; Sign In</h2>
   <p class="fl-kim-intro">Sign in to manage your KIM List entries across all fanlistings.</p>
 
@@ -76,4 +76,4 @@ if (isset($form_html) && $form_html !== null) {
     <?= implode(' &middot; ', $_metaLinks) ?>
   </p>
   <?php endif; ?>
-</div>
+</div></div>

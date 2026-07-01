@@ -92,16 +92,6 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
         </div>
       </div>
 
-      <div class="field-row" id="row-url-affiliate-apply"<?= !$_affiliateOn ? ' style="display:none"' : '' ?>>
-        <label class="field-label" for="s-form-url-affiliate-apply">Host page URL</label>
-        <div>
-          <input id="s-form-url-affiliate-apply" type="text" name="collective_form_url_affiliate_apply" class="form" maxlength="200"
-                 value="<?= View::e($site_settings['collective_form_url_affiliate_apply'] ?? '') ?>"
-                 placeholder="affiliates.php">
-          <p class="form-hint">The public page on your site where other sites can apply to affiliate with your collective.</p>
-        </div>
-      </div>
-
       <div class="field-row" id="row-aff-style"<?= !$_affiliateOn ? ' style="display:none"' : '' ?>>
         <label class="field-label" for="s-aff-style">Toggle style</label>
         <div>
@@ -122,6 +112,16 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
                  value="<?= View::e($site_settings['collective_affiliate_apply_toggle_label'] ?? '') ?>"
                  placeholder="Apply to become an affiliate?">
           <p class="form-hint">The text on the collapsible <code>{affiliate_apply_toggle}</code>. Leave blank for the default.</p>
+        </div>
+      </div>
+
+      <div class="field-row" id="row-url-affiliate-apply"<?= !$_affiliateOn ? ' style="display:none"' : '' ?>>
+        <label class="field-label" for="s-form-url-affiliate-apply">Host page URL</label>
+        <div>
+          <input id="s-form-url-affiliate-apply" type="text" name="collective_form_url_affiliate_apply" class="form" maxlength="200"
+                 value="<?= View::e($site_settings['collective_form_url_affiliate_apply'] ?? '') ?>"
+                 placeholder="affiliates.php">
+          <p class="form-hint">The public page on your site where other sites can apply to affiliate with your collective.</p>
         </div>
       </div>
     </div>

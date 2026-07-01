@@ -14,17 +14,22 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 if (isset($success_html) && $success_html !== '') {
+    echo '<div class="fl-embed fl-embed--adopt">';
     echo $success_html;
+    echo '</div>';
     return;
 }
 if (isset($form_html)) {
-    ?>
-<?php if ($errors !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
-<?= $form_html ?>
-    <?php
+    echo '<div class="fl-embed fl-embed--adopt">';
+    if ($errors !== '') {
+        echo '<div class="fl-errors">' . $errors . '</div>';
+    }
+    echo $form_html;
+    echo '</div>';
     return;
 }
 ?>
+<div class="fl-embed fl-embed--adopt">
 
 <?php if ($errors !== ''): ?>
   <div class="fl-errors"><?= $errors ?></div>
@@ -51,3 +56,4 @@ if (isset($form_html)) {
     <button type="reset" class="fl-btn-secondary">Clear</button>
   </div>
 </form>
+</div>

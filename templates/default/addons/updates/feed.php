@@ -21,10 +21,13 @@ $_activeCat   = $active_cat ?? '';
 // Guard with !empty($updates) so the hardcoded empty state is shown for zero-result pages
 // even when a custom template is configured (the template loop produces no rows, not a message).
 if (isset($updates_template_html) && $updates_template_html !== null) {
+    echo '<div class="fl-embed fl-embed--updates">';
     echo $updates_template_html . ($pagination ?? '');
+    echo '</div>';
     return;
 }
 ?>
+<div class="fl-embed fl-embed--updates">
 <?php if (empty($updates)): ?>
 <p class="fl-empty">No updates posted yet.</p>
 <?php else: ?>
@@ -61,3 +64,4 @@ if (isset($updates_template_html) && $updates_template_html !== null) {
 <?php endif; ?>
 
 <?php endif; ?>
+</div>

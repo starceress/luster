@@ -1046,6 +1046,43 @@ document.addEventListener('drop', function (e) {
   input.dispatchEvent(new Event('change', { bubbles: true }));
 });
 
+// ── 24a-ii. Listing image: immediate delete with confirmation modal ───────────
+(function () {
+  var deleteBtn = document.getElementById('fl-delete-image-btn');
+  if (!deleteBtn) return;
+
+  deleteBtn.addEventListener('click', function () {
+    var url  = deleteBtn.dataset.deleteUrl || '';
+    var csrf = deleteBtn.dataset.csrf || '';
+    if (!url) return;
+
+    window.lstrDelModal.trigger(function () {
+      var body = new URLSearchParams();
+      body.append('_csrf', csrf);
+
+      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            window.lstrToast('success', 'Image deleted.');
+            var panel = document.getElementById('fl-img-current-card');
+            if (panel) panel.closest('.img-upload-panel--two-col').outerHTML =
+              '<div class="img-upload-panel">'
+              + '<label class="file-drop-zone">'
+              + '<input type="file" id="thumbnail" name="image" accept="image/jpeg,image/png,image/gif,image/webp">'
+              + '<span class="file-drop-icon"></span>'
+              + '<strong>Drag &amp; drop or click to browse</strong>'
+              + '<span class="form-hint">JPEG, PNG, GIF, WebP — max 2 MB</span>'
+              + '</label></div>';
+          } else {
+            window.lstrToast('error', data.error || 'Could not delete image.');
+          }
+        })
+        .catch(function () { window.lstrToast('error', 'Request failed.'); });
+    }, 'listing_image', '', '', '');
+  });
+}());
+
 // ── 24b. Listings edit: status pill toggle ────────────────────────────────────
 // Active state is handled by CSS :has(input:checked) on .status-pill--* classes.
 
@@ -3924,9 +3961,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   }
 
   function isTba(val) {
-    // Add listing uses numeric strings: '0'=pending, '1'=upcoming, '2'=current
-    // Edit listing uses: 'pending', 'upcoming', 'current', 'closed', 'adopted_out'
-    return val === '0' || val === '1' || val === 'upcoming' || val === 'pending'
+    return val === 'upcoming' || val === 'pending'
         || val === 'closed' || val === 'adopted_out';
   }
 
@@ -4021,7 +4056,8 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     rules:                 { title: 'Delete Rules',            btn: 'Delete',      desc: 'You are about to delete the join rules for <strong>$$names$$</strong>.',               warn: 'Deleting removes the rules text (and rules gate, if enabled) entirely for this listing. This action cannot be undone.' },
     wishlist_entry:        { title: 'Delete Wishlist Entries', btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong>.',                                   warn: 'This action cannot be undone.' },
     'reset-all-templates': { title: 'Reset All Templates',     btn: 'Reset All',   desc: 'You are about to reset <strong>$$names$$</strong>.',                                      warn: 'Every template for this listing will revert to the global default. Any per-listing customisations will be lost.' },
-    adoption_application:  { title: 'Reject Application',      btn: 'Reject',      desc: 'You are about to reject the application from <strong>$$names$$</strong>.',               warn: 'The applicant will be marked as rejected. This action cannot be undone.' }
+    adoption_application:  { title: 'Reject Application',      btn: 'Reject',      desc: 'You are about to reject the application from <strong>$$names$$</strong>.',               warn: 'The applicant will be marked as rejected. This action cannot be undone.' },
+    listing_image:         { title: 'Delete Image',            btn: 'Delete',      desc: 'You are about to delete the image for this listing.',                                    warn: 'This will permanently remove the image file. This action cannot be undone.' }
   };
 
   function show(cfg, names, context, warnOverride) {
@@ -6846,11 +6882,11 @@ document.addEventListener('click', function (e) {
 (function () {
   'use strict';
 
+  // tplPanel may be null on global/collective template pages; only revision
+  // history depends on it -- export/import/copy work without it.
   var tplPanel = document.getElementById('tab-templates');
-  if (!tplPanel) return;
-
-  var tplBase = tplPanel.dataset.tplBase || '';
-  var tplCsrf = tplPanel.dataset.tplCsrf || '';
+  var tplBase  = tplPanel ? (tplPanel.dataset.tplBase || '') : '';
+  var tplCsrf  = tplPanel ? (tplPanel.dataset.tplCsrf || '') : '';
 
   function esc(s) {
     return String(s)
@@ -6858,21 +6894,23 @@ document.addEventListener('click', function (e) {
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  // --- Inject "History" buttons into each template section ---
-  tplPanel.querySelectorAll('.tpl-group-section').forEach(function (section) {
-    var textarea = section.querySelector('textarea[name]');
-    var resetRow = section.querySelector('.tpl-reset-row');
-    if (!textarea || !resetRow) return;
+  // --- Inject "History" buttons into each template section (per-listing only) ---
+  if (tplPanel) {
+    tplPanel.querySelectorAll('.tpl-group-section').forEach(function (section) {
+      var textarea = section.querySelector('textarea[name]');
+      var resetRow = section.querySelector('.tpl-reset-row');
+      if (!textarea || !resetRow) return;
 
-    var key = textarea.name;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn btn-ghost btn-xs tpl-history-btn';
-    btn.dataset.tplKey = key;
-    btn.textContent = 'History';
-    resetRow.appendChild(document.createTextNode('  '));
-    resetRow.appendChild(btn);
-  });
+      var key = textarea.name;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-ghost btn-xs tpl-history-btn';
+      btn.dataset.tplKey = key;
+      btn.textContent = 'History';
+      resetRow.appendChild(document.createTextNode('  '));
+      resetRow.appendChild(btn);
+    });
+  }
 
   // ── Export ────────────────────────────────────────────────────────────────
   var exportBtn = document.getElementById('fl-tpack-export-btn');
@@ -6932,7 +6970,7 @@ document.addEventListener('click', function (e) {
 
               var body = new URLSearchParams();
               var applyEndpoint = importBtn.dataset.applyEndpoint || '';
-              body.append('_csrf', tplCsrf);
+              body.append('_csrf', importBtn.dataset.csrf || '');
               body.append('templates_json', JSON.stringify(selected));
 
               applyBtn.disabled = true;
@@ -7029,7 +7067,7 @@ document.addEventListener('click', function (e) {
               if (!keys.length) { window.lstrToast('error', 'Select at least one template to copy.'); return; }
 
               var body = new URLSearchParams();
-              body.append('_csrf', tplCsrf);
+              body.append('_csrf', copyBtn.dataset.csrf || '');
               body.append('from', fromId);
               body.append('keys_json', JSON.stringify(keys));
 
@@ -7073,59 +7111,112 @@ document.addEventListener('click', function (e) {
   }
 
   // ── Revision History ──────────────────────────────────────────────────────
-  tplPanel.addEventListener('click', function (e) {
-    var btn = e.target.closest('.tpl-history-btn');
-    if (!btn) return;
+  var histModal    = document.getElementById('tpl-hist-modal');
+  var histTitle    = document.getElementById('tpl-hist-title');
+  var histBody     = document.getElementById('tpl-hist-body');
+  var histClose    = document.getElementById('tpl-hist-close');
+  var histCancel   = document.getElementById('tpl-hist-cancel');
+  var histFlush    = document.getElementById('tpl-hist-flush');
+  var _histKey     = '';
+  var _histTextarea = null;
 
-    var key    = btn.dataset.tplKey || '';
-    var url    = tplBase + '/template-revisions?key=' + encodeURIComponent(key);
-    var section = btn.closest('.tpl-group-section');
-    var textarea = section ? section.querySelector('textarea[name="' + key + '"]') : null;
+  function openHistModal(title) {
+    if (!histModal) return;
+    if (histTitle) histTitle.textContent = title;
+    histModal.classList.remove('is-hidden');
+  }
+  function closeHistModal() {
+    if (histModal) histModal.classList.add('is-hidden');
+    _histKey = '';
+    _histTextarea = null;
+  }
 
-    fetch(url)
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (!data.ok) { window.lstrToast('error', data.error || 'Could not load history.'); return; }
-        showTpackModal('Revision History: ' + key.replace(/_/g, ' '), buildHistoryHtml(data.revisions), function (modal) {
-          modal.addEventListener('click', function (ev) {
-            var restoreBtn = ev.target.closest('.tpack-restore-btn');
-            if (!restoreBtn) return;
-            var revId = restoreBtn.dataset.revId;
-            fetch(tplBase + '/template-revisions/' + encodeURIComponent(revId))
-              .then(function (r) { return r.json(); })
-              .then(function (d) {
-                if (!d.ok) { window.lstrToast('error', 'Could not load revision.'); return; }
-                if (textarea) {
-                  textarea.value = d.value !== null ? d.value : '';
-                  textarea.dispatchEvent(new Event('input'));
-                  window.lstrToast('success', 'Revision loaded into editor. Save the form to keep it.');
-                }
-                closeTpackModal(modal);
-              });
-          });
+  if (histClose)  histClose.addEventListener('click', closeHistModal);
+  if (histCancel) histCancel.addEventListener('click', closeHistModal);
+  if (histModal)  histModal.addEventListener('click', function (e) { if (e.target === histModal) closeHistModal(); });
 
-          var cancelBtn = modal.querySelector('.tpack-modal-cancel');
-          if (cancelBtn) {
-            cancelBtn.addEventListener('click', function () { closeTpackModal(modal); });
-          }
-        });
-      })
-      .catch(function () { window.lstrToast('error', 'Failed to load history.'); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && histModal && !histModal.classList.contains('is-hidden')) closeHistModal();
   });
 
-  function buildHistoryHtml(revisions) {
+  function renderHistoryBody(revisions) {
     if (!revisions || !revisions.length) {
-      return '<p class="form-hint">No revision history yet. Revisions are recorded each time you save the template.</p><div style="margin-top:1rem"><button type="button" class="btn btn-ghost tpack-modal-cancel">Close</button></div>';
+      histBody.innerHTML = '<p class="form-hint">No revision history yet. Revisions are recorded each time you save the template.</p>';
+      return;
     }
-    var html = '<p class="form-hint" style="margin-bottom:.5rem">Clicking &ldquo;Restore&rdquo; puts the old value into the editor — save the form to keep it.</p>';
+    var html = '<p class="form-hint" style="margin-bottom:.5rem">Clicking &ldquo;Restore&rdquo; puts the old value into the editor &mdash; save the form to keep it.</p>';
     html += '<table class="data-table" style="width:100%;font-size:.85rem"><thead><tr><th>Saved At</th><th>Preview</th><th></th></tr></thead><tbody>';
     revisions.forEach(function (r) {
       var preview = r.preview ? r.preview.substring(0, 60).replace(/\s+/g, ' ') : '(empty)';
-      html += '<tr><td style="white-space:nowrap">' + esc(r.saved_at) + '</td><td style="font-family:monospace;font-size:.8em">' + esc(preview) + (r.preview && r.preview.length > 60 ? '…' : '') + '</td><td><button type="button" class="btn btn-xs btn-ghost tpack-restore-btn" data-rev-id="' + esc(r.id) + '"' + (!r.has_value ? ' disabled' : '') + '>Restore</button></td></tr>';
+      html += '<tr><td style="white-space:nowrap">' + esc(r.saved_at) + '</td>'
+            + '<td style="font-family:monospace;font-size:.8em">' + esc(preview) + (r.preview && r.preview.length > 60 ? '&hellip;' : '') + '</td>'
+            + '<td><button type="button" class="btn btn-xs btn-ghost tpack-restore-btn" data-rev-id="' + esc(String(r.id)) + '"' + (!r.has_value ? ' disabled' : '') + '>Restore</button></td></tr>';
     });
     html += '</tbody></table>';
-    html += '<div style="margin-top:1rem"><button type="button" class="btn btn-ghost tpack-modal-cancel">Close</button></div>';
-    return html;
+    histBody.innerHTML = html;
+  }
+
+  if (histBody) {
+    histBody.addEventListener('click', function (ev) {
+      var restoreBtn = ev.target.closest('.tpack-restore-btn');
+      if (!restoreBtn || !_histKey) return;
+      var revId = restoreBtn.dataset.revId;
+      fetch(tplBase + '/template-revisions/' + encodeURIComponent(revId))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) { window.lstrToast('error', 'Could not load revision.'); return; }
+          if (_histTextarea) {
+            _histTextarea.value = d.value !== null ? d.value : '';
+            _histTextarea.dispatchEvent(new Event('input'));
+            window.lstrToast('success', 'Revision loaded into editor. Save the form to keep it.');
+          }
+          closeHistModal();
+        })
+        .catch(function () { window.lstrToast('error', 'Request failed.'); });
+    });
+  }
+
+  if (histFlush) {
+    histFlush.addEventListener('click', function () {
+      if (!_histKey || !tplBase) return;
+      var body = new URLSearchParams();
+      body.append('_csrf', tplCsrf || '');
+      body.append('key', _histKey);
+      fetch(tplBase + '/template-revisions/flush', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            renderHistoryBody([]);
+            window.lstrToast('success', 'Revision history cleared.');
+          } else {
+            window.lstrToast('error', data.error || 'Could not flush history.');
+          }
+        })
+        .catch(function () { window.lstrToast('error', 'Request failed.'); });
+    });
+  }
+
+  if (tplPanel) {
+    tplPanel.addEventListener('click', function (e) {
+      var btn = e.target.closest('.tpl-history-btn');
+      if (!btn) return;
+
+      var key     = btn.dataset.tplKey || '';
+      var section = btn.closest('.tpl-group-section');
+      _histTextarea = section ? section.querySelector('textarea[name="' + key + '"]') : null;
+      _histKey      = key;
+
+      openHistModal('Revision History: ' + key.replace(/_/g, ' '));
+      if (histBody) histBody.innerHTML = '<p class="form-hint">Loading&hellip;</p>';
+
+      fetch(tplBase + '/template-revisions?key=' + encodeURIComponent(key))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) { window.lstrToast('error', data.error || 'Could not load history.'); closeHistModal(); return; }
+          renderHistoryBody(data.revisions);
+        })
+        .catch(function () { window.lstrToast('error', 'Failed to load history.'); closeHistModal(); });
+    });
   }
 
   // ── Modal helpers ─────────────────────────────────────────────────────────
@@ -7135,24 +7226,40 @@ document.addEventListener('click', function (e) {
 
     var overlay = document.createElement('div');
     overlay.id = 'tpack-modal';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:1rem';
+    overlay.className = 'modal-backdrop';
 
     var dialog = document.createElement('div');
-    dialog.style.cssText = 'background:var(--bg-surface,#fff);border-radius:var(--radius-card,8px);padding:1.5rem;max-width:680px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)';
+    dialog.className = 'modal modal--wide';
 
-    var h3 = document.createElement('h3');
-    h3.style.cssText = 'margin:0 0 1rem;font-size:1.1rem';
-    h3.textContent = title;
+    var hdr = document.createElement('div');
+    hdr.className = 'modal-header';
+
+    var titleEl = document.createElement('span');
+    titleEl.className = 'modal-title';
+    titleEl.textContent = title;
+
+    var headerActions = document.createElement('div');
+    headerActions.className = 'modal-header-actions';
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn btn-tertiary btn-sm';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.innerHTML = '× Close';
+    closeBtn.addEventListener('click', function () { closeTpackModal(overlay); });
+    headerActions.appendChild(closeBtn);
+
+    hdr.appendChild(titleEl);
+    hdr.appendChild(headerActions);
 
     var body = document.createElement('div');
+    body.className = 'modal-body';
     body.innerHTML = bodyHtml;
 
-    // Delegate Cancel button
     body.addEventListener('click', function (e) {
       if (e.target.closest('.tpack-modal-cancel')) closeTpackModal(overlay);
     });
 
-    dialog.appendChild(h3);
+    dialog.appendChild(hdr);
     dialog.appendChild(body);
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
@@ -7161,9 +7268,9 @@ document.addEventListener('click', function (e) {
       if (e.target === overlay) closeTpackModal(overlay);
     });
 
-    document.addEventListener('keydown', function escHandler(e) {
-      if (e.key === 'Escape') { closeTpackModal(overlay); document.removeEventListener('keydown', escHandler); }
-    }, { once: true });
+    var escHandler = function (e) { if (e.key === 'Escape') closeTpackModal(overlay); };
+    overlay._escHandler = escHandler;
+    document.addEventListener('keydown', escHandler);
 
     if (onReady) onReady(body);
     return overlay;
@@ -7171,7 +7278,10 @@ document.addEventListener('click', function (e) {
 
   function closeTpackModal(el) {
     var modal = el.closest ? el.closest('#tpack-modal') : (el.id === 'tpack-modal' ? el : document.getElementById('tpack-modal'));
-    if (modal) modal.remove();
+    if (modal) {
+      if (modal._escHandler) document.removeEventListener('keydown', modal._escHandler);
+      modal.remove();
+    }
   }
 }());
 
