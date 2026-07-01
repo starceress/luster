@@ -20,6 +20,8 @@ use Luster\Controllers\Public\CollectiveUpdateController;
 use Luster\Core\Countries;
 use Luster\Core\View;
 use Luster\Repositories\CollectiveUpdateTokenRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormTemplateRenderer;
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster
@@ -127,21 +129,56 @@ if ($_lusterRawToken !== '') {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Render
+// 5. Build the Step-1 form HTML from the admin-editable template
+// ---------------------------------------------------------------------------
+
+$_lusterDb          = $_lusterApp->getDatabase();
+$_lusterUpdateTpl   = (new SiteSettingsRepo($_lusterDb))->get('collective_update_form_template')
+    ?: SiteSettingsRepo::defaultCollectiveUpdateFormTemplate();
+
+$_lusterFb          = $_lusterApp->getFormFieldBuilder();
+$_lusterEmailFields = $_lusterFb->build([
+    ['type' => 'email', 'name' => 'email', 'id' => 'cu-email', 'label' => 'Your email address',
+     'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email',
+     'value' => $_lusterOldEmail]],
+], '');
+
+$_lusterRequestTokens = [
+    '{site_name}'         => htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+    '{field_email}'       => $_lusterEmailFields['email'],
+    '{field_email_input}' => $_lusterEmailFields['email_input'],
+    '{submit_button}'     => '<button type="submit" class="fl-submit">Send verification link</button>',
+    '{clear_button}'      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+];
+
+$_lusterRequestInner   = FormTemplateRenderer::expandTokens($_lusterUpdateTpl, $_lusterRequestTokens);
+$_lusterRequestFormHtml = FormTemplateRenderer::wrapForm(
+    $_lusterRequestInner,
+    $_lusterRedirectTo,
+    $_lusterCsrfToken,
+    false,
+    false,
+    'collective_update'
+);
+
+// ---------------------------------------------------------------------------
+// 6. Render
 // ---------------------------------------------------------------------------
 
 $_lusterHtml = View::renderFragment('collective-update.php', [
-    'base_url'      => $_lusterApp->getBaseUrl(),
-    'csrf_token'    => $_lusterCsrfToken,
-    'success_html'  => $_lusterSuccess,
-    'error'         => $_lusterError !== '' ? htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '',
-    'old_email'     => htmlspecialchars($_lusterOldEmail, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-    // Token step
-    'token_valid'   => $_lusterTokenRow !== null,
-    'raw_token'     => $_lusterRawToken,
-    'token_email'   => htmlspecialchars($_lusterTokenEmail, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-    'memberships'   => $_lusterMemberships, // array of ['listing'=>Listing,'member'=>Member]
-    'countries'     => Countries::list(),
+    'base_url'          => $_lusterApp->getBaseUrl(),
+    'form_action'       => $_lusterRedirectTo,
+    'csrf_token'        => $_lusterCsrfToken,
+    'success_html'      => $_lusterSuccess,
+    'error'             => $_lusterError !== '' ? htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '',
+    // Pre-rendered Step 1 (email-request form)
+    'request_form_html' => $_lusterRequestFormHtml,
+    // Token step (Step 2)
+    'token_valid'       => $_lusterTokenRow !== null,
+    'raw_token'         => $_lusterRawToken,
+    'token_email'       => htmlspecialchars($_lusterTokenEmail, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+    'memberships'       => $_lusterMemberships,
+    'countries'         => Countries::list(),
 ]);
 
 if ($luster_return ?? false) {

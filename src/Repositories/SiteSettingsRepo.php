@@ -104,7 +104,7 @@ class SiteSettingsRepo
      * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_contact_sent_template: string, collective_adoption_form_template: string, collective_kim_list_overview_template: string, collective_kim_list_subject_template: string, kim_update_form_template: string, kim_reset_form_template: string, collective_contact_form_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_contact_sent_template: string, collective_adoption_form_template: string, collective_kim_list_overview_template: string, collective_kim_list_subject_template: string, kim_update_form_template: string, kim_reset_form_template: string, collective_contact_form_template: string, collective_update_form_template: string}
      */
     public static function collectiveDefaults(): array
     {
@@ -248,6 +248,7 @@ class SiteSettingsRepo
             'kim_update_form_template'                   => self::defaultKimUpdateFormTemplate(),
             'kim_reset_form_template'                    => self::defaultKimResetFormTemplate(),
             'collective_contact_form_template'           => self::defaultCollectiveContactFormTemplate(),
+            'collective_update_form_template'            => self::defaultCollectiveUpdateFormTemplate(),
         ];
     }
 
@@ -564,6 +565,22 @@ HTML;
             . '{field_message}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
+            . '</div>';
+    }
+
+    /**
+     * Default Collective Update Form template (Step 1 — email-request only).
+     * Step 2 (the update form with listing checkboxes) is rendered by the embed.
+     */
+    public static function defaultCollectiveUpdateFormTemplate(): string
+    {
+        return '<div class="fl-form-fields">' . "\n"
+            . '{field_email}' . "\n"
+            . '</div>' . "\n"
+            . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"

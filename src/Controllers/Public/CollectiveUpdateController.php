@@ -54,7 +54,7 @@ final class CollectiveUpdateController
         $rateLimit     = $this->app->getRateLimit();
         $ip            = $request->ip();
 
-        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
+        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_COLLECTIVE_UPDATE_REQ)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
             return Response::redirect($embedReturnTo);
         }
@@ -65,13 +65,15 @@ final class CollectiveUpdateController
             return Response::redirect($embedReturnTo);
         }
 
+        // Count every real submission against the rate limit, not just invalid ones
+        $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_COLLECTIVE_UPDATE_REQ);
+
         $email = trim((string) $request->post('email', ''));
 
         $v = new Validator(['email' => $email]);
         $v->field('email')->required()->email()->maxLength(255);
 
         if ($v->fails()) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old_email', $email);
             return Response::redirect($embedReturnTo);
@@ -142,18 +144,16 @@ final class CollectiveUpdateController
         }
 
         $tokenRepo = new CollectiveUpdateTokenRepo($this->app->getDatabase());
-        $tokenRow  = $tokenRepo->findValid($rawToken);
+        $email     = $tokenRepo->verifyAndConsume($rawToken);
 
-        if ($tokenRow === null) {
+        if ($email === null) {
             $session->set('lstr_flash_error', 'That update link is invalid or has expired. Please request a new one.');
             return Response::redirect($embedReturnTo);
         }
 
-        $email       = (string) $tokenRow['email'];
         $memberships = self::findMembershipsForEmail($email, $this->app);
 
         if ($memberships === []) {
-            $tokenRepo->markUsed((int) $tokenRow['id']);
             $session->set('lstr_flash_error', 'No active memberships were found for your email address.');
             return Response::redirect($embedReturnTo);
         }
@@ -195,9 +195,6 @@ final class CollectiveUpdateController
             $session->set('lstr_flash_error', 'Please select at least one fanlisting to update.');
             return Response::redirect($embedReturnTo);
         }
-
-        // Consume the token before applying updates to prevent replay on failure
-        $tokenRepo->markUsed((int) $tokenRow['id']);
 
         $memberRepo    = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());

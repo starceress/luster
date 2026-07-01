@@ -36,18 +36,20 @@ final class RateLimit
     public const ACTION_PUBLIC_CONTACT           = 'public_contact';
     public const ACTION_PUBLIC_ADOPT             = 'public_adopt';
     public const ACTION_PUBLIC_AFFILIATE_APPLY   = 'public_affiliate_apply';
-    public const ACTION_PUBLIC_CODE_SUBMIT       = 'public_code_submit';
+    public const ACTION_PUBLIC_CODE_SUBMIT           = 'public_code_submit';
+    public const ACTION_PUBLIC_COLLECTIVE_UPDATE_REQ = 'public_collective_update_req';
 
     private const DEFAULTS = [
-        self::ACTION_ADMIN_LOGIN              => ['max' => 5,  'window' => 900],
-        self::ACTION_PUBLIC_JOIN              => ['max' => 10, 'window' => 3600],
-        self::ACTION_PUBLIC_UPDATE            => ['max' => 10, 'window' => 3600],
-        self::ACTION_PUBLIC_RESET             => ['max' => 5,  'window' => 3600],
-        self::ACTION_ADMIN_FORGOT             => ['max' => 3,  'window' => 3600],
-        self::ACTION_PUBLIC_CONTACT           => ['max' => 5,  'window' => 3600],
-        self::ACTION_PUBLIC_ADOPT             => ['max' => 5,  'window' => 3600],
-        self::ACTION_PUBLIC_AFFILIATE_APPLY   => ['max' => 5,  'window' => 3600],
-        self::ACTION_PUBLIC_CODE_SUBMIT       => ['max' => 5,  'window' => 3600],
+        self::ACTION_ADMIN_LOGIN                  => ['max' => 5,  'window' => 900],
+        self::ACTION_PUBLIC_JOIN                  => ['max' => 10, 'window' => 3600],
+        self::ACTION_PUBLIC_UPDATE                => ['max' => 10, 'window' => 3600],
+        self::ACTION_PUBLIC_RESET                 => ['max' => 5,  'window' => 3600],
+        self::ACTION_ADMIN_FORGOT                 => ['max' => 3,  'window' => 3600],
+        self::ACTION_PUBLIC_CONTACT               => ['max' => 5,  'window' => 3600],
+        self::ACTION_PUBLIC_ADOPT                 => ['max' => 5,  'window' => 3600],
+        self::ACTION_PUBLIC_AFFILIATE_APPLY       => ['max' => 5,  'window' => 3600],
+        self::ACTION_PUBLIC_CODE_SUBMIT           => ['max' => 5,  'window' => 3600],
+        self::ACTION_PUBLIC_COLLECTIVE_UPDATE_REQ => ['max' => 5,  'window' => 3600],
     ];
 
     public function __construct(private readonly Database $db) {}

@@ -37,6 +37,7 @@ $kimListSubjectVal        = $ct['collective_kim_list_subject_template']        ?
 $kimUpdateFormVal         = $ct['kim_update_form_template']                    ?: ($d['kim_update_form_template'] ?? '');
 $kimResetFormVal          = $ct['kim_reset_form_template']                     ?: ($d['kim_reset_form_template'] ?? '');
 $contactFormVal           = $ct['collective_contact_form_template']            ?: ($d['collective_contact_form_template'] ?? '');
+$collectiveUpdateFormVal  = $ct['collective_update_form_template']             ?: ($d['collective_update_form_template'] ?? '');
 
 // Renders one clickable token row for the sidebar reference panel.
 $tok = static fn(string $ta, string $token, string $label, string $desc): string =>
@@ -184,6 +185,19 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
           <div class="tpl-reset-row">
             <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="random" data-textarea="random_listing_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="random_listing_template">Reset to Luster Default</button>
+          </div>
+        </div>
+
+        <!-- ── Collective Update Form ── -->
+        <div class="tpl-group-section" data-tpl-group="collective-update-form" <?= $_grp('collective-update-form') ?>>
+          <div class="section-label">Collective Update Form</div>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the Collective Update embed. Controls the email-request step (Step 1) that sends a verification link. The update form (Step 2) is rendered automatically and is not customisable here.</p>
+          <div class="field-group">
+            <textarea name="collective_update_form_template" id="collective_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveUpdateFormVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="collective_update_form" data-textarea="collective_update_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="collective_update_form_template">Reset to Luster Default</button>
           </div>
         </div>
 
@@ -567,6 +581,21 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('random_listing_template', '{if_tfl}{/if_tfl}',                         '{if_tfl}...{/if_tfl}',                         'Shows only when this listing is TFL-approved.') ?>
             <?= $tok('random_listing_template', '{if_tafl}{/if_tafl}',                       '{if_tafl}...{/if_tafl}',                       'Shows only when this listing is TAFL-approved.') ?>
             <?= $tok('random_listing_template', '{if_approved_by}{/if_approved_by}',         '{if_approved_by}...{/if_approved_by}',         'Shows only when this listing is approved by either network.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <!-- ── Collective Update Form ────────────────── -->
+      <details class="card chevron" data-token-card data-tpl-group="collective-update-form" <?= $_grp('collective-update-form') ?>>
+        <summary class="chevron-head">Collective Update Form Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls the email-request step only. The update form (Step 2) is rendered automatically.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_update_form_template', '{site_name}',         '{site_name}',         'The collective/site name.') ?>
+            <?= $tok('collective_update_form_template', '{field_email}',       '{field_email}',       'Email address field with label and input.') ?>
+            <?= $tok('collective_update_form_template', '{field_email_input}', '{field_email_input}', 'Just the email input element, without the label wrapper.') ?>
+            <?= $tok('collective_update_form_template', '{submit_button}',     '{submit_button}',     'The submit button.') ?>
+            <?= $tok('collective_update_form_template', '{clear_button}',      '{clear_button}',      'A clear/reset button.') ?>
           </tbody></table>
         </div>
       </details>

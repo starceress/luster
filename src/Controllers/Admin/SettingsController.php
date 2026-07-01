@@ -355,6 +355,7 @@ final class SettingsController extends AdminController
             'adoption',
             'wishlist',
             'updates',
+            'collective-update-form',
         ];
         $activeGroup = (string) $request->query('group', 'all');
         if (!in_array($activeGroup, $groupWhitelist, true)) {
@@ -383,6 +384,7 @@ final class SettingsController extends AdminController
             'kim_reset_form_template',
             'collective_contact_form_template',
             'collective_adoption_form_template',
+            'collective_update_form_template',
         ]);
 
         return $this->adminLayout('admin/collective/templates.php', 'Collective Templates', 'collective', [
@@ -427,6 +429,7 @@ final class SettingsController extends AdminController
             'wishlist', 'collective_updates',
             'collective_codes', 'collective_codes_submit_form',
             'collective_contact_form',
+            'collective_update_form',
         ];
 
         if (!in_array($type, $allowed, true)) {
@@ -462,6 +465,7 @@ final class SettingsController extends AdminController
                 'collective_codes'                   => $this->coltplPreviewCodes($tpl, $db, $uploadsBase . '/codes'),
                 'collective_codes_submit_form'        => $this->coltplPreviewCodesSubmitForm($tpl, $config),
                 'collective_contact_form'             => $this->coltplPreviewContactForm($tpl, $config),
+                'collective_update_form'              => $this->coltplPreviewCollectiveUpdateForm($tpl, $config),
             };
         } catch (\Throwable $e) {
             $html = '<p style="color:#c00;font-family:monospace">Preview error: '
@@ -1415,6 +1419,54 @@ final class SettingsController extends AdminController
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), true, preview: true);
     }
 
+    private function coltplPreviewCollectiveUpdateForm(string $tpl, Config $config): string
+    {
+        $fb       = $this->app->getFormFieldBuilder();
+        $siteName = (string) $config->get('site_name', 'Collective');
+
+        // Step 1: email request (template-controlled)
+        $f = $fb->build([
+            ['type' => 'email', 'name' => 'email', 'id' => 'cu-email', 'label' => 'Your email address', 'required' => true, 'attrs' => ['maxlength' => '255']],
+        ], '');
+
+        $tokens = [
+            '{site_name}'         => View::e($siteName),
+            '{field_email}'       => $f['email'],
+            '{field_email_input}' => $f['email_input'],
+            '{submit_button}'     => '<button type="submit" class="fl-submit">Send verification link</button>',
+            '{clear_button}'      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $step1Inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        $step1Html  = FormTemplateRenderer::wrapForm($step1Inner, '#', $this->app->getCSRF()->token(), false, preview: true);
+
+        // Step 2: update form (hardcoded — listing checkboxes are dynamic, not template-controlled)
+        $_e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $f2 = $fb->build([
+            ['type' => 'text',   'name' => 'name',    'id' => 'cu-name',    'label' => 'Name',        'required' => false, 'attrs' => ['maxlength' => '100', 'value' => 'Usagi']],
+            ['type' => 'url',    'name' => 'url',     'id' => 'cu-url',     'label' => 'Website URL', 'required' => false, 'attrs' => ['maxlength' => '500', 'value' => 'https://example.com']],
+            ['type' => 'select', 'name' => 'country', 'id' => 'cu-country', 'label' => 'Country',     'required' => false,
+                'raw_input' => '<select class="fl-select" id="cu-country" name="country"><option value="US" selected>United States</option></select>'],
+        ], '');
+        $listingsHtml = '<div class="fl-field fl-collective-update-listings">'
+            . '<p class="fl-label">Apply to these fanlistings:</p>'
+            . '<ul class="fl-collective-update-list">'
+            . '<li class="fl-collective-update-item"><label class="fl-checkbox-label">'
+            . '<input type="checkbox" checked disabled> ' . $_e(SampleTemplateData::LISTING_TITLE_A) . '</label></li>'
+            . '<li class="fl-collective-update-item"><label class="fl-checkbox-label">'
+            . '<input type="checkbox" checked disabled> ' . $_e(SampleTemplateData::LISTING_TITLE_B) . '</label></li>'
+            . '</ul></div>';
+        $step2Html = '<div class="fl-collective-update">'
+            . '<p class="fl-hint">Updating memberships for: <strong>' . $_e('fan@example.com') . '</strong></p>'
+            . $f2['name'] . $f2['url'] . $f2['country']
+            . $listingsHtml
+            . '<div class="fl-form-actions"><button class="fl-submit fl-btn" disabled>Update memberships</button></div>'
+            . '</div>';
+
+        return self::previewSectionLabel('Step 1 — Request Verification Link') . $step1Html
+             . self::previewSectionLabel('Step 2 — Update Form (after link is clicked)') . $step2Html;
+    }
+
     private function coltplPreviewContactSent(string $tpl): string
     {
         return SuccessRenderer::render($tpl, 'contact-sent', [
@@ -2090,6 +2142,7 @@ final class SettingsController extends AdminController
             'adoption',
             'wishlist',
             'updates',
+            'collective-update-form',
         ];
         $returnGroup = (string) $request->post('return_group', 'all');
         if (!in_array($returnGroup, $groupWhitelist, true)) {
@@ -2116,6 +2169,7 @@ final class SettingsController extends AdminController
         $kimUpdateFormTpl                    = (string) $request->post('kim_update_form_template',                   '');
         $kimResetFormTpl                     = (string) $request->post('kim_reset_form_template',                    '');
         $contactFormTpl                      = (string) $request->post('collective_contact_form_template',           '');
+        $collectiveUpdateFormTpl             = (string) $request->post('collective_update_form_template',             '');
 
         $db = $this->app->getDatabase();
 
@@ -2144,6 +2198,7 @@ final class SettingsController extends AdminController
             'kim_update_form_template'                => $kimUpdateFormTpl                 !== '' ? $kimUpdateFormTpl                 : null,
             'kim_reset_form_template'                 => $kimResetFormTpl                  !== '' ? $kimResetFormTpl                  : null,
             'collective_contact_form_template'        => $contactFormTpl                   !== '' ? $contactFormTpl                   : null,
+            'collective_update_form_template'         => $collectiveUpdateFormTpl           !== '' ? $collectiveUpdateFormTpl           : null,
         ];
         (new TemplateRevisionRepo($db))->recordChanged(TemplateRevisionRepo::COLLECTIVE_ID, $oldValues, $incomingRev, $adminId);
 
@@ -2168,6 +2223,7 @@ final class SettingsController extends AdminController
         $siteRepo->set('kim_update_form_template',  $kimUpdateFormTpl !== '' ? $kimUpdateFormTpl : null);
         $siteRepo->set('kim_reset_form_template',   $kimResetFormTpl  !== '' ? $kimResetFormTpl  : null);
         $siteRepo->set('collective_contact_form_template', $contactFormTpl !== '' ? $contactFormTpl : null);
+        $siteRepo->set('collective_update_form_template', $collectiveUpdateFormTpl !== '' ? $collectiveUpdateFormTpl : null);
 
         $activityRepo = new ActivityRepo($this->app->getDatabase());
         $activityRepo->log(
@@ -2212,6 +2268,7 @@ final class SettingsController extends AdminController
             'kim_update_form_template', 'kim_reset_form_template',
             'collective_contact_form_template',
             'collective_contact_sent_template',
+            'collective_update_form_template',
         ];
         foreach ($keys as $key) {
             $siteRepo->set($key, null);

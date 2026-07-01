@@ -4,32 +4,22 @@
  Copyright (c) 2026 Star (https://dreamesque.net)
 
  Fragment template for the collective-update embed. Renders either the
- initial email-request form or the multi-listing update form, depending
- on whether a verified token is present.
+ initial email-request form (Step 1, pre-rendered from the admin-editable
+ template) or the multi-listing update form (Step 2), depending on whether
+ a verified token is present.
 */
 use Luster\Core\View;
 ?>
 <?php if ($success_html !== ''): ?>
 <?= $success_html ?>
 <?php elseif (!$token_valid): ?>
-<?php /* Step A: email input form */ ?>
+<?php /* Step 1: email-request form (rendered from collective_update_form_template) */ ?>
 <?php if ($error !== ''): ?>
 <p class="fl-errors"><?= $error ?></p>
 <?php endif; ?>
-<form class="fl-form fl-collective-update-form" method="post" action="<?= View::e($base_url . '/index.php') ?>">
-  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-  <input type="hidden" name="_luster_embed_form" value="collective_update">
-  <input type="text" name="website_confirm" value="" style="display:none" tabindex="-1" aria-hidden="true">
-  <div class="fl-field">
-    <label class="fl-label" for="fl-cu-email">Your email address</label>
-    <input class="fl-input" type="email" id="fl-cu-email" name="email" value="<?= $old_email ?>" required maxlength="255">
-  </div>
-  <div class="fl-field fl-field-submit">
-    <button type="submit" class="fl-btn fl-btn-submit">Send verification link</button>
-  </div>
-</form>
+<?= $request_form_html ?>
 <?php else: ?>
-<?php /* Step B: update form — token verified */ ?>
+<?php /* Step 2: update form — token verified */ ?>
 <?php if ($error !== ''): ?>
 <p class="fl-errors"><?= $error ?></p>
 <?php endif; ?>
@@ -37,10 +27,11 @@ use Luster\Core\View;
   // Pre-fill from first membership's member data
   $firstMember = $memberships[0]['member'];
 ?>
-<form class="fl-form fl-collective-update-form" method="post" action="<?= View::e($base_url . '/index.php') ?>">
+<form class="fl-form fl-collective-update-form" method="post" action="<?= View::e($form_action) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
   <input type="hidden" name="_luster_embed_form" value="collective_update">
   <input type="hidden" name="_cu_token" value="<?= View::e($raw_token) ?>">
+  <div style="display:none" aria-hidden="true"><input type="text" name="website_confirm" tabindex="-1" autocomplete="off"></div>
   <p class="fl-hint">Updating memberships for: <strong><?= $token_email ?></strong></p>
   <div class="fl-field">
     <label class="fl-label" for="fl-cu-name">Name</label>

@@ -83,6 +83,36 @@ final class CollectiveUpdateTokenRepo
     }
 
     /**
+     * Atomically marks a token as consumed and returns the associated email.
+     * Uses a single UPDATE with used_at IS NULL + expires_at > NOW() so two
+     * concurrent POST submissions cannot both succeed on the same token.
+     * Returns the email on success, null if the token is invalid/expired/already used.
+     */
+    public function verifyAndConsume(string $rawToken): ?string
+    {
+        $hash = hash('sha256', $rawToken);
+
+        $upd = $this->db->prepare(
+            'UPDATE lstr_collective_update_tokens
+             SET used_at = NOW()
+             WHERE token_hash = :hash AND used_at IS NULL AND expires_at > NOW()'
+        );
+        $upd->execute(['hash' => $hash]);
+
+        if ($upd->rowCount() !== 1) {
+            return null;
+        }
+
+        $sel = $this->db->prepare(
+            'SELECT email FROM lstr_collective_update_tokens WHERE token_hash = :hash'
+        );
+        $sel->execute(['hash' => $hash]);
+        $email = $sel->fetchColumn();
+
+        return $email !== false ? (string) $email : null;
+    }
+
+    /**
      * Marks a token as consumed, preventing replay.
      */
     public function markUsed(int $id): void
