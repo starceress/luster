@@ -174,10 +174,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-devices" class="mini-nav-panel">
       <div class="card card--gradient card--gradient--plain">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('general') ?></div>
+          <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('devices') ?></div>
           <div class="panel-header-meta">
             <div class="panel-header-title">Remembered Devices</div>
-            <div class="panel-header-sub">Devices where you have selected &ldquo;Keep me signed in&rdquo;. Each stores a unique token that auto-signs you back in. Revoke any device you no longer trust, or revoke all at once.</div>
+            <div class="panel-header-sub">Devices where you have selected &ldquo;Keep me signed in&rdquo;. Each stores a unique token that auto-signs you back in. Revoke any device you no longer trust, or revoke all at once. Tokens are also revoked automatically when you change your password. Up to 10 devices can be remembered at once; the oldest is removed when the limit is reached.</div>
           </div>
         </div>
         <?php if ($devices === []): ?>
@@ -217,14 +217,11 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="composer-footer">
           <form method="POST" action="<?= $b ?>/admin/settings/devices/revoke-all" class="action-form-inline">
             <input type="hidden" name="_csrf" value="<?= $devCsrf ?>">
-            <button type="submit" class="btn btn-primary"
+            <button type="submit" class="btn btn-danger"
                     onclick="return confirm('Revoke all remembered devices? You will need to sign in again on each device.')">Revoke All Devices</button>
           </form>
         </div>
         <?php endif; ?>
-        <div class="card-body">
-          <p class="form-hint">Tokens are also revoked automatically when you change your password. Up to 10 devices can be remembered at once; the oldest is removed when the limit is reached.</p>
-        </div>
       </div>
     </div>
 
