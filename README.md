@@ -56,17 +56,18 @@ it for you.
 - **Extra features when you want them:** Optional add-ons include news feeds,
   a wishlist, "keep in mind" lists, adoption applications, and join rules, so you
   only turn on the pieces your site needs.
-- **Link Checker & maintenance tools:** Check dead links and redirects, review admin
-  activity with IP tracking, and browse error logs.
-- **Security-first foundations:** Modern password handling, CSRF protection, output
-  escaping, safer upload/import handling, concealed install paths, and an automated
-  test suite of 1,400+ tests to help protect your site by default. Plus a one-click
-  database backup download and a Link Checker that classifies what it finds at each URL.
+- **Link Checker & maintenance tools:** Check dead links and redirects across affiliates,
+  joined listings, and member URLs; verify that affiliates link back and that joined
+  fanlistings list you as a member; review admin activity with IP tracking; browse error logs.
+- **Security-first foundations:** Modern password handling (Argon2id), CSRF protection,
+  output escaping, prepared statements, safer upload/import handling, concealed install paths,
+  arithmetic CAPTCHA and per-IP rate limiting on every public join form to block bots, and an
+  automated test suite of 1,500+ tests. Plus a one-click database backup download.
 
 
 
 ## ✦ Requirements
-- **PHP 8.1 or newer**
+- **PHP 8.1 or newer** (PHP 8.2 or 8.3 recommended — check your hosting control panel for the version switcher)
 - **MySQL or MariaDB**
 - **PDO and PDO MySQL extension**
 - **PHP cURL extension**
@@ -120,11 +121,18 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
   Yes, all the features of this script are completely free of charge.
 
 - **Why doesn't Luster support PHP versions lower than 8.1?**
-  Security is a priority for Luster. When Luster began development (early Dec 2025),
-  8.1 was the newest version still receiving security updates from developers of PHP
-  (as of today, it has reached end of life). Older PHP versions are even more outdated
-  and can expose your server and members' data to known exploits. Requiring 8.1 minimum
-  means Luster can keep you and your members as safe as possible.
+  PHP 8.1 is the baseline Luster was built on, and it pulls in features that are woven
+  all the way through the codebase: readonly properties, constructor property promotion,
+  match expressions, named arguments, intersection types, and fibers for stricter internal
+  type checking. Stripping those out to support an older version would mean rewriting most
+  of the application, not just changing a version number. Older PHP branches have also
+  reached end of life and no longer receive security patches, which would put your server
+  and your members' data at risk.
+
+  PHP 8.1 itself reached end of life on December 31, 2025. For the best experience —
+  and the most recent security patches — PHP 8.2 or 8.3 is recommended. Your hosting
+  control panel usually has a PHP version switcher; if you're not sure where to find it,
+  check your host's documentation or support pages.
 
 - **Do I need to edit any configuration files?**
   Nope! The installation wizard asks for your database details and site info and
@@ -145,6 +153,13 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
   Most hiccups come down to database details or the web folder pointing somewhere
   other than `public/`. If you're still stuck, [contact me](#-need-help-found-a-bug-etc)
   and let me know what you tried so I can help you figure it out!
+
+- **How does Luster handle updates?**
+  Updates are published as GitHub Releases. Each release includes a ZIP and a
+  `SHA256SUMS` file. When you use Luster's built-in update checker, it downloads the
+  release metadata from GitHub, verifies the SHA-256 checksum before applying anything,
+  and will not proceed if the checksum does not match. Your update path is not dependent
+  on any personal site or community server staying online.
 
 - **Can you implement [insert fix]/[insert new feature]?**
   Your feedback means a lot and helps Luster grow! Please [contact me](#-need-help-found-a-bug-etc)
