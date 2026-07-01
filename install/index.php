@@ -15,6 +15,10 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL);
 
+define('LUSTER_BASE', dirname(__DIR__));
+define('CONFIG_PATH',   LUSTER_BASE . '/config/app.php');
+define('SENTINEL_PATH', LUSTER_BASE . '/storage/.installed');
+
 // Set cookie_secure only on HTTPS. On plain HTTP (local XAMPP, staging)
 // a Secure cookie is rejected by the browser, silently breaking session state.
 $_lstr_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
@@ -25,11 +29,47 @@ ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_secure',   $_lstr_https ? '1' : '0');
 ini_set('session.cookie_samesite', 'Strict');
 ini_set('session.use_strict_mode', '1');
-session_start();
 
-define('LUSTER_BASE', dirname(__DIR__));
-define('CONFIG_PATH',   LUSTER_BASE . '/config/app.php');
-define('SENTINEL_PATH', LUSTER_BASE . '/storage/.installed');
+// Probe session save paths before session_start() — same logic as
+// src/Core/SessionPathResolver.php, inlined here since install/index.php
+// is standalone and the autoloader has not run yet.
+$_lstr_session_fallback = false;
+(static function () use (&$_lstr_session_fallback): void {
+    $configured = trim((string) ini_get('session.save_path'));
+    if (str_contains($configured, ';')) {
+        $parts = explode(';', $configured);
+        $configured = trim((string) end($parts));
+    }
+    $probe = static function (string $path): bool {
+        if ($path === '' || !is_dir($path)) {
+            return false;
+        }
+        $f = rtrim($path, '/\\') . '/.lstr_probe_' . bin2hex(random_bytes(6));
+        if (@file_put_contents($f, '1') === false) {
+            return false;
+        }
+        @unlink($f);
+        return true;
+    };
+    if ($configured !== '' && $probe($configured)) {
+        return; // configured path is writable — use as-is
+    }
+    $tmp = sys_get_temp_dir();
+    if ($tmp !== '' && $probe($tmp)) {
+        session_save_path($tmp);
+        $_lstr_session_fallback = true;
+        return;
+    }
+    $fallback = LUSTER_BASE . '/storage/sessions';
+    if (!is_dir($fallback)) {
+        @mkdir($fallback, 0755, true);
+    }
+    session_save_path($fallback);
+    $_lstr_session_fallback = true;
+})();
+
+session_start();
+$GLOBALS['_lstr_session_fallback'] = $_lstr_session_fallback;
 
 // Legacy demo URLs were removed. Do not let old debug query strings fall
 // through to the normal installer or already-installed page.
@@ -163,6 +203,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // CSRF check
     if (!hash_equals($csrfToken, (string) ($_POST['lstr_install_token'] ?? ''))) {
+        // If they submitted from a step beyond step 1, the session was probably
+        // lost between their last page load and this submit. Redirect to step 1
+        // with an explanation instead of showing a cryptic token-mismatch error.
+        if ((int) ($_POST['install_step'] ?? 1) > 1) {
+            header('Location: ./?session_lost=1');
+            exit;
+        }
         $errors[] = 'Security token mismatch. Please refresh the page and try again.';
     } else {
 
@@ -1196,6 +1243,22 @@ function checkRequirements(): array
     $status = static fn(bool $ok): string => $ok ? 'ok' : 'fail';
     $detail = static fn(bool $ok, string $okDetail, string $failDetail): string => $ok ? $okDetail : $failDetail;
 
+    $sessionActive   = session_status() === PHP_SESSION_ACTIVE;
+    $sessionFallback = $GLOBALS['_lstr_session_fallback'] ?? false;
+    $sessionPath     = session_save_path();
+
+    if (!$sessionActive) {
+        $sessionStatus = 'fail';
+        $sessionDetail = 'Could not start a PHP session. Check your server\'s session configuration.';
+    } elseif ($sessionFallback) {
+        $sessionStatus = 'warn';
+        $fallbackName  = basename($sessionPath) ?: $sessionPath;
+        $sessionDetail = 'Using fallback path \'' . $fallbackName . '\' — the default session.save_path is not writable. Sessions will work, but you may want to fix this on your host.';
+    } else {
+        $sessionStatus = 'ok';
+        $sessionDetail = 'Session storage is available.';
+    }
+
     return [
         [
             'label'  => 'PHP 8.1 or newer',
@@ -1221,6 +1284,11 @@ function checkRequirements(): array
             'label'  => 'Root Directory Access',
             'detail' => $detail($rootWritable, 'Root directory is writable.', 'Make your root directory writable before continuing.'),
             'status' => $status($rootWritable),
+        ],
+        [
+            'label'  => 'Session Storage',
+            'detail' => $sessionDetail,
+            'status' => $sessionStatus,
         ],
     ];
 }
@@ -1408,9 +1476,15 @@ function renderFooter(): void
 
 function renderStep1(string $csrf): void
 {
-    $checks     = checkRequirements();
+    $checks      = checkRequirements();
     $canContinue = requirementsPass($checks);
+    $sessionLost = !empty($_GET['session_lost']);
     ?>
+<?php if ($sessionLost): ?>
+<div class="alert alert-warning" style="margin-bottom:1.5rem">
+  <strong>Your installer session was lost.</strong> This usually happens when your browser cookie expires or you use the back button after a long break. You have been returned to Step 1 — click <strong>Continue</strong> to start the wizard again.
+</div>
+<?php endif; ?>
 <div class="main-card">
   <div class="panel-header">
     <div class="panel-header-icon panel-header-icon-filled" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></div>
@@ -1424,10 +1498,14 @@ function renderStep1(string $csrf): void
       Before we begin, Luster will make sure your server has the essentials needed to run the installer.
     </p>
     <ul class="install-req-list">
-      <?php foreach ($checks as $c): ?>
+      <?php foreach ($checks as $c):
+        $iconClass  = match($c['status']) { 'ok' => 'results-icon-success', 'warn' => 'results-icon-warn', default => 'results-icon-err' };
+        $iconSymbol = match($c['status']) { 'ok' => '&#10003;', 'warn' => '&#9675;', default => '&#10005;' };
+        $ariaLabel  = match($c['status']) { 'ok' => 'Ready', 'warn' => 'Note', default => 'Needs attention' };
+      ?>
       <li class="install-req-row install-req-row--<?= e($c['status']) ?>">
         <span class="install-req-name"><?= e($c['label']) ?></span>
-        <span class="results-icon <?= $c['status'] === 'ok' ? 'results-icon-success' : 'results-icon-err' ?>" aria-label="<?= $c['status'] === 'ok' ? 'Ready' : 'Needs attention' ?>"><?= $c['status'] === 'ok' ? '&#10003;' : '&#10005;' ?></span>
+        <span class="results-icon <?= $iconClass ?>" aria-label="<?= $ariaLabel ?>"><?= $iconSymbol ?></span>
         <span class="install-req-detail">
           <?= e((string) ($c['detail'] ?? '')) ?>
           <?php if ($c['status'] === 'fail' && !empty($c['hint'])): ?>
