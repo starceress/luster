@@ -895,6 +895,20 @@ function installTables(PDO $pdo): void
             INDEX `idx_email_fl` (`fanlisting_id`, `member_email`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+        // Short-lived tokens for collective-level cross-listing membership updates.
+        // Email-ownership is verified by clicking a link before any changes are applied. Migration 99.
+        "CREATE TABLE IF NOT EXISTS `lstr_collective_update_tokens` (
+            `id`          INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `token_hash`  VARCHAR(64)   NOT NULL,
+            `email`       VARCHAR(255)  NOT NULL,
+            `expires_at`  DATETIME      NOT NULL,
+            `used_at`     DATETIME      NULL,
+            `created_at`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uk_token_hash` (`token_hash`),
+            KEY `idx_email` (`email`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
         // Member-submitted updates awaiting admin review.
         "CREATE TABLE IF NOT EXISTS `lstr_pending_updates` (
             `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
@@ -1117,7 +1131,7 @@ function installTables(PDO $pdo): void
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
          (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93),
-         (94),(95),(96),(97),(98)'
+         (94),(95),(96),(97),(98),(99)'
     );
 }
 

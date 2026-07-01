@@ -3152,6 +3152,34 @@ try {
     $errors[] = 'Migration 98 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 99: create lstr_collective_update_tokens for collective membership updates.
+try {
+    $chkCut = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME   = 'lstr_collective_update_tokens'"
+    );
+    if ((int) $chkCut->fetchColumn() === 0) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_collective_update_tokens` (
+                `id`          INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+                `token_hash`  VARCHAR(64)   NOT NULL,
+                `email`       VARCHAR(255)  NOT NULL,
+                `expires_at`  DATETIME      NOT NULL,
+                `used_at`     DATETIME      NULL,
+                `created_at`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uk_token_hash` (`token_hash`),
+                KEY `idx_email` (`email`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $done[] = 'Migration 99: created <code>lstr_collective_update_tokens</code>';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (99)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 99 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

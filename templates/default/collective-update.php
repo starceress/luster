@@ -1,0 +1,85 @@
+<?php
+/*
+ Luster — https://luster.nu | https://github.com/starceress/luster
+ Copyright (c) 2026 Star (https://dreamesque.net)
+
+ Fragment template for the collective-update embed. Renders either the
+ initial email-request form or the multi-listing update form, depending
+ on whether a verified token is present.
+*/
+use Luster\Core\View;
+?>
+<?php if ($success_html !== ''): ?>
+<?= $success_html ?>
+<?php elseif (!$token_valid): ?>
+<?php /* Step A: email input form */ ?>
+<?php if ($error !== ''): ?>
+<p class="fl-errors"><?= $error ?></p>
+<?php endif; ?>
+<form class="fl-form fl-collective-update-form" method="post" action="<?= View::e($base_url . '/index.php') ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_luster_embed_form" value="collective_update">
+  <input type="text" name="website_confirm" value="" style="display:none" tabindex="-1" aria-hidden="true">
+  <div class="fl-field">
+    <label class="fl-label" for="fl-cu-email">Your email address</label>
+    <input class="fl-input" type="email" id="fl-cu-email" name="email" value="<?= $old_email ?>" required maxlength="255">
+  </div>
+  <div class="fl-field fl-field-submit">
+    <button type="submit" class="fl-btn fl-btn-submit">Send verification link</button>
+  </div>
+</form>
+<?php else: ?>
+<?php /* Step B: update form — token verified */ ?>
+<?php if ($error !== ''): ?>
+<p class="fl-errors"><?= $error ?></p>
+<?php endif; ?>
+<?php
+  // Pre-fill from first membership's member data
+  $firstMember = $memberships[0]['member'];
+?>
+<form class="fl-form fl-collective-update-form" method="post" action="<?= View::e($base_url . '/index.php') ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_luster_embed_form" value="collective_update">
+  <input type="hidden" name="_cu_token" value="<?= View::e($raw_token) ?>">
+  <p class="fl-hint">Updating memberships for: <strong><?= $token_email ?></strong></p>
+  <div class="fl-field">
+    <label class="fl-label" for="fl-cu-name">Name</label>
+    <input class="fl-input" type="text" id="fl-cu-name" name="name" value="<?= View::e($firstMember->name) ?>" maxlength="100">
+  </div>
+  <div class="fl-field">
+    <label class="fl-label" for="fl-cu-url">Website URL</label>
+    <input class="fl-input" type="url" id="fl-cu-url" name="url" value="<?= View::e($firstMember->url) ?>" maxlength="500">
+    <label class="fl-checkbox-label">
+      <input type="checkbox" name="delete_url" value="1"> Remove my website URL
+    </label>
+  </div>
+  <div class="fl-field">
+    <label class="fl-label" for="fl-cu-country">Country</label>
+    <select class="fl-select" id="fl-cu-country" name="country">
+      <option value="">-- Select --</option>
+      <?php foreach ($countries as $code => $label): ?>
+      <option value="<?= View::e($code) ?>"<?= $firstMember->country === $code ? ' selected' : '' ?>><?= View::e($label) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <div class="fl-field fl-collective-update-listings">
+    <p class="fl-label">Apply to these fanlistings:</p>
+    <ul class="fl-collective-update-list">
+      <?php foreach ($memberships as $m): ?>
+      <li class="fl-collective-update-item">
+        <label class="fl-checkbox-label">
+          <input type="checkbox" name="listing_ids[]" value="<?= (int) $m['listing']->id ?>" checked>
+          <?= View::e($m['listing']->title) ?>
+          <?php if ($m['listing']->url !== ''): ?>
+          <span class="fl-collective-update-url">(<a href="<?= View::e($m['listing']->url) ?>" class="fl-link" rel="nofollow noreferrer" target="_blank"><?= View::e($m['listing']->url) ?></a>)</span>
+          <?php endif; ?>
+        </label>
+      </li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
+  <div class="fl-field fl-field-submit">
+    <button type="submit" class="fl-btn fl-btn-submit">Update memberships</button>
+  </div>
+</form>
+<?php endif; ?>

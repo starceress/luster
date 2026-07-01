@@ -37,7 +37,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <a href="#panel-general" class="mini-nav-item"><?= View::icon('general') ?> General</a>
       <a href="#panel-admin" class="mini-nav-item"><?= View::icon('account') ?> Account Details</a>
       <a href="#panel-accounts" class="mini-nav-item"><?= View::icon('admins') ?> Admin Accounts</a>
-      <a href="#panel-devices" class="mini-nav-item"><?= View::icon('general') ?> Remembered Devices</a>
+      <a href="#panel-devices" class="mini-nav-item"><?= View::icon('devices') ?> Remembered Devices</a>
       <a href="#panel-notifications" class="mini-nav-item"><?= View::icon('email') ?> Notifications</a>
       <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
       <a href="#panel-smtp" class="mini-nav-item"><?= View::icon('email') ?> SMTP &amp; Email</a>
