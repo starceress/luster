@@ -60,7 +60,7 @@ it for you.
   activity with IP tracking, and browse error logs.
 - **Security-first foundations:** Modern password handling, CSRF protection, output
   escaping, safer upload/import handling, concealed install paths, and an automated
-  test suite of 1,300+ tests to help protect your site by default. Plus a one-click
+  test suite of 1,400+ tests to help protect your site by default. Plus a one-click
   database backup download and a Link Checker that classifies what it finds at each URL.
 
 
@@ -119,11 +119,12 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 - **Is Luster free?**
   Yes, all the features of this script are completely free of charge.
 
-- **Why does Luster require PHP 8.1+?**
-  Security is a priority for Luster. PHP 8.1 is the oldest version that still
-  receives security updates from the PHP project. Requiring it means Luster
-  can use modern security features to keep your site and your members' data
-  protected.
+- **Why doesn't Luster support PHP versions lower than 8.1?**
+  Security is a priority for Luster. When Luster began development (early Dec 2025),
+  8.1 was the newest version still receiving security updates from developers of PHP
+  (as of today, it has reached end of life). Older PHP versions are even more outdated
+  and can expose your server and members' data to known exploits. Requiring 8.1 minimum
+  means Luster can keep you and your members as safe as possible.
 
 - **Do I need to edit any configuration files?**
   Nope! The installation wizard asks for your database details and site info and
@@ -152,10 +153,10 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 
 
 ## ✦ Need Help, Found a Bug, etc?
-- Click *Send a Report* in your Luster admin panel's navigation sidebar
+- **(Recommended)** Click *Send a Report* in your Luster admin panel's navigation sidebar.
 - Use the *Contact Form* at [luster.nu](https://luster.nu/contact/)
 - *Email me* directly at `support@luster.nu`
-- Post at *The Fanlistings Message Board* at [board.thefanlistings.org](https://board.thefanlistings.org/)
+- Post at *TFL's Message Board* at [board.thefanlistings.org](https://board.thefanlistings.org/) (requires TFL account, which first needs to be approved by moderators)
 - Via *GitHub* at [Luster's GitHub issues](https://github.com/starceress/luster/issues) (requires GitHub account)
 
 
