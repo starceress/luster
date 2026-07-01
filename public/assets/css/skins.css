@@ -394,6 +394,8 @@
   --brand-gradient: linear-gradient(135deg, #f0f4fa 0%, #e3350d 55%, #4dad5b 100%);
   --btn-primary-bg: #3ea64d;
   --btn-primary-hover-bg: color-mix(in srgb, #3ea64d 80%, #000);
+  --btn-tertiary-bg: #2c3a4e;
+  --btn-tertiary-color: #8faac6;
   --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.7), 0 0 32px rgb(227 53 13 / 0.2), 0 0 48px rgb(49 108 217 / 0.1);
   --filter-input-bg: #414752;
   --filter-input-color: var(--text);
