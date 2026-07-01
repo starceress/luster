@@ -32,10 +32,8 @@ it for you.
   from the dashboard.
 - **Multiple admin users:** Give co-owners their own separate accounts and logins
   instead of sharing one password.
-- **Admin panel customization:** Switch between light & dark mode, change your
-  admin panel's appearance with different skins, with future personalized and
-  community skin support.
-  look, or download skins made by others in the community.
+- **Admin panel customization:** Switch between light & dark mode, choose from
+  bundled skins, or drop in community-made skins.
 - **Custom networks & categories:** Use the built-in TFL/TAFL-style categories or
   add your own custom networks and category groups to accomodate other directories.
 - **Customizable public embeds & live previews:** Add the script to your existing
@@ -43,6 +41,13 @@ it for you.
   tokens or the Embed Wizard, targetable CSS classes, and rendered previews.
 - **Three-tier template system:** Set global defaults that apply to every
   listing, override per listing when needed, or reset everything back with one click.
+- **Template portability:** Export any set of templates to a shareable pack file,
+  import a pack from someone else (with a before/after preview), copy templates
+  between listings in one step, and roll back any template to a previous version
+  with built-in revision history.
+- **Listing archive states:** Mark a listing as Closed or Adopted Out instead of
+  deleting it. The listing stays in your panel in read-only mode with history intact,
+  and public embeds surface the archived status automatically.
 - **Drag-and-drop reordering:** Rearrange codes and affiliates with drag-and-drop
   and have your live site reflect the exact order you chose.
 - **Communication tools with live previews:** Send emails (bulk or single),
@@ -55,7 +60,8 @@ it for you.
   activity with IP tracking, and browse error logs.
 - **Security-first foundations:** Modern password handling, CSRF protection, output
   escaping, safer upload/import handling, concealed install paths, and an automated
-  test suite of 1,300+ tests to help protect your site by default.
+  test suite of 1,300+ tests to help protect your site by default. Plus a one-click
+  database backup download and a Link Checker that classifies what it finds at each URL.
 
 
 
