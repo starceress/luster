@@ -15,6 +15,7 @@ namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
 use Luster\Core\Mailer;
+use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -176,12 +177,14 @@ final class CollectiveUpdateController
         $selectedIds = array_unique(array_filter(array_map('intval', $rawIds)));
         $selectedIds = array_values(array_filter($selectedIds, fn(int $id) => isset($validMap[$id])));
 
-        $newName    = trim((string) $request->post('name', ''));
-        $newUrl     = trim((string) $request->post('url', ''));
-        $deleteUrl  = ((string) $request->post('delete_url', '') === '1');
-        $newCountry = trim((string) $request->post('country', ''));
+        $newName            = trim((string) $request->post('name', ''));
+        $newUrl             = trim((string) $request->post('url', ''));
+        $deleteUrl          = ((string) $request->post('delete_url', '') === '1');
+        $newCountry         = trim((string) $request->post('country', ''));
+        $newPassword        = (string) $request->post('new_password', '');
+        $newPasswordConfirm = (string) $request->post('new_password_confirm', '');
 
-        $v = new Validator(['name' => $newName, 'url' => $newUrl, 'country' => $newCountry]);
+        $v = new Validator(['name' => $newName, 'url' => $newUrl, 'country' => $newCountry, 'new_password' => $newPassword]);
         if ($newName !== '') {
             $v->field('name')->maxLength(100);
         }
@@ -191,10 +194,19 @@ final class CollectiveUpdateController
         if ($newCountry !== '') {
             $v->field('country')->maxLength(100);
         }
+        if ($newPassword !== '') {
+            PasswordPolicy::applyOptional($v->field('new_password'), $newPassword);
+        }
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+            return Response::redirect($tokenUrl);
+        }
+
+        if ($newPassword !== '' && $newPassword !== $newPasswordConfirm) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
+            $session->set('lstr_flash_error', 'New passwords do not match. Please try again.');
             return Response::redirect($tokenUrl);
         }
 
@@ -216,6 +228,9 @@ final class CollectiveUpdateController
         $lifecycleRepo = new ListingLifecycleRepo($this->app->getDatabase());
         $results       = ['updated' => [], 'queued' => [], 'skipped' => []];
 
+        // Hash once; applied immediately to every selected listing (never queued)
+        $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
+
         foreach ($selectedIds as $listingId) {
             $entry   = $validMap[$listingId];
             $listing = $entry['listing'];
@@ -225,6 +240,13 @@ final class CollectiveUpdateController
             if ($lifecycleRepo->getByListingId($listingId) !== null) {
                 $results['skipped'][] = $listing->title;
                 continue;
+            }
+
+            // Password always applied immediately — never queued
+            $passwordChanged = false;
+            if ($passwordHash !== null) {
+                $memberRepo->update($listing->dbprefix, $email, ['password' => $passwordHash]);
+                $passwordChanged = true;
             }
 
             $updateData = [];
@@ -243,7 +265,11 @@ final class CollectiveUpdateController
             }
 
             if ($updateData === []) {
-                $results['skipped'][] = $listing->title;
+                if (!$passwordChanged) {
+                    $results['skipped'][] = $listing->title;
+                } else {
+                    $results['updated'][] = $listing->title;
+                }
                 continue;
             }
 

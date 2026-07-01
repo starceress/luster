@@ -53,6 +53,15 @@ use Luster\Core\View;
       <?php endforeach; ?>
     </select>
   </div>
+  <div class="fl-field">
+    <label class="fl-label" for="fl-cu-password">New password <span class="fl-optional">(optional)</span></label>
+    <input class="fl-input" type="password" id="fl-cu-password" name="new_password" maxlength="255" autocomplete="new-password">
+    <p class="fl-hint">Minimum 12 characters. Leave blank to keep your current password.</p>
+  </div>
+  <div class="fl-field">
+    <label class="fl-label" for="fl-cu-password-confirm">Confirm new password</label>
+    <input class="fl-input" type="password" id="fl-cu-password-confirm" name="new_password_confirm" maxlength="255" autocomplete="new-password">
+  </div>
   <div class="fl-field fl-collective-update-listings">
     <p class="fl-label">Apply to these fanlistings:</p>
     <ul class="fl-collective-update-list">
