@@ -20,6 +20,13 @@ final class TemplateRevisionRepo
     /** Maximum revisions kept per (fanlisting_id, template_key) pair. */
     public const MAX_REVISIONS = 5;
 
+    /**
+     * Sentinel fanlisting_id used for collective templates.
+     * Collective templates have no listing row, so 0 is used as the scope key.
+     * The lstr_template_revisions table has no FK on fanlisting_id, so 0 is safe.
+     */
+    public const COLLECTIVE_ID = 0;
+
     public function __construct(private readonly Database $db) {}
 
     /**

@@ -109,7 +109,9 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="return_group" id="tpl-return-group" value="<?= View::e($activeGroup) ?>">
 
-  <div class="composer-grid">
+  <div class="composer-grid" id="tab-templates"
+       data-tpl-base="<?= $b ?>/admin/collective/templates"
+       data-tpl-csrf="<?= View::e($csrf_token ?? '') ?>">
 
     <!-- ── Left column: template editors ─────────────────────────────────── -->
     <div class="card card--gradient">
@@ -1011,6 +1013,22 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
     'previewUrl' => $b . '/admin/collective/templates/preview',
     'csrf'       => $csrf_token ?? '',
 ], JSON_UNESCAPED_SLASHES) ?></script>
+
+<div id="tpl-hist-modal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-label="Revision history">
+  <div class="modal modal--wide">
+    <div class="modal-header">
+      <span id="tpl-hist-title" class="modal-title">Revision History</span>
+      <div class="modal-header-actions">
+        <button type="button" id="tpl-hist-close" class="btn btn-tertiary btn-sm" aria-label="Close">&times;&ensp;Close</button>
+      </div>
+    </div>
+    <div class="modal-body" id="tpl-hist-body"></div>
+    <div class="modal-footer">
+      <button type="button" id="tpl-hist-flush" class="btn btn-danger btn-sm">Flush History</button>
+      <button type="button" id="tpl-hist-cancel" class="btn btn-ghost btn-sm">Close</button>
+    </div>
+  </div>
+</div>
 
 <div id="coltpl-prev-modal" class="modal-backdrop is-hidden" style="display:none" role="dialog" aria-modal="true" aria-label="Template preview">
   <div class="modal modal--preview" style="max-width:680px;height:68vh">

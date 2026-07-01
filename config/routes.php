@@ -510,6 +510,14 @@ return [
             TemplatePackController::class, 'collectiveImportPreview');
         $router->post('/admin/collective/templates/template-pack/import-apply',
             TemplatePackController::class, 'collectiveImportApply');
+        $router->get('/admin/collective/templates/template-revisions',
+            TemplatePackController::class, 'collectiveRevisions');
+        $router->get('/admin/collective/templates/template-revisions/{revisionId}',
+            TemplatePackController::class, 'collectiveRevisionValue');
+        $router->post('/admin/collective/templates/template-revisions/{revisionId}/restore',
+            TemplatePackController::class, 'collectiveRestoreRevision');
+        $router->post('/admin/collective/templates/template-revisions/flush',
+            TemplatePackController::class, 'collectiveFlushRevisions');
         $router->get('/admin/listings/{id}/template-revisions',
             TemplatePackController::class, 'revisions');
         $router->get('/admin/listings/{id}/template-revisions/{revisionId}',

@@ -73,7 +73,7 @@ final class TemplatePackController
     ];
 
     /** Collective template keys — storage key names are the pack key names. */
-    private const COLLECTIVE_TEMPLATE_KEYS = [
+    public const COLLECTIVE_TEMPLATE_KEYS = [
         'owned_template',
         'joined_template',
         'collective_stats_template',
@@ -1007,6 +1007,127 @@ final class TemplatePackController
         }
 
         return Response::json(['ok' => true, 'saved' => $saved]);
+    }
+
+    // =========================================================================
+    // Collective template revision history
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // GET /admin/collective/templates/template-revisions?key=...
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the revision history list for one collective template key.
+     * JSON response: {ok, revisions: [{id, saved_at, preview, has_value}]}
+     */
+    public function collectiveRevisions(Request $request, array $params): Response
+    {
+        $key = (string) ($request->query('key', ''));
+
+        if (!in_array($key, self::COLLECTIVE_TEMPLATE_KEYS, true)) {
+            return Response::json(['error' => 'Unknown template key.']);
+        }
+
+        $history = (new TemplateRevisionRepo($this->app->getDatabase()))
+            ->getHistory(TemplateRevisionRepo::COLLECTIVE_ID, $key);
+
+        $result = array_map(static fn(array $r): array => [
+            'id'        => $r['id'],
+            'saved_at'  => $r['saved_at'],
+            'preview'   => mb_substr((string) ($r['value'] ?? ''), 0, 200),
+            'has_value' => $r['value'] !== null,
+        ], $history);
+
+        return Response::json(['ok' => true, 'revisions' => $result]);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /admin/collective/templates/template-revisions/{revisionId}
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the full value of a single collective revision (for preview before restore).
+     * JSON response: {ok, value}
+     */
+    public function collectiveRevisionValue(Request $request, array $params): Response
+    {
+        $revisionId = (int) ($params['revisionId'] ?? 0);
+
+        $revision = (new TemplateRevisionRepo($this->app->getDatabase()))->getById($revisionId);
+
+        if ($revision === null || $revision['fanlisting_id'] !== TemplateRevisionRepo::COLLECTIVE_ID) {
+            return Response::json(['error' => 'Revision not found.'], 404);
+        }
+
+        return Response::json(['ok' => true, 'value' => $revision['value']]);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/collective/templates/template-revisions/{revisionId}/restore
+    // -------------------------------------------------------------------------
+
+    /**
+     * Restores a collective revision value as the current template value.
+     * JSON response: {ok, key, value}
+     */
+    public function collectiveRestoreRevision(Request $request, array $params): Response
+    {
+        $revisionId = (int) ($params['revisionId'] ?? 0);
+
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $db      = $this->app->getDatabase();
+        $adminId = (int) $this->app->getSession()->get('lstr_admin_id');
+
+        $revisionRepo = new TemplateRevisionRepo($db);
+        $revision     = $revisionRepo->getById($revisionId);
+
+        if ($revision === null || $revision['fanlisting_id'] !== TemplateRevisionRepo::COLLECTIVE_ID) {
+            return Response::json(['error' => 'Revision not found.'], 404);
+        }
+
+        $key   = $revision['template_key'];
+        $value = $revision['value'];
+
+        if (!in_array($key, self::COLLECTIVE_TEMPLATE_KEYS, true)) {
+            return Response::json(['error' => 'Unknown template key.']);
+        }
+
+        $siteRepo     = new SiteSettingsRepo($db);
+        $currentValue = $siteRepo->get($key);
+
+        // Record the current value before replacing it
+        $revisionRepo->record(TemplateRevisionRepo::COLLECTIVE_ID, $key, $currentValue, $adminId);
+
+        // Apply the restored value (empty string means reset to default = null)
+        $siteRepo->set($key, ($value !== null && $value !== '') ? $value : null);
+
+        return Response::json(['ok' => true, 'key' => $key, 'value' => $value]);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/collective/templates/template-revisions/flush
+    // -------------------------------------------------------------------------
+
+    /**
+     * Deletes all revision history for one collective template key.
+     * JSON response: {ok}
+     */
+    public function collectiveFlushRevisions(Request $request, array $params): Response
+    {
+        $key = (string) $request->post('key', '');
+
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        if (!in_array($key, self::COLLECTIVE_TEMPLATE_KEYS, true)) {
+            return Response::json(['ok' => false, 'error' => 'Unknown template key.']);
+        }
+
+        (new TemplateRevisionRepo($this->app->getDatabase()))
+            ->deleteByKey(TemplateRevisionRepo::COLLECTIVE_ID, $key);
+
+        return Response::json(['ok' => true]);
     }
 
     // -------------------------------------------------------------------------

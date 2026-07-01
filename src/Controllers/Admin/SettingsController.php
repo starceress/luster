@@ -53,6 +53,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Repositories\TemplateRevisionRepo;
 use Luster\Support\JoinedListingRowRenderer;
 use Luster\Support\ListingRowRenderer;
 use Luster\Support\MemberStatsService;
@@ -2114,7 +2115,36 @@ final class SettingsController extends AdminController
         $kimResetFormTpl                     = (string) $request->post('kim_reset_form_template',                    '');
         $contactFormTpl                      = (string) $request->post('collective_contact_form_template',           '');
 
-        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $db = $this->app->getDatabase();
+
+        // Record revision history for any template values about to change.
+        $siteRepo    = new SiteSettingsRepo($db);
+        $oldValues   = $siteRepo->getMany(TemplatePackController::COLLECTIVE_TEMPLATE_KEYS);
+        $adminId     = (int) $session->get('lstr_admin_id');
+        $incomingRev = [
+            'owned_template'                          => $ownedTemplate                   !== '' ? $ownedTemplate                   : null,
+            'joined_template'                         => $joinedTemplate                  !== '' ? $joinedTemplate                  : null,
+            'collective_stats_template'               => $cStatsTemplate                  !== '' ? $cStatsTemplate                  : null,
+            'collective_affiliates_section_template'  => $collectiveAffiliatesSectionTpl  !== '' ? $collectiveAffiliatesSectionTpl  : null,
+            'random_listing_template'                 => $randomListingTemplate            !== '' ? $randomListingTemplate            : null,
+            'latest_listing_template'                 => $latestListingTemplate            !== '' ? $latestListingTemplate            : null,
+            'random_joined_listing_template'          => $randomJoinedListingTemplate      !== '' ? $randomJoinedListingTemplate      : null,
+            'latest_joined_listing_template'          => $latestJoinedListingTemplate      !== '' ? $latestJoinedListingTemplate      : null,
+            'collective_affiliate_apply_form_template' => $collectiveAffiliateApplyFormTpl !== '' ? $collectiveAffiliateApplyFormTpl : null,
+            'collective_adoption_form_template'       => $collectiveAdoptionFormTpl        !== '' ? $collectiveAdoptionFormTpl        : null,
+            'kim_signup_form_template'                => $kimSignupFormTpl                 !== '' ? $kimSignupFormTpl                 : null,
+            'wishlist_template'                       => $wishlistTemplate                 !== '' ? $wishlistTemplate                 : null,
+            'collective_updates_template'             => $collectiveUpdatesTemplate        !== '' ? $collectiveUpdatesTemplate        : null,
+            'collective_codes_template'               => $collectiveCodesTemplate          !== '' ? $collectiveCodesTemplate          : null,
+            'collective_codes_submit_form_template'   => $collectiveCodesSubmitFormTpl     !== '' ? $collectiveCodesSubmitFormTpl     : null,
+            'collective_kim_list_overview_template'   => $kimListOverviewTpl               !== '' ? $kimListOverviewTpl               : null,
+            'collective_kim_list_subject_template'    => $kimListSubjectTpl                !== '' ? $kimListSubjectTpl                : null,
+            'kim_update_form_template'                => $kimUpdateFormTpl                 !== '' ? $kimUpdateFormTpl                 : null,
+            'kim_reset_form_template'                 => $kimResetFormTpl                  !== '' ? $kimResetFormTpl                  : null,
+            'collective_contact_form_template'        => $contactFormTpl                   !== '' ? $contactFormTpl                   : null,
+        ];
+        (new TemplateRevisionRepo($db))->recordChanged(TemplateRevisionRepo::COLLECTIVE_ID, $oldValues, $incomingRev, $adminId);
+
         $siteRepo->set('owned_template',            $ownedTemplate  !== '' ? $ownedTemplate  : null);
         $siteRepo->set('joined_template',           $joinedTemplate !== '' ? $joinedTemplate : null);
         $siteRepo->set('collective_stats_template', $cStatsTemplate !== '' ? $cStatsTemplate : null);
