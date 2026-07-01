@@ -46,8 +46,9 @@ use Luster\Support\SuccessRenderer;
  *  - Honeypot field silently rejects bot submissions
  *  - Arithmetic CAPTCHA on the update step (step 2)
  *  - Rate-limited per IP via lstr_rate_limits
- *  - Password verified via password_verify() (Argon2id)
+ *  - Password verified via password_verify()
  *  - Legacy MD5 hash detected, verified, and upgraded to Argon2id on success
+ *  - Non-Argon2id hashes (bcrypt, legacy) upgraded to Argon2id silently on next sign-in
  *  - Session key lstr_update_authed_{id} stores the authenticated member's email
  */
 final class UpdateController
@@ -141,14 +142,19 @@ final class UpdateController
         $verified   = false;
 
         if (strlen($storedHash) === 32 && ctype_xdigit($storedHash)) {
+            // Legacy MD5 hash — verify and silently upgrade to Argon2id.
+            // updatePassword() avoids the `updated` timestamp side-effect of update().
             if (hash_equals($storedHash, md5($password))) {
                 $verified = true;
-                $memberRepo->update($listing->dbprefix, $email, [
-                    'password' => password_hash($password, PASSWORD_ARGON2ID),
-                ]);
+                $memberRepo->updatePassword($listing->dbprefix, $email, password_hash($password, PASSWORD_ARGON2ID));
             }
         } else {
             $verified = password_verify($password, $storedHash);
+            // Silently upgrade any non-Argon2id hash (e.g. bcrypt from a Fanatically
+            // import) on the first successful sign-in.
+            if ($verified && password_needs_rehash($storedHash, PASSWORD_ARGON2ID)) {
+                $memberRepo->updatePassword($listing->dbprefix, $email, password_hash($password, PASSWORD_ARGON2ID));
+            }
         }
 
         if (!$verified) {

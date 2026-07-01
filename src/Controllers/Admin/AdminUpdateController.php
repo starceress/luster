@@ -129,7 +129,7 @@ final class AdminUpdateController extends AdminController
         $next    = $this->bumpPatch($current);
 
         $baseStatus = new UpdateStatus(
-            installed: $current, latest: $current, releaseUrl: 'https://github.com/spyderfang/luster/releases/tag/v' . $current,
+            installed: $current, latest: $current, releaseUrl: 'https://github.com/' . Version::GITHUB_REPO . '/releases/tag/v' . $current,
             releaseTitle: 'Luster v' . $current, checkedAt: time(), updateAvailable: false, checkFailed: false, neverChecked: false, error: null,
         );
 
@@ -170,7 +170,7 @@ final class AdminUpdateController extends AdminController
 
             'update-available' => [
                 'update_status' => new UpdateStatus(
-                    installed: $current, latest: $next, releaseUrl: 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+                    installed: $current, latest: $next, releaseUrl: 'https://github.com/' . Version::GITHUB_REPO . '/releases/tag/v' . $next,
                     releaseTitle: 'Luster v' . $next, checkedAt: time(), updateAvailable: true, checkFailed: false, neverChecked: false, error: null,
                 ),
             ],
@@ -193,7 +193,7 @@ final class AdminUpdateController extends AdminController
             'staged-ok' => [
                 'staging_valid'  => true,
                 'update_version' => $next,
-                'release_url'    => 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+                'release_url'    => 'https://github.com/' . Version::GITHUB_REPO . '/releases/tag/v' . $next,
                 'release_title'  => 'Luster v' . $next . ' — Bug fixes and performance improvements',
                 'preflight'      => $passChecks,
                 'preflight_ok'   => true,
@@ -203,7 +203,7 @@ final class AdminUpdateController extends AdminController
             'staged-blocked' => [
                 'staging_valid'  => true,
                 'update_version' => $next,
-                'release_url'    => 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+                'release_url'    => 'https://github.com/' . Version::GITHUB_REPO . '/releases/tag/v' . $next,
                 'release_title'  => 'Luster v' . $next . ' — Bug fixes and performance improvements',
                 'preflight'      => $failChecks,
                 'preflight_ok'   => false,
@@ -211,12 +211,12 @@ final class AdminUpdateController extends AdminController
 
             'manual-required' => [
                 'update_status'  => new UpdateStatus(
-                    installed: $current, latest: $next, releaseUrl: 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+                    installed: $current, latest: $next, releaseUrl: 'https://github.com/' . Version::GITHUB_REPO . '/releases/tag/v' . $next,
                     releaseTitle: 'Luster v' . $next, checkedAt: time(), updateAvailable: true, checkFailed: false, neverChecked: false, error: null,
                 ),
                 'manual_reason'  => 'This release raises the minimum PHP version to 8.3. Please update PHP on your server before applying the update, then download the release manually.',
                 'manual_version' => $next,
-                'manual_url'     => 'https://github.com/spyderfang/luster/releases/tag/v' . $next,
+                'manual_url'     => 'https://github.com/' . Version::GITHUB_REPO . '/releases/tag/v' . $next,
             ],
 
             'lock-exists' => [

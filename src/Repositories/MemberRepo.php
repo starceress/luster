@@ -724,6 +724,24 @@ final class MemberRepo
     }
 
     /**
+     * Updates only the password column for a member.
+     *
+     * Does not touch the `updated` timestamp — use this for silent hash
+     * rehashes (MD5 → Argon2id, bcrypt → Argon2id) that should not register
+     * as a profile edit. Explicit password changes via the update form and
+     * password-reset flows should continue to use update() so the timestamp
+     * is bumped normally on enth_ installs.
+     */
+    public function updatePassword(string $prefix, string $email, string $hash): bool
+    {
+        $p    = $this->resolveTable($prefix);
+        $stmt = $this->db->prepare(
+            "UPDATE {$p} SET `password` = :hash WHERE email = :email"
+        );
+        return $stmt->execute(['hash' => $hash, 'email' => $email]);
+    }
+
+    /**
      * Deletes a member by numeric id (standard schema only).
      */
     public function delete(string $prefix, int $id): bool
