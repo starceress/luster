@@ -462,6 +462,8 @@ $sumCell = static function (?array $ms, string $key): string {
           <a href="<?= View::e($lcStatusUrl('dead', 'members')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['dead'] ?? 0) ?> Dead</a>
           <a href="<?= View::e($lcStatusUrl('redirect', 'members')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['redirect'] ?? 0) ?> Redirect</a>
           <a href="<?= View::e($lcStatusUrl('unchecked', 'members')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['unchecked'] ?? 0) ?> Unchecked</a>
+          <span class="badge badge-current"><?= (int) ($backlink_stats['found'] ?? 0) ?> Backlinked</span>
+          <span class="badge badge-error"><?= (int) ($backlink_stats['missing'] ?? 0) ?> No Backlink</span>
         </div>
       </div>
       <?php if (empty($members)): ?>
@@ -478,6 +480,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <th><a href="<?= View::e($lcMemSortUrl('member_name')) ?>" class="sort-th<?= $mem_sort === 'member_name' ? ' sort-active' : '' ?>">Name <?= View::sortIcon('member_name', $mem_sort, $mem_dir) ?></a></th>
               <th><a href="<?= View::e($lcMemSortUrl('member_url')) ?>" class="sort-th<?= $mem_sort === 'member_url' ? ' sort-active' : '' ?>">URL <?= View::sortIcon('member_url', $mem_sort, $mem_dir) ?></a></th>
               <th><a href="<?= View::e($lcMemSortUrl('link_status')) ?>" class="sort-th<?= $mem_sort === 'link_status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('link_status', $mem_sort, $mem_dir) ?></a></th>
+              <th>Backlink</th>
               <th><a href="<?= View::e($lcMemSortUrl('link_checked_at')) ?>" class="sort-th<?= $mem_sort === 'link_checked_at' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('link_checked_at', $mem_sort, $mem_dir) ?></a></th>
               <th class="actions-col">Actions</th>
             </tr>
@@ -504,6 +507,14 @@ $sumCell = static function (?array $ms, string $key): string {
                 </span>
                 <span class="badge badge-pending" data-lc-content-badge hidden></span>
               </td>
+              <td data-label="Backlink">
+                <?php
+                  $blStatus = (string) ($mem->backlink_status ?? 'unchecked');
+                  $blClass  = match($blStatus) { 'found' => 'badge-current', 'missing' => 'badge-error', default => 'badge-inactive' };
+                  $blLabel  = match($blStatus) { 'found' => 'Found', 'missing' => 'Missing', default => '&mdash;' };
+                ?>
+                <span class="badge <?= $blClass ?>" data-lc-backlink-badge><?= $blLabel ?></span>
+              </td>
               <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
@@ -515,6 +526,15 @@ $sumCell = static function (?array $ms, string $key): string {
                         data-endpoint="<?= $b ?>/admin/link-checker/check-member">
                   Check
                 </button>
+                <?php if (isset($mem_listing) && $mem_listing !== null && $mem->member_url !== ''): ?>
+                <button class="btn btn-quaternary btn-xs js-lc-backlink"
+                        data-id="<?= (int) $mem->id ?>"
+                        data-csrf="<?= View::e($csrf_token) ?>"
+                        data-listing-url="<?= View::e((string) $mem_listing->url) ?>"
+                        data-endpoint="<?= $b ?>/admin/link-checker/check-backlink-member">
+                  Backlink
+                </button>
+                <?php endif; ?>
               </td>
             </tr>
             <?php endforeach; ?>
@@ -701,6 +721,8 @@ $sumCell = static function (?array $ms, string $key): string {
           <a href="<?= View::e($lcStatusUrl('dead', 'joined')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= $joined_stats['dead'] ?> Dead</a>
           <a href="<?= View::e($lcStatusUrl('redirect', 'joined')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= $joined_stats['redirect'] ?> Redirect</a>
           <a href="<?= View::e($lcStatusUrl('unchecked', 'joined')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= $joined_stats['unchecked'] ?> Unchecked</a>
+          <span class="badge badge-current"><?= (int) ($listed_stats['listed'] ?? 0) ?> Name Match</span>
+          <span class="badge badge-error"><?= (int) ($listed_stats['not_found'] ?? 0) ?> Not Found</span>
         </div>
       </div>
       <div class="table-wrap">
@@ -710,6 +732,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <th><a href="<?= View::e($lcJoinedSortUrl('name')) ?>" class="sort-th<?= $joined_sort === 'name' ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $joined_sort, $joined_dir) ?></a></th>
               <th>URL</th>
               <th><a href="<?= View::e($lcJoinedSortUrl('link_status')) ?>" class="sort-th<?= $joined_sort === 'link_status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('link_status', $joined_sort, $joined_dir) ?></a></th>
+              <th>Listed?</th>
               <th><a href="<?= View::e($lcJoinedSortUrl('last_checked')) ?>" class="sort-th<?= $joined_sort === 'last_checked' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('last_checked', $joined_sort, $joined_dir) ?></a></th>
               <th class="actions-col">Actions</th>
             </tr>
@@ -734,6 +757,17 @@ $sumCell = static function (?array $ms, string $key): string {
                 </span>
                 <span class="badge badge-pending" data-lc-content-badge hidden></span>
               </td>
+              <td data-label="Listed?">
+                <?php
+                  $lsStatus = $jl->listedStatus;
+                  $lsClass  = match($lsStatus) { 'listed' => 'badge-current', 'not_found' => 'badge-error', default => 'badge-inactive' };
+                  $lsLabel  = match($lsStatus) { 'listed' => 'Name Match', 'not_found' => 'Not Found', default => '&mdash;' };
+                ?>
+                <span class="badge <?= $lsClass ?>" data-lc-listed-badge><?= $lsLabel ?></span>
+                <?php if ($jl->listedMembersUrl !== null && $jl->listedMembersUrl !== ''): ?>
+                <div class="lc-redirect-info"><a href="<?= View::e($jl->listedMembersUrl) ?>" target="_blank" rel="noopener noreferrer" class="link text-xs"><?= View::e($jl->listedMembersUrl) ?></a></div>
+                <?php endif; ?>
+              </td>
               <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $jl->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($jl->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
@@ -745,6 +779,15 @@ $sumCell = static function (?array $ms, string $key): string {
                         data-endpoint="<?= $b ?>/admin/link-checker/check-joined">
                   Check
                 </button>
+                <?php if ($owner_name !== '' && ($jl->url ?? '') !== ''): ?>
+                <button class="btn btn-quaternary btn-xs js-lc-listed"
+                        data-id="<?= (int) $jl->id ?>"
+                        data-csrf="<?= View::e($csrf_token) ?>"
+                        data-owner-name="<?= View::e($owner_name) ?>"
+                        data-endpoint="<?= $b ?>/admin/link-checker/check-listed-joined">
+                  Listed?
+                </button>
+                <?php endif; ?>
                 <a href="<?= $b ?>/admin/joined/<?= $jl->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
               </td>
             </tr>
@@ -849,8 +892,25 @@ $sumCell = static function (?array $ms, string $key): string {
                     <button type="submit" class="btn btn-primary btn-xs">Update</button>
                   </form>
                   <?php endif; ?>
+                  <button type="button" class="btn btn-secondary btn-xs lc-tfl-lookup-btn"
+                    data-joined-id="<?= $jl->id ?>"
+                    data-network="tfl"
+                    data-endpoint="<?= $b ?>/admin/link-checker/tfl-lookup-joined"
+                    data-apply-endpoint="<?= $b ?>/admin/link-checker/apply-tfl-url-joined"
+                    data-csrf="<?= View::e($csrf_token) ?>">TFL</button>
+                  <button type="button" class="btn btn-secondary btn-xs lc-tfl-lookup-btn"
+                    data-joined-id="<?= $jl->id ?>"
+                    data-network="tafl"
+                    data-endpoint="<?= $b ?>/admin/link-checker/tfl-lookup-joined"
+                    data-apply-endpoint="<?= $b ?>/admin/link-checker/apply-tfl-url-joined"
+                    data-csrf="<?= View::e($csrf_token) ?>">TAFL</button>
                   <a href="<?= $b ?>/admin/joined/<?= $jl->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
                 </div>
+              </td>
+            </tr>
+            <tr id="lc-tfl-result-<?= $jl->id ?>" style="display:none">
+              <td colspan="6" style="padding:.5rem 1rem .75rem">
+                <div id="lc-tfl-result-inner-<?= $jl->id ?>" class="form-hint" style="margin:0"></div>
               </td>
             </tr>
             <?php endforeach; ?>
@@ -947,7 +1007,26 @@ $sumCell = static function (?array $ms, string $key): string {
               </td>
               <td class="text-muted" data-label="Checked"><?= $jl->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($jl->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?></td>
               <td class="actions-col" data-label="">
-                <a href="<?= $b ?>/admin/joined/<?= $jl->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
+                <div class="actions-row">
+                  <button type="button" class="btn btn-secondary btn-xs lc-tfl-lookup-btn"
+                    data-joined-id="<?= $jl->id ?>"
+                    data-network="tfl"
+                    data-endpoint="<?= $b ?>/admin/link-checker/tfl-lookup-joined"
+                    data-apply-endpoint="<?= $b ?>/admin/link-checker/apply-tfl-url-joined"
+                    data-csrf="<?= View::e($csrf_token) ?>">TFL</button>
+                  <button type="button" class="btn btn-secondary btn-xs lc-tfl-lookup-btn"
+                    data-joined-id="<?= $jl->id ?>"
+                    data-network="tafl"
+                    data-endpoint="<?= $b ?>/admin/link-checker/tfl-lookup-joined"
+                    data-apply-endpoint="<?= $b ?>/admin/link-checker/apply-tfl-url-joined"
+                    data-csrf="<?= View::e($csrf_token) ?>">TAFL</button>
+                  <a href="<?= $b ?>/admin/joined/<?= $jl->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
+                </div>
+              </td>
+            </tr>
+            <tr id="lc-tfl-result-<?= $jl->id ?>" style="display:none">
+              <td colspan="5" style="padding:.5rem 1rem .75rem">
+                <div id="lc-tfl-result-inner-<?= $jl->id ?>" class="form-hint" style="margin:0"></div>
               </td>
             </tr>
             <?php endforeach; ?>

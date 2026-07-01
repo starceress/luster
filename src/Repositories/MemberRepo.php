@@ -724,6 +724,34 @@ final class MemberRepo
     }
 
     /**
+     * Verifies a member's password and silently upgrades stale hash algorithms.
+     *
+     * Handles two upgrade paths without touching the `updated` timestamp:
+     *  - Legacy MD5 (len=32, all-hex): verified with hash_equals(), upgraded to Argon2id.
+     *  - Any other non-Argon2id hash (e.g. bcrypt from a Fanatically import):
+     *    verified with password_verify(), upgraded via password_needs_rehash().
+     *
+     * Returns true if the password was correct, false otherwise. The upgrade is
+     * a best-effort side-effect and does not affect the return value.
+     */
+    public function verifyAndUpgrade(string $prefix, string $email, string $password, string $storedHash): bool
+    {
+        if (strlen($storedHash) === 32 && ctype_xdigit($storedHash)) {
+            if (!hash_equals($storedHash, md5($password))) {
+                return false;
+            }
+            $this->updatePassword($prefix, $email, password_hash($password, PASSWORD_ARGON2ID));
+            return true;
+        }
+
+        $verified = password_verify($password, $storedHash);
+        if ($verified && password_needs_rehash($storedHash, PASSWORD_ARGON2ID)) {
+            $this->updatePassword($prefix, $email, password_hash($password, PASSWORD_ARGON2ID));
+        }
+        return $verified;
+    }
+
+    /**
      * Updates only the password column for a member.
      *
      * Does not touch the `updated` timestamp — use this for silent hash

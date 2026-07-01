@@ -257,9 +257,12 @@ SQL;
             createdAt:       '2026-01-01 00:00:00',
             linkStatus:      'unchecked',
             linkCheckedAt:   null,
-            linkRedirectUrl: null,
-            description:     'TOP SECRET DESCRIPTION TEXT',
-            comments:        'TOP SECRET COMMENT TEXT',
+            linkRedirectUrl:  null,
+            description:      'TOP SECRET DESCRIPTION TEXT',
+            comments:         'TOP SECRET COMMENT TEXT',
+            listedStatus:     'unchecked',
+            listedCheckedAt:  null,
+            listedMembersUrl: null,
         );
 
         $template = '{listing_subject} - {listing_url} - {listing_category} - {date_joined}';
@@ -285,9 +288,12 @@ SQL;
             createdAt:       '2026-01-01 00:00:00',
             linkStatus:      'unchecked',
             linkCheckedAt:   null,
-            linkRedirectUrl: null,
-            description:     'PRIVATE DESCRIPTION',
-            comments:        'PRIVATE COMMENT',
+            linkRedirectUrl:  null,
+            description:      'PRIVATE DESCRIPTION',
+            comments:         'PRIVATE COMMENT',
+            listedStatus:     'unchecked',
+            listedCheckedAt:  null,
+            listedMembersUrl: null,
         );
 
         // Even if a site owner's custom template tries to reference these

@@ -246,6 +246,15 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Returns the current value of a single template column for a listing, using getTemplates().
+     * Returns null when the column is absent or the value is null/unset.
+     */
+    public function getTemplateColumn(int $listingId, string $column): ?string
+    {
+        return $this->getTemplates($listingId)[$column] ?? null;
+    }
+
+    /**
      * Returns the per-listing pagination template string, or null when not set /
      * when Migration 64 has not been run yet.
      */
@@ -2207,5 +2216,32 @@ final class ListingSettingsRepo
             );
             $stmt->execute(['id' => $listingId, 'val' => $label]);
         } catch (\PDOException) {}
+    }
+
+    /**
+     * Strict single-column template write for use inside transactions.
+     * Validates $column against the known template-column allowlist and propagates
+     * \PDOException on failure; never silently swallows.
+     *
+     * @throws \InvalidArgumentException  when $column is not in the allowlist.
+     * @throws \PDOException              on database failure.
+     */
+    public function saveTemplateColumnStrict(int $listingId, string $column, ?string $value): void
+    {
+        static $allowed = [
+            'stats_template', 'members_template', 'affiliates_section_template',
+            'updates_template', 'codes_template', 'codes_submit_form_template',
+            'join_form_template', 'affiliate_apply_form_template',
+            'contact_form_template', 'update_form_template', 'reset_form_template',
+        ];
+        if (!in_array($column, $allowed, true)) {
+            throw new \InvalidArgumentException("Unknown template column: {$column}");
+        }
+        $stmt = $this->db->prepare(
+            "INSERT INTO lstr_fanlisting_settings (fanlisting_id, {$column})
+             VALUES (:id, :val)
+             ON DUPLICATE KEY UPDATE {$column} = VALUES({$column})"
+        );
+        $stmt->execute(['id' => $listingId, 'val' => $value]);
     }
 }

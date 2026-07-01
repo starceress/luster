@@ -31,6 +31,18 @@ final class LinkChecker
     private const MAX_BODY_BYTES = 262144; // 256 KB — enough for a typical HTML page
     private const MAX_HOPS       = 5;
 
+    /** Common sub-paths tried after a 'missing' reciprocal result (Step 4.2). */
+    private const RECIPROCAL_SUB_PATHS = ['/fanlistings/', '/affiliates/', '/links/'];
+
+    /** Common member-list path candidates tried during owner-listed discovery (Step 4.3). */
+    private const MEMBER_PATH_CANDIDATES = [
+        '/members/', '/members.php', '/fans/', '/fans.php',
+        '/members/list/', '/members/all/', '/fan-list/',
+    ];
+
+    /** Maximum outbound requests per checkOwnerListed() call (Step 4.3). */
+    private const OWNER_LISTED_MAX_REQUESTS = 5;
+
     /**
      * Sends a single GET request (no redirect following) and classifies the URL.
      *
@@ -122,6 +134,216 @@ final class LinkChecker
         }
 
         return 'unchecked';
+    }
+
+    /**
+     * Like checkReciprocal() but, on a 'missing' result, tries up to three
+     * common sub-paths on the same origin (/fanlistings/, /affiliates/, /links/)
+     * before giving up. Cross-origin redirect targets of $affiliateUrl are not
+     * tried for sub-paths (the sub-paths are always on the original host).
+     *
+     * Returns 'found', 'missing', or 'unchecked' (same contract as checkReciprocal).
+     */
+    public static function checkReciprocalDeep(string $affiliateUrl, string $ownerUrl): string
+    {
+        $result = self::checkReciprocal($affiliateUrl, $ownerUrl);
+        if ($result !== 'missing') {
+            return $result;
+        }
+
+        $scheme = strtolower((string) (parse_url($affiliateUrl, PHP_URL_SCHEME) ?? ''));
+        $host   = parse_url($affiliateUrl, PHP_URL_HOST);
+
+        if (!is_string($host) || $host === '' || !in_array($scheme, ['http', 'https'], true)) {
+            return 'missing';
+        }
+
+        // Reject if the URL embeds credentials — don't pass user:pass to sub-paths.
+        if (parse_url($affiliateUrl, PHP_URL_USER) !== null) {
+            return 'missing';
+        }
+
+        if (NetworkAddressGuard::validatePublicHost($host) !== null) {
+            return 'unchecked';
+        }
+
+        foreach (self::RECIPROCAL_SUB_PATHS as $path) {
+            $candidate = $scheme . '://' . $host . $path;
+            if (self::checkReciprocal($candidate, $ownerUrl) === 'found') {
+                return 'found';
+            }
+        }
+
+        return 'missing';
+    }
+
+    /**
+     * Checks whether $ownerName appears as a member on the joined fanlisting at $joinedUrl.
+     *
+     * Strategy:
+     *   1. Fetch $joinedUrl and look for a members-page link in the HTML.
+     *   2. If a separate members page is discovered, fetch it.
+     *   3. If no link is found, probe MEMBER_PATH_CANDIDATES on the same origin.
+     *   4. Search the members-page body for $ownerName (case-insensitive).
+     *   5. If pagination markers are detected, never report 'not_found'.
+     *
+     * Total outbound requests are capped at OWNER_LISTED_MAX_REQUESTS.
+     *
+     * Returns an array:
+     *   status      — 'listed' | 'not_found' | 'unchecked'
+     *   members_url — the URL that was actually searched (or null)
+     *   heuristic   — true when status='listed'; a name-only match has no duplicate
+     *                 protection, so callers must treat it as a heuristic indicator
+     */
+    public static function checkOwnerListed(string $joinedUrl, string $ownerName): array
+    {
+        $unchecked = ['status' => 'unchecked', 'members_url' => null, 'heuristic' => false];
+
+        $ownerName = trim($ownerName);
+        if ($ownerName === '') {
+            return $unchecked;
+        }
+
+        $scheme = strtolower((string) (parse_url($joinedUrl, PHP_URL_SCHEME) ?? ''));
+        $host   = parse_url($joinedUrl, PHP_URL_HOST);
+
+        if (!is_string($host) || $host === '' || !in_array($scheme, ['http', 'https'], true)) {
+            return $unchecked;
+        }
+
+        if (NetworkAddressGuard::validatePublicHost($host) !== null) {
+            return $unchecked;
+        }
+
+        $requestsLeft = self::OWNER_LISTED_MAX_REQUESTS;
+
+        // Step 1 — fetch the listing's homepage and hunt for a members-page link.
+        $homepageBody = self::safeGet($joinedUrl);
+        $requestsLeft--;
+
+        $membersUrl  = null;
+        $membersBody = null;
+
+        if ($homepageBody !== null) {
+            $membersUrl = self::discoverMembersLink($homepageBody, $joinedUrl);
+
+            if ($membersUrl !== null) {
+                if ($membersUrl === $joinedUrl) {
+                    // The members page IS the homepage — no additional fetch needed.
+                    $membersBody = $homepageBody;
+                } elseif ($requestsLeft > 0) {
+                    // Discovered a separate members page; fetch it now.
+                    $membersBody = self::safeGet($membersUrl);
+                    $requestsLeft--;
+                }
+            }
+        }
+
+        // Step 2 — if no link was found on the homepage, probe canonical sub-paths.
+        if ($membersUrl === null && $requestsLeft > 0) {
+            foreach (self::MEMBER_PATH_CANDIDATES as $path) {
+                if ($requestsLeft <= 0) {
+                    break;
+                }
+                $candidate     = $scheme . '://' . $host . $path;
+                $candidateHost = parse_url($candidate, PHP_URL_HOST);
+                if (!is_string($candidateHost) || NetworkAddressGuard::validatePublicHost($candidateHost) !== null) {
+                    continue;
+                }
+                $body = self::safeGet($candidate);
+                $requestsLeft--;
+                if ($body !== null && trim($body) !== '') {
+                    // Body is already fetched; no second request needed.
+                    $membersUrl  = $candidate;
+                    $membersBody = $body;
+                    break;
+                }
+            }
+        }
+
+        if ($membersUrl === null || $membersBody === null) {
+            return $unchecked;
+        }
+
+        // Step 3 — search the members-page body for the owner name.
+        $text = self::normalizeVisibleText($membersBody);
+        if (stripos($text, $ownerName) !== false) {
+            return ['status' => 'listed', 'members_url' => $membersUrl, 'heuristic' => true];
+        }
+
+        // Step 4 — if pagination detected, don't falsely report 'not_found'.
+        if (self::hasPaginationHints($membersBody)) {
+            return $unchecked;
+        }
+
+        return ['status' => 'not_found', 'members_url' => $membersUrl, 'heuristic' => false];
+    }
+
+    // -----------------------------------------------------------------------
+    // Private helpers for checkOwnerListed
+    // -----------------------------------------------------------------------
+
+    /**
+     * Scans $html (already fetched) for a hyperlink whose anchor text or href
+     * suggests it leads to a members / fans list page. Returns the absolute URL
+     * of the best candidate, or null if none found.
+     */
+    private static function discoverMembersLink(string $html, string $baseUrl): ?string
+    {
+        // Matches <a href="..."> with anchor text like "members", "fans", "fan list", etc.
+        $pattern = '/<a\s[^>]*href=["\']([^"\']+)["\'][^>]*>([^<]{1,60})<\/a>/i';
+        preg_match_all($pattern, $html, $matches, PREG_SET_ORDER);
+
+        $keywords = ['member', 'fan list', 'fans', 'fan-list', 'join', 'listed'];
+        foreach ($matches as $m) {
+            $anchor = strtolower(trim($m[2]));
+            foreach ($keywords as $kw) {
+                if (str_contains($anchor, $kw)) {
+                    $resolved = UrlNormalizer::resolveLocation($baseUrl, $m[1]);
+                    $rHost    = parse_url($resolved, PHP_URL_HOST);
+                    $bHost    = parse_url($baseUrl, PHP_URL_HOST);
+                    // Only follow same-host links.
+                    if ($rHost === $bHost) {
+                        return $resolved;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Strips HTML tags and decodes entities to produce searchable plain text.
+     */
+    private static function normalizeVisibleText(string $html): string
+    {
+        // Remove <script> and <style> blocks first.
+        $text = preg_replace('@<(script|style)[^>]*>.*?</\1>@si', ' ', $html) ?? $html;
+        $text = strip_tags($text);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return preg_replace('/\s+/', ' ', $text) ?? $text;
+    }
+
+    /**
+     * Returns true if $html contains common pagination indicators, which means
+     * we cannot conclude a name is absent just because it's not on this page.
+     */
+    private static function hasPaginationHints(string $html): bool
+    {
+        $patterns = [
+            '/\bpage\s+\d+\s+of\s+\d+/i',
+            '/\bnext\s+page\b/i',
+            '/[?&]page=\d+/i',
+            '/class=["\'][^"\']*\bpaginat/i',
+            '/rel=["\']next["\']/i',
+        ];
+        foreach ($patterns as $p) {
+            if (preg_match($p, $html)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

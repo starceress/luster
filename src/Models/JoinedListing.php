@@ -64,6 +64,12 @@ final class JoinedListing
         public readonly ?string $description,
         /** Free-text admin note, preserved from Enthusiast's joined-listing comments field. Admin-only, not shown publicly. */
         public readonly ?string $comments,
+        /** Owner-listed check result: 'listed', 'not_found', or 'unchecked'. Added by Migration 98. */
+        public readonly string  $listedStatus,
+        /** Timestamp of the last owner-listed check, or null if never checked. */
+        public readonly ?string $listedCheckedAt,
+        /** URL of the members page that was searched during the owner-listed check. */
+        public readonly ?string $listedMembersUrl,
     ) {}
 
     /**
@@ -85,8 +91,11 @@ final class JoinedListing
             linkStatus:      (string) ($row['link_status']       ?? 'unchecked'),
             linkCheckedAt:   isset($row['link_checked_at'])   && $row['link_checked_at']   !== null ? (string) $row['link_checked_at']   : null,
             linkRedirectUrl: isset($row['link_redirect_url']) && $row['link_redirect_url'] !== null ? (string) $row['link_redirect_url'] : null,
-            description:     isset($row['description']) && $row['description'] !== null ? (string) $row['description'] : null,
-            comments:        isset($row['comments'])    && $row['comments']    !== null ? (string) $row['comments']    : null,
+            description:      isset($row['description']) && $row['description'] !== null ? (string) $row['description'] : null,
+            comments:         isset($row['comments'])    && $row['comments']    !== null ? (string) $row['comments']    : null,
+            listedStatus:     (string) ($row['listed_status']      ?? 'unchecked'),
+            listedCheckedAt:  isset($row['listed_checked_at'])   && $row['listed_checked_at']   !== null ? (string) $row['listed_checked_at']   : null,
+            listedMembersUrl: isset($row['listed_members_url'])  && $row['listed_members_url']  !== null ? (string) $row['listed_members_url']  : null,
         );
     }
 }

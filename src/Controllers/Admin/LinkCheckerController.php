@@ -18,6 +18,7 @@ namespace Luster\Controllers\Admin;
 use Luster\Core\LinkChecker;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\TflLookupService;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\JoinedListingRepo;
@@ -137,13 +138,15 @@ final class LinkCheckerController extends AdminController
         $allListings  = $listingRepo->getAll();
 
         $memRepo      = new MemberLinkCheckRepo($db, $config);
-        $memItems     = [];
-        $memTotal     = 0;
-        $memStats     = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
-        $movedMembers = [];
-        $deadMembers  = [];
-        $memListing   = null;
-        $memSummary   = [];
+        $memItems        = [];
+        $memTotal        = 0;
+        $memStats        = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
+        $backlinkStats   = ['found' => 0, 'missing' => 0, 'unchecked' => 0];
+        $movedMembers    = [];
+        $deadMembers     = [];
+        $memListing      = null;
+        $memSummary      = [];
+        $listedStats     = ['listed' => 0, 'not_found' => 0, 'unchecked' => 0];
 
         // Pre-fetch member summary for sorting the overview table by last_checked
         $memSummaryAll = $memRepo->getPerListingSummary();
@@ -175,8 +178,8 @@ final class LinkCheckerController extends AdminController
         $memSumListings   = array_slice($allListings, $memSumOffset, $perPage);
 
         if ($listingFilter !== null && $listingFilter > 0) {
-            $memListing   = $listingRepo->getById($listingFilter);
-            $memResult    = $memRepo->paginate(
+            $memListing    = $listingRepo->getById($listingFilter);
+            $memResult     = $memRepo->paginate(
                 $listingFilter,
                 $statusParam,
                 $searchParam,
@@ -185,19 +188,22 @@ final class LinkCheckerController extends AdminController
                 $perPage,
                 $memPage,
             );
-            $memItems     = $memResult['items'];
-            $memTotal     = $memResult['total'];
-            $memStats     = $memRepo->getLinkStats($listingFilter);
-            $movedMembers = $memRepo->getByLinkStatus('redirect', $listingFilter);
-            $deadMembers  = $memRepo->getByLinkStatus('dead', $listingFilter);
+            $memItems      = $memResult['items'];
+            $memTotal      = $memResult['total'];
+            $memStats      = $memRepo->getLinkStats($listingFilter);
+            $backlinkStats = $memRepo->getBacklinkStats($listingFilter);
+            $movedMembers  = $memRepo->getByLinkStatus('redirect', $listingFilter);
+            $deadMembers   = $memRepo->getByLinkStatus('dead', $listingFilter);
         } elseif ($listingFilter === null) {
-            $memStats     = $memRepo->getLinkStatsAll();
-            $memSummary   = $memSummaryAll;
-            $memTotal     = array_sum($memStats);
-            $movedMembers = $memRepo->getByLinkStatusAll('redirect');
-            $deadMembers  = $memRepo->getByLinkStatusAll('dead');
+            $memStats      = $memRepo->getLinkStatsAll();
+            $backlinkStats = $memRepo->getBacklinkStatsAll();
+            $memSummary    = $memSummaryAll;
+            $memTotal      = array_sum($memStats);
+            $movedMembers  = $memRepo->getByLinkStatusAll('redirect');
+            $deadMembers   = $memRepo->getByLinkStatusAll('dead');
         }
         // listing_id=0 (Collective) has no member table — $mem* defaults stay empty
+        $listedStats = $joinedRepo->getListedStats();
 
         return $this->adminLayout(
             'admin/link-checker/index.php',
@@ -214,6 +220,8 @@ final class LinkCheckerController extends AdminController
                 'joined_total_pages' => max(1, (int) ceil($joinedResult['total'] / $perPage)),
                 'aff_stats'          => $affRepo->getLinkStats($listingFilter),
                 'joined_stats'       => $joinedRepo->getLinkStats(),
+                'backlink_stats'     => $backlinkStats,
+                'listed_stats'       => $listedStats,
                 'aff_scope_counts'   => $affRepo->getScopeCounts(),
                 'moved_affiliates'   => $affRepo->getByLinkStatus('redirect', $listingFilter),
                 'moved_joined'       => $joinedRepo->getByLinkStatus('redirect'),
@@ -231,6 +239,7 @@ final class LinkCheckerController extends AdminController
                 'mem_listing'        => $memListing,
                 'mem_summary'        => $memSummary,
                 'owner_url'          => $this->resolveReciprocalUrl(),
+                'owner_name'         => trim((string) ($this->app->getConfig()->get('owner_name', '') ?? '')),
                 'listings'           => $allListings,
                 'mem_sum_listings'   => $memSumListings,
                 'mem_sum_page'       => $memSumPage,
@@ -413,6 +422,20 @@ final class LinkCheckerController extends AdminController
                 $ids = $memRepo->getAllIdsAll();
             }
             // listing_id=0 (Collective) has no member table — $ids stays empty
+        } elseif ($panel === 'backlinks') {
+            $listingIdRaw = (string) $request->query('listing_id', '');
+            $listingId    = ($listingIdRaw !== '' && ctype_digit($listingIdRaw)) ? (int) $listingIdRaw : -1;
+            $memRepo      = new MemberLinkCheckRepo($db, $this->app->getConfig());
+            if ($listingId > 0) {
+                $ids = $memRepo->getAllBacklinkIds($listingId);
+            } elseif ($listingIdRaw === '') {
+                $ids = $memRepo->getAllBacklinkIdsAll();
+            }
+        } elseif ($panel === 'listed') {
+            $ids = array_map(
+                static fn($j) => $j->id,
+                (new JoinedListingRepo($db))->getAllForListedCheck(),
+            );
         }
 
         return Response::json(array_values($ids));
@@ -454,7 +477,7 @@ final class LinkCheckerController extends AdminController
 
         $reciprocalStatus = 'unchecked';
         if ($result['status'] !== 'dead') {
-            $reciprocalStatus = LinkChecker::checkReciprocal($aff->url, $this->resolveReciprocalUrl());
+            $reciprocalStatus = LinkChecker::checkReciprocalDeep($aff->url, $this->resolveReciprocalUrl());
             $repo->updateReciprocalStatus($id, $reciprocalStatus);
         }
 
@@ -582,6 +605,114 @@ final class LinkCheckerController extends AdminController
             (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
             'link-checker',
             "Applied redirect URL to joined listing #{$id}",
+            $request->ip(),
+        );
+
+        return Response::redirect($this->adminUrl('/admin/link-checker'));
+    }
+
+    // -----------------------------------------------------------------------
+    // TFL/TAFL URL lookup for dead/moved joined listings (AJAX)
+    // -----------------------------------------------------------------------
+
+    /**
+     * POST /admin/link-checker/tfl-lookup-joined
+     *
+     * AJAX endpoint — looks up a joined listing's subject on TFL or TAFL and returns
+     * the best-match URL along with candidate suggestions. Uses the same
+     * TflLookupService cache as the listing-edit page lookup.
+     *
+     * Expected POST: joined_id (int), network (tfl|tafl)
+     * JSON response: url, candidates, error, cache_age  (same shape as /admin/tfl-lookup)
+     */
+    public function tflLookupJoined(Request $request): Response
+    {
+        $session = $this->app->getSession();
+
+        if (!$session->get('lstr_admin_id')) {
+            return Response::json(['error' => 'Unauthorized.', 'url' => null, 'candidates' => [], 'cache_age' => null], 401);
+        }
+
+        if (!$this->validCsrf($request)) {
+            return Response::json(['error' => 'Invalid CSRF token', 'url' => null, 'candidates' => [], 'cache_age' => null], 403);
+        }
+
+        $joinedId = (int) ($request->post('joined_id') ?? 0);
+        $network  = (string) ($request->post('network') ?? '');
+
+        if ($joinedId <= 0) {
+            return Response::json(['error' => 'Missing joined listing ID.', 'url' => null, 'candidates' => [], 'cache_age' => null]);
+        }
+
+        if (!in_array($network, ['tfl', 'tafl'], true)) {
+            return Response::json(['error' => 'Network must be "tfl" or "tafl".', 'url' => null, 'candidates' => [], 'cache_age' => null]);
+        }
+
+        $db         = $this->app->getDatabase();
+        $joinedRepo = new JoinedListingRepo($db);
+        $joined     = $joinedRepo->getById($joinedId);
+
+        if ($joined === null) {
+            return Response::json(['error' => 'Joined listing not found.', 'url' => null, 'candidates' => [], 'cache_age' => null]);
+        }
+
+        $siteRepo = new SiteSettingsRepo($db);
+        $cacheAge = TflLookupService::cacheAge($network, $siteRepo);
+        $result   = TflLookupService::lookup($joined->name, $network, $siteRepo);
+
+        return Response::json([
+            'url'        => $result['url'],
+            'candidates' => $result['candidates'],
+            'error'      => $result['error'],
+            'cache_age'  => $cacheAge,
+        ]);
+    }
+
+    /**
+     * POST /admin/link-checker/apply-tfl-url-joined
+     *
+     * Applies a URL chosen from a TFL/TAFL lookup result to a joined listing.
+     * Delegates to JoinedListingRepo::applyCustomUrl(), which sets url to the
+     * supplied value and resets link_status to 'unchecked' so the new URL is
+     * re-checked on the next run.
+     *
+     * Expected POST: joined_id (int), url (http/https string), _csrf
+     */
+    public function applyTflUrlJoined(Request $request): Response
+    {
+        if (!$this->validCsrf($request)) {
+            $this->app->getSession()->set('lstr_flash_error', 'Invalid security token.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $joinedId = (int) ($request->post('joined_id') ?? 0);
+        $url      = trim((string) ($request->post('url') ?? ''));
+
+        if ($joinedId <= 0) {
+            $this->app->getSession()->set('lstr_flash_error', 'Missing joined listing ID.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if (!filter_var($url, FILTER_VALIDATE_URL) || !in_array($scheme, ['http', 'https'], true)) {
+            $this->app->getSession()->set('lstr_flash_error', 'URL must be a valid http or https address.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $db         = $this->app->getDatabase();
+        $joinedRepo = new JoinedListingRepo($db);
+
+        if (!$joinedRepo->applyCustomUrl($joinedId, $url)) {
+            $this->app->getSession()->set('lstr_flash_error', 'Could not update URL — record not found.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $this->app->getSession()->set('lstr_flash_success', 'Joined listing URL updated and queued for re-check.');
+
+        (new ActivityRepo($db))->log(
+            (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
+            'link-checker',
+            "Applied TFL/TAFL URL to joined listing #{$joinedId}: {$url}",
             $request->ip(),
         );
 
@@ -985,6 +1116,115 @@ final class LinkCheckerController extends AdminController
             throw new \RuntimeException('Could not rename temp config to: ' . $configPath);
         }
     }
+
+    // -----------------------------------------------------------------------
+    // AJAX — check whether a member's site links back to the fanlisting (4.1+4.2)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Checks whether the member's website links back to the fanlisting.
+     *
+     * Uses LinkChecker::checkReciprocalDeep(), which first checks the member's
+     * URL directly and, on a 'missing' result, probes up to three common sub-paths
+     * (/fanlistings/, /affiliates/, /links/) before giving up.
+     *
+     * Requires POST fields: id (lstr_member_link_checks row), listing_url (the
+     * fanlisting's public URL to search for in the member page body).
+     */
+    public function checkBacklinkMember(Request $request): Response
+    {
+        if (!$this->validCsrf($request)) {
+            return Response::json(['error' => 'Invalid CSRF token'], 403);
+        }
+        if (!function_exists('curl_init')) {
+            return Response::json(['error' => 'The link checker requires the PHP cURL extension. Enable cURL on your server and try again.'], 503);
+        }
+
+        $id         = (int) ($request->post('id') ?? 0);
+        $listingUrl = trim((string) ($request->post('listing_url') ?? ''));
+
+        $db     = $this->app->getDatabase();
+        $repo   = new MemberLinkCheckRepo($db, $this->app->getConfig());
+        $member = $repo->getById($id);
+
+        if ($member === null) {
+            return Response::json(['error' => 'Not found'], 404);
+        }
+
+        if ($member->member_url === '' || $listingUrl === '') {
+            $repo->updateBacklinkStatus($id, 'unchecked');
+            return Response::json([
+                'backlink_status' => 'unchecked',
+                'checked_at'      => date('Y-m-d H:i'),
+            ]);
+        }
+
+        $status = LinkChecker::checkReciprocalDeep($member->member_url, $listingUrl);
+        $repo->updateBacklinkStatus($id, $status);
+
+        return Response::json([
+            'backlink_status' => $status,
+            'checked_at'      => date('Y-m-d H:i'),
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // AJAX — check whether the site owner is listed on a joined fanlisting (4.3)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Checks whether the site owner's name appears as a member on a joined fanlisting.
+     *
+     * Uses LinkChecker::checkOwnerListed(), which fetches the fanlisting's homepage,
+     * discovers the members page (or probes common sub-paths), then searches the
+     * visible text for the owner's name. Never reports 'not_found' when pagination
+     * is detected. Total outbound requests are capped at 5.
+     *
+     * Requires POST fields: id (lstr_joined row), owner_name (name to search for).
+     */
+    public function checkListedJoined(Request $request): Response
+    {
+        if (!$this->validCsrf($request)) {
+            return Response::json(['error' => 'Invalid CSRF token'], 403);
+        }
+        if (!function_exists('curl_init')) {
+            return Response::json(['error' => 'The link checker requires the PHP cURL extension. Enable cURL on your server and try again.'], 503);
+        }
+
+        $id        = (int) ($request->post('id') ?? 0);
+        $ownerName = trim((string) ($request->post('owner_name') ?? ''));
+
+        $db   = $this->app->getDatabase();
+        $repo = new JoinedListingRepo($db);
+        $item = $repo->getById($id);
+
+        if ($item === null) {
+            return Response::json(['error' => 'Not found'], 404);
+        }
+
+        if ($item->url === '' || $ownerName === '') {
+            $repo->updateListedStatus($id, 'unchecked', null);
+            return Response::json([
+                'listed_status' => 'unchecked',
+                'members_url'   => null,
+                'checked_at'    => date('Y-m-d H:i'),
+            ]);
+        }
+
+        $result = LinkChecker::checkOwnerListed($item->url, $ownerName);
+        $repo->updateListedStatus($id, $result['status'], $result['members_url']);
+
+        return Response::json([
+            'listed_status' => $result['status'],
+            'members_url'   => $result['members_url'],
+            'heuristic'     => $result['heuristic'],
+            'checked_at'    => date('Y-m-d H:i'),
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
 
     /**
      * Returns the URL to search for in affiliate pages when performing a

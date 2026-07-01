@@ -8,7 +8,7 @@
  can change their name, email, URL, country, additional fields, or password.
  Members can also permanently delete their membership from this form. Updates
  can be applied immediately or queued for admin review depending on per-listing
- settings. Legacy MD5 passwords are detected and upgraded to Argon2id on login.
+ settings. MD5 and non-Argon2id hashes are silently upgraded on successful login.
 */
 
 declare(strict_types=1);
@@ -46,9 +46,8 @@ use Luster\Support\SuccessRenderer;
  *  - Honeypot field silently rejects bot submissions
  *  - Arithmetic CAPTCHA on the update step (step 2)
  *  - Rate-limited per IP via lstr_rate_limits
- *  - Password verified via password_verify()
- *  - Legacy MD5 hash detected, verified, and upgraded to Argon2id on success
- *  - Non-Argon2id hashes (bcrypt, legacy) upgraded to Argon2id silently on next sign-in
+ *  - Password verified via MemberRepo::verifyAndUpgrade()
+ *  - MD5 and non-Argon2id hashes (bcrypt, legacy) silently upgraded to Argon2id on success
  *  - Session key lstr_update_authed_{id} stores the authenticated member's email
  */
 final class UpdateController
@@ -137,25 +136,8 @@ final class UpdateController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
-        // Verify password — detect and upgrade legacy MD5 hashes
-        $storedHash = $member->password;
-        $verified   = false;
-
-        if (strlen($storedHash) === 32 && ctype_xdigit($storedHash)) {
-            // Legacy MD5 hash — verify and silently upgrade to Argon2id.
-            // updatePassword() avoids the `updated` timestamp side-effect of update().
-            if (hash_equals($storedHash, md5($password))) {
-                $verified = true;
-                $memberRepo->updatePassword($listing->dbprefix, $email, password_hash($password, PASSWORD_ARGON2ID));
-            }
-        } else {
-            $verified = password_verify($password, $storedHash);
-            // Silently upgrade any non-Argon2id hash (e.g. bcrypt from a Fanatically
-            // import) on the first successful sign-in.
-            if ($verified && password_needs_rehash($storedHash, PASSWORD_ARGON2ID)) {
-                $memberRepo->updatePassword($listing->dbprefix, $email, password_hash($password, PASSWORD_ARGON2ID));
-            }
-        }
+        // Verify password; silently upgrade MD5/bcrypt hashes to Argon2id on success.
+        $verified = $memberRepo->verifyAndUpgrade($listing->dbprefix, $email, $password, $member->password);
 
         if (!$verified) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);

@@ -438,6 +438,12 @@ final class EmailTemplateRepo
         return $this->fetchOne($listingId, $type);
     }
 
+    /** Returns the body string of an existing template, or null when no row exists. */
+    public function getBody(int $listingId, string $type): ?string
+    {
+        return $this->fetchOne($listingId, $type)?->body;
+    }
+
     /**
      * Returns custom templates for all types for one listing, keyed by type.
      * Missing rows are represented as null.
@@ -529,6 +535,30 @@ final class EmailTemplateRepo
         } catch (\Exception) {
             // Migration not yet run — silently ignore
         }
+    }
+
+    /**
+     * Strict variant of save() that writes only the body, preserving the existing
+     * subject and enabled state. For use inside transactions; propagates \PDOException.
+     *
+     * When no row exists yet, inserts with the default subject for the given type
+     * so resolve() can use the row immediately; the admin can customise further.
+     */
+    public function saveBodyStrict(int $listingId, string $type, string $body): void
+    {
+        // Seed the default subject on insert so resolve() can use this row.
+        // ON DUPLICATE KEY only updates the body, preserving any existing subject.
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_email_templates (fanlisting_id, type, subject, body, enabled)
+             VALUES (:fid, :type, :subject, :body, 1)
+             ON DUPLICATE KEY UPDATE body = VALUES(body)'
+        );
+        $stmt->execute([
+            'fid'     => $listingId,
+            'type'    => $type,
+            'subject' => self::defaultSubject($type),
+            'body'    => $body,
+        ]);
     }
 
     /**

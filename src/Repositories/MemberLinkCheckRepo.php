@@ -504,4 +504,111 @@ final class MemberLinkCheckRepo
               WHERE listing_id = :lid AND member_email = :email'
         )->execute(['lid' => $listingId, 'email' => $email]);
     }
+
+    // -----------------------------------------------------------------------
+    // Backlink (Step 4.1) — does the member's site link back to the fanlisting?
+    // -----------------------------------------------------------------------
+
+    /**
+     * Persists the result of a backlink check for one member record.
+     *
+     * @param string $status  'found' | 'missing' | 'unchecked'
+     */
+    public function updateBacklinkStatus(int $id, string $status): void
+    {
+        $this->db->pdo()->prepare(
+            "UPDATE `lstr_member_link_checks`
+                SET backlink_status     = :status,
+                    backlink_checked_at = NOW()
+              WHERE id = :id"
+        )->execute(['status' => $status, 'id' => $id]);
+    }
+
+    /** Resets the backlink state for a single listing back to 'unchecked'. */
+    public function resetBacklinkStatus(int $listingId): void
+    {
+        $this->db->pdo()->prepare(
+            "UPDATE `lstr_member_link_checks`
+                SET backlink_status     = 'unchecked',
+                    backlink_checked_at = NULL
+              WHERE listing_id = :lid"
+        )->execute(['lid' => $listingId]);
+    }
+
+    /** Resets the backlink state across all listings back to 'unchecked'. */
+    public function resetBacklinkStatusAll(): void
+    {
+        $this->db->pdo()->exec(
+            "UPDATE `lstr_member_link_checks`
+                SET backlink_status     = 'unchecked',
+                    backlink_checked_at = NULL"
+        );
+    }
+
+    /**
+     * Returns backlink status counts for a single listing.
+     *
+     * @return array{found:int, missing:int, unchecked:int}
+     */
+    public function getBacklinkStats(int $listingId): array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            "SELECT backlink_status, COUNT(*) AS n
+               FROM `lstr_member_link_checks`
+              WHERE listing_id = :lid
+              GROUP BY backlink_status"
+        );
+        $stmt->execute(['lid' => $listingId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+        return [
+            'found'     => (int) ($rows['found']     ?? 0),
+            'missing'   => (int) ($rows['missing']   ?? 0),
+            'unchecked' => (int) ($rows['unchecked'] ?? 0),
+        ];
+    }
+
+    /**
+     * Returns backlink status counts across all listings.
+     *
+     * @return array{found:int, missing:int, unchecked:int}
+     */
+    public function getBacklinkStatsAll(): array
+    {
+        $stmt = $this->db->pdo()->query(
+            "SELECT backlink_status, COUNT(*) AS n
+               FROM `lstr_member_link_checks`
+              GROUP BY backlink_status"
+        );
+        $rows = $stmt !== false ? $stmt->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+
+        return [
+            'found'     => (int) ($rows['found']     ?? 0),
+            'missing'   => (int) ($rows['missing']   ?? 0),
+            'unchecked' => (int) ($rows['unchecked'] ?? 0),
+        ];
+    }
+
+    /** Returns all IDs for a single listing (backlink batch). */
+    public function getAllBacklinkIds(int $listingId): array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT id FROM `lstr_member_link_checks`
+              WHERE listing_id = :lid AND member_url != \'\'
+              ORDER BY id'
+        );
+        $stmt->execute(['lid' => $listingId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /** Returns all IDs across every listing (backlink batch for "all listings"). */
+    public function getAllBacklinkIdsAll(): array
+    {
+        $stmt = $this->db->pdo()->query(
+            "SELECT id FROM `lstr_member_link_checks`
+              WHERE member_url != ''
+              ORDER BY id"
+        );
+        return $stmt !== false ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
+    }
 }

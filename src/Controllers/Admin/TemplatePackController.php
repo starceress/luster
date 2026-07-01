@@ -181,6 +181,65 @@ final class TemplatePackController
     }
 
     // -------------------------------------------------------------------------
+    // POST /admin/listings/{id}/template-pack/export-zip
+    // -------------------------------------------------------------------------
+
+    /**
+     * Exports all per-listing template overrides as a ZIP archive.
+     * Each non-null template is written as {key}.html inside a listing-{id}/ folder.
+     * A pack.json at the archive root is the full importable JSON pack.
+     */
+    public function exportZip(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        if (!class_exists(\ZipArchive::class)) {
+            return Response::json(['error' => 'The PHP zip extension is required for ZIP export.'], 500);
+        }
+
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $listing = (new ListingRepo($db, $config))->getById($id);
+
+        if ($listing === null) {
+            return Response::json(['error' => 'Listing not found.'], 404);
+        }
+
+        $settingsRepo = new ListingSettingsRepo($db);
+        $raw          = $settingsRepo->getTemplates($id);
+        $raw['codes_template'] = $settingsRepo->getCodesTemplate($id);
+
+        $templates = [];
+        foreach (self::TEMPLATE_KEYS as $key) {
+            if (($raw[$key] ?? null) !== null) {
+                $templates[$key] = $raw[$key];
+            }
+        }
+
+        $manifest = [
+            'luster_template_pack' => '1.0',
+            'luster_version'       => Version::CURRENT,
+            'exported_at'          => gmdate('Y-m-d\TH:i:s\Z'),
+            'scope'                => 'listing',
+            'listing_title'        => $listing->title,
+            'listing_subject'      => $listing->subject,
+            'required_addons'      => $this->detectRequiredAddons($templates),
+        ];
+
+        try {
+            $tempPath = $this->buildZipFile('listing-' . $id, $templates, $manifest);
+        } catch (\RuntimeException) {
+            return Response::json(['error' => 'Could not create ZIP archive.'], 500);
+        }
+
+        $slug     = preg_replace('/[^a-z0-9]+/', '-', strtolower($listing->title));
+        $filename = 'luster-templates-' . $slug . '.zip';
+
+        return Response::streamFile($tempPath, $filename, 'application/zip');
+    }
+
+    // -------------------------------------------------------------------------
     // POST /admin/listings/{id}/template-pack/import-preview
     // -------------------------------------------------------------------------
 
@@ -639,6 +698,54 @@ final class TemplatePackController
     }
 
     // -------------------------------------------------------------------------
+    // POST /admin/listings/global-templates/template-pack/export-zip
+    // -------------------------------------------------------------------------
+
+    /**
+     * Exports all global template overrides as a ZIP archive.
+     * Each non-null template is written as {key}.html inside a global/ folder.
+     * A pack.json at the archive root is the full importable JSON pack.
+     */
+    public function globalExportZip(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        if (!class_exists(\ZipArchive::class)) {
+            return Response::json(['error' => 'The PHP zip extension is required for ZIP export.'], 500);
+        }
+
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $stored   = $siteRepo->getGlobalTemplates();
+
+        $templates = [];
+        foreach (self::GLOBAL_KEY_MAP as $packKey => $storageKey) {
+            if (($stored[$storageKey] ?? null) !== null) {
+                $templates[$packKey] = $stored[$storageKey];
+            }
+        }
+
+        $manifest = [
+            'luster_template_pack' => '1.0',
+            'luster_version'       => Version::CURRENT,
+            'exported_at'          => gmdate('Y-m-d\TH:i:s\Z'),
+            'scope'                => 'global',
+            'required_addons'      => $this->detectRequiredAddons($templates),
+        ];
+
+        try {
+            $tempPath = $this->buildZipFile('global', $templates, $manifest);
+        } catch (\RuntimeException) {
+            return Response::json(['error' => 'Could not create ZIP archive.'], 500);
+        }
+
+        $siteName = (string) ($siteRepo->get('site_name') ?? 'luster');
+        $slug     = preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName));
+        $filename = 'luster-global-templates-' . $slug . '.zip';
+
+        return Response::streamFile($tempPath, $filename, 'application/zip');
+    }
+
+    // -------------------------------------------------------------------------
     // POST /admin/listings/global-templates/template-pack/import-preview
     // -------------------------------------------------------------------------
 
@@ -916,6 +1023,48 @@ final class TemplatePackController
     }
 
     // -------------------------------------------------------------------------
+    // POST /admin/collective/templates/template-pack/export-zip
+    // -------------------------------------------------------------------------
+
+    /**
+     * Exports all collective template overrides as a ZIP archive.
+     * Each non-null template is written as {key}.html inside a collective/ folder.
+     * A pack.json at the archive root is the full importable JSON pack.
+     */
+    public function collectiveExportZip(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        if (!class_exists(\ZipArchive::class)) {
+            return Response::json(['error' => 'The PHP zip extension is required for ZIP export.'], 500);
+        }
+
+        $siteRepo  = new SiteSettingsRepo($this->app->getDatabase());
+        $stored    = $siteRepo->getMany(self::COLLECTIVE_TEMPLATE_KEYS);
+        $templates = array_filter($stored, static fn(?string $v): bool => $v !== null);
+
+        $manifest = [
+            'luster_template_pack' => '1.0',
+            'luster_version'       => Version::CURRENT,
+            'exported_at'          => gmdate('Y-m-d\TH:i:s\Z'),
+            'scope'                => 'collective',
+            'required_addons'      => $this->detectRequiredAddons($templates),
+        ];
+
+        try {
+            $tempPath = $this->buildZipFile('collective', $templates, $manifest);
+        } catch (\RuntimeException) {
+            return Response::json(['error' => 'Could not create ZIP archive.'], 500);
+        }
+
+        $siteName = (string) ($siteRepo->get('site_name') ?? 'luster');
+        $slug     = preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName));
+        $filename = 'luster-collective-templates-' . $slug . '.zip';
+
+        return Response::streamFile($tempPath, $filename, 'application/zip');
+    }
+
+    // -------------------------------------------------------------------------
     // POST /admin/collective/templates/template-pack/import-preview
     // -------------------------------------------------------------------------
 
@@ -996,13 +1145,28 @@ final class TemplatePackController
             return Response::json(['error' => 'Invalid payload.']);
         }
 
-        $siteRepo   = new SiteSettingsRepo($this->app->getDatabase());
+        $db         = $this->app->getDatabase();
+        $siteRepo   = new SiteSettingsRepo($db);
         $validKeys  = array_intersect(array_keys($templates), self::COLLECTIVE_TEMPLATE_KEYS);
+
+        $currentValues = $siteRepo->getMany(self::COLLECTIVE_TEMPLATE_KEYS);
+
+        $incoming = [];
+        foreach (self::COLLECTIVE_TEMPLATE_KEYS as $key) {
+            if (!in_array($key, $validKeys, true)) {
+                $incoming[$key] = $currentValues[$key] ?? null;
+            } else {
+                $raw = $templates[$key];
+                $incoming[$key] = is_string($raw) && $raw !== '' ? $raw : null;
+            }
+        }
+
+        $adminId = (int) $this->app->getSession()->get('lstr_admin_id');
+        (new TemplateRevisionRepo($db))->recordChanged(TemplateRevisionRepo::COLLECTIVE_ID, $currentValues, $incoming, $adminId);
 
         $saved = 0;
         foreach ($validKeys as $key) {
-            $value = is_string($templates[$key]) && $templates[$key] !== '' ? $templates[$key] : null;
-            $siteRepo->set($key, $value);
+            $siteRepo->set($key, $incoming[$key]);
             $saved++;
         }
 
@@ -1159,6 +1323,43 @@ final class TemplatePackController
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Builds a ZIP archive at a temp file path containing:
+     * - manifest.json  — scope/version/add-on metadata (no template bodies)
+     * - pack.json      — full importable JSON pack (same format as JSON export; import
+     *                    it via the "Import Templates" button after extracting from the ZIP)
+     * - {folder}/{key}.html — one HTML file per template for human editing
+     *
+     * @param  string                $folder     Subfolder for HTML files (e.g. 'listing-7', 'global', 'collective')
+     * @param  array<string, string> $templates  Key → value; only non-null values should be passed
+     * @param  array<string, mixed>  $manifest   Metadata (scope, version, required_addons — no 'templates' key)
+     * @return string                            Path to the temp ZIP file
+     * @throws \RuntimeException                 If ZipArchive cannot open the file
+     */
+    private function buildZipFile(string $folder, array $templates, array $manifest): string
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'luster_tpl_');
+
+        $zip = new \ZipArchive();
+        if ($zip->open($tempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            @unlink($tempPath);
+            throw new \RuntimeException('Could not create ZIP archive.');
+        }
+
+        $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
+
+        $zip->addFromString('manifest.json', json_encode($manifest, $flags));
+        $zip->addFromString('pack.json',     json_encode($manifest + ['templates' => $templates], $flags));
+
+        foreach ($templates as $key => $value) {
+            $zip->addFromString($folder . '/' . $key . '.html', $value);
+        }
+
+        $zip->close();
+
+        return $tempPath;
+    }
 
     /** Normalizes a template value for comparison. */
     private function norm(?string $v): string

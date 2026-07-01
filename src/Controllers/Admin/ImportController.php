@@ -22,6 +22,7 @@ use Luster\Import\BellaBuffsImportSource;
 use Luster\Import\CodeSortImportSource;
 use Luster\Import\EnthusiastImportSource;
 use Luster\Import\FanaticallyImportSource;
+use Luster\Import\FanaticallyTemplateTranslator;
 use Luster\Import\FanUpdateImportSource;
 use Luster\Import\ImageMigrator;
 use Luster\Import\ListingAdminImportSource;
@@ -29,8 +30,13 @@ use Luster\Import\ImportOptions;
 use Luster\Import\ImportSourceInterface;
 use Luster\Import\LegacyConfigReader;
 use Luster\Import\SqlDumpLoader;
+use Luster\Import\ZipTemplateReader;
 use Luster\Repositories\ActivityRepo;
+use Luster\Repositories\EmailTemplateRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Repositories\TemplateRevisionRepo;
 use ZipArchive;
 
 /**
@@ -59,6 +65,16 @@ final class ImportController extends AdminController
     private const SESSION_BB_PENDING  = 'lstr_import_bb_pending';
 
     private const SUPPORTED_SOURCES = ['enthusiast', 'listing-admin', 'fanupdate', 'codesort', 'bellabuffs', 'fanatically'];
+
+    // Template keys that map to SiteSettingsRepo (collective scope) rather than
+    // ListingSettingsRepo or EmailTemplateRepo. Add new collective keys here when
+    // FanaticallyTemplateTranslator gains new TYPE_TO_TARGET_KEY entries.
+    private const COLLECTIVE_SCOPE_KEYS = [
+        'collective_stats_template',
+        'owned_template',
+        'joined_template',
+        'wishlist_template',
+    ];
 
     // -----------------------------------------------------------------------
     // Import Wizard Settings
@@ -1344,5 +1360,337 @@ final class ImportController extends AdminController
         }
 
         return null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Fanatically template rescue (Plan A)
+    // -------------------------------------------------------------------------
+
+    /** Step 1 — upload form (GET) and ZIP processing (POST). */
+    public function templateImport(Request $request, array $params): Response
+    {
+        $b       = $this->app->getBaseUrl();
+        $session = $this->app->getSession();
+
+        if ($request->isGet()) {
+            $error = (string) ($session->get('lstr_flash_error') ?? '');
+            $session->remove('lstr_flash_error');
+            return $this->adminLayout('admin/import/fanatically-templates.php', 'Import Fanatically Templates', 'import', [
+                'error' => $error,
+            ]);
+        }
+
+        // POST — validate upload and process ZIP
+        $file = $request->file('template_zip');
+        if ($file === null || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $session->set('lstr_flash_error', 'Please select a ZIP file to upload.');
+            return Response::redirect($b . '/admin/import/fanatically/templates');
+        }
+
+        $file = (array) $file;
+        if ($file['size'] > 20 * 1024 * 1024) {
+            $session->set('lstr_flash_error', 'ZIP file must be 20 MB or smaller.');
+            return Response::redirect($b . '/admin/import/fanatically/templates');
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime  = $finfo->file($file['tmp_name']);
+        if (!in_array($mime, ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'], true)) {
+            $session->set('lstr_flash_error', 'Uploaded file does not appear to be a valid ZIP archive.');
+            return Response::redirect($b . '/admin/import/fanatically/templates');
+        }
+
+        $reader = new ZipTemplateReader();
+        $ok     = $reader->read($file['tmp_name']);
+        if (!$ok) {
+            $session->set('lstr_flash_error', 'Could not read ZIP archive: ' . $reader->getParseError());
+            return Response::redirect($b . '/admin/import/fanatically/templates');
+        }
+
+        $entries          = $reader->getEntries();
+        $rejected         = $reader->getRejected();
+        $defaultComparison = $reader->compareToDefaults();
+
+        if (empty($entries)) {
+            $session->set('lstr_flash_error', 'No recognised template files found in the ZIP archive.');
+            return Response::redirect($b . '/admin/import/fanatically/templates');
+        }
+
+        $translator   = new FanaticallyTemplateTranslator();
+        $translations = [];
+        foreach ($entries as $entry) {
+            $path   = $entry['sourcePath'];
+            $result = $translator->translate($path, $entry['category'], $entry['content']);
+            $cmpResult = $defaultComparison[$path] ?? 'no_defaults_file';
+            $translations[$path] = [
+                'source_path'           => $path,
+                'category'              => $entry['category'],
+                'translated_content'    => $result->translatedContent,
+                'unmapped_tokens'       => $result->unmappedTokens,
+                'contains_php'          => $result->containsPhp,
+                'unsupported_structure' => $result->unsupportedStructure,
+                'target_template_key'   => $result->targetTemplateKey,
+                'importable'            => $result->importable,
+                'changed_from_default'  => $cmpResult !== 'matches_default',
+                'key_scope'             => $result->importable ? $this->getTemplateKeyScope($result->targetTemplateKey) : null,
+            ];
+        }
+
+        $adminId = (int) $session->get('lstr_admin_id');
+        $handle  = bin2hex(random_bytes(16));
+        $payload = json_encode([
+            'admin_id'     => $adminId,
+            'created_at'   => time(),
+            'entries'      => $entries,
+            'rejected'     => $rejected,
+            'translations' => $translations,
+        ], JSON_THROW_ON_ERROR);
+
+        $cachePath = LUSTER_BASE . '/storage/cache/tpl_rescue_' . $handle . '.json';
+        file_put_contents($cachePath, $payload, LOCK_EX);
+
+        $session->set('lstr_tpl_rescue_handle', $handle);
+
+        return Response::redirect($b . '/admin/import/fanatically/templates/preview');
+    }
+
+    /** Step 2 — preview table. */
+    public function templatePreview(Request $request, array $params): Response
+    {
+        $b       = $this->app->getBaseUrl();
+        $session = $this->app->getSession();
+
+        [$payload, $loadError] = $this->loadTplRescuePayload($session);
+        if ($loadError !== null) {
+            $session->set('lstr_flash_error', $loadError);
+            return Response::redirect($b . '/admin/import/fanatically/templates');
+        }
+
+        $db       = $this->app->getDatabase();
+        $listings = (new ListingRepo($db, $this->app->getConfig()))->getAll();
+
+        return $this->adminLayout('admin/import/fanatically-templates-preview.php', 'Import Fanatically Templates — Preview', 'import', [
+            'translations' => $payload['translations'],
+            'rejected'     => $payload['rejected'],
+            'listings'     => $listings,
+        ]);
+    }
+
+    /** Download a preview-only entry as a raw file attachment. */
+    public function templateDownload(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $b       = $this->app->getBaseUrl();
+
+        [$payload, $loadError] = $this->loadTplRescuePayload($session);
+        if ($loadError !== null) {
+            $session->set('lstr_flash_error', $loadError);
+            return Response::redirect($b . '/admin/import/fanatically/templates');
+        }
+
+        $pathParam = trim((string) $request->query('path', ''));
+        if ($pathParam === '' || !isset($payload['translations'][$pathParam])) {
+            $session->set('lstr_flash_error', 'Requested template file not found in the current session.');
+            return Response::redirect($b . '/admin/import/fanatically/templates/preview');
+        }
+
+        $t = $payload['translations'][$pathParam];
+        if ($t['importable']) {
+            $session->set('lstr_flash_error', 'That template can be imported directly; download is only for preview-only entries.');
+            return Response::redirect($b . '/admin/import/fanatically/templates/preview');
+        }
+
+        $basename = basename($pathParam);
+        $safe     = preg_replace('/[^a-zA-Z0-9._-]/', '_', $basename);
+
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $safe . '"');
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: no-store');
+        echo $t['translated_content'];
+        return Response::html('');
+    }
+
+    /** Step 3 — apply selected importable translations. */
+    public function templateApply(Request $request, array $params): Response
+    {
+        $b       = $this->app->getBaseUrl();
+        $session = $this->app->getSession();
+
+        [$payload, $loadError] = $this->loadTplRescuePayload($session);
+        if ($loadError !== null) {
+            $session->set('lstr_flash_error', $loadError);
+            return Response::redirect($b . '/admin/import/fanatically/templates');
+        }
+
+        // Listing ID is required for per-listing and email keys; collective keys ignore it.
+        $listingId = (int) $request->post('listing_id', 0);
+        $selected  = (array) ($request->postAll()['selected'] ?? []);
+
+        if (empty($selected)) {
+            $session->set('lstr_flash_error', 'No templates were selected for import.');
+            return Response::redirect($b . '/admin/import/fanatically/templates/preview');
+        }
+
+        $db      = $this->app->getDatabase();
+        $adminId = (int) $session->get('lstr_admin_id');
+
+        $settingsRepo = new ListingSettingsRepo($db);
+        $emailRepo    = new EmailTemplateRepo($db);
+        $siteRepo     = new SiteSettingsRepo($db);
+        $revisionRepo = new TemplateRevisionRepo($db);
+
+        $savedCollective = 0;
+        $savedListing    = 0;
+
+        $db->beginTransaction();
+        try {
+            foreach ($selected as $path) {
+                $path = (string) $path;
+                if (!isset($payload['translations'][$path])) {
+                    continue;
+                }
+                $t = $payload['translations'][$path];
+                if (!$t['importable'] || $t['target_template_key'] === null) {
+                    continue;
+                }
+
+                $key      = $t['target_template_key'];
+                $content  = $t['translated_content'];
+                $keyScope = $this->getTemplateKeyScope($key);
+
+                if ($keyScope === 'collective') {
+                    $current = $siteRepo->get($key);
+                    $revisionRepo->recordChanged(
+                        TemplateRevisionRepo::COLLECTIVE_ID,
+                        [$key => $current],
+                        [$key => $content],
+                        $adminId
+                    );
+                    $siteRepo->setStrict($key, $content);
+                    $savedCollective++;
+                } elseif ($listingId > 0) {
+                    // Email keys use 'email:type' format (e.g. 'email:join').
+                    if (str_starts_with($key, 'email:')) {
+                        $emailType = substr($key, 6);
+                        $current   = $emailRepo->getBody($listingId, $emailType);
+                        $revisionRepo->recordChanged(
+                            $listingId,
+                            [$key => $current],
+                            [$key => $content],
+                            $adminId
+                        );
+                        $emailRepo->saveBodyStrict($listingId, $emailType, $content);
+                        $savedListing++;
+                    } else {
+                        $current = $settingsRepo->getTemplateColumn($listingId, $key);
+                        $revisionRepo->recordChanged(
+                            $listingId,
+                            [$key => $current],
+                            [$key => $content],
+                            $adminId
+                        );
+                        $settingsRepo->saveTemplateColumnStrict($listingId, $key, $content);
+                        $savedListing++;
+                    }
+                }
+                // Per-listing/email keys with no listing selected are silently skipped.
+            }
+            $db->commit();
+        } catch (\PDOException $e) {
+            $db->rollBack();
+            $session->set('lstr_flash_error', 'Database error while saving templates: ' . $e->getMessage());
+            return Response::redirect($b . '/admin/import/fanatically/templates/preview');
+        }
+
+        $totalSaved = $savedCollective + $savedListing;
+        if ($totalSaved === 0) {
+            $session->set('lstr_flash_error', 'No templates were applied. Select a listing for per-listing and email templates.');
+            return Response::redirect($b . '/admin/import/fanatically/templates/preview');
+        }
+
+        // Clean up temp file on success.
+        $handle    = $session->get('lstr_tpl_rescue_handle');
+        $cachePath = LUSTER_BASE . '/storage/cache/tpl_rescue_' . $handle . '.json';
+        if (is_file($cachePath)) {
+            @unlink($cachePath);
+        }
+        $session->remove('lstr_tpl_rescue_handle');
+
+        $session->set('lstr_flash_success', $totalSaved . ' template' . ($totalSaved === 1 ? '' : 's') . ' imported successfully.');
+
+        // Redirect to where the templates actually landed.
+        if ($savedListing > 0 && $listingId > 0) {
+            $target = $b . '/admin/listings/' . $listingId . '/edit#tab-templates';
+        } elseif ($savedCollective > 0) {
+            $target = $b . '/admin/collective/templates';
+        } else {
+            $target = $b . '/admin/import/fanatically/templates';
+        }
+
+        return Response::redirect($target);
+    }
+
+    // -------------------------------------------------------------------------
+    // Template rescue helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Loads and validates the template rescue payload from the session-bound cache file.
+     *
+     * Returns [payload_array, null] on success, or [null, error_string] on failure.
+     *
+     * @return array{0: array<string,mixed>|null, 1: string|null}
+     */
+    private function loadTplRescuePayload(\Luster\Core\Session $session): array
+    {
+        $handle = $session->get('lstr_tpl_rescue_handle');
+        if (!is_string($handle) || !preg_match('/^[0-9a-f]{32}$/', $handle)) {
+            return [null, 'No template rescue session found. Please upload a ZIP file to start.'];
+        }
+
+        $cachePath = LUSTER_BASE . '/storage/cache/tpl_rescue_' . $handle . '.json';
+        if (!is_file($cachePath)) {
+            $session->remove('lstr_tpl_rescue_handle');
+            return [null, 'Template rescue session has expired. Please upload the ZIP again.'];
+        }
+
+        $raw = file_get_contents($cachePath);
+        if ($raw === false) {
+            return [null, 'Could not read template rescue session file.'];
+        }
+
+        try {
+            $payload = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [null, 'Template rescue session file is corrupt. Please upload the ZIP again.'];
+        }
+
+        $adminId = (int) $session->get('lstr_admin_id');
+        if (($payload['admin_id'] ?? -1) !== $adminId) {
+            return [null, 'Template rescue session does not belong to the current admin account.'];
+        }
+
+        if (($payload['created_at'] ?? 0) < time() - 3600) {
+            @unlink($cachePath);
+            $session->remove('lstr_tpl_rescue_handle');
+            return [null, 'Template rescue session has expired (over 1 hour old). Please upload the ZIP again.'];
+        }
+
+        return [$payload, null];
+    }
+
+    /**
+     * Returns the natural storage scope for a Luster template key.
+     *
+     * 'collective' — goes to SiteSettingsRepo (collective/site-wide)
+     * 'listing'    — goes to ListingSettingsRepo or EmailTemplateRepo (per-listing)
+     */
+    private function getTemplateKeyScope(?string $key): string
+    {
+        if ($key === null) {
+            return 'listing';
+        }
+        return in_array($key, self::COLLECTIVE_SCOPE_KEYS, true) ? 'collective' : 'listing';
     }
 }

@@ -1097,6 +1097,91 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?php endif; ?>
         </div>
 
+        <!-- Hosting Health -->
+        <?php $hd = $health_data ?? []; ?>
+        <div class="card-body">
+          <div class="section-label">Hosting Health</div>
+
+          <?php
+            $extLabels = [
+              'pdo_mysql'  => 'PDO MySQL',
+              'curl'       => 'cURL',
+              'fileinfo'   => 'File information (fileinfo)',
+              'gd_imagick' => 'Image processing (GD or Imagick)',
+              'json'       => 'JSON',
+              'mbstring'   => 'Multibyte strings (mbstring)',
+            ];
+            foreach ($extLabels as $key => $label):
+              $ok = (bool) ($hd['extensions'][$key] ?? false);
+          ?>
+          <div class="sysinfo-row">
+            <span class="field-label"><?= View::e($label) ?></span>
+            <span class="status-inline">
+              <?php if ($ok): ?>
+                <span class="badge badge-current">Available</span>
+              <?php else: ?>
+                <span class="badge badge-error">Missing</span>
+              <?php endif; ?>
+            </span>
+          </div>
+          <?php endforeach; ?>
+
+          <div class="sysinfo-row">
+            <span class="field-label">Upload path writable</span>
+            <span class="status-inline">
+              <?php if ($hd['uploads_writable'] ?? false): ?>
+                <span class="badge badge-current">Writable</span>
+              <?php else: ?>
+                <span class="badge badge-error">Not writable</span>
+                <span class="text-dim">public/uploads/</span>
+              <?php endif; ?>
+            </span>
+          </div>
+
+          <div class="sysinfo-row">
+            <span class="field-label">Logs path writable</span>
+            <span class="status-inline">
+              <?php if ($hd['logs_writable'] ?? false): ?>
+                <span class="badge badge-current">Writable</span>
+              <?php else: ?>
+                <span class="badge badge-error">Not writable</span>
+                <span class="text-dim">storage/logs/</span>
+              <?php endif; ?>
+            </span>
+          </div>
+
+          <?php
+            $applied = $hd['applied_migration'] ?? null;
+            $latest  = $hd['latest_migration']  ?? null;
+          ?>
+          <div class="sysinfo-row">
+            <span class="field-label">Migration state</span>
+            <span class="status-inline">
+              <?php if ($applied === null): ?>
+                <span class="badge badge-inactive">Unknown</span>
+              <?php elseif ($latest !== null && $applied >= $latest): ?>
+                <span class="badge badge-current">Up to date (<?= (int) $applied ?>)</span>
+              <?php else: ?>
+                <span class="badge badge-pending">Pending</span>
+                <span class="text-dim">Applied <?= (int) $applied ?> of <?= (int) $latest ?></span>
+                <a href="<?= $b ?>/migrate/" class="link" style="font-size:var(--fs-sm)">Run migrations &rarr;</a>
+              <?php endif; ?>
+            </span>
+          </div>
+
+          <div class="sysinfo-row">
+            <span class="field-label">Outbound HTTPS</span>
+            <span style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+              <button type="button" id="health-check-http-btn" class="btn btn-secondary btn-xs"
+                      data-url="<?= View::e($b) ?>/admin/settings/check-http"
+                      data-csrf="<?= View::e($csrf_token ?? '') ?>">
+                Test connection
+              </button>
+              <span id="health-check-http-result" style="font-size:var(--fs-sm)"></span>
+            </span>
+          </div>
+        </div>
+
         <!-- Backup -->
         <div class="card-body">
           <div class="section-label">Backup</div>

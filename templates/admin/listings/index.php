@@ -232,8 +232,8 @@ $_flStatusTabs = [
     'pending'     => ['label' => 'Pending',      'badge' => 'badge-pending'],
     'current'     => ['label' => 'Current',      'badge' => 'badge-current'],
     'upcoming'    => ['label' => 'Upcoming',     'badge' => 'badge-upcoming'],
-    'closed'      => ['label' => 'Closed',       'badge' => 'badge-inactive'],
-    'adopted_out' => ['label' => 'Adopted Out',  'badge' => 'badge-inactive'],
+    'closed'      => ['label' => 'Closed',       'badge' => 'badge-error'],
+    'adopted_out' => ['label' => 'Adopted Out',  'badge' => 'badge-info2'],
 ];
 $_flTabCounts = $tab_counts ?? [];
 ?>
@@ -332,7 +332,7 @@ $_flTabCounts = $tab_counts ?? [];
       </thead>
       <tbody>
         <?php foreach ($listings as $fl): ?>
-        <tr>
+        <tr<?= ($fl->lifecycle === 'closed' || $fl->lifecycle === 'adopted_out') ? ' class="row-archived"' : '' ?>>
 
           <!-- Checkbox -->
           <td class="checkbox-col" data-label="">
@@ -386,9 +386,9 @@ $_flTabCounts = $tab_counts ?? [];
           <!-- Status -->
           <td data-label="Status">
             <?php if ($fl->lifecycle === 'closed'): ?>
-              <span class="badge badge-inactive">Closed</span>
+              <span class="badge badge-error">Closed</span>
             <?php elseif ($fl->lifecycle === 'adopted_out'): ?>
-              <span class="badge badge-inactive">Adopted Out</span>
+              <span class="badge badge-info2">Adopted Out</span>
             <?php elseif ($fl->upcoming): ?>
               <span class="badge badge-upcoming">Upcoming</span>
             <?php elseif ($fl->trouble): ?>

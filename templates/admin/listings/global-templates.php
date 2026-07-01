@@ -117,6 +117,10 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
                   data-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/export"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>">Export Templates&hellip;</button>
           <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-export-zip-btn"
+                  data-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/export-zip"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export as ZIP&hellip;</button>
+          <button type="button" class="btn btn-secondary"
                   id="fl-tpack-import-btn"
                   data-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/import-preview"
                   data-apply-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/import-apply"

@@ -4443,7 +4443,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     try { defaults = JSON.parse(defaultsEl.textContent); } catch (err) {}
   }
   document.addEventListener('click', function (e) {
-    var btn = e.target.closest('.tpl-reset-row button[data-textarea]');
+    var btn = e.target.closest('button[data-layout-preset], .tpl-reset-row button[data-textarea]');
     if (!btn || btn.classList.contains('coltpl-preview-btn')) return;
     // Layout preset buttons use a different defaults key
     var key = btn.dataset.layoutPreset || btn.dataset.textarea;
@@ -5619,6 +5619,121 @@ document.addEventListener('click', function (e) {
     });
   });
 
+  // ── Individual "Check Backlink" buttons (member backlink check, Step 4.1/4.2) ──
+  function applyBacklinkResult(row, data) {
+    var badge = row.querySelector('[data-lc-backlink-badge]');
+    if (!badge) return;
+    var status    = data.backlink_status || 'unchecked';
+    var clsMap    = { found: 'badge-current', missing: 'badge-error', unchecked: 'badge-inactive' };
+    var labelMap  = { found: 'Found', missing: 'Missing', unchecked: '—' };
+    ['badge-current', 'badge-error', 'badge-inactive'].forEach(function (c) { badge.classList.remove(c); });
+    badge.classList.add(clsMap[status] || 'badge-inactive');
+    badge.textContent = labelMap[status] || status;
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.js-lc-backlink');
+    if (!btn) return;
+
+    var id          = btn.dataset.id;
+    var endpoint    = btn.dataset.endpoint;
+    var csrf        = btn.dataset.csrf;
+    var listingUrl  = btn.dataset.listingUrl || '';
+    var row         = document.getElementById('lc-mem-' + id);
+
+    if (!row || btn.disabled) return;
+
+    btn.disabled = true;
+    row.classList.add('lc-busy');
+
+    var body = '_csrf=' + encodeURIComponent(csrf)
+             + '&id=' + encodeURIComponent(id)
+             + '&listing_url=' + encodeURIComponent(listingUrl);
+
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body,
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        row.classList.remove('lc-busy');
+        if (data && data.error) { window.lstrToast('error', data.error); }
+        else { applyBacklinkResult(row, data); }
+        btn.disabled = false;
+      })
+      .catch(function () {
+        row.classList.remove('lc-busy');
+        btn.disabled = false;
+      });
+  });
+
+  // ── Individual "Listed?" buttons (owner-listed check, Step 4.3) ───────────
+  function applyListedResult(row, data) {
+    var badge = row.querySelector('[data-lc-listed-badge]');
+    if (!badge) return;
+    var status    = data.listed_status || 'unchecked';
+    var heuristic = status === 'listed' && data.heuristic !== false;
+    var clsMap    = { listed: 'badge-current', not_found: 'badge-error', unchecked: 'badge-inactive' };
+    var labelMap  = { listed: heuristic ? 'Name Match' : 'Listed', not_found: 'Not Found', unchecked: '—' };
+    ['badge-current', 'badge-error', 'badge-inactive'].forEach(function (c) { badge.classList.remove(c); });
+    badge.classList.add(clsMap[status] || 'badge-inactive');
+    badge.textContent = labelMap[status] || status;
+
+    // Show/update the members URL link when available.
+    var container = badge.parentElement;
+    if (container) {
+      var existing = container.querySelector('.lc-listed-members-url');
+      if (data.members_url) {
+        if (!existing) {
+          existing = document.createElement('div');
+          existing.className = 'lc-redirect-info lc-listed-members-url';
+          container.appendChild(existing);
+        }
+        existing.innerHTML = '<a href="' + data.members_url.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '" target="_blank" rel="noopener noreferrer" class="link text-xs">' + data.members_url.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</a>';
+      } else if (existing) {
+        existing.remove();
+      }
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.js-lc-listed');
+    if (!btn) return;
+
+    var id        = btn.dataset.id;
+    var endpoint  = btn.dataset.endpoint;
+    var csrf      = btn.dataset.csrf;
+    var ownerName = btn.dataset.ownerName || '';
+    var row       = document.getElementById('lc-joined-' + id);
+
+    if (!row || btn.disabled) return;
+
+    btn.disabled = true;
+    row.classList.add('lc-busy');
+
+    var body = '_csrf=' + encodeURIComponent(csrf)
+             + '&id=' + encodeURIComponent(id)
+             + '&owner_name=' + encodeURIComponent(ownerName);
+
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body,
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        row.classList.remove('lc-busy');
+        if (data && data.error) { window.lstrToast('error', data.error); }
+        else { applyListedResult(row, data); }
+        btn.disabled = false;
+      })
+      .catch(function () {
+        row.classList.remove('lc-busy');
+        btn.disabled = false;
+      });
+  });
+
   // ── Link-checker tab persistence ─────────────────────────────────────────
   var lcTabInput = document.getElementById('lc-filter-tab');
   function lcOnTabChange(tabId) {
@@ -6527,6 +6642,44 @@ document.addEventListener('click', function (e) {
   });
 }());
 
+// ── Settings: Outbound HTTPS health check ────────────────────────────────────
+
+(function () {
+  var btn = document.getElementById('health-check-http-btn');
+  if (!btn) return;
+  var result = document.getElementById('health-check-http-result');
+
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    if (result) result.innerHTML = '<span class="text-muted">Testing&hellip;</span>';
+
+    var params = new URLSearchParams();
+    params.append('_csrf', btn.dataset.csrf);
+
+    fetch(btn.dataset.url, {
+      method:  'POST',
+      headers: {
+        'Content-Type':     'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: params.toString(),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        btn.disabled = false;
+        if (result) {
+          result.innerHTML = data.ok
+            ? '<span style="color:var(--color-success,#4caf50)">' + esc(data.message) + '</span>'
+            : '<span style="color:var(--color-danger,#e05)">'     + esc(data.message) + '</span>';
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        if (result) result.innerHTML = '<span style="color:var(--color-danger,#e05)">Test failed. Please try again.</span>';
+      });
+  });
+}());
+
 // ── Server Paths: locked inputs with Edit button to unlock ───────────────────
 
 document.addEventListener('click', function (e) {
@@ -6922,6 +7075,23 @@ document.addEventListener('click', function (e) {
 
       var csrf = document.createElement('input');
       csrf.type = 'hidden'; csrf.name = '_csrf'; csrf.value = exportBtn.dataset.csrf || '';
+      form.appendChild(csrf);
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    });
+  }
+
+  // ── Export as ZIP ─────────────────────────────────────────────────────────
+  var exportZipBtn = document.getElementById('fl-tpack-export-zip-btn');
+  if (exportZipBtn) {
+    exportZipBtn.addEventListener('click', function () {
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = exportZipBtn.dataset.endpoint || '';
+
+      var csrf = document.createElement('input');
+      csrf.type = 'hidden'; csrf.name = '_csrf'; csrf.value = exportZipBtn.dataset.csrf || '';
       form.appendChild(csrf);
       document.body.appendChild(form);
       form.submit();
@@ -7394,4 +7564,117 @@ document.addEventListener('click', function (e) {
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+}());
+
+// ── TFL/TAFL lookup buttons in Link Checker (dead + moved joined rows) ────────
+(function () {
+  'use strict';
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Lookup button click — fetch TFL/TAFL index and display results inline
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.lc-tfl-lookup-btn') : null;
+    if (!btn) return;
+
+    var joinedId      = btn.dataset.joinedId;
+    var network       = btn.dataset.network;
+    var endpoint      = btn.dataset.endpoint;
+    var applyEndpoint = btn.dataset.applyEndpoint;
+    var csrf          = btn.dataset.csrf;
+    var resultRow     = document.getElementById('lc-tfl-result-' + joinedId);
+    var resultInner   = document.getElementById('lc-tfl-result-inner-' + joinedId);
+
+    if (!resultRow || !resultInner) return;
+
+    resultRow.style.display = '';
+    btn.disabled = true;
+    btn.textContent = '…'; // …
+    resultInner.innerHTML = '<span class="text-muted">Searching ' + esc(network.toUpperCase()) + '…</span>';
+
+    var params = new URLSearchParams({ _csrf: csrf, joined_id: joinedId, network: network });
+
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        btn.disabled = false;
+        btn.textContent = network.toUpperCase();
+
+        if (data.error) {
+          resultInner.innerHTML = '<span style="color:var(--color-danger)">' + esc(data.error) + '</span>';
+          return;
+        }
+
+        var html = '';
+
+        if (data.url) {
+          html += '<strong>' + esc(network.toUpperCase()) + ' exact match:</strong> '
+            + '<a href="' + esc(data.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(data.url) + '</a>'
+            + ' &mdash; <button type="button" class="btn btn-primary btn-xs lc-tfl-apply-btn"'
+            + ' data-apply-url="' + esc(data.url) + '"'
+            + ' data-apply-endpoint="' + esc(applyEndpoint) + '"'
+            + ' data-joined-id="' + esc(joinedId) + '"'
+            + ' data-csrf="' + esc(csrf) + '">Apply URL</button>';
+        } else if (data.candidates && data.candidates.length > 0) {
+          html += '<strong>' + esc(network.toUpperCase()) + ' &mdash; no exact match. Candidates:</strong>'
+            + '<ul style="margin:.25rem 0 0 1rem;font-size:.85rem">';
+          data.candidates.forEach(function (c) {
+            html += '<li><a href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(c.text) + '</a>'
+              + ' &mdash; <button type="button" class="btn btn-secondary btn-xs lc-tfl-apply-btn"'
+              + ' data-apply-url="' + esc(c.url) + '"'
+              + ' data-apply-endpoint="' + esc(applyEndpoint) + '"'
+              + ' data-joined-id="' + esc(joinedId) + '"'
+              + ' data-csrf="' + esc(csrf) + '">Apply</button></li>';
+          });
+          html += '</ul>';
+        } else {
+          html += '<span class="text-muted">No match found on ' + esc(network.toUpperCase()) + '. Try editing the entry manually.</span>';
+        }
+
+        if (data.cache_age !== null && data.cache_age !== undefined) {
+          var ageMin = Math.round(data.cache_age / 60);
+          html += ' <span style="color:var(--color-muted);font-size:.8rem">('
+            + (ageMin < 1 ? 'just fetched' : ageMin + ' min old') + ')</span>';
+        }
+
+        resultInner.innerHTML = html;
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = network.toUpperCase();
+        resultInner.innerHTML = '<span style="color:var(--color-danger)">Request failed. Please try again.</span>';
+      });
+  });
+
+  // "Apply URL" click — build and submit a hidden form POST (full redirect with flash)
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.lc-tfl-apply-btn') : null;
+    if (!btn) return;
+
+    var url      = btn.dataset.applyUrl;
+    var endpoint = btn.dataset.applyEndpoint;
+    var joinedId = btn.dataset.joinedId;
+    var csrf     = btn.dataset.csrf;
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = endpoint;
+
+    [['_csrf', csrf], ['joined_id', joinedId], ['url', url]].forEach(function (pair) {
+      var inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = pair[0];
+      inp.value = pair[1];
+      form.appendChild(inp);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  });
 }());

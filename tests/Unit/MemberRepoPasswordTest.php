@@ -126,17 +126,16 @@ final class MemberRepoPasswordTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // MD5 upgrade path — safe refactor check
+    // verifyAndUpgrade() — MD5 upgrade path
     //
-    // The sign-in path detects a 32-char hex hash and calls updatePassword()
-    // with the Argon2id equivalent. This test seeds an MD5-shaped hash and
-    // confirms the stored value after the call is verifiable with Argon2id.
+    // Seeds a 32-char hex (MD5-shaped) hash and calls the real repo method.
+    // If verifyAndUpgrade() loses its MD5 branch, this test fails.
     // -----------------------------------------------------------------------
 
-    public function testMd5ShapedHashUpgradedToArgon2id(): void
+    public function testVerifyAndUpgradeMd5HashToArgon2id(): void
     {
         $rawPassword = 'hunter2';
-        $md5Hash     = md5($rawPassword); // 32-char hex
+        $md5Hash     = md5($rawPassword);
 
         $ddl = "CREATE TABLE flmembers (
             email    VARCHAR(255) PRIMARY KEY,
@@ -155,34 +154,50 @@ final class MemberRepoPasswordTest extends TestCase
         /** @var MemberRepo $repo */
         [$repo, $pdo] = self::makeRepo($ddl);
 
-        // Simulate the sign-in MD5 detection and upgrade
-        $stored = (string) $pdo->query("SELECT password FROM flmembers WHERE email = 'cloud@avalanche.net'")->fetchColumn();
-        $this->assertSame(32, strlen($stored), 'precondition: should be MD5-shaped');
-        $this->assertTrue(ctype_xdigit($stored), 'precondition: should be hex');
+        $verified = $repo->verifyAndUpgrade('flmembers', 'cloud@avalanche.net', $rawPassword, $md5Hash);
 
-        if (hash_equals($stored, md5($rawPassword))) {
-            $repo->updatePassword('flmembers', 'cloud@avalanche.net', password_hash($rawPassword, PASSWORD_ARGON2ID));
-        }
+        $this->assertTrue($verified, 'correct password must return true');
 
         $upgraded = (string) $pdo->query("SELECT password FROM flmembers WHERE email = 'cloud@avalanche.net'")->fetchColumn();
         $this->assertNotSame($md5Hash, $upgraded, 'hash must have changed');
-        $this->assertTrue(password_verify($rawPassword, $upgraded), 'upgraded hash must verify with password_verify');
+        $this->assertTrue(password_verify($rawPassword, $upgraded), 'upgraded hash must verify the same password');
         $this->assertStringStartsWith('$argon2id', $upgraded, 'upgraded hash must be Argon2id');
     }
 
+    public function testVerifyAndUpgradeReturnsFalseForWrongMd5Password(): void
+    {
+        $md5Hash = md5('correctpassword');
+        $ddl     = "CREATE TABLE md5wrongfl (
+            email    VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL DEFAULT '',
+            country  VARCHAR(2)   NOT NULL DEFAULT '', url VARCHAR(255) NOT NULL DEFAULT '',
+            pending  INT NOT NULL DEFAULT 0, password VARCHAR(255) NOT NULL DEFAULT '',
+            showemail INT NOT NULL DEFAULT 1, showurl INT NOT NULL DEFAULT 1, added DATE
+        );
+        INSERT INTO md5wrongfl (email, name, password, added)
+            VALUES ('test@example.com', 'Test', '{$md5Hash}', '2026-01-01')";
+
+        [$repo, $pdo] = self::makeRepo($ddl);
+
+        $result = $repo->verifyAndUpgrade('md5wrongfl', 'test@example.com', 'wrongpassword', $md5Hash);
+
+        $this->assertFalse($result);
+        // Hash must not have changed
+        $stored = $pdo->query("SELECT password FROM md5wrongfl WHERE email = 'test@example.com'")->fetchColumn();
+        $this->assertSame($md5Hash, $stored, 'hash must be unchanged after failed verify');
+    }
+
     // -----------------------------------------------------------------------
-    // bcrypt upgrade path
+    // verifyAndUpgrade() — bcrypt upgrade path
     //
     // Imported members from Fanatically have PASSWORD_BCRYPT hashes.
-    // password_needs_rehash() returns true for bcrypt when the target is
-    // Argon2id. Confirms that updatePassword() leaves a verifiable Argon2id
-    // hash in place after the rehash.
+    // Calls the real repo method; if verifyAndUpgrade() loses its
+    // password_needs_rehash() guard, this test fails.
     // -----------------------------------------------------------------------
 
-    public function testBcryptHashUpgradedToArgon2idOnSignIn(): void
+    public function testVerifyAndUpgradeBcryptHashToArgon2id(): void
     {
-        $rawPassword  = 'chocobo';
-        $bcryptHash   = password_hash($rawPassword, PASSWORD_BCRYPT);
+        $rawPassword = 'chocobo';
+        $bcryptHash  = password_hash($rawPassword, PASSWORD_BCRYPT);
 
         $ddl = "CREATE TABLE fxmembers (
             email    VARCHAR(255) PRIMARY KEY,
@@ -201,20 +216,62 @@ final class MemberRepoPasswordTest extends TestCase
         /** @var MemberRepo $repo */
         [$repo, $pdo] = self::makeRepo($ddl);
 
-        $stored = (string) $pdo->query("SELECT password FROM fxmembers WHERE email = 'yuna@spira.net'")->fetchColumn();
+        $verified = $repo->verifyAndUpgrade('fxmembers', 'yuna@spira.net', $rawPassword, $bcryptHash);
 
-        // Simulate the UpdateController sign-in else-branch
-        $verified = password_verify($rawPassword, $stored);
-        $this->assertTrue($verified, 'bcrypt hash must verify');
-
-        if ($verified && password_needs_rehash($stored, PASSWORD_ARGON2ID)) {
-            $repo->updatePassword('fxmembers', 'yuna@spira.net', password_hash($rawPassword, PASSWORD_ARGON2ID));
-        }
+        $this->assertTrue($verified, 'correct password must return true');
 
         $upgraded = (string) $pdo->query("SELECT password FROM fxmembers WHERE email = 'yuna@spira.net'")->fetchColumn();
         $this->assertNotSame($bcryptHash, $upgraded, 'hash must have changed from bcrypt');
         $this->assertTrue(password_verify($rawPassword, $upgraded), 'upgraded hash must still verify the same password');
         $this->assertStringStartsWith('$argon2id', $upgraded, 'upgraded hash must be Argon2id');
         $this->assertFalse(password_needs_rehash($upgraded, PASSWORD_ARGON2ID), 'upgraded hash must not need rehash again');
+    }
+
+    public function testVerifyAndUpgradeReturnsFalseForWrongBcryptPassword(): void
+    {
+        $bcryptHash = password_hash('correctpassword', PASSWORD_BCRYPT);
+        $ddl        = "CREATE TABLE bcryptwrongfl (
+            email    VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL DEFAULT '',
+            country  VARCHAR(2)   NOT NULL DEFAULT '', url VARCHAR(255) NOT NULL DEFAULT '',
+            pending  INT NOT NULL DEFAULT 0, password VARCHAR(255) NOT NULL DEFAULT '',
+            showemail INT NOT NULL DEFAULT 1, showurl INT NOT NULL DEFAULT 1, added DATE
+        );
+        INSERT INTO bcryptwrongfl (email, name, password, added)
+            VALUES ('test@example.com', 'Test', " . var_export($bcryptHash, true) . ", '2026-01-01')";
+
+        [$repo, $pdo] = self::makeRepo($ddl);
+
+        $result = $repo->verifyAndUpgrade('bcryptwrongfl', 'test@example.com', 'wrongpassword', $bcryptHash);
+
+        $this->assertFalse($result);
+        $stored = $pdo->query("SELECT password FROM bcryptwrongfl WHERE email = 'test@example.com'")->fetchColumn();
+        $this->assertSame($bcryptHash, $stored, 'hash must be unchanged after failed verify');
+    }
+
+    // -----------------------------------------------------------------------
+    // verifyAndUpgrade() — Argon2id is a no-op (no redundant rehash)
+    // -----------------------------------------------------------------------
+
+    public function testVerifyAndUpgradeArgon2idHashIsNotRehashed(): void
+    {
+        $rawPassword  = 'stayonargon2id';
+        $argon2idHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
+
+        $ddl = "CREATE TABLE norehashfl (
+            email    VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL DEFAULT '',
+            country  VARCHAR(2)   NOT NULL DEFAULT '', url VARCHAR(255) NOT NULL DEFAULT '',
+            pending  INT NOT NULL DEFAULT 0, password VARCHAR(255) NOT NULL DEFAULT '',
+            showemail INT NOT NULL DEFAULT 1, showurl INT NOT NULL DEFAULT 1, added DATE
+        );
+        INSERT INTO norehashfl (email, name, password, added)
+            VALUES ('test@example.com', 'Test', " . var_export($argon2idHash, true) . ", '2026-01-01')";
+
+        [$repo, $pdo] = self::makeRepo($ddl);
+
+        $verified = $repo->verifyAndUpgrade('norehashfl', 'test@example.com', $rawPassword, $argon2idHash);
+
+        $this->assertTrue($verified);
+        $stored = $pdo->query("SELECT password FROM norehashfl WHERE email = 'test@example.com'")->fetchColumn();
+        $this->assertSame($argon2idHash, $stored, 'Argon2id hash must not be rewritten');
     }
 }

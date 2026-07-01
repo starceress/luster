@@ -130,6 +130,8 @@ return [
         $router->post('/admin/listings/global-templates/preview', ListingController::class, 'globalTemplatesPreview');
         $router->post('/admin/listings/global-templates/template-pack/export',
             TemplatePackController::class, 'globalExport');
+        $router->post('/admin/listings/global-templates/template-pack/export-zip',
+            TemplatePackController::class, 'globalExportZip');
         $router->post('/admin/listings/global-templates/template-pack/import-preview',
             TemplatePackController::class, 'globalImportPreview');
         $router->post('/admin/listings/global-templates/template-pack/import-apply',
@@ -379,6 +381,8 @@ return [
             SettingsController::class, 'testEmail');
         $router->post('/admin/settings/check-update',
             SettingsController::class, 'checkUpdate');
+        $router->post('/admin/settings/check-http',
+            SettingsController::class, 'checkHttp');
         $router->post('/admin/settings/import-visibility',
             SettingsController::class, 'saveImportVisibility');
         $router->post('/admin/settings/notifications',
@@ -492,6 +496,8 @@ return [
         // --- Template packs (export/import/copy/revisions) — per-listing
         $router->post('/admin/listings/{id}/template-pack/export',
             TemplatePackController::class, 'export');
+        $router->post('/admin/listings/{id}/template-pack/export-zip',
+            TemplatePackController::class, 'exportZip');
         $router->post('/admin/listings/{id}/template-pack/import-preview',
             TemplatePackController::class, 'importPreview');
         $router->post('/admin/listings/{id}/template-pack/import-apply',
@@ -506,6 +512,8 @@ return [
         // --- Template packs — collective templates
         $router->post('/admin/collective/templates/template-pack/export',
             TemplatePackController::class, 'collectiveExport');
+        $router->post('/admin/collective/templates/template-pack/export-zip',
+            TemplatePackController::class, 'collectiveExportZip');
         $router->post('/admin/collective/templates/template-pack/import-preview',
             TemplatePackController::class, 'collectiveImportPreview');
         $router->post('/admin/collective/templates/template-pack/import-apply',
@@ -550,6 +558,10 @@ return [
             LinkCheckerController::class, 'applyRedirectAffiliate');
         $router->post('/admin/link-checker/apply-joined-redirect',
             LinkCheckerController::class, 'applyRedirectJoined');
+        $router->post('/admin/link-checker/tfl-lookup-joined',
+            LinkCheckerController::class, 'tflLookupJoined');
+        $router->post('/admin/link-checker/apply-tfl-url-joined',
+            LinkCheckerController::class, 'applyTflUrlJoined');
         $router->post('/admin/link-checker/save-cron-settings',
             LinkCheckerController::class, 'saveCronSettings');
         $router->post('/admin/link-checker/scan-members',
@@ -562,6 +574,10 @@ return [
             LinkCheckerController::class, 'resetMembers');
         $router->post('/admin/link-checker/scan-member-ajax',
             LinkCheckerController::class, 'scanMemberAjax');
+        $router->post('/admin/link-checker/check-backlink-member',
+            LinkCheckerController::class, 'checkBacklinkMember');
+        $router->post('/admin/link-checker/check-listed-joined',
+            LinkCheckerController::class, 'checkListedJoined');
 
         // --- Feedback
         $router->get('/admin/feedback',  FeedbackController::class, 'showForm');
@@ -633,6 +649,17 @@ return [
         $router->post('/admin/import/{source}/upload-dump',
             ImportController::class, 'uploadDump');
 
+        // --- Fanatically template rescue (Plan A)
+        $router->get('/admin/import/fanatically/templates',
+            ImportController::class, 'templateImport');
+        $router->post('/admin/import/fanatically/templates',
+            ImportController::class, 'templateImport');
+        $router->get('/admin/import/fanatically/templates/preview',
+            ImportController::class, 'templatePreview');
+        $router->get('/admin/import/fanatically/templates/download',
+            ImportController::class, 'templateDownload');
+        $router->post('/admin/import/fanatically/templates/apply',
+            ImportController::class, 'templateApply');
 
         // --- Embed codes + compat test
         $router->get('/admin/embed-codes',

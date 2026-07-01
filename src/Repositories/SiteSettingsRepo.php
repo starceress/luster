@@ -85,6 +85,20 @@ class SiteSettingsRepo
     }
 
     /**
+     * Strict variant of set() for use inside transactions.
+     * Propagates \PDOException on failure; never silently swallows.
+     */
+    public function setStrict(string $key, ?string $value): void
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_site_settings (setting_key, setting_value)
+             VALUES (:key, :value)
+             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)'
+        );
+        $stmt->execute(['key' => $key, 'value' => $value]);
+    }
+
+    /**
      * Default HTML row/block templates used when no custom value is stored.
      *
      * Shared by the admin collective page and the embed files so

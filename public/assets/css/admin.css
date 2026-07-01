@@ -785,6 +785,7 @@ html.fp-codes #codes-filter-panel { display: block; }
 .actions-col p { margin: 0; }
 
 .data-table tr.row-inactive td { opacity: .5; }
+.data-table tr.row-archived td { opacity: .6; }
 
 .data-table .table-num { text-align: right; font-variant-numeric: tabular-nums; width: 1px; white-space: nowrap; }
 

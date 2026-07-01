@@ -730,6 +730,10 @@ $_tplCsrf = View::e($csrf_token ?? '');
                   data-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/export"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>">Export Templates&hellip;</button>
           <button type="button" class="btn btn-secondary"
+                  id="fl-tpack-export-zip-btn"
+                  data-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/export-zip"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export as ZIP&hellip;</button>
+          <button type="button" class="btn btn-secondary"
                   id="fl-tpack-import-btn"
                   data-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/import-preview"
                   data-apply-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/import-apply"

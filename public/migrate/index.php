@@ -3109,6 +3109,49 @@ try {
     $errors[] = 'Migration 96 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 97: add backlink columns to lstr_member_link_checks.
+try {
+    $chkBl = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME   = 'lstr_member_link_checks'
+            AND COLUMN_NAME  = 'backlink_status'"
+    );
+    if ((int) $chkBl->fetchColumn() === 0) {
+        $pdo->exec(
+            "ALTER TABLE `lstr_member_link_checks`
+             ADD COLUMN `backlink_status`     ENUM('unchecked','found','missing') NOT NULL DEFAULT 'unchecked',
+             ADD COLUMN `backlink_checked_at` DATETIME NULL"
+        );
+        $done[] = 'Migration 97: added <code>backlink_status</code> and <code>backlink_checked_at</code> to <code>lstr_member_link_checks</code>';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (97)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 97 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 98: add owner-listed columns to lstr_joined.
+try {
+    $chkLs = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME   = 'lstr_joined'
+            AND COLUMN_NAME  = 'listed_status'"
+    );
+    if ((int) $chkLs->fetchColumn() === 0) {
+        $pdo->exec(
+            "ALTER TABLE `lstr_joined`
+             ADD COLUMN `listed_status`      ENUM('unchecked','listed','not_found') NOT NULL DEFAULT 'unchecked',
+             ADD COLUMN `listed_checked_at`  DATETIME NULL,
+             ADD COLUMN `listed_members_url` VARCHAR(500) NULL"
+        );
+        $done[] = 'Migration 98: added <code>listed_status</code>, <code>listed_checked_at</code>, and <code>listed_members_url</code> to <code>lstr_joined</code>';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (98)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 98 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

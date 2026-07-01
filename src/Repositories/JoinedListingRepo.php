@@ -796,6 +796,38 @@ final class JoinedListingRepo
     }
 
     /**
+     * Replaces a joined listing's URL with an arbitrary http/https URL from an
+     * external source (e.g. a TFL/TAFL lookup result) and resets link-check state
+     * so the new URL is validated on the next check run.
+     *
+     * Unlike applyRedirectUrl(), the new URL comes from the caller, not from the
+     * DB's link_redirect_url field, so any http/https URL is accepted regardless
+     * of the current link_status.
+     *
+     * Returns false if the ID does not exist or the URL is not http/https.
+     */
+    public function applyCustomUrl(int $id, string $url): bool
+    {
+        $url    = trim($url);
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if (!filter_var($url, FILTER_VALIDATE_URL) || !in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            "UPDATE lstr_joined
+             SET url               = :url,
+                 link_status       = 'unchecked',
+                 link_redirect_url = NULL,
+                 link_checked_at   = NULL
+             WHERE id = :id"
+        );
+        $stmt->execute(['url' => $url, 'id' => $id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
      * Records the outcome of a URL check for a joined listing.
      *
      * Status values: 'ok', 'redirect', 'dead', 'unchecked'.
@@ -828,5 +860,77 @@ final class JoinedListingRepo
                  link_checked_at   = NULL,
                  link_redirect_url = NULL"
         )->execute();
+    }
+
+    // -----------------------------------------------------------------------
+    // Owner-listed check (Step 4.3) — is the owner named on the fanlisting's
+    // member list?
+    // -----------------------------------------------------------------------
+
+    /**
+     * Persists the outcome of an owner-listed check for one joined listing.
+     *
+     * @param string  $status      'listed' | 'not_found' | 'unchecked'
+     * @param ?string $membersUrl  the URL that was actually searched (or null)
+     */
+    public function updateListedStatus(int $id, string $status, ?string $membersUrl): void
+    {
+        $this->db->prepare(
+            'UPDATE lstr_joined
+             SET listed_status      = :status,
+                 listed_checked_at  = NOW(),
+                 listed_members_url = :members_url
+             WHERE id = :id'
+        )->execute(['status' => $status, 'members_url' => $membersUrl, 'id' => $id]);
+    }
+
+    /** Resets the owner-listed state for all joined listings back to 'unchecked'. */
+    public function resetListedStatus(): void
+    {
+        $this->db->prepare(
+            "UPDATE lstr_joined
+             SET listed_status      = 'unchecked',
+                 listed_checked_at  = NULL,
+                 listed_members_url = NULL"
+        )->execute();
+    }
+
+    /**
+     * Returns owner-listed status counts.
+     *
+     * @return array{listed:int, not_found:int, unchecked:int}
+     */
+    public function getListedStats(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT listed_status, COUNT(*) AS n
+               FROM lstr_joined
+              WHERE url IS NOT NULL AND url != ''
+              GROUP BY listed_status"
+        );
+        $stmt->execute();
+        $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+
+        return [
+            'listed'    => (int) ($rows['listed']    ?? 0),
+            'not_found' => (int) ($rows['not_found'] ?? 0),
+            'unchecked' => (int) ($rows['unchecked'] ?? 0),
+        ];
+    }
+
+    /**
+     * Returns all joined listing rows that have a URL (for the listed-check batch).
+     * Only active joined listings are included.
+     */
+    public function getAllForListedCheck(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id, url
+               FROM lstr_joined
+              WHERE active = 1 AND url IS NOT NULL AND url != ''
+              ORDER BY id"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_OBJ);
     }
 }

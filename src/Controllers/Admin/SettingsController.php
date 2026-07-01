@@ -31,6 +31,7 @@ use Luster\Core\SkinCatalog;
 use Luster\Core\TemplateEngine;
 use Luster\Core\UpdateChecker;
 use Luster\Core\Validator;
+use Luster\Core\Version;
 use Luster\Core\View;
 use Luster\Support\UpdatesTemplateRenderer as UpdatesPreviewHelper;
 use Luster\Support\AffiliateRowRenderer;
@@ -1644,6 +1645,7 @@ final class SettingsController extends AdminController
             'update_status'        => $updateStatus,
             'session_path_diagnostics' => $session->getPathDiagnostics(),
             'remembered_devices'   => $this->getRememberedDevices($adminId),
+            'health_data'          => $this->computeHealthData(),
         ]);
     }
 
@@ -2272,6 +2274,106 @@ final class SettingsController extends AdminController
         }
 
         return Response::redirect($baseUrl . '/admin/settings#panel-system');
+    }
+
+    // -----------------------------------------------------------------------
+    // Hosting health data — computed on every Settings page load
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns a snapshot of key server health indicators for the Hosting Health
+     * panel on the System tab.
+     *
+     * @return array{
+     *   extensions: array<string,bool>,
+     *   uploads_writable: bool,
+     *   logs_writable: bool,
+     *   applied_migration: int|null,
+     *   latest_migration: int,
+     * }
+     */
+    private function computeHealthData(): array
+    {
+        $base = LUSTER_BASE;
+
+        $extensions = [
+            'pdo_mysql' => extension_loaded('pdo_mysql'),
+            'curl'      => extension_loaded('curl'),
+            'fileinfo'  => extension_loaded('fileinfo'),
+            'gd_imagick'=> extension_loaded('gd') || extension_loaded('imagick'),
+            'json'      => extension_loaded('json'),
+            'mbstring'  => extension_loaded('mbstring'),
+        ];
+
+        $uploadsPath = $base . '/public/uploads';
+        $logsPath    = $base . '/storage/logs';
+
+        $appliedMigration = null;
+        try {
+            $stmt = $this->app->getDatabase()->prepare('SELECT MAX(migration_number) AS m FROM lstr_migrations');
+            $stmt->execute();
+            $row = $stmt->fetch();
+            if ($row !== false && $row['m'] !== null) {
+                $appliedMigration = (int) $row['m'];
+            }
+        } catch (\Throwable) {
+            // lstr_migrations may not exist on a very old install — health panel shows "unknown"
+        }
+
+        return [
+            'extensions'        => $extensions,
+            'uploads_writable'  => is_dir($uploadsPath) && is_writable($uploadsPath),
+            'logs_writable'     => is_dir($logsPath)    && is_writable($logsPath),
+            'applied_migration' => $appliedMigration,
+            'latest_migration'  => Version::LATEST_MIGRATION,
+        ];
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/check-http
+    // -----------------------------------------------------------------------
+
+    /**
+     * Makes a quick outbound HTTPS HEAD request to a known safe public endpoint
+     * (GitHub API) to verify that this server can reach the internet with TLS
+     * verification enabled. Returns JSON {ok, message} for the inline result span.
+     */
+    public function checkHttp(Request $request, array $params): Response
+    {
+        if (!$this->validCsrf($request)) {
+            return Response::json(['ok' => false, 'message' => 'Invalid security token.'], 403);
+        }
+
+        if (!function_exists('curl_init')) {
+            return Response::json(['ok' => false, 'message' => 'cURL is not available on this server.']);
+        }
+
+        $ch = curl_init('https://api.github.com/');
+        curl_setopt_array($ch, [
+            CURLOPT_NOBODY         => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 8,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_USERAGENT      => 'Luster/' . Version::CURRENT . ' (health-check)',
+            CURLOPT_FOLLOWLOCATION => false,
+        ]);
+
+        curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error    = curl_error($ch);
+        curl_close($ch);
+
+        if ($error !== '') {
+            return Response::json(['ok' => false, 'message' => 'HTTPS test failed: ' . $error]);
+        }
+
+        if ($httpCode === 0) {
+            return Response::json(['ok' => false, 'message' => 'HTTPS test failed: no response from server.']);
+        }
+
+        return Response::json(['ok' => true, 'message' => 'Outbound HTTPS is working (HTTP ' . $httpCode . ').']);
     }
 
     // -----------------------------------------------------------------------

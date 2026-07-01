@@ -254,4 +254,95 @@ SQL;
     {
         self::assertFalse($this->repo->applyRedirectUrl(9999));
     }
+
+    // -----------------------------------------------------------------------
+    // applyCustomUrl
+    // -----------------------------------------------------------------------
+
+    public function testApplyCustomUrlUpdatesUrl(): void
+    {
+        $id = $this->insertListing('Alpha Fanlisting', 'https://alpha.test');
+
+        self::assertTrue($this->repo->applyCustomUrl($id, 'https://new-home.alpha.test/'));
+
+        $item = $this->repo->getById($id);
+        self::assertNotNull($item);
+        self::assertSame('https://new-home.alpha.test/', $item->url);
+    }
+
+    public function testApplyCustomUrlResetsLinkStatusToUnchecked(): void
+    {
+        $id = $this->insertListing('Alpha Fanlisting', 'https://alpha.test');
+        $this->repo->updateLinkStatus($id, 'dead', null, '2025-06-01 12:00:00');
+
+        $this->repo->applyCustomUrl($id, 'https://new-home.alpha.test/');
+
+        $item = $this->repo->getById($id);
+        self::assertNotNull($item);
+        self::assertSame('unchecked', $item->linkStatus);
+    }
+
+    public function testApplyCustomUrlClearsLinkRedirectUrl(): void
+    {
+        $id = $this->insertListing('Alpha Fanlisting', 'https://alpha.test');
+        $this->repo->updateLinkStatus($id, 'redirect', 'https://old-redirect.alpha.test/', '2025-06-01 12:00:00');
+
+        $this->repo->applyCustomUrl($id, 'https://new-home.alpha.test/');
+
+        $item = $this->repo->getById($id);
+        self::assertNotNull($item);
+        self::assertNull($item->linkRedirectUrl);
+    }
+
+    public function testApplyCustomUrlClearsLinkCheckedAt(): void
+    {
+        $id = $this->insertListing('Alpha Fanlisting', 'https://alpha.test');
+        $this->repo->updateLinkStatus($id, 'ok', null, '2025-06-01 12:00:00');
+
+        $this->repo->applyCustomUrl($id, 'https://new-home.alpha.test/');
+
+        $item = $this->repo->getById($id);
+        self::assertNotNull($item);
+        self::assertNull($item->linkCheckedAt);
+    }
+
+    public function testApplyCustomUrlReturnsFalseForMissingRow(): void
+    {
+        self::assertFalse($this->repo->applyCustomUrl(9999, 'https://example.com'));
+    }
+
+    public function testApplyCustomUrlRejectsNonHttpScheme(): void
+    {
+        $id = $this->insertListing('Alpha Fanlisting', 'https://alpha.test');
+
+        self::assertFalse($this->repo->applyCustomUrl($id, 'ftp://files.alpha.test/'));
+
+        $item = $this->repo->getById($id);
+        self::assertNotNull($item);
+        self::assertSame('https://alpha.test', $item->url, 'URL must be unchanged after rejected update');
+    }
+
+    public function testApplyCustomUrlRejectsMalformedUrls(): void
+    {
+        $id = $this->insertListing('Alpha Fanlisting', 'https://alpha.test');
+
+        self::assertFalse($this->repo->applyCustomUrl($id, 'https://'), 'bare scheme must be rejected');
+        self::assertFalse($this->repo->applyCustomUrl($id, 'not-a-url'), 'random string must be rejected');
+        self::assertFalse($this->repo->applyCustomUrl($id, ''), 'empty string must be rejected');
+
+        $item = $this->repo->getById($id);
+        self::assertNotNull($item);
+        self::assertSame('https://alpha.test', $item->url, 'URL must be unchanged after all rejected updates');
+    }
+
+    public function testApplyCustomUrlAcceptsHttpScheme(): void
+    {
+        $id = $this->insertListing('Alpha Fanlisting', 'https://alpha.test');
+
+        self::assertTrue($this->repo->applyCustomUrl($id, 'http://legacy.alpha.test/'));
+
+        $item = $this->repo->getById($id);
+        self::assertNotNull($item);
+        self::assertSame('http://legacy.alpha.test/', $item->url);
+    }
 }
