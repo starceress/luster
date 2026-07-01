@@ -1209,3 +1209,28 @@
   margin-right: 0.35em;
   vertical-align: middle;
 }
+
+/* ------------------------------------------------------------------------
+   COLLECTIVE UPDATE
+   Collective-level cross-listing membership update form (Step 2).
+------------------------------------------------------------------------ */
+
+.fl-collective-update-listings {
+  margin-top: 1em;
+}
+
+.fl-collective-update-list {
+  list-style: none;
+  margin: 0.5em 0 0;
+  padding: 0;
+}
+
+.fl-collective-update-item {
+  padding: 0.25em 0;
+}
+
+.fl-collective-update-url {
+  font-size: 0.875em;
+  color: #888;
+  margin-left: 0.25em;
+}

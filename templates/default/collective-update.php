@@ -40,8 +40,8 @@ use Luster\Core\View;
   <div class="fl-field">
     <label class="fl-label" for="fl-cu-url">Website URL</label>
     <input class="fl-input" type="url" id="fl-cu-url" name="url" value="<?= View::e($firstMember->url) ?>" maxlength="500">
-    <label class="fl-checkbox-label">
-      <input type="checkbox" name="delete_url" value="1"> Remove my website URL
+    <label class="fl-check-label">
+      <input type="checkbox" class="fl-checkbox" name="delete_url" value="1"> Remove my website URL
     </label>
   </div>
   <div class="fl-field">
@@ -54,7 +54,7 @@ use Luster\Core\View;
     </select>
   </div>
   <div class="fl-field">
-    <label class="fl-label" for="fl-cu-password">New password <span class="fl-optional">(optional)</span></label>
+    <label class="fl-label" for="fl-cu-password">New password (optional)</label>
     <input class="fl-input" type="password" id="fl-cu-password" name="new_password" maxlength="255" autocomplete="new-password">
     <p class="fl-hint">Minimum 12 characters. Leave blank to keep your current password.</p>
   </div>
@@ -67,19 +67,19 @@ use Luster\Core\View;
     <ul class="fl-collective-update-list">
       <?php foreach ($memberships as $m): ?>
       <li class="fl-collective-update-item">
-        <label class="fl-checkbox-label">
-          <input type="checkbox" name="listing_ids[]" value="<?= (int) $m['listing']->id ?>" checked>
+        <label class="fl-check-label">
+          <input type="checkbox" class="fl-checkbox" name="listing_ids[]" value="<?= (int) $m['listing']->id ?>" checked>
           <?= View::e($m['listing']->title) ?>
           <?php if ($m['listing']->url !== ''): ?>
-          <span class="fl-collective-update-url">(<a href="<?= View::e($m['listing']->url) ?>" class="fl-link" rel="nofollow noreferrer" target="_blank"><?= View::e($m['listing']->url) ?></a>)</span>
+          <span class="fl-collective-update-url">(<a href="<?= View::e($m['listing']->url) ?>" rel="nofollow noreferrer" target="_blank"><?= View::e($m['listing']->url) ?></a>)</span>
           <?php endif; ?>
         </label>
       </li>
       <?php endforeach; ?>
     </ul>
   </div>
-  <div class="fl-field fl-field-submit">
-    <button type="submit" class="fl-btn fl-btn-submit">Update memberships</button>
+  <div class="fl-field">
+    <button type="submit" class="fl-btn">Update memberships</button>
   </div>
 </form>
 <?php endif; ?>
