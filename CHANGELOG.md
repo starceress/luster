@@ -5,15 +5,15 @@ All notable changes to Luster are documented in this file. For the full feature 
 
 ## A Note on Updating
 
-Future releases will include a packaged ZIP file and a matching checksum
-file. Luster's admin panel can check for these and apply updates
-automatically — it will never overwrite your `config/app.php`, `storage/`,
+Each release includes a packaged ZIP file and a matching checksum file.
+Luster's admin panel can check for these and apply updates automatically
+— it will never overwrite your `config/app.php`, `storage/`,
 `public/uploads/`, or `vendor/` folders. If a release is missing one of
 those files, the admin panel will let you know that a manual update is
 needed and link you to the release page.
 
 
-## [1.0.0]
+## [1.0.0] — 2026-07-02
 
 The first full release of Luster! A free, open-source management script
 for fanlistings, cliques, collectives, and other hobby listings. If
@@ -26,7 +26,7 @@ for you.
 
 - Full admin panel for listings, members, affiliates, codes, categories,
   emails, and joined listings — all from one place.
-- 28 drop-in PHP embeds for every fan-facing page.
+- 29 drop-in PHP embeds for every fan-facing page.
 - Editable templates at global and per-listing levels with live previews.
 - Template packs: export your templates to a shareable file, import a
   pack from someone else with a before/after diff, copy templates between
@@ -54,7 +54,7 @@ for you.
 - Collective affiliates and codes section toggles now include the same
   label and style options that individual listings already had.
 - Security-first: Argon2id passwords, CSRF, prepared statements, rate
-  limiting, and 1,400+ automated tests.
+  limiting, and 1,500+ automated tests.
 
 **Other fixes**
 
@@ -68,3 +68,8 @@ for you.
 - Fanatically import now brings over members who had pending profile
   updates, and handles add-on data more reliably when an add-on isn't yet
   installed.
+- Settings page reorganized: Embed Form URL moved to General, Reciprocal
+  URL moved to Link Checker settings, and Install Path shown read-only in
+  System Details. The separate Server Paths panel is gone.
+- The update checker no longer shows "update available" when you're already
+  on the latest version.
