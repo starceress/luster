@@ -237,16 +237,17 @@ final class UpdateChecker
             if ($cmp === true) {
                 $updateAvailable = true;
             } elseif ($cmp === false) {
-                // Remote version is the same or lower (covers version-reset scenarios like
-                // 1.0.18 → 1.0.0 and re-releases of the same tag with a newer build date).
-                // Fall back to release date: if the GitHub release was published after this
-                // build's BUILT_AT timestamp, it's a newer build and an update is available.
-                $publishedAt = $this->repo->get('update_published_at');
-                if ($publishedAt !== null) {
-                    $remoteTs  = strtotime($publishedAt);
-                    $builtTs   = strtotime(Version::BUILT_AT);
-                    if ($remoteTs !== false && $builtTs !== false && $remoteTs > $builtTs) {
-                        $updateAvailable = true;
+                // Remote is <= installed by semver. Only apply the date fallback for a
+                // genuine version-reset (remote strictly less than installed, e.g. 1.0.18 → 1.0.0
+                // with a newer build). When the versions are equal there is nothing to update.
+                if (version_compare(ltrim($latest, 'v'), ltrim($installed, 'v'), '<')) {
+                    $publishedAt = $this->repo->get('update_published_at');
+                    if ($publishedAt !== null) {
+                        $remoteTs = strtotime($publishedAt);
+                        $builtTs  = strtotime(Version::BUILT_AT);
+                        if ($remoteTs !== false && $builtTs !== false && $remoteTs > $builtTs) {
+                            $updateAvailable = true;
+                        }
                     }
                 }
             }
