@@ -31,11 +31,12 @@ it for you.
   away when you sign in, with shortcuts to review or update each item directly
   from the dashboard.
 - **Multiple admin users:** Give co-owners their own separate accounts and logins
-  instead of sharing one password.
+  instead of sharing one password. Per-device remember-me means logging out on
+  one device doesn't end anyone else's session.
 - **Admin panel customization:** Switch between light & dark mode, choose from
   bundled skins, or drop in community-made skins.
 - **Custom networks & categories:** Use the built-in TFL/TAFL-style categories or
-  add your own custom networks and category groups to accomodate other directories.
+  add your own custom networks and category groups to accommodate other directories.
 - **Customizable public embeds & live previews:** Add the script to your existing
   website with a small snippet of code, then customize each output with clickable
   tokens or the Embed Wizard, targetable CSS classes, and rendered previews.
@@ -56,9 +57,10 @@ it for you.
 - **Extra features when you want them:** Optional add-ons include news feeds,
   a wishlist, "keep in mind" lists, adoption applications, and join rules, so you
   only turn on the pieces your site needs.
-- **Link Checker & maintenance tools:** Check dead links and redirects across affiliates,
-  joined listings, and member URLs; verify that affiliates link back and that joined
-  fanlistings list you as a member; review admin activity with IP tracking; browse error logs.
+- **Link Checker & maintenance tools:** Check dead links and redirects across affiliates
+  and joined listings; verify that affiliates are linking back to you; see what each URL
+  actually returned (HTML page, image, redirect, server error, and so on) so you can
+  triage results at a glance; review admin activity with IP tracking; browse error logs.
 - **Security-first foundations:** Modern password handling (Argon2id), CSRF protection,
   output escaping, prepared statements, safer upload/import handling, concealed install paths,
   arithmetic CAPTCHA and per-IP rate limiting on every public join form to block bots, and an
