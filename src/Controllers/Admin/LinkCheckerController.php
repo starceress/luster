@@ -303,6 +303,7 @@ final class LinkCheckerController extends AdminController
             $updated = $config->all();
             $updated['lc_default_sort'] = $defaultSort;
             $updated['lc_per_page']     = $perPage;
+            $updated['reciprocal_url']  = self::httpsify(rtrim(trim((string) $request->post('reciprocal_url', '')), '/'));
             $this->writeConfig($updated);
 
             $msg = $request->post('reset_defaults') === '1' ? 'Settings reset to defaults.' : 'Link Checker settings saved.';
@@ -328,6 +329,8 @@ final class LinkCheckerController extends AdminController
             [
                 'lc_default_sort' => (string) ($config->get('lc_default_sort', 'name') ?? 'name'),
                 'lc_per_page'     => max(5, min(100, (int) ($config->get('lc_per_page', 10) ?? 10))),
+                'reciprocal_url'  => (string) ($config->get('reciprocal_url', '') ?? ''),
+                'app_url'         => (string) ($config->get('app_url', '') ?? ''),
                 'cron_enabled'    => $cronEnabled,
                 'cron_token'      => $cronToken,
                 'cron_last_run'   => $cronLastRun,

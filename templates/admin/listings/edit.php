@@ -1912,8 +1912,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
     <?php else: ?>
       <p class="form-hint">
-        Set the <strong>Installation Path</strong> in
-        <a href="<?= $b ?>/admin/settings" class="link">Settings &rarr; Server Paths</a>
+        Set the <strong>Installation Path</strong> in <code>config/app.php</code> (<code>install_path</code> key)
         to show ready-to-use snippets here.
       </p>
     <?php endif; ?>

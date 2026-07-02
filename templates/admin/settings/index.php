@@ -41,7 +41,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <a href="#panel-notifications" class="mini-nav-item"><?= View::icon('email') ?> Notifications</a>
       <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
       <a href="#panel-smtp" class="mini-nav-item"><?= View::icon('email') ?> SMTP &amp; Email</a>
-      <a href="#panel-embed" class="mini-nav-item"><?= View::icon('paths') ?> Server Paths</a>
       <a href="#panel-blacklist" class="mini-nav-item"><?= View::icon('blacklist') ?> Spam Filtering</a>
       <a href="#panel-system" class="mini-nav-item"><?= View::icon('wrench') ?> System Details</a>
       <div class="select-wrap settings-nav-select-wrap">
@@ -53,7 +52,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <option value="panel-notifications">Notifications</option>
           <option value="panel-appearance">Appearance</option>
           <option value="panel-smtp">SMTP &amp; Email</option>
-          <option value="panel-embed">Server Paths</option>
           <option value="panel-blacklist">Spam Filtering</option>
           <option value="panel-system">System Details</option>
         </select>
@@ -463,7 +461,18 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
 
           <div class="card-body">
-            <div class="section-label">Display & Locale</div>
+            <div class="section-label">Embed Form URL</div>
+            <div class="field-group">
+              <label class="field-label" for="s-embed-url">Embed Form Submission URL</label>
+              <?php $_embedBaseUrl = cfgVal($cfg, 'embed_base_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
+              <input id="s-embed-url" type="url" name="embed_base_url" class="form" maxlength="500"
+                     value="<?= View::e($_embedBaseUrl) ?>">
+              <p class="form-hint">The URL embedded forms on external pages submit to. Defaults to your install URL. Only change this if your public fanlisting pages are on a different domain or subdirectory than the Luster admin app.</p>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="section-label">Display &amp; Locale</div>
             <div class="field-grid field-grid--3">
               <div class="field-group">
                 <label class="field-label" for="s-timezone">Timezone</label>
@@ -671,68 +680,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Settings</button>
             <button type="button" class="btn btn-ghost" id="smtp-clear-btn">Clear</button>
-          </div>
-        </div>
-      </div>
-    </form>
-
-
-<!-- ──── PANEL: EMBED & PATHS ───────────────────────────────────────── -->
-    <form method="POST" action="<?= $b ?>/admin/settings/paths" class="js-warn-unsaved">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-      <div id="panel-embed" class="mini-nav-panel">
-        <div class="card card--gradient">
-          <div class="panel-header">
-            <div class="panel-header-icon panel-header-icon-filled">
-            <?= View::icon('paths') ?>
-            </div>
-            <div class="panel-header-meta">
-              <div class="panel-header-title">Server Paths</div>
-              <div class="panel-header-sub">Paths for embed codes and forms on external pages.</div>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <div class="callout callout-warn"><?= View::icon('caution') ?> 
-              <div>These settings tell copied embed snippets where Luster lives. Most sites can keep the detected values. Edit them only when embedded forms submit to the wrong place or link checks look for the wrong URL.</div>
-            </div>
-            
-              <div class="field-row">
-                <label class="field-label" for="s-install-path">Server Install Path</label>
-                <div>
-                  <?php $_installPath = cfgVal($cfg, 'install_path') ?: (rtrim(str_replace('\\', '/', LUSTER_BASE), '/') . '/'); ?>
-                  <div class="input-action-row">
-                    <input id="s-install-path" type="text" name="install_path" class="form" maxlength="500"
-                           value="<?= View::e($_installPath) ?>" readonly>
-                    <button type="button" class="btn btn-danger btn-sm path-edit-btn" data-target="s-install-path">Edit</button>
-                  </div>
-                  <p class="form-hint">The server folder where Luster is installed, ending with a slash. This is a disk path, not a web address. Only change it if copied embed snippets cannot find Luster.</p>
-                </div>
-              </div>
-              <div class="field-row">
-                <label class="field-label" for="s-embed-url">Embed Form Submission URL</label>
-                <div>
-                  <?php $_embedBaseUrl = cfgVal($cfg, 'embed_base_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
-                  <div class="input-action-row">
-                    <input id="s-embed-url" type="url" name="embed_base_url" class="form" maxlength="500"
-                           value="<?= View::e($_embedBaseUrl) ?>" readonly>
-                    <button type="button" class="btn btn-danger btn-sm path-edit-btn" data-target="s-embed-url">Edit</button>
-                  </div>
-                  <p class="form-hint">The web address embedded forms submit to, without a trailing slash. Change this only if your public fanlisting pages live on a different domain or folder than the Luster admin app.</p>
-                </div>
-              </div>
-              <div class="field-row">
-                <label class="field-label" for="s-reciprocal-url">Reciprocal Link Check URL</label>
-                <div>
-                  <?php $_reciprocalUrl = cfgVal($cfg, 'reciprocal_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
-                  <div class="input-action-row">
-                    <input id="s-reciprocal-url" type="url" name="reciprocal_url" class="form" maxlength="500"
-                           value="<?= View::e($_reciprocalUrl) ?>" readonly>
-                    <button type="button" class="btn btn-danger btn-sm path-edit-btn" data-target="s-reciprocal-url">Edit</button>
-                  </div>
-                  <p class="form-hint">The public URL affiliates should link back to, without a trailing slash. The Link Checker looks for this address on affiliate sites.</p>
-                </div>
-              </div>
           </div>
         </div>
       </div>
@@ -981,26 +928,27 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 
 
-        <!-- Script -->
+        <!-- About (script + server) -->
         <div class="card-body">
-          <div class="section-label">Script</div>
-            <div class="sysinfo-row">
-              <span class="field-label">Name</span> Luster
-            </div>
-
+          <div class="section-label">About</div>
           <?php
-            $us          = $update_status;
-            $checkedFmt  = ($admin_date_format ?? 'j M Y') . ', ' . ($admin_time_format ?? 'H:i');
-            $checkedStr  = $us->checkedAt !== null
-                ? date($checkedFmt, $us->checkedAt)
-                : null;
+            $us         = $update_status;
+            $checkedFmt = ($admin_date_format ?? 'j M Y') . ', ' . ($admin_time_format ?? 'H:i');
+            $checkedStr = $us->checkedAt !== null ? date($checkedFmt, $us->checkedAt) : null;
+            $spd        = $session_path_diagnostics ?? null;
           ?>
-
+          <div class="sysinfo-row">
+            <span class="field-label">Name</span> Luster
+          </div>
+          <div class="sysinfo-row">
+            <span class="field-label">Install Path</span>
+            <?php $_sysInstallPath = cfgVal($cfg, 'install_path') ?: (rtrim(str_replace('\\', '/', LUSTER_BASE), '/') . '/'); ?>
+            <span class="text-mono text-dim"><?= View::e($_sysInstallPath) ?></span>
+          </div>
           <div class="sysinfo-row">
             <span class="field-label">Installed Version</span>
             <?= View::e(Version::CURRENT) ?>
           </div>
-
           <?php if (!$us->neverChecked): ?>
           <div class="sysinfo-row">
             <span class="field-label">Latest Version</span>
@@ -1017,16 +965,12 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <span class="status-inline">
               <?php if ($us->checkFailed): ?>
                 <span class="badge badge-inactive">Check failed</span>
-                <?php if ($us->error !== null): ?>
-                  <?= View::e($us->error) ?>
-                <?php endif; ?>
+                <?php if ($us->error !== null): ?><?= View::e($us->error) ?><?php endif; ?>
               <?php elseif ($us->latest === null): ?>
                 <span class="badge badge-inactive">No releases yet</span>
               <?php elseif ($us->updateAvailable): ?>
                 <span class="badge badge-pending">Update available</span>
-                <a href="<?= $b ?>/admin/update" class="btn btn-download btn-sm">
-                  Prepare Update &rarr;
-                </a>
+                <a href="<?= $b ?>/admin/update" class="btn btn-download btn-sm">Prepare Update &rarr;</a>
               <?php else: ?>
                 <span class="badge badge-current">Up to date</span>
               <?php endif; ?>
@@ -1036,147 +980,52 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="sysinfo-row">
             <span class="field-label">Last Checked</span>
             <span style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
-              <?php if (!$us->neverChecked): ?>
-                <?= View::e($checkedStr ?? '') ?>
-              <?php endif; ?>
+              <?php if (!$us->neverChecked): ?><?= View::e($checkedStr ?? '') ?><?php endif; ?>
               <button type="button" id="update-check-btn" class="btn btn-secondary btn-xs"
                       data-url="<?= View::e($b) ?>/admin/settings/check-update"
                       data-csrf="<?= View::e($csrf_token ?? '') ?>">
                 <?= View::icon('refresh') ?> Check for Updates
               </button>
               <span id="update-check-result" style="font-size:var(--fs-sm)">
-                <?php if ($us->neverChecked): ?>
-                  <span class="text-dim">No update check has been run yet</span>
-                <?php endif; ?>
+                <?php if ($us->neverChecked): ?><span class="text-dim">No update check has been run yet</span><?php endif; ?>
               </span>
             </span>
           </div>
-        </div>
-
-        <!-- Server -->
-        <div class="card-body">
-          <div class="section-label">Server</div>
-            <div class="sysinfo-row">
-              <span class="field-label">PHP Version</span> <?= View::e($php_version) ?>
-            </div>
-            <div class="sysinfo-row">
-              <span class="field-label">Database</span> <?= View::e($db_version) ?>
-            </div>
-            <?php $spd = $session_path_diagnostics ?? null; ?>
-            <?php if ($spd !== null): ?>
-            <div class="sysinfo-row">
-              <span class="field-label">Session Storage</span>
-              <span class="status-inline">
-                <?php if (!($spd['probeOk'] ?? true)): ?>
-                  <span class="badge badge-error">Not writable</span>
-                <?php elseif ($spd['usedFallback']): ?>
-                  <span class="badge badge-pending">Fallback in use</span>
-                <?php else: ?>
-                  <span class="badge badge-current">Default path</span>
-                <?php endif; ?>
-                <span class="text-mono text-dim"><?= View::e($spd['path']) ?></span>
-              </span>
+          <div class="sysinfo-row">
+            <span class="field-label">PHP Version</span> <?= View::e($php_version) ?>
+          </div>
+          <div class="sysinfo-row">
+            <span class="field-label">Database</span> <?= View::e($db_version) ?>
+          </div>
+          <?php if ($spd !== null): ?>
+          <div class="sysinfo-row">
+            <span class="field-label">Session Storage</span>
+            <span class="status-inline">
               <?php if (!($spd['probeOk'] ?? true)): ?>
-                <p class="form-hint" style="color:var(--color-error)">
-                  Luster could not write to any session storage location. Logins will not
-                  work until write permissions are fixed on the storage path above or on
-                  your server's <code>session.save_path</code>. Contact your host.
-                </p>
+                <span class="badge badge-error">Not writable</span>
               <?php elseif ($spd['usedFallback']): ?>
-                <p class="form-hint">
-                  Your server's configured session storage location was not writable, so Luster
-                  is using a fallback location instead. Logins and member sessions still work
-                  normally, but consider asking your host to fix write permissions on the
-                  default <code>session.save_path</code>.
-                </p>
+                <span class="badge badge-pending">Fallback in use</span>
+              <?php else: ?>
+                <span class="badge badge-current">Default path</span>
               <?php endif; ?>
-            </div>
+              <span class="text-mono text-dim"><?= View::e($spd['path']) ?></span>
+            </span>
+            <?php if (!($spd['probeOk'] ?? true)): ?>
+              <p class="form-hint" style="color:var(--color-error)">
+                Luster could not write to any session storage location. Logins will not
+                work until write permissions are fixed on the storage path above or on
+                your server&rsquo;s <code>session.save_path</code>. Contact your host.
+              </p>
+            <?php elseif ($spd['usedFallback']): ?>
+              <p class="form-hint">
+                Your server&rsquo;s configured session storage location was not writable, so
+                Luster is using a fallback location instead. Logins and member sessions still
+                work normally, but consider asking your host to fix write permissions on the
+                default <code>session.save_path</code>.
+              </p>
             <?php endif; ?>
-        </div>
-
-        <!-- Hosting Health -->
-        <?php $hd = $health_data ?? []; ?>
-        <div class="card-body">
-          <div class="section-label">Hosting Health</div>
-
-          <?php
-            $extLabels = [
-              'pdo_mysql'  => 'PDO MySQL',
-              'curl'       => 'cURL',
-              'fileinfo'   => 'File information (fileinfo)',
-              'gd_imagick' => 'Image processing (GD or Imagick)',
-              'json'       => 'JSON',
-              'mbstring'   => 'Multibyte strings (mbstring)',
-            ];
-            foreach ($extLabels as $key => $label):
-              $ok = (bool) ($hd['extensions'][$key] ?? false);
-          ?>
-          <div class="sysinfo-row">
-            <span class="field-label"><?= View::e($label) ?></span>
-            <span class="status-inline">
-              <?php if ($ok): ?>
-                <span class="badge badge-current">Available</span>
-              <?php else: ?>
-                <span class="badge badge-error">Missing</span>
-              <?php endif; ?>
-            </span>
           </div>
-          <?php endforeach; ?>
-
-          <div class="sysinfo-row">
-            <span class="field-label">Upload path writable</span>
-            <span class="status-inline">
-              <?php if ($hd['uploads_writable'] ?? false): ?>
-                <span class="badge badge-current">Writable</span>
-              <?php else: ?>
-                <span class="badge badge-error">Not writable</span>
-                <span class="text-dim">public/uploads/</span>
-              <?php endif; ?>
-            </span>
-          </div>
-
-          <div class="sysinfo-row">
-            <span class="field-label">Logs path writable</span>
-            <span class="status-inline">
-              <?php if ($hd['logs_writable'] ?? false): ?>
-                <span class="badge badge-current">Writable</span>
-              <?php else: ?>
-                <span class="badge badge-error">Not writable</span>
-                <span class="text-dim">storage/logs/</span>
-              <?php endif; ?>
-            </span>
-          </div>
-
-          <?php
-            $applied = $hd['applied_migration'] ?? null;
-            $latest  = $hd['latest_migration']  ?? null;
-          ?>
-          <div class="sysinfo-row">
-            <span class="field-label">Migration state</span>
-            <span class="status-inline">
-              <?php if ($applied === null): ?>
-                <span class="badge badge-inactive">Unknown</span>
-              <?php elseif ($latest !== null && $applied >= $latest): ?>
-                <span class="badge badge-current">Up to date (<?= (int) $applied ?>)</span>
-              <?php else: ?>
-                <span class="badge badge-pending">Pending</span>
-                <span class="text-dim">Applied <?= (int) $applied ?> of <?= (int) $latest ?></span>
-                <a href="<?= $b ?>/migrate/" class="link" style="font-size:var(--fs-sm)">Run migrations &rarr;</a>
-              <?php endif; ?>
-            </span>
-          </div>
-
-          <div class="sysinfo-row">
-            <span class="field-label">Outbound HTTPS</span>
-            <span style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
-              <button type="button" id="health-check-http-btn" class="btn btn-secondary btn-xs"
-                      data-url="<?= View::e($b) ?>/admin/settings/check-http"
-                      data-csrf="<?= View::e($csrf_token ?? '') ?>">
-                Test connection
-              </button>
-              <span id="health-check-http-result" style="font-size:var(--fs-sm)"></span>
-            </span>
-          </div>
+          <?php endif; ?>
         </div>
 
         <!-- Backup -->
@@ -1194,39 +1043,122 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </form>
         </div>
 
-        <!-- Database Connection -->
+        <!-- Hosting Health (collapsible) -->
+        <?php $hd = $health_data ?? []; ?>
         <div class="card-body">
-          <div class="section-label">
-            Database Connection
-          </div>
-          <p class="text-dim" style="margin-bottom:1.25rem">
-            These values come from <code>config/app.php</code>. Luster shows them here so you can verify what database this install is using.
-          </p>
-            <div class="sysinfo-row">
-              <span class="field-label">Host</span> <?= View::e(cfgVal($cfg, 'db_host', 'localhost')) ?>
+          <details class="form-details">
+            <summary>Hosting Health</summary>
+            <div class="form-details-body">
+              <?php
+                $extLabels = [
+                  'pdo_mysql'  => 'PDO MySQL',
+                  'curl'       => 'cURL',
+                  'fileinfo'   => 'File information (fileinfo)',
+                  'gd_imagick' => 'Image processing (GD or Imagick)',
+                  'json'       => 'JSON',
+                  'mbstring'   => 'Multibyte strings (mbstring)',
+                ];
+              ?>
+              <div class="sysinfo-ext-grid">
+                <?php foreach ($extLabels as $key => $label):
+                  $ok = (bool) ($hd['extensions'][$key] ?? false); ?>
+                <div class="sysinfo-ext-item">
+                  <?php if ($ok): ?>
+                    <span class="badge badge-current">Available</span>
+                  <?php else: ?>
+                    <span class="badge badge-error">Missing</span>
+                  <?php endif; ?>
+                  <?= View::e($label) ?>
+                </div>
+                <?php endforeach; ?>
+              </div>
+              <div class="sysinfo-row">
+                <span class="field-label">Upload path writable</span>
+                <span class="status-inline">
+                  <?php if ($hd['uploads_writable'] ?? false): ?>
+                    <span class="badge badge-current">Writable</span>
+                  <?php else: ?>
+                    <span class="badge badge-error">Not writable</span>
+                    <span class="text-dim">public/uploads/</span>
+                  <?php endif; ?>
+                </span>
+              </div>
+              <div class="sysinfo-row">
+                <span class="field-label">Logs path writable</span>
+                <span class="status-inline">
+                  <?php if ($hd['logs_writable'] ?? false): ?>
+                    <span class="badge badge-current">Writable</span>
+                  <?php else: ?>
+                    <span class="badge badge-error">Not writable</span>
+                    <span class="text-dim">storage/logs/</span>
+                  <?php endif; ?>
+                </span>
+              </div>
+              <?php
+                $applied = $hd['applied_migration'] ?? null;
+                $latest  = $hd['latest_migration']  ?? null;
+              ?>
+              <div class="sysinfo-row">
+                <span class="field-label">Migration state</span>
+                <span class="status-inline">
+                  <?php if ($applied === null): ?>
+                    <span class="badge badge-inactive">Unknown</span>
+                  <?php elseif ($latest !== null && $applied >= $latest): ?>
+                    <span class="badge badge-current">Up to date (<?= (int) $applied ?>)</span>
+                  <?php else: ?>
+                    <span class="badge badge-pending">Pending</span>
+                    <span class="text-dim">Applied <?= (int) $applied ?> of <?= (int) $latest ?></span>
+                    <a href="<?= $b ?>/migrate/" class="link" style="font-size:var(--fs-sm)">Run migrations &rarr;</a>
+                  <?php endif; ?>
+                </span>
+              </div>
+              <div class="sysinfo-row">
+                <span class="field-label">Outbound HTTPS</span>
+                <span style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+                  <button type="button" id="health-check-http-btn" class="btn btn-secondary btn-xs"
+                          data-url="<?= View::e($b) ?>/admin/settings/check-http"
+                          data-csrf="<?= View::e($csrf_token ?? '') ?>">
+                    Test connection
+                  </button>
+                  <span id="health-check-http-result" style="font-size:var(--fs-sm)"></span>
+                </span>
+              </div>
             </div>
-            <div class="sysinfo-row">
-              <span class="field-label">Database</span> <?= View::e(cfgVal($cfg, 'db_name')) ?>
+          </details>
+        </div>
+
+        <!-- Database Connection (collapsible) -->
+        <div class="card-body">
+          <details class="form-details">
+            <summary>Database Connection</summary>
+            <div class="form-details-body">
+              <p class="form-details-desc">Values from <code>config/app.php</code> &mdash; shown here so you can verify what database this install is pointing at.</p>
+              <div class="sysinfo-row">
+                <span class="field-label">Host</span> <?= View::e(cfgVal($cfg, 'db_host', 'localhost')) ?>
+              </div>
+              <div class="sysinfo-row">
+                <span class="field-label">Database</span> <?= View::e(cfgVal($cfg, 'db_name')) ?>
+              </div>
+              <div class="sysinfo-row">
+                <span class="field-label">User</span> <?= View::e(cfgVal($cfg, 'db_user')) ?>
+              </div>
+              <div class="sysinfo-row">
+                <span class="field-label">Debug mode</span>
+                <span class="status-inline">
+                  <?php if ($cfg['app_debug'] ?? false): ?>
+                    <span class="badge badge-error">Enabled</span>
+                    <span class="text-dim">Turn off on a live public site.</span>
+                  <?php else: ?>
+                    <span class="badge badge-inactive">Disabled</span>
+                  <?php endif; ?>
+                </span>
+              </div>
+              <div class="sysinfo-row">
+                <span class="field-label">Install URL</span>
+                <span class="text-mono text-dim"><?= View::e(cfgVal($cfg, 'app_url')) ?></span>
+              </div>
             </div>
-            <div class="sysinfo-row">
-              <span class="field-label">User</span> <?= View::e(cfgVal($cfg, 'db_user')) ?>
-            </div>
-            <div class="sysinfo-row">
-              <span class="field-label">Debug</span>
-              <span class="status-inline">
-                <?php if ($cfg['app_debug'] ?? false): ?>
-                  <span class="badge badge-error">Enabled</span>
-                  <span class="text-dim">Shows extra error details. Turn off on a live public site.</span>
-                <?php else: ?>
-                  <span class="badge badge-inactive">Disabled</span>
-                <?php endif; ?>
-              </span>
-            </div>
-            <div class="sysinfo-row">
-              <span class="field-label">Install URL</span>
-              <span class="text-mono text-dim"><?= View::e(cfgVal($cfg, 'app_url')) ?></span>
-            </div>
-            <p class="form-hint">The install URL is where the Luster app itself lives. Your public collective URL can be different.</p>
+          </details>
         </div>
       </div>
     </div>

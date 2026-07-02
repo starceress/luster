@@ -54,10 +54,10 @@
   --radius: 16px;
   --radius-md: 12px;
   --radius-sm: 6px;
-  --fs-xs: 0.625rem;
-  --fs-sm: 0.72rem;
-  --fs-base: 0.8rem;
-  --fs-md: 0.875rem;
+  --fs-xs: 0.6875rem;
+  --fs-sm: 0.8rem;
+  --fs-base: 0.875rem;
+  --fs-md: 0.9375rem;
   --fs-lg: 1rem;
   --gradient: var(--brand-primary), var(--brand-secondary), var(--brand-tertiary);
   --gradient-bar: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-tertiary));

@@ -1150,6 +1150,10 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .sysinfo-row:last-child { border-bottom: none; }
 
+.sysinfo-ext-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .75rem; padding: .25rem .5rem .75rem; }
+
+.sysinfo-ext-item { display: flex; align-items: center; gap: .5rem; font-size: var(--fs-sm); }
+
 /* ---- REVIEW AND DIFF HELPERS -------------------------- */
 
 .summary-grid { margin-bottom: 1.25rem; }

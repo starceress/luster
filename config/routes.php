@@ -363,8 +363,6 @@ return [
             SettingsController::class, 'index');
         $router->post('/admin/settings',
             SettingsController::class, 'updateGeneral');
-        $router->post('/admin/settings/paths',
-            SettingsController::class, 'updatePaths');
         $router->post('/admin/settings/smtp',
             SettingsController::class, 'updateSmtp');
         $router->post('/admin/settings/templates',

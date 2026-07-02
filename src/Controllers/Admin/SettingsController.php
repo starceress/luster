@@ -1622,8 +1622,8 @@ final class SettingsController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the main Settings page with all seven panels: Admin Profile,
-     * Admin Accounts, Appearance, General, Server Paths, Blacklist, and System.
+     * Renders the main Settings page: Admin Profile, Admin Accounts, Appearance,
+     * General, Notifications, SMTP, Spam Filtering, and System Details panels.
      */
     public function index(Request $request, array $params): Response
     {
@@ -1709,9 +1709,9 @@ final class SettingsController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * Saves the General settings panel: site name, site URL, timezone, owner
-     * identity, and date/time display format. Writes to config/app.php and
-     * persists display format preferences to lstr_site_settings.
+     * Saves the General settings panel: site name, site URL, embed form URL,
+     * timezone, owner identity, and date/time display format. Writes to
+     * config/app.php and persists display format preferences to lstr_site_settings.
      */
     public function updateGeneral(Request $request, array $params): Response
     {
@@ -1750,6 +1750,9 @@ final class SettingsController extends AdminController
         $updated['owner_name']  = trim((string) $request->post('owner_name',  ''));
         $updated['owner_email'] = trim((string) $request->post('owner_email', ''));
 
+        // Embed form submission URL (blank = fall back to app_url at runtime)
+        $updated['embed_base_url'] = self::httpsify(rtrim(trim((string) $request->post('embed_base_url', '')), '/'));
+
         $this->writeConfig($updated);
 
         // Save date_format and time_format to lstr_site_settings (UI preferences, not in config/app.php)
@@ -1776,42 +1779,6 @@ final class SettingsController extends AdminController
 
         $session->set('lstr_flash_success', 'Settings saved successfully.');
         return Response::redirect($baseUrl . '/admin/settings#panel-general');
-    }
-
-    // -----------------------------------------------------------------------
-    // POST /admin/settings/paths
-    // -----------------------------------------------------------------------
-
-    /**
-     * Saves the Server Paths panel: install_path, embed_base_url, and
-     * reciprocal_url. Writes the merged result to config/app.php.
-     */
-    public function updatePaths(Request $request, array $params): Response
-    {
-        $session      = $this->app->getSession();
-        $baseUrl      = $this->app->getBaseUrl();
-        $activityRepo = new ActivityRepo($this->app->getDatabase());
-
-        // Load the current config and merge in the allowed updated keys
-        $existing = $this->app->getConfig()->all();
-        $updated  = $existing;
-
-        $installPath = rtrim(str_replace('\\', '/', trim((string) $request->post('install_path', ''))), '/');
-        $updated['install_path']   = $installPath !== '' ? $installPath . '/' : '';
-        $updated['embed_base_url'] = self::httpsify(rtrim(trim((string) $request->post('embed_base_url', '')), '/'));
-        $updated['reciprocal_url'] = self::httpsify(rtrim(trim((string) $request->post('reciprocal_url', '')), '/'));
-
-        $this->writeConfig($updated);
-
-        $activityRepo->log(
-            (int) $session->get('lstr_admin_id'),
-            'settings.save',
-            'Server path settings updated',
-            $request->ip(),
-        );
-
-        $session->set('lstr_flash_success', 'Settings saved successfully.');
-        return Response::redirect($baseUrl . '/admin/settings#panel-embed');
     }
 
     // -----------------------------------------------------------------------

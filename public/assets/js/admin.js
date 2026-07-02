@@ -5066,7 +5066,7 @@ document.addEventListener('click', function (e) {
 // ── 43. Settings -- scoped panel clear buttons ─────────────────────────────────
 
 (function () {
-  [['general-clear-btn', 'panel-general'], ['smtp-clear-btn', 'panel-smtp'], ['embed-clear-btn', 'panel-embed'], ['notifications-clear-btn', 'panel-notifications']].forEach(function (pair) {
+  [['general-clear-btn', 'panel-general'], ['smtp-clear-btn', 'panel-smtp'], ['notifications-clear-btn', 'panel-notifications']].forEach(function (pair) {
     var btn   = document.getElementById(pair[0]);
     var panel = document.getElementById(pair[1]);
     if (!btn || !panel) return;
@@ -5936,7 +5936,8 @@ document.addEventListener('click', function (e) {
     { label: 'Notifications',      hint: 'Settings', url: base + '/admin/settings#panel-notifications' },
     { label: 'Appearance',         hint: 'Settings', url: base + '/admin/settings#panel-appearance' },
     { label: 'SMTP & Email',       hint: 'Settings', url: base + '/admin/settings#panel-smtp' },
-    { label: 'Server Paths',       hint: 'Settings', url: base + '/admin/settings#panel-embed' },
+    { label: 'Embed Form URL',      hint: 'Settings', url: base + '/admin/settings#panel-general' },
+    { label: 'Link Checker Settings', hint: 'Link Checker', url: base + '/admin/link-checker/settings' },
     { label: 'Spam Filtering',     hint: 'Settings', url: base + '/admin/settings#panel-blacklist' },
     { label: 'System Details',     hint: 'Settings', url: base + '/admin/settings#panel-system' },
     { label: 'System Info',        hint: 'Admin',    url: base + '/admin/sysinfo' },
@@ -6679,20 +6680,6 @@ document.addEventListener('click', function (e) {
       });
   });
 }());
-
-// ── Server Paths: locked inputs with Edit button to unlock ───────────────────
-
-document.addEventListener('click', function (e) {
-  var btn = e.target.closest('.path-edit-btn');
-  if (!btn) return;
-  var input = document.getElementById(btn.dataset.target);
-  if (!input) return;
-  input.disabled = false;
-  input.readOnly = false;
-  input.removeAttribute('readonly');
-  input.focus();
-  btn.remove();
-});
 
 // ── Affiliate message modal ───────────────────────────────────────────────────
 

@@ -30,19 +30,33 @@ $b = rtrim(View::e($base_url), '/');
     <div class="panel-header">
       <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
       <div class="panel-header-meta">
-        <div class="panel-header-title">Display Settings</div>
-        <div class="panel-header-sub">Controls the default sort order and page size for the Link Checker tables.</div>
+        <div class="panel-header-title">Link Checker Settings</div>
+        <div class="panel-header-sub">Controls what URL the checker looks for on affiliate pages, and the default sort order and page size for results.</div>
       </div>
     </div>
 
     <div class="card-body">
+      <div class="section-label">Reciprocal Check</div>
+      <div class="field-row">
+        <label class="field-label" for="lc_reciprocal_url">Reciprocal URL</label>
+        <div>
+          <?php $_reciprocalUrl = $reciprocal_url !== '' ? $reciprocal_url : rtrim($app_url, '/'); ?>
+          <input type="url" id="lc_reciprocal_url" name="reciprocal_url" class="form" maxlength="500"
+                 value="<?= View::e($_reciprocalUrl) ?>">
+          <p class="form-hint">The URL the Link Checker looks for on affiliate pages to confirm they are linking back. Leave this as your site&rsquo;s public URL unless your affiliate pages should link to a different address.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="section-label">Display</div>
       <div class="field-row">
         <label class="field-label" for="lc_default_sort">Default Sort</label>
         <div>
           <div class="select-wrap select-auto">
             <select id="lc_default_sort" name="lc_default_sort">
               <option value="name"<?=        $lc_default_sort === 'name'        ? ' selected' : '' ?>>Name</option>
-              <option value="link_status"<?= $lc_default_sort === 'link_status' ? ' selected' : '' ?>>Status (OK, Dead…)</option>
+              <option value="link_status"<?= $lc_default_sort === 'link_status' ? ' selected' : '' ?>>Status (OK, Dead&hellip;)</option>
             </select>
           </div>
           <p class="form-hint">The default column used to sort both the Affiliates and Joined Listings tables when no column header has been clicked.</p>
