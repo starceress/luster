@@ -57,10 +57,10 @@ it for you.
 - **Extra features when you want them:** Optional add-ons include news feeds,
   a wishlist, "keep in mind" lists, adoption applications, and join rules, so you
   only turn on the pieces your site needs.
-- **Link Checker & maintenance tools:** Check dead links and redirects across affiliates
-  and joined listings; verify that affiliates are linking back to you; see what each URL
-  actually returned (HTML page, image, redirect, server error, and so on) so you can
-  triage results at a glance; review admin activity with IP tracking; browse error logs.
+- **Link Checker & maintenance tools:** Check dead links and redirects across affiliates,
+  joined listings, and member URLs; verify that affiliates are linking back to you; see
+  what each URL actually returned (HTML page, image, redirect, server error, and so on)
+  so you can triage results at a glance; review admin activity with IP tracking; browse error logs.
 - **Security-first foundations:** Modern password handling (Argon2id), CSRF protection,
   output escaping, prepared statements, safer upload/import handling, concealed install paths,
   arithmetic CAPTCHA and per-IP rate limiting on every public join form to block bots, and an
