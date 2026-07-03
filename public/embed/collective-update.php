@@ -99,7 +99,7 @@ $_lusterSession->remove('lstr_flash_success_html');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old_email');
 
-$_lusterCsrfToken = $_lusterApp->getCSRF()->getToken();
+$_lusterCsrfToken = $_lusterApp->getCSRF()->token();
 
 // ---------------------------------------------------------------------------
 // 4. Determine which step to render
@@ -165,7 +165,7 @@ $_lusterRequestFormHtml = FormTemplateRenderer::wrapForm(
 // 6. Render
 // ---------------------------------------------------------------------------
 
-$_lusterHtml = View::renderFragment('collective-update.php', [
+$_lusterHtml = $_lusterApp->getView()->renderFragment('collective-update.php', [
     'base_url'          => $_lusterApp->getBaseUrl(),
     'form_action'       => $_lusterRedirectTo,
     'csrf_token'        => $_lusterCsrfToken,

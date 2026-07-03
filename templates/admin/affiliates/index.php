@@ -161,10 +161,10 @@ $rangeEnd   = min($total, $page * $per_page);
   <div class="empty">
     <div class="empty-icon"><?= View::icon('link', ['width' => 32, 'height' => 32]) ?></div>
     <?php if (!$_tableOnly && ($filters_active || $tab !== 'all')): ?>
-      <div class="empty-title">No affiliates found for this filter.</div>
+      <div><strong>No affiliates found for this filter.</strong></div>
       <a href="<?= View::e($resetUrl) ?>" class="btn btn-ghost btn-sm">Clear Filter</a>
     <?php else: ?>
-      <div class="empty-title">No affiliates yet.</div>
+      <div><strong>No affiliates yet.</strong></div>
       <?php if (!$_tableOnly): ?>
       <div>Add your first affiliate to display them on your site.</div>
       <a href="<?= $b ?>/admin/affiliates/add<?= $scope !== 'all' && $scope !== 'collective' ? '?listing=' . View::e($scope) : '' ?>" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>

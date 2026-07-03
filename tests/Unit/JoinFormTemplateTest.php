@@ -23,7 +23,7 @@ CREATE TABLE lstr_fanlisting_settings (
     stats_template                TEXT NULL,
     members_template              TEXT NULL,
     affiliates_section_template   TEXT NULL,
-    updates_template              TEXT NULL,
+    newsfeed_template             TEXT NULL,
     adoption_intro_template       TEXT NULL,
     codes_submit_form_template    TEXT NULL,
     rules_intro_template          TEXT NULL,

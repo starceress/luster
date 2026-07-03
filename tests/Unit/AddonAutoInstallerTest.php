@@ -134,7 +134,7 @@ final class FakeTestAddon implements AddonInterface
         $pdo->exec('DROP TABLE IF EXISTS fake_addon_table');
     }
 
-    public function registerRoutes(Router $router): void {}
+    public function registerRoutes(Router $router, string $context): void {}
 }
 
 /** Stand-in whose install() always fails, to exercise the graceful-failure path. */
@@ -150,5 +150,5 @@ final class FailingFakeTestAddon implements AddonInterface
     }
 
     public function uninstall(PDO $pdo): void {}
-    public function registerRoutes(Router $router): void {}
+    public function registerRoutes(Router $router, string $context): void {}
 }

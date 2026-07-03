@@ -43,7 +43,7 @@ final class AdoptionAddon implements AddonInterface
     /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
-        return 'Let visitors apply to adopt individual fanlistings. Adds a per-listing toggle, a public application form, and an admin panel for reviewing applications.';
+        return 'Let fans apply to adopt one of your current fanlistings. Adds a per-listing toggle to enable adoptions, a collective-side application form, and an admin panel for reviewing applications.';
     }
 
     /**
@@ -130,12 +130,19 @@ final class AdoptionAddon implements AddonInterface
         }
     }
 
-    /** Registers public (/adopt/*) and admin (/admin/adoptions/*) routes. */
-    public function registerRoutes(Router $router): void
+    /** Registers public (/adopt/*) and admin (/admin/adoptions/*) routes, gated by $context. */
+    public function registerRoutes(Router $router, string $context): void
     {
-        // Public routes (POST only — fan-facing pages live on the owner's site via embeds)
-        $router->post('/adopt/{id}',        AdoptPublicController::class, 'submit');
-        $router->post('/adopt-collective',  AdoptPublicController::class, 'collectiveSubmit');
+        if ($context === 'public') {
+            // Public routes (POST only — fan-facing pages live on the owner's site via embeds)
+            $router->post('/adopt/{id}',        AdoptPublicController::class, 'submit');
+            $router->post('/adopt-collective',  AdoptPublicController::class, 'collectiveSubmit');
+            return;
+        }
+
+        if ($context !== 'admin') {
+            return;
+        }
 
         // Admin routes — literal/specific paths before parameterised routes
         $router->post('/admin/adoptions/bulk',

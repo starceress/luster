@@ -76,7 +76,7 @@ $defaultGateLabel = $currentGateType === 'button'
               <p class="form-hint">This is the default rules page fans see before they can join. It applies to every listing unless that listing has its own custom rules. You can use HTML and tokens like <code>{subject}</code> or <code>{gate_button}</code> to fill in listing details automatically. If you change this text, fans who already agreed will need to agree again next time they visit.</p>
               <div class="tpl-reset-row">
                 <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="rules" data-textarea="global-rules-body"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-                <button type="button" class="btn btn-quaternary btn-xs" data-textarea="global-rules-body">Reset to Luster Rules</button>
+                <button type="button" class="btn btn-quaternary btn-xs" data-textarea="global-rules-body">Reset to Luster Default</button>
               </div>
             </div>
           </div>
@@ -121,7 +121,7 @@ $defaultGateLabel = $currentGateType === 'button'
 
         <div class="composer-footer">
           <button type="submit" class="btn btn-primary">Save Global Rules</button>
-          <button type="button" class="btn btn-quaternary js-rules-reset-defaults" data-form-reset="global-rules-body">Reset Form to Default</button>
+          <button type="reset" class="btn btn-quaternary">Reset</button>
         </div>
       </div><!-- /.card--gradient -->
     </form>

@@ -19,6 +19,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\RulesBodyRenderer;
 use Luster\Support\SampleTemplateData;
@@ -80,8 +81,10 @@ final class RulesAdminController extends AdminController
         $total    = count($allRows);
         $pages    = max(1, (int) ceil($total / $perPage));
         $page     = min($page, $pages);
-        $rows     = array_slice($allRows, ($page - 1) * $perPage, $perPage);
-        $subjects = $repo->getSubjects();
+        $rows         = array_slice($allRows, ($page - 1) * $perPage, $perPage);
+        $subjects     = $repo->getSubjects();
+        $lifecycleMap = (new ListingLifecycleRepo($this->app->getDatabase()))
+            ->getMapForListings(array_column($rows, 'listing_id'));
 
         // Derive used types from search-only results so the dropdown shows all
         // in-use types regardless of which type filter is currently active.
@@ -92,7 +95,8 @@ final class RulesAdminController extends AdminController
         )));
 
         return $this->adminLayout('admin/addons/rules/index.php', 'Join Rules', 'rules', [
-            'rows'       => $rows,
+            'rows'         => $rows,
+            'lifecycle_map' => $lifecycleMap,
             'total'      => $total,
             'page'       => $page,
             'pages'      => $pages,

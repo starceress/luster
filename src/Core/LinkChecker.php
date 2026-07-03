@@ -74,7 +74,7 @@ final class LinkChecker
         }
 
         if ($code >= 300 && $code < 400) {
-            $resolved = $location !== null ? UrlNormalizer::resolveLocation($url, $location) : null;
+            $resolved = self::resolveRedirectTarget($url, $location);
             return ['status' => 'redirect', 'redirect_url' => $resolved, 'http_code' => $code, 'content_flags' => null];
         }
 
@@ -464,6 +464,32 @@ final class LinkChecker
 
         $location = self::parseLocation($responseHeaders);
         return [$code, $body, $location];
+    }
+
+    /**
+     * Resolves a Location header value against the request URL and returns the
+     * absolute redirect target — or null if there is no Location header or the
+     * resolved target's host is private/loopback/reserved.
+     *
+     * A redirect target is never returned unvalidated: it is displayed to the
+     * admin and can be applied directly into a public affiliate/joined/member
+     * URL field via applyRedirectUrl(), so a private-host target must never
+     * surface here.
+     */
+    private static function resolveRedirectTarget(string $requestUrl, ?string $location): ?string
+    {
+        if ($location === null) {
+            return null;
+        }
+
+        $resolved = UrlNormalizer::resolveLocation($requestUrl, $location);
+        $resolvedHost = parse_url($resolved, PHP_URL_HOST);
+
+        if (!is_string($resolvedHost) || $resolvedHost === '' || NetworkAddressGuard::validatePublicHost($resolvedHost) !== null) {
+            return null;
+        }
+
+        return $resolved;
     }
 
     /**

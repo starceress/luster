@@ -49,7 +49,7 @@ $iconMap = [
     'codes'        => 'embed',
     'codes-submit' => 'image',
     'contact'      => 'email',
-    'updates'      => 'updates',
+    'newsfeed'     => 'updates',
     'adopt'        => 'adoptions',
     'owned'        => 'star',
     'joined'       => 'heart',
@@ -66,7 +66,7 @@ $iconMap = [
     'kim-reset'    => 'kim',
     'col-codes'    => 'embed',
     'col-codes-submit' => 'image',
-    'col-updates'  => 'updates',
+    'col-newsfeed' => 'updates',
     'col-contact'  => 'email',
     'wishlist'     => 'wishlist',
     'rules-gate'   => 'rules',
@@ -140,11 +140,11 @@ $items = [
         'file'  => 'contact.php',
         'desc'  => 'A contact form for this listing. Messages are sent to the listing owner\'s email address. ',
     ],
-    'updates' => [
+    'newsfeed' => [
         'label' => 'News Feed',
         'badge' => 'Addon',
-        'file'  => 'updates.php',
-        'desc'  => 'Displays the updates feed for this listing. Requires the News Feed add-on to be installed.',
+        'file'  => 'newsfeed.php',
+        'desc'  => 'Displays the news feed for this listing. Requires the News Feed add-on to be installed.',
     ],
     'adopt' => [
         'label' => 'Adoption Form',
@@ -248,11 +248,11 @@ $items = [
         'file'  => 'collective-codes-submit.php',
         'desc'  => 'Form for fans to submit collective codes. Submissions are reviewed in Admin → Codes.',
     ],
-    'col-updates' => [
+    'col-newsfeed' => [
         'label' => 'News Feed',
         'badge' => 'Addon',
-        'file'  => 'collective-updates.php',
-        'desc'  => 'Displays the site-wide collective updates feed. Requires the News Feed add-on to be installed.',
+        'file'  => 'collective-newsfeed.php',
+        'desc'  => 'Displays the site-wide collective news feed. Requires the News Feed add-on to be installed.',
     ],
     'col-contact' => [
         'label' => 'Contact Form',
@@ -316,7 +316,7 @@ $epSafe = View::e($ep);
           <div class="wizard-step-node wizard-step-node--active ec-setup-step" id="ec-step1-node">
             <div class="wizard-step-bubble">1</div>
             <span class="wizard-step-label"
-                  data-step-sub="Paste these snippets into your header files."><span class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></span></span>
+                  data-step-sub="Paste these snippets into your header files"><span class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></span></span>
           </div>
           <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
                   data-setup-text="<?= htmlspecialchars($setupLine1 . "\n" . $setupLine2 . "\n" . $setupLine3 . "\n\n" . $setupLine4, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
@@ -343,11 +343,11 @@ $epSafe = View::e($ep);
             <div class="wizard-step-node wizard-step-node--active" id="ec-step2-node">
               <div class="wizard-step-bubble">2</div>
               <span class="wizard-step-label"
-                    data-step-sub="Collective or a single listing.">Where It Goes</span>
+                    data-step-sub="Collective or for your listings">Where It Goes</span>
             </div>
             <div class="select-wrap" style="margin-top:.5rem;">
               <select id="ec-sec-sel">
-                <option value="">&mdash; Choose a Type &mdash;</option>
+                <option value="">&mdash; Choose a Location &mdash;</option>
                 <option value="c">Collective</option>
                 <option value="l">Listings</option>
               </select>
@@ -360,11 +360,11 @@ $epSafe = View::e($ep);
             <div class="wizard-step-node wizard-step-node--active" id="ec-step3-node">
               <div class="wizard-step-bubble">3</div>
               <span class="wizard-step-label"
-                    data-step-sub="Choose the section you want to show.">What to Embed</span>
+                    data-step-sub="Choose the code snippet you want to copy.">What to Embed</span>
             </div>
             <div class="select-wrap" style="margin-top:.5rem;">
               <select id="ec-emb-sel" disabled>
-                <option value="">&mdash; Choose a Section &mdash;</option>
+                <option value="">&mdash; Choose a Snippet &mdash;</option>
               </select>
             </div>
           </div>
@@ -381,8 +381,8 @@ $epSafe = View::e($ep);
 
       <div id="ec-empty" class="empty">
         <div class="empty-icon"><?= View::icon('embed', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">Use the dropdowns above to get started.</div>
-        <div>Choose a type, either Listing or Collective (Step 1), and then the section you want to embed (Step 2).</div>
+        <div><strong>Use the dropdowns above to get started.</strong></div>
+        <div>Choose a Location (Collective or Listings) (Step 2), and then the code snippet you want to embed (Step 3).</div>
       </div>
 
       <!-- Header: icon + title + badge -->

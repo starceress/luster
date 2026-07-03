@@ -14,12 +14,12 @@ use Luster\Core\View;
 $b         = rtrim(View::e($base_url ?? ''), '/');
 $installed = array_map('strtolower', array_map('strval', $nav_installed_addons ?? []));
 $hasKim      = in_array('kim',      $installed, true);
-$hasUpdates  = in_array('updates',  $installed, true);
+$hasNewsfeed = in_array('newsfeed', $installed, true);
 $hasWishlist = in_array('wishlist', $installed, true);
 $hasRules    = in_array('rules',    $installed, true);
 $hasAdoption = in_array('adoption', $installed, true);
 $codes       = $collective_codes ?? ['total' => 0, 'pending' => 0];
-$addons      = $addon_counts     ?? ['wishlist' => null, 'updates' => null];
+$addons      = $addon_counts     ?? ['wishlist' => null, 'newsfeed' => null];
 
 $quickActions = [
     'add_owned' => [
@@ -43,10 +43,10 @@ $quickActions = [
         'label' => 'Add Collective Affiliate',
     ],
     'add_update' => [
-        'href'  => $hasUpdates ? "$b/admin/updates/collective/add" : "$b/admin/addons",
+        'href'  => $hasNewsfeed ? "$b/admin/newsfeed/collective/add" : "$b/admin/addons",
         'icon'  => 'updates',
         'label' => 'Add Collective News',
-        'muted' => !$hasUpdates,
+        'muted' => !$hasNewsfeed,
     ],
     'add_wishlist' => [
         'href'  => $hasWishlist ? "$b/admin/wishlist/add" : "$b/admin/addons",
@@ -167,8 +167,13 @@ foreach (array_keys($quickActions) as $qaKey) {
     </div>
     <div class="stat-extra">
       <?php if (($newest_member ?? null) !== null): ?>
-        <strong>Newest Member:</strong> <?= View::e($newest_member['member']->name) ?>
-        &mdash; <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $newest_member['listing_id'] ?>&amp;status=all"><?= View::e($newest_member['listing_title']) ?></a>
+        <strong>Newest Member:</strong>
+        <?php if (($newest_member['member']->url ?? '') !== ''): ?>
+          <a href="<?= View::e($newest_member['member']->url) ?>" target="_blank" rel="noopener noreferrer"><?= View::e($newest_member['member']->name) ?></a>
+        <?php else: ?>
+          <?= View::e($newest_member['member']->name) ?>
+        <?php endif; ?>
+        (<a href="<?= $b ?>/admin/members?listing_id=<?= (int) $newest_member['listing_id'] ?>&amp;status=all"><?= View::e($newest_member['listing_title']) ?></a>)
       <?php else: ?>
         <strong>Newest Member:</strong> None yet
       <?php endif; ?>
@@ -311,14 +316,14 @@ foreach (array_keys($quickActions) as $qaKey) {
       </a>
       <?php endif; ?>
 
-      <?php if ($hasUpdates): ?>
-      <a href="<?= $b ?>/admin/updates/collective" class="collective-action-item">
+      <?php if ($hasNewsfeed): ?>
+      <a href="<?= $b ?>/admin/newsfeed/collective" class="collective-action-item">
         <span class="panel-header-icon panel-header-icon-filled"><?= View::icon('updates') ?></span>
         <span>
           <span class="collective-action-label">News Feed</span>
-          <?php if ($addons['updates'] !== null): ?>
-            <?php $_updCount = (int) $addons['updates']; ?>
-            <span class="badge <?= $_updCount > 0 ? 'badge-info3' : 'badge-inactive' ?> badge-inline-sm"><?= $_updCount ?> <?= $_updCount === 1 ? 'Update' : 'Updates' ?></span>
+          <?php if ($addons['newsfeed'] !== null): ?>
+            <?php $_updCount = (int) $addons['newsfeed']; ?>
+            <span class="badge <?= $_updCount > 0 ? 'badge-info3' : 'badge-inactive' ?> badge-inline-sm"><?= $_updCount ?> <?= $_updCount === 1 ? 'Entry' : 'Entries' ?></span>
           <?php endif; ?>
         </span>
       </a>

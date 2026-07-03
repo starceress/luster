@@ -17,4 +17,4 @@ if (!isset($luster_fanlisting_id) || (int) $luster_fanlisting_id === 0) {
 }
 
 $luster_return = false;
-require LUSTER_PATH . '/public/embed/updates.php';
+require LUSTER_PATH . '/public/embed/newsfeed.php';

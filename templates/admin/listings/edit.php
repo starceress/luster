@@ -94,8 +94,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <div class="actions-row">
     <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $listing->id ?>&status=all" class="btn btn-quaternary btn-sm">Member List</a>
     <a href="<?= $b ?>/admin/emails?tab=bulk&listing=<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Bulk Email</a>
-    <?php if (in_array('Updates', $nav_installed_addons ?? [], true)): ?>
-      <a href="<?= $b ?>/admin/updates/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">News Feed</a>
+    <?php if (in_array('Newsfeed', $nav_installed_addons ?? [], true)): ?>
+      <a href="<?= $b ?>/admin/newsfeed/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">News Feed</a>
     <?php endif; ?>
     <form method="post"
           action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
@@ -276,7 +276,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <div>
             <input id="fl-url" type="url" name="url" class="form"
                    value="<?= View::e((string) $oldUrl) ?>"
-                   maxlength="500" placeholder="https://" required>
+                   maxlength="255" placeholder="https://" required>
             <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
           </div>
         </div>
@@ -578,7 +578,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 <?php
 // Templates tab — local helpers
-$hasUpdatesAddon  = (bool) ($updates_addon_installed ?? false);
+$hasNewsfeedAddon = (bool) ($newsfeed_addon_installed ?? false);
 $hasCodesSubmit   = (bool) ($embed_settings['codes_submit_enabled'] ?? true);
 $hasRulesAddon    = (bool) ($rules_addon_installed ?? false) && (bool) ($rules_enabled_for_listing ?? false);
 
@@ -632,7 +632,7 @@ $_statsNeedsReset = static function (?string $v) use ($_isOldStatsTemplate): boo
 $tplStatsVal     = $_statsNeedsReset($templates['stats_template'] ?? null)
     ? $_gFallback(ListingSettingsRepo::defaultStatsTemplate(), 'listing_default_stats_template')
     : ($templates['stats_template'] ?? '');
-$tplUpdatesVal      = ($templates['updates_template']            ?? '') ?: $_gFallback(ListingSettingsRepo::defaultUpdatesTemplate(),              'listing_default_updates_template');
+$tplUpdatesVal      = ($templates['newsfeed_template']            ?? '') ?: $_gFallback(ListingSettingsRepo::defaultNewsfeedTemplate(),              'listing_default_newsfeed_template');
 $tplCodesFormVal    = ($templates['codes_submit_form_template']    ?? '') ?: $_gFallback(ListingSettingsRepo::defaultCodesSubmitFormTemplate(),    'listing_default_codes_submit_form_template');
 $tplAffApplyFormVal = ($templates['affiliate_apply_form_template'] ?? '') ?: $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(), 'listing_default_affiliate_apply_form_template');
 $tplJoinFormVal     = ($templates['join_form_template']              ?? '') ?: $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),          'listing_default_join_form_template');
@@ -642,7 +642,7 @@ $tplResetFormVal    = ($templates['reset_form_template']              ?? '') ?: 
 $tplContactFormVal  = ($templates['contact_form_template']           ?? '') ?: $_gFallback(ListingSettingsRepo::defaultContactFormTemplate(), 'listing_default_contact_form_template');
 
 $activeGroup = (string) ($_GET['group'] ?? 'all');
-$_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'updates', 'contact-form'];
+$_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'newsfeed', 'contact-form'];
 if (!in_array($activeGroup, $_validGroups, true)) { $activeGroup = 'all'; }
 $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) ? 'hidden' : '';
 
@@ -690,7 +690,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
         <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
         <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
-        <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>News Feed</option>
+        <option value="newsfeed"<?= $activeGroup === 'newsfeed' ? ' selected' : '' ?>>News Feed</option>
       </select>
     </div>
     <div class="search-field-wrap">
@@ -720,25 +720,25 @@ $_tplCsrf = View::e($csrf_token ?? '');
 
       <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
         <div class="tpl-actions-row">
-          <button type="button" class="btn btn-tertiary"
+          <button type="button" class="btn btn-tertiary btn-sm"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates/reset-all"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>"
                   data-confirm="Reset every template for this listing to the global default?&#10;&#10;Any per-listing customisations will be lost.">Reset All Templates to Default</button>
-          <button type="button" class="btn btn-secondary"
+          <button type="button" class="btn btn-secondary btn-sm"
                   id="fl-tpack-export-btn"
                   data-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/export"
-                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export Templates&hellip;</button>
-          <button type="button" class="btn btn-secondary"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export as JSON</button>
+          <button type="button" class="btn btn-secondary btn-sm"
                   id="fl-tpack-export-zip-btn"
                   data-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/export-zip"
-                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export as ZIP&hellip;</button>
-          <button type="button" class="btn btn-secondary"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export as ZIP</button>
+          <button type="button" class="btn btn-secondary btn-sm"
                   id="fl-tpack-import-btn"
                   data-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/import-preview"
                   data-apply-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/import-apply"
-                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Import Templates&hellip;</button>
-          <button type="button" class="btn btn-secondary"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Import Templates (.json)</button>
+          <button type="button" class="btn btn-secondary btn-sm"
                   id="fl-tpack-copy-btn"
                   data-listings-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/listings-for-copy"
                   data-source-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/template-pack/copy-source"
@@ -954,20 +954,20 @@ $_tplCsrf = View::e($csrf_token ?? '');
           </div>
         </div>
 
-        <?php if ($hasUpdatesAddon): ?>
-        <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
-          <div class="section-label">News Feed <?= $srcBadge('updates_template') ?></div>
-          <p class="form-hint form-hint--spaced">Controls the rendered updates list in the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
+        <?php if ($hasNewsfeedAddon): ?>
+        <div class="tpl-group-section" data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
+          <div class="section-label">News Feed <?= $srcBadge('newsfeed_template') ?></div>
+          <p class="form-hint form-hint--spaced">Controls the rendered news feed in the embed. Wrap each entry in <code>{each_update}&hellip;{/each_update}</code>.</p>
           <div class="field-group">
-            <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
+            <textarea id="newsfeed_template" name="newsfeed_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="updates_template"><?= View::icon('eye-on') ?> Preview</button>&nbsp;
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="updates_template">Reset to Default</button>
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="newsfeed" data-textarea="newsfeed_template"><?= View::icon('eye-on') ?> Preview</button>&nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="newsfeed_template">Reset to Default</button>
           </div>
         </div>
         <?php else: ?>
-        <input type="hidden" name="updates_template" value="<?= View::e((string) ($tplUpdatesVal ?? '')) ?>">
+        <input type="hidden" name="newsfeed_template" value="<?= View::e((string) ($tplUpdatesVal ?? '')) ?>">
         <?php endif; ?>
 
       </div>
@@ -1284,26 +1284,26 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
       </details>
 
-      <?php if ($hasUpdatesAddon): ?>
-      <!-- News Feed -->
-      <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
+      <?php if ($hasNewsfeedAddon): ?>
+      <!-- Newsfeed -->
+      <details class="card chevron" data-token-card data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
         <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Wrap each entry in {each_update}...{/each_update}. Luster repeats it once per newsfeed entry.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('updates_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
-            <?= $ltok('updates_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
-            <?= $ltok('updates_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $ltok('updates_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one update on the current page.') ?>
-            <?= $ltok('updates_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no updates (use for an empty state message).') ?>
-            <?= $ltok('updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
-            <?= $ltok('updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
-            <?= $ltok('updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
-            <?= $ltok('updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
-            <?= $ltok('updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
-            <?= $ltok('updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>
-            <?= $ltok('updates_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the update has an author set.') ?>
-            <?= $ltok('updates_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the update has categories set.') ?>
+            <?= $ltok('newsfeed_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('newsfeed_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('newsfeed_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $ltok('newsfeed_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one entry on the current page.') ?>
+            <?= $ltok('newsfeed_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no entries (use for an empty state message).') ?>
+            <?= $ltok('newsfeed_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each entry shown.') ?>
+            <?= $ltok('newsfeed_template', '{update_title}',      '{update_title}',      'The entry title.') ?>
+            <?= $ltok('newsfeed_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
+            <?= $ltok('newsfeed_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
+            <?= $ltok('newsfeed_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
+            <?= $ltok('newsfeed_template', '{update_body_html}',  '{update_body_html}',  'The entry body text, with line breaks converted to HTML.') ?>
+            <?= $ltok('newsfeed_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the entry has an author set.') ?>
+            <?= $ltok('newsfeed_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the entry has categories set.') ?>
           </tbody></table>
         </div>
       </details>
@@ -1322,7 +1322,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
     'members_template__table'       => ListingSettingsRepo::defaultMembersTableTemplate(),
     'affiliates_section_template'   => $_gFallback(ListingSettingsRepo::defaultAffiliatesSectionTemplate(),   'listing_default_affiliates_section_template'),
     'stats_template'                => $_gFallback(ListingSettingsRepo::defaultStatsTemplate(),                'listing_default_stats_template'),
-    'updates_template'              => $_gFallback(ListingSettingsRepo::defaultUpdatesTemplate(),              'listing_default_updates_template'),
+    'newsfeed_template'             => $_gFallback(ListingSettingsRepo::defaultNewsfeedTemplate(),              'listing_default_newsfeed_template'),
     'codes_submit_form_template'    => $_gFallback(ListingSettingsRepo::defaultCodesSubmitFormTemplate(),      'listing_default_codes_submit_form_template'),
     'join_form_template'            => $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),             'listing_default_join_form_template'),
     'update_form_template'          => $_gFallback(ListingSettingsRepo::defaultUpdateFormTemplate(),           'listing_default_update_form_template'),
@@ -1905,8 +1905,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       <?php if ($contact_enabled ?? false): ?>
         <?php $snip('Contact Form', 'contact.php') ?>
       <?php endif; ?>
-      <?php if (in_array('Updates', $nav_installed_addons ?? [], true)): ?>
-        <?php $snip('News Feed', 'updates.php') ?>
+      <?php if (in_array('Newsfeed', $nav_installed_addons ?? [], true)): ?>
+        <?php $snip('News Feed', 'newsfeed.php') ?>
       <?php endif; ?>
 
 

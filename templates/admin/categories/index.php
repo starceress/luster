@@ -205,13 +205,13 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
           <td data-label="Name"><?= View::e($cat->name ?? '') ?></td>
           <td class="actions-col" data-label="">
             <a href="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/edit"
-               class="btn btn-tertiary btn-sm">Edit</a>
+               class="btn btn-tertiary btn-xs">Edit</a>
             <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"
                   class="action-form-inline"
                   data-del-modal data-del-entity="category"
                   data-del-name="<?= View::e($cat->name ?? '') ?>">
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              <button type="submit" class="btn btn-danger btn-xs">Delete</button>
             </form>
           </td>
         </tr>

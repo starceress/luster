@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Addons\Updates\UpdateRepo;
+use Luster\Addons\Newsfeed\NewsfeedRepo;
 use Luster\Addons\Wishlist\WishlistRepo;
 use Luster\Core\Captcha;
 use Luster\Core\Config;
@@ -33,7 +33,7 @@ use Luster\Core\UpdateChecker;
 use Luster\Core\Validator;
 use Luster\Core\Version;
 use Luster\Core\View;
-use Luster\Support\UpdatesTemplateRenderer as UpdatesPreviewHelper;
+use Luster\Support\NewsfeedTemplateRenderer as NewsfeedPreviewHelper;
 use Luster\Support\AffiliateRowRenderer;
 use Luster\Support\SampleTemplateData;
 use Luster\Support\CollectiveFormUrlResolver;
@@ -242,7 +242,7 @@ final class SettingsController extends AdminController
 
         $addonCounts = [
             'wishlist'  => null,
-            'updates'   => null,
+            'newsfeed'  => null,
             'kim'       => null,
             'adoptions' => null,
         ];
@@ -253,11 +253,11 @@ final class SettingsController extends AdminController
                 $addonCounts['wishlist'] = (int) $stmt->fetchColumn();
             } catch (\Throwable) {}
         }
-        if ($this->tableExists($db, 'lstr_updates')) {
+        if ($this->tableExists($db, 'lstr_newsfeed')) {
             try {
-                $stmt = $db->prepare('SELECT COUNT(*) FROM lstr_updates WHERE fanlisting_id IS NULL');
+                $stmt = $db->prepare('SELECT COUNT(*) FROM lstr_newsfeed WHERE fanlisting_id IS NULL');
                 $stmt->execute();
-                $addonCounts['updates'] = (int) $stmt->fetchColumn();
+                $addonCounts['newsfeed'] = (int) $stmt->fetchColumn();
             } catch (\Throwable) {}
         }
         if ($this->tableExists($db, 'lstr_kim_members')) {
@@ -354,7 +354,7 @@ final class SettingsController extends AdminController
             'kim-overview', 'kim-subject', 'kim-signup', 'kim-update', 'kim-reset',
             'adoption',
             'wishlist',
-            'updates',
+            'newsfeed',
             'collective-update-form',
         ];
         $activeGroup = (string) $request->query('group', 'all');
@@ -375,7 +375,7 @@ final class SettingsController extends AdminController
             'collective_affiliate_apply_form_template',
             'kim_signup_form_template',
             'wishlist_template',
-            'collective_updates_template',
+            'collective_newsfeed_template',
             'collective_codes_template',
             'collective_codes_submit_form_template',
             'collective_kim_list_overview_template',
@@ -392,6 +392,10 @@ final class SettingsController extends AdminController
             'activeGroup'          => $activeGroup,
             'success'              => $success,
             'error'                => $error,
+            'collective_affiliate_apply_style'        => $siteRepo->get('collective_affiliate_apply_style') ?? 'link',
+            'collective_codes_submit_style'           => $siteRepo->get('collective_codes_submit_style') ?? 'link',
+            'collective_affiliate_apply_toggle_label' => $siteRepo->get('collective_affiliate_apply_toggle_label'),
+            'collective_codes_submit_toggle_label'    => $siteRepo->get('collective_codes_submit_toggle_label'),
         ], '', [
             $this->crumb('Collective', $this->adminUrl('/admin/collective')),
         ]);
@@ -426,7 +430,7 @@ final class SettingsController extends AdminController
             'kim_signup_form',
             'collective_kim_list_overview', 'collective_kim_list_subject',
             'kim_update_form', 'kim_reset_form',
-            'wishlist', 'collective_updates',
+            'wishlist', 'collective_newsfeed',
             'collective_codes', 'collective_codes_submit_form',
             'collective_contact_form',
             'collective_update_form',
@@ -451,7 +455,7 @@ final class SettingsController extends AdminController
             $html = match ($type) {
                 'owned', 'random', 'latest'                => $this->coltplPreviewListings($type, $tpl, $db, $config, $uploadsBase . '/listings'),
                 'joined', 'random-joined', 'latest-joined' => $this->coltplPreviewJoined($type, $tpl, $db, $uploadsBase . '/joined', $config),
-                'collective_affiliates_section'      => $this->coltplPreviewAffiliates($tpl, $db, $uploadsBase . '/affiliates'),
+                'collective_affiliates_section'      => $this->coltplPreviewAffiliates($tpl, $db, $uploadsBase . '/affiliates', $request),
                 'collective_stats'                   => $this->coltplPreviewStats($tpl, $db, $config),
                 'collective_affiliate_apply_form'    => $this->coltplPreviewAffiliateApplyForm($tpl, $config),
                 'collective_adopt_form'              => $this->coltplPreviewAdoptForm($tpl, $config),
@@ -461,8 +465,8 @@ final class SettingsController extends AdminController
                 'kim_update_form'                    => $this->coltplPreviewKimUpdateForm($tpl, $config),
                 'kim_reset_form'                     => $this->coltplPreviewKimResetForm($tpl, $config),
                 'wishlist'                            => $this->coltplPreviewWishlist($tpl, $db, $uploadsBase . '/wishlist'),
-                'collective_updates'                  => $this->coltplPreviewCollectiveUpdates($tpl, $db, $config),
-                'collective_codes'                   => $this->coltplPreviewCodes($tpl, $db, $uploadsBase . '/codes'),
+                'collective_newsfeed'                  => $this->coltplPreviewCollectiveUpdates($tpl, $db, $config),
+                'collective_codes'                   => $this->coltplPreviewCodes($tpl, $db, $uploadsBase . '/codes', $request),
                 'collective_codes_submit_form'        => $this->coltplPreviewCodesSubmitForm($tpl, $config),
                 'collective_contact_form'             => $this->coltplPreviewContactForm($tpl, $config),
                 'collective_update_form'              => $this->coltplPreviewCollectiveUpdateForm($tpl, $config),
@@ -592,7 +596,7 @@ final class SettingsController extends AdminController
         return JoinedListingRowRenderer::renderTemplate($tpl, $items, $uploadsUrl);
     }
 
-    private function coltplPreviewAffiliates(string $tpl, Database $db, string $uploadsUrl): string
+    private function coltplPreviewAffiliates(string $tpl, Database $db, string $uploadsUrl, ?Request $request = null): string
     {
         $rawTpl = $tpl;
 
@@ -609,7 +613,12 @@ final class SettingsController extends AdminController
         $affiliateApplyUrl = CollectiveFormUrlResolver::resolve($affOverride ?: 'affiliates.php', $siteUrl, $siteUrl);
 
         $applyEnabled = ($siteRepo->get('collective_affiliate_apply_enabled') ?? '1') === '1';
-        $applyStyle = (string) ($siteRepo->get('collective_affiliate_apply_style') ?? 'link');
+
+        // null = key absent from POST (not a live preview); '' = sent as empty ("Use saved default")
+        $previewStyle = $request ? $request->post('toggle_style', null) : null;
+        $applyStyle   = $previewStyle !== null
+            ? (in_array(trim((string) $previewStyle), ['link', 'button'], true) ? trim((string) $previewStyle) : ($siteRepo->get('collective_affiliate_apply_style') ?? 'link'))
+            : (string) ($siteRepo->get('collective_affiliate_apply_style') ?? 'link');
         if (!in_array($applyStyle, ['link', 'button'], true)) {
             $applyStyle = 'link';
         }
@@ -622,7 +631,13 @@ final class SettingsController extends AdminController
             $config    = $this->app->getConfig();
             $applyFormHtml = $this->coltplPreviewAffiliateApplyForm($collectiveAffTpl, $config);
         }
-        $applyLabel = (string) ($siteRepo->get('collective_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
+        // A blank posted label previews as the built-in default, not the still-saved
+        // value — saving blank clears the setting to NULL, which renders as the
+        // built-in default too (see updateTemplates()). Preview must match.
+        $previewLabel = $request ? $request->post('toggle_label', null) : null;
+        $applyLabel   = $previewLabel !== null
+            ? (trim((string) $previewLabel) !== '' ? trim((string) $previewLabel) : 'Apply to become an affiliate?')
+            : (string) ($siteRepo->get('collective_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
         $toggleHtml = '';
         if ($applyFormHtml !== '') {
             $toggleHtml = '<details class="fl-affiliate-apply-collapsible">'
@@ -1185,17 +1200,17 @@ final class SettingsController extends AdminController
 
     private function coltplPreviewCollectiveUpdates(string $tpl, Database $db, Config $config): string
     {
-        if (!$this->tableExists($db, 'lstr_updates')) {
+        if (!$this->tableExists($db, 'lstr_newsfeed')) {
             return '<p style="font-style:italic;color:#888">The News Feed add-on is not installed.</p>';
         }
 
         $tpl = str_replace('{site_name}', htmlspecialchars((string) $config->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $tpl);
 
-        $liveUpdates   = (new UpdateRepo($db))->getCollective(1, 5);
+        $liveUpdates   = (new NewsfeedRepo($db))->getCollective(1, 5);
         $sampleUpdates = !empty($liveUpdates) ? $liveUpdates : SampleTemplateData::updates();
 
-        $sample = UpdatesPreviewHelper::render($sampleUpdates, $tpl);
-        $empty  = UpdatesPreviewHelper::render([], $tpl);
+        $sample = NewsfeedPreviewHelper::render($sampleUpdates, $tpl);
+        $empty  = NewsfeedPreviewHelper::render([], $tpl);
 
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No updates posted yet.</p>';
@@ -1209,7 +1224,7 @@ final class SettingsController extends AdminController
             . $empty;
     }
 
-    private function coltplPreviewCodes(string $tpl, Database $db, string $uploadsUrl): string
+    private function coltplPreviewCodes(string $tpl, Database $db, string $uploadsUrl, ?Request $request = null): string
     {
         $codesRepo      = new CodesRepo($db);
         $codeDonorsRepo = new CodeDonorsRepo($db);
@@ -1276,11 +1291,21 @@ final class SettingsController extends AdminController
             $siteRepo   = new SiteSettingsRepo($db);
             $csEnabled  = ($siteRepo->get('collective_codes_submit_enabled') ?? '1') === '1';
             if ($csEnabled) {
-                $csStyle = (string) ($siteRepo->get('collective_codes_submit_style') ?? 'link');
+                // null = key absent from POST (not a live preview); '' = sent as empty ("Use saved default")
+                $previewCsStyle = $request ? $request->post('toggle_style', null) : null;
+                $csStyle = $previewCsStyle !== null
+                    ? (in_array(trim((string) $previewCsStyle), ['link', 'button'], true) ? trim((string) $previewCsStyle) : ($siteRepo->get('collective_codes_submit_style') ?? 'link'))
+                    : (string) ($siteRepo->get('collective_codes_submit_style') ?? 'link');
                 if (!in_array($csStyle, ['link', 'button'], true)) {
                     $csStyle = 'link';
                 }
-                $csLabel = (string) ($siteRepo->get('collective_codes_submit_toggle_label') ?? 'Donate a code?');
+                // A blank posted label previews as the built-in default, not the still-saved
+                // value — saving blank clears the setting to NULL, which renders as the
+                // built-in default too (see updateTemplates()). Preview must match.
+                $previewCsLabel = $request ? $request->post('toggle_label', null) : null;
+                $csLabel = $previewCsLabel !== null
+                    ? (trim((string) $previewCsLabel) !== '' ? trim((string) $previewCsLabel) : 'Donate a code?')
+                    : (string) ($siteRepo->get('collective_codes_submit_toggle_label') ?? 'Donate a code?');
                 $csFormTpl = $siteRepo->get('collective_codes_submit_form_template') ?? '';
                 if ($csFormTpl === '') {
                     $csFormTpl = SiteSettingsRepo::defaultCollectiveCodesSubmitFormTemplate();
@@ -1533,11 +1558,7 @@ final class SettingsController extends AdminController
             'kim_url_update',
             'kim_url_reset',
             'kim_url_list',
-            'collective_affiliate_apply_style',
-            'collective_affiliate_apply_toggle_label',
             'collective_codes_submit_enabled',
-            'collective_codes_submit_style',
-            'collective_codes_submit_toggle_label',
         ]);
 
         return $this->adminLayout('admin/collective/settings.php', 'Collective Settings', 'collective', [
@@ -1595,17 +1616,8 @@ final class SettingsController extends AdminController
             }
         }
 
-        $collAffStyle = (string) $request->post('collective_affiliate_apply_style', 'link');
-        $siteSettings->set('collective_affiliate_apply_style', in_array($collAffStyle, ['link', 'button'], true) ? $collAffStyle : 'link');
-        $collAffLabel = trim((string) $request->post('collective_affiliate_apply_toggle_label', ''));
-        $siteSettings->set('collective_affiliate_apply_toggle_label', $collAffLabel !== '' ? $collAffLabel : null);
-
         $collCsEnabled = $request->post('collective_codes_submit_enabled') === '1' ? '1' : '0';
         $siteSettings->set('collective_codes_submit_enabled', $collCsEnabled);
-        $collCsStyle = (string) $request->post('collective_codes_submit_style', 'link');
-        $siteSettings->set('collective_codes_submit_style', in_array($collCsStyle, ['link', 'button'], true) ? $collCsStyle : 'link');
-        $collCsLabel = trim((string) $request->post('collective_codes_submit_toggle_label', ''));
-        $siteSettings->set('collective_codes_submit_toggle_label', $collCsLabel !== '' ? $collCsLabel : null);
 
         (new ActivityRepo($this->app->getDatabase()))->log(
             (int) $session->get('lstr_admin_id'),
@@ -1719,13 +1731,22 @@ final class SettingsController extends AdminController
         $baseUrl      = $this->app->getBaseUrl();
         $activityRepo = new ActivityRepo($this->app->getDatabase());
 
-        $siteName = trim((string) $request->post('site_name', ''));
-        $siteUrl  = self::httpsify(rtrim(trim((string) $request->post('site_url', '')), '/'));
-        $timezone = trim((string) $request->post('timezone', 'UTC'));
+        $siteName    = trim((string) $request->post('site_name', ''));
+        $siteUrl     = self::httpsify(rtrim(trim((string) $request->post('site_url', '')), '/'));
+        $timezone    = trim((string) $request->post('timezone', 'UTC'));
+        $ownerEmail  = trim((string) $request->post('owner_email', ''));
+        $embedBaseUrl = self::httpsify(rtrim(trim((string) $request->post('embed_base_url', '')), '/'));
 
-        $v = new Validator(['site_name' => $siteName, 'site_url' => $siteUrl]);
+        $v = new Validator([
+            'site_name'      => $siteName,
+            'site_url'       => $siteUrl,
+            'owner_email'    => $ownerEmail,
+            'embed_base_url' => $embedBaseUrl,
+        ]);
         $v->field('site_name')->required()->maxLength(100);
-        $v->field('site_url')->required()->maxLength(500);
+        $v->field('site_url')->required()->httpUrl()->maxLength(500);
+        $v->field('owner_email')->email()->maxLength(255);
+        $v->field('embed_base_url')->httpUrl()->maxLength(500);
 
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
@@ -1748,10 +1769,10 @@ final class SettingsController extends AdminController
 
         // Site owner identity (used in email templates)
         $updated['owner_name']  = trim((string) $request->post('owner_name',  ''));
-        $updated['owner_email'] = trim((string) $request->post('owner_email', ''));
+        $updated['owner_email'] = $ownerEmail;
 
         // Embed form submission URL (blank = fall back to app_url at runtime)
-        $updated['embed_base_url'] = self::httpsify(rtrim(trim((string) $request->post('embed_base_url', '')), '/'));
+        $updated['embed_base_url'] = $embedBaseUrl;
 
         $this->writeConfig($updated);
 
@@ -2111,7 +2132,7 @@ final class SettingsController extends AdminController
             'kim-overview', 'kim-subject', 'kim-signup', 'kim-update', 'kim-reset',
             'adoption',
             'wishlist',
-            'updates',
+            'newsfeed',
             'collective-update-form',
         ];
         $returnGroup = (string) $request->post('return_group', 'all');
@@ -2131,7 +2152,7 @@ final class SettingsController extends AdminController
         $collectiveAdoptionFormTpl           = (string) $request->post('collective_adoption_form_template',           '');
         $kimSignupFormTpl                    = (string) $request->post('kim_signup_form_template',                   '');
         $wishlistTemplate                    = (string) $request->post('wishlist_template',                          '');
-        $collectiveUpdatesTemplate           = (string) $request->post('collective_updates_template',                '');
+        $collectiveUpdatesTemplate           = (string) $request->post('collective_newsfeed_template',                '');
         $collectiveCodesTemplate             = (string) $request->post('collective_codes_template',                  '');
         $collectiveCodesSubmitFormTpl        = (string) $request->post('collective_codes_submit_form_template',      '');
         $kimListOverviewTpl                  = (string) $request->post('collective_kim_list_overview_template',      '');
@@ -2160,7 +2181,7 @@ final class SettingsController extends AdminController
             'collective_adoption_form_template'       => $collectiveAdoptionFormTpl        !== '' ? $collectiveAdoptionFormTpl        : null,
             'kim_signup_form_template'                => $kimSignupFormTpl                 !== '' ? $kimSignupFormTpl                 : null,
             'wishlist_template'                       => $wishlistTemplate                 !== '' ? $wishlistTemplate                 : null,
-            'collective_updates_template'             => $collectiveUpdatesTemplate        !== '' ? $collectiveUpdatesTemplate        : null,
+            'collective_newsfeed_template'             => $collectiveUpdatesTemplate        !== '' ? $collectiveUpdatesTemplate        : null,
             'collective_codes_template'               => $collectiveCodesTemplate          !== '' ? $collectiveCodesTemplate          : null,
             'collective_codes_submit_form_template'   => $collectiveCodesSubmitFormTpl     !== '' ? $collectiveCodesSubmitFormTpl     : null,
             'collective_kim_list_overview_template'   => $kimListOverviewTpl               !== '' ? $kimListOverviewTpl               : null,
@@ -2185,7 +2206,7 @@ final class SettingsController extends AdminController
         $siteRepo->set('collective_adoption_form_template',        $collectiveAdoptionFormTpl       !== '' ? $collectiveAdoptionFormTpl       : null);
         $siteRepo->set('kim_signup_form_template', $kimSignupFormTpl !== '' ? $kimSignupFormTpl : null);
         $siteRepo->set('wishlist_template',            $wishlistTemplate          !== '' ? $wishlistTemplate          : null);
-        $siteRepo->set('collective_updates_template',  $collectiveUpdatesTemplate !== '' ? $collectiveUpdatesTemplate : null);
+        $siteRepo->set('collective_newsfeed_template',  $collectiveUpdatesTemplate !== '' ? $collectiveUpdatesTemplate : null);
         $siteRepo->set('collective_codes_template',    $collectiveCodesTemplate   !== '' ? $collectiveCodesTemplate   : null);
         $siteRepo->set('collective_codes_submit_form_template', $collectiveCodesSubmitFormTpl !== '' ? $collectiveCodesSubmitFormTpl : null);
         $siteRepo->set('collective_kim_list_overview_template', $kimListOverviewTpl !== '' ? $kimListOverviewTpl : null);
@@ -2194,6 +2215,16 @@ final class SettingsController extends AdminController
         $siteRepo->set('kim_reset_form_template',   $kimResetFormTpl  !== '' ? $kimResetFormTpl  : null);
         $siteRepo->set('collective_contact_form_template', $contactFormTpl !== '' ? $contactFormTpl : null);
         $siteRepo->set('collective_update_form_template', $collectiveUpdateFormTpl !== '' ? $collectiveUpdateFormTpl : null);
+
+        $collAffStyle = (string) $request->post('collective_affiliate_apply_style', 'link');
+        $siteRepo->set('collective_affiliate_apply_style', in_array($collAffStyle, ['link', 'button'], true) ? $collAffStyle : 'link');
+        $collAffLabel = trim((string) $request->post('collective_affiliate_apply_toggle_label', ''));
+        $siteRepo->set('collective_affiliate_apply_toggle_label', $collAffLabel !== '' ? $collAffLabel : null);
+
+        $collCsStyle = (string) $request->post('collective_codes_submit_style', 'link');
+        $siteRepo->set('collective_codes_submit_style', in_array($collCsStyle, ['link', 'button'], true) ? $collCsStyle : 'link');
+        $collCsLabel = trim((string) $request->post('collective_codes_submit_toggle_label', ''));
+        $siteRepo->set('collective_codes_submit_toggle_label', $collCsLabel !== '' ? $collCsLabel : null);
 
         $activityRepo = new ActivityRepo($this->app->getDatabase());
         $activityRepo->log(
@@ -2232,7 +2263,7 @@ final class SettingsController extends AdminController
             'random_joined_listing_template', 'latest_joined_listing_template',
             'collective_affiliate_apply_form_template', 'collective_adoption_form_template',
             'kim_signup_form_template', 'wishlist_template',
-            'collective_updates_template', 'collective_codes_template',
+            'collective_newsfeed_template', 'collective_codes_template',
             'collective_codes_submit_form_template',
             'collective_kim_list_overview_template', 'collective_kim_list_subject_template',
             'kim_update_form_template', 'kim_reset_form_template',

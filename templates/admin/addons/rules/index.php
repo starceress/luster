@@ -195,7 +195,7 @@ $rangeLast  = min($page * $per_page, $total);
           </tr>
           <?php endif; ?>
           <?php foreach ($rows as $row): ?>
-          <tr>
+          <tr class="<?= ($lifecycle_map[(int) $row['listing_id']] ?? null) ? 'row-archived' : '' ?>">
             <td class="checkbox-col" data-label="">
               <?php if ($row['rules_id'] !== null): ?>
                 <input type="checkbox" class="rules-row-cb" name="ids[]" value="<?= (int) $row['listing_id'] ?>"

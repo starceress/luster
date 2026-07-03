@@ -2042,7 +2042,7 @@ try {
                 ADD COLUMN `contact_sent_template`          TEXT NULL DEFAULT NULL,
                 ADD COLUMN `affiliate_apply_sent_template`  TEXT NULL DEFAULT NULL,
                 ADD COLUMN `codes_template`                 TEXT NULL DEFAULT NULL,
-                ADD COLUMN `updates_template`               TEXT NULL DEFAULT NULL"
+                ADD COLUMN `newsfeed_template`              TEXT NULL DEFAULT NULL"
         );
 
         $insertSetting = $pdo->prepare(
@@ -2055,7 +2055,7 @@ try {
             'collective_affiliate_apply_sent_template',
             'wishlist_template',
             'kim_member_template',
-            'collective_updates_template',
+            'collective_newsfeed_template',
         ] as $settingKey) {
             $insertSetting->execute(['key' => $settingKey]);
         }
@@ -3178,6 +3178,87 @@ try {
     $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (99)');
 } catch (PDOException $e) {
     $errors[] = 'Migration 99 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 100: rename Updates Feed add-on artefacts to News Feed (Newsfeed).
+// Renames lstr_updates → lstr_newsfeed, the updates_template column, the addon key,
+// and the three site-settings keys. Safe to re-run: each step is conditional.
+try {
+    $done100 = [];
+
+    // 1. Rename lstr_updates → lstr_newsfeed (only if old table exists and new does not).
+    $chkOld = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_updates'"
+    );
+    $chkNew = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_newsfeed'"
+    );
+    if ((int) $chkOld->fetchColumn() === 1 && (int) $chkNew->fetchColumn() === 0) {
+        $pdo->exec('RENAME TABLE `lstr_updates` TO `lstr_newsfeed`');
+        $done100[] = 'renamed <code>lstr_updates</code> &rarr; <code>lstr_newsfeed</code>';
+    }
+
+    // 2. Rename updates_template column in lstr_fanlisting_settings → newsfeed_template.
+    $chkCol = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME   = 'lstr_fanlisting_settings'
+            AND COLUMN_NAME  = 'updates_template'"
+    );
+    if ((int) $chkCol->fetchColumn() === 1) {
+        $pdo->exec(
+            "ALTER TABLE `lstr_fanlisting_settings`
+             CHANGE COLUMN `updates_template` `newsfeed_template` TEXT NULL DEFAULT NULL"
+        );
+        $done100[] = 'renamed column <code>updates_template</code> &rarr; <code>newsfeed_template</code> in <code>lstr_fanlisting_settings</code>';
+    }
+
+    // 3. Update addon key: 'Updates' → 'Newsfeed'.
+    // Guard against duplicate-key if both rows somehow coexist (partial run / manual insert).
+    $chkAddon = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_addons'"
+    );
+    if ((int) $chkAddon->fetchColumn() === 1) {
+        $pdo->prepare(
+            "UPDATE `lstr_addons` SET `addon_key` = 'Newsfeed'
+              WHERE `addon_key` = 'Updates'
+                AND NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM `lstr_addons` WHERE `addon_key` = 'Newsfeed') _chk)"
+        )->execute();
+    }
+
+    // 4. Rename site-settings keys.
+    // Guard against duplicate-key: only rename when the new key does not already exist.
+    $chkSs = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_site_settings'"
+    );
+    if ((int) $chkSs->fetchColumn() === 1) {
+        $pdo->prepare(
+            "UPDATE `lstr_site_settings` SET `setting_key` = 'newsfeed_per_page'
+              WHERE `setting_key` = 'updates_per_page'
+                AND NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM `lstr_site_settings` WHERE `setting_key` = 'newsfeed_per_page') _chk)"
+        )->execute();
+        $pdo->prepare(
+            "UPDATE `lstr_site_settings` SET `setting_key` = 'collective_newsfeed_template'
+              WHERE `setting_key` = 'collective_updates_template'
+                AND NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM `lstr_site_settings` WHERE `setting_key` = 'collective_newsfeed_template') _chk)"
+        )->execute();
+        $pdo->prepare(
+            "UPDATE `lstr_site_settings` SET `setting_key` = 'listing_default_newsfeed_template'
+              WHERE `setting_key` = 'listing_default_updates_template'
+                AND NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM `lstr_site_settings` WHERE `setting_key` = 'listing_default_newsfeed_template') _chk)"
+        )->execute();
+    }
+
+    if (!empty($done100)) {
+        $done[] = 'Migration 100: News Feed rename &mdash; ' . implode('; ', $done100);
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (100)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 100 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // Build results HTML

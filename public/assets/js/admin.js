@@ -1762,8 +1762,8 @@ document.addEventListener('drop', function (e) {
   var pickItems = root.querySelectorAll('.ec-qc-item'); // no-op in new layout; kept for selectItem() loop
 
   var navGroups = [
-    { val: 'l', keys: ['join','members','stats','affiliates','aff-apply','update','reset','codes','codes-submit','contact','updates','rules-gate'] },
-    { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','random-joined','latest-joined','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-updates','col-contact','wishlist','adopt'] },
+    { val: 'l', keys: ['join','members','stats','affiliates','aff-apply','update','reset','codes','codes-submit','contact','newsfeed','rules-gate'] },
+    { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','random-joined','latest-joined','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-newsfeed','col-contact','wishlist','adopt'] },
   ];
 
   var secSel   = document.getElementById('ec-sec-sel');
@@ -1930,8 +1930,8 @@ document.addEventListener('drop', function (e) {
     'random-joined': 'random-joined-listing.php', 'latest-joined': 'latest-joined-listing.php',
     kim: 'kim-signup.php', 'kim-list': 'kim-list.php', 'kim-update': 'kim-update.php', 'kim-reset': 'kim-reset.php',
     codes: 'codes.php', 'codes-submit': 'codes-submit.php',
-    contact: 'contact.php', updates: 'updates.php', adopt: 'adopt.php',
-    'col-updates': 'collective-updates.php', 'col-contact': 'collective-contact.php',
+    contact: 'contact.php', newsfeed: 'newsfeed.php', adopt: 'adopt.php',
+    'col-newsfeed': 'collective-newsfeed.php', 'col-contact': 'collective-contact.php',
     wishlist: 'wishlist.php', 'rules-gate': 'rules-gate.php',
   };
 
@@ -1939,11 +1939,11 @@ document.addEventListener('drop', function (e) {
     var lines = [];
     lines.push('<?php');
     // Listing ID
-    var needsId = ['join','members','stats','update','reset','aff-apply','codes','codes-submit','contact','updates','rules-gate'];
+    var needsId = ['join','members','stats','update','reset','aff-apply','codes','codes-submit','contact','newsfeed','rules-gate'];
     if (needsId.indexOf(type) !== -1) {
       var lid = parseInt(vals.lid || (listings.length ? listings[0].id : 1), 10) || 1;
       if (type === 'aff-apply') lines.push('// Enable in Admin → Listings → Edit → Affiliates');
-      if (type === 'updates')   lines.push('// Requires News Feed add-on (Admin → Add-ons)');
+      if (type === 'newsfeed')  lines.push('// Requires Newsfeed add-on (Admin → Add-ons)');
       lines.push('$luster_fanlisting_id = ' + lid + ';');
     } else if (type === 'affiliates') {
       var aid = (vals.lid === '0' || vals.lid === '') ? 0 : (parseInt(vals.lid, 10) || (listings.length ? listings[0].id : 1));
@@ -1983,7 +1983,7 @@ document.addEventListener('drop', function (e) {
       if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page = ' + (parseInt(vals.per_page, 10) || 20) + ';');
     }
     if (type === 'random' && vals.status) lines.push('$luster_status = ' + phpStr(vals.status) + ';');
-    if (type === 'updates' || type === 'col-updates') {
+    if (type === 'newsfeed' || type === 'col-newsfeed') {
       if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page  = ' + (parseInt(vals.per_page, 10) || 10) + ';');
       if (vals.show_cats === 'false')            lines.push('$luster_show_cats = false;');
     }
@@ -2025,7 +2025,7 @@ document.addEventListener('drop', function (e) {
     // Require line
     if (type === 'kim' || type === 'kim-list' || type === 'kim-update' || type === 'kim-reset')
                                 lines.push('// Requires KIM List add-on (Admin → Add-ons)');
-    if (type === 'col-updates') lines.push('// Requires News Feed add-on (Admin → Add-ons)');
+    if (type === 'col-newsfeed') lines.push('// Requires Newsfeed add-on (Admin → Add-ons)');
     if (type === 'wishlist')    lines.push('// Requires Wishlist add-on (Admin → Add-ons)');
     if (type === 'latest')      lines.push('// Renders the listing with the most recent open date.');
     if (type === 'random-joined') lines.push('// Renders one active, approved joined listing at random.');
@@ -2181,10 +2181,10 @@ document.addEventListener('drop', function (e) {
     contact: {
       fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
-    updates: {
+    newsfeed: {
       fields: [
         { id: 'lid',       label: 'Listing',            type: 'listing', hint: '' },
-        { id: 'per_page',  label: 'Updates per page',   type: 'number', ph: '10', hint: '' },
+        { id: 'per_page',  label: 'Entries per page',   type: 'number', ph: '10', hint: '' },
         { id: 'show_cats', label: 'Category labels',    type: 'select', opts: [['','Show'],['false','Hide']], hint: '' },
       ],
     },
@@ -2210,9 +2210,9 @@ document.addEventListener('drop', function (e) {
       fields: [],
       note: 'This is already set up for collective code donations.',
     },
-    'col-updates': {
+    'col-newsfeed': {
       fields: [
-        { id: 'per_page',  label: 'Updates per page',   type: 'number', ph: '10', hint: '' },
+        { id: 'per_page',  label: 'Entries per page',   type: 'number', ph: '10', hint: '' },
         { id: 'show_cats', label: 'Category labels',    type: 'select', opts: [['','Show'],['false','Hide']], hint: '' },
       ],
     },
@@ -2568,10 +2568,10 @@ document.addEventListener('drop', function (e) {
           + '<div style="width:100%;box-sizing:border-box;min-height:60px;padding:.4rem .625rem;border:1px solid #d8d3e8;border-radius:6px;background:#fff;font-size:.76rem;color:#a39cbb;margin-bottom:.625rem">Your message here...</div>'
           + '<button class="site-btn">Send message</button>';
 
-      case 'updates':
-      case 'col-updates': {
+      case 'newsfeed':
+      case 'col-newsfeed': {
         var showCats = vals.show_cats !== 'false';
-        return '<h4>' + (key === 'col-updates' ? 'Updates' : name + ' -- Updates') + '</h4>'
+        return '<h4>' + (key === 'col-newsfeed' ? 'News Feed' : name + ' -- News Feed') + '</h4>'
           + [['Silver Crystal relaunched!', 'May 10, 2026', 'Anime'],['Welcome new Scouts!', 'Apr 28, 2026', 'Members']].map(function (e) {
               return '<div style="padding:.5rem 0;border-bottom:1px solid #ece8f4">'
                 + (showCats ? '<span style="font-size:.68rem;color:#a39cbb;margin-bottom:.2rem;display:block">' + e[2] + '</span>' : '')
@@ -3861,6 +3861,23 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   var items = document.querySelectorAll('.mini-nav-item[data-et-tab]');
   if (!items.length) return;
 
+  var tokenSearch = document.getElementById('et-token-search');
+  var tokenEmpty  = document.getElementById('et-token-empty');
+
+  // Filters the rows of the currently-visible token group by the search box text.
+  function filterTokenGroup(group) {
+    if (!group) return;
+    var q       = tokenSearch ? tokenSearch.value.trim().toLowerCase() : '';
+    var visible = 0;
+    group.querySelectorAll('.tok-row').forEach(function (row) {
+      var haystack = ((row.getAttribute('data-token') || '') + ' ' + (row.getAttribute('title') || '')).toLowerCase();
+      var match = !q || haystack.indexOf(q) !== -1;
+      row.hidden = !match;
+      if (match) visible++;
+    });
+    if (tokenEmpty) tokenEmpty.classList.toggle('is-hidden', visible > 0);
+  }
+
   function activate(tabId) {
     items.forEach(function (el) { el.classList.remove('active'); });
     document.querySelectorAll('.et-panel').forEach(function (el) { el.classList.remove('active'); });
@@ -3868,11 +3885,25 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     var panel = document.getElementById('et-tab-' + tabId);
     if (item)  item.classList.add('active');
     if (panel) panel.classList.add('active');
+
+    var activeGroup = null;
+    document.querySelectorAll('.et-token-group').forEach(function (el) {
+      var isActive = el.getAttribute('data-et-tokens') === tabId;
+      el.classList.toggle('is-hidden', !isActive);
+      if (isActive) activeGroup = el;
+    });
+    filterTokenGroup(activeGroup);
   }
 
   items.forEach(function (item) {
     item.addEventListener('click', function () { activate(item.dataset.etTab); });
   });
+
+  if (tokenSearch) {
+    tokenSearch.addEventListener('input', function () {
+      filterTokenGroup(document.querySelector('.et-token-group:not(.is-hidden)'));
+    });
+  }
 }());
 
 // ── 36. Add-on uninstall confirmation modal ───────────────────────────────────
@@ -4442,6 +4473,17 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   if (defaultsEl) {
     try { defaults = JSON.parse(defaultsEl.textContent); } catch (err) {}
   }
+
+  function syncLayoutPresetActive(taId) {
+    var ta = document.getElementById(taId);
+    if (!ta) return;
+    var val = ta.value.trim();
+    document.querySelectorAll('button[data-layout-preset][data-textarea="' + taId + '"]').forEach(function (btn) {
+      var preset = defaults[btn.dataset.layoutPreset];
+      btn.classList.toggle('is-active', preset !== undefined && preset.trim() === val);
+    });
+  }
+
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('button[data-layout-preset], .tpl-reset-row button[data-textarea]');
     if (!btn || btn.classList.contains('coltpl-preview-btn')) return;
@@ -4451,7 +4493,15 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     if (ta && defaults[key] !== undefined) {
       ta.value = defaults[key];
       ta.focus();
+      if (btn.dataset.layoutPreset) {
+        syncLayoutPresetActive(ta.id);
+      }
     }
+  });
+
+  // Initialise active state for all layout-preset button groups on page load
+  document.querySelectorAll('button[data-layout-preset]').forEach(function (btn) {
+    syncLayoutPresetActive(btn.dataset.textarea);
   });
 
   // Rules pages: "Reset to Default" composer-footer button restores the whole
@@ -4497,7 +4547,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     'random-joined': 'Random Joined Listing Preview', 'latest-joined': 'Latest Joined Listing Preview',
     collective_affiliates_section: 'Affiliates Preview', collective_stats: 'Statistics Preview',
     members: 'Members List Preview', affiliates_section: 'Affiliates Section Preview',
-    stats: 'Statistics Preview', updates: 'News Feed Preview',
+    stats: 'Statistics Preview', newsfeed: 'News Feed Preview',
     codes_submit_form: 'Code Donation Form Preview', rules_intro: 'Join Rules Intro Preview',
     rules: 'Join Rules Preview',
     join_form: 'Join Form Preview', update_form: 'Update Membership Form Preview', reset_form: 'Lost Password Form Preview',
@@ -4506,7 +4556,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     collective_affiliate_apply_form: 'Collective Affiliate Apply Form Preview',
     collective_adopt_form: 'Collective Adoption Form Preview',
     kim_signup_form: 'KIM Sign-Up Form Preview',
-    wishlist: 'Wishlist Preview', collective_updates: 'Collective News Feed Preview',
+    wishlist: 'Wishlist Preview', collective_newsfeed: 'Collective News Feed Preview',
     codes: 'Codes Display Preview', collective_codes: 'Collective Codes Display Preview',
     collective_codes_submit_form: 'Collective Codes Donation Form Preview',
     collective_contact_form: 'Contact Form Preview',
@@ -4579,13 +4629,13 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
         gate_enabled: enabledEl ? (enabledEl.checked ? '1' : '0')  : '1',
         gate_type:    typeEl    ? typeEl.value                      : '',
       };
-    } else if (type === 'affiliates_section' || type === 'codes') {
+    } else if (type === 'affiliates_section' || type === 'codes' || type === 'collective_affiliates_section' || type === 'collective_codes') {
       // Collect current style/label inputs adjacent to this textarea
       var ta2 = taId ? document.getElementById(taId) : null;
       var section = ta2 ? ta2.closest('[data-tpl-group]') : null;
       if (section) {
-        var styleEl = section.querySelector('select[name="affiliate_apply_style"], select[name="codes_submit_style"], select[name="codes_submit_toggle_style"]');
-        var labelEl2 = section.querySelector('input[name="affiliate_apply_toggle_label"], input[name="codes_submit_toggle_label"]');
+        var styleEl = section.querySelector('select[name="affiliate_apply_style"], select[name="codes_submit_style"], select[name="codes_submit_toggle_style"], select[name="collective_affiliate_apply_style"], select[name="collective_codes_submit_style"]');
+        var labelEl2 = section.querySelector('input[name="affiliate_apply_toggle_label"], input[name="codes_submit_toggle_label"], input[name="collective_affiliate_apply_toggle_label"], input[name="collective_codes_submit_toggle_label"]');
         extra = {
           toggle_style: styleEl  ? styleEl.value  : '',
           toggle_label: labelEl2 ? labelEl2.value : '',
@@ -5473,6 +5523,12 @@ document.addEventListener('click', function (e) {
     if (checkedCell) {
       checkedCell.textContent = data.checked_at || '';
     }
+    if (panelId === 'joined' && data.listed_status !== undefined) {
+      applyListedResult(row, data);
+    }
+    if (panelId === 'members' && data.backlink_status !== undefined) {
+      applyBacklinkResult(row, data);
+    }
 
     row.classList.remove('lc-busy');
   }
@@ -5528,6 +5584,9 @@ document.addEventListener('click', function (e) {
           if (progLabel) progLabel.textContent = done + ' / ' + total + ' — done.';
           if (progBar)   progBar.style.width   = '100%';
           startBtn.disabled = false;
+          if (panelId === 'members') {
+            setTimeout(function () { location.reload(); }, 400);
+          }
           return;
         }
         var id  = ids[done];
@@ -5613,8 +5672,11 @@ document.addEventListener('click', function (e) {
 
     if (!row) return;
 
+    var origText = btn.textContent;
     btn.disabled = true;
+    btn.textContent = 'Checking…';
     checkOne(endpoint, csrf, id, row, panelId, function () {
+      btn.textContent = origText;
       btn.disabled = false;
     });
   });
@@ -5623,12 +5685,36 @@ document.addEventListener('click', function (e) {
   function applyBacklinkResult(row, data) {
     var badge = row.querySelector('[data-lc-backlink-badge]');
     if (!badge) return;
-    var status    = data.backlink_status || 'unchecked';
+    var newStatus = data.backlink_status || 'unchecked';
     var clsMap    = { found: 'badge-current', missing: 'badge-error', unchecked: 'badge-inactive' };
     var labelMap  = { found: 'Found', missing: 'Missing', unchecked: '—' };
+
+    var oldStatus = badge.classList.contains('badge-current') ? 'found'
+                  : badge.classList.contains('badge-error')   ? 'missing'
+                  : 'unchecked';
+
     ['badge-current', 'badge-error', 'badge-inactive'].forEach(function (c) { badge.classList.remove(c); });
-    badge.classList.add(clsMap[status] || 'badge-inactive');
-    badge.textContent = labelMap[status] || status;
+    badge.classList.add(clsMap[newStatus] || 'badge-inactive');
+    badge.textContent = labelMap[newStatus] || newStatus;
+
+    if (oldStatus !== newStatus) {
+      var foundPill   = document.querySelector('[data-lc-backlink-pill="found"]');
+      var missingPill = document.querySelector('[data-lc-backlink-pill="missing"]');
+      if (oldStatus === 'found' && foundPill) {
+        var n = parseInt(foundPill.textContent, 10);
+        if (!isNaN(n)) foundPill.textContent = Math.max(0, n - 1) + ' Backlinked';
+      } else if (oldStatus === 'missing' && missingPill) {
+        var m = parseInt(missingPill.textContent, 10);
+        if (!isNaN(m)) missingPill.textContent = Math.max(0, m - 1) + ' No Backlink';
+      }
+      if (newStatus === 'found' && foundPill) {
+        var p = parseInt(foundPill.textContent, 10);
+        if (!isNaN(p)) foundPill.textContent = (p + 1) + ' Backlinked';
+      } else if (newStatus === 'missing' && missingPill) {
+        var q = parseInt(missingPill.textContent, 10);
+        if (!isNaN(q)) missingPill.textContent = (q + 1) + ' No Backlink';
+      }
+    }
   }
 
   document.addEventListener('click', function (e) {
@@ -6884,6 +6970,21 @@ document.addEventListener('keydown', function (e) {
   wireGate('rules-tab-enabled',    'rules-tab-gate-style-row');
   // Global rules template page
   wireGate('global-rules-enabled', 'global-rules-gate-style-row');
+
+  // After a native form reset, re-sync wireGate visibility for whichever
+  // rules checkbox lives in the form that was reset.
+  document.addEventListener('reset', function (e) {
+    var form = e.target;
+    if (!form || form.tagName !== 'FORM') return;
+    setTimeout(function () {
+      ['rules-enabled', 'rules-tab-enabled', 'global-rules-enabled'].forEach(function (id) {
+        var cb = document.getElementById(id);
+        if (cb && form.contains(cb)) {
+          cb.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    }, 0);
+  });
 
 }());
 

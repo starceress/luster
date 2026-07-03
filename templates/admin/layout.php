@@ -36,7 +36,7 @@ $filterBootMap = [
     ['~/admin/wishlist(?:/|$)~', 'wl-filter-panel', 'fp-wl'],
     ['~/admin/kim(?:/|$)~', 'kim-filter-panel', 'fp-kim'],
     ['~/admin/adoptions(?:/|$)~', 'adopt-filter-panel', 'fp-adopt'],
-    ['~/admin/updates(?:/|$)~', 'upd-filter-panel', 'fp-upd'],
+    ['~/admin/newsfeed(?:/|$)~', 'upd-filter-panel', 'fp-upd'],
     ['~/admin/rules(?:/|$)~',   'rules-filter-panel', 'fp-rules'],
 ];
 $filterBootStates = json_decode((string) ($_COOKIE['lstr_fp'] ?? ''), true);
@@ -77,7 +77,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
         [/\/admin\/wishlist(?:\/|$)/,'wl-filter-panel','fp-wl'],
         [/\/admin\/kim(?:\/|$)/,'kim-filter-panel','fp-kim'],
         [/\/admin\/adoptions(?:\/|$)/,'adopt-filter-panel','fp-adopt'],
-        [/\/admin\/updates(?:\/|$)/,'upd-filter-panel','fp-upd'],
+        [/\/admin\/newsfeed(?:\/|$)/,'upd-filter-panel','fp-upd'],
         [/\/admin\/rules(?:\/|$)/,'rules-filter-panel','fp-rules']
       ];
       function cookieMap(){var m=document.cookie.match(/(?:^|; )lstr_fp=([^;]*)/);if(!m)return {};try{return JSON.parse(decodeURIComponent(m[1]));}catch(e){return {};}}
@@ -177,8 +177,8 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
       <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
       <?php endif; ?>
 
-      <?php if (in_array('Updates', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/updates" class="nav-item<?= navActive('updates', $s) ?>"><span class="nav-icon"><?= View::icon('updates') ?></span> News Feed</a>
+      <?php if (in_array('Newsfeed', $_navAddons, true)): ?>
+      <a href="<?= $b ?>/admin/newsfeed" class="nav-item<?= navActive('newsfeed', $s) ?>"><span class="nav-icon"><?= View::icon('updates') ?></span> News Feed</a>
       <?php endif; ?>
 
       <?php if (in_array('Wishlist', $_navAddons, true)): ?>

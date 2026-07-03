@@ -63,7 +63,24 @@ final class AuthMiddleware
             return Response::redirect($this->loginUrl);
         }
 
+        // The session trusts lstr_admin_id blindly, so a session opened before the
+        // account was deleted (e.g. by another admin) would otherwise stay valid
+        // until it expires. Re-verify the account still exists on every request.
+        if ($this->db !== null && !$this->adminStillExists((int) $this->session->get('lstr_admin_id'))) {
+            $this->session->destroy();
+            return Response::redirect($this->loginUrl);
+        }
+
         return null;
+    }
+
+    /** Returns true when the given admin user ID still has a row in lstr_admin_users. */
+    private function adminStillExists(int $id): bool
+    {
+        $stmt = $this->db->prepare('SELECT 1 FROM lstr_admin_users WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->fetch() !== false;
     }
 
     /**

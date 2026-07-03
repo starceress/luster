@@ -24,6 +24,7 @@ use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
@@ -195,6 +196,8 @@ final class KimAdminController extends AdminController
         $pages           = $totalListings > 0 ? (int) ceil($totalListings / $perPage) : 1;
         $page            = min(max(1, (int) $request->query('page', 1)), $pages);
         $fanlistingsData = array_slice($fanlistingsData, ($page - 1) * $perPage, $perPage);
+        $lifecycleMap    = (new ListingLifecycleRepo($db))
+            ->getMapForListings(array_map(static fn($e) => $e['listing']->id, $fanlistingsData));
 
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
@@ -203,6 +206,7 @@ final class KimAdminController extends AdminController
 
         return $this->adminLayout('admin/addons/kim/listings.php', 'Keep In Mind — Listings', 'kim', [
             'fanlistings_data' => $fanlistingsData,
+            'lifecycle_map'    => $lifecycleMap,
             'total_listings'   => $totalListings,
             'sort'             => $sort,
             'dir'              => $dir,
@@ -892,16 +896,13 @@ final class KimAdminController extends AdminController
     // GET /admin/kim/settings
     // -----------------------------------------------------------------------
 
-    /** Renders the KIM settings page (URL overrides, items per page, default landing tab). */
+    /** Renders the KIM settings page (items per page, default landing tab). */
     public function showSettings(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
         $session = $this->app->getSession();
 
         $siteSettings = new SiteSettingsRepo($db);
-        $kimUrls = $siteSettings->getMany([
-            'kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list',
-        ]);
         $kimPerPage       = max(5, min(25, (int) ($siteSettings->get('kim_per_page', '10') ?? '10')));
         $kimDefaultLanding = in_array($siteSettings->get('kim_default_landing', 'members'), ['members', 'listings'], true)
             ? $siteSettings->get('kim_default_landing', 'members')
@@ -915,7 +916,6 @@ final class KimAdminController extends AdminController
         $globalPending = (new KimMemberRepo($db))->getTabCounts(0, '')['pending'];
 
         return $this->adminLayout('admin/addons/kim/settings.php', 'Keep In Mind Settings', 'kim', [
-            'kim_urls'              => $kimUrls,
             'kim_per_page'          => $kimPerPage,
             'kim_default_landing'   => $kimDefaultLanding,
             'global_pending'        => $globalPending,
@@ -932,8 +932,8 @@ final class KimAdminController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * Saves KIM settings. If the "reset_defaults" flag is posted all four URL keys,
-     * items per page, and the default landing preference are restored to their defaults.
+     * Saves KIM settings. If the "reset_defaults" flag is posted, items per page
+     * and the default landing preference are restored to their defaults.
      */
     public function saveSettings(Request $request, array $params): Response
     {
@@ -944,20 +944,10 @@ final class KimAdminController extends AdminController
         $siteSettings = new SiteSettingsRepo($db);
 
         if ($request->post('reset_defaults') === '1') {
-            $siteSettings->set('kim_url_signup', 'kim.php');
-            $siteSettings->set('kim_url_update', 'kim-update.php');
-            $siteSettings->set('kim_url_reset',  'kim-reset.php');
-            $siteSettings->set('kim_url_list',   'kim-list.php');
             $siteSettings->set('kim_per_page', '10');
             $siteSettings->set('kim_default_landing', 'members');
             $session->set('lstr_flash_success', 'KIM settings reset to defaults.');
             return Response::redirect($baseUrl . '/admin/kim/settings');
-        }
-
-        foreach (['kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list'] as $key) {
-            $field = str_replace('kim_url_', '', $key);
-            $value = trim((string) $request->post($field, ''));
-            $siteSettings->set($key, $value !== '' ? $value : null);
         }
 
         $siteSettings->set('kim_per_page', (string) max(5, min(25, (int) $request->post('kim_per_page', 10))));

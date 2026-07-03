@@ -31,7 +31,7 @@ use Luster\Core\View;
   <form method="GET" action="<?= View::e($form_action) ?>" class="fl-category-nav fl-category-dropdown">
     <label class="fl-label" for="fl-owned-cat"><b>Choose Category:</b></label>
     <select class="fl-select" id="fl-owned-cat" name="cat">
-      <option value="all">All Categories</option>
+      <option value="all">All Listings (<?= (int) ($total_all_count ?? $total_count) ?>)</option>
       <?php foreach ($categories as $_oc):
         $_ocVal = ($_ = $_oc['slug'] ?? '') !== '' ? $_ : (string) $_oc['id'];
       ?>
@@ -52,12 +52,12 @@ use Luster\Core\View;
 <?php endif; ?>
 
 <?php if (($browse_show_all ?? false) && !empty($categories)):
-  $_tcOwned = (int) ($total_count ?? count($listings));
+  $_tcOwned = (int) ($total_all_count ?? $total_count ?? count($listings));
 ?>
   <form method="GET" action="<?= View::e($form_action) ?>" class="fl-category-nav fl-category-dropdown">
     <label class="fl-label" for="fl-owned-cat"><b>Choose Category:</b></label>
     <select class="fl-select" id="fl-owned-cat" name="cat">
-      <option value="all" selected>All Categories (<?= $_tcOwned ?>)</option>
+      <option value="all" selected>All Listings (<?= $_tcOwned ?>)</option>
       <?php foreach ($categories as $_oc):
         $_ocVal = ($_ = $_oc['slug'] ?? '') !== '' ? $_ : (string) $_oc['id'];
       ?>
@@ -66,7 +66,7 @@ use Luster\Core\View;
     </select>
     <noscript><button type="submit" class="fl-btn">Go</button></noscript>
   </form>
-  <h2 class="fl-cat-heading">All Categories (<?= $_tcOwned ?>)</h2>
+  <h2 class="fl-cat-heading">All Listings (<?= $_tcOwned ?>)</h2>
 <?php endif; ?>
 
 <?php if ($show_listings ?? true): ?>

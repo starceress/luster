@@ -33,6 +33,26 @@ $b = rtrim(View::e($base_url ?? ''), '/');
       </div>
     </div>
 
+    <!-- ── Config file reader ──────────────────────────────────────── -->
+    <div class="card-body">
+      <div class="section-label">Config File Reader</div>
+
+      <div class="field-row">
+        <label class="field-label">Auto-detect</label>
+        <div>
+          <label class="toggle-wrap">
+            <input type="checkbox" name="import_allow_config_reader" value="1"
+                   <?= ($settings['import_allow_config_reader'] ?? '0') === '1' ? 'checked' : '' ?>>
+            <span class="toggle-label">Allow auto-detect from <code>config.php</code> path</span>
+          </label>
+          <p class="form-hint">
+            Turn this on if you want Luster to read the old script's <code>config.php</code> file and fill in database details for you.
+            Luster reads the file as text; it does not run the file. Leave this off unless you trust the old config file and want the shortcut.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Source card visibility ──────────────────────────────────── -->
     <div class="card-body">
       <div class="section-label">Source Card Visibility</div>
@@ -86,26 +106,6 @@ $b = rtrim(View::e($base_url ?? ''), '/');
               <span class="toggle-label">Show Fanatically card</span>
             </label>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Config file reader ──────────────────────────────────────── -->
-    <div class="card-body">
-      <div class="section-label">Config File Reader</div>
-
-      <div class="field-row">
-        <label class="field-label">Auto-detect</label>
-        <div>
-          <label class="toggle-wrap">
-            <input type="checkbox" name="import_allow_config_reader" value="1"
-                   <?= ($settings['import_allow_config_reader'] ?? '0') === '1' ? 'checked' : '' ?>>
-            <span class="toggle-label">Allow auto-detect from <code>config.php</code> path</span>
-          </label>
-          <p class="form-hint">
-            Turn this on if you want Luster to read the old script's <code>config.php</code> file and fill in database details for you.
-            Luster reads the file as text; it does not run the file. Leave this off unless you trust the old config file and want the shortcut.
-          </p>
         </div>
       </div>
     </div>

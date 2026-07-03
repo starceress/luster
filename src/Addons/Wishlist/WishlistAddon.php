@@ -43,7 +43,7 @@ final class WishlistAddon implements AddonInterface
     /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
-        return 'A collective wishlist of fanlistings you would like to open. Supports three entry types (Wanted, Top Wanted, Granted) with category grouping and a public embed for your site pages.';
+        return 'A wishlist of listings you would like to own some day. Supports three entry types (Wanted, Top Wanted, Granted). Adds a collective-side wishlist, a per-listing wishlist, and an admin panel for managing entries. Entries can be public or private.';
     }
 
     /** Creates lstr_wishlist. */
@@ -74,9 +74,13 @@ final class WishlistAddon implements AddonInterface
         $pdo->exec('DROP TABLE IF EXISTS `lstr_wishlist`');
     }
 
-    /** Registers admin (/admin/wishlist/*) routes. */
-    public function registerRoutes(Router $router): void
+    /** Registers admin (/admin/wishlist/*) routes. No public routes — output is embed-only. */
+    public function registerRoutes(Router $router, string $context): void
     {
+        if ($context !== 'admin') {
+            return;
+        }
+
         $router->get('/admin/wishlist',                  WishlistAdminController::class, 'index');
         $router->get('/admin/wishlist/add',              WishlistAdminController::class, 'add');
         $router->post('/admin/wishlist/add',             WishlistAdminController::class, 'add');

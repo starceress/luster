@@ -286,12 +286,12 @@
 ------------------------------------------------------------------------ */
 
 .fl-file-zone {
-  --fl: ; /* Host can style: border, background, padding, cursor, etc. */
+  --fl: ; /* Outer wrapper - can style: border, background, padding, etc. */
   display: block;
 }
 
 .fl-file-prompt {
-  --fl: ; /* Host can style: text color, font, display block/inline, etc. */
+  --fl: ; /* Prompt text inside the drop zone - can style: font, color, etc. */
 }
 
 /* ------------------------------------------------------------------------

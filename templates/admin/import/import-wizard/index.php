@@ -24,11 +24,11 @@ $b = rtrim(View::e($base_url), '/');
   <div class="wizard-steps-progress wizard-steps-progress--start"></div>
   <div class="wizard-step-node wizard-step-node--active">
     <div class="wizard-step-bubble">1</div>
-    <div class="wizard-step-label" data-step-sub="Pick an import source">Source</div>
+    <div class="wizard-step-label" data-step-sub="Pick a source">Source</div>
   </div>
   <div class="wizard-step-node">
     <div class="wizard-step-bubble">2</div>
-    <div class="wizard-step-label" data-step-sub="Connect or upload data">Connect</div>
+    <div class="wizard-step-label" data-step-sub="Database or upload">Connect</div>
   </div>
   <div class="wizard-step-node">
     <div class="wizard-step-bubble">3</div>
@@ -36,7 +36,7 @@ $b = rtrim(View::e($base_url), '/');
   </div>
   <div class="wizard-step-node">
     <div class="wizard-step-bubble">4</div>
-    <div class="wizard-step-label" data-step-sub="Review the dry run">Preview</div>
+    <div class="wizard-step-label" data-step-sub="Review your umport">Preview</div>
   </div>
   <div class="wizard-step-node">
     <div class="wizard-step-bubble">5</div>
@@ -61,12 +61,9 @@ $b = rtrim(View::e($base_url), '/');
       <li><?= View::icon('check') ?> Assigned categories</li>
       <li><?= View::icon('check') ?> Affiliates</li>
       <li><?= View::icon('check') ?> Per-listing settings</li>
+      <li><?= View::icon('check') ?> Email templates</li>
       <li><?= View::icon('check') ?> Other saved templates</li>
     </ul>
-    <div class="import-source-note">
-      If Enthusiast shares Luster's database, Luster can already read the member tables.
-      <span class="import-source-arrow">&#8594;</span>
-    </div>
   </a>
   <?php endif; ?>
 
@@ -81,14 +78,11 @@ $b = rtrim(View::e($base_url), '/');
       <li><?= View::icon('check') ?> Members</li>
       <li><?= View::icon('check') ?> Assigned categories</li>
       <li><?= View::icon('check') ?> Affiliates</li>
-      <li><?= View::icon('check') ?> Updates <code>Needs Updates Add-On</code></li>
-      <li><?= View::icon('check') ?> Wishlist <code>Needs Wishlist Add-On</code></li>
-      <li><?= View::icon('check') ?> KIM List <code>Needs KIM Add-On</code></li>
+      <li><?= View::icon('check') ?> News Feed</li>
+      <li><?= View::icon('check') ?> Wishlist</li>
+      <li><?= View::icon('check') ?> KIM List</li>
+      <li><?= View::icon('check') ?> Join Rules</li>
     </ul>
-    <div class="import-source-note">
-      Listing Admin's shared tables are split into Luster's per-listing structure.
-      <span class="import-source-arrow">&rarr;</span>
-    </div>
   </a>
   <?php endif; ?>
 
@@ -103,10 +97,6 @@ $b = rtrim(View::e($base_url), '/');
       <li><?= View::icon('check') ?> Affiliates</li>
       <li><?= View::icon('check') ?> Codes </li>
     </ul>
-    <div class="import-source-note">
-      Reads BellaBuffs text files and saves the data into Luster.
-      <span class="import-source-arrow">&#8594;</span>
-    </div>
   </a>
   <?php endif; ?>
 
@@ -119,17 +109,15 @@ $b = rtrim(View::e($base_url), '/');
       <li><?= View::icon('check') ?> Owned listings</li>
       <li><?= View::icon('check') ?> Joined listings</li>
       <li><?= View::icon('check') ?> Members</li>
+      <li><?= View::icon('check') ?> Pending member updates</li>
       <li><?= View::icon('check') ?> Assigned categories</li>
       <li><?= View::icon('check') ?> Affiliates</li>
-      <li><?= View::icon('check') ?> Codes (fan graphics)</li>
-      <li><?= View::icon('check') ?> Wishlist <code>Needs Wishlist Add-On</code></li>
-      <li><?= View::icon('check') ?> KIM List <code>Needs KIM Add-On</code></li>
-      <li><?= View::icon('check') ?> Adoptions <code>Needs Adoption Add-On</code></li>
+      <li><?= View::icon('check') ?> Codes</li>
+      <li><?= View::icon('check') ?> Wishlist</li>
+      <li><?= View::icon('check') ?> KIM List</li>
+      <li><?= View::icon('check') ?> Adoptions</li>
+      <li><?= View::icon('check') ?> Site settings</li>
     </ul>
-    <div class="import-source-note">
-      <span>SMTP credentials and API keys are never imported.</span>
-      <span class="import-source-arrow">&#8594;</span>
-    </div>
   </a>
   <?php endif; ?>
 
@@ -139,13 +127,9 @@ $b = rtrim(View::e($base_url), '/');
       <span class="panel-header-title">CodeSort</span>
     </div>
     <ul class="import-source-list">
-      <li><?= View::icon('check') ?> Codes, code categories, sizes & donors</li>
-      <li><?= View::icon('check') ?> Optional image file migration</li>
+      <li><?= View::icon('check') ?> Codes</li>
+      <li><?= View::icon('check') ?> Assigned categories, sizes & donors</li>
     </ul>
-    <div class="import-source-note">
-      Default installs match codes by listing ID. Custom-prefix installs match by listing title.
-      <span class="import-source-arrow">&#8594;</span>
-    </div>
   </a>
   <?php endif; ?>
 
@@ -153,17 +137,11 @@ $b = rtrim(View::e($base_url), '/');
   <a href="<?= $b ?>/admin/import/fanupdate/connect" class="import-source-card">
     <div class="import-source-header" style="color:var(--card-border-3)">
       <span class="panel-header-title">FanUpdate</span>
-      <span class="badge badge-pending">Beta</span>
     </div>
     <ul class="import-source-list">
-      <li><code>Needs Updates Add-On</code></li>
       <li><?= View::icon('check') ?> Blog entries</li>
       <li><?= View::icon('check') ?> Per-fanlisting assignment, matched by title</li>
     </ul>
-    <div class="import-source-note">
-      Only blog entries are imported; other features (e.g. news, events) are not imported.
-      <span class="import-source-arrow">&#8594;</span>
-    </div>
   </a>
   <?php endif; ?>
 

@@ -69,7 +69,10 @@ final class UpdateApplier
 
         $isNewer = UpdateChecker::compareVersions(Version::CURRENT, $version);
         $isNewerByDate = false;
-        if ($isNewer !== true && version_compare($version, ltrim(Version::CURRENT, 'v'), '<=') && isset($release['published_at'])) {
+        // Only apply the date fallback for a genuine version-reset (remote strictly less
+        // than installed, e.g. 1.0.18 -> 1.0.0 with a newer build). Equal versions are
+        // never "newer" - see the same guard in UpdateChecker::getStatus().
+        if ($isNewer !== true && version_compare($version, ltrim(Version::CURRENT, 'v'), '<') && isset($release['published_at'])) {
             $remoteTs = strtotime((string) $release['published_at']);
             $builtTs  = strtotime(Version::BUILT_AT);
             $isNewerByDate = ($remoteTs !== false && $builtTs !== false && $remoteTs > $builtTs);

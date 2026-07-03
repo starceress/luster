@@ -157,6 +157,8 @@ foreach ($_lusterFanlistings as $_lusterFl) {
 }
 $_lusterFlSelectHtml .= '</select>';
 
+$_lusterCaptchaQ = \Luster\Core\Captcha::getQuestion('kim_signup');
+
 $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',     'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                     'required' => true,  'value' => (string) ($_lusterOld['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
     ['type' => 'url',      'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL (optional)',  'required' => false, 'value' => (string) ($_lusterOld['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
@@ -164,6 +166,7 @@ $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'select',   'name' => 'fanlisting_id',   'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $_lusterFlSelectHtml],
     ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password (optional)',       'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Leave blank to auto-generate. Minimum 12 characters if choosing your own.'],
     ['type' => 'password', 'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+    ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
 
 $_lusterFormHtml     = null;
@@ -186,7 +189,7 @@ if ($_lusterKimSignupTpl !== '') {
         '{field_password_confirm_input}'      => $_lusterF['password_confirm_input'],
         '{captcha_block}'                     => $_lusterF['captcha_answer'],
         '{captcha_block_input}'               => $_lusterF['captcha_answer_input'] ?? '',
-        '{captcha_question}'                  => htmlspecialchars(\Luster\Core\Captcha::getQuestion('kim_signup'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        '{captcha_question}'                  => htmlspecialchars($_lusterCaptchaQ, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
         '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
     ];

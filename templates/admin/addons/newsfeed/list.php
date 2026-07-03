@@ -3,31 +3,31 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- News Feed admin update list for a single listing or the collective. Shows all
- update entries in a paginated table with search, category filtering, and inline
- delete. Each row links to the edit form. The "Add Update" button creates a new entry.
+ Newsfeed admin entry list for a single listing or the collective. Shows all
+ entries in a paginated table with search, category filtering, and inline
+ delete. Each row links to the edit form. The "Add Entry" button creates a new entry.
 */
 
 declare(strict_types=1);
 
 /**
- * @var \Luster\Addons\Updates\Update[] $updates
- * @var int                             $total
- * @var int                             $page
- * @var int                             $pages
- * @var bool                            $is_collective
- * @var string                          $ctx_name
- * @var \Luster\Models\Listing|null     $listing
- * @var string                          $success
- * @var string                          $error
- * @var string                          $base_url
- * @var string                          $csrf_token
- * @var string                          $admin_date_format
- * @var string                          $admin_time_format
- * @var int                             $per_page
- * @var string                          $search
- * @var string                          $filter_category
- * @var string[]                        $known_categories
+ * @var \Luster\Addons\Newsfeed\NewsfeedEntry[] $updates
+ * @var int                                     $total
+ * @var int                                     $page
+ * @var int                                     $pages
+ * @var bool                                    $is_collective
+ * @var string                                  $ctx_name
+ * @var \Luster\Models\Listing|null             $listing
+ * @var string                                  $success
+ * @var string                                  $error
+ * @var string                                  $base_url
+ * @var string                                  $csrf_token
+ * @var string                                  $admin_date_format
+ * @var string                                  $admin_time_format
+ * @var int                                     $per_page
+ * @var string                                  $search
+ * @var string                                  $filter_category
+ * @var string[]                                $known_categories
  */
 
 use Luster\Core\View;
@@ -35,8 +35,8 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url), '/');
 
 $listBase = $is_collective
-    ? $b . '/admin/updates/collective'
-    : $b . '/admin/updates/' . (int) $listing->id;
+    ? $b . '/admin/newsfeed/collective'
+    : $b . '/admin/newsfeed/' . (int) $listing->id;
 
 $addUrl = $listBase . '/add';
 
@@ -65,7 +65,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
 <?php endif; ?>
 
 <div class="toolbar">
-  <a href="<?= $b ?>/admin/updates" class="link">&larr; Back to News Feed</a>
+  <a href="<?= $b ?>/admin/newsfeed" class="link">&larr; Back to News Feed</a>
 </div>
 
 <!-- ──── TOOLBAR ─────────────────────────────────────────────────────── -->
@@ -80,7 +80,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
     </button>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Update</a>
+    <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Entry</a>
   </div>
 </div>
 
@@ -117,13 +117,13 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
 <div class="card empty">
     <?= View::icon('updates', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
     <?php if ($filtersActive): ?>
-      <div><strong>No updates match those filters.</strong></div>
+      <div><strong>No entries match those filters.</strong></div>
       <a href="<?= View::e($listBase) ?>" class="btn btn-ghost btn-sm">Clear Filters</a>
     <?php else: ?>
-      <div><strong>No updates posted yet.</strong></div>
-      <div>Post your first update to let visitors know what's new.</div>
+      <div><strong>No entries posted yet.</strong></div>
+      <div>Post your first entry to let visitors know what's new.</div>
       <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm">
-        <?= View::icon('add') ?> Add Update
+        <?= View::icon('add') ?> Add Entry
       </a>
     <?php endif; ?>
   </div>
@@ -134,7 +134,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
 <?php if (!$filtersActive): ?>
   <div class="stats-grid stats-grid-plain stats-grid--compact">
     <div class="stat-card">
-      <div class="stat-header">Total Updates</div>
+      <div class="stat-header">Total Entries</div>
       <div class="stat-value-sm"><?= (int) $total ?></div>
     </div>
     <?php if ($latestDate !== null): ?>
@@ -155,8 +155,8 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
 <div class="overview-section-divider"></div>
 
 <!-- ──── COMPACT ROWS ───────────────────────────────────────────────── -->
-<form method="POST" action="<?= $b ?>/admin/updates/bulk"
-      data-del-bulk data-del-entity="update">
+<form method="POST" action="<?= $b ?>/admin/newsfeed/bulk"
+      data-del-bulk data-del-entity="entry">
   <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
   <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
 
@@ -213,13 +213,13 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
               <?php endif; ?>
             </div>
             <div class="actions-row">
-              <a href="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/edit"
+              <a href="<?= $b ?>/admin/newsfeed/entry/<?= (int) $u->id ?>/edit"
                  class="btn btn-tertiary btn-xs">Edit</a>
               <form method="POST"
-                    action="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/delete"
+                    action="<?= $b ?>/admin/newsfeed/entry/<?= (int) $u->id ?>/delete"
                     class="action-form-inline"
                     data-del-modal
-                    data-del-entity="update"
+                    data-del-entity="entry"
                     data-del-name="<?= View::e($u->title) ?>">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
                 <button type="submit" class="btn btn-danger btn-xs">Delete</button>

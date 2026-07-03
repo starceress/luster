@@ -109,7 +109,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
     </button>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/kim/listings" class="btn btn-primary btn-sm">Toggle Listing View</a>
+    <a href="<?= $b ?>/admin/kim/listings" class="btn btn-primary btn-sm">Listing View</a>
     <a href="<?= $b ?>/admin/kim/add" class="btn btn-secondary btn-sm"><?= View::icon('add') ?> Add KIM Entry</a>
     <a href="<?= $b ?>/admin/kim/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>KIM Settings</a>
   </div>

@@ -59,8 +59,8 @@ family applies to it.
 | Latest owned listing | `public/embed/latest-listing.php` | Shows one newest owned listing. | Default uses `.fl-latest-listing-*`; no outer `.fl-embed--latest` wrapper | Latest listing tokens |
 | Random owned listing | `public/embed/random-listing.php` | Shows one random owned listing. | Default uses `.fl-random-listing-*`; no outer `.fl-embed--random` wrapper | Random listing tokens |
 | Wishlist | `public/embed/wishlist.php` | Shows collective wishlist entries. | `.fl-embed--wishlist`, `.fl-wishlist-*` | Wishlist tokens |
-| Per-listing updates | `public/embed/updates.php` | Shows updates for one fanlisting. | `.fl-embed--updates`, `.fl-update-*`, pagination classes | Updates tokens, pagination tokens |
-| Collective updates | `public/embed/collective-updates.php` | Shows site-wide updates. | `.fl-embed--collective-updates`, `.fl-update-*`, pagination classes | Updates tokens, pagination tokens |
+| Per-listing news feed | `public/embed/newsfeed.php` | Shows news feed entries for one fanlisting. | `.fl-embed--updates`, `.fl-update-*`, pagination classes | News Feed tokens, pagination tokens |
+| Collective news feed | `public/embed/collective-newsfeed.php` | Shows site-wide news feed. | `.fl-embed--collective-updates`, `.fl-update-*`, pagination classes | News Feed tokens, pagination tokens |
 | Collective membership update | `public/embed/collective-update.php` | Lets a member update their name, URL, country, and password across all fanlistings they're in, via an email verification link. No `$luster_fanlisting_id` needed. Step 1 is template-controlled; Step 2 is PHP-rendered. | `.fl-collective-update-form`, `.fl-collective-update-*`, form classes | Collective Update Form template tokens |
 | KIM overview/subject list | `public/embed/kim-list.php` | Shows the KIM overview (all subjects) or the KIM member list for one subject, depending on `$luster_kim_subject_id`. | `.fl-embed--kim-list`, `.fl-kim-*` | KIM List Overview tokens (overview mode), KIM List Subject Page tokens (subject mode), or `kim_member_template` (legacy row-only fallback in subject mode) |
 | KIM signup | `public/embed/kim-signup.php` | Lets someone sign up for KIM notifications. | `.fl-embed--kim-signup`, `.fl-kim`, form classes | Form field wrapper tokens, success template tokens |
@@ -217,7 +217,9 @@ the admin Templates-tab preview:
 - **New-style** — the saved template contains `{each_member}...{/each_member}`.
   That block is extracted and repeated once per member; everything outside it
   renders once as a page-level wrapper. Page-level conditionals
-  (`{if_members}...{/if_members}`, `{if_no_members}...{/if_no_members}`) and
+  (`{if_members}...{/if_members}`, `{if_no_members}...{/if_no_members}`,
+  `{if_country_sort}...{/if_country_sort}`,
+  `{if_no_country_sort}...{/if_no_country_sort}`) and
   page-level tokens (`{join_url}`, `{member_count}`, `{stats_line}`,
   `{sort_link_all}`, `{sort_link_name}`, `{sort_link_country}`) are only
   processed in this mode.
@@ -230,6 +232,11 @@ Both modes support per-member conditionals:
 
 - `{if_fan_url}...{/if_fan_url}` / `{if_no_fan_url}...{/if_no_fan_url}`
 - `{if_fan_country}...{/if_fan_country}` / `{if_no_fan_country}...{/if_no_fan_country}`
+
+New-style only — page-level sort-mode conditionals:
+
+- `{if_no_country_sort}...{/if_no_country_sort}` — content rendered when displaying individual member rows (name/added sort), removed when the country summary list is shown instead.
+- `{if_country_sort}...{/if_country_sort}` — content rendered only when the country summary list is shown.
 
 | Token | What it means |
 | --- | --- |
@@ -648,10 +655,10 @@ Related classes: `.fl-codes`, `.fl-code-group`, `.fl-code-group-label`,
 | `{if_no_donor_url}...{/if_no_donor_url}` | Shows only when donor URL is blank. |
 | `{if_code_name}...{/if_code_name}` | Shows only when code name exists. |
 
-## Updates Template Tokens
+## News Feed Template Tokens
 
-Used by per-listing `updates_template` and collective
-`collective_updates_template`.
+Used by per-listing `newsfeed_template` and collective
+`collective_newsfeed_template`.
 
 Related classes: `.fl-updates`, `.fl-update-item`, `.fl-update-header`,
 `.fl-update-title`, `.fl-update-date`, `.fl-update-body`,

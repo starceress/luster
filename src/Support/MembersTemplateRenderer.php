@@ -41,6 +41,10 @@ final class MembersTemplateRenderer
     ): string {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
+        // Not in country-sort mode: keep {if_no_country_sort} content, remove {if_country_sort} blocks
+        $template = preg_replace('/\{if_country_sort\}.*?\{\/if_country_sort\}/s', '', $template) ?? $template;
+        $template = str_replace(['{if_no_country_sort}', '{/if_no_country_sort}'], '', $template);
+
         $buildTokens = function (Member $member) use ($e, $fields): array {
             $tokens = [
                 '{fan_name}'    => $e($member->name),
@@ -112,6 +116,10 @@ final class MembersTemplateRenderer
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         $template = (string) preg_replace('/\{each_member\}.*?\{\/each_member\}/s', $bodyHtml, $template, 1);
+
+        // In country-sort mode: keep {if_country_sort} content, remove {if_no_country_sort} blocks
+        $template = preg_replace('/\{if_no_country_sort\}.*?\{\/if_no_country_sort\}/s', '', $template) ?? $template;
+        $template = str_replace(['{if_country_sort}', '{/if_country_sort}'], '', $template);
 
         if ($total > 0) {
             $template = preg_replace('/\{if_no_members\}.*?\{\/if_no_members\}/s', '', $template) ?? $template;

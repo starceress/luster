@@ -1032,7 +1032,7 @@ final class AffiliateRepo
      * @param ?string $search       Name substring filter (null = all)
      * @return array{items: Affiliate[], total: int}
      */
-    public function paginateForLinkCheck(?int $listingId, int $perPage, int $page, string $orderBy = 'name ASC', ?string $statusFilter = null, ?string $search = null): array
+    public function paginateForLinkCheck(?int $listingId, int $perPage, int $page, string $orderBy = 'name ASC', ?string $statusFilter = null, ?string $search = null, ?string $reciprocalFilter = null): array
     {
         [$where, $params] = $this->buildListingFilter('pending = 0', $listingId);
 
@@ -1041,6 +1041,12 @@ final class AffiliateRepo
         } elseif (in_array($statusFilter, ['ok', 'redirect', 'dead'], true)) {
             $where .= ' AND link_status = :ls_filter';
             $params[':ls_filter'] = $statusFilter;
+        }
+
+        if ($reciprocalFilter === 'found') {
+            $where .= " AND reciprocal_status = 'found'";
+        } elseif ($reciprocalFilter === 'missing') {
+            $where .= " AND reciprocal_status = 'missing'";
         }
 
         if ($search !== null && $search !== '') {
@@ -1081,6 +1087,25 @@ final class AffiliateRepo
         );
         $stmt->execute($params);
         $out = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
+        foreach ($stmt->fetchAll() as $row) {
+            $s = $row['s'];
+            if (isset($out[$s])) { $out[$s] = (int) $row['cnt']; }
+            else { $out['unchecked'] += (int) $row['cnt']; }
+        }
+        return $out;
+    }
+
+    /**
+     * @return array{found:int,missing:int,unchecked:int}
+     */
+    public function getReciprocalStats(?int $listingId = null): array
+    {
+        [$where, $params] = $this->buildListingFilter('pending = 0', $listingId);
+        $stmt = $this->db->prepare(
+            "SELECT COALESCE(reciprocal_status, 'unchecked') AS s, COUNT(*) AS cnt FROM lstr_affiliates WHERE {$where} GROUP BY s"
+        );
+        $stmt->execute($params);
+        $out = ['found' => 0, 'missing' => 0, 'unchecked' => 0];
         foreach ($stmt->fetchAll() as $row) {
             $s = $row['s'];
             if (isset($out[$s])) { $out[$s] = (int) $row['cnt']; }

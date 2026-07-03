@@ -699,7 +699,7 @@ final class JoinedListingRepo
      * @param ?string $search       Name substring filter (null = all)
      * @return array{items: JoinedListing[], total: int}
      */
-    public function paginateForLinkCheck(int $perPage, int $page, string $orderBy = 'name ASC', ?string $statusFilter = null, ?string $search = null): array
+    public function paginateForLinkCheck(int $perPage, int $page, string $orderBy = 'name ASC', ?string $statusFilter = null, ?string $search = null, ?string $listedFilter = null): array
     {
         $where  = '1=1';
         $params = [];
@@ -709,6 +709,12 @@ final class JoinedListingRepo
         } elseif (in_array($statusFilter, ['ok', 'redirect', 'dead'], true)) {
             $where = 'link_status = :ls_filter';
             $params[':ls_filter'] = $statusFilter;
+        }
+
+        if ($listedFilter === 'listed') {
+            $where .= " AND listed_status = 'listed'";
+        } elseif ($listedFilter === 'not_listed') {
+            $where .= " AND listed_status = 'not_found'";
         }
 
         if ($search !== null && $search !== '') {
@@ -856,9 +862,12 @@ final class JoinedListingRepo
     {
         $this->db->prepare(
             "UPDATE lstr_joined
-             SET link_status       = 'unchecked',
-                 link_checked_at   = NULL,
-                 link_redirect_url = NULL"
+             SET link_status        = 'unchecked',
+                 link_checked_at    = NULL,
+                 link_redirect_url  = NULL,
+                 listed_status      = 'unchecked',
+                 listed_checked_at  = NULL,
+                 listed_members_url = NULL"
         )->execute();
     }
 

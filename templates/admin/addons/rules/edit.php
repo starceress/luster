@@ -80,7 +80,7 @@ $defaultGateLabel = $currentGateType === 'button'
               <p class="form-hint">HTML is allowed. Use tokens like <code>{subject}</code>, <code>{gate_checkbox}</code>, and <code>{gate_button}</code> to insert dynamic content. Editing this text will increment the version number and require fans to agree again on their next visit.</p>
               <div class="tpl-reset-row">
                 <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="rules" data-textarea="rules-body"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-                <button type="button" class="btn btn-quaternary btn-xs" data-textarea="rules-body">Reset to Default</button>
+                <button type="button" class="btn btn-quaternary btn-xs" data-textarea="rules-body">Reset to Luster Default</button>
               </div>
             </div>
           </div>
@@ -125,7 +125,7 @@ $defaultGateLabel = $currentGateType === 'button'
 
         <div class="composer-footer">
           <button type="submit" class="btn btn-primary">Save Rules</button>
-          <button type="button" class="btn btn-quaternary js-rules-reset-defaults" data-form-reset="rules-body">Reset to Default</button>
+          <button type="reset" class="btn btn-quaternary">Reset</button>
           <?php if ($rules !== null): ?>
           <div class="composer-footer-spacer"></div>
           <button type="submit" form="rules-delete-form" class="btn btn-danger">Delete</button>

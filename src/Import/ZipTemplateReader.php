@@ -216,7 +216,7 @@ final class ZipTemplateReader
             }
 
             // Read via stream in fixed chunks, capping on actual bytes.
-            $content = $this->readEntryStreamed($zip, $i, $rawName, $totalActualBytes);
+            $content = $this->readEntryStreamed($zip, $rawName, $totalActualBytes);
             if ($content === null) {
                 // Rejection was recorded inside readEntryStreamed.
                 continue;
@@ -460,9 +460,12 @@ final class ZipTemplateReader
      *
      * @param int &$totalActualBytes  Running total updated by the caller after success.
      */
-    private function readEntryStreamed(ZipArchive $zip, int $index, string $rawName, int $totalActualBytes): ?string
+    private function readEntryStreamed(ZipArchive $zip, string $rawName, int $totalActualBytes): ?string
     {
-        $stream = $zip->getStreamIndex($index);
+        // getStreamIndex() only exists on PHP 8.2+; getStream() by name works on 8.1
+        // (Luster's documented minimum) and $rawName is already the exact entry name
+        // for this index (from statIndex() in the caller), so no extra lookup is needed.
+        $stream = $zip->getStream($rawName);
         if ($stream === false) {
             $this->rejected[] = ['path' => $rawName, 'reason' => 'Could not open entry stream.'];
             return null;

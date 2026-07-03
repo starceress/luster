@@ -3,8 +3,9 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- Keep In Mind (KIM) admin settings page. Configures the public KIM page URLs
- (sign-up, update, reset, list) and the admin display pagination setting.
+ Keep In Mind (KIM) admin settings page. Configures the admin display default
+ view and pagination setting. Public KIM page URLs are configured under
+ Collective Settings.
 */
 
 declare(strict_types=1);
@@ -12,12 +13,6 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
-$_defaults = [
-    'kim_url_signup' => 'kim.php',
-    'kim_url_update' => 'kim-update.php',
-    'kim_url_reset'  => 'kim-reset.php',
-    'kim_url_list'   => 'kim-list.php',
-];
 ?>
 
 <div class="toolbar">
@@ -35,14 +30,13 @@ $_defaults = [
   <div class="panel-header">
     <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
     <div class="panel-header-meta">
-      <div class="panel-header-title">Display & Embed Settings</div>
-      <div class="panel-header-sub">Configure the display settings of the admin panel & the public page URLs used by the KIM List embed.</div>
+      <div class="panel-header-title">Display Settings</div>
+      <div class="panel-header-sub">Configure the display settings of the admin panel.</div>
     </div>
   </div>
   <form method="post" action="<?= $b ?>/admin/kim/settings">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <div class="card-body">
-      <div class="section-label">Display Settings</div>
       <div class="field-row">
         <label class="field-label">Default View</label>
         <div>
@@ -71,35 +65,8 @@ $_defaults = [
     </div>
 
     <div class="card-body">
-      <div class="section-label">Host Page URLs</div>
-      <p class="text-dim">Enter the <strong>page filename</strong> of each KIM page on your site. Luster will prepend your site's base URL automatically. These are used for email links and cross-embed navigation.</p>
-
-      <div class="card-body">
-        <div class="field-row">
-          <label class="field-label" for="kim-url-signup">Sign Up page</label>
-          <input id="kim-url-signup" type="text" name="signup" class="form"
-                 maxlength="500"
-                 value="<?= View::e(($kim_urls['kim_url_signup'] ?? '') !== '' ? $kim_urls['kim_url_signup'] : $_defaults['kim_url_signup']) ?>">
-        </div>
-        <div class="field-row">
-          <label class="field-label" for="kim-url-update">Update Info page</label>
-          <input id="kim-url-update" type="text" name="update" class="form"
-                 maxlength="500"
-                 value="<?= View::e(($kim_urls['kim_url_update'] ?? '') !== '' ? $kim_urls['kim_url_update'] : $_defaults['kim_url_update']) ?>">
-        </div>
-        <div class="field-row">
-          <label class="field-label" for="kim-url-reset">Password Reset page</label>
-          <input id="kim-url-reset" type="text" name="reset" class="form"
-                 maxlength="500"
-                 value="<?= View::e(($kim_urls['kim_url_reset'] ?? '') !== '' ? $kim_urls['kim_url_reset'] : $_defaults['kim_url_reset']) ?>">
-        </div>
-        <div class="field-row">
-          <label class="field-label" for="kim-url-list">Public KIM List page</label>
-          <input id="kim-url-list" type="text" name="list" class="form"
-                 maxlength="500"
-                 value="<?= View::e(($kim_urls['kim_url_list'] ?? '') !== '' ? $kim_urls['kim_url_list'] : $_defaults['kim_url_list']) ?>">
-        </div>
-      </div>
+      <div class="section-label">Form URLs</div>
+      <p class="form-hint">Public form URLs for Keep In Mind are set on the <a href="<?= $b ?>/admin/collective/settings#collective-kim-urls" class="link">Collective Settings</a> page.</p>
     </div>
 
     <div class="composer-footer">

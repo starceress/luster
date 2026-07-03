@@ -61,7 +61,7 @@ use Luster\Core\View;
         <div>
           <input type="email" id="f-contact" name="contact_email" class="form" required
                  value="<?= View::e($old['contact_email'] ?? $admin_email) ?>" maxlength="254">
-          <p class="form-hint">By default, the report is sent using the email registered with your admin account. If you'd like to use another email, please type it above.</p>
+          <p class="form-hint">By default, the report is sent using the email associated with your admin account (Settings &rarr; Account Details). If you'd like to use another email, please type it above.</p>
           <?php if (isset($field_errors['contact_email'])): ?>
           <p class="field-error"><?= View::e($field_errors['contact_email']) ?></p>
           <?php endif; ?>
@@ -74,7 +74,7 @@ use Luster\Core\View;
         <div>
           <input type="url" id="f-contact-url" name="contact_url" class="form"
                  value="<?= View::e($old['contact_url'] ?? $site_url ?? '') ?>" maxlength="512" placeholder="https://yoursite.example.com">
-          <p class="form-hint">Optional. By default, the report is sent using the website/collective URL registered with your admin account. If you'd like to use another website, please include it above.</p>
+          <p class="form-hint">Optional. By default, the report is sent using the website URL registered with your admin account (Settings &rarr; General). If you'd like to use another website, please include it above.</p>
           <?php if (isset($field_errors['contact_url'])): ?>
           <p class="field-error"><?= View::e($field_errors['contact_url']) ?></p>
           <?php endif; ?>
@@ -116,7 +116,7 @@ use Luster\Core\View;
         <label class="field-label" for="f-message">Description <span class="req">*</span></label>
         <div>
           <textarea id="f-message" name="message" class="form" rows="9"><?= View::e($old['message'] ?? '') ?></textarea>
-          <p class="form-hint">Describe your issue, question, or suggestion in as much detail as possible.</p>
+          <p class="form-hint">Please describe your issue, question, or suggestion in as much detail as possible.</p>
           <?php if (isset($field_errors['message'])): ?>
           <p class="field-error"><?= View::e($field_errors['message']) ?></p>
           <?php endif; ?>
@@ -132,7 +132,7 @@ use Luster\Core\View;
                    <?= ($old['include_sysinfo'] ?? '1') !== '' ? 'checked' : '' ?>>
             Attach system information to this report
           </label>
-          <p class="form-hint">Includes Luster version, PHP version, database version, and installed add-ons. Recommended for bug reports.</p>
+          <p class="form-hint">Recommended for bug reports. Includes Luster version, PHP version, database version, and installed add-ons. Your internal file paths will not be included.</p>
           <details class="form-details">
             <summary>Preview system info</summary>
             <div class="form-details-body">
@@ -152,7 +152,7 @@ use Luster\Core\View;
                    <?= ($old['include_errorlog'] ?? '1') !== '' ? 'checked' : '' ?>>
             Attach the last 10 error log entries
           </label>
-          <p class="form-hint">Recent technical errors from your install. Useful for diagnosing bugs. May include internal file paths.</p>
+          <p class="form-hint">Useful for diagnosis and debugging. Includes recent technical errors from your install. Internal file paths are trimmed to their location within Luster, so your server's folder structure isn't exposed.</p>
           <details class="form-details">
             <summary>Preview error log</summary>
             <div class="form-details-body">

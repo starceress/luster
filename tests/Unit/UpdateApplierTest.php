@@ -5,12 +5,42 @@ declare(strict_types=1);
 namespace Luster\Tests\Unit;
 
 use Luster\Core\UpdateApplier;
+use Luster\Core\Version;
 use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 final class UpdateApplierTest extends TestCase
 {
     private string $stagingDir;
+
+    /**
+     * A GitHub "latest release" response tagged at the currently-installed version,
+     * published after Version::BUILT_AT (always true in practice, since a release is
+     * published some time after its build is stamped).
+     */
+    private function equalVersionReleaseJson(): string
+    {
+        return json_encode([
+            'tag_name'     => 'v' . Version::CURRENT,
+            'html_url'     => 'https://github.com/' . Version::GITHUB_REPO . '/releases/tag/v' . Version::CURRENT,
+            'published_at' => date('c', strtotime(Version::BUILT_AT) + 3600),
+            'assets'       => [],
+        ]);
+    }
+
+    public function testPrepareReportsUpToDateWhenReleaseVersionEqualsInstalled(): void
+    {
+        $applier = new UpdateApplier(
+            $this->stagingDir,
+            SqliteDatabase::make(''),
+            fn (string $url): string => $this->equalVersionReleaseJson(),
+        );
+
+        $result = $applier->prepare();
+
+        self::assertFalse($result['ok']);
+        self::assertTrue($result['up_to_date']);
+    }
 
     protected function setUp(): void
     {

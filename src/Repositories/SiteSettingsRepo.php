@@ -104,7 +104,7 @@ class SiteSettingsRepo
      * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_contact_sent_template: string, collective_adoption_form_template: string, collective_kim_list_overview_template: string, collective_kim_list_subject_template: string, kim_update_form_template: string, kim_reset_form_template: string, collective_contact_form_template: string, collective_update_form_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_newsfeed_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_contact_sent_template: string, collective_adoption_form_template: string, collective_kim_list_overview_template: string, collective_kim_list_subject_template: string, kim_update_form_template: string, kim_reset_form_template: string, collective_contact_form_template: string, collective_update_form_template: string}
      */
     public static function collectiveDefaults(): array
     {
@@ -238,7 +238,7 @@ class SiteSettingsRepo
             'collective_affiliate_apply_form_template' => self::defaultCollectiveAffiliateApplyFormTemplate(),
             'kim_signup_form_template'                   => self::defaultKimSignupFormTemplate(),
             'wishlist_template'                          => self::defaultWishlistTemplate(),
-            'collective_updates_template'                => self::defaultCollectiveUpdatesTemplate(),
+            'collective_newsfeed_template'                => self::defaultCollectiveNewsfeedTemplate(),
             'collective_codes_template'                  => self::defaultCollectiveCodesTemplate(),
             'collective_codes_submit_form_template'      => self::defaultCollectiveCodesSubmitFormTemplate(),
             'collective_contact_sent_template'           => '<div class="fl-success"><p>Your message has been sent. Thank you for getting in touch, {sender_name}!</p></div>',
@@ -352,12 +352,12 @@ HTML;
     }
 
     /**
-     * Default Collective Updates Feed template used when no override is stored in the database.
+     * Default Collective Newsfeed template used when no override is stored in the database.
      *
      * Uses the {each_update} loop with per-entry tokens; mirrors the per-listing
-     * ListingSettingsRepo::defaultUpdatesTemplate() layout.
+     * ListingSettingsRepo::defaultNewsfeedTemplate() layout.
      */
-    public static function defaultCollectiveUpdatesTemplate(): string
+    public static function defaultCollectiveNewsfeedTemplate(): string
     {
         return '<div class="fl-updates-list">' . "\n"
             . '{if_no_updates}<p>No updates posted yet.</p>{/if_no_updates}' . "\n"
@@ -641,7 +641,7 @@ HTML;
             'listing_default_members_template',
             'listing_default_stats_template',
             'listing_default_affiliates_section_template',
-            'listing_default_updates_template',
+            'listing_default_newsfeed_template',
             'listing_default_join_form_template',
             'listing_default_codes_submit_form_template',
             'listing_default_affiliate_apply_form_template',

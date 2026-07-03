@@ -3,20 +3,20 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- Immutable value object representing a single news feed entry from the
- lstr_updates table. Holds the title, body, optional fanlisting association,
+ Immutable value object representing a single newsfeed entry from the
+ lstr_newsfeed table. Holds the title, body, optional fanlisting association,
  category tags (stored as a comma-separated string), author, and timestamps.
  The categories() helper splits the comma-separated string into an array.
 */
 
 declare(strict_types=1);
 
-namespace Luster\Addons\Updates;
+namespace Luster\Addons\Newsfeed;
 
 /**
- * Represents a single update entry.
+ * Represents a single newsfeed entry.
  */
-final class Update
+final class NewsfeedEntry
 {
     public function __construct(
         public readonly int     $id,

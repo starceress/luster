@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Luster\Support;
 
-use Luster\Addons\Updates\Update;
+use Luster\Addons\Newsfeed\NewsfeedEntry;
 use Luster\Models\AdditionalField;
 use Luster\Models\Affiliate;
 use Luster\Models\Member;
@@ -118,14 +118,14 @@ final class SampleTemplateData
     }
 
     /**
-     * @return Update[]
+     * @return NewsfeedEntry[]
      */
     public static function updates(): array
     {
         return [
-            new Update(1, null, 'Site Relaunch', 'The fanlisting has been relaunched with a new layout inspired by the Crystal Tokyo arc. Welcome back, everyone!', 'News, Site', 'Admin', '2026-06-10', '2026-06-10 09:00:00'),
-            new Update(2, null, 'New Members Welcome', 'Welcome to all the new members who joined this month! The Silver Crystal keeps growing.', 'Members', '', '2026-06-05', '2026-06-05 09:00:00'),
-            new Update(3, null, 'Affiliates Updated', 'Added Pallet Town and Jedi Archives to our affiliates.', '', 'Admin', '2026-05-28', '2026-05-28 09:00:00'),
+            new NewsfeedEntry(1, null, 'Site Relaunch', 'The fanlisting has been relaunched with a new layout inspired by the Crystal Tokyo arc. Welcome back, everyone!', 'News, Site', 'Admin', '2026-06-10', '2026-06-10 09:00:00'),
+            new NewsfeedEntry(2, null, 'New Members Welcome', 'Welcome to all the new members who joined this month! The Silver Crystal keeps growing.', 'Members', '', '2026-06-05', '2026-06-05 09:00:00'),
+            new NewsfeedEntry(3, null, 'Affiliates Updated', 'Added Pallet Town and Jedi Archives to our affiliates.', '', 'Admin', '2026-05-28', '2026-05-28 09:00:00'),
         ];
     }
 }

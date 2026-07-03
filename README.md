@@ -25,7 +25,8 @@ it for you.
   collective all side by side.
 - **Guided migration & wrappers:** The Import Data Wizard brings over your
   data from other scripts. Compatibility wrappers keep your previous script working
-  while you transition to Luster.
+  while you transition to Luster. If import data needs an add-on that isn't installed
+  yet, Luster installs it automatically so nothing gets dropped.
 - **Dashboard to-do list:** See pending members, overdue listings, affiliate
   applications, code donations, adoption requests, and KIM signups right
   away when you sign in, with shortcuts to review or update each item directly
@@ -34,9 +35,13 @@ it for you.
   instead of sharing one password. Per-device remember-me means logging out on
   one device doesn't end anyone else's session.
 - **Admin panel customization:** Switch between light & dark mode, choose from
-  bundled skins, or drop in community-made skins.
+  bundled skins, or drop in community-made skins. Community skin files are sandboxed
+  and tamper-checked automatically — if a file changes on disk, the skin is
+  deactivated before it loads.
 - **Custom networks & categories:** Use the built-in TFL/TAFL-style categories or
   add your own custom networks and category groups to accommodate other directories.
+  A built-in lookup button finds a listing's TFL or TAFL approval page URL automatically
+  — no hunting through the directory by hand.
 - **Customizable public embeds & live previews:** Add the script to your existing
   website with a small snippet of code, then customize each output with clickable
   tokens or the Embed Wizard, targetable CSS classes, and rendered previews.
@@ -51,20 +56,24 @@ it for you.
   and public embeds surface the archived status automatically.
 - **Drag-and-drop reordering:** Rearrange codes and affiliates with drag-and-drop
   and have your live site reflect the exact order you chose.
-- **Communication tools with live previews:** Send emails (bulk or single),
-  create and save email templates, preview rendered email content before sending,
-  and enable or disable outgoing emails on a global or per-listing scale.
+- **Communication tools with live previews:** Send emails to all your members
+  at once, a hand-picked selection, or a single person — plus a dedicated bulk
+  composer for affiliates. Create and save reusable email templates, preview
+  rendered content before sending, and enable or disable specific email types
+  on a global or per-listing scale.
 - **Extra features when you want them:** Optional add-ons include news feeds,
   a wishlist, "keep in mind" lists, adoption applications, and join rules, so you
   only turn on the pieces your site needs.
 - **Link Checker & maintenance tools:** Check dead links and redirects across affiliates,
   joined listings, and member URLs; verify that affiliates are linking back to you; see
-  what each URL actually returned (HTML page, image, redirect, server error, and so on)
-  so you can triage results at a glance; review admin activity with IP tracking; browse error logs.
+  what each URL actually returned (HTML page, image, redirect, server error, parked domain,
+  and so on) so you can triage results at a glance; update a moved URL to its new address
+  in one click; review admin activity with IP tracking; browse error logs.
 - **Security-first foundations:** Modern password handling (Argon2id), CSRF protection,
   output escaping, prepared statements, safer upload/import handling, concealed install paths,
   arithmetic CAPTCHA and per-IP rate limiting on every public join form to block bots, and an
-  automated test suite of 1,500+ tests. Plus a one-click database backup download.
+  automated test suite of 1,500+ tests. Member update and delete forms stay secure even on
+  shared hosting where PHP sessions can drop mid-flow. Plus a one-click database backup download.
 
 
 

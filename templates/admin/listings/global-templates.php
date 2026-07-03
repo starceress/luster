@@ -17,7 +17,7 @@ $d  = [
     'listing_default_members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
     'listing_default_stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
     'listing_default_affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
-    'listing_default_updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
+    'listing_default_newsfeed_template'             => ListingSettingsRepo::defaultNewsfeedTemplate(),
     'listing_default_join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
     'listing_default_codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
     'listing_default_affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
@@ -56,7 +56,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
 
 <?php
 $activeGroup = (string) ($_GET['group'] ?? 'all');
-$_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'contact-form', 'affiliates', 'affiliate-form', 'updates'];
+$_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'contact-form', 'affiliates', 'affiliate-form', 'newsfeed'];
 if (!in_array($activeGroup, $_validGroups, true)) { $activeGroup = 'all'; }
 $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) ? 'hidden' : '';
 ?>
@@ -77,7 +77,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
         <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
         <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
-        <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>News Feed</option>
+        <option value="newsfeed"<?= $activeGroup === 'newsfeed' ? ' selected' : '' ?>>News Feed</option>
       </select>
     </div>
     <div class="search-field-wrap">
@@ -107,25 +107,25 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
       <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
         <div class="tpl-actions-row">
-          <button type="button" class="btn btn-tertiary"
+          <button type="button" class="btn btn-tertiary btn-sm"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/global-templates/reset-all"
                   data-csrf="<?= View::e($csrf_token ?? '') ?>"
                   data-confirm="Reset all global listing templates to the Luster built-in defaults?&#10;&#10;Any global customisations will be lost. Per-listing overrides are not affected.">Reset All Templates to Default</button>
-          <button type="button" class="btn btn-secondary"
+          <button type="button" class="btn btn-secondary btn-sm"
                   id="fl-tpack-export-btn"
                   data-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/export"
-                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export Templates&hellip;</button>
-          <button type="button" class="btn btn-secondary"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export as JSON</button>
+          <button type="button" class="btn btn-secondary btn-sm"
                   id="fl-tpack-export-zip-btn"
                   data-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/export-zip"
-                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export as ZIP&hellip;</button>
-          <button type="button" class="btn btn-secondary"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Export as ZIP</button>
+          <button type="button" class="btn btn-secondary btn-sm"
                   id="fl-tpack-import-btn"
                   data-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/import-preview"
                   data-apply-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/import-apply"
-                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Import Templates&hellip;</button>
-          <button type="button" class="btn btn-secondary"
+                  data-csrf="<?= View::e($csrf_token ?? '') ?>">Import Templates (.json)</button>
+          <button type="button" class="btn btn-secondary btn-sm"
                   id="fl-tpack-copy-btn"
                   data-listings-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/listings-for-copy"
                   data-source-endpoint="<?= $b ?>/admin/listings/global-templates/template-pack/copy-source"
@@ -336,15 +336,15 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           </div>
         </div>
 
-        <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
+        <div class="tpl-group-section" data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
           <div class="section-label">News Feed</div>
-          <p class="form-hint form-hint--spaced">Default for listings with the News Feed add-on. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
+          <p class="form-hint form-hint--spaced">Default for listings with the News Feed add-on. Wrap each entry in <code>{each_update}&hellip;{/each_update}</code>.</p>
           <div class="field-group">
-            <textarea name="listing_default_updates_template" id="listing_default_updates_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_updates_template')) ?></textarea>
+            <textarea name="listing_default_newsfeed_template" id="listing_default_newsfeed_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_newsfeed_template')) ?></textarea>
           </div>
           <div class="tpl-reset-row">
-            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="listing_default_updates_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_updates_template">Reset to Luster Default</button>
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="newsfeed" data-textarea="listing_default_newsfeed_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_newsfeed_template">Reset to Luster Default</button>
           </div>
         </div>
 
@@ -657,25 +657,25 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
-      <!-- News Feed -->
-      <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
+      <!-- Newsfeed -->
+      <details class="card chevron" data-token-card data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
         <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry. Requires the News Feed add-on.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Wrap each entry in {each_update}...{/each_update}. Luster repeats it once per news feed entry. Requires the News Feed add-on.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_updates_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
-            <?= $tok('listing_default_updates_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
-            <?= $tok('listing_default_updates_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $tok('listing_default_updates_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one update on the current page.') ?>
-            <?= $tok('listing_default_updates_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no updates (use for an empty state message).') ?>
-            <?= $tok('listing_default_updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
-            <?= $tok('listing_default_updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
-            <?= $tok('listing_default_updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
-            <?= $tok('listing_default_updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
-            <?= $tok('listing_default_updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
-            <?= $tok('listing_default_updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>
-            <?= $tok('listing_default_updates_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the update has an author set.') ?>
-            <?= $tok('listing_default_updates_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the update has categories set.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $tok('listing_default_newsfeed_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one entry on the current page.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no entries (use for an empty state message).') ?>
+            <?= $tok('listing_default_newsfeed_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each entry shown.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{update_title}',      '{update_title}',      'The entry title.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{update_body_html}',  '{update_body_html}',  'The entry body text, with line breaks converted to HTML.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the entry has an author set.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the entry has categories set.') ?>
           </tbody></table>
         </div>
       </details>

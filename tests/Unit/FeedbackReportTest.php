@@ -25,7 +25,7 @@ final class FeedbackReportTest extends TestCase
         $this->assertStringContainsString('36',                   $out);
         $this->assertStringContainsString('Subdirectory (2 segments)', $out);
         $this->assertStringContainsString('testadmin',            $out);
-        $this->assertStringContainsString('Kim, Updates',         $out);
+        $this->assertStringContainsString('Kim, Newsfeed',        $out);
         $this->assertStringNotContainsString('luster/public',     $out);
     }
 
@@ -205,7 +205,7 @@ final class FeedbackReportTest extends TestCase
             'debug_enabled'    => false,
             'mail_configured'  => true,
             'admin_username'   => 'testadmin',
-            'addons'           => ['Kim', 'Updates'],
+            'addons'           => ['Kim', 'Newsfeed'],
             'migration_level'  => 36,
         ], $overrides);
     }

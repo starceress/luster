@@ -82,7 +82,7 @@ final class PublicCategoryPresenter
         // Browse mode with a category, show-all, or pseudo-view — back link
         if ($browseMode && ($currentId !== 0 || $browseShowAll || $view !== '')) {
             $html  = '<div class="fl-category-nav">';
-            $html .= '<a class="fl-category-back" href="' . $e($formAction) . '">&larr; All categories</a>';
+            $html .= '<a class="fl-category-back" href="' . $e($formAction) . '">&larr; Back</a>';
             $html .= '</div>';
             return ['html' => $html, 'show_listings' => true];
         }
@@ -201,7 +201,7 @@ final class PublicCategoryPresenter
 
         $html  = '<div class="fl-category-nav">';
         $html .= '<ul class="fl-category-list">';
-        $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">All Categories</a>' . $countHtml . '</li>';
+        $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">All Listings</a>' . $countHtml . '</li>';
 
         foreach ($pseudoEntries as $entry) {
             $active = $entry['active'] ? ' aria-current="page"' : '';
@@ -407,7 +407,7 @@ final class PublicCategoryPresenter
         // Browse mode with a category or pseudo-view selected — back link
         if ($browseMode && ($currentCategory !== '' || $view !== '')) {
             $html  = '<div class="fl-category-nav">';
-            $html .= '<a class="fl-category-back" href="' . $e($formAction) . '">&larr; All categories</a>';
+            $html .= '<a class="fl-category-back" href="' . $e($formAction) . '">&larr; Back</a>';
             $html .= '</div>';
             return ['html' => $html, 'show_listings' => true];
         }
@@ -451,7 +451,7 @@ final class PublicCategoryPresenter
 
         $html  = '<div class="fl-category-nav">';
         $html .= '<ul class="fl-category-list">';
-        $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">All Categories</a>';
+        $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">All Listings</a>';
         $html .= ' <span class="fl-category-count">(' . $totalCount . ')</span></li>';
 
         foreach ($pseudoEntries as $entry) {

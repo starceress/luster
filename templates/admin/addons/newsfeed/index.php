@@ -3,30 +3,30 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- News Feed admin overview. Lists all listings with their update entry counts and
+ Newsfeed admin overview. Lists all listings with their entry counts and
  most recent post date, plus a collective news section. Supports search, sortable
- columns, and pagination. Each row links to the per-listing or collective update list.
+ columns, and pagination. Each row links to the per-listing or collective entry list.
 */
 
 declare(strict_types=1);
 
 /**
- * @var \Luster\Models\Listing[]                                                    $listings
- * @var array<int, array{count: int, latest: \Luster\Addons\Updates\Update|null}>  $latest_per_fl
- * @var \Luster\Addons\Updates\Update|null                                          $latest_coll
- * @var int                                                                         $collective_cnt
- * @var string                                                                      $site_name
- * @var string                                                                      $search
- * @var string                                                                      $sort
- * @var string                                                                      $dir
- * @var string                                                                      $success
- * @var string                                                                      $error
- * @var string                                                                      $base_url
- * @var string                                                                      $csrf_token
- * @var int                                                                         $page
- * @var int                                                                         $pages
- * @var int                                                                         $per_page
- * @var int                                                                         $total_listings
+ * @var \Luster\Models\Listing[]                                                          $listings
+ * @var array<int, array{count: int, latest: \Luster\Addons\Newsfeed\NewsfeedEntry|null}> $latest_per_fl
+ * @var \Luster\Addons\Newsfeed\NewsfeedEntry|null                                        $latest_coll
+ * @var int                                                                               $collective_cnt
+ * @var string                                                                            $site_name
+ * @var string                                                                            $search
+ * @var string                                                                            $sort
+ * @var string                                                                            $dir
+ * @var string                                                                            $success
+ * @var string                                                                            $error
+ * @var string                                                                            $base_url
+ * @var string                                                                            $csrf_token
+ * @var int                                                                               $page
+ * @var int                                                                               $pages
+ * @var int                                                                               $per_page
+ * @var int                                                                               $total_listings
  */
 
 use Luster\Core\View;
@@ -45,7 +45,7 @@ $sortUrl = static function (string $col) use ($b, $sort, $dir, $search): string 
         'sort'   => $col !== 'id' ? $col : '',
         'dir'    => $newDir !== 'asc' ? $newDir : '',
     ], static fn(string $v): bool => $v !== ''));
-    return $b . '/admin/updates' . ($qs !== '' ? '?' . $qs : '');
+    return $b . '/admin/newsfeed' . ($qs !== '' ? '?' . $qs : '');
 };
 
 $pageUrl = static function (int $p) use ($b, $sort, $dir, $search): string {
@@ -55,7 +55,7 @@ $pageUrl = static function (int $p) use ($b, $sort, $dir, $search): string {
         'dir'    => $dir !== 'asc' ? $dir : '',
         'page'   => $p > 1 ? $p : 0,
     ], static fn($v): bool => (string) $v !== '' && $v !== 0));
-    return $b . '/admin/updates' . ($qs !== '' ? '?' . $qs : '');
+    return $b . '/admin/newsfeed' . ($qs !== '' ? '?' . $qs : '');
 };
 
 $rangeFirst = $total_listings === 0 ? 0 : ($page - 1) * $per_page + 1;
@@ -85,13 +85,13 @@ $collLastDate = $latest_coll !== null
     </button>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/updates/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>News Feed Settings</a>
+    <a href="<?= $b ?>/admin/newsfeed/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>News Feed Settings</a>
   </div>
 </div>
 
 <!-- ──── FILTER PANEL ────────────────────────────────────────────────── -->
 <div class="filter-panel" id="upd-filter-panel">
-  <form method="GET" action="<?= $b ?>/admin/updates" class="filter-row">
+  <form method="GET" action="<?= $b ?>/admin/newsfeed" class="filter-row">
     <?php if ($sort !== 'id'): ?><input type="hidden" name="sort" value="<?= View::e($sort) ?>"><?php endif; ?>
     <?php if ($dir !== 'asc'): ?><input type="hidden" name="dir"  value="<?= View::e($dir)  ?>"><?php endif; ?>
     <div class="search-field-wrap">
@@ -100,7 +100,7 @@ $collLastDate = $latest_coll !== null
              value="<?= View::e($search) ?>">
     </div>
     <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <a href="<?= $b ?>/admin/updates" class="btn btn-quaternary btn-sm">Reset</a>
+    <a href="<?= $b ?>/admin/newsfeed" class="btn btn-quaternary btn-sm">Reset</a>
   </form>
 </div>
 
@@ -131,7 +131,7 @@ $collLastDate = $latest_coll !== null
               Last Updated <?= View::sortIcon('latest', $sort, $dir) ?>
             </a>
           </th>
-          <th>Total Updates</th>
+          <th>Total Entries</th>
           <th class="actions-col">Actions</th>
         </tr>
       </thead>
@@ -142,14 +142,14 @@ $collLastDate = $latest_coll !== null
           <td class="text-dim" data-label="#">0</td>
           <td data-label="Listing">
             <div class="ctx-cell">
-              <a href="<?= $b ?>/admin/updates/collective" class="link"><b><?= View::e($site_name) ?></b></a>
+              <a href="<?= $b ?>/admin/newsfeed/collective" class="link"><b><?= View::e($site_name) ?></b></a>
               <span class="badge badge-info3">Collective</span>
             </div>
           </td>
           <td class="text-dim" data-label="Last Updated">
             <?= $collLastDate !== null ? View::e($collLastDate) : '<span class="text-dim">&mdash;</span>' ?>
           </td>
-          <td data-label="Total Updates">
+          <td data-label="Total Entries">
             <?php if ($collective_cnt > 0): ?>
               <span><?= (int) $collective_cnt ?></span>
             <?php else: ?>
@@ -158,8 +158,8 @@ $collLastDate = $latest_coll !== null
           </td>
           <td class="actions-col" data-label="">
             <div class="actions-row">
-              <a href="<?= $b ?>/admin/updates/collective" class="btn btn-primary btn-sm">View</a>
-              <a href="<?= $b ?>/admin/updates/collective/add" class="btn btn-secondary btn-sm">Add</a>
+              <a href="<?= $b ?>/admin/newsfeed/collective" class="btn btn-primary btn-xs">View</a>
+              <a href="<?= $b ?>/admin/newsfeed/collective/add" class="btn btn-secondary btn-xs">Add</a>
             </div>
           </td>
         </tr>
@@ -175,7 +175,7 @@ $collLastDate = $latest_coll !== null
                 ? date($dateFmt, strtotime($latest->postedAt))
                 : null;
           ?>
-          <tr>
+          <tr class="<?= ($lifecycle_map[$fid] ?? null) ? 'row-archived' : '' ?>">
             <td class="text-dim" data-label="#"><?= $fid ?></td>
             <td class="<?= $cnt === 0 ? 'text-muted' : '' ?>" data-label="Listing">
               <div class="subject-title-stack">
@@ -188,7 +188,7 @@ $collLastDate = $latest_coll !== null
             <td class="text-dim" data-label="Last Updated">
               <?= $lastDate !== null ? View::e($lastDate) : '<span class="text-dim">&mdash;</span>' ?>
             </td>
-            <td data-label="Total Updates">
+            <td data-label="Total Entries">
               <?php if ($cnt > 0): ?>
                 <span><?= $cnt ?></span>
               <?php else: ?>
@@ -197,8 +197,8 @@ $collLastDate = $latest_coll !== null
             </td>
             <td class="actions-col" data-label="">
               <div class="actions-row">
-                <a href="<?= $b ?>/admin/updates/<?= $fid ?>" class="btn btn-primary btn-sm">View</a>
-                <a href="<?= $b ?>/admin/updates/<?= $fid ?>/add" class="btn btn-secondary btn-sm">Add</a>
+                <a href="<?= $b ?>/admin/newsfeed/<?= $fid ?>" class="btn btn-primary btn-xs">View</a>
+                <a href="<?= $b ?>/admin/newsfeed/<?= $fid ?>/add" class="btn btn-secondary btn-xs">Add</a>
               </div>
             </td>
           </tr>
@@ -213,7 +213,7 @@ $collLastDate = $latest_coll !== null
                   <div><strong>No listings match &ldquo;<?= View::e($search) ?>&rdquo;.</strong></div>
                 <?php else: ?>
                   <div><strong>No listings found.</strong></div>
-                  <div>Add a listing first to post per-listing updates.</div>
+                  <div>Add a listing first to post per-listing newsfeed entries.</div>
                 <?php endif; ?>
               </div>
             </td>

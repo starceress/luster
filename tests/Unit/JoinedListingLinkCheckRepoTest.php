@@ -22,11 +22,14 @@ CREATE TABLE lstr_joined (
     active            INTEGER NOT NULL DEFAULT 1,
     status            TEXT    NOT NULL DEFAULT 'approved',
     created_at        TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    link_status       TEXT    NOT NULL DEFAULT 'unchecked',
-    link_checked_at   TEXT    NULL,
-    link_redirect_url TEXT    NULL,
-    description       TEXT    NULL,
-    comments          TEXT    NULL
+    link_status        TEXT    NOT NULL DEFAULT 'unchecked',
+    link_checked_at    TEXT    NULL,
+    link_redirect_url  TEXT    NULL,
+    listed_status      TEXT    NOT NULL DEFAULT 'unchecked',
+    listed_checked_at  TEXT    NULL,
+    listed_members_url TEXT    NULL,
+    description        TEXT    NULL,
+    comments           TEXT    NULL
 )
 SQL;
 
@@ -125,6 +128,8 @@ SQL;
 
         $this->repo->updateLinkStatus($id1, 'ok',       null,                   '2025-06-01 12:00:00');
         $this->repo->updateLinkStatus($id2, 'redirect', 'https://new.beta.test', '2025-06-01 12:00:00');
+        $this->repo->updateListedStatus($id1, 'listed',    'https://alpha.test/members');
+        $this->repo->updateListedStatus($id2, 'not_found', null);
 
         $this->repo->resetLinkStatus();
 
@@ -133,6 +138,9 @@ SQL;
             self::assertSame('unchecked', $item->linkStatus);
             self::assertNull($item->linkCheckedAt);
             self::assertNull($item->linkRedirectUrl);
+            self::assertSame('unchecked', $item->listedStatus);
+            self::assertNull($item->listedCheckedAt);
+            self::assertNull($item->listedMembersUrl);
         }
     }
 

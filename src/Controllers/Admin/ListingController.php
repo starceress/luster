@@ -481,22 +481,35 @@ final class ListingController extends AdminController
         $catidStr = $catIds ? '|' . implode('|', $catIds) . '|' : '';
 
         $urlRequired = !$isArchiving;
-        if ($subject === '' || ($url === '' && $urlRequired)) {
-            $addFieldErrors = [];
-            if ($subject === '') {
-                $addFieldErrors['subject'] = ['Subject is required.'];
-            }
-            if ($url === '' && $urlRequired) {
-                $addFieldErrors['url'] = ['URL is required.'];
-            }
+        $v = new Validator([
+            'subject'         => $subject,
+            'title'           => $title,
+            'url'             => $url,
+            'email'           => $email,
+            'adopted_to_name' => (string) ($adoptedToName ?? ''),
+            'adopted_to_url'  => (string) ($adoptedToUrl  ?? ''),
+        ]);
+        $v->field('subject')->required()->maxLength(255);
+        $v->field('title')->maxLength(255);
+        $urlField = $v->field('url');
+        if ($urlRequired) {
+            $urlField->required();
+        }
+        // 255, not 500 — matches the owned.url column width (install/index.php).
+        $urlField->httpUrl()->maxLength(255);
+        $v->field('email')->required()->email()->maxLength(255);
+        $v->field('adopted_to_name')->maxLength(255);
+        $v->field('adopted_to_url')->httpUrl()->maxLength(500);
+
+        if ($v->fails()) {
             return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
                 'tfl_cats'        => $tflCats,
                 'tafl_cats'       => $taflCats,
                 'custom_networks' => $customNetworks,
                 'custom_cats'     => $customCats,
                 'old'             => $request->post(),
-                'error'           => $subject === '' ? 'Subject is required.' : 'URL is required.',
-                'field_errors'    => $addFieldErrors,
+                'error'           => implode(' ', $v->allErrors()),
+                'field_errors'    => $v->errors(),
                 'default_date'    => date('Y-m-d'),
             ], '', [
                 $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
@@ -798,7 +811,7 @@ final class ListingController extends AdminController
 
                 // News Feed addon — silent if not installed
                 try {
-                    $db->prepare('DELETE FROM lstr_updates WHERE fanlisting_id = :id')
+                    $db->prepare('DELETE FROM lstr_newsfeed WHERE fanlisting_id = :id')
                        ->execute(['id' => $id]);
                 } catch (\Throwable) {}
 
@@ -1003,10 +1016,12 @@ final class ListingController extends AdminController
 
             // --- Field validation ---
             $v = new Validator([
-                'subject' => $subject,
-                'title'   => $title,
-                'url'     => $url,
-                'email'   => $email,
+                'subject'         => $subject,
+                'title'           => $title,
+                'url'             => $url,
+                'email'           => $email,
+                'adopted_to_name' => (string) ($adoptedToName ?? ''),
+                'adopted_to_url'  => (string) ($adoptedToUrl  ?? ''),
             ]);
             $v->field('subject')->required()->maxLength(255);
             $v->field('title')->maxLength(255);
@@ -1016,8 +1031,11 @@ final class ListingController extends AdminController
             if (!$isArchiving) {
                 $urlField->required();
             }
-            $urlField->httpUrl()->maxLength(500);
+            // 255, not 500 — matches the owned.url column width (install/index.php).
+            $urlField->httpUrl()->maxLength(255);
             $v->field('email')->required()->email()->maxLength(255);
+            $v->field('adopted_to_name')->maxLength(255);
+            $v->field('adopted_to_url')->httpUrl()->maxLength(500);
 
             if ($imageError !== '' || $v->fails()) {
                 $messages = $v->fails() ? $v->allErrors() : [];
@@ -1233,7 +1251,7 @@ final class ListingController extends AdminController
         $joinSettings           = $settingsRepo->getJoinSettings($id);
         $queueUpdates           = $settingsRepo->getQueueUpdates($id);
         $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
-        $updatesAddonInstalled  = $this->app->isAddonInstalled('Updates');
+        $updatesAddonInstalled  = $this->app->isAddonInstalled('Newsfeed');
         $rulesAddonInstalled    = $this->app->isAddonInstalled('Rules');
         $rulesSet               = null;
         if ($rulesAddonInstalled) {
@@ -1284,7 +1302,7 @@ final class ListingController extends AdminController
             'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
             'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
             'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
-            'updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
+            'newsfeed_template'              => ListingSettingsRepo::defaultNewsfeedTemplate(),
             'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
             'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
             'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
@@ -1297,7 +1315,7 @@ final class ListingController extends AdminController
             'stats_template'                => 'listing_default_stats_template',
             'members_template'              => 'listing_default_members_template',
             'affiliates_section_template'   => 'listing_default_affiliates_section_template',
-            'updates_template'              => 'listing_default_updates_template',
+            'newsfeed_template'              => 'listing_default_newsfeed_template',
             'join_form_template'            => 'listing_default_join_form_template',
             'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
             'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
@@ -1404,7 +1422,7 @@ final class ListingController extends AdminController
             'approval_url'        => $approvalUrl,
             'description'         => $description,
             'adoption_addon_installed'       => $adoptionAddonInstalled,
-            'updates_addon_installed'        => $updatesAddonInstalled,
+            'newsfeed_addon_installed'        => $updatesAddonInstalled,
             'rules_addon_installed'          => $rulesAddonInstalled,
             'rules_enabled_for_listing'      => $rulesEnabledForListing,
             'rules'                           => $rulesSet,
@@ -1509,7 +1527,7 @@ final class ListingController extends AdminController
 
         // News Feed addon — silent if not installed
         try {
-            $db->prepare('DELETE FROM lstr_updates WHERE fanlisting_id = :id')
+            $db->prepare('DELETE FROM lstr_newsfeed WHERE fanlisting_id = :id')
                ->execute(['id' => $id]);
         } catch (\Throwable) {}
 
@@ -1767,7 +1785,7 @@ final class ListingController extends AdminController
             'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
             'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
             'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
-            'updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
+            'newsfeed_template'              => ListingSettingsRepo::defaultNewsfeedTemplate(),
             'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
             'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
             'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
@@ -1780,7 +1798,7 @@ final class ListingController extends AdminController
             'stats_template'                => 'listing_default_stats_template',
             'members_template'              => 'listing_default_members_template',
             'affiliates_section_template'   => 'listing_default_affiliates_section_template',
-            'updates_template'              => 'listing_default_updates_template',
+            'newsfeed_template'              => 'listing_default_newsfeed_template',
             'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
             'join_form_template'            => 'listing_default_join_form_template',
             'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
@@ -1811,7 +1829,7 @@ final class ListingController extends AdminController
         $statsTemplate             = $nil((string) $request->post('stats_template',               ''), 'stats_template');
         $membersTemplate           = $nil((string) $request->post('members_template',             ''), 'members_template');
         $affiliatesSectionTemplate = $nil((string) $request->post('affiliates_section_template',  ''), 'affiliates_section_template');
-        $updatesTemplate           = $nil((string) $request->post('updates_template',             ''), 'updates_template');
+        $updatesTemplate           = $nil((string) $request->post('newsfeed_template',             ''), 'newsfeed_template');
         $codesSubmitFormTemplate    = $nil((string) $request->post('codes_submit_form_template',    ''), 'codes_submit_form_template');
         $joinFormTemplate           = $nil((string) $request->post('join_form_template',              ''), 'join_form_template');
         $affiliateApplyFormTemplate = $nil((string) $request->post('affiliate_apply_form_template',   ''), 'affiliate_apply_form_template');
@@ -1833,7 +1851,7 @@ final class ListingController extends AdminController
             'stats_template'                => $statsTemplate,
             'members_template'              => $membersTemplate,
             'affiliates_section_template'   => $affiliatesSectionTemplate,
-            'updates_template'              => $updatesTemplate,
+            'newsfeed_template'              => $updatesTemplate,
             'codes_submit_form_template'    => $codesSubmitFormTemplate,
             'join_form_template'            => $joinFormTemplate,
             'affiliate_apply_form_template' => $affiliateApplyFormTemplate,
@@ -1858,7 +1876,7 @@ final class ListingController extends AdminController
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 
         $returnGroup = (string) $request->post('return_group', 'all');
-        $validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'updates', 'contact-form'];
+        $validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'newsfeed', 'contact-form'];
         if (!in_array($returnGroup, $validGroups, true)) {
             $returnGroup = 'all';
         }
@@ -1926,7 +1944,7 @@ final class ListingController extends AdminController
             return $this->previewWrap('<p style="color:#c00">Listing not found.</p>', $appUrl);
         }
 
-        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'codes', 'codes_submit_form', 'rules', 'join_form', 'affiliate_apply_form', 'contact_form', 'update_form', 'reset_form'];
+        $allowed = ['members', 'affiliates_section', 'stats', 'newsfeed', 'codes', 'codes_submit_form', 'rules', 'join_form', 'affiliate_apply_form', 'contact_form', 'update_form', 'reset_form'];
         if (!in_array($type, $allowed, true)) {
             return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
         }
@@ -1940,7 +1958,7 @@ final class ListingController extends AdminController
                 'members'            => $this->ltplPreviewMembers($tpl, $listing, $db, $config, $uploadsBase . '/members'),
                 'affiliates_section' => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates', $appUrl, $request),
                 'stats'              => $this->ltplPreviewStats($tpl, $listing, $db, $config, $request),
-                'updates'            => $this->ltplPreviewUpdates($tpl, $listing, $db),
+                'newsfeed'           => $this->ltplPreviewUpdates($tpl, $listing, $db),
                 'codes'              => $this->ltplPreviewCodes($tpl, $listing, $db, $request),
                 'rules'              => $this->ltplPreviewRules(
                     $tpl,
@@ -2253,7 +2271,7 @@ final class ListingController extends AdminController
     private function ltplPreviewUpdates(string $tpl, object $listing, \Luster\Core\Database $db): string
     {
         try {
-            $updateRepo = new \Luster\Addons\Updates\UpdateRepo($db);
+            $updateRepo = new \Luster\Addons\Newsfeed\NewsfeedRepo($db);
             $updates    = $updateRepo->getForFanlisting((int) $listing->id, 1, 3);
         } catch (\Throwable) {
             return '<p style="font-style:italic;color:#888">Updates add-on is not installed.</p>';
@@ -2269,8 +2287,8 @@ final class ListingController extends AdminController
         );
 
         $sampleUpdates = !empty($updates) ? $updates : SampleTemplateData::updates();
-        $sample = \Luster\Support\UpdatesTemplateRenderer::render($sampleUpdates, $tplResolved);
-        $empty  = \Luster\Support\UpdatesTemplateRenderer::render([], $tplResolved);
+        $sample = \Luster\Support\NewsfeedTemplateRenderer::render($sampleUpdates, $tplResolved);
+        $empty  = \Luster\Support\NewsfeedTemplateRenderer::render([], $tplResolved);
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No updates posted for this listing yet.</p>';
         }
@@ -2892,7 +2910,7 @@ final class ListingController extends AdminController
             'listing_default_members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
             'listing_default_stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
             'listing_default_affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
-            'listing_default_updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
+            'listing_default_newsfeed_template'              => ListingSettingsRepo::defaultNewsfeedTemplate(),
             'listing_default_join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
             'listing_default_codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
             'listing_default_affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
@@ -2955,7 +2973,7 @@ final class ListingController extends AdminController
             'listing_default_members_template',
             'listing_default_stats_template',
             'listing_default_affiliates_section_template',
-            'listing_default_updates_template',
+            'listing_default_newsfeed_template',
             'listing_default_join_form_template',
             'listing_default_codes_submit_form_template',
             'listing_default_affiliate_apply_form_template',
@@ -2993,7 +3011,7 @@ final class ListingController extends AdminController
         $type = (string) $request->post('template_type', '');
         $tpl  = (string) $request->post('template_html', '');
 
-        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'join_form', 'update_form', 'reset_form', 'codes', 'codes_submit_form', 'affiliate_apply_form', 'contact_form'];
+        $allowed = ['members', 'affiliates_section', 'stats', 'newsfeed', 'join_form', 'update_form', 'reset_form', 'codes', 'codes_submit_form', 'affiliate_apply_form', 'contact_form'];
         if (!in_array($type, $allowed, true)) {
             return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
         }
@@ -3006,7 +3024,7 @@ final class ListingController extends AdminController
                 'members'              => $this->gtplPreviewMembers($tpl),
                 'affiliates_section'   => $this->gtplPreviewAffiliates($tpl, $request),
                 'stats'                => $this->gtplPreviewStats($tpl, $request),
-                'updates'              => $this->gtplPreviewUpdates($tpl),
+                'newsfeed'             => $this->gtplPreviewUpdates($tpl),
                 'join_form'            => $this->gtplPreviewJoinForm($tpl),
                 'codes_submit_form'    => $this->gtplPreviewCodesSubmitForm($tpl),
                 'affiliate_apply_form' => $this->gtplPreviewAffiliateApplyForm($tpl),
@@ -3184,8 +3202,8 @@ final class ListingController extends AdminController
             $tpl,
         );
 
-        $sample = \Luster\Support\UpdatesTemplateRenderer::render(SampleTemplateData::updates(), $tplResolved);
-        $empty  = \Luster\Support\UpdatesTemplateRenderer::render([], $tplResolved);
+        $sample = \Luster\Support\NewsfeedTemplateRenderer::render(SampleTemplateData::updates(), $tplResolved);
+        $empty  = \Luster\Support\NewsfeedTemplateRenderer::render([], $tplResolved);
 
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No updates posted yet.</p>';

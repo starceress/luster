@@ -20,6 +20,9 @@ DirectoryIndex index.php
     # Allow the install wizard (needed before public/.htaccess is active)
     RewriteRule ^install(/.*)?$ - [L]
 
+    # Allow sample host pages (local dev/demo only — not shipped in release ZIP)
+    RewriteRule ^samples(/.*)?$ - [L]
+
     # Block everything else
     RewriteRule .* - [F,L]
 </IfModule>

@@ -3,7 +3,7 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- News Feed admin add/edit form. Used for creating new update entries or editing
+ Newsfeed admin add/edit form. Used for creating new entries or editing
  existing ones, for both per-listing and collective contexts. Includes fields for
  title, body, category (with datalist suggestions from existing categories),
  author, and posted-at date.
@@ -12,19 +12,19 @@
 declare(strict_types=1);
 
 /**
- * @var \Luster\Addons\Updates\Update|null $update           null when adding
- * @var int|null                           $fanlisting_id    null for collective
- * @var string[]                           $known_categories for datalist
- * @var string                             $back_url         absolute URL
- * @var string                             $ctx_label        context label for panel
- * @var string                             $back_label       context label for back link
- * @var bool                               $is_edit
- * @var string                             $error
- * @var string                             $base_url
- * @var string                             $csrf_token
- * @var string                             $author
- * @var string                             $admin_date_format
- * @var string                             $admin_time_format
+ * @var \Luster\Addons\Newsfeed\NewsfeedEntry|null $update           null when adding
+ * @var int|null                                   $fanlisting_id    null for collective
+ * @var string[]                                   $known_categories for datalist
+ * @var string                                     $back_url         absolute URL
+ * @var string                                     $ctx_label        context label for panel
+ * @var string                                     $back_label       context label for back link
+ * @var bool                                       $is_edit
+ * @var string                                     $error
+ * @var string                                     $base_url
+ * @var string                                     $csrf_token
+ * @var string                                     $author
+ * @var string                                     $admin_date_format
+ * @var string                                     $admin_time_format
  */
 
 use Luster\Core\View;
@@ -41,10 +41,10 @@ if ($update !== null) {
 }
 
 $formAction = $is_edit
-    ? $b . '/admin/updates/entry/' . (int) $update->id . '/edit'
+    ? $b . '/admin/newsfeed/entry/' . (int) $update->id . '/edit'
     : ($fanlisting_id !== null
-        ? $b . '/admin/updates/' . (int) $fanlisting_id . '/add'
-        : $b . '/admin/updates/collective/add');
+        ? $b . '/admin/newsfeed/' . (int) $fanlisting_id . '/add'
+        : $b . '/admin/newsfeed/collective/add');
 
 $isCollective = $fanlisting_id === null;
 
@@ -68,7 +68,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
       <div class="panel-header">
         <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('updates') ?></div>
         <div class="panel-header-meta">
-          <div class="panel-header-title"><?= $is_edit ? 'Edit Update' : 'Post Update' ?></div>
+          <div class="panel-header-title"><?= $is_edit ? 'Edit Entry' : 'Post Entry' ?></div>
         </div>
         <span class="badge badge-info2 panel-header-badge"><?= View::e($ctxDisplay) ?></span>
       </div>
@@ -115,7 +115,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         <div class="field-group field-group--compact" style="margin-top:1.25rem">
           <textarea id="upd-body" name="body" class="form"
                     rows="9" required
-                    placeholder="Write your update here&hellip;"><?= $is_edit ? View::e($update->body) : '' ?></textarea>
+                    placeholder="Write your entry here&hellip;"><?= $is_edit ? View::e($update->body) : '' ?></textarea>
         </div>
       </div>
 
@@ -131,18 +131,18 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
 
       <div class="composer-footer">
         <button type="submit" class="btn btn-primary">
-          <?= $is_edit ? 'Save Changes' : 'Post Update' ?>
+          <?= $is_edit ? 'Save Changes' : 'Post Entry' ?>
         </button>
         <button type="button" class="btn btn-preview" id="upd-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
         <button type="button" class="btn btn-quaternary js-form-reset"><?= $is_edit ? ' Reset to Original' : 'Clear' ?></button>
-        
+
         <?php if ($is_edit): ?>
           <div class="composer-footer-spacer"></div>
           <form method="POST"
-                action="<?= $b ?>/admin/updates/entry/<?= (int) $update->id ?>/delete"
+                action="<?= $b ?>/admin/newsfeed/entry/<?= (int) $update->id ?>/delete"
                 class="action-form-inline"
                 data-del-modal
-                data-del-entity="update"
+                data-del-entity="entry"
                 data-del-name="<?= View::e($update->title) ?>">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
             <button type="submit" class="btn btn-danger">Delete</button>
@@ -150,7 +150,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         <?php endif; ?>
       </div>
     </div>
-    
+
 </form>
 
 <!-- ──── PREVIEW ─────────────────────────────────────────────────────── -->
@@ -159,7 +159,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
      data-time-format="<?= View::e($admin_time_format) ?>">
   <div class="modal modal--wide">
     <div class="modal-header">
-      <h3 class="modal-title">Update Preview</h3>
+      <h3 class="modal-title">Entry Preview</h3>
       <button type="button" class="modal-close" id="upd-preview-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">

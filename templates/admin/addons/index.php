@@ -57,8 +57,8 @@ $b = rtrim(View::e($base_url), '/');
           <?php if ($isInstalled): ?>
             <?php if ($key === 'Kim'): ?>
               <a href="<?= $b ?>/admin/kim" class="btn btn-primary btn-sm">Manage</a>
-            <?php elseif ($key === 'Updates'): ?>
-              <a href="<?= $b ?>/admin/updates" class="btn btn-primary btn-sm">Manage</a>
+            <?php elseif ($key === 'Newsfeed'): ?>
+              <a href="<?= $b ?>/admin/newsfeed" class="btn btn-primary btn-sm">Manage</a>
             <?php elseif ($key === 'Wishlist'): ?>
               <a href="<?= $b ?>/admin/wishlist" class="btn btn-primary btn-sm">Manage</a>
             <?php elseif ($key === 'Adoption'): ?>

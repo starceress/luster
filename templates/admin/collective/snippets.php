@@ -381,14 +381,14 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '// Requires News Feed add-on (Admin → Add-ons)',
-          "require 'EMBED_PATH/collective-updates.php';",
+          "require 'EMBED_PATH/collective-newsfeed.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
           <span class="es-item-icon"><?= View::icon('updates', ['width' => 15, 'height' => 15]) ?></span>
           <div class="es-item-meta">
             <span class="es-item-label">News Feed</span>
-            <span class="es-item-desc">Site-wide updates feed. Requires the News Feed add-on.</span>
+            <span class="es-item-desc">Site-wide news feed. Requires the News Feed add-on.</span>
           </div>
           <span class="badge badge-upcoming">Add-On</span> <span class="badge badge-info">Data</span> ✦
           <button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>

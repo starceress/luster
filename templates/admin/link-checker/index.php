@@ -14,19 +14,31 @@ use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
 
-$lcBaseQs = static function (array $extra) use ($b, $listing_id_filter, $status, $search, $aff_sort, $aff_dir, $joined_sort, $joined_dir, $mem_sort, $mem_dir): string {
+$lcBaseQs = static function (array $extra) use ($b, $listing_id_filter, $status, $listed_filter, $aff_reciprocal_filter, $search, $aff_sort, $aff_dir, $joined_sort, $joined_dir, $mem_sort, $mem_dir): string {
     $qs = http_build_query(array_filter(array_merge([
-        'listing_id'  => $listing_id_filter !== null ? (string) $listing_id_filter : '',
-        'status'      => $status,
-        'search'      => $search,
-        'aff_sort'    => $aff_sort !== 'name'          ? $aff_sort    : '',
-        'aff_dir'     => $aff_dir  !== 'asc'           ? $aff_dir     : '',
-        'joined_sort' => $joined_sort !== 'name'        ? $joined_sort : '',
-        'joined_dir'  => $joined_dir  !== 'asc'        ? $joined_dir  : '',
-        'mem_sort'    => $mem_sort !== 'member_name'   ? $mem_sort    : '',
-        'mem_dir'     => $mem_dir  !== 'asc'           ? $mem_dir     : '',
+        'listing_id'           => $listing_id_filter !== null ? (string) $listing_id_filter : '',
+        'status'               => $status,
+        'listed_filter'        => $listed_filter,
+        'aff_reciprocal_filter'=> $aff_reciprocal_filter,
+        'search'               => $search,
+        'aff_sort'             => $aff_sort !== 'name'          ? $aff_sort    : '',
+        'aff_dir'              => $aff_dir  !== 'asc'           ? $aff_dir     : '',
+        'joined_sort'          => $joined_sort !== 'name'        ? $joined_sort : '',
+        'joined_dir'           => $joined_dir  !== 'asc'        ? $joined_dir  : '',
+        'mem_sort'             => $mem_sort !== 'member_name'   ? $mem_sort    : '',
+        'mem_dir'              => $mem_dir  !== 'asc'           ? $mem_dir     : '',
     ], $extra), static fn(string $v): bool => $v !== ''));
     return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
+};
+
+$lcListedUrl = static function (string $s) use ($lcBaseQs, $listed_filter): string {
+    $newFilter = ($listed_filter === $s) ? '' : $s;
+    return $lcBaseQs(['tab' => 'joined', 'listed_filter' => $newFilter]);
+};
+
+$lcReciprocalUrl = static function (string $s) use ($lcBaseQs, $aff_reciprocal_filter): string {
+    $newFilter = ($aff_reciprocal_filter === $s) ? '' : $s;
+    return $lcBaseQs(['tab' => 'affiliates', 'aff_reciprocal_filter' => $newFilter]);
 };
 
 $lcAffPageUrl = static function (int $p) use ($lcBaseQs): string {
@@ -37,55 +49,35 @@ $lcJoinedPageUrl = static function (int $p) use ($lcBaseQs): string {
     return $lcBaseQs(['tab' => 'joined', 'joined_page' => $p > 1 ? (string) $p : '']);
 };
 
-$lcAffSortUrl = static function (string $col) use ($b, $listing_id_filter, $status, $search, $aff_sort, $aff_dir, $joined_sort, $joined_dir): string {
+$lcAffSortUrl = static function (string $col) use ($lcBaseQs, $aff_sort, $aff_dir): string {
     $newDir = ($aff_sort === $col && $aff_dir === 'asc') ? 'desc' : 'asc';
-    $qs = http_build_query(array_filter([
-        'listing_id' => $listing_id_filter !== null ? (string) $listing_id_filter : '',
-        'status'     => $status,
-        'search'     => $search,
-        'aff_sort'   => $col !== 'name' ? $col : '',
-        'aff_dir'    => $newDir !== 'asc' ? $newDir : '',
-        'joined_sort'=> $joined_sort !== 'name' ? $joined_sort : '',
-        'joined_dir' => $joined_dir  !== 'asc'  ? $joined_dir  : '',
-        'tab'        => 'affiliates',
-    ], static fn(string $v): bool => $v !== ''));
-    return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
+    return $lcBaseQs([
+        'tab'      => 'affiliates',
+        'aff_sort' => $col !== 'name' ? $col : '',
+        'aff_dir'  => $newDir !== 'asc' ? $newDir : '',
+    ]);
 };
 
-$lcJoinedSortUrl = static function (string $col) use ($b, $listing_id_filter, $status, $search, $aff_sort, $aff_dir, $joined_sort, $joined_dir): string {
+$lcJoinedSortUrl = static function (string $col) use ($lcBaseQs, $joined_sort, $joined_dir): string {
     $newDir = ($joined_sort === $col && $joined_dir === 'asc') ? 'desc' : 'asc';
-    $qs = http_build_query(array_filter([
-        'listing_id'  => $listing_id_filter !== null ? (string) $listing_id_filter : '',
-        'status'      => $status,
-        'search'      => $search,
-        'aff_sort'    => $aff_sort !== 'name' ? $aff_sort : '',
-        'aff_dir'     => $aff_dir  !== 'asc'  ? $aff_dir  : '',
+    return $lcBaseQs([
+        'tab'         => 'joined',
         'joined_sort' => $col !== 'name' ? $col : '',
         'joined_dir'  => $newDir !== 'asc' ? $newDir : '',
-        'tab'         => 'joined',
-    ], static fn(string $v): bool => $v !== ''));
-    return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
+    ]);
 };
 
 $lcMemPageUrl = static function (int $p) use ($lcBaseQs): string {
     return $lcBaseQs(['tab' => 'members', 'mem_page' => $p > 1 ? (string) $p : '']);
 };
 
-$lcMemSortUrl = static function (string $col) use ($b, $listing_id_filter, $status, $search, $aff_sort, $aff_dir, $joined_sort, $joined_dir, $mem_sort, $mem_dir): string {
+$lcMemSortUrl = static function (string $col) use ($lcBaseQs, $mem_sort, $mem_dir): string {
     $newDir = ($mem_sort === $col && $mem_dir === 'asc') ? 'desc' : 'asc';
-    $qs = http_build_query(array_filter([
-        'listing_id'  => $listing_id_filter !== null ? (string) $listing_id_filter : '',
-        'status'      => $status,
-        'search'      => $search,
-        'aff_sort'    => $aff_sort !== 'name'        ? $aff_sort    : '',
-        'aff_dir'     => $aff_dir  !== 'asc'         ? $aff_dir     : '',
-        'joined_sort' => $joined_sort !== 'name'      ? $joined_sort : '',
-        'joined_dir'  => $joined_dir  !== 'asc'      ? $joined_dir  : '',
-        'mem_sort'    => $col !== 'member_name'      ? $col         : '',
-        'mem_dir'     => $newDir !== 'asc'           ? $newDir      : '',
-        'tab'         => 'members',
-    ], static fn(string $v): bool => $v !== ''));
-    return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
+    return $lcBaseQs([
+        'tab'      => 'members',
+        'mem_sort' => $col !== 'member_name' ? $col : '',
+        'mem_dir'  => $newDir !== 'asc' ? $newDir : '',
+    ]);
 };
 
 $lcMemSumPageUrl = static function (int $p) use ($b, $listing_id_filter, $mem_sum_sort, $mem_sum_dir): string {
@@ -110,26 +102,28 @@ $lcMemSumSortUrl = static function (string $col) use ($b, $listing_id_filter, $m
     return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
 };
 
-$lcStatusUrl = static function (string $s, string $tab = '') use ($b, $listing_id_filter, $status, $search, $aff_sort, $aff_dir, $joined_sort, $joined_dir, $mem_sort, $mem_dir): string {
+$lcStatusUrl = static function (string $s, string $tab = '') use ($b, $listing_id_filter, $status, $listed_filter, $aff_reciprocal_filter, $search, $aff_sort, $aff_dir, $joined_sort, $joined_dir, $mem_sort, $mem_dir): string {
     $newStatus = ($status === $s) ? '' : $s;
     $qs = http_build_query(array_filter([
-        'listing_id'  => $listing_id_filter !== null ? (string) $listing_id_filter : '',
-        'status'      => $newStatus,
-        'search'      => $search,
-        'tab'         => $tab,
-        'aff_sort'    => $aff_sort !== 'name' ? $aff_sort : '',
-        'aff_dir'     => $aff_dir  !== 'asc'  ? $aff_dir  : '',
-        'joined_sort' => $joined_sort !== 'name'       ? $joined_sort : '',
-        'joined_dir'  => $joined_dir  !== 'asc'        ? $joined_dir  : '',
-        'mem_sort'    => $mem_sort !== 'member_name'  ? $mem_sort    : '',
-        'mem_dir'     => $mem_dir  !== 'asc'          ? $mem_dir     : '',
+        'listing_id'            => $listing_id_filter !== null ? (string) $listing_id_filter : '',
+        'status'                => $newStatus,
+        'listed_filter'         => $listed_filter,
+        'aff_reciprocal_filter' => $aff_reciprocal_filter,
+        'search'                => $search,
+        'tab'                   => $tab,
+        'aff_sort'              => $aff_sort !== 'name' ? $aff_sort : '',
+        'aff_dir'               => $aff_dir  !== 'asc'  ? $aff_dir  : '',
+        'joined_sort'           => $joined_sort !== 'name'       ? $joined_sort : '',
+        'joined_dir'            => $joined_dir  !== 'asc'        ? $joined_dir  : '',
+        'mem_sort'              => $mem_sort !== 'member_name'  ? $mem_sort    : '',
+        'mem_dir'               => $mem_dir  !== 'asc'          ? $mem_dir     : '',
     ], static fn(string $v): bool => $v !== ''));
     return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
 };
 
 $totalMoved    = count($moved_affiliates) + count($moved_joined)  + count($moved_members  ?? []);
 $totalDead     = count($dead_affiliates)  + count($dead_joined)   + count($dead_members   ?? []);
-$filtersActive = $listing_id_filter !== null || $status !== '' || $search !== '';
+$filtersActive = $listing_id_filter !== null || $status !== '' || $listed_filter !== '' || $aff_reciprocal_filter !== '' || $search !== '';
 
 $listingObjMap = [];
 foreach ($listings ?? [] as $_lst) {
@@ -146,8 +140,8 @@ $statusLabel = static function (string $s): string {
         'ok'        => 'Active',
         'dead'      => 'Dead',
         'redirect'  => 'Redirect',
-        'found'     => 'Found',
-        'missing'   => 'Missing',
+        'found'     => 'Backlinked',
+        'missing'   => 'No Backlink',
         default     => 'Unchecked',
     };
 };
@@ -205,6 +199,8 @@ $sumCell = static function (?array $ms, string $key): string {
 <div class="filter-panel" id="lc-filter-panel">
   <form method="GET" action="<?= $b ?>/admin/link-checker" id="lc-filter-form" class="filter-row">
     <input type="hidden" name="tab" value="members" id="lc-filter-tab">
+    <input type="hidden" name="listed_filter" value="<?= View::e($listed_filter) ?>" id="lc-filter-listed">
+    <input type="hidden" name="aff_reciprocal_filter" value="<?= View::e($aff_reciprocal_filter) ?>" id="lc-filter-aff-reciprocal">
     <?php if (!empty($listings)): ?>
     <div class="select-wrap">
       <?php $_lcSc = $aff_scope_counts ?? []; $_lcTotal = array_sum($_lcSc); ?>
@@ -274,6 +270,8 @@ $sumCell = static function (?array $ms, string $key): string {
   </div>
 </div>
 
+<p class="form-hint" style="margin:.5rem 0 .75rem"><strong>Note:</strong> Do not navigate away from this page while the link checker is running. Large listings may take some time to complete.</p>
+
   <!-- ── Members panel ───────────────────────────────────────────────────── -->
   <div id="tab-members" class="tabs-panel active" role="tabpanel">
   <?php
@@ -303,8 +301,7 @@ $sumCell = static function (?array $ms, string $key): string {
             data-panel="members"></button>
 
     <p>
-      Member URLs are checked against a synced snapshot stored in Luster. Use "Scan All Listings" to import the current member URLs from every listing at once, or scan individual listings using the row buttons below. <b>Note:</b> Large collectives may take a moment to sync.
-    </p>
+      First, use "Scan All Listings" to import the current member URLs from every listing at once, or scan individual listings using the row buttons below.</p>
 
     <!-- Scan All + Run Link Checker buttons -->
     <div class="actions-row" style="margin-bottom:.75rem;gap:.5rem">
@@ -376,7 +373,7 @@ $sumCell = static function (?array $ms, string $key): string {
           <tbody>
             <?php foreach ($mem_sum_listings ?? [] as $_msIdx => $_lst): ?>
             <?php $_lsid = (int) $_lst->id; $_ms = $_memSummary[$_lsid] ?? null; ?>
-            <tr id="lc-mem-sum-<?= $_lsid ?>">
+            <tr id="lc-mem-sum-<?= $_lsid ?>" class="<?= ($lifecycle_map[$_lsid] ?? null) ? 'row-archived' : '' ?>">
               <td class="table-num text-dim" data-label="#"><?= (int) $_lst->id ?></td>
               <td data-label="Listing">
                 <div class="subject-title-stack">
@@ -430,7 +427,6 @@ $sumCell = static function (?array $ms, string $key): string {
             data-endpoint="<?= $b ?>/admin/link-checker/check-member"
             data-ids-url="<?= View::e($b . '/admin/link-checker/all-ids?panel=members&listing_id=' . $listing_id_filter) ?>"
             data-panel="members"></button>
-
     <!-- Scan + Run buttons above card -->
     <div class="actions-row" style="margin-bottom:.75rem;gap:.5rem">
       <form method="POST" action="<?= $b ?>/admin/link-checker/scan-members" class="action-form-inline">
@@ -441,6 +437,12 @@ $sumCell = static function (?array $ms, string $key): string {
       <button type="button" class="btn btn-primary btn-sm js-lc-run-panel" data-panel="members">
         <?= View::icon('linkcheck') ?> Run Link Checker
       </button>
+      <form method="POST" action="<?= $b ?>/admin/link-checker/reset-members" class="action-form-inline"
+            data-confirm="Reset all member link check statuses for this listing?">
+        <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
+        <input type="hidden" name="listing_id" value="<?= (int) $listing_id_filter ?>">
+        <button type="submit" class="btn btn-tertiary btn-sm">Reset Member Statuses</button>
+      </form>
     </div>
 
     <!-- Check-all progress bar -->
@@ -462,8 +464,8 @@ $sumCell = static function (?array $ms, string $key): string {
           <a href="<?= View::e($lcStatusUrl('dead', 'members')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['dead'] ?? 0) ?> Dead</a>
           <a href="<?= View::e($lcStatusUrl('redirect', 'members')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['redirect'] ?? 0) ?> Redirect</a>
           <a href="<?= View::e($lcStatusUrl('unchecked', 'members')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['unchecked'] ?? 0) ?> Unchecked</a>
-          <span class="badge badge-current"><?= (int) ($backlink_stats['found'] ?? 0) ?> Backlinked</span>
-          <span class="badge badge-error"><?= (int) ($backlink_stats['missing'] ?? 0) ?> No Backlink</span>
+          <span class="badge badge-current" data-lc-backlink-pill="found"><?= (int) ($backlink_stats['found'] ?? 0) ?> Backlinked</span>
+          <span class="badge badge-error" data-lc-backlink-pill="missing"><?= (int) ($backlink_stats['missing'] ?? 0) ?> No Backlink</span>
         </div>
       </div>
       <?php if (empty($members)): ?>
@@ -511,7 +513,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 <?php
                   $blStatus = (string) ($mem->backlink_status ?? 'unchecked');
                   $blClass  = match($blStatus) { 'found' => 'badge-current', 'missing' => 'badge-error', default => 'badge-inactive' };
-                  $blLabel  = match($blStatus) { 'found' => 'Found', 'missing' => 'Missing', default => '&mdash;' };
+                  $blLabel  = match($blStatus) { 'found' => 'Backlinked', 'missing' => 'No Backlink', default => '&mdash;' };
                 ?>
                 <span class="badge <?= $blClass ?>" data-lc-backlink-badge><?= $blLabel ?></span>
               </td>
@@ -519,22 +521,13 @@ $sumCell = static function (?array $ms, string $key): string {
                 <?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
               <td class="actions-col" data-label="">
-                <button class="btn btn-quaternary btn-xs js-lc-single"
+                <button class="btn btn-primary btn-xs js-lc-single"
                         data-id="<?= (int) $mem->id ?>"
                         data-type="member"
                         data-csrf="<?= View::e($csrf_token) ?>"
                         data-endpoint="<?= $b ?>/admin/link-checker/check-member">
                   Check
                 </button>
-                <?php if (isset($mem_listing) && $mem_listing !== null && $mem->member_url !== ''): ?>
-                <button class="btn btn-quaternary btn-xs js-lc-backlink"
-                        data-id="<?= (int) $mem->id ?>"
-                        data-csrf="<?= View::e($csrf_token) ?>"
-                        data-listing-url="<?= View::e((string) $mem_listing->url) ?>"
-                        data-endpoint="<?= $b ?>/admin/link-checker/check-backlink-member">
-                  Backlink
-                </button>
-                <?php endif; ?>
               </td>
             </tr>
             <?php endforeach; ?>
@@ -546,16 +539,6 @@ $sumCell = static function (?array $ms, string $key): string {
     <?php if ($mem_total_pages > 1): ?>
       <?php $pg_current = $mem_page; $pg_total = $mem_total_pages; $pg_url = $lcMemPageUrl;
       include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
-    <?php endif; ?>
-    <?php if ($mem_total > 0): ?>
-    <div class="actions-row actions-row--right" style="margin-top:.75rem">
-      <form method="POST" action="<?= $b ?>/admin/link-checker/reset-members"
-            data-confirm="Reset all member link check statuses for this listing?">
-        <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-        <input type="hidden" name="listing_id" value="<?= (int) $listing_id_filter ?>">
-        <button type="submit" class="btn btn-tertiary btn-sm">Reset Member Statuses</button>
-      </form>
-    </div>
     <?php endif; ?>
 
   <?php endif; ?>
@@ -573,6 +556,11 @@ $sumCell = static function (?array $ms, string $key): string {
       <button type="button" class="btn btn-primary btn-sm js-lc-run-panel" data-panel="affiliates">
         <?= View::icon('linkcheck') ?> Run Link Checker
       </button>
+      <form method="POST" action="<?= $b ?>/admin/link-checker/reset-affiliates"
+            data-confirm="Reset all affiliate link check statuses to Unchecked?">
+        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+        <button type="submit" class="btn btn-tertiary btn-sm">Reset All Statuses</button>
+      </form>
     </div>
     <div class="lc-progress-wrap is-hidden" id="lc-prog-affiliates">
       <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
@@ -598,6 +586,8 @@ $sumCell = static function (?array $ms, string $key): string {
           <a href="<?= View::e($lcStatusUrl('dead', 'affiliates')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= $aff_stats['dead'] ?> Dead</a>
           <a href="<?= View::e($lcStatusUrl('redirect', 'affiliates')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= $aff_stats['redirect'] ?> Redirect</a>
           <a href="<?= View::e($lcStatusUrl('unchecked', 'affiliates')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= $aff_stats['unchecked'] ?> Unchecked</a>
+          <a href="<?= View::e($lcReciprocalUrl('found')) ?>" class="badge badge-current<?= $aff_reciprocal_filter === 'found' ? ' badge--active' : '' ?>"><?= (int) ($aff_reciprocal_stats['found'] ?? 0) ?> Backlinked</a>
+          <a href="<?= View::e($lcReciprocalUrl('missing')) ?>" class="badge badge-error<?= $aff_reciprocal_filter === 'missing' ? ' badge--active' : '' ?>"><?= (int) ($aff_reciprocal_stats['missing'] ?? 0) ?> No Backlink</a>
         </div>
       </div>
       <div class="table-wrap">
@@ -608,7 +598,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <?php if ($listing_id_filter === null): ?><th><a href="<?= View::e($lcAffSortUrl('listing')) ?>" class="sort-th<?= $aff_sort === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $aff_sort, $aff_dir) ?></a></th><?php endif; ?>
               <th>URL</th>
               <th><a href="<?= View::e($lcAffSortUrl('link_status')) ?>" class="sort-th<?= $aff_sort === 'link_status' ? ' sort-active' : '' ?>">Link Status <?= View::sortIcon('link_status', $aff_sort, $aff_dir) ?></a></th>
-              <th><a href="<?= View::e($lcAffSortUrl('reciprocal')) ?>" class="sort-th<?= $aff_sort === 'reciprocal' ? ' sort-active' : '' ?>">Reciprocal <?= View::sortIcon('reciprocal', $aff_sort, $aff_dir) ?></a></th>
+              <th><a href="<?= View::e($lcAffSortUrl('reciprocal')) ?>" class="sort-th<?= $aff_sort === 'reciprocal' ? ' sort-active' : '' ?>">Backlink <?= View::sortIcon('reciprocal', $aff_sort, $aff_dir) ?></a></th>
               <th><a href="<?= View::e($lcAffSortUrl('last_checked')) ?>" class="sort-th<?= $aff_sort === 'last_checked' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('last_checked', $aff_sort, $aff_dir) ?></a></th>
               <th class="actions-col">Actions</th>
             </tr>
@@ -648,21 +638,29 @@ $sumCell = static function (?array $ms, string $key): string {
                 <?php endif; ?>
               </td>
               <td data-label="Link Status">
-                <span class="badge <?= View::e($statusBadgeClass($aff->linkStatus)) ?>" data-lc-link-badge>
-                  <?= View::e($statusLabel($aff->linkStatus)) ?>
-                </span>
+                <?php if ($aff->linkStatus === 'unchecked'): ?>
+                  <span class="text-dim" data-lc-link-badge>&mdash;</span>
+                <?php else: ?>
+                  <span class="badge <?= View::e($statusBadgeClass($aff->linkStatus)) ?>" data-lc-link-badge>
+                    <?= View::e($statusLabel($aff->linkStatus)) ?>
+                  </span>
+                <?php endif; ?>
                 <span class="badge badge-pending" data-lc-content-badge hidden></span>
               </td>
-              <td data-label="Reciprocal">
-                <span class="badge <?= View::e($statusBadgeClass($aff->reciprocalStatus)) ?>" data-lc-recip-badge>
-                  <?= View::e($statusLabel($aff->reciprocalStatus)) ?>
-                </span>
+              <td data-label="Backlink">
+                <?php if ($aff->reciprocalStatus === 'unchecked'): ?>
+                  <span class="text-dim" data-lc-recip-badge>&mdash;</span>
+                <?php else: ?>
+                  <span class="badge <?= View::e($statusBadgeClass($aff->reciprocalStatus)) ?>" data-lc-recip-badge>
+                    <?= View::e($statusLabel($aff->reciprocalStatus)) ?>
+                  </span>
+                <?php endif; ?>
               </td>
               <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $aff->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($aff->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
               <td class="actions-col" data-label="">
-                <button class="btn btn-quaternary btn-xs js-lc-single"
+                <button class="btn btn-primary btn-xs js-lc-single"
                         data-id="<?= $aff->id ?>"
                         data-type="affiliate"
                         data-csrf="<?= View::e($csrf_token) ?>"
@@ -696,6 +694,11 @@ $sumCell = static function (?array $ms, string $key): string {
       <button type="button" class="btn btn-primary btn-sm js-lc-run-panel" data-panel="joined">
         <?= View::icon('linkcheck') ?> Run Link Checker
       </button>
+      <form method="POST" action="<?= $b ?>/admin/link-checker/reset-joined"
+            data-confirm="Reset all joined-listing link check statuses to Unchecked?">
+        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+        <button type="submit" class="btn btn-tertiary btn-sm">Reset All Statuses</button>
+      </form>
     </div>
     <div class="lc-progress-wrap is-hidden" id="lc-prog-joined">
       <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
@@ -721,8 +724,8 @@ $sumCell = static function (?array $ms, string $key): string {
           <a href="<?= View::e($lcStatusUrl('dead', 'joined')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= $joined_stats['dead'] ?> Dead</a>
           <a href="<?= View::e($lcStatusUrl('redirect', 'joined')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= $joined_stats['redirect'] ?> Redirect</a>
           <a href="<?= View::e($lcStatusUrl('unchecked', 'joined')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= $joined_stats['unchecked'] ?> Unchecked</a>
-          <span class="badge badge-current"><?= (int) ($listed_stats['listed'] ?? 0) ?> Name Match</span>
-          <span class="badge badge-error"><?= (int) ($listed_stats['not_found'] ?? 0) ?> Not Found</span>
+          <a href="<?= View::e($lcListedUrl('listed')) ?>" class="badge badge-current<?= $listed_filter === 'listed' ? ' badge--active' : '' ?>"><?= (int) ($listed_stats['listed'] ?? 0) ?> Listed</a>
+          <a href="<?= View::e($lcListedUrl('not_listed')) ?>" class="badge badge-error<?= $listed_filter === 'not_listed' ? ' badge--active' : '' ?>"><?= (int) ($listed_stats['not_found'] ?? 0) ?> Not Listed</a>
         </div>
       </div>
       <div class="table-wrap">
@@ -752,18 +755,24 @@ $sumCell = static function (?array $ms, string $key): string {
                 <?php endif; ?>
               </td>
               <td data-label="Status">
-                <span class="badge <?= View::e($statusBadgeClass($jl->linkStatus)) ?>" data-lc-link-badge>
-                  <?= View::e($statusLabel($jl->linkStatus)) ?>
-                </span>
+                <?php if ($jl->linkStatus === 'unchecked'): ?>
+                  <span class="text-dim" data-lc-link-badge>&mdash;</span>
+                <?php else: ?>
+                  <span class="badge <?= View::e($statusBadgeClass($jl->linkStatus)) ?>" data-lc-link-badge>
+                    <?= View::e($statusLabel($jl->linkStatus)) ?>
+                  </span>
+                <?php endif; ?>
                 <span class="badge badge-pending" data-lc-content-badge hidden></span>
               </td>
               <td data-label="Listed?">
-                <?php
-                  $lsStatus = $jl->listedStatus;
-                  $lsClass  = match($lsStatus) { 'listed' => 'badge-current', 'not_found' => 'badge-error', default => 'badge-inactive' };
-                  $lsLabel  = match($lsStatus) { 'listed' => 'Name Match', 'not_found' => 'Not Found', default => '&mdash;' };
-                ?>
-                <span class="badge <?= $lsClass ?>" data-lc-listed-badge><?= $lsLabel ?></span>
+                <?php $lsStatus = $jl->listedStatus; ?>
+                <?php if ($lsStatus === 'listed'): ?>
+                  <span class="badge badge-current" data-lc-listed-badge>Listed</span>
+                <?php elseif ($lsStatus === 'not_found'): ?>
+                  <span class="badge badge-error" data-lc-listed-badge>Not Listed</span>
+                <?php else: ?>
+                  <span class="text-dim" data-lc-listed-badge>&mdash;</span>
+                <?php endif; ?>
                 <?php if ($jl->listedMembersUrl !== null && $jl->listedMembersUrl !== ''): ?>
                 <div class="lc-redirect-info"><a href="<?= View::e($jl->listedMembersUrl) ?>" target="_blank" rel="noopener noreferrer" class="link text-xs"><?= View::e($jl->listedMembersUrl) ?></a></div>
                 <?php endif; ?>
@@ -772,22 +781,13 @@ $sumCell = static function (?array $ms, string $key): string {
                 <?= $jl->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($jl->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
               <td class="actions-col" data-label="">
-                <button class="btn btn-quaternary btn-xs js-lc-single"
+                <button class="btn btn-primary btn-xs js-lc-single"
                         data-id="<?= $jl->id ?>"
                         data-type="joined"
                         data-csrf="<?= View::e($csrf_token) ?>"
                         data-endpoint="<?= $b ?>/admin/link-checker/check-joined">
                   Check
                 </button>
-                <?php if ($owner_name !== '' && ($jl->url ?? '') !== ''): ?>
-                <button class="btn btn-quaternary btn-xs js-lc-listed"
-                        data-id="<?= (int) $jl->id ?>"
-                        data-csrf="<?= View::e($csrf_token) ?>"
-                        data-owner-name="<?= View::e($owner_name) ?>"
-                        data-endpoint="<?= $b ?>/admin/link-checker/check-listed-joined">
-                  Listed?
-                </button>
-                <?php endif; ?>
                 <a href="<?= $b ?>/admin/joined/<?= $jl->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
               </td>
             </tr>
@@ -933,7 +933,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 <?php endif; ?>
               </td>
               <td class="text-muted" data-label="Checked"><?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?></td>
-              <td data-label="">
+              <td class="actions-col" data-label="">
                 <div class="actions-row">
                   <?php if ($mem->link_redirect_url !== null): ?>
                   <form method="POST" action="<?= $b ?>/admin/link-checker/apply-member-redirect" class="action-form-inline">
@@ -943,6 +943,7 @@ $sumCell = static function (?array $ms, string $key): string {
                     <button type="submit" class="btn btn-primary btn-xs">Update</button>
                   </form>
                   <?php endif; ?>
+                  <a href="<?= $b ?>/admin/members/<?= (int) $mem->listing_id ?>/edit?email=<?= urlencode((string) $mem->member_email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
                 </div>
               </td>
             </tr>
@@ -1040,7 +1041,9 @@ $sumCell = static function (?array $ms, string $key): string {
                 </a>
               </td>
               <td class="text-muted" data-label="Checked"><?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?></td>
-              <td class="actions-col" data-label="">&mdash;</td>
+              <td class="actions-col" data-label="">
+                <a href="<?= $b ?>/admin/members/<?= (int) $mem->listing_id ?>/edit?email=<?= urlencode((string) $mem->member_email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
+              </td>
             </tr>
             <?php endforeach; ?>
           </tbody>

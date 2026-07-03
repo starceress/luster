@@ -162,8 +162,8 @@ $pendingNewCnt = count($pendingNew);
 <div class="card">
   <div class="empty">
     <div class="empty-icon"><?= View::icon('pending', ['width' => 32, 'height' => 32]) ?></div>
-    <div class="empty-title">Nothing pending.</div>
-    <div>You&rsquo;re all caught up.</div>
+    <div><strong>Nothing pending.</strong></div>
+    <div>You're all caught up.</div>
   </div>
 </div>
 
@@ -408,13 +408,13 @@ endif;
     <div class="empty">
       <div class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></div>
       <?php if ($search !== ''): ?>
-        <div class="empty-title">No members match that search.</div>
+        <div><strong>No members match that search.</strong></div>
         <a href="<?= View::e($tabUrl($status)) ?>" class="btn btn-ghost btn-sm">Clear Search</a>
       <?php elseif ($status === 'approved'): ?>
-        <div class="empty-title">No approved members yet.</div>
+        <div><strong>No approved members yet.</strong></div>
       <?php else: ?>
-        <div class="empty-title">No members yet.</div>
-        <div>They&rsquo;ll appear here after the first fan joins.</div>
+        <div><strong>No members yet.</strong></div>
+        <div>They'll appear here after the first fan joins.</div>
         <a href="<?= $b ?>/admin/import-members" class="btn btn-primary btn-sm"><?= View::icon('import') ?> Import Members</a>
       <?php endif; ?>
     </div>
@@ -655,8 +655,8 @@ $_newTo         = min($_totalNew, $page * $per_page);
 <div class="card">
   <div class="empty">
     <div class="empty-icon"><?= View::icon('pending', ['width' => 32, 'height' => 32]) ?></div>
-    <div class="empty-title">Nothing pending.</div>
-    <div>You&rsquo;re all caught up.</div>
+    <div><strong>Nothing pending.</strong></div>
+    <div>You're all caught up.</div>
   </div>
 </div>
 <?php else: ?>
@@ -922,7 +922,7 @@ $validListings  = array_values(array_filter($all_listings ?? [], static fn($fl) 
 $_lcMap         = $listing_counts ?? [];
 
 // Sort by active URL param; default = listing name asc
-$_ovSort = in_array($sort, ['id', 'listing', 'total', 'pending', 'rejected'], true) ? $sort : 'listing';
+$_ovSort = in_array($sort, ['id', 'listing', 'total', 'pending', 'rejected'], true) ? $sort : 'id';
 $_ovDir  = $dir === 'desc' ? 'desc' : 'asc';
 usort($validListings, static function ($a, $b) use ($_ovSort, $_ovDir, $_lcMap): int {
     $aId = (int) $a->id; $bId = (int) $b->id;
@@ -947,7 +947,7 @@ $_ovSortUrl = static function (string $col) use ($buildUrl, $_ovSort, $_ovDir): 
   <div class="card">
     <div class="empty">
       <div class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No listings yet.</div>
+      <div><strong>No listings yet.</strong></div>
     </div>
   </div>
 <?php else: ?>
@@ -977,7 +977,7 @@ $_ovSortUrl = static function (string $col) use ($buildUrl, $_ovSort, $_ovDir): 
             $_lc    = $_lcMap[$_flId] ?? ['approved' => 0, 'pending' => 0, 'rejected' => 0];
           ?>
           <tr>
-            <td class="table-num text-dim" data-label="#"><?= $_vlIdx + 1 ?></td>
+            <td class="table-num text-dim" data-label="#"><?= $_flId ?></td>
             <td data-label="Listing">
               <div class="subject-title-stack">
                 <a href="<?= $b ?>/admin/listings/<?= $_flId ?>/edit" class="link"><b><?= View::e($fl->subject ?: $fl->title) ?></b></a>

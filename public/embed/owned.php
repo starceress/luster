@@ -118,13 +118,16 @@ if (isset($_lusterCatSlug) && $_lusterCatSlug !== '') {
     unset($_lusterCatSlug);
 }
 
+// Grand total across all statuses — used for the "All Listings" dropdown option
+$_lusterStats    = $_lusterListingRepo->getStats();
+$_lusterAllCount = (int) $_lusterStats['total'];
+
 // Pseudo-view counts (only meaningful for status='current')
 $_lusterPendingCount    = 0;
 $_lusterUpcomingCount   = 0;
 $_lusterClosedCount     = 0;
 $_lusterAdoptedOutCount = 0;
 if ($_lusterStatus === 'current') {
-    $_lusterStats           = $_lusterListingRepo->getStats();
     $_lusterLifecycleCounts = $_lusterListingRepo->getLifecycleCounts();
     $_lusterClosedCount     = (int) ($_lusterLifecycleCounts['closed']      ?? 0);
     $_lusterAdoptedOutCount = (int) ($_lusterLifecycleCounts['adopted_out'] ?? 0);
@@ -166,7 +169,7 @@ $_lusterPresenterResult = PublicCategoryPresenter::renderOwned(
     $_lusterShowList,
     $_lusterBrowseByCat,
     $_lusterBrowseShowAll,
-    count($_lusterListings),
+    $_lusterAllCount,
     $_lusterShowCatSwitcher,
     $_lusterPseudoView,
     $_lusterPendingCount,
@@ -314,6 +317,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
     'browse_by_category'  => $_lusterBrowseByCat,
     'browse_show_all'     => $_lusterBrowseShowAll,
     'total_count'         => count($_lusterListings),
+    'total_all_count'     => $_lusterAllCount,
     'status'              => $_lusterStatus,
     'view'                => $_lusterPseudoView,
     'uploads_url'         => $_lusterApp->getBaseUrl() . '/uploads',

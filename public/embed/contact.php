@@ -140,7 +140,7 @@ $_lusterSettingsRepo = new ListingSettingsRepo($_lusterApp->getDatabase());
 $_lusterCaptchaQ     = Captcha::getQuestion('contact_listing');
 
 $_lusterSubjOld  = (string) ($_lusterOld['subject'] ?? '');
-$_lusterSubjHtml = '<select id="contact-subject" name="subject" required>'
+$_lusterSubjHtml = '<select class="fl-select" id="contact-subject" name="subject" required>'
                  . '<option value="" disabled' . ($_lusterSubjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
 foreach (['Comments', 'Questions/Concerns', 'Contact/Other'] as $_lusterSubjOpt) {
     $_lusterOptEsc    = htmlspecialchars($_lusterSubjOpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

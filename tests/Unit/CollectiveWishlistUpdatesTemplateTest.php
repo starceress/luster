@@ -8,7 +8,7 @@ use Luster\Repositories\SiteSettingsRepo;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the Wishlist and Collective Updates Feed template keys in
+ * Tests for the Wishlist and Collective Newsfeed template keys in
  * SiteSettingsRepo::collectiveDefaults().
  */
 final class CollectiveWishlistUpdatesTemplateTest extends TestCase
@@ -37,26 +37,26 @@ final class CollectiveWishlistUpdatesTemplateTest extends TestCase
         self::assertStringContainsString('{each_wishlist_item_granted}', $defaults['wishlist_template']);
     }
 
-    public function testCollectiveDefaultsContainsCollectiveUpdatesKey(): void
+    public function testCollectiveDefaultsContainsCollectiveNewsfeedKey(): void
     {
         $defaults = SiteSettingsRepo::collectiveDefaults();
 
-        self::assertArrayHasKey('collective_updates_template', $defaults);
+        self::assertArrayHasKey('collective_newsfeed_template', $defaults);
     }
 
-    public function testCollectiveUpdatesTemplateDefaultHasExpectedStructure(): void
+    public function testCollectiveNewsfeedTemplateDefaultHasExpectedStructure(): void
     {
         $defaults = SiteSettingsRepo::collectiveDefaults();
 
-        self::assertNotSame('', $defaults['collective_updates_template']);
-        self::assertStringContainsString('{each_update}', $defaults['collective_updates_template']);
-        self::assertStringContainsString('{update_title}', $defaults['collective_updates_template']);
-        self::assertStringContainsString('{update_body_html}', $defaults['collective_updates_template']);
-        self::assertStringContainsString('fl-updates-list', $defaults['collective_updates_template']);
-        self::assertStringNotContainsString('{listing_subject}', $defaults['collective_updates_template']);
+        self::assertNotSame('', $defaults['collective_newsfeed_template']);
+        self::assertStringContainsString('{each_update}', $defaults['collective_newsfeed_template']);
+        self::assertStringContainsString('{update_title}', $defaults['collective_newsfeed_template']);
+        self::assertStringContainsString('{update_body_html}', $defaults['collective_newsfeed_template']);
+        self::assertStringContainsString('fl-updates-list', $defaults['collective_newsfeed_template']);
+        self::assertStringNotContainsString('{listing_subject}', $defaults['collective_newsfeed_template']);
         self::assertSame(
-            SiteSettingsRepo::defaultCollectiveUpdatesTemplate(),
-            $defaults['collective_updates_template'],
+            SiteSettingsRepo::defaultCollectiveNewsfeedTemplate(),
+            $defaults['collective_newsfeed_template'],
         );
     }
 }

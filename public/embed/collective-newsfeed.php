@@ -3,16 +3,16 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- Embeddable collective news feed. Renders the site-wide news/updates feed
- with pagination, using the admin-editable collective news template. Requires
- the News Feed add-on to be installed. Each entry can optionally show category
+ Embeddable collective newsfeed. Renders the site-wide newsfeed with
+ pagination, using the admin-editable collective news template. Requires
+ the Newsfeed add-on to be installed. Each entry can optionally show category
  tags. The feed only includes entries where fanlisting_id IS NULL (collective
  scope).
 */
 
 declare(strict_types=1);
 
-use Luster\Addons\Updates\UpdateRepo;
+use Luster\Addons\Newsfeed\NewsfeedRepo;
 use Luster\Core\Pagination;
 use Luster\Core\TemplateEngine;
 use Luster\Core\View;
@@ -50,23 +50,23 @@ $_lusterPage     = max(1, (int) ($_GET['page'] ?? 1));
 $_lusterCat      = trim((string) ($_GET['cat'] ?? ''));
 
 // ---------------------------------------------------------------------------
-// 3. Load updates
+// 3. Load newsfeed entries
 // ---------------------------------------------------------------------------
 
 $_lusterDb = $_lusterApp->getDatabase();
 
 try {
-    $_lusterUpdateRepo = new UpdateRepo($_lusterDb);
+    $_lusterNewsfeedRepo = new NewsfeedRepo($_lusterDb);
     if ($_lusterCat !== '') {
-        $_lusterUpdates = $_lusterUpdateRepo->getCollectiveByCategory($_lusterCat, $_lusterPage, $_lusterPerPage);
-        $_lusterTotal   = $_lusterUpdateRepo->countCollectiveByCategory($_lusterCat);
+        $_lusterUpdates = $_lusterNewsfeedRepo->getCollectiveByCategory($_lusterCat, $_lusterPage, $_lusterPerPage);
+        $_lusterTotal   = $_lusterNewsfeedRepo->countCollectiveByCategory($_lusterCat);
     } else {
-        $_lusterUpdates = $_lusterUpdateRepo->getCollective($_lusterPage, $_lusterPerPage);
-        $_lusterTotal   = $_lusterUpdateRepo->countCollective();
+        $_lusterUpdates = $_lusterNewsfeedRepo->getCollective($_lusterPage, $_lusterPerPage);
+        $_lusterTotal   = $_lusterNewsfeedRepo->countCollective();
     }
     $_lusterPages = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
 } catch (\Throwable $_lusterEx) {
-    // Updates add-on not installed or table missing — return empty output silently.
+    // Newsfeed add-on not installed or table missing — return empty output silently.
     if ($luster_return ?? false) {
         return '';
     }
@@ -86,38 +86,38 @@ $_lusterPagination = Pagination::render(
 );
 
 // ---------------------------------------------------------------------------
-// 4b. Apply collective_updates_template (if set) via TemplateEngine
+// 4b. Apply collective_newsfeed_template (if set) via TemplateEngine
 // ---------------------------------------------------------------------------
 
-$_lusterUpdatesTemplateHtml = null;
-$_lusterUpdatesTemplate     = $_lusterSiteRepo->get('collective_updates_template');
+$_lusterNewsfeedTemplateHtml = null;
+$_lusterNewsfeedTemplate     = $_lusterSiteRepo->get('collective_newsfeed_template');
 
-if ($_lusterUpdatesTemplate !== null && trim($_lusterUpdatesTemplate) !== '') {
-    $_lusterUpdatesTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterUpdatesTemplate);
-    $tplForLoop = TemplateEngine::conditionals($_lusterUpdatesTemplate, [
+if ($_lusterNewsfeedTemplate !== null && trim($_lusterNewsfeedTemplate) !== '') {
+    $_lusterNewsfeedTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterNewsfeedTemplate);
+    $tplForLoop = TemplateEngine::conditionals($_lusterNewsfeedTemplate, [
         'updates'    => count($_lusterUpdates) > 0,
         'no_updates' => count($_lusterUpdates) === 0,
     ]);
 
-    $_lusterUpdatesTemplateHtml = TemplateEngine::loop(
+    $_lusterNewsfeedTemplateHtml = TemplateEngine::loop(
         $tplForLoop,
         'update',
         $_lusterUpdates,
-        static function (string $inner, object $update): string {
+        static function (string $inner, object $entry): string {
             return TemplateEngine::render(
                 $inner,
                 [
-                    'update_title'      => $update->title,
-                    'update_date'       => date('F j, Y', strtotime($update->postedAt)),
-                    'update_author'     => $update->author ?? '',
-                    'update_categories' => implode(', ', $update->categories()),
+                    'update_title'      => $entry->title,
+                    'update_date'       => date('F j, Y', strtotime($entry->postedAt)),
+                    'update_author'     => $entry->author ?? '',
+                    'update_categories' => implode(', ', $entry->categories()),
                 ],
                 [
-                    'update_body_html' => nl2br(View::e($update->body)),
+                    'update_body_html' => nl2br(View::e($entry->body)),
                 ],
                 [
-                    'author'     => ($update->author ?? '') !== '',
-                    'categories' => count($update->categories()) > 0,
+                    'author'     => ($entry->author ?? '') !== '',
+                    'categories' => count($entry->categories()) > 0,
                 ],
             );
         },
@@ -128,7 +128,7 @@ if ($_lusterUpdatesTemplate !== null && trim($_lusterUpdatesTemplate) !== '') {
 // 5. Render fragment
 // ---------------------------------------------------------------------------
 
-$_lusterHtml = $_lusterApp->getView()->renderFragment('addons/updates/feed.php', [
+$_lusterHtml = $_lusterApp->getView()->renderFragment('addons/newsfeed/feed.php', [
     'updates'               => $_lusterUpdates,
     'total'                 => $_lusterTotal,
     'page'                  => $_lusterPage,
@@ -139,7 +139,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/updates/feed.php',
     'active_cat'            => $_lusterCat,
     'feed_url'              => $_lusterFeedUrl,
     'pagination'            => $_lusterPagination,
-    'updates_template_html' => $_lusterUpdatesTemplateHtml,
+    'newsfeed_template_html' => $_lusterNewsfeedTemplateHtml,
     'base_url'              => $_lusterApp->getBaseUrl(),
     'theme_path'            => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);

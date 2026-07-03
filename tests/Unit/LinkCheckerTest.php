@@ -50,6 +50,38 @@ final class LinkCheckerTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // resolveRedirectTarget
+    // -----------------------------------------------------------------------
+
+    public function testResolveRedirectTargetReturnsNullWhenNoLocation(): void
+    {
+        self::assertNull(self::call('resolveRedirectTarget', 'https://example.com/page', null));
+    }
+
+    public function testResolveRedirectTargetReturnsPublicAbsoluteUrl(): void
+    {
+        self::assertSame(
+            'https://dest.example.com/new',
+            self::call('resolveRedirectTarget', 'https://example.com/page', 'https://dest.example.com/new'),
+        );
+    }
+
+    public function testResolveRedirectTargetRejectsLoopbackHost(): void
+    {
+        self::assertNull(self::call('resolveRedirectTarget', 'https://example.com/page', 'http://127.0.0.1/admin'));
+    }
+
+    public function testResolveRedirectTargetRejectsPrivateHost(): void
+    {
+        self::assertNull(self::call('resolveRedirectTarget', 'https://example.com/page', 'http://192.168.1.1/'));
+    }
+
+    public function testResolveRedirectTargetRejectsLocalhostByName(): void
+    {
+        self::assertNull(self::call('resolveRedirectTarget', 'https://example.com/page', 'http://localhost/secret'));
+    }
+
+    // -----------------------------------------------------------------------
     // UrlNormalizer::resolveLocation
     // -----------------------------------------------------------------------
 

@@ -285,9 +285,11 @@ final class MemberLinkCheckRepo
     {
         $stmt = $this->db->pdo()->prepare(
             "UPDATE `lstr_member_link_checks`
-                SET link_status       = 'unchecked',
-                    link_redirect_url = NULL,
-                    link_checked_at   = NULL
+                SET link_status        = 'unchecked',
+                    link_redirect_url  = NULL,
+                    link_checked_at    = NULL,
+                    backlink_status    = 'unchecked',
+                    backlink_checked_at = NULL
               WHERE listing_id = :listing_id"
         );
         $stmt->execute(['listing_id' => $listingId]);
@@ -298,9 +300,11 @@ final class MemberLinkCheckRepo
     {
         $this->db->pdo()->exec(
             "UPDATE `lstr_member_link_checks`
-                SET link_status       = 'unchecked',
-                    link_redirect_url = NULL,
-                    link_checked_at   = NULL"
+                SET link_status        = 'unchecked',
+                    link_redirect_url  = NULL,
+                    link_checked_at    = NULL,
+                    backlink_status    = 'unchecked',
+                    backlink_checked_at = NULL"
         );
     }
 

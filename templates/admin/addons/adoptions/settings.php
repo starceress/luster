@@ -62,6 +62,10 @@ $b = rtrim(View::e($base_url), '/');
         </div>
       </div>
     </div>
+    <div class="card-body">
+      <div class="section-label">Form URLs</div>
+      <p class="form-hint">The public adoption application form URL is set on the <a href="<?= $b ?>/admin/collective/settings#collective-adoption-urls" class="link">Collective Settings</a> page.</p>
+    </div>
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>
     </div>

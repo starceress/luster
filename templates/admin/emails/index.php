@@ -306,6 +306,37 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         </div>
       </nav>
 
+      <div class="mini-nav-tokens card">
+        <div class="card-head">Available Tokens</div>
+        <div class="panel-body">
+          <div class="search-field-wrap" style="margin:.25rem 0 .5rem">
+            <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+            <input type="search" id="et-token-search" class="form"
+                   placeholder="Search email tokens" autocomplete="off"
+                   aria-label="Search email tokens">
+          </div>
+          <p id="et-token-empty" class="form-hint is-hidden">No tokens found.</p>
+          <?php foreach ($visibleTypes as $i => $type): ?>
+            <table class="et-token-table et-token-table--compact et-token-group<?= $i === 0 ? '' : ' is-hidden' ?>"
+                   data-et-tokens="<?= View::e($type) ?>">
+              <tbody>
+                <?php foreach ($typeTokens[$type] as $token):
+                  $desc = $allTokenDesc[$token] ?? '';
+                ?>
+                  <tr class="tok-row" tabindex="0" role="button"
+                      title="<?= View::e($desc) ?>"
+                      aria-label="Insert <?= View::e($token) ?>. <?= View::e($desc) ?>"
+                      data-textarea="et-body-<?= View::e($type) ?>"
+                      data-token="<?= View::e($token) ?>">
+                    <td class="token-cell" data-desc="<?= View::e($desc) ?>"><code><?= View::e($token) ?></code></td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
       <div class="settings-content">
         <?php foreach ($visibleTypes as $i => $type):
           $card = $cards[$type];
@@ -396,27 +427,6 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             </div>
 
           </div>
-
-          <details class="card chevron" data-token-card>
-            <summary class="chevron-head">Available Tokens</summary>
-            <div class="chevron-body">
-              <table class="et-token-table et-token-table--compact">
-                <tbody>
-                  <?php foreach ($typeTokens[$type] as $token):
-                    $desc = $allTokenDesc[$token] ?? '';
-                  ?>
-                    <tr class="tok-row" tabindex="0" role="button"
-                        title="<?= View::e($desc) ?>"
-                        aria-label="Insert <?= View::e($token) ?>. <?= View::e($desc) ?>"
-                        data-textarea="et-body-<?= View::e($type) ?>"
-                        data-token="<?= View::e($token) ?>">
-                      <td class="token-cell" data-desc="<?= View::e($desc) ?>"><code><?= View::e($token) ?></code></td>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-          </details>
         </div>
         <?php endforeach; ?>
       </div>
@@ -795,7 +805,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     <?php if (empty($saved_emails)): ?>
       <div class="empty">
         <div class="empty-icon"><?= View::icon('email', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">No saved templates yet.</div>
+        <div><strong>No saved templates yet.</strong></div>
         <div>Use the form above to create one.</div>
       </div>
     <?php else: ?>
@@ -820,8 +830,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
               <td class="actions-col">
                 <div class="actions-row">
                   <a href="<?= $b ?>/admin/emails?tab=bulk&load=<?= (int) $t->id ?>"
-                     class="btn btn-secondary btn-sm">Use</a>
-                  <button type="button" class="btn btn-tertiary btn-sm ct-edit-btn"
+                     class="btn btn-secondary btn-xs">Use</a>
+                  <button type="button" class="btn btn-tertiary btn-xs ct-edit-btn"
                           data-id="<?= (int) $t->id ?>"
                           data-name="<?= View::e($t->name) ?>"
                           data-subject="<?= View::e($t->subject) ?>"
@@ -832,7 +842,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                         data-del-modal data-del-entity="email_template"
                         data-del-name="<?= View::e($t->name) ?>">
                     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    <button type="submit" class="btn btn-danger btn-xs">Delete</button>
                   </form>
                 </div>
               </td>

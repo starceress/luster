@@ -113,7 +113,7 @@ $pageUrl = static function (int $p) use ($b, $sort, $dir): string {
           $granted  = (int) $entry['granted'];
           $canEmail = ($approved + $granted) > 0;
         ?>
-        <tr>
+        <tr class="<?= ($lifecycle_map[(int) $listing->id] ?? null) ? 'row-archived' : '' ?>">
           <td data-label="Listing">
             <div class="subject-title-stack">
               <a href="<?= $b ?>/admin/kim?listing_id=<?= (int) $listing->id ?>" class="link"><b><?= View::e($listing->subject ?: $listing->title) ?></b></a>

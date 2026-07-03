@@ -22,6 +22,7 @@ use Luster\Core\TflLookupService;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\JoinedListingRepo;
+use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\SiteSettingsRepo;
@@ -91,6 +92,12 @@ final class LinkCheckerController extends AdminController
         $statusParam  = trim((string) $request->query('status', ''));
         if (!in_array($statusParam, $statusValues, true)) { $statusParam = ''; }
 
+        $listedFilterParam     = trim((string) $request->query('listed_filter', ''));
+        if (!in_array($listedFilterParam, ['listed', 'not_listed'], true)) { $listedFilterParam = ''; }
+
+        $reciprocalFilterParam = trim((string) $request->query('aff_reciprocal_filter', ''));
+        if (!in_array($reciprocalFilterParam, ['found', 'missing'], true)) { $reciprocalFilterParam = ''; }
+
         $searchParam = trim((string) $request->query('search', ''));
 
         $enthPrefix     = (string) $config->get('enth_table_prefix', '');
@@ -131,8 +138,8 @@ final class LinkCheckerController extends AdminController
 
         $statusArg    = $statusParam !== '' ? $statusParam : null;
         $searchArg    = $searchParam !== '' ? $searchParam : null;
-        $affResult    = $affRepo->paginateForLinkCheck($listingFilter, $perPage, $affPage, $affOrderBy, $statusArg, $searchArg);
-        $joinedResult = $joinedRepo->paginateForLinkCheck($perPage, $joinedPage, $joinedOrderBy, $statusArg, $searchArg);
+        $affResult    = $affRepo->paginateForLinkCheck($listingFilter, $perPage, $affPage, $affOrderBy, $statusArg, $searchArg, $reciprocalFilterParam !== '' ? $reciprocalFilterParam : null);
+        $joinedResult = $joinedRepo->paginateForLinkCheck($perPage, $joinedPage, $joinedOrderBy, $statusArg, $searchArg, $listedFilterParam !== '' ? $listedFilterParam : null);
 
         $listingRepo  = new ListingRepo($db, $config);
         $allListings  = $listingRepo->getAll();
@@ -167,8 +174,9 @@ final class LinkCheckerController extends AdminController
                 return strcmp($aDate, $bDate);
             });
             if ($memSumDirParam === 'desc') { $allListings = array_reverse($allListings); }
-        } elseif ($memSumDirParam === 'desc') {
-            $allListings = array_reverse($allListings);
+        } else {
+            usort($allListings, static fn($a, $b) => $a->id <=> $b->id);
+            if ($memSumDirParam === 'desc') { $allListings = array_reverse($allListings); }
         }
 
         $memSumTotal      = count($allListings);
@@ -176,6 +184,8 @@ final class LinkCheckerController extends AdminController
         $memSumPage       = min($memSumPage, $memSumTotalPages);
         $memSumOffset     = ($memSumPage - 1) * $perPage;
         $memSumListings   = array_slice($allListings, $memSumOffset, $perPage);
+        $lcLifecycleMap   = (new ListingLifecycleRepo($db))
+            ->getMapForListings(array_map(static fn($fl) => $fl->id, $memSumListings));
 
         if ($listingFilter !== null && $listingFilter > 0) {
             $memListing    = $listingRepo->getById($listingFilter);
@@ -218,8 +228,10 @@ final class LinkCheckerController extends AdminController
                 'joined_page'        => $joinedPage,
                 'aff_total_pages'    => max(1, (int) ceil($affResult['total'] / $perPage)),
                 'joined_total_pages' => max(1, (int) ceil($joinedResult['total'] / $perPage)),
-                'aff_stats'          => $affRepo->getLinkStats($listingFilter),
-                'joined_stats'       => $joinedRepo->getLinkStats(),
+                'aff_stats'             => $affRepo->getLinkStats($listingFilter),
+                'aff_reciprocal_stats'  => $affRepo->getReciprocalStats($listingFilter),
+                'aff_reciprocal_filter' => $reciprocalFilterParam,
+                'joined_stats'          => $joinedRepo->getLinkStats(),
                 'backlink_stats'     => $backlinkStats,
                 'listed_stats'       => $listedStats,
                 'aff_scope_counts'   => $affRepo->getScopeCounts(),
@@ -242,6 +254,7 @@ final class LinkCheckerController extends AdminController
                 'owner_name'         => trim((string) ($this->app->getConfig()->get('owner_name', '') ?? '')),
                 'listings'           => $allListings,
                 'mem_sum_listings'   => $memSumListings,
+                'lifecycle_map'      => $lcLifecycleMap,
                 'mem_sum_page'       => $memSumPage,
                 'mem_sum_total'      => $memSumTotal,
                 'mem_sum_total_pages'=> $memSumTotalPages,
@@ -249,6 +262,7 @@ final class LinkCheckerController extends AdminController
                 'mem_sum_dir'        => $memSumDirParam,
                 'listing_id_filter'  => $listingFilter,
                 'status'             => $statusParam,
+                'listed_filter'      => $listedFilterParam,
                 'search'             => $searchParam,
                 'aff_sort'           => $affSortParam,
                 'aff_dir'            => $affDirParam,
@@ -527,12 +541,24 @@ final class LinkCheckerController extends AdminController
         $result = LinkChecker::check($item->url);
         $repo->updateLinkStatus($id, $result['status'], $result['redirect_url']);
 
+        $ownerName = trim((string) ($this->app->getConfig()->get('owner_name', '') ?? ''));
+        if ($result['status'] !== 'dead' && $item->url !== '' && $ownerName !== '') {
+            $listed = LinkChecker::checkOwnerListed($item->url, $ownerName);
+            $repo->updateListedStatus($id, $listed['status'], $listed['members_url']);
+        } else {
+            $listed = ['status' => 'unchecked', 'members_url' => null, 'heuristic' => false];
+            $repo->updateListedStatus($id, 'unchecked', null);
+        }
+
         return Response::json([
             'link_status'   => $result['status'],
             'http_code'     => $result['http_code'],
             'redirect_url'  => $result['redirect_url'],
             'content_flags' => $result['content_flags'],
-            'checked_at'    => date('Y-m-d H:i'),
+            'listed_status' => $listed['status'],
+            'members_url'   => $listed['members_url'],
+            'heuristic'     => $listed['heuristic'] ?? false,
+            'checked_at'    => date($this->dateFormat()),
         ]);
     }
 
@@ -750,7 +776,7 @@ final class LinkCheckerController extends AdminController
             $request->ip(),
         );
 
-        return Response::redirect($this->adminUrl('/admin/link-checker'));
+        return Response::redirect($this->adminUrl('/admin/link-checker?tab=affiliates'));
     }
 
     // -----------------------------------------------------------------------
@@ -771,7 +797,7 @@ final class LinkCheckerController extends AdminController
 
         (new JoinedListingRepo($this->app->getDatabase()))->resetLinkStatus();
 
-        $this->app->getSession()->set('lstr_flash_success', 'Joined-listing link statuses have been reset.');
+        $this->app->getSession()->set('lstr_flash_success', 'Joined listing link statuses have been reset.');
 
         (new ActivityRepo($this->app->getDatabase()))->log(
             (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
@@ -780,7 +806,7 @@ final class LinkCheckerController extends AdminController
             $request->ip(),
         );
 
-        return Response::redirect($this->adminUrl('/admin/link-checker'));
+        return Response::redirect($this->adminUrl('/admin/link-checker?tab=joined'));
     }
 
     // -----------------------------------------------------------------------
@@ -925,12 +951,24 @@ final class LinkCheckerController extends AdminController
         $result = LinkChecker::check($member->member_url);
         $repo->updateLinkStatus($id, $result['status'], $result['redirect_url']);
 
+        $listingUrl     = '';
+        $backlinkStatus = 'unchecked';
+        if ($result['status'] !== 'dead' && $member->member_url !== '') {
+            $listing    = (new ListingRepo($db, $this->app->getConfig()))->getById((int) $member->listing_id);
+            $listingUrl = $listing !== null ? (string) $listing->url : '';
+        }
+        if ($listingUrl !== '') {
+            $backlinkStatus = LinkChecker::checkReciprocalDeep($member->member_url, $listingUrl);
+        }
+        $repo->updateBacklinkStatus($id, $backlinkStatus);
+
         return Response::json([
-            'link_status'   => $result['status'],
-            'http_code'     => $result['http_code'],
-            'redirect_url'  => $result['redirect_url'],
-            'content_flags' => $result['content_flags'],
-            'checked_at'    => date('Y-m-d H:i'),
+            'link_status'     => $result['status'],
+            'http_code'       => $result['http_code'],
+            'redirect_url'    => $result['redirect_url'],
+            'content_flags'   => $result['content_flags'],
+            'backlink_status' => $backlinkStatus,
+            'checked_at'      => date('Y-m-d H:i'),
         ]);
     }
 
@@ -1117,6 +1155,10 @@ final class LinkCheckerController extends AdminController
 
         if (!rename($tmpPath, $configPath)) {
             throw new \RuntimeException('Could not rename temp config to: ' . $configPath);
+        }
+
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate($configPath, true);
         }
     }
 

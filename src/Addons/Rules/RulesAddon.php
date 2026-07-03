@@ -45,7 +45,7 @@ final class RulesAddon implements AddonInterface
     /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
-        return 'Add per-listing rules that fans must read and agree to. When you update the rules text, existing agreements are invalidated so fans must re-agree on their next visit.';
+        return 'Add per-listing rules that fans must read and agree to before joining. Adds a global rules editor, a per-listing rules editor, and an admin panel for managing and customizing rules.';
     }
 
     /**
@@ -129,11 +129,18 @@ final class RulesAddon implements AddonInterface
         $pdo->exec('DROP TABLE IF EXISTS `lstr_rules`');
     }
 
-    /** Registers public (/rules/*) and admin (/admin/rules/*) routes. */
-    public function registerRoutes(Router $router): void
+    /** Registers public (/rules/*) and admin (/admin/rules/*) routes, gated by $context. */
+    public function registerRoutes(Router $router, string $context): void
     {
-        // Public (POST only — rules gate lives on the owner's site via embed)
-        $router->post('/rules/{id}/agree', RulesPublicController::class, 'agree');
+        if ($context === 'public') {
+            // Public (POST only — rules gate lives on the owner's site via embed)
+            $router->post('/rules/{id}/agree', RulesPublicController::class, 'agree');
+            return;
+        }
+
+        if ($context !== 'admin') {
+            return;
+        }
 
         // Admin — literal paths before parameterised
         $router->get('/admin/rules',              RulesAdminController::class, 'index');

@@ -99,19 +99,20 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
       <div class="field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
         <label class="field-label" for="fl-url">Website URL <span class="req">*</span></label>
         <div>
-          <input id="fl-url" type="url" name="url" class="form" maxlength="500" placeholder="https://" required
+          <input id="fl-url" type="url" name="url" class="form" maxlength="255" placeholder="https://" required
                  value="<?= View::e($val('url')) ?>">
           <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
-      <div class="field-row">
-        <label class="field-label" for="fl-email">Email</label>
+      <div class="field-row<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="fl-email">Email <span class="req">*</span></label>
         <div>
-          <input id="fl-email" type="email" name="email" class="form" maxlength="255"
+          <input id="fl-email" type="email" name="email" class="form" maxlength="255" required
                  placeholder="admin@example.com"
                  value="<?= View::e($val('email')) ?>">
           <p class="form-hint">Luster uses this address as the sender for emails from this listing.</p>
+          <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
         </div>
       </div>
 

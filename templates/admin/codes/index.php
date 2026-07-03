@@ -59,20 +59,6 @@ $filtersActive = $filters_active ?? false;
       Filter<?php if ($lid > 0 || $filtersActive || $viewMode === 'collective'): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
     </button>
   </div>
-  <?php if ($viewMode === 'listing' && $lid > 0): ?>
-  <div class="actions-row">
-    <?php $__approvedCountTopbar = ($approved_per_listing ?? [])[$lid] ?? 0; ?>
-    <?php if ($__approvedCountTopbar > 0): ?>
-      <a href="<?= $b ?>/admin/listings/<?= $lid ?>/codes/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export ZIP</a>
-    <?php endif; ?>
-  </div>
-  <?php elseif ($viewMode === 'collective'): ?>
-  <div class="actions-row">
-    <?php if ((int)(($code_status_counts ?? [])['approved'] ?? 0) > 0): ?>
-      <a href="<?= $b ?>/admin/codes/collective/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export ZIP</a>
-    <?php endif; ?>
-  </div>
-  <?php endif; ?>
   <?php if ($viewMode !== 'collective'): ?>
   <div class="actions-row actions-row--right">
     <a href="<?= $b ?>/admin/codes?collective=1" class="btn btn-quaternary btn-sm"><?= View::icon('image') ?> Collective Codes</a>
@@ -319,6 +305,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
     <span class="badge badge-<?= $_colApproved > 0 ? 'current' : 'inactive' ?>"><?= $_colApproved ?> Approved</span>
     <?php if ($_colPending > 0): ?><span class="badge badge-pending"><?= $_colPending ?> Pending</span><?php endif; ?>
     <?php if ($_colRejected > 0): ?><span class="badge badge-error"><?= $_colRejected ?> Rejected</span><?php endif; ?>
+    <?php if ($_colApproved > 0): ?><a href="<?= $b ?>/admin/codes/collective/export" class="btn btn-preview btn-xs" style="margin-left:auto"><?= View::icon('download') ?> Export Codes (ZIP)</a><?php endif; ?>
     <?php if ($_colGroupCount > 0): ?><span class="card-head-sub">Click and drag the top left corner to reorder codes &mdash; changes are effective immediately.</span><?php endif; ?>
   </div>
 
@@ -437,7 +424,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
 <div class="card">
   <div class="empty">
     <div class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></div>
-    <div class="empty-title">Use the dropdowns above to get started.</div>
+    <div><strong>Use the dropdowns above to get started.</strong></div>
     <div>Choose a listing to view all of its codes.</div>
   </div>
 </div>
@@ -446,7 +433,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
 <div class="card">
   <div class="empty">
     <div class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></div>
-    <div class="empty-title">No pending code donations.</div>
+    <div><strong>No pending code donations.</strong></div>
     <div>All caught up &mdash; select a listing above to manage its codes.</div>
   </div>
 </div>

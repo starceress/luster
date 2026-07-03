@@ -3,40 +3,41 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- Admin controller for the News Feed add-on. Provides the listings overview
+ Admin controller for the Newsfeed add-on. Provides the listings overview
  with latest-post dates, per-fanlisting and collective entry lists, the
- add/edit/delete entry forms, bulk delete, and the News Feed settings page.
+ add/edit/delete entry forms, bulk delete, and the Newsfeed settings page.
  All state-changing actions are CSRF-protected and logged to the activity log.
 */
 
 declare(strict_types=1);
 
-namespace Luster\Addons\Updates\Controllers;
+namespace Luster\Addons\Newsfeed\Controllers;
 
-use Luster\Addons\Updates\Update;
-use Luster\Addons\Updates\UpdateRepo;
+use Luster\Addons\Newsfeed\NewsfeedEntry;
+use Luster\Addons\Newsfeed\NewsfeedRepo;
 use Luster\Controllers\Admin\AdminController;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
+use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
 /**
- * Admin controller for the Updates add-on.
+ * Admin controller for the Newsfeed add-on.
  *
  * All state-changing actions require CSRF validation (handled globally by
  * CsrfMiddleware) and log to the activity log.
  */
-final class UpdatesAdminController extends AdminController
+final class NewsfeedAdminController extends AdminController
 {
 
     // -----------------------------------------------------------------------
-    // GET /admin/updates  — overview index
+    // GET /admin/newsfeed  — overview index
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the listings overview showing the latest update date and entry count
+     * Renders the listings overview showing the latest post date and entry count
      * for each fanlisting plus the collective feed. Supports search by subject and
      * sorting by ID, subject, or latest post date.
      */
@@ -47,12 +48,12 @@ final class UpdatesAdminController extends AdminController
         $session = $this->app->getSession();
 
         $listingRepo = new ListingRepo($db, $config);
-        $updateRepo  = new UpdateRepo($db);
+        $newsfeedRepo = new NewsfeedRepo($db);
 
         $listings      = $listingRepo->getAll();
-        $latestPerFl   = $updateRepo->getLatestPerFanlisting();
-        $latestColl    = $updateRepo->getLatestCollective();
-        $collectiveCnt = $updateRepo->countCollective();
+        $latestPerFl   = $newsfeedRepo->getLatestPerFanlisting();
+        $latestColl    = $newsfeedRepo->getLatestCollective();
+        $collectiveCnt = $newsfeedRepo->countCollective();
 
         $search = trim((string) $request->query('search', ''));
         $sort   = trim((string) $request->query('sort', 'id'));
@@ -84,18 +85,21 @@ final class UpdatesAdminController extends AdminController
         });
 
         $totalListings = count($listings);
-        $perPage       = max(5, min(25, (int) ((new SiteSettingsRepo($db))->get('updates_per_page', '10') ?? '10')));
+        $perPage       = max(5, min(25, (int) ((new SiteSettingsRepo($db))->get('newsfeed_per_page', '10') ?? '10')));
         $pages         = $totalListings > 0 ? (int) ceil($totalListings / $perPage) : 1;
         $page          = min(max(1, (int) $request->query('page', 1)), $pages);
-        $listings      = array_slice($listings, ($page - 1) * $perPage, $perPage);
+        $listings     = array_slice($listings, ($page - 1) * $perPage, $perPage);
+        $lifecycleMap = (new ListingLifecycleRepo($db))
+            ->getMapForListings(array_map(static fn($l) => $l->id, $listings));
 
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/index.php', 'News Feed', 'updates', [
+        return $this->adminLayout('admin/addons/newsfeed/index.php', 'News Feed', 'newsfeed', [
             'listings'        => $listings,
+            'lifecycle_map'   => $lifecycleMap,
             'latest_per_fl'   => $latestPerFl,
             'latest_coll'     => $latestColl,
             'collective_cnt'  => $collectiveCnt,
@@ -113,10 +117,10 @@ final class UpdatesAdminController extends AdminController
     }
 
     // -----------------------------------------------------------------------
-    // GET|POST /admin/updates/settings
+    // GET|POST /admin/newsfeed/settings
     // -----------------------------------------------------------------------
 
-    /** Renders or saves the News Feed display settings (items per page). */
+    /** Renders or saves the Newsfeed display settings (items per page). */
     public function settings(Request $request, array $params): Response
     {
         $db           = $this->app->getDatabase();
@@ -131,33 +135,33 @@ final class UpdatesAdminController extends AdminController
         if ($request->isPost()) {
             if (!$this->validCsrf($request)) {
                 $session->set('lstr_flash_error', 'Invalid security token.');
-                return Response::redirect($this->app->getBaseUrl() . '/admin/updates/settings');
+                return Response::redirect($this->app->getBaseUrl() . '/admin/newsfeed/settings');
             }
 
-            $perPage = max(5, min(25, (int) $request->post('updates_per_page', 10)));
-            $settingsRepo->set('updates_per_page', (string) $perPage);
+            $perPage = max(5, min(25, (int) $request->post('newsfeed_per_page', 10)));
+            $settingsRepo->set('newsfeed_per_page', (string) $perPage);
 
-            $session->set('lstr_flash_success', 'News feed display settings saved.');
-            return Response::redirect($this->app->getBaseUrl() . '/admin/updates/settings');
+            $session->set('lstr_flash_success', 'News Feed display settings saved.');
+            return Response::redirect($this->app->getBaseUrl() . '/admin/newsfeed/settings');
         }
 
-        $perPage = max(1, min(100, (int) ($settingsRepo->get('updates_per_page', '10') ?? '10')));
+        $perPage = max(1, min(100, (int) ($settingsRepo->get('newsfeed_per_page', '10') ?? '10')));
 
-        return $this->adminLayout('admin/addons/updates/settings.php', 'News Feed Settings', 'updates', [
-            'updates_per_page' => $perPage,
+        return $this->adminLayout('admin/addons/newsfeed/settings.php', 'News Feed Settings', 'newsfeed', [
+            'newsfeed_per_page' => $perPage,
             'success'          => $success,
             'error'            => $error,
         ], '', [
-            $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb('News Feed', $this->adminUrl('/admin/newsfeed')),
         ]);
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/updates/collective  — collective updates list
+    // GET /admin/newsfeed/collective  — collective entries list
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the paginated update list for the collective feed (fanlisting_id IS NULL),
+     * Renders the paginated entry list for the collective feed (fanlisting_id IS NULL),
      * with optional search and category filtering.
      */
     public function collectiveList(Request $request, array $params): Response
@@ -166,15 +170,15 @@ final class UpdatesAdminController extends AdminController
         $session = $this->app->getSession();
         $config  = $this->app->getConfig();
 
-        $perPage         = max(5, min(25, (int) ((new SiteSettingsRepo($db))->get('updates_per_page', '10') ?? '10')));
+        $perPage         = max(5, min(25, (int) ((new SiteSettingsRepo($db))->get('newsfeed_per_page', '10') ?? '10')));
         $page            = max(1, (int) ($request->query('page', 1)));
         $search          = trim((string) $request->query('search', ''));
         $filterCategory  = trim((string) $request->query('category', ''));
 
-        $updateRepo = new UpdateRepo($db);
-        $updates    = $updateRepo->getFiltered(null, $search, $filterCategory, $page, $perPage);
-        $total      = $updateRepo->countFiltered(null, $search, $filterCategory);
-        $pages      = max(1, (int) ceil($total / $perPage));
+        $newsfeedRepo = new NewsfeedRepo($db);
+        $entries      = $newsfeedRepo->getFiltered(null, $search, $filterCategory, $page, $perPage);
+        $total        = $newsfeedRepo->countFiltered(null, $search, $filterCategory);
+        $pages        = max(1, (int) ceil($total / $perPage));
 
         $siteName = (string) $config->get('site_name', 'Luster');
 
@@ -183,8 +187,8 @@ final class UpdatesAdminController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/list.php', 'News Feed', 'updates', [
-            'updates'          => $updates,
+        return $this->adminLayout('admin/addons/newsfeed/list.php', 'News Feed', 'newsfeed', [
+            'updates'          => $entries,
             'total'            => $total,
             'page'             => $page,
             'pages'            => $pages,
@@ -194,37 +198,37 @@ final class UpdatesAdminController extends AdminController
             'ctx_name'         => $siteName,
             'search'           => $search,
             'filter_category'  => $filterCategory,
-            'known_categories' => $updateRepo->getKnownCategories(),
+            'known_categories' => $newsfeedRepo->getKnownCategories(),
             'success'          => $success,
             'error'            => $error,
         ], '', [
-            $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb('News Feed', $this->adminUrl('/admin/newsfeed')),
             $this->crumb($siteName),
         ]);
     }
 
     // -----------------------------------------------------------------------
-    // GET|POST /admin/updates/collective/add
+    // GET|POST /admin/newsfeed/collective/add
     // -----------------------------------------------------------------------
 
-    /** Renders the add-update form for the collective feed. */
+    /** Renders the add-entry form for the collective feed. */
     public function collectiveAddForm(Request $request, array $params): Response
     {
         return $this->renderAddForm($request, null, 'Collective');
     }
 
-    /** Saves a new collective update. */
+    /** Saves a new collective entry. */
     public function collectiveAdd(Request $request, array $params): Response
     {
         return $this->handleAdd($request, null, 'Collective');
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/updates/{fid}  — per-fanlisting list
+    // GET /admin/newsfeed/{fid}  — per-fanlisting list
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the paginated update list for a single fanlisting, with optional
+     * Renders the paginated entry list for a single fanlisting, with optional
      * search and category filtering.
      */
     public function list(Request $request, array $params): Response
@@ -242,23 +246,23 @@ final class UpdatesAdminController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
-        $perPage         = max(5, min(25, (int) ((new SiteSettingsRepo($db))->get('updates_per_page', '10') ?? '10')));
+        $perPage         = max(5, min(25, (int) ((new SiteSettingsRepo($db))->get('newsfeed_per_page', '10') ?? '10')));
         $page            = max(1, (int) ($request->query('page', 1)));
         $search          = trim((string) $request->query('search', ''));
         $filterCategory  = trim((string) $request->query('category', ''));
 
-        $updateRepo = new UpdateRepo($db);
-        $updates    = $updateRepo->getFiltered($fid, $search, $filterCategory, $page, $perPage);
-        $total      = $updateRepo->countFiltered($fid, $search, $filterCategory);
-        $pages      = max(1, (int) ceil($total / $perPage));
+        $newsfeedRepo = new NewsfeedRepo($db);
+        $entries      = $newsfeedRepo->getFiltered($fid, $search, $filterCategory, $page, $perPage);
+        $total        = $newsfeedRepo->countFiltered($fid, $search, $filterCategory);
+        $pages        = max(1, (int) ceil($total / $perPage));
 
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/list.php', 'News Feed', 'updates', [
-            'updates'          => $updates,
+        return $this->adminLayout('admin/addons/newsfeed/list.php', 'News Feed', 'newsfeed', [
+            'updates'          => $entries,
             'total'            => $total,
             'page'             => $page,
             'pages'            => $pages,
@@ -268,20 +272,20 @@ final class UpdatesAdminController extends AdminController
             'ctx_name'         => $listing->subject,
             'search'           => $search,
             'filter_category'  => $filterCategory,
-            'known_categories' => $updateRepo->getKnownCategories(),
+            'known_categories' => $newsfeedRepo->getKnownCategories(),
             'success'          => $success,
             'error'            => $error,
         ], '', [
-            $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb('News Feed', $this->adminUrl('/admin/newsfeed')),
             $this->crumb($listing->subject),
         ]);
     }
 
     // -----------------------------------------------------------------------
-    // GET|POST /admin/updates/{fid}/add
+    // GET|POST /admin/newsfeed/{fid}/add
     // -----------------------------------------------------------------------
 
-    /** Renders the add-update form for a per-fanlisting feed. */
+    /** Renders the add-entry form for a per-fanlisting feed. */
     public function addForm(Request $request, array $params): Response
     {
         $fid     = (int) ($params['fid'] ?? 0);
@@ -296,7 +300,7 @@ final class UpdatesAdminController extends AdminController
         return $this->renderAddForm($request, $fid, $listing->subject);
     }
 
-    /** Saves a new update for a per-fanlisting feed. */
+    /** Saves a new entry for a per-fanlisting feed. */
     public function add(Request $request, array $params): Response
     {
         $fid     = (int) ($params['fid'] ?? 0);
@@ -312,10 +316,10 @@ final class UpdatesAdminController extends AdminController
     }
 
     // -----------------------------------------------------------------------
-    // GET|POST /admin/updates/entry/{id}/edit
+    // GET|POST /admin/newsfeed/entry/{id}/edit
     // -----------------------------------------------------------------------
 
-    /** Renders the edit form for an existing update entry. */
+    /** Renders the edit form for an existing entry. */
     public function editForm(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -324,22 +328,22 @@ final class UpdatesAdminController extends AdminController
         $config  = $this->app->getConfig();
         $session = $this->app->getSession();
 
-        $updateRepo = new UpdateRepo($db);
-        $update     = $updateRepo->getById($id);
+        $newsfeedRepo = new NewsfeedRepo($db);
+        $entry        = $newsfeedRepo->getById($id);
 
-        if ($update === null) {
-            return Response::notFound('Update not found.');
+        if ($entry === null) {
+            return Response::notFound('Entry not found.');
         }
 
-        [$contextLabel, $backUrl, $breadcrumbs] = $this->subtitleAndBack($update, $config, $db);
+        [$contextLabel, $backUrl, $breadcrumbs] = $this->subtitleAndBack($entry, $config, $db);
 
         $error = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/add.php', 'Edit Update', 'updates', [
-            'update'           => $update,
-            'fanlisting_id'    => $update->fanlistingId,
-            'known_categories' => $updateRepo->getKnownCategories(),
+        return $this->adminLayout('admin/addons/newsfeed/add.php', 'Edit Entry', 'newsfeed', [
+            'update'           => $entry,
+            'fanlisting_id'    => $entry->fanlistingId,
+            'known_categories' => $newsfeedRepo->getKnownCategories(),
             'back_url'         => $backUrl,
             'ctx_label'        => $contextLabel,
             'back_label'       => $contextLabel,
@@ -348,7 +352,7 @@ final class UpdatesAdminController extends AdminController
         ], '', $breadcrumbs);
     }
 
-    /** Saves edits to an existing update entry. */
+    /** Saves edits to an existing entry. */
     public function edit(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -358,14 +362,14 @@ final class UpdatesAdminController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $updateRepo = new UpdateRepo($db);
-        $update     = $updateRepo->getById($id);
+        $newsfeedRepo = new NewsfeedRepo($db);
+        $entry        = $newsfeedRepo->getById($id);
 
-        if ($update === null) {
-            return Response::notFound('Update not found.');
+        if ($entry === null) {
+            return Response::notFound('Entry not found.');
         }
 
-        [, $backUrl] = $this->subtitleAndBack($update, $config, $db);
+        [, $backUrl] = $this->subtitleAndBack($entry, $config, $db);
 
         $title    = trim((string) $request->post('title',     ''));
         $body     = trim((string) $request->post('body',      ''));
@@ -376,10 +380,10 @@ final class UpdatesAdminController extends AdminController
 
         if (!empty($errors)) {
             $session->set('lstr_flash_error', implode(' ', $errors));
-            return Response::redirect($baseUrl . '/admin/updates/entry/' . $id . '/edit');
+            return Response::redirect($baseUrl . '/admin/newsfeed/entry/' . $id . '/edit');
         }
 
-        $updateRepo->update($id, [
+        $newsfeedRepo->update($id, [
             'title'     => $title,
             'body'      => $body,
             'category'  => $category,
@@ -389,19 +393,19 @@ final class UpdatesAdminController extends AdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             'update_edited',
-            'Edited update "' . $title . '"',
+            'Edited newsfeed entry "' . $title . '"',
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', 'Update saved.');
+        $session->set('lstr_flash_success', 'Entry saved.');
         return Response::redirect($backUrl);
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/updates/entry/{id}/delete
+    // POST /admin/newsfeed/entry/{id}/delete
     // -----------------------------------------------------------------------
 
-    /** Deletes a single update entry and redirects back to its parent feed list. */
+    /** Deletes a single entry and redirects back to its parent feed list. */
     public function delete(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
@@ -411,37 +415,37 @@ final class UpdatesAdminController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $updateRepo = new UpdateRepo($db);
-        $update     = $updateRepo->getById($id);
+        $newsfeedRepo = new NewsfeedRepo($db);
+        $entry        = $newsfeedRepo->getById($id);
 
-        if ($update === null) {
-            return Response::notFound('Update not found.');
+        if ($entry === null) {
+            return Response::notFound('Entry not found.');
         }
 
-        [, $backUrl] = $this->subtitleAndBack($update, $config, $db);
+        [, $backUrl] = $this->subtitleAndBack($entry, $config, $db);
 
-        $updateRepo->delete($id);
+        $newsfeedRepo->delete($id);
 
-        $context = $update->fanlistingId === null
+        $context = $entry->fanlistingId === null
             ? 'Collective'
-            : 'listing #' . $update->fanlistingId;
+            : 'listing #' . $entry->fanlistingId;
 
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             'update_deleted',
-            'Deleted update "' . $update->title . '" for ' . $context,
+            'Deleted newsfeed entry "' . $entry->title . '" for ' . $context,
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', 'Update deleted.');
+        $session->set('lstr_flash_success', 'Entry deleted.');
         return Response::redirect($backUrl);
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/updates/bulk  — bulk delete across any page/listing
+    // POST /admin/newsfeed/bulk  — bulk delete across any page/listing
     // -----------------------------------------------------------------------
 
-    /** Deletes the selected update entries in bulk and redirects to the originating list. */
+    /** Deletes the selected entries in bulk and redirects to the originating list. */
     public function bulkDelete(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -456,12 +460,12 @@ final class UpdatesAdminController extends AdminController
         ));
 
         $returnTo = trim((string) $request->post('_return', ''));
-        if ($returnTo === '' || !str_starts_with($returnTo, $baseUrl . '/admin/updates')) {
-            $returnTo = $baseUrl . '/admin/updates';
+        if ($returnTo === '' || !str_starts_with($returnTo, $baseUrl . '/admin/newsfeed')) {
+            $returnTo = $baseUrl . '/admin/newsfeed';
         }
 
         if (empty($ids)) {
-            $session->set('lstr_flash_error', 'No updates selected.');
+            $session->set('lstr_flash_error', 'No entries selected.');
             return Response::redirect($returnTo);
         }
 
@@ -470,13 +474,13 @@ final class UpdatesAdminController extends AdminController
             return Response::redirect($returnTo);
         }
 
-        $updateRepo   = new UpdateRepo($db);
+        $newsfeedRepo = new NewsfeedRepo($db);
         $activityRepo = new ActivityRepo($db);
         $count        = 0;
 
         foreach ($ids as $id) {
-            if ($updateRepo->getById($id) !== null) {
-                $updateRepo->delete($id);
+            if ($newsfeedRepo->getById($id) !== null) {
+                $newsfeedRepo->delete($id);
                 $count++;
             }
         }
@@ -484,11 +488,11 @@ final class UpdatesAdminController extends AdminController
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'update_bulk_deleted',
-            "Bulk deleted {$count} update(s)",
+            "Bulk deleted {$count} newsfeed entr" . ($count === 1 ? 'y' : 'ies'),
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', "Deleted {$count} update(s).");
+        $session->set('lstr_flash_success', "Deleted {$count} " . ($count === 1 ? 'entry' : 'entries') . '.');
         return Response::redirect($returnTo);
     }
 
@@ -505,19 +509,19 @@ final class UpdatesAdminController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $updateRepo = new UpdateRepo($db);
+        $newsfeedRepo = new NewsfeedRepo($db);
 
         $error = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
 
         $backUrl = $fanlistingId !== null
-            ? $baseUrl . '/admin/updates/' . $fanlistingId
-            : $baseUrl . '/admin/updates/collective';
+            ? $baseUrl . '/admin/newsfeed/' . $fanlistingId
+            : $baseUrl . '/admin/newsfeed/collective';
 
-        return $this->adminLayout('admin/addons/updates/add.php', 'Add Update', 'updates', [
+        return $this->adminLayout('admin/addons/newsfeed/add.php', 'Add Entry', 'newsfeed', [
             'update'           => null,
             'fanlisting_id'    => $fanlistingId,
-            'known_categories' => $updateRepo->getKnownCategories(),
+            'known_categories' => $newsfeedRepo->getKnownCategories(),
             'back_url'         => $backUrl,
             'ctx_label'        => $contextLabel,
             'back_label'       => $contextLabel,
@@ -525,7 +529,7 @@ final class UpdatesAdminController extends AdminController
             'author'           => (string) $session->get('lstr_admin_username', ''),
             'error'            => $error,
         ], '', [
-            $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb('News Feed', $this->adminUrl('/admin/newsfeed')),
             $this->crumb($contextLabel),
         ]);
     }
@@ -549,20 +553,20 @@ final class UpdatesAdminController extends AdminController
         $errors = $this->validateFields($title, $body, $postedAt);
 
         $addUrl = $fanlistingId !== null
-            ? $baseUrl . '/admin/updates/' . $fanlistingId . '/add'
-            : $baseUrl . '/admin/updates/collective/add';
+            ? $baseUrl . '/admin/newsfeed/' . $fanlistingId . '/add'
+            : $baseUrl . '/admin/newsfeed/collective/add';
 
         $backUrl = $fanlistingId !== null
-            ? $baseUrl . '/admin/updates/' . $fanlistingId
-            : $baseUrl . '/admin/updates/collective';
+            ? $baseUrl . '/admin/newsfeed/' . $fanlistingId
+            : $baseUrl . '/admin/newsfeed/collective';
 
         if (!empty($errors)) {
             $session->set('lstr_flash_error', implode(' ', $errors));
             return Response::redirect($addUrl);
         }
 
-        $updateRepo = new UpdateRepo($db);
-        $updateRepo->insert($fanlistingId, [
+        $newsfeedRepo = new NewsfeedRepo($db);
+        $newsfeedRepo->insert($fanlistingId, [
             'title'     => $title,
             'body'      => $body,
             'category'  => $category,
@@ -577,11 +581,11 @@ final class UpdatesAdminController extends AdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             'update_added',
-            'Added update "' . $title . '" for ' . $context,
+            'Added newsfeed entry "' . $title . '" for ' . $context,
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', 'Update posted.');
+        $session->set('lstr_flash_success', 'Entry posted.');
         return Response::redirect($backUrl);
     }
 
@@ -616,31 +620,31 @@ final class UpdatesAdminController extends AdminController
     }
 
     /**
-     * Derives context label, back URL, and breadcrumbs for an existing update.
+     * Derives context label, back URL, and breadcrumbs for an existing entry.
      *
      * @return array{0: string, 1: string, 2: array<int,array{label:string,url?:string|null}>}
      */
-    private function subtitleAndBack(Update $update, mixed $config, mixed $db): array
+    private function subtitleAndBack(NewsfeedEntry $entry, mixed $config, mixed $db): array
     {
-        if ($update->fanlistingId === null) {
+        if ($entry->fanlistingId === null) {
             return [
                 'Collective',
-                $this->adminUrl('/admin/updates/collective'),
+                $this->adminUrl('/admin/newsfeed/collective'),
                 [
-                    $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
+                    $this->crumb('News Feed', $this->adminUrl('/admin/newsfeed')),
                     $this->crumb('Collective'),
                 ],
             ];
         }
 
-        $listing = (new ListingRepo($db, $config))->getById($update->fanlistingId);
-        $name    = $listing?->subject ?? ('Listing #' . $update->fanlistingId);
+        $listing = (new ListingRepo($db, $config))->getById($entry->fanlistingId);
+        $name    = $listing?->subject ?? ('Listing #' . $entry->fanlistingId);
 
         return [
             $name,
-            $this->adminUrl('/admin/updates/' . $update->fanlistingId),
+            $this->adminUrl('/admin/newsfeed/' . $entry->fanlistingId),
             [
-                $this->crumb('News Feed', $this->adminUrl('/admin/updates')),
+                $this->crumb('News Feed', $this->adminUrl('/admin/newsfeed')),
                 $this->crumb($name),
             ],
         ];

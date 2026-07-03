@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for FanUpdateImportSource::preview() — specifically the
- * "Updates Feed add-on installed?" gate, which is checked against $target
+ * "Newsfeed add-on installed?" gate, which is checked against $target
  * (Luster's own database), and the source `{prefix}` blog table checks.
  *
  * Uses two in-memory SQLite PDO connections (source and target).
@@ -48,10 +48,21 @@ final class FanUpdateImportSourceTest extends TestCase
         return new FanUpdateImportSource();
     }
 
-    /** Creates the `lstr_updates` table in $pdo, marking the Updates Feed add-on as installed. */
-    private function installUpdatesAddon(PDO $pdo): void
+    /** Creates the `lstr_newsfeed` table in $pdo, marking the Newsfeed add-on as installed. */
+    private function installNewsfeedAddon(PDO $pdo): void
     {
-        $pdo->exec('CREATE TABLE lstr_updates (id INTEGER PRIMARY KEY)');
+        $pdo->exec(
+            'CREATE TABLE lstr_newsfeed (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                fanlisting_id INTEGER,
+                title         TEXT    NOT NULL,
+                body          TEXT    NOT NULL,
+                category      TEXT    NOT NULL DEFAULT \'\',
+                author        TEXT    NOT NULL DEFAULT \'\',
+                posted_at     TEXT    NOT NULL,
+                created_at    TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )'
+        );
     }
 
     /**
@@ -85,7 +96,7 @@ final class FanUpdateImportSourceTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // Add-on NOT installed (lstr_updates absent from $target)
+    // Add-on NOT installed (lstr_newsfeed absent from $target)
     // -----------------------------------------------------------------------
 
     public function testPreviewWarnsWhenAddonNotInstalledAndSourceTableMissing(): void
@@ -142,14 +153,14 @@ final class FanUpdateImportSourceTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // Add-on installed (lstr_updates present in $target)
+    // Add-on installed (lstr_newsfeed present in $target)
     // -----------------------------------------------------------------------
 
     public function testPreviewDoesNotWarnAboutAddonWhenInstalledAndSourceTableMissing(): void
     {
         $source = $this->makePdo();
         $target = $this->makePdo();
-        $this->installUpdatesAddon($target);
+        $this->installNewsfeedAddon($target);
 
         $preview = $this->adapter()->preview($source, $target, $this->makeOptions());
 
@@ -162,7 +173,7 @@ final class FanUpdateImportSourceTest extends TestCase
     {
         $source = $this->makePdo();
         $target = $this->makePdo();
-        $this->installUpdatesAddon($target);
+        $this->installNewsfeedAddon($target);
         $this->seedBlog($source, total: 4, public: 4);
 
         $preview = $this->adapter()->preview($source, $target, $this->makeOptions());
@@ -178,7 +189,7 @@ final class FanUpdateImportSourceTest extends TestCase
     {
         $source = $this->makePdo();
         $target = $this->makePdo();
-        $this->installUpdatesAddon($target);
+        $this->installNewsfeedAddon($target);
         $this->seedBlog($source, total: 4, public: 3);
 
         $preview = $this->adapter()->preview($source, $target, $this->makeOptions());

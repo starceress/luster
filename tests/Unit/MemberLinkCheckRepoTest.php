@@ -26,6 +26,8 @@ CREATE TABLE lstr_member_link_checks (
     link_status       TEXT    NOT NULL DEFAULT 'unchecked',
     link_redirect_url TEXT    NULL,
     link_checked_at   TEXT    NULL,
+    backlink_status     TEXT  NOT NULL DEFAULT 'unchecked',
+    backlink_checked_at TEXT  NULL,
     created_at        TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (listing_id, member_email)
 )

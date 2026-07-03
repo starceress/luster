@@ -4,7 +4,7 @@
  Copyright (c) 2026 Star (https://dreamesque.net)
 
  Import adapter for FanUpdate databases. Imports blog/update
- entries into Luster's lstr_updates table (requires the Updates
+ entries into Luster's lstr_newsfeed table (requires the Updates
  Feed add-on). FanUpdate links entries to fanlistings via category
  tables; this adapter matches those subjects case-insensitively to
  Luster listing titles. Non-public entries are skipped, and
@@ -16,14 +16,14 @@ declare(strict_types=1);
 
 namespace Luster\Import;
 
-use Luster\Addons\Updates\UpdatesAddon;
+use Luster\Addons\Newsfeed\NewsfeedAddon;
 use PDO;
 
 /**
  * Import adapter for FanUpdate databases.
  *
  * Imports blog/update entries from FanUpdate's `{prefix}` table into Luster's
- * lstr_updates table (requires the Updates Feed add-on to be installed). FanUpdate
+ * lstr_newsfeed table (requires the Updates Feed add-on to be installed). FanUpdate
  * links entries to fanlistings via a category/catjoin table pair; this adapter
  * matches those subjects case-insensitively to Luster listing titles and falls back
  * to a collective-level (NULL fanlisting_id) entry when no match is found.
@@ -151,7 +151,7 @@ final class FanUpdateImportSource implements ImportSourceInterface
     {
         $warns = [];
 
-        if (!$this->tableExists($target, 'lstr_updates')) {
+        if (!$this->tableExists($target, 'lstr_newsfeed')) {
             $warns[] = 'News Feed add-on is not installed yet — running the import will install it automatically so this data is not lost.';
         }
 
@@ -189,9 +189,9 @@ final class FanUpdateImportSource implements ImportSourceInterface
         $errors    = 0;
         $warnings  = [];
 
-        // Gate: lstr_updates must exist (requires News Feed add-on); auto-install if absent.
+        // Gate: lstr_newsfeed must exist (requires News Feed add-on); auto-install if absent.
         // ensureInstalled() runs first so a disabled-but-table-present add-on is re-registered.
-        if (!AddonAutoInstaller::ensureInstalled($target, UpdatesAddon::class) && !$this->tableExists($target, 'lstr_updates')) {
+        if (!AddonAutoInstaller::ensureInstalled($target, NewsfeedAddon::class) && !$this->tableExists($target, 'lstr_newsfeed')) {
             return [
                 'type'     => 'Updates (blog entries)',
                 'imported' => 0,
@@ -231,12 +231,12 @@ final class FanUpdateImportSource implements ImportSourceInterface
 
         // Prepared statements
         $insertStmt = $target->prepare(
-            'INSERT INTO lstr_updates (fanlisting_id, title, body, category, author, posted_at, created_at)
-             VALUES (:fid, :title, :body, NULL, NULL, :posted_at, NOW())'
+            'INSERT INTO lstr_newsfeed (fanlisting_id, title, body, posted_at, created_at)
+             VALUES (:fid, :title, :body, :posted_at, NOW())'
         );
 
         $skipStmt = $target->prepare(
-            'SELECT COUNT(*) FROM lstr_updates
+            'SELECT COUNT(*) FROM lstr_newsfeed
              WHERE title = :title AND posted_at = :posted_at
              AND fanlisting_id <=> :fid'
         );

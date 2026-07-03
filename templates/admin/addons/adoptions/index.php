@@ -128,7 +128,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
     <?php if ($tab === 'listings'): ?>
       <a href="<?= $b ?>/admin/adoptions" class="btn btn-primary btn-sm">All Applications</a>
     <?php else: ?>
-      <a href="<?= View::e($tabUrl('listings')) ?>" class="btn btn-primary btn-sm">Toggle Listing View</a>
+      <a href="<?= View::e($tabUrl('listings')) ?>" class="btn btn-primary btn-sm">Listing View</a>
     <?php endif; ?>
     <a href="<?= $b ?>/admin/adoptions/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Adoptions Settings</a>
   </div>
@@ -214,10 +214,10 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
     <div class="empty">
       <div class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></div>
       <?php if ($filters_active || $tab !== 'all'): ?>
-        <div class="empty-title">No applications found.</div>
+        <strong>No applications found.</strong>
         <a href="<?= View::e($resetUrl) ?>" class="btn btn-ghost btn-sm">Clear Filter</a>
       <?php else: ?>
-        <div class="empty-title">No applications yet.</div>
+        <strong>No applications yet.</strong>
         <div>Fans who submit adoption applications will appear here.</div>
       <?php endif; ?>
     </div>
@@ -474,8 +474,8 @@ endif; ?>
   <div class="card">
     <div class="empty">
       <div class="empty-icon"><?= View::icon('adoptions', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No listings marked for adoption.</div>
-      <div>Open a listing&rsquo;s edit page and enable &ldquo;Available for adoption&rdquo; to start accepting applications.</div>
+      <div><strong>No listings marked for adoption.</strong></div>
+      <div>Open a listing's edit page and enable "Available for adoption" to start accepting applications.</div>
       <a href="<?= $b ?>/admin/listings" class="btn btn-primary btn-sm"><?= View::icon('star') ?> Go to Listings</a>
     </div>
   </div>

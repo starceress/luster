@@ -40,9 +40,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <a href="#panel-devices" class="mini-nav-item"><?= View::icon('devices') ?> Remembered Devices</a>
       <a href="#panel-notifications" class="mini-nav-item"><?= View::icon('email') ?> Notifications</a>
       <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
-      <a href="#panel-smtp" class="mini-nav-item"><?= View::icon('email') ?> SMTP &amp; Email</a>
+      <a href="#panel-smtp" class="mini-nav-item"><?= View::icon('email') ?> SMTP & Email</a>
       <a href="#panel-blacklist" class="mini-nav-item"><?= View::icon('blacklist') ?> Spam Filtering</a>
-      <a href="#panel-system" class="mini-nav-item"><?= View::icon('wrench') ?> System Details</a>
+      <a href="#panel-system" class="mini-nav-item"><?= View::icon('wrench') ?> System & Updates</a>
       <div class="select-wrap settings-nav-select-wrap">
         <select id="settings-nav-select">
           <option value="panel-general">General</option>
@@ -85,7 +85,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="p-username" type="text" name="admin_username" class="form"
                        maxlength="50" required
                        value="<?= View::e($admin_user->username ?? '') ?>">
-                <p class="form-hint">The name you type on the admin login screen.</p>
+                <p class="form-hint">The username you use to log into your Luster admin panel.</p>
                 <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
               </div>
             </div>
@@ -107,7 +107,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="p-owner-name" type="text" name="admin_display_name" class="form"
                        maxlength="100" required
                        value="<?= View::e($admin_user->displayName ?? '') ?>">
-                <p class="form-hint">The friendly name shown inside the admin panel for this account.</p>
+                <p class="form-hint">The display name shown inside the admin panel for this account.</p>
               </div>
             </div>
           </div>
@@ -154,7 +154,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?= View::icon('eye-off') ?>
                   </button>
                 </div>
-                <p class="form-hint">Type the same new password again so Luster can catch typos.</p>
                 <?php if (!empty($fe['admin_confirm_password'])): ?><p class="field-error"><?= View::e($fe['admin_confirm_password'][0]) ?></p><?php endif; ?>
               </div>
             </div>
@@ -175,7 +174,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('devices') ?></div>
           <div class="panel-header-meta">
             <div class="panel-header-title">Remembered Devices</div>
-            <div class="panel-header-sub">Devices where you have selected &ldquo;Keep me signed in&rdquo;. Each stores a unique token that auto-signs you back in. Revoke any device you no longer trust, or revoke all at once. Tokens are also revoked automatically when you change your password. Up to 10 devices can be remembered at once; the oldest is removed when the limit is reached.</div>
+            <div class="panel-header-sub">Devices where you have selected "Remember Me" for your login. Each stores a unique token that auto-signs you back in. Revoke any device you no longer trust, or revoke all at once. Maximum 10 devices can be remembered at a time.</div>
           </div>
         </div>
         <?php if ($devices === []): ?>
@@ -304,7 +303,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
 
         <div class="card-body">
-          <div class="section-label">Default Mode</div>
+          <div class="section-label">Default Theme</div>
           <?php $activeDefaultTheme = $site_settings['admin_default_theme'] ?? 'light'; ?>
           <div class="field-row">
             <label class="field-label">Light / Dark</label>
@@ -425,18 +424,18 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="card-body">
             <div class="section-label">Site Information</div>
             <div class="field-group<?= !empty($fe['site_name']) ? ' has-error' : '' ?>">
-              <label class="field-label" for="s-site-name">Site Name <span class="req">*</span></label>
+              <label class="field-label" for="s-site-name">Website Name <span class="req">*</span></label>
               <input id="s-site-name" type="text" name="site_name" class="form"
                      maxlength="100" required
                      value="<?= View::e(cfgVal($cfg, 'site_name', 'Luster')) ?>">
-              <p class="form-hint">Your collective's name. Luster also uses this in outgoing emails and admin page titles.</p>
+              <p class="form-hint">Your website's name. Luster uses this in outgoing emails and admin page titles.</p>
               <?php if (!empty($fe['site_name'])): ?><p class="field-error"><?= View::e($fe['site_name'][0]) ?></p><?php endif; ?>
             </div>
             <div class="field-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>">
-              <label class="field-label" for="s-site-url">Collective Public URL <span class="req">*</span></label>
+              <label class="field-label" for="s-site-url">Website Public URL <span class="req">*</span></label>
               <input id="s-site-url" type="url" name="site_url" class="form" maxlength="500" required
                      value="<?= View::e(cfgVal($cfg, 'site_url')) ?>">
-              <p class="form-hint">Your collective's public homepage URL, without a trailing slash. Luster uses this for the &ldquo;Visit site&rdquo; admin link and as a fallback for embedded forms.</p>
+              <p class="form-hint">Your website's public homepage URL, <i>without</i> a trailing slash. Luster uses this for the "Visit Site" admin link in the topand as a fallback for embedded forms.</p>
               <?php if (!empty($fe['site_url'])): ?><p class="field-error"><?= View::e($fe['site_url'][0]) ?></p><?php endif; ?>
             </div>
           </div>
@@ -445,11 +444,11 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="section-label">Owner Information</div>
             <div class="field-grid">
               <div class="field-group">
-                <label class="field-label" for="s-owner-name">Owner Name</label>
+                <label class="field-label" for="s-owner-name">Display Name</label>
                 <input id="s-owner-name" type="text" name="owner_name" class="form"
                        maxlength="100"
                        value="<?= View::e(cfgVal($cfg, 'owner_name')) ?>">
-                <p class="form-hint">The public owner name used in email templates and messages.</p>
+                <p class="form-hint">The public display name used in email templates and messages.</p>
               </div>
               <div class="field-group">
                 <label class="field-label" for="s-owner-email">Contact Email</label>
@@ -528,7 +527,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?php endforeach; ?>
                   </select>
                 </div>
-                <p class="form-hint">Timezone for all date/time display throughout the admin panel.</p>
+                <p class="form-hint">Choose the timezone for all date/time display throughout the admin panel.</p>
               </div>
               <div class="field-group">
                 <label class="field-label" for="s-date-format">Date Format</label>
@@ -714,7 +713,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                          <?= ($site_settings['update_email_notify'] ?? '1') === '1' ? 'checked' : '' ?>>
                   <span class="toggle-label">Email me when a new Luster update is available</span>
                 </label>
-                <p class="form-hint">Sends one email when an update is detected. Requires a working mail configuration above.</p>
+                <p class="form-hint">Sends one email when an update is detected.</p>
               </div>
             </div>
 
@@ -727,7 +726,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                          <?= ($site_settings['pending_digest_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
                   <span class="toggle-label">Send a weekly summary of all pending items</span>
                 </label>
-                <p class="form-hint">Sends at most one digest per week. Fires automatically when you load an admin page &mdash; no cron job required.</p>
+                <p class="form-hint">Sends at most one email per week.</p>
               </div>
             </div>
           </div>
@@ -741,7 +740,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="notif-stale-days" type="number" name="stale_days" class="form form--compact"
                        min="1" max="365"
                        value="<?= View::e($site_settings['stale_days'] ?? '45') ?>">
-                <p class="form-hint">Show a dashboard warning when this many days pass without marking a listing updated. Default: 45.</p>
+                <p class="form-hint">Shows a dashboard warning when a listing hasn't been updated in X many days. Default: 45.</p>
               </div>
             </div>
 
@@ -752,9 +751,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <input type="hidden" name="overdue_notify_enabled" value="0">
                   <input type="checkbox" id="notif-overdue-email" name="overdue_notify_enabled" value="1"
                          <?= ($site_settings['overdue_notify_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
-                  <span class="toggle-label">Email me when listings haven't been updated in N days</span>
+                  <span class="toggle-label">Sends an email reminder when listings haven't been updated in X many days. Default: 55.</span>
                 </label>
-                <p class="form-hint">Sends at most one reminder per 24 hours. Fires automatically when you load an admin page &mdash; no cron job required.</p>
+                <p class="form-hint">Sends at most one reminder per 24 hours.</p>
               </div>
             </div>
 
@@ -764,7 +763,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="notif-overdue-days" type="number" name="overdue_days" class="form form--compact"
                        min="1" max="365"
                        value="<?= View::e($site_settings['overdue_days'] ?? '55') ?>">
-                <p class="form-hint">Send the reminder when this many days pass without an update. Default: 55. TFL guidelines recommend 55 days.</p>
+                <p class="form-hint">Send the reminder when this many days pass without an update. Default: 55.</p>
               </div>
             </div>
 
@@ -782,7 +781,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="field-row">
               <label class="field-label">Last Sent</label>
               <div>
-                <p class="form-hint">Last notification sent: <strong><?= View::e($nfLastSent) ?></strong></p>
+                <p>Last notification sent: <strong><?= View::e($nfLastSent) ?></strong></p>
               </div>
             </div>
 
@@ -791,9 +790,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <div>
                 <button type="button" class="btn btn-quaternary btn-sm"
                         onclick="document.getElementById('overdue-now-form').requestSubmit()">
-                  <?= View::icon('email') ?> Send overdue notification now
+                  <?= View::icon('email') ?> Send overdue email now
                 </button>
-                <p class="form-hint" style="margin-top:.5rem">Bypasses the 24-hour window and immediately sends the overdue notification if any listings are due.</p>
+                <p class="form-hint" style="margin-top:.5rem">Bypasses the 24-hour window and immediately sends the overdue email if any listings are due.</p>
               </div>
             </div>
           </div>
@@ -812,7 +811,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     </div>
 
 
-<!-- ──── PANEL: BLACKLIST ───────────────────────────────────────────── -->
+<!-- ──── PANEL: SPAM FILTERING───────────────────────────────────────────── -->
     <div id="panel-blacklist" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
@@ -898,7 +897,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     </div>
 
 
-<!-- ──── PANEL: SYSTEM ──────────────────────────────────────────────── -->
+<!-- ──── PANEL: SYSTEM & Updates ──────────────────────────────────────────────── -->
     <div id="panel-system" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
@@ -906,7 +905,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?= View::icon('wrench') ?>
           </div>
           <div class="panel-header-meta">
-            <div class="panel-header-title">System Details</div>
+            <div class="panel-header-title">System & Updates</div>
             <div class="panel-header-sub">Version, server, and database details useful when troubleshooting.</div>
           </div>
         </div>

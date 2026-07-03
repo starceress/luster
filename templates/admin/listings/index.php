@@ -272,7 +272,7 @@ $_flTabCounts = $tab_counts ?? [];
   <div class="card">
     <div class="empty">
       <div class="empty-icon"><?= View::icon('star', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No listings yet.</div>
+      <div><strong>No listings yet.</strong></div>
       <div>Add your first listing to get started.</div>
       <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
     </div>

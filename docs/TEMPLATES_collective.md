@@ -4,6 +4,7 @@ This page shows the built-in default templates for all collective-level embeds. 
 
 You can customize any of these in the admin panel under **Collective > Templates**. If you have not made any changes, Luster uses these defaults automatically.
 
+
 ## Owned Listing
 ```
 <div class="fl-listing-list">
@@ -68,6 +69,26 @@ You can customize any of these in the admin panel under **Collective > Templates
 </div>
 ```
 
+## Collective Update Form
+
+Controls the email-request step (Step 1) of `public/embed/collective-update.php`,
+where a member submits their email to receive a verification link. The Step 2 form
+(name, URL, country, password fields, and listing checkboxes) is PHP-rendered and
+not template-controlled.
+
+Available tokens: `{site_name}`, `{field_email}`, `{field_email_input}`,
+`{submit_button}`, `{clear_button}`.
+
+```
+<div class="fl-form-fields">
+{field_email}
+</div>
+<div class="fl-form-actions">
+{submit_button}
+{clear_button}
+</div>
+```
+
 ## Joined Listings
 ```
 <div class="fl-joined-list">
@@ -121,6 +142,7 @@ You can customize any of these in the admin panel under **Collective > Templates
 {/each_joined}
 </div>
 ```
+
 ## Statistics
 ```
 <h1>Collective Statistics</h1>
@@ -133,7 +155,7 @@ You can customize any of these in the admin panel under **Collective > Templates
 </div>
 ```
 
-## Codes Display
+## Codes
 ```
 <h1>Codes</h1>
 {if_no_codes}<p>No codes available yet.</p>{/if_no_codes}
@@ -165,7 +187,7 @@ You can customize any of these in the admin panel under **Collective > Templates
 {/if_codes}
 ```
 
-## Codes Donation Form
+## Code Donation Form
 ```
 <h2>Donate Codes to {site_name}</h2>
 <div class="fl-form-fields">
@@ -181,7 +203,7 @@ You can customize any of these in the admin panel under **Collective > Templates
 </div>
 ```
 
-## Collective Contact Form
+## Contact Form
 ```
 <h2>Contact Form</h2>
 <div class="fl-form-fields">
@@ -218,7 +240,7 @@ You can customize any of these in the admin panel under **Collective > Templates
 </div>
 ```
 
-## Collective Affiliate Application Form
+## Affiliate Form
 ```
 <h2>Affiliate Application</h2>
 <div class="fl-form-fields">
@@ -251,6 +273,48 @@ You can customize any of these in the admin panel under **Collective > Templates
 <div class="fl-form-actions">
 {submit_button}
 {clear_button}
+</div>
+```
+
+## KIM List View
+```
+<h2>Keep In Mind List</h2>
+<div class="fl-embed fl-embed--kim-list">
+{if_no_listings}<p>No fanlistings with sign-ups yet.</p>{/if_no_listings}
+
+{if_has_listings}
+<ul>
+
+{each_kim_listing}
+<li><a href="{listing_kim_url}">{listing_subject}</a> &mdash; {listing_kim_count} Interested</li>
+{/each_kim_listing}
+
+</ul>
+{/if_has_listings}
+</div>
+```
+
+## KIM Subject View
+```
+<h2>KIM &mdash; {listing_subject}</h2>
+<div class="fl-embed fl-embed--kim-subject">
+{if_kim_overview_url}<p><a href="{kim_overview_url}">&larr; Back to KIM List</a></p>{/if_kim_overview_url}
+
+{if_kim_signup_url}<p>Interested in adopting this fanlisting? <a href="{kim_signup_url}">Click here to sign-up.</a></p>{/if_kim_signup_url}
+
+{if_no_kim_members}<p>No one has signed up yet.</p>{/if_no_kim_members}
+
+{if_has_kim_members}
+<ul>
+{each_kim_member}
+
+<li>
+{if_member_url}<a href="{member_url}" target="_blank">{member_name}</a>{/if_member_url}{if_no_member_url}<span class="fl-kim-member-name">{member_name}</span>{/if_no_member_url}
+</li>
+
+{/each_kim_member}
+</ul>
+{/if_has_kim_members}
 </div>
 ```
 
@@ -317,45 +381,25 @@ You can customize any of these in the admin panel under **Collective > Templates
 {/if_step_confirm}
 ```
 
-## KIM List Overview
+## News Feed
 ```
-<h2>Keep In Mind List</h2>
-<div class="fl-embed fl-embed--kim-list">
-{if_no_listings}<p>No fanlistings with sign-ups yet.</p>{/if_no_listings}
+<h2>{listing_subject} Updates</h2>
+<div class="fl-updates-list">
+{if_no_updates}<p>No updates yet.</p>{/if_no_updates}
+{if_updates}
+{each_update}
 
-{if_has_listings}
-<ul>
+<div class="fl-update-item">
+<h3 class="fl-update-title">{update_title}</h3>
+<div class="fl-update-meta">
+<span class="fl-update-date"><b>Date Posted:</b> {update_date}</span>{if_author} by <span class="fl-update-author">{update_author}</span>{/if_author}<br>
+{if_categories}<b>Categories:</b> <span class="fl-update-categories">{update_categories}</span>{/if_categories}</div>
 
-{each_kim_listing}
-<li><a href="{listing_kim_url}">{listing_subject}</a> &mdash; {listing_kim_count} Interested</li>
-{/each_kim_listing}
-
-</ul>
-{/if_has_listings}
+<div class="fl-update-body">{update_body_html}</div>
 </div>
-```
 
-## KIM List Subject Page
-```
-<h2>KIM &mdash; {listing_subject}</h2>
-<div class="fl-embed fl-embed--kim-subject">
-{if_kim_overview_url}<p><a href="{kim_overview_url}">&larr; Back to KIM List</a></p>{/if_kim_overview_url}
-
-{if_kim_signup_url}<p>Interested in adopting this fanlisting? <a href="{kim_signup_url}">Click here to sign-up.</a></p>{/if_kim_signup_url}
-
-{if_no_kim_members}<p>No one has signed up yet.</p>{/if_no_kim_members}
-
-{if_has_kim_members}
-<ul>
-{each_kim_member}
-
-<li>
-{if_member_url}<a href="{member_url}" target="_blank">{member_name}</a>{/if_member_url}{if_no_member_url}<span class="fl-kim-member-name">{member_name}</span>{/if_no_member_url}
-</li>
-
-{/each_kim_member}
-</ul>
-{/if_has_kim_members}
+{/each_update}
+{/if_updates}
 </div>
 ```
 
@@ -410,78 +454,30 @@ You can customize any of these in the admin panel under **Collective > Templates
 </div>
 ```
 
-## News Feed
-```
-<h2>{listing_subject} Updates</h2>
-<div class="fl-updates-list">
-{if_no_updates}<p>No updates yet.</p>{/if_no_updates}
-{if_updates}
-{each_update}
-
-<div class="fl-update-item">
-<h3 class="fl-update-title">{update_title}</h3>
-<div class="fl-update-meta">
-<span class="fl-update-date"><b>Date Posted:</b> {update_date}</span>{if_author} by <span class="fl-update-author">{update_author}</span>{/if_author}<br>
-{if_categories}<b>Categories:</b> <span class="fl-update-categories">{update_categories}</span>{/if_categories}</div>
-
-<div class="fl-update-body">{update_body_html}</div>
-</div>
-
-{/each_update}
-{/if_updates}
-</div>
-```
-
-## Collective Update Form
-
-Controls the email-request step (Step 1) of `public/embed/collective-update.php`,
-where a member submits their email to receive a verification link. The Step 2 form
-(name, URL, country, password fields, and listing checkboxes) is PHP-rendered and
-not template-controlled.
-
-Available tokens: `{site_name}`, `{field_email}`, `{field_email_input}`,
-`{submit_button}`, `{clear_button}`.
-
-```
-<div class="fl-form-fields">
-{field_email}
-</div>
-<div class="fl-form-actions">
-{submit_button}
-{clear_button}
-</div>
-```
 
 ## Template and Dropdown Options Order
 
 This is the order that templates appear in the admin panel's template editor dropdown on the **Collective > Templates** page. Use this as a quick reference for which templates are available and how they are grouped.
 
 - All Templates (default)
-- Owned Listings: contains
-  - Owned Listings
-  - Latest Owned
-  - Random Owned
-- Joined Listings: contains
-  - Joined Listings
-  - Latest Joined
-  - Random Joined
-- Statistics
-- Codes: contains
-  - Codes Display
-  - Codes Donation Form
-- Affiliates: contains
-  - Affiliates Display
-  - Affiliate Application
-- Contact Form: contains
-  - Contact Form
-  - Contact Confirmation
-- Keep In Mind: contains
-  - KIM List Overview
-  - KIM Listing View
-  - KIM Sign-Up Form
-  - KIM Update Form
-  - KIM Reset Form
-- Adoption Form
+- Owned Listings
+- Latest Owned
+- Random Owned
 - Collective Update Form
-- Wishlist
+- Joined Listings
+- Latest Joined
+- Random Joined
+- Statistics
+- Codes
+- Code Donation Form
+- Affiliates
+- Affiliate Form
+- Contact Form
+- Adoption Form
+- KIM List View
+- KIM Subject View
+- KIM Sign-Up Form
+- KIM Update Form
+- KIM Reset Form
 - News Feed
+- Wishlist

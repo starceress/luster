@@ -177,7 +177,7 @@ final class ListingSettingsRepo
     /**
      * Returns all per-listing template overrides. All values are null when no override is saved.
      *
-     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null, updates_template: string|null, codes_submit_form_template: string|null, rules_intro_template: string|null, join_form_template: string|null, affiliate_apply_form_template: string|null, adopt_form_template: string|null, contact_form_template: string|null, contact_sent_template: string|null, update_form_template: string|null, reset_form_template: string|null}
+     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null, newsfeed_template: string|null, codes_submit_form_template: string|null, rules_intro_template: string|null, join_form_template: string|null, affiliate_apply_form_template: string|null, adopt_form_template: string|null, contact_form_template: string|null, contact_sent_template: string|null, update_form_template: string|null, reset_form_template: string|null}
      */
     public function getTemplates(int $listingId): array
     {
@@ -185,7 +185,7 @@ final class ListingSettingsRepo
             'stats_template'                => null,
             'members_template'              => null,
             'affiliates_section_template'   => null,
-            'updates_template'              => null,
+            'newsfeed_template'              => null,
             'codes_submit_form_template'    => null,
             'rules_intro_template'          => null,
             'join_form_template'            => null,
@@ -201,11 +201,11 @@ final class ListingSettingsRepo
         $row = false;
 
         foreach ([
-            'stats_template, members_template, affiliates_section_template, updates_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template, contact_form_template, contact_sent_template, update_form_template, reset_form_template',
-            'stats_template, members_template, affiliates_section_template, updates_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template, contact_form_template, update_form_template, reset_form_template',
-            'stats_template, members_template, affiliates_section_template, updates_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template',
-            'stats_template, members_template, affiliates_section_template, updates_template, rules_intro_template',
-            'stats_template, members_template, affiliates_section_template, updates_template',
+            'stats_template, members_template, affiliates_section_template, newsfeed_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template, contact_form_template, contact_sent_template, update_form_template, reset_form_template',
+            'stats_template, members_template, affiliates_section_template, newsfeed_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template, contact_form_template, update_form_template, reset_form_template',
+            'stats_template, members_template, affiliates_section_template, newsfeed_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template',
+            'stats_template, members_template, affiliates_section_template, newsfeed_template, rules_intro_template',
+            'stats_template, members_template, affiliates_section_template, newsfeed_template',
             'stats_template, members_template, affiliates_section_template',
             'stats_template, members_template',
         ] as $selectCols) {
@@ -232,7 +232,7 @@ final class ListingSettingsRepo
             'stats_template'                => $tr($col($row, 'stats_template')),
             'members_template'              => $tr($col($row, 'members_template')),
             'affiliates_section_template'   => $tr($col($row, 'affiliates_section_template')),
-            'updates_template'              => $col($row, 'updates_template'),
+            'newsfeed_template'              => $col($row, 'newsfeed_template'),
             'codes_submit_form_template'    => $col($row, 'codes_submit_form_template'),
             'rules_intro_template'          => $col($row, 'rules_intro_template'),
             'join_form_template'            => $col($row, 'join_form_template'),
@@ -353,19 +353,19 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Returns the per-listing updates row template string, or null when not set /
+     * Returns the per-listing newsfeed row template string, or null when not set /
      * when Migration 64 has not been run yet.
      */
-    public function getUpdatesTemplate(int $listingId): ?string
+    public function getNewsfeedTemplate(int $listingId): ?string
     {
         try {
             $stmt = $this->db->prepare(
-                'SELECT updates_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+                'SELECT newsfeed_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
             );
             $stmt->execute(['id' => $listingId]);
             $row = $stmt->fetch();
-            return ($row !== false && $row['updates_template'] !== null)
-                ? (string) $row['updates_template']
+            return ($row !== false && $row['newsfeed_template'] !== null)
+                ? (string) $row['newsfeed_template']
                 : null;
         } catch (\Exception) {
             return null;
@@ -744,10 +744,12 @@ final class ListingSettingsRepo
             . "\n"
             . '{if_members}' . "\n"
             . '<div class="fl-member-table">' . "\n"
+            . '{if_no_country_sort}' . "\n"
             . '<div class="fl-member-table-head">' . "\n"
             . '<span class="fl-member-table-th">Name</span>' . "\n"
             . '<span class="fl-member-table-th">Country</span>' . "\n"
             . '</div>' . "\n"
+            . '{/if_no_country_sort}' . "\n"
             . "\n"
             . '{each_member}' . "\n"
             . '<div class="fl-member-table-row">' . "\n"
@@ -794,7 +796,7 @@ final class ListingSettingsRepo
      * {update_author}, {update_categories}, {update_body_html}, and the
      * {if_author} / {if_categories} conditionals.
      */
-    public static function defaultUpdatesTemplate(): string
+    public static function defaultNewsfeedTemplate(): string
     {
         return '<h2>{listing_subject} Updates</h2>' . "\n"
             . '<div class="fl-updates-list">' . "\n"
@@ -1047,7 +1049,7 @@ final class ListingSettingsRepo
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template,
-                      updates_template, codes_submit_form_template,
+                      newsfeed_template, codes_submit_form_template,
                       rules_intro_template, join_form_template, affiliate_apply_form_template,
                       adopt_form_template, contact_form_template, update_form_template, reset_form_template)
                  VALUES (:id, :stats, :members, :section, :updates, :codes_form, :rules,
@@ -1056,7 +1058,7 @@ final class ListingSettingsRepo
                      stats_template                = VALUES(stats_template),
                      members_template              = VALUES(members_template),
                      affiliates_section_template   = VALUES(affiliates_section_template),
-                     updates_template              = VALUES(updates_template),
+                     newsfeed_template              = VALUES(newsfeed_template),
                      codes_submit_form_template    = VALUES(codes_submit_form_template),
                      rules_intro_template          = VALUES(rules_intro_template),
                      join_form_template            = VALUES(join_form_template),
@@ -1075,7 +1077,7 @@ final class ListingSettingsRepo
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template,
-                      updates_template, codes_submit_form_template,
+                      newsfeed_template, codes_submit_form_template,
                       rules_intro_template, join_form_template, affiliate_apply_form_template,
                       adopt_form_template, contact_form_template)
                  VALUES (:id, :stats, :members, :section, :updates, :codes_form, :rules,
@@ -1084,7 +1086,7 @@ final class ListingSettingsRepo
                      stats_template                = VALUES(stats_template),
                      members_template              = VALUES(members_template),
                      affiliates_section_template   = VALUES(affiliates_section_template),
-                     updates_template              = VALUES(updates_template),
+                     newsfeed_template              = VALUES(newsfeed_template),
                      codes_submit_form_template    = VALUES(codes_submit_form_template),
                      rules_intro_template          = VALUES(rules_intro_template),
                      join_form_template            = VALUES(join_form_template),
@@ -1100,14 +1102,14 @@ final class ListingSettingsRepo
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template,
-                      updates_template, codes_submit_form_template,
+                      newsfeed_template, codes_submit_form_template,
                       rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template)
                  VALUES (:id, :stats, :members, :section, :updates, :codes_form, :rules, :join_form, :aff_apply_form, :adopt_form)
                  ON DUPLICATE KEY UPDATE
                      stats_template                = VALUES(stats_template),
                      members_template              = VALUES(members_template),
                      affiliates_section_template   = VALUES(affiliates_section_template),
-                     updates_template              = VALUES(updates_template),
+                     newsfeed_template              = VALUES(newsfeed_template),
                      codes_submit_form_template    = VALUES(codes_submit_form_template),
                      rules_intro_template          = VALUES(rules_intro_template),
                      join_form_template            = VALUES(join_form_template),
@@ -1122,13 +1124,13 @@ final class ListingSettingsRepo
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template,
-                      updates_template, rules_intro_template)
+                      newsfeed_template, rules_intro_template)
                  VALUES (:id, :stats, :members, :section, :updates, :rules)
                  ON DUPLICATE KEY UPDATE
                      stats_template              = VALUES(stats_template),
                      members_template            = VALUES(members_template),
                      affiliates_section_template = VALUES(affiliates_section_template),
-                     updates_template            = VALUES(updates_template),
+                     newsfeed_template            = VALUES(newsfeed_template),
                      rules_intro_template        = VALUES(rules_intro_template)',
                 'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
                            'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
@@ -1136,13 +1138,13 @@ final class ListingSettingsRepo
             ],
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
-                     (fanlisting_id, stats_template, members_template, affiliates_section_template, updates_template)
+                     (fanlisting_id, stats_template, members_template, affiliates_section_template, newsfeed_template)
                  VALUES (:id, :stats, :members, :section, :updates)
                  ON DUPLICATE KEY UPDATE
                      stats_template              = VALUES(stats_template),
                      members_template            = VALUES(members_template),
                      affiliates_section_template = VALUES(affiliates_section_template),
-                     updates_template            = VALUES(updates_template)',
+                     newsfeed_template            = VALUES(newsfeed_template)',
                 'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
                            'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate],
             ],
@@ -2230,7 +2232,7 @@ final class ListingSettingsRepo
     {
         static $allowed = [
             'stats_template', 'members_template', 'affiliates_section_template',
-            'updates_template', 'codes_template', 'codes_submit_form_template',
+            'newsfeed_template', 'codes_template', 'codes_submit_form_template',
             'join_form_template', 'affiliate_apply_form_template',
             'contact_form_template', 'update_form_template', 'reset_form_template',
         ];

@@ -17,7 +17,7 @@ namespace Luster\Import;
 
 use Luster\Addons\Kim\KimAddon;
 use Luster\Addons\Rules\RulesAddon;
-use Luster\Addons\Updates\UpdatesAddon;
+use Luster\Addons\Newsfeed\NewsfeedAddon;
 use Luster\Addons\Wishlist\WishlistAddon;
 use PDO;
 
@@ -353,12 +353,12 @@ final class ListingAdminImportSource implements ImportSourceInterface
         try {
             if ($driver === 'sqlite') {
                 $stmt = $target->prepare(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='lstr_updates'"
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='lstr_newsfeed'"
                 );
                 $stmt->execute();
                 return $stmt->fetchColumn() !== false;
             }
-            $stmt = $target->query("SHOW TABLES LIKE 'lstr_updates'");
+            $stmt = $target->query("SHOW TABLES LIKE 'lstr_newsfeed'");
             return $stmt && $stmt->fetchColumn() !== false;
         } catch (\Throwable) {
             return false;
@@ -1259,7 +1259,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<array{label:string,reason:string}>} */
     private function runUpdates(PDO $source, PDO $target, ImportOptions $options, array $listingIdMap, string $tp = ''): array
     {
-        if (!AddonAutoInstaller::ensureInstalled($target, UpdatesAddon::class) && !$this->updatesAddonInstalled($target)) {
+        if (!AddonAutoInstaller::ensureInstalled($target, NewsfeedAddon::class) && !$this->updatesAddonInstalled($target)) {
             return ['type' => 'Updates', 'imported' => 0, 'skipped' => 0,
                     'warnings' => ['News Feed add-on could not be installed automatically — updates were skipped.'], 'errors' => [],
                     'skipped_items' => []];
@@ -1271,7 +1271,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $skippedItems = [];
 
         $insertStmt = $target->prepare(
-            'INSERT INTO lstr_updates (fanlisting_id, title, body, category, author, posted_at)
+            'INSERT INTO lstr_newsfeed (fanlisting_id, title, body, category, author, posted_at)
              VALUES (:fanlisting_id, :title, :body, :category, :author, :posted_at)'
         );
 

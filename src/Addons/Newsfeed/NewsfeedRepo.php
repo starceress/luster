@@ -3,7 +3,7 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- Repository for the lstr_updates table. Provides paginated reads for both
+ Repository for the lstr_newsfeed table. Provides paginated reads for both
  per-fanlisting and collective (fanlisting_id IS NULL) feeds, category
  filtering, CRUD operations for individual entries, the latest-per-fanlisting
  aggregation used by the admin index, and category tag autocomplete data.
@@ -11,14 +11,14 @@
 
 declare(strict_types=1);
 
-namespace Luster\Addons\Updates;
+namespace Luster\Addons\Newsfeed;
 
 use Luster\Core\Database;
 
 /**
- * Data-access layer for lstr_updates.
+ * Data-access layer for lstr_newsfeed.
  */
-final class UpdateRepo
+final class NewsfeedRepo
 {
     public function __construct(private readonly Database $db) {}
 
@@ -27,15 +27,15 @@ final class UpdateRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns a paginated list of updates for one fanlisting, newest first by posted_at.
+     * Returns a paginated list of entries for one fanlisting, newest first by posted_at.
      *
-     * @return Update[]
+     * @return NewsfeedEntry[]
      */
     public function getForFanlisting(int $fanlistingId, int $page, int $perPage): array
     {
         $offset = ($page - 1) * $perPage;
         $stmt   = $this->db->prepare(
-            'SELECT * FROM `lstr_updates`
+            'SELECT * FROM `lstr_newsfeed`
               WHERE `fanlisting_id` = :fid
               ORDER BY `posted_at` DESC
               LIMIT :limit OFFSET :offset',
@@ -48,11 +48,11 @@ final class UpdateRepo
         return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
-    /** Counts all updates for a fanlisting. */
+    /** Counts all entries for a fanlisting. */
     public function countForFanlisting(int $fanlistingId): int
     {
         $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM `lstr_updates` WHERE `fanlisting_id` = :fid',
+            'SELECT COUNT(*) FROM `lstr_newsfeed` WHERE `fanlisting_id` = :fid',
         );
         $stmt->execute([':fid' => $fanlistingId]);
         return (int) $stmt->fetchColumn();
@@ -63,15 +63,15 @@ final class UpdateRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns a paginated list of collective updates (fanlisting_id IS NULL), newest first.
+     * Returns a paginated list of collective entries (fanlisting_id IS NULL), newest first.
      *
-     * @return Update[]
+     * @return NewsfeedEntry[]
      */
     public function getCollective(int $page, int $perPage): array
     {
         $offset = ($page - 1) * $perPage;
         $stmt   = $this->db->prepare(
-            'SELECT * FROM `lstr_updates`
+            'SELECT * FROM `lstr_newsfeed`
               WHERE `fanlisting_id` IS NULL
               ORDER BY `posted_at` DESC
               LIMIT :limit OFFSET :offset',
@@ -83,11 +83,11 @@ final class UpdateRepo
         return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
-    /** Counts all collective (fanlisting_id IS NULL) updates. */
+    /** Counts all collective (fanlisting_id IS NULL) entries. */
     public function countCollective(): int
     {
         $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM `lstr_updates` WHERE `fanlisting_id` IS NULL',
+            'SELECT COUNT(*) FROM `lstr_newsfeed` WHERE `fanlisting_id` IS NULL',
         );
         $stmt->execute();
         return (int) $stmt->fetchColumn();
@@ -98,17 +98,17 @@ final class UpdateRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns one row per fanlisting_id that has at least one update.
-     * Each row includes the total count and the latest update object.
+     * Returns one row per fanlisting_id that has at least one entry.
+     * Each row includes the total count and the latest entry object.
      *
-     * @return array<int, array{count: int, latest: Update}>  keyed by fanlisting_id
+     * @return array<int, array{count: int, latest: NewsfeedEntry}>  keyed by fanlisting_id
      */
     public function getLatestPerFanlisting(): array
     {
         // Get counts
         $stmt = $this->db->prepare(
             'SELECT `fanlisting_id`, COUNT(*) AS cnt
-               FROM `lstr_updates`
+               FROM `lstr_newsfeed`
               WHERE `fanlisting_id` IS NOT NULL
               GROUP BY `fanlisting_id`',
         );
@@ -122,14 +122,13 @@ final class UpdateRepo
             return [];
         }
 
-        // Get latest update per fanlisting
-        $placeholders = implode(',', array_fill(0, count($counts), '?'));
+        // Get latest entry per fanlisting
         $stmt = $this->db->prepare(
             'SELECT u.*
-               FROM `lstr_updates` u
+               FROM `lstr_newsfeed` u
                INNER JOIN (
                    SELECT `fanlisting_id`, MAX(`posted_at`) AS max_posted
-                     FROM `lstr_updates`
+                     FROM `lstr_newsfeed`
                     WHERE `fanlisting_id` IS NOT NULL
                     GROUP BY `fanlisting_id`
                ) m ON u.`fanlisting_id` = m.`fanlisting_id`
@@ -149,11 +148,11 @@ final class UpdateRepo
         return $result;
     }
 
-    /** Returns the most recent collective update, or null if none exist. */
-    public function getLatestCollective(): ?Update
+    /** Returns the most recent collective entry, or null if none exist. */
+    public function getLatestCollective(): ?NewsfeedEntry
     {
         $stmt = $this->db->prepare(
-            'SELECT * FROM `lstr_updates`
+            'SELECT * FROM `lstr_newsfeed`
               WHERE `fanlisting_id` IS NULL
               ORDER BY `posted_at` DESC
               LIMIT 1',
@@ -173,11 +172,11 @@ final class UpdateRepo
     // Single-row fetch
     // -----------------------------------------------------------------------
 
-    /** Returns a single update by primary key, or null if not found. */
-    public function getById(int $id): ?Update
+    /** Returns a single entry by primary key, or null if not found. */
+    public function getById(int $id): ?NewsfeedEntry
     {
         $stmt = $this->db->prepare(
-            'SELECT * FROM `lstr_updates` WHERE `id` = :id',
+            'SELECT * FROM `lstr_newsfeed` WHERE `id` = :id',
         );
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -188,7 +187,7 @@ final class UpdateRepo
     // Reads — by category (PHP-side filter; correct for typical feed sizes)
     // -----------------------------------------------------------------------
 
-    /** @return Update[] */
+    /** @return NewsfeedEntry[] */
     public function getForFanlistingByCategory(int $fanlistingId, string $category, int $page, int $perPage): array
     {
         $filtered = $this->filterByCategory($this->fetchAllByFanlisting($fanlistingId), $category);
@@ -200,7 +199,7 @@ final class UpdateRepo
         return count($this->filterByCategory($this->fetchAllByFanlisting($fanlistingId), $category));
     }
 
-    /** @return Update[] */
+    /** @return NewsfeedEntry[] */
     public function getCollectiveByCategory(string $category, int $page, int $perPage): array
     {
         $filtered = $this->filterByCategory($this->fetchAllCollective(), $category);
@@ -225,7 +224,7 @@ final class UpdateRepo
     public function getKnownCategories(): array
     {
         $stmt = $this->db->prepare(
-            'SELECT DISTINCT `category` FROM `lstr_updates` WHERE `category` != \'\'',
+            'SELECT DISTINCT `category` FROM `lstr_newsfeed` WHERE `category` != \'\'',
         );
         $stmt->execute();
 
@@ -248,13 +247,13 @@ final class UpdateRepo
     // Filtered reads (search + category)
     // -----------------------------------------------------------------------
 
-    /** @return Update[] */
+    /** @return NewsfeedEntry[] */
     public function getFiltered(?int $fanlistingId, string $search, string $category, int $page, int $perPage): array
     {
         $offset = ($page - 1) * $perPage;
         [$where, $params] = $this->filterWhere($fanlistingId, $search, $category);
         $stmt = $this->db->prepare(
-            "SELECT * FROM `lstr_updates` WHERE {$where} ORDER BY `posted_at` DESC LIMIT :limit OFFSET :offset",
+            "SELECT * FROM `lstr_newsfeed` WHERE {$where} ORDER BY `posted_at` DESC LIMIT :limit OFFSET :offset",
         );
         foreach ($params as $k => $v) {
             $stmt->bindValue($k, $v);
@@ -268,7 +267,7 @@ final class UpdateRepo
     public function countFiltered(?int $fanlistingId, string $search, string $category): int
     {
         [$where, $params] = $this->filterWhere($fanlistingId, $search, $category);
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM `lstr_updates` WHERE {$where}");
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM `lstr_newsfeed` WHERE {$where}");
         $stmt->execute($params);
         return (int) $stmt->fetchColumn();
     }
@@ -278,14 +277,14 @@ final class UpdateRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Inserts a new update. Pass null for $fanlistingId to create a collective entry.
+     * Inserts a new entry. Pass null for $fanlistingId to create a collective entry.
      * $data keys: title, body, category, author, posted_at.
      * Returns the new row's auto-increment ID.
      */
     public function insert(?int $fanlistingId, array $data): int
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO `lstr_updates`
+            'INSERT INTO `lstr_newsfeed`
                 (`fanlisting_id`, `title`, `body`, `category`, `author`, `posted_at`)
              VALUES
                 (:fid, :title, :body, :category, :author, :posted_at)',
@@ -308,7 +307,7 @@ final class UpdateRepo
     public function update(int $id, array $data): void
     {
         $stmt = $this->db->prepare(
-            'UPDATE `lstr_updates`
+            'UPDATE `lstr_newsfeed`
                 SET `title`     = :title,
                     `body`      = :body,
                     `category`  = :category,
@@ -324,10 +323,10 @@ final class UpdateRepo
         ]);
     }
 
-    /** Deletes an update by primary key. */
+    /** Deletes an entry by primary key. */
     public function delete(int $id): void
     {
-        $stmt = $this->db->prepare('DELETE FROM `lstr_updates` WHERE `id` = :id');
+        $stmt = $this->db->prepare('DELETE FROM `lstr_newsfeed` WHERE `id` = :id');
         $stmt->execute([':id' => $id]);
     }
 
@@ -367,42 +366,42 @@ final class UpdateRepo
     }
 
     /**
-     * Fetches all updates for a fanlisting ordered by posted_at DESC.
+     * Fetches all entries for a fanlisting ordered by posted_at DESC.
      *
-     * @return Update[]
+     * @return NewsfeedEntry[]
      */
     private function fetchAllByFanlisting(int $fanlistingId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT * FROM `lstr_updates` WHERE `fanlisting_id` = :fid ORDER BY `posted_at` DESC',
+            'SELECT * FROM `lstr_newsfeed` WHERE `fanlisting_id` = :fid ORDER BY `posted_at` DESC',
         );
         $stmt->execute([':fid' => $fanlistingId]);
         return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
-     * Fetches all collective updates ordered by posted_at DESC.
+     * Fetches all collective entries ordered by posted_at DESC.
      *
-     * @return Update[]
+     * @return NewsfeedEntry[]
      */
     private function fetchAllCollective(): array
     {
         $stmt = $this->db->prepare(
-            'SELECT * FROM `lstr_updates` WHERE `fanlisting_id` IS NULL ORDER BY `posted_at` DESC',
+            'SELECT * FROM `lstr_newsfeed` WHERE `fanlisting_id` IS NULL ORDER BY `posted_at` DESC',
         );
         $stmt->execute();
         return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
-     * @param  Update[] $updates
-     * @return Update[]
+     * @param  NewsfeedEntry[] $entries
+     * @return NewsfeedEntry[]
      */
-    private function filterByCategory(array $updates, string $category): array
+    private function filterByCategory(array $entries, string $category): array
     {
         return array_values(array_filter(
-            $updates,
-            static fn(Update $u): bool => in_array($category, $u->categories(), true),
+            $entries,
+            static fn(NewsfeedEntry $e): bool => in_array($category, $e->categories(), true),
         ));
     }
 
@@ -410,10 +409,10 @@ final class UpdateRepo
     // Hydration
     // -----------------------------------------------------------------------
 
-    /** Hydrates an Update instance from an associative database row. */
-    private function hydrate(array $row): Update
+    /** Hydrates a NewsfeedEntry instance from an associative database row. */
+    private function hydrate(array $row): NewsfeedEntry
     {
-        return new Update(
+        return new NewsfeedEntry(
             id:           (int)    $row['id'],
             fanlistingId: isset($row['fanlisting_id']) ? (int) $row['fanlisting_id'] : null,
             title:        (string) $row['title'],

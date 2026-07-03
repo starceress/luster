@@ -4,25 +4,25 @@ declare(strict_types=1);
 
 namespace Luster\Tests\Unit;
 
-use Luster\Addons\Updates\Update;
+use Luster\Addons\Newsfeed\NewsfeedEntry;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Support\SampleTemplateData;
-use Luster\Support\UpdatesTemplateRenderer;
+use Luster\Support\NewsfeedTemplateRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for UpdatesTemplateRenderer::render(), which powers admin template
- * previews (per-listing and global) and the updates embed.
+ * Tests for NewsfeedTemplateRenderer::render(), which powers admin template
+ * previews (per-listing and global) and the newsfeed embed.
  */
-final class UpdatesTemplateRenderTest extends TestCase
+final class NewsfeedTemplateRenderTest extends TestCase
 {
     // -----------------------------------------------------------------------
     // Helper
     // -----------------------------------------------------------------------
 
-    private static function render(array $updates, string $tpl): string
+    private static function render(array $entries, string $tpl): string
     {
-        return UpdatesTemplateRenderer::render($updates, $tpl);
+        return NewsfeedTemplateRenderer::render($entries, $tpl);
     }
 
     // -----------------------------------------------------------------------
@@ -97,7 +97,7 @@ final class UpdatesTemplateRenderTest extends TestCase
 
     // -----------------------------------------------------------------------
     // Empty-state fallback: loop-only template returns '' for empty array
-    // This is the signal that triggers the "No updates posted yet." message
+    // This is the signal that triggers the "No entries posted yet." message
     // in ltplPreviewUpdates() and gtplPreviewUpdates().
     // -----------------------------------------------------------------------
 
@@ -125,9 +125,9 @@ final class UpdatesTemplateRenderTest extends TestCase
 
     public function testAuthorConditionalStrippedWhenAuthorEmpty(): void
     {
-        $updates = [new Update(1, null, 'T', 'B', 'News', '', '2026-01-01', '2026-01-01 00:00:00')];
+        $entries = [new NewsfeedEntry(1, null, 'T', 'B', 'News', '', '2026-01-01', '2026-01-01 00:00:00')];
 
-        $result = self::render($updates, '{each_update}{if_author}HAS_AUTHOR{/if_author}|{/each_update}');
+        $result = self::render($entries, '{each_update}{if_author}HAS_AUTHOR{/if_author}|{/each_update}');
 
         self::assertSame('|', $result);
     }
@@ -149,9 +149,9 @@ final class UpdatesTemplateRenderTest extends TestCase
 
     public function testCategoriesConditionalStrippedWhenEmpty(): void
     {
-        $updates = [new Update(1, null, 'T', 'B', '', 'Admin', '2026-01-01', '2026-01-01 00:00:00')];
+        $entries = [new NewsfeedEntry(1, null, 'T', 'B', '', 'Admin', '2026-01-01', '2026-01-01 00:00:00')];
 
-        $result = self::render($updates, '{each_update}{if_categories}HAS_CATS{/if_categories}|{/each_update}');
+        $result = self::render($entries, '{each_update}{if_categories}HAS_CATS{/if_categories}|{/each_update}');
 
         self::assertSame('|', $result);
     }
@@ -162,7 +162,7 @@ final class UpdatesTemplateRenderTest extends TestCase
 
     public function testDefaultTemplateRendersWithSampleData(): void
     {
-        $tpl    = ListingSettingsRepo::defaultUpdatesTemplate();
+        $tpl    = ListingSettingsRepo::defaultNewsfeedTemplate();
         $result = self::render(SampleTemplateData::updates(), $tpl);
 
         self::assertStringContainsString('fl-update-item', $result);
@@ -175,7 +175,7 @@ final class UpdatesTemplateRenderTest extends TestCase
 
     public function testDefaultTemplateEmptyStateShowsNoUpdatesMessage(): void
     {
-        $tpl    = ListingSettingsRepo::defaultUpdatesTemplate();
+        $tpl    = ListingSettingsRepo::defaultNewsfeedTemplate();
         $result = self::render([], $tpl);
 
         self::assertStringContainsString('No updates yet.', $result);
@@ -186,7 +186,7 @@ final class UpdatesTemplateRenderTest extends TestCase
 
     public function testDefaultTemplateNoUnreplacedTokensWithSampleData(): void
     {
-        $tpl    = ListingSettingsRepo::defaultUpdatesTemplate();
+        $tpl    = ListingSettingsRepo::defaultNewsfeedTemplate();
         $result = self::render(SampleTemplateData::updates(), $tpl);
 
         self::assertStringNotContainsString('{update_', $result);

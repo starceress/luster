@@ -384,8 +384,7 @@ final class Application
         // Start the session early — Session::start() is idempotent.
         $this->session->start();
         if ($this->session->has('lstr_admin_id')) {
-            $this->runOverdueCheck();
-            $this->runPendingDigestCheck();
+            $this->runScheduledNotifications();
         }
 
         $loginUrl = $this->getBaseUrl() . '/admin/login';
@@ -479,6 +478,24 @@ final class Application
     }
 
     /**
+     * Runs all three periodic notification checks (overdue listings, pending
+     * items digest, update availability). Safe to call without an active admin
+     * session — activity log entries use null for the admin ID in that case.
+     * Designed to be called from both runAdmin() and the CLI cron entry point.
+     *
+     * @param bool $forceUpdateCheck When true, forces a live GitHub fetch for
+     *   the update check even on a never-checked install. Pass true from the
+     *   cron path only — admin page loads keep this false to avoid an outbound
+     *   request on every page.
+     */
+    public function runScheduledNotifications(bool $forceUpdateCheck = false): void
+    {
+        $this->runOverdueCheck();
+        $this->runPendingDigestCheck();
+        $this->runUpdateNotificationCheck($forceUpdateCheck);
+    }
+
+    /**
      * Sends the weekly pending-items digest email if enabled and the 7-day
      * throttle has elapsed. Fires silently — any exception is swallowed so
      * a mail failure never breaks admin page loads.
@@ -548,6 +565,73 @@ final class Application
     }
 
     /**
+     * Sends a one-per-version email when a newer Luster release is detected.
+     * Gated by update_email_notify setting and whether this version was already
+     * notified. Fires silently — exceptions are swallowed and logged.
+     */
+    private function runUpdateNotificationCheck(bool $force = false): void
+    {
+        try {
+            $siteRepo = new SiteSettingsRepo($this->database);
+            $checker  = new UpdateChecker($siteRepo);
+            $status   = $checker->getStatus();
+
+            // When called from the cron path with $force=true, do a live GitHub
+            // fetch on a never-checked install so the cron can discover updates
+            // without requiring a prior admin page load first.
+            if ($force && $status->neverChecked) {
+                $status = $checker->getStatus(force: true);
+            }
+
+            if (!$checker->shouldSendNotification($status)) {
+                return;
+            }
+
+            $ownerEmail = (string) ($this->config->get('owner_email', '') ?? '');
+            if ($ownerEmail === '') {
+                $checker->markNotified((string) $status->latest);
+                return;
+            }
+
+            $siteName = (string) ($this->config->get('site_name', 'Luster') ?? '');
+            $adminUrl = rtrim((string) ($this->config->get('app_url', '') ?? ''), '/') . '/admin';
+
+            $body = "A new version of Luster is available.\n\n"
+                . "Installed: " . $status->installed . "\n"
+                . "Available: " . $status->latest . "\n\n"
+                . ($status->releaseUrl !== null ? "Release: " . $status->releaseUrl . "\n\n" : '')
+                . "Log in to update: " . $adminUrl;
+
+            (new Mailer($this->config))->send(
+                $ownerEmail,
+                '',
+                '[' . $siteName . '] Luster ' . $status->latest . ' is available',
+                $body,
+            );
+
+            $checker->markNotified((string) $status->latest);
+
+            $adminId = (int) $this->session->get('lstr_admin_id', 0);
+            (new ActivityRepo($this->database))->log(
+                $adminId > 0 ? $adminId : null,
+                'update_notification',
+                'Update notification sent for Luster ' . $status->latest,
+                (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+            );
+        } catch (\Throwable $e) {
+            try {
+                (new ErrorLogRepo($this->database))->log(
+                    'Update notification failed: ' . $e->getMessage(),
+                    'error',
+                    'Application::runUpdateNotificationCheck',
+                );
+            } catch (\Throwable) {
+                // DB unavailable too — truly silent fallback
+            }
+        }
+    }
+
+    /**
      * @param list<CsrfMiddleware|AuthMiddleware> $middlewares
      */
     private function boot(string $context, array $middlewares = []): void
@@ -561,7 +645,7 @@ final class Application
             SecurityHeaders::apply();
             $this->loadInstalledAddons();
             $this->loadRoutes($context);
-            $this->loadAddonRoutes();
+            $this->loadAddonRoutes($context);
 
             $request = new Request();
 
@@ -602,9 +686,11 @@ final class Application
     }
 
     /**
-     * Calls registerRoutes() on every installed addon that has been discovered.
+     * Calls registerRoutes() on every installed addon that has been discovered,
+     * passing the current boot context ('public' or 'admin') so each addon only
+     * registers the routes appropriate to that front controller.
      */
-    private function loadAddonRoutes(): void
+    private function loadAddonRoutes(string $context): void
     {
         if (empty($this->installedAddonKeys)) {
             return;
@@ -614,7 +700,7 @@ final class Application
 
         foreach ($this->installedAddonKeys as $key) {
             if (isset($discovered[$key])) {
-                $discovered[$key]->registerRoutes($this->router);
+                $discovered[$key]->registerRoutes($this->router, $context);
             }
         }
     }

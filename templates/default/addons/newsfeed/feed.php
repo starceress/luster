@@ -3,11 +3,11 @@
  Luster — https://luster.nu | https://github.com/starceress/luster
  Copyright (c) 2026 Star (https://dreamesque.net)
 
- News Feed public feed content fragment (News Feed add-on). Displays
- per-listing or collective news/update entries with title, date, author,
+ Newsfeed public feed content fragment (Newsfeed add-on). Displays
+ per-listing or collective newsfeed entries with title, date, author,
  category tags, body text, and pagination. Rendered via
- View::renderFragment() from embed/updates.php or
- embed/collective-updates.php. Supports custom
+ View::renderFragment() from embed/newsfeed.php or
+ embed/collective-newsfeed.php. Supports custom
  updates templates.
 */
 
@@ -17,19 +17,19 @@ use Luster\Core\View;
 
 $_activeCat   = $active_cat ?? '';
 
-// When a custom updates_template has been rendered by the embed/controller, use it directly.
+// When a custom newsfeed_template has been rendered by the embed/controller, use it directly.
 // Guard with !empty($updates) so the hardcoded empty state is shown for zero-result pages
 // even when a custom template is configured (the template loop produces no rows, not a message).
-if (isset($updates_template_html) && $updates_template_html !== null) {
+if (isset($newsfeed_template_html) && $newsfeed_template_html !== null) {
     echo '<div class="fl-embed fl-embed--updates">';
-    echo $updates_template_html . ($pagination ?? '');
+    echo $newsfeed_template_html . ($pagination ?? '');
     echo '</div>';
     return;
 }
 ?>
 <div class="fl-embed fl-embed--updates">
 <?php if (empty($updates)): ?>
-<p class="fl-empty">No updates posted yet.</p>
+<p class="fl-empty">No entries posted yet.</p>
 <?php else: ?>
 
 <div class="fl-updates">

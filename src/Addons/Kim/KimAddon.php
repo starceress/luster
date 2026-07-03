@@ -45,7 +45,7 @@ final class KimAddon implements AddonInterface
     /** Returns the description shown on the add-on card. */
     public function getDescription(): string
     {
-        return 'KIM helps manage a registry of fanlisting owners who are interested in adopting your fanlisting(s) if it were to become available for adoption.';
+        return 'A KIM List helps manage a registry of individuals who are interested in adopting your fanlisting(s) if it were to become available for adoption some day. Adds a collective-side sign-up form, a per-listing interest list, and an admin panel for managing sign-ups.';
     }
 
     /** Creates lstr_kim_members and lstr_kim_password_resets (with CASCADE FK). */
@@ -93,15 +93,22 @@ final class KimAddon implements AddonInterface
         $pdo->exec('DROP TABLE IF EXISTS `lstr_kim_members`');
     }
 
-    /** Registers all public (/kim/*) and admin (/admin/kim/*) routes. */
-    public function registerRoutes(Router $router): void
+    /** Registers all public (/kim/*) and admin (/admin/kim/*) routes, gated by $context. */
+    public function registerRoutes(Router $router, string $context): void
     {
-        // --- Public routes (POST only — fan-facing pages live on the owner's site via embeds)
-        $router->post('/kim/update/sign-in', KimUpdateController::class, 'submitSignIn');
-        $router->post('/kim/update/save',    KimUpdateController::class, 'submitSave');
-        $router->post('/kim/reset/confirm', KimResetController::class,  'submitConfirm');
-        $router->post('/kim/reset',         KimResetController::class,  'submit');
-        $router->post('/kim',               KimSignupController::class, 'submit');
+        if ($context === 'public') {
+            // Public routes (POST only — fan-facing pages live on the owner's site via embeds)
+            $router->post('/kim/update/sign-in', KimUpdateController::class, 'submitSignIn');
+            $router->post('/kim/update/save',    KimUpdateController::class, 'submitSave');
+            $router->post('/kim/reset/confirm', KimResetController::class,  'submitConfirm');
+            $router->post('/kim/reset',         KimResetController::class,  'submit');
+            $router->post('/kim',               KimSignupController::class, 'submit');
+            return;
+        }
+
+        if ($context !== 'admin') {
+            return;
+        }
 
         // --- Admin routes
         $router->get('/admin/kim',                      KimAdminController::class, 'index');

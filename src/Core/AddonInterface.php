@@ -35,8 +35,13 @@ use PDO;
  *               Drop tables and remove all addon data.
  *               Wrapped in a transaction by the controller.
  *
- * registerRoutes() — called at every request boot (admin context) when the
- *               addon is installed. Register any admin or public routes here.
+ * registerRoutes() — called at every request boot (both the public and admin
+ *               front controllers) when the addon is installed. $context is
+ *               'public' or 'admin' — register public (fan-facing) routes only
+ *               when $context === 'public', and /admin/* routes only when
+ *               $context === 'admin'. The public front controller has no
+ *               AuthMiddleware, so admin routes registered under 'public'
+ *               would be reachable without authentication.
  */
 interface AddonInterface
 {
@@ -67,7 +72,10 @@ interface AddonInterface
 
     /**
      * Register routes exposed by this add-on.
-     * Called at every request after the addon is confirmed installed.
+     * Called at every request after the addon is confirmed installed, once per
+     * front controller. $context is 'public' or 'admin' — gate route
+     * registration on it so /admin/* routes are never reachable through the
+     * unauthenticated public front controller.
      */
-    public function registerRoutes(Router $router): void;
+    public function registerRoutes(Router $router, string $context): void;
 }
