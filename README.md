@@ -195,9 +195,7 @@ Full credits are available on [luster.nu](https://luster.nu/credits/).
 
 ## ✦ License
 Luster is open-source software released under the [GNU General Public License v3.0](LICENSE).
-In plain terms: you're free to use it, change it, and share it — including
-for your own fan site or collective — but any distributed version must also
-remain open source under the same license. You cannot take Luster — with or
+In plain terms: you're free to use it, change it, and share it. You cannot take Luster — with or
 without modifications — and sell or distribute it as a closed-source,
 proprietary product. You cannot repackage or rebrand Luster as your own
 script and profit from it while denying others access to the source.

@@ -86,7 +86,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .nav-search-icon { position: absolute; left: 0.625rem; width: 14px; height: 14px; color: var(--text-dim); pointer-events: none; flex-shrink: 0; }
 
-.nav-search-input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 0.5rem 1.75rem 0.5rem 2.125rem; font-size: var(--fs-sm); color: var(--text-sidebar); outline: none; transition: border-color 0.2s, background 0.2s; font-family: inherit; }
+.nav-search-input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 0.5rem 1.75rem 0.5rem 2.5rem; font-size: var(--fs-sm); color: var(--text-sidebar); outline: none; transition: border-color 0.2s, background 0.2s; font-family: inherit; }
 
 .nav-search-input::placeholder { color: var(--text-dim); }
 
@@ -818,6 +818,14 @@ div.dnd-over, a.dnd-over { outline: 2px solid var(--accent); border-radius: inhe
 
 /* ---- FORM CONTROLS ------------------------------------ */
 
+/* Shared by every *-label class below that sits on a real <label> element
+   (.field-label, .panel-label, .radio-label, .tpl-filter-label,
+   .codes-bulk-label, .import-chk-lbl, .del-img-check) — each of those keeps
+   only its own delta from this. Label-styled spans/divs elsewhere
+   (.form-check-label, .toggle-label, .composer-label, etc.) are unaffected,
+   since this only matches the real element. */
+label { color: var(--text-muted); }
+
 .toggle-wrap { display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; user-select: none; }
 
 .toggle-wrap input { margin: 0; }
@@ -832,11 +840,30 @@ div.dnd-over, a.dnd-over { outline: 2px solid var(--accent); border-radius: inhe
 
 .search-field-wrap .form { padding-left: 2.125rem; width: 100%; }
 
-textarea { width: 100%; max-height: 300px; min-height: 200px; padding: 0.625rem 0.875rem; background: var(--bg-code); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--font-sans); font-size: var(--fs-base); line-height: 1.6; resize: vertical; outline: none; transition: border-color .2s, box-shadow .2s; tab-size: 2; margin-bottom: .25rem; }
+/* Base look for every real form control. select/textarea are safe as bare
+   element selectors (verified: no template relies on an un-classed textarea
+   looking different — see git history). input is NOT bare: a chained
+   :not([type=...]) exclusion was tried here and reverted — each :not() adds
+   specificity, so four of them (0,4,1) beat ordinary single-class rules like
+   .nav-search-input (0,1,0) sitewide, silently overriding components that
+   were never meant to share this look. Keep requiring class="form" on input;
+   it's the only way to keep this rule's specificity low enough to lose to
+   everything that should win. */
+input.form,
+select,
+textarea { width: 100%; padding: 0.625rem 0.875rem; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--font-sans); font-size: var(--fs-base); line-height: 1.6; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
 
-[data-theme="light"] textarea { background: var(--bg-subtle); }
+input.form:focus,
+select:focus,
+textarea:focus { border-color: var(--accent); box-shadow: var(--glow); }
 
-textarea::placeholder { color: var(--text-dim); }
+input.form:disabled,
+select:disabled,
+textarea:disabled { opacity: .7; cursor: not-allowed; }
+
+input.form::placeholder, textarea::placeholder { color: var(--text-dim); }
+
+textarea { max-height: 300px; min-height: 200px; resize: vertical; tab-size: 2; margin-bottom: .25rem; }
 
 textarea::-webkit-scrollbar { width: 13px; }
 
@@ -846,21 +873,11 @@ textarea::-webkit-scrollbar-thumb { background: rgb(var(--ch-brand-primary)/.25)
 
 textarea::-webkit-scrollbar-thumb:hover { background: rgb(var(--ch-brand-primary)/.5); }
 
-textarea:focus { border-color: var(--accent); box-shadow: var(--glow); color: var(--text); }
-
 textarea.email { width: 100%; min-height: 220px; background: transparent; border: none; outline: none; resize: vertical; font-size: var(--fs-md); color: var(--text); font-family: var(--font-sans); line-height: 1.5; box-sizing: border-box; }
 
 .field-group { margin-bottom: 1.25rem; }
 
 .field-group .field-label { display: block; margin-bottom: 0.4375rem; }
-
-input.form, select, textarea.form { width: 100%; padding: 0.625rem 0.875rem; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: var(--fs-base); line-height: 1.6; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
-
-input.form:focus, select:focus, textarea.form:focus { border-color: var(--accent); box-shadow: var(--glow); }
-
-input.form:disabled, select:disabled, textarea.form:disabled { opacity: .7; cursor: not-allowed; }
-
-textarea::placeholder, input.form::placeholder, textarea.form::placeholder { color: var(--text-dim); }
 
 input.form--compact { max-width: 120px; }
 
@@ -911,7 +928,7 @@ input[type="checkbox"], input[type="radio"] { width: 15px; height: 15px; accent-
 
 .radio-group { display: flex; align-items: center; gap: 1.5rem; padding-top: .35rem; }
 
-.radio-label { display: flex; align-items: center; gap: .45rem; font-size: var(--fs-base); color: var(--text-muted); cursor: pointer; user-select: none; }
+.radio-label { display: flex; align-items: center; gap: .45rem; font-size: var(--fs-base); cursor: pointer; user-select: none; }
 
 .radio-label input[type="radio"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
 
@@ -1002,7 +1019,7 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .existing-img-placeholder img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; }
 
-.del-img-check { display: inline-flex; align-items: center; gap: .4rem; font-size: var(--fs-base); color: var(--text-muted); cursor: pointer; margin-top: .3rem; }
+.del-img-check { display: inline-flex; align-items: center; gap: .4rem; font-size: var(--fs-base); cursor: pointer; margin-top: .3rem; }
 
 .existing-upload-preview { margin-bottom: .75rem; }
 
@@ -1053,7 +1070,7 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 .field-row { display: grid; grid-template-columns: 160px 1fr; align-items: flex-start; gap: .75rem; padding: .6rem 0; }
 .field-row > div { min-width: 0; }
 
-.field-label { font-size: var(--fs-base); font-weight: 600; color: var(--text-muted); line-height: 1.4; align-self: start; padding-top: .45rem; }
+.field-label { font-size: var(--fs-base); font-weight: 600; line-height: 1.4; align-self: start; padding-top: .45rem; }
 
 .status-pill-row { display: flex; gap: .5rem; flex-wrap: wrap; }
 
@@ -1079,7 +1096,7 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .panel-field:last-child { margin-bottom: 0; }
 
-.panel-label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); margin-bottom: .35rem; display: block; }
+.panel-label { font-size: var(--fs-sm); font-weight: 600; margin-bottom: .35rem; display: block; }
 
 .panel-hint { font-size: var(--fs-sm); color: var(--text-dim); margin-top: .25rem; line-height: 1.4; }
 
@@ -2055,7 +2072,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .import-chk-body { flex: 1; }
 
-.import-chk-lbl { font-size: var(--fs-md); color: var(--text-muted); cursor: pointer; }
+.import-chk-lbl { font-size: var(--fs-md); cursor: pointer; }
 
 .import-chk-sub { font-size: var(--fs-sm); color: var(--text-dim); }
 

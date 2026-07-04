@@ -406,7 +406,7 @@
 
 
 /* ------------------------------------------------------------------------ 
-  THE FORCE - Jedi Knight (Light) / Sith Lord (Dark)
+  THE FORCE - Tatooine (Light) / Mustafar (Dark)
 ------------------------------------------------------------------------- */
 [data-skin="the-force"] {
   --brand-primary: #c42020;
@@ -426,20 +426,21 @@
 }
 
 [data-skin="the-force"][data-theme="light"] {
-  --brand-primary: #0077ff;
-  --brand-secondary: #15b053;
+  --brand-primary: #0066ff;
+  --brand-secondary: #00b368;
   --brand-tertiary: #e0a843;
-  --ch-brand-primary: 0 119 255;
-  --ch-brand-secondary: 21 176 83;
+  --ch-brand-primary: 0 102 255;
+  --ch-brand-secondary: 0 179 104;
   --ch-brand-tertiary: 224 168 67;
-  --gradient: #0077ff, #15b053, #e0a843;
-  --gradient-bar: linear-gradient(90deg, #0077ff, #15b053, #e0a843);
+  --gradient: #0066ff, #00b368, #e0a843;
+  --gradient-bar: linear-gradient(90deg, #0066ff, #00b368, #e0a843);
   --bg: #eceadd;
   --bg-card: #ffffff;
   --bg-sidebar: #3d312a;
   --bg-subtle: #f5f4ef;
   --bg-elevated: #f5f4ef;
   --bg-code: #eceadd;
+  --table-head-bg: #c6bfba;
   --border: #d6cfc1;
   --border-soft: #e0dbd3;
   --hairline: rgba(0, 0, 0, 0.05);
@@ -447,10 +448,10 @@
   --text-muted: #61554c;
   --text-dim: #8a7a6e;
   --text-sidebar: #e0dcd9;
-  --accent: #0077ff;
-  --ch-accent: 0 119 255;
-  --accent-glow: rgb(0 119 255 / 0.12);
-  --accent2: #15b053;
+  --accent: #0066ff;
+  --ch-accent: 0 102 255;
+  --accent-glow: rgb(0 102 255 / 0.22);
+  --accent2: #00b368;
   --accent3: #b87a14;
   --success: #228c39;
   --ch-success: 34 140 57;
@@ -462,28 +463,28 @@
   --warn-bg: rgb(224 168 67 / 0.12);
   --shadow: 0 4px 24px rgba(43, 37, 33, 0.1), 0 1px 4px rgba(43, 37, 33, 0.06);
   --shadow-lg: 0 16px 56px rgba(43, 37, 33, 0.14), 0 4px 12px rgba(43, 37, 33, 0.08);
-  --glow: 0 0 0 3px rgb(0 119 255 / 0.12);
-  --card-border-1: #0077ff;
-  --card-border-2: #15b053;
+  --glow: 0 0 0 3px rgb(0 102 255 / 0.22), 0 0 14px rgb(0 102 255 / 0.16);
+  --card-border-1: #0066ff;
+  --card-border-2: #00b368;
   --card-border-3: #e0a843;
   --card-border-4: #8bc34a;
-  --blush: radial-gradient(ellipse at 110% -10%, rgb(0 119 255 / 0.08) 0%, transparent 60%);
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(0 102 255 / 0.1) 0%, transparent 60%);
   --text-dim: #1e3d8a;
-  --ch-preview: 0 119 255;
+  --ch-preview: 0 102 255;
   /* surface tokens */
   --topbar-bg: linear-gradient(180deg, #ffffff 0%, #eceadd 100%);
-  --topbar-shadow: 0 4px 16px rgba(43, 37, 33, 0.1), 0 1px 0 rgba(0, 119, 255, 0.2);
+  --topbar-shadow: 0 4px 16px rgba(43, 37, 33, 0.1), 0 1px 0 rgba(0, 102, 255, 0.25), 0 0 20px rgba(0, 102, 255, 0.08);
   --card-head-bg: #a7978b;
   --welcome-bg: linear-gradient(135deg, #ffffff 0%, #f5f4ef 100%);
   --welcome-border: #d6cfc1;
-  --welcome-blush: radial-gradient(circle at top right, rgb(0 119 255 / 0.12) 0%, rgb(21 176 83 / 0.06) 50%, transparent 70%);
-  --brand-gradient: linear-gradient(135deg, #e0a843 20%, #0077ff 50%, #15b053 100%);
+  --welcome-blush: radial-gradient(circle at top right, rgb(0 102 255 / 0.14) 0%, rgb(0 179 104 / 0.07) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(135deg, #e0a843 20%, #0066ff 50%, #00b368 100%);
   --card-head-sub-color: var(--text-muted);
   --ec-code-bg: #e6f4ea;
 }
 
 [data-skin="the-force"][data-theme="light"] .sidebar {
-  --accent: #66b3ff;
+  --accent: #4d94ff;
   --accent3: #e0a843;
   --text-dim: #9b8878;
   --danger: #ffb3c1;
@@ -492,8 +493,13 @@
   --nav-hover-bg: rgb(224 168 67 / 0.22);
   --nav-hover-color: #f5e8c8;
   --nav-hover-icon-color: #e0a843;
-  --nav-hover-icon-glow: none;
+  --nav-hover-icon-glow: drop-shadow(0 0 6px rgb(224 168 67 / 0.65));
 }
+[data-skin="the-force"][data-theme="light"] .bulk         { background: #c6bfba; }
+[data-skin="the-force"][data-theme="light"] .todo-toggle  { background: #c6bfba; }
+[data-skin="the-force"][data-theme="light"] .todo-toggle--warn,
+[data-skin="the-force"][data-theme="light"] .todo-toggle--warn .todo-toggle-sigil,
+[data-skin="the-force"][data-theme="light"] .todo-toggle--warn .todo-toggle-title { border-left-color: #7a3208; color: #7a3208; }
 [data-skin="the-force"][data-theme="light"] .badge-inactive { background: #9a8878; color: #ffffff; border-color: #786050; }
 [data-skin="the-force"][data-theme="light"] .badge-info    { background: #0055cc; color: #ffffff; border-color: #003d99; }
 [data-skin="the-force"][data-theme="light"] .badge-info2   { background: #1a8c3d; color: #ffffff; border-color: #0e6b2b; }
@@ -504,10 +510,14 @@
 [data-skin="the-force"][data-theme="light"] .badge-upcoming { background: #6644cc; color: #ffffff; border-color: #4c30a8; }
 [data-skin="the-force"][data-theme="light"] .btn-success        { background: #228c39; color: #ffffff; border-color: #228c39; }
 [data-skin="the-force"][data-theme="light"] .btn-success:hover  { background: #186028; color: #ffffff; border-color: #186028; }
-[data-skin="the-force"][data-theme="light"] .btn-danger         { background: #c43030; color: #ffffff; border-color: #c43030; }
-[data-skin="the-force"][data-theme="light"] .btn-danger:hover   { background: #a02020; color: #ffffff; border-color: #a02020; }
+[data-skin="the-force"][data-theme="light"] .btn-danger         { background: rgba(196, 48, 48, 0.14); color: #c43030; border-color: rgba(196, 48, 48, 0.35); }
+[data-skin="the-force"][data-theme="light"] .btn-danger:hover   { background: rgba(196, 48, 48, 0.22); color: #a02020; border-color: rgba(196, 48, 48, 0.5); }
 [data-skin="the-force"][data-theme="light"] .btn-warning        { background: #e0a843; color: #2b2521; border-color: #e0a843; }
 [data-skin="the-force"][data-theme="light"] .btn-warning:hover  { background: #c08830; color: #2b2521; border-color: #c08830; }
+[data-skin="the-force"][data-theme="light"] .btn-tertiary        { background: #6089b3; color: #ffffff; border-color: #6089b3; }
+[data-skin="the-force"][data-theme="light"] .btn-tertiary:hover  { background: #4f739b; color: #ffffff; border-color: #4f739b; }
+[data-skin="the-force"][data-theme="light"] .btn-quaternary       { background: #dce8fb; color: #0052cc; border-color: #a8c8f5; }
+[data-skin="the-force"][data-theme="light"] .btn-quaternary:hover { background: #c8ddf7; color: #003d99; border-color: #7fa8e8; }
 
 
 [data-skin="the-force"][data-theme="dark"] {
@@ -684,22 +694,24 @@
 [data-skin="floating-lights"][data-theme="light"] .sidebar .sidebar-label::after { background: linear-gradient(to right, rgb(255 184 212 / 0.55), transparent); }
 
 [data-skin="floating-lights"][data-theme="dark"] {
+  --brand-primary: #ffbc80;
+  --ch-brand-primary: 255 188 128;
   --bg: #0d0a17;
-  --bg-card: #15112a;
+  --bg-card: #1c1330;
   --bg-sidebar: #1a1433;
-  --bg-subtle: #221940;
-  --bg-elevated: #1c1835;
+  --bg-subtle: #291d3e;
+  --bg-elevated: #221a38;
   --bg-code: #0f0c1f;
-  --border: #2e2550;
-  --border-soft: #231c3f;
-  --hairline: rgba(255, 202, 40, 0.06);
+  --border: #3a2a4a;
+  --border-soft: #2a2038;
+  --hairline: rgba(255, 188, 128, 0.06);
   --text: #f5e8f8;
   --text-muted: #bda8cc;
-  --text-dim: #8070a0;
+  --text-dim: #a68fb8;
   --text-sidebar: #e0d0ec;
-  --accent: #ffca28;
-  --ch-accent: 255 202 40;
-  --accent-glow: rgb(255 202 40 / 0.22);
+  --accent: #ffbc80;
+  --ch-accent: 255 188 128;
+  --accent-glow: rgb(255 188 128 / 0.22);
   --accent2: #d884cb;
   --accent3: #ff77a8;
   --success: #6dd896;
@@ -708,28 +720,46 @@
   --danger: #f87171;
   --ch-danger: 248 113 113;
   --danger-bg: rgb(248 113 113 / 0.1);
-  --warn: #ffca28;
-  --warn-bg: rgb(255 202 40 / 0.12);
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 0 28px rgb(255 202 40 / 0.08);
-  --shadow-lg: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 48px rgb(255 202 40 / 0.1), 0 0 32px rgb(216 132 203 / 0.06);
-  --glow: 0 0 0 3px rgb(255 202 40 / 0.25);
-  --card-border-1: #ffca28;
+  --warn: #ffbc80;
+  --warn-bg: rgb(255 188 128 / 0.12);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 0 28px rgb(255 188 128 / 0.08);
+  --shadow-lg: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 48px rgb(255 188 128 / 0.1), 0 0 32px rgb(216 132 203 / 0.06);
+  --glow: 0 0 0 3px rgb(255 188 128 / 0.25);
+  --card-border-1: #ffbc80;
   --card-border-2: #d884cb;
   --card-border-3: #ff77a8;
   --card-border-4: #8a65c9;
-  --blush: radial-gradient(ellipse at 110% -10%, rgb(255 202 40 / 0.12) 0%, transparent 60%);
-  --text-dim: #c060b8;
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(255 188 128 / 0.12) 0%, transparent 60%);
   --ch-preview: 216 132 203;
   /* surface tokens */
-  --topbar-bg: linear-gradient(180deg, #1c1835 0%, #0d0a17 100%);
-  --topbar-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(255 202 40 / 0.3);
-  --card-head-bg: #0e0c26;
-  --welcome-bg: linear-gradient(135deg, #1c1835 0%, #15112a 100%);
-  --welcome-border: #2e2550;
-  --welcome-blush: radial-gradient(circle at top right, rgb(255 202 40 / 0.18) 0%, rgb(216 132 203 / 0.1) 50%, transparent 70%);
-  --brand-gradient: linear-gradient(135deg, #fdf8e8 0%, #ffca28 50%, #d884cb 100%);
+  --topbar-bg: linear-gradient(180deg, #1c1835 0%, #10132e 100%);
+  --topbar-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(255 188 128 / 0.3);
+  --card-head-bg: linear-gradient(100deg, #12183a 0%, #33203f 55%, #4a2818 100%);
+  --welcome-bg: linear-gradient(135deg, #1c1835 0%, #1c1330 100%);
+  --welcome-border: #3a2a4a;
+  --welcome-blush: radial-gradient(circle at top right, rgb(255 188 128 / 0.18) 0%, rgb(216 132 203 / 0.1) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(135deg, #fff3e0 0%, #ffbc80 50%, #d884cb 100%);
   --btn-primary-bg: var(--accent);
   --btn-primary-color: #1a0d00;
-  --btn-primary-hover-bg: color-mix(in srgb, #ffca28 85%, #fff);
-  --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(255 202 40 / 0.2), 0 0 48px rgb(216 132 203 / 0.1);
+  --btn-primary-hover-bg: color-mix(in srgb, #ffbc80 85%, #fff);
+  --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(255 188 128 / 0.2), 0 0 48px rgb(216 132 203 / 0.1);
 }
+
+/* The logo's ambient glow (see .luster-glow::before) gets a slow lantern flicker instead of a static halo */
+[data-skin="floating-lights"][data-theme="dark"] .luster-glow::before {
+  animation: lantern-flicker 5s ease-in-out infinite;
+}
+@keyframes lantern-flicker {
+  0%, 100% { opacity: 0.78; transform: translate(-50%, -50%) scale(0.97); }
+  50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-skin="floating-lights"][data-theme="dark"] .luster-glow::before { animation: none; }
+}
+
+/* Stat card top bars bleed their own colour onto the card, like a lantern lit from above */
+[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(1)::before { box-shadow: 0 2px 14px rgb(255 188 128 / 0.55); }
+[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(2)::before { box-shadow: 0 2px 14px rgb(216 132 203 / 0.55); }
+[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(3)::before { box-shadow: 0 2px 14px rgb(255 119 168 / 0.55); }
+[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(4)::before { box-shadow: 0 2px 14px rgb(138 101 201 / 0.55); }

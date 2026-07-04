@@ -65,8 +65,8 @@ final class SkinCatalog
             [
                 'slug'   => 'the-force',
                 'name'   => 'The Force',
-                'light'  => 'Jedi Knight',
-                'dark'   => 'Sith Lord',
+                'light'  => 'Tatooine',
+                'dark'   => 'Mustafar',
                 'desc'   => 'A long time ago in a galaxy far, far away...',
                 'colors' => ['#ff2a2a', '#990000', '#444444'],
             ],
@@ -76,7 +76,7 @@ final class SkinCatalog
                 'light'  => 'Flower Gleam',
                 'dark'   => 'Lantern Glow',
                 'desc'   => 'At last I see the light, and it\'s like the fog has lifted.',
-                'colors' => ['#ffca28', '#d884cb', '#ff77a8'],
+                'colors' => ['#ffbc80', '#d884cb', '#ff77a8'],
             ],
         ];
     }
