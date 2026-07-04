@@ -38,7 +38,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('database') ?></div>
+      <div class="panel-header-icon"><?= View::icon('database') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Rename Member Storage</div>
         <div class="panel-header-sub">Changes the internal name Luster uses for this listing's member records.</div>

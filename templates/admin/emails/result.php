@@ -28,7 +28,7 @@ $allOk = empty($failed);
   <?php endif; ?>
 
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon-filled">
+    <div class="panel-header-icon">
       <?= View::icon($allOk ? 'check-badge' : 'caution') ?>
     </div>
     <div class="panel-header-meta">

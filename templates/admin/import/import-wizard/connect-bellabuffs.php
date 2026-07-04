@@ -50,7 +50,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-icon"><?= View::icon('import') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Connect to BellaBuffs</div>
         <div class="panel-header-sub">BellaBuffs keeps its data in text files, so no database login is needed.</div>

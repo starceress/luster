@@ -24,7 +24,7 @@ $b = rtrim(View::e($base_url), '/');
 
 <div class="card card--gradient">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('importmembers') ?></div>
+    <div class="panel-header-icon"><?= View::icon('importmembers') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Import Members Only</div>
       <div class="panel-header-sub">

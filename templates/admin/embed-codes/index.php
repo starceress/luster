@@ -387,7 +387,7 @@ $epSafe = View::e($ep);
 
       <!-- Header: icon + title + badge -->
       <div class="panel-header" id="ec-pane-head" style="display:none">
-        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
+        <div class="panel-header-icon"><?= View::icon('embed') ?></div>
         <div class="panel-header-meta" style="flex:1;min-width:0">
           <div class="panel-header-title" id="ec-head-title"></div>
           <div class="panel-header-sub" id="ec-head-desc"></div>

@@ -129,7 +129,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-icon"><?= View::icon('email') ?></div>
         <div class="panel-header-title">Compose New Email</div>
         <?php if ($flSubject !== ''): ?>
           <span class="badge badge-info2 panel-header-badge"><?= $flSubject ?></span>

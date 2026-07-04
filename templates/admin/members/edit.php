@@ -35,7 +35,7 @@ $id = (int) $listing->id;
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('members') ?></div>
+      <div class="panel-header-icon"><?= View::icon('members') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title"><?= View::e($member->name) ?></div>
         <div class="panel-header-sub">Editing member &mdash; <?= View::e($listing->subject) ?></div>

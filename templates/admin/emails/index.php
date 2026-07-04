@@ -549,7 +549,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
+          <div class="panel-header-icon"><?= View::icon('email') ?></div>
           <div class="panel-header-title">Bulk Email</div>
           <span class="badge badge-info2 panel-header-badge" id="me-listing-chip">
             <span id="me-chip-label">All Listings</span>
@@ -677,7 +677,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
   <div class="composer-grid">
     <div class="card card--gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-icon"><?= View::icon('email') ?></div>
         
     <div class="panel-header-meta">
         <div class="panel-header-title">Add New Template</div>

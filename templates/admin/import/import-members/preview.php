@@ -23,7 +23,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
 
 <div class="card card--gradient" style="margin-bottom:1.5rem">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('import') ?></div>
+    <div class="panel-header-icon"><?= View::icon('import') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Ready to Import</div>
       <div class="panel-header-sub">Check what Luster found before it adds members.</div>

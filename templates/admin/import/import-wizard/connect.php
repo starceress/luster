@@ -53,7 +53,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('database') ?></div>
+      <div class="panel-header-icon"><?= View::icon('database') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Connect to <?= View::e($source_name) ?></div>
         <div class="panel-header-sub">Tell Luster where to read the old data from.</div>

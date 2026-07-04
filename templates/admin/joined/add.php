@@ -62,7 +62,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('add') ?></div>
+      <div class="panel-header-icon"><?= View::icon('add') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title"><?= $isEdit ? 'Edit Joined Listing' : 'Add Joined Listing' ?></div>
       </div>

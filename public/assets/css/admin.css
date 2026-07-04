@@ -373,9 +373,7 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 .panel-header { padding: 1.125rem 1.5rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .875rem; background: var(--bg-subtle); }
 
-.panel-header-icon { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
-
-.panel-header-icon-filled { background: var(--bg-card); color: var(--accent); }
+.panel-header-icon { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; background: var(--bg-card); color: var(--accent); }
 
 .panel-header-title { font-family: var(--font-serif); font-size: var(--fs-lg); font-weight: 700; color: var(--text); line-height: 1.2; }
 
@@ -818,12 +816,6 @@ div.dnd-over, a.dnd-over { outline: 2px solid var(--accent); border-radius: inhe
 
 /* ---- FORM CONTROLS ------------------------------------ */
 
-/* Shared by every *-label class below that sits on a real <label> element
-   (.field-label, .panel-label, .radio-label, .tpl-filter-label,
-   .codes-bulk-label, .import-chk-lbl, .del-img-check) — each of those keeps
-   only its own delta from this. Label-styled spans/divs elsewhere
-   (.form-check-label, .toggle-label, .composer-label, etc.) are unaffected,
-   since this only matches the real element. */
 label { color: var(--text-muted); }
 
 .toggle-wrap { display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; user-select: none; }
@@ -840,15 +832,6 @@ label { color: var(--text-muted); }
 
 .search-field-wrap .form { padding-left: 2.125rem; width: 100%; }
 
-/* Base look for every real form control. select/textarea are safe as bare
-   element selectors (verified: no template relies on an un-classed textarea
-   looking different — see git history). input is NOT bare: a chained
-   :not([type=...]) exclusion was tried here and reverted — each :not() adds
-   specificity, so four of them (0,4,1) beat ordinary single-class rules like
-   .nav-search-input (0,1,0) sitewide, silently overriding components that
-   were never meant to share this look. Keep requiring class="form" on input;
-   it's the only way to keep this rule's specificity low enough to lose to
-   everything that should win. */
 input.form,
 select,
 textarea { width: 100%; padding: 0.625rem 0.875rem; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--font-sans); font-size: var(--fs-base); line-height: 1.6; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }

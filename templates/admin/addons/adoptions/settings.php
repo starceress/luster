@@ -27,7 +27,7 @@ $b = rtrim(View::e($base_url), '/');
 
 <div class="card card--gradient">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
+    <div class="panel-header-icon"><?= View::icon('gear') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Display Settings</div>
       <div class="panel-header-sub">Configure the default view and pagination for the Adoptions admin panel.</div>

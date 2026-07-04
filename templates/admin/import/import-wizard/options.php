@@ -56,7 +56,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-icon"><?= View::icon('import') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Import Options</div>
         <div class="panel-header-sub">Pick the old data you want to bring into Luster.</div>

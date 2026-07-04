@@ -98,7 +98,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
     <!-- ── Left column: template editors ─────────────────────────────────── -->
     <div class="card card--gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
+        <div class="panel-header-icon"><?= View::icon('embed') ?></div>
         <div class="panel-header-meta">
           <div class="panel-header-title">Global Listing Template Defaults</div>
           <div class="panel-header-sub">Site-wide defaults used by all listings that have not set a custom template. Overridden per listing on the listing's Templates tab.</div>

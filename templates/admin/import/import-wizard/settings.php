@@ -26,7 +26,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-icon"><?= View::icon('import') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Import Wizard Settings</div>
         <div class="panel-header-sub">Choose which import options appear on the first wizard screen.</div>

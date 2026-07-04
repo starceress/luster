@@ -112,7 +112,7 @@ $listingId  = (int) ($listing->id ?? 0);
       <input type="hidden" name="member_email" value="<?= View::e($member_email ?? '') ?>">
 
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
+        <div class="panel-header-icon"><?= View::icon('email') ?></div>
         <div class="panel-header-title">Compose New Email</div>
         <span class="badge badge-info2 panel-header-badge"><?= $flName ?></span>
       </div>

@@ -56,7 +56,7 @@ $statusLabels = [
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('adoptions') ?></div>
+      <div class="panel-header-icon"><?= View::icon('adoptions') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title"><?= View::e($application['name']) ?></div>
         <div class="panel-header-sub">

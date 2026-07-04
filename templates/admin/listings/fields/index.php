@@ -90,7 +90,7 @@ $id = (int) $listing->id;
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('add') ?></div>
+      <div class="panel-header-icon"><?= View::icon('add') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Add New Field</div>
         <div class="panel-header-sub">Add an extra question to this listing's join and update forms.</div>

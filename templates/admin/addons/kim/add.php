@@ -26,7 +26,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('kim') ?></div>
+      <div class="panel-header-icon"><?= View::icon('kim') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Add KIM Entry</div>
         <div class="panel-header-sub">Manually add a Keep In Mind entry on behalf of someone.</div>

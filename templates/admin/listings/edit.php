@@ -208,7 +208,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
     <div class="card card--gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('star') ?></div>
+        <div class="panel-header-icon"><?= View::icon('star') ?></div>
         <div class="panel-header-meta">
           <div class="panel-header-title">General Details</div>
           <div class="panel-header-sub">Manage the listing's details, image, status, and public form settings.</div>
@@ -711,7 +711,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
     <!-- ── Left column: template editors ──────────────────────────────── -->
     <div class="card card--gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
+        <div class="panel-header-icon"><?= View::icon('embed') ?></div>
         <div class="panel-header-meta">
           <div class="panel-header-title">Listing HTML Templates</div>
           <div class="panel-header-sub">HTML that Luster prints for this listing's members, affiliates, stats, and public forms. Badges show whether each template is a custom override, inherited from <a href="<?= $b ?>/admin/listings/global-templates" class="link">global defaults</a>, or the built-in fallback.</div>
@@ -1397,7 +1397,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
     <input type="hidden" name="from_edit" value="1">
     <div class="card card--gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('form') ?></div>
+        <div class="panel-header-icon"><?= View::icon('form') ?></div>
         <div class="panel-header-meta">
           <div class="panel-header-title">Add New Field</div>
           <div class="panel-header-sub">Create an extra member field for this listing.</div>
@@ -1763,7 +1763,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
 <div class="card card--gradient">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
+    <div class="panel-header-icon"><?= View::icon('embed') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Embed Form URLs</div>
       <div class="panel-header-sub">Tell Luster where your host pages are so it can build email links and redirects.</div>
@@ -1858,7 +1858,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
 <div class="card card--gradient">
   <div class="panel-header">
-    <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
+    <div class="panel-header-icon"><?= View::icon('embed') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Code Snippets</div>
       <div class="panel-header-sub">Ready-to-use PHP include snippets for your site pages.</div>

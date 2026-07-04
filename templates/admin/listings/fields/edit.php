@@ -35,7 +35,7 @@ $encName = urlencode($field->name);
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('tag') ?></div>
+      <div class="panel-header-icon"><?= View::icon('tag') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Edit Field</div>
         <div class="panel-header-sub">Update the question members see and how they answer it.</div>

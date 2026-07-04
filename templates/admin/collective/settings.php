@@ -31,7 +31,7 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('general') ?></div>
+      <div class="panel-header-icon"><?= View::icon('general') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Collective Settings</div>
         <div class="panel-header-sub">Turn site-wide collective features on or off, and choose where their messages go.</div>

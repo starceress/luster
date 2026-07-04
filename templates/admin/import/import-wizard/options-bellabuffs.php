@@ -54,7 +54,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('import') ?></div>
+      <div class="panel-header-icon"><?= View::icon('import') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">BellaBuffs Import Options</div>
         <div class="panel-header-sub">Choose the Luster listing that should receive this BellaBuffs data.</div>

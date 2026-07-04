@@ -28,7 +28,7 @@ $b = rtrim(View::e($base_url), '/');
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
+      <div class="panel-header-icon"><?= View::icon('gear') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Link Checker Settings</div>
         <div class="panel-header-sub">Controls what URL the checker looks for on affiliate pages, and the default sort order and page size for results.</div>

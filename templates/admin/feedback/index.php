@@ -35,7 +35,7 @@ use Luster\Core\View;
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('report') ?></div>
+      <div class="panel-header-icon"><?= View::icon('report') ?></div>
       <div class="panel-header-meta">
         <div class="panel-header-title">Report Form</div>
         <div class="panel-header-sub">Report bugs, ask questions, or suggest features.</div>

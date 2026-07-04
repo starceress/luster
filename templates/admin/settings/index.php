@@ -65,7 +65,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-admin" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon-filled">
+          <div class="panel-header-icon">
             <?= View::icon('account') ?>
           </div>
           <div class="panel-header-meta">
@@ -171,7 +171,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-devices" class="mini-nav-panel">
       <div class="card card--gradient card--gradient--plain">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('devices') ?></div>
+          <div class="panel-header-icon"><?= View::icon('devices') ?></div>
           <div class="panel-header-meta">
             <div class="panel-header-title">Remembered Devices</div>
             <div class="panel-header-sub">Devices where you have selected "Remember Me" for your login. Each stores a unique token that auto-signs you back in. Revoke any device you no longer trust, or revoke all at once. Maximum 10 devices can be remembered at a time.</div>
@@ -226,7 +226,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-accounts" class="mini-nav-panel">
       <div class="card card--gradient card--gradient--plain">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon-filled">
+          <div class="panel-header-icon">
             <?= View::icon('admins') ?>
           </div>
             <div class="panel-header-meta">
@@ -295,7 +295,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-appearance" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('palette') ?></div>
+          <div class="panel-header-icon"><?= View::icon('palette') ?></div>
           <div class="panel-header-meta">
             <div class="panel-header-title">Appearance</div>
             <div class="panel-header-sub">Choose a colour skin for the admin panel. The skin applies to all admin pages.</div>
@@ -412,7 +412,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <div id="panel-general" class="mini-nav-panel">
         <div class="card card--gradient">
           <div class="panel-header">
-            <div class="panel-header-icon panel-header-icon-filled">
+            <div class="panel-header-icon">
             <?= View::icon('general') ?>
             </div>
             <div class="panel-header-meta">
@@ -578,7 +578,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <div id="panel-smtp" class="mini-nav-panel">
         <div class="card card--gradient">
           <div class="panel-header">
-            <div class="panel-header-icon panel-header-icon-filled">
+            <div class="panel-header-icon">
             <?= View::icon('email') ?>
             </div>
             <div class="panel-header-meta">
@@ -689,7 +689,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-notifications" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon-filled">
+          <div class="panel-header-icon">
             <?= View::icon('email') ?>
           </div>
           <div class="panel-header-meta">
@@ -815,7 +815,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-blacklist" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon-filled">
+          <div class="panel-header-icon">
             <?= View::icon('blacklist') ?>
           </div>
           <div class="panel-header-meta">
@@ -901,7 +901,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div id="panel-system" class="mini-nav-panel">
       <div class="card card--gradient">
         <div class="panel-header">
-          <div class="panel-header-icon panel-header-icon-filled">
+          <div class="panel-header-icon">
             <?= View::icon('wrench') ?>
           </div>
           <div class="panel-header-meta">

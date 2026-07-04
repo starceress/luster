@@ -118,7 +118,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
     <!-- ── Left column: template editors ─────────────────────────────────── -->
     <div class="card card--gradient">
       <div class="panel-header">
-        <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
+        <div class="panel-header-icon"><?= View::icon('embed') ?></div>
         <div class="panel-header-meta">
           <div class="panel-header-title">Collective HTML Templates</div>
           <div class="panel-header-sub">Choose the HTML Luster prints for collective pages, embeds, owned listings, joined listings, affiliates, and stats.</div>

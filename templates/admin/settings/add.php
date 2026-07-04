@@ -28,7 +28,7 @@ $fe = $field_errors ?? [];
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('admins') ?></div>
+      <div class="panel-header-icon"><?= View::icon('admins') ?></div>
         <div class="panel-header-meta">
         <div class="panel-header-title">Add New Admin Account</div>
         <div class="panel-header-sub">Grant admin panel access to a new user.</div>

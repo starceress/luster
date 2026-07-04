@@ -60,7 +60,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 
   <div class="card card--gradient">
     <div class="panel-header">
-      <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('wrench') ?></div>
+      <div class="panel-header-icon"><?= View::icon('wrench') ?></div>
         <div class="panel-header-meta">
         <div class="panel-header-title"><?= $isEdit ? View::e($affiliate->name) : 'Add New Affiliate' ?></div>
         <div class="panel-header-sub"><?= $isEdit ? 'Update this affiliate\'s details.' : 'Add a site to your affiliates list.' ?></div>
