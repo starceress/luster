@@ -121,7 +121,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
               <img src="<?= View::e($b . '/uploads/joined/' . $joined->image) ?>" alt="Current image">
               <label class="del-img-check">
                 <input type="checkbox" id="jf-delete-img" name="delete_image" value="1">
-                <span class="form-check-label">Delete current image</span>
+                <span class="toggle-label">Delete current image</span>
               </label>
             </div>
           <?php endif; ?>
@@ -167,7 +167,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         <span class="field-label">Visibility</span>
         <label class="form-check">
           <input id="jf-active" type="checkbox" name="active" value="1" <?= $activeVal ? 'checked' : '' ?>>
-          <span class="form-check-label">Active (visible on public site)</span>
+          <span class="toggle-label">Active (visible on public site)</span>
         </label>
       </div>
     </div>

@@ -99,12 +99,12 @@ $id = (int) $listing->id;
           <label class="form-check">
             <input type="radio" name="showurl" value="1"
                    <?= ($old['showurl'] ?? ($member->showurl ? '1' : '0')) !== '0' ? 'checked' : '' ?>>
-            <span class="form-check-label">Show</span>
+            <span class="toggle-label">Show</span>
           </label>
           <label class="form-check">
             <input type="radio" name="showurl" value="0"
                    <?= ($old['showurl'] ?? ($member->showurl ? '1' : '0')) === '0' ? 'checked' : '' ?>>
-            <span class="form-check-label">Hide</span>
+            <span class="toggle-label">Hide</span>
           </label>
         </div>
       </div>

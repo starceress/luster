@@ -91,11 +91,11 @@ $encName = urlencode($field->name);
           <div class="flex-row">
             <label class="form-check">
               <input type="radio" name="required" value="1" <?= $field->required ? 'checked' : '' ?>>
-              <span class="form-check-label">Yes</span>
+              <span class="toggle-label">Yes</span>
             </label>
             <label class="form-check">
               <input type="radio" name="required" value="0" <?= !$field->required ? 'checked' : '' ?>>
-              <span class="form-check-label">No</span>
+              <span class="toggle-label">No</span>
             </label>
           </div>
           <p class="form-hint">Choose Yes when members must answer this before they can submit the form.</p>

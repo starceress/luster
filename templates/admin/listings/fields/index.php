@@ -148,11 +148,11 @@ $id = (int) $listing->id;
           <div class="flex-row">
             <label class="form-check">
               <input type="radio" name="required" value="1">
-              <span class="form-check-label">Yes</span>
+              <span class="toggle-label">Yes</span>
             </label>
             <label class="form-check">
               <input type="radio" name="required" value="0" checked>
-              <span class="form-check-label">No</span>
+              <span class="toggle-label">No</span>
             </label>
           </div>
           <p class="form-hint">Choose Yes when members must answer this before they can submit the form.</p>

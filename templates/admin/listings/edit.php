@@ -149,11 +149,14 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <div class="stat-card">
   <div class="stat-header">Last Updated</div>
   <div class="stat-value"><?= View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : '-') ?></div>
-  <?php $_opened = (string) ($listing->opened ?? ''); ?>
-  <?php if ($_opened !== '' && $_opened !== 'TBA'): ?>
-    <div class="stat-extra"><strong>Opened On:</strong> <?= View::e(date($admin_date_format, strtotime($_opened))) ?></div>
-  <?php elseif ($_opened === 'TBA'): ?>
-    <div class="stat-extra"><strong>Opened:</strong> TBA</div>
+  <?php
+    $_opened = (string) ($listing->opened ?? '');
+    $_openedTs = $_opened !== '' && $_opened !== 'TBA' ? strtotime($_opened) : false;
+  ?>
+  <?php if ($_openedTs !== false && $_openedTs > 0): ?>
+    <div class="stat-extra"><strong>Opened On:</strong> <?= View::e(date($admin_date_format, $_openedTs)) ?></div>
+  <?php else: ?>
+    <div class="stat-extra"><strong>Opened:</strong> TBA &mdash; date will be set when the listing opens.</div>
   <?php endif; ?>
 </div>
 </div>
@@ -1449,11 +1452,11 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
             <div class="flex-row">
               <label class="form-check">
                 <input type="radio" name="required" value="1">
-                <span class="form-check-label">Yes</span>
+                <span class="toggle-label">Yes</span>
               </label>
               <label class="form-check">
                 <input type="radio" name="required" value="0" checked>
-                <span class="form-check-label">No</span>
+                <span class="toggle-label">No</span>
               </label>
             </div>
             <p class="form-hint">Choose Yes when members must answer this before they can submit the form.</p>

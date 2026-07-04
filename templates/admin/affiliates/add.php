@@ -210,7 +210,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
                    alt="Current affiliate image">
               <label class="del-img-check">
                 <input type="checkbox" name="delete_image" value="1">
-                <span class="form-check-label">Delete current image</span>
+                <span class="toggle-label">Delete current image</span>
               </label>
             </div>
           <?php endif; ?>

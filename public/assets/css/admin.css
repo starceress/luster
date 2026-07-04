@@ -907,8 +907,6 @@ input[type="checkbox"], input[type="radio"] { width: 15px; height: 15px; accent-
 
 .form-check input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
 
-.form-check-label { font-size: var(--fs-md); color: var(--text-muted); }
-
 .radio-group { display: flex; align-items: center; gap: 1.5rem; padding-top: .35rem; }
 
 .radio-label { display: flex; align-items: center; gap: .45rem; font-size: var(--fs-base); cursor: pointer; user-select: none; }

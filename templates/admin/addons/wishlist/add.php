@@ -133,7 +133,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <img src="<?= View::e($b . '/uploads/wishlist/' . $entry->image) ?>" alt="Current image">
               <label class="del-img-check">
                 <input type="checkbox" name="delete_image" value="1">
-                <span class="form-check-label">Delete current image</span>
+                <span class="toggle-label">Delete current image</span>
               </label>
             </div>
           <?php endif; ?>
