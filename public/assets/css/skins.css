@@ -690,7 +690,6 @@
 [data-skin="floating-lights"][data-theme="light"] .sidebar { background: linear-gradient(175deg, #7a489a 0%, #5a2878 60%, #441a62 100%); }
 [data-skin="floating-lights"][data-theme="light"] .mig-topbar { background: linear-gradient(175deg, #7a489a 0%, #5a2878 60%, #441a62 100%); }
 [data-skin="floating-lights"][data-theme="light"] .sidebar .user-star::before { background: rgb(252 163 17 / 0.28); }
-[data-skin="floating-lights"][data-theme="light"] .sidebar .user-role { color: #ffb8d4; }
 [data-skin="floating-lights"][data-theme="light"] .sidebar .sidebar-label::after { background: linear-gradient(to right, rgb(255 184 212 / 0.55), transparent); }
 
 [data-skin="floating-lights"][data-theme="dark"] {

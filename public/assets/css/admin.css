@@ -983,12 +983,6 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .form-details--flush { margin-bottom: 0; }
 
-.input-action-row { display: flex; gap: .5rem; align-items: center; }
-
-.input-action-row .form { flex: 1; }
-
-.input-action-row .form:disabled { opacity: .6; cursor: not-allowed; }
-
 .field-group-preview-gap { margin-bottom: .875rem; }
 
 .form-hint--warn { color: var(--pending); }
@@ -1013,12 +1007,6 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .file-drop-zone .form-hint { color: var(--text-dim); white-space: normal; font-size: var(--fs-sm); margin: 0; }
 
-.existing-image-row { display: flex; align-items: center; gap: .875rem; padding: .5rem .875rem; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 9px; }
-
-.existing-img-placeholder { background: rgb(var(--ch-brand-primary)/.12); border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid rgb(var(--ch-brand-primary)/.2); flex-shrink: 0; overflow: hidden; }
-
-.existing-img-placeholder img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; }
-
 .del-img-check { display: inline-flex; align-items: center; gap: .4rem; font-size: var(--fs-base); cursor: pointer; margin-top: .3rem; }
 
 .existing-upload-preview { margin-bottom: .75rem; }
@@ -1027,10 +1015,6 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .existing-upload-preview .del-img-check { color: var(--danger); }
 
-.file-meta-name { font-size: .8rem; font-weight: 600; color: var(--text); }
-
-.upload-panel-row { margin-bottom: .625rem; }
-
 /* ── Redesigned image upload panel (listing edit) ──────── */
 
 .img-upload-panel { display: flex; flex-direction: column; gap: .75rem; max-width: 400px; }
@@ -1038,8 +1022,6 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 .img-upload-panel--two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 640px; align-items: start; }
 
 .img-current-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-subtle); transition: border-color .2s, opacity .2s; }
-
-.img-current-card.is-marked-delete { opacity: .45; border-color: var(--danger); }
 
 .img-current-preview { background: rgb(var(--ch-brand-primary)/.08); display: flex; align-items: center; justify-content: center; min-height: 140px; }
 
@@ -1085,8 +1067,6 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 .status-pill--pending:has(input:checked) { background: rgb(var(--ch-pending)/.12); border-color: rgb(var(--ch-pending)/.3); color: var(--pending); }
 
 .status-pill--archived:has(input:checked) { background: var(--bg-card); border-color: var(--text-dim); color: var(--text); }
-
-.field-label--tight { margin-bottom: .25rem; }
 
 .tba-note { display: none; font-size: .85rem; color: var(--text-muted); font-style: italic; margin-top: .35rem; }
 
@@ -1551,8 +1531,6 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .tpl-filter-label { font-weight: 600; white-space: nowrap; }
 
-.embed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
-
 .composer-side { display: flex; flex-direction: column; gap: .25rem; order: 2; }
 
 .composer-side--sticky { position: sticky; top: calc(100px + 1.5rem); max-height: calc(100vh - 100px - 3rem); overflow-y: auto; }
@@ -1999,10 +1977,6 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .import-source-note { margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--border); font-size: var(--fs-base); color: var(--text-dim); display: flex; align-items: center; justify-content: space-between; }
 
-.import-source-arrow { color: var(--text-dim); transition: transform .2s, color .2s; font-size: var(--fs-lg); flex-shrink: 0; margin-left: .5rem; }
-
-.import-source-card:hover .import-source-arrow { transform: translateX(4px); color: var(--accent); }
-
 .skip-toggle-arrow { font-size: .65em; transition: transform .15s; }
 
 .skip-toggle.is-open .skip-toggle-arrow { transform: rotate(90deg); }
@@ -2034,8 +2008,6 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 .wizard-steps-progress--preview  { width: calc(75% - 37px); }
 
 .wizard-steps-progress--complete { width: calc(100% - 56px); }
-
-.wizard-steps-progress--configure { width: calc(25% + 1px); }
 
 .import-wizard .card-gradient { margin-bottom: 1rem; border-radius: 14px; }
 
@@ -2079,8 +2051,6 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 .import-dep-warn { display: none; align-items: center; gap: 5px; margin-top: 5px; padding: 4px 9px; font-size: var(--fs-sm); color: var(--danger); line-height: 1.4; background: var(--danger-bg); border: 1px solid rgba(var(--ch-brand-primary)/0.25); border-radius: 6px; }
 
 .import-dep-warn.is-visible { display: flex; }
-
-.import-image-options { display: flex; flex-direction: column; gap: .75rem; }
 
 .import-preview-results-card .composer-footer { border-top: 1px solid var(--border-soft); background: rgba(var(--ch-brand-primary)/.025); }
 
@@ -2252,7 +2222,6 @@ body.sidebar-open { overflow: hidden; }
 }
 
 @media (max-width: 900px) {
-.embed-grid { grid-template-columns: 1fr; }
 .settings-band-grid { grid-template-columns: 1fr; }
 .settings-band-col + .settings-band-col { border-left: none; border-top: 1px solid var(--border); }
 }
@@ -2325,7 +2294,6 @@ body.sidebar-open { overflow: hidden; }
 .topbar-breadcrumbs { max-width: calc(100vw - 170px); font-size: var(--fs-xs); }
 .topbar-crumb { max-width: 10rem; }
 .field-grid--3 { grid-template-columns: 1fr; }
-.existing-image-row { flex-direction: column; align-items: flex-start; }
 }
 
 @media (max-width: 700px) {
@@ -2405,11 +2373,7 @@ div:has(> .mem-table) { overflow-x: visible !important; }
 #wl-filter-row > .search-field-wrap { order: 3; flex: 1 1 auto; min-width: 0; }
 #wl-filter-row > button,
 #wl-filter-row > a { order: 3; }
-.existing-image-row,
 .file-drop-zone { width: 100%; max-width: 100%; }
-.existing-image-row { flex-wrap: wrap; }
-.existing-image-row > div { min-width: 0; overflow: hidden; }
-.file-meta-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 }
 
 @media (max-width: 480px) {
