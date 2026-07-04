@@ -377,7 +377,7 @@ $epSafe = View::e($ep);
     </div>
 
 <!-- ──── CONTENT PANE ────────────────────────────────────────────────────── -->
-    <div class="card card-gradient" id="ec-pane" style="margin-top:1.5rem;">
+    <div class="card card--gradient" id="ec-pane" style="margin-top:1.5rem;">
 
       <div id="ec-empty" class="empty">
         <div class="empty-icon"><?= View::icon('embed', ['width' => 32, 'height' => 32]) ?></div>
@@ -458,7 +458,7 @@ $epSafe = View::e($ep);
       </nav>
 <!-- ──── REF PANELS ───────────────────────────────────────────────────────── -->
       <div>
-        <div class="card card-gradient" id="ec-ref-general">
+        <div class="card card--gradient" id="ec-ref-general">
           <div class="panel-header">
             <div class="panel-header-meta">
           <div class="panel-header-title">Basics</div>

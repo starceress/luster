@@ -33,7 +33,7 @@ use Luster\Core\View;
 <form method="POST" action="<?= View::e($base_url) ?>/admin/feedback">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="card card-gradient">
+  <div class="card card--gradient">
     <div class="panel-header">
       <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('report') ?></div>
       <div class="panel-header-meta">
@@ -173,7 +173,7 @@ use Luster\Core\View;
 </form>
 
 <?php if ($send_failed && $composed_body !== ''): ?>
-<div class="card card-gradient" style="margin-top:1.5rem">
+<div class="card card--gradient" style="margin-top:1.5rem">
   <div class="card-body">
     <div class="field-row field-row--top">
       <label class="field-label">Copy report</label>

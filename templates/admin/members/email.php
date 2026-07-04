@@ -106,7 +106,7 @@ $listingId  = (int) ($listing->id ?? 0);
     </details>
   </div>
 
-  <div class="card card-gradient">
+  <div class="card card--gradient">
     <form method="POST" id="email-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= View::e($member_email ?? '') ?>">

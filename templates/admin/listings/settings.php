@@ -41,7 +41,7 @@ $_urlFields   = [
 <form method="POST" action="<?= $b ?>/admin/listings/settings" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="card card-gradient">
+  <div class="card card--gradient">
     <div class="panel-header">
       <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('gear') ?></div>
       <div class="panel-header-meta">

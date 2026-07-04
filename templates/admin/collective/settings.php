@@ -29,7 +29,7 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
 <form method="POST" action="<?= $b ?>/admin/collective/settings" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="card card-gradient">
+  <div class="card card--gradient">
     <div class="panel-header">
       <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('general') ?></div>
       <div class="panel-header-meta">

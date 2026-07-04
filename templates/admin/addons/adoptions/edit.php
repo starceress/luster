@@ -54,7 +54,7 @@ $statusLabels = [
       id="adopt-edit-form">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="card card-gradient">
+  <div class="card card--gradient">
     <div class="panel-header">
       <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('adoptions') ?></div>
       <div class="panel-header-meta">

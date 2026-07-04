@@ -344,7 +344,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         <div class="et-panel<?= $i === 0 ? ' active' : '' ?>"
              id="et-tab-<?= View::e($type) ?>">
 
-          <div class="card card-gradient<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>">
+          <div class="card card--gradient<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>">
 
             <!-- Card header -->
             <div class="panel-header">
@@ -544,7 +544,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     </div>
     
 <!-- ──── MAIN COMPOSE AREA ──────────────────────────────────────────── -->
-    <div class="card card-gradient ">
+    <div class="card card--gradient ">
       <form method="POST" action="<?= $b ?>/admin/emails/preview" id="compose-form">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
@@ -675,7 +675,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
 <div id="tab-custom" class="tabs-panel<?= $active_tab === 'custom' ? ' active' : '' ?>">
   <div class="composer-grid">
-    <div class="card card-gradient">
+    <div class="card card--gradient">
       <div class="panel-header">
         <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('email') ?></div>
         

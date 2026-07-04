@@ -206,7 +206,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-    <div class="card card-gradient">
+    <div class="card card--gradient">
       <div class="panel-header">
         <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('star') ?></div>
         <div class="panel-header-meta">
@@ -709,7 +709,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
   <div class="composer-grid">
 
     <!-- ── Left column: template editors ──────────────────────────────── -->
-    <div class="card card-gradient">
+    <div class="card card--gradient">
       <div class="panel-header">
         <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
         <div class="panel-header-meta">
@@ -1395,7 +1395,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/add" id="fields-add-form" class="js-warn-unsaved">
     <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
     <input type="hidden" name="from_edit" value="1">
-    <div class="card card-gradient">
+    <div class="card card--gradient">
       <div class="panel-header">
         <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('form') ?></div>
         <div class="panel-header-meta">
@@ -1761,7 +1761,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
 <div>
 
-<div class="card card-gradient">
+<div class="card card--gradient">
   <div class="panel-header">
     <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
     <div class="panel-header-meta">
@@ -1856,7 +1856,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 <!-- ──── TAB: CODE SNIPPETS ────────────────────────────────────────── -->
 <div id="tab-snippets" class="tabs-panel">
 
-<div class="card card-gradient">
+<div class="card card--gradient">
   <div class="panel-header">
     <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
     <div class="panel-header-meta">

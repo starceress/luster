@@ -96,7 +96,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
   <div class="composer-grid">
 
     <!-- ── Left column: template editors ─────────────────────────────────── -->
-    <div class="card card-gradient">
+    <div class="card card--gradient">
       <div class="panel-header">
         <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('embed') ?></div>
         <div class="panel-header-meta">

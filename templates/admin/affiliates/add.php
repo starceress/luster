@@ -58,7 +58,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
     <input type="hidden" name="from_listing" value="<?= (int) $from_listing ?>">
   <?php endif; ?>
 
-  <div class="card card-gradient">
+  <div class="card card--gradient">
     <div class="panel-header">
       <div class="panel-header-icon panel-header-icon-filled"><?= View::icon('wrench') ?></div>
         <div class="panel-header-meta">
