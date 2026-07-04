@@ -27,8 +27,24 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: pdo, pdo_sqlite, pdo_mysql, mbstring, intl, zip, gd, fileinfo
           tools: composer
           coverage: none
+
+      - name: Verify tag matches Version::CURRENT
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          SRC_VERSION=$(grep -oP "public const CURRENT\s*=\s*'\K[^']+" src/Core/Version.php)
+          if [ "$TAG_VERSION" != "$SRC_VERSION" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} (version ${TAG_VERSION}) does not match Version::CURRENT (${SRC_VERSION}) in src/Core/Version.php — bump Version::CURRENT and commit before tagging."
+            exit 1
+          fi
+
+      - name: Install dependencies (including dev, to run tests)
+        run: composer install --no-interaction
+
+      - name: Run PHPUnit
+        run: vendor/bin/phpunit
 
       - name: Install production dependencies only
         run: composer install --no-dev --optimize-autoloader --no-interaction
@@ -50,6 +66,7 @@ jobs:
             --exclude='.env.example' \
             --exclude='.gitignore' \
             --exclude='.phpunit.result.cache' \
+            --exclude='AGENTS.md' \
             --exclude='RELEASING.md' \
             --exclude='composer.lock' \
             --exclude='dist' \

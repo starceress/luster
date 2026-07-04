@@ -120,7 +120,9 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
                 <input id="js-config-path" type="text" class="form" style="flex:1"
                        placeholder="/absolute/path/to/<?= View::e($source_name) ?>/config.php">
                 <button type="button" id="js-autodetect-btn" class="btn btn-secondary btn-sm"
-                        style="white-space:nowrap">
+                        style="white-space:nowrap"
+                        data-detect-url="<?= $b ?>/admin/import/<?= $src ?>/detect-config"
+                        data-prefix-field="<?= $source === 'fanatically' ? 'fn_table_prefix' : '' ?>">
                   <?= View::icon('gear') ?> Detect
                 </button>
               </div>
@@ -221,76 +223,5 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
     </div>
   </div>
 </form>
-
-<?php if ($config_reader_enabled): ?>
-<script>
-(function () {
-  var btn    = document.getElementById('js-autodetect-btn');
-  var result = document.getElementById('js-autodetect-result');
-  if (!btn || !result) { return; }
-
-  function setResult(msg, color) {
-    result.textContent = msg;
-    result.style.color = color;
-    result.style.display = '';
-  }
-
-  btn.addEventListener('click', function () {
-    var path = (document.getElementById('js-config-path').value || '').trim();
-    if (!path) {
-      setResult('Enter a file path first.', 'var(--c-error, #c00)');
-      return;
-    }
-    btn.disabled = true;
-    btn.textContent = 'Detecting…';
-
-    var fd = new FormData();
-    fd.append('_csrf', document.querySelector('[name="_csrf"]').value);
-    fd.append('config_path', path);
-
-    fetch('<?= $b ?>/admin/import/<?= $src ?>/detect-config', {method: 'POST', body: fd})
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        btn.disabled = false;
-        btn.textContent = 'Detect';
-        if (!data.ok) {
-          setResult(data.message || 'Detection failed.', 'var(--c-error, #c00)');
-          return;
-        }
-        var fieldMap = {host: 'db_host', name: 'db_name', user: 'db_user', pass: 'db_pass'};
-        var filled = 0;
-        for (var key in fieldMap) {
-          if (data[key]) {
-            var el = document.getElementById(fieldMap[key]);
-            if (el) { el.value = data[key]; filled++; }
-          }
-        }
-        <?php if ($source === 'fanatically'): ?>
-        if (data.prefix) {
-          var pfx = document.getElementById('fn_table_prefix');
-          if (pfx) { pfx.value = data.prefix; filled++; }
-        }
-        <?php endif; ?>
-        if (filled > 0) {
-          setResult(
-            filled + ' field' + (filled === 1 ? '' : 's') + ' filled in — review before continuing.',
-            'var(--c-success, green)'
-          );
-        } else {
-          setResult(
-            'No recognised credentials found in that file.',
-            'var(--c-warning, #a60)'
-          );
-        }
-      })
-      .catch(function () {
-        btn.disabled = false;
-        btn.textContent = 'Detect';
-        setResult('Request failed — check the path and try again.', 'var(--c-error, #c00)');
-      });
-  });
-}());
-</script>
-<?php endif; ?>
 
 </div>

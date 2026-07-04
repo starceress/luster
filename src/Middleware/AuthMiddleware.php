@@ -172,15 +172,11 @@ final class AuthMiddleware
             return false;
         }
 
-        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
-                || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
-
         setcookie('lstr_remember', $userId . ':' . $newRawToken, [
             'expires'  => time() + 86400 * 30,
             'path'     => '/',
             'httponly' => true,
-            'secure'   => $isHttps,
+            'secure'   => Request::detectHttps(),
             'samesite' => 'Strict',
         ]);
 

@@ -18,7 +18,8 @@ require_once __DIR__ . '/../_css_assets.php';
   <title>Luster &#10022; Fanlisting Management System &mdash; Forgot Password</title>
   <link rel="icon" type="image/svg+xml" href="<?= rtrim(View::e($base_url ?? ''), '/') ?>/assets/images/logo16.svg">
   <?= lusterAdminCssLinks(rtrim(View::e($base_url ?? ''), '/') . '/assets/css', LUSTER_BASE . '/public/assets/css', $selected_skin ?? '') . PHP_EOL ?>
-  <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+  <?php $themeInitV = filemtime(LUSTER_BASE . '/public/assets/js/theme-init.js') ?: 0; ?>
+  <script src="<?= rtrim(View::e($base_url ?? ''), '/') ?>/assets/js/theme-init.js?v=<?= $themeInitV ?>"></script>
 </head>
 <body class="login-page">
 

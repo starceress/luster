@@ -254,7 +254,7 @@ $_flTabCounts = $tab_counts ?? [];
 <div class="tabs-select-wrap">
   <span class="overview-section-title">Status</span>
   <div class="select-wrap flex-fill">
-    <select onchange="window.location.href=this.value">
+    <select class="js-nav-select">
       <?php foreach ($_flStatusTabs as $_flKey => $_flTabData): ?>
         <option value="<?= View::e($flTabUrl($_flKey)) ?>"<?= $flTab === $_flKey ? ' selected' : '' ?>>
           <?= View::e($_flTabData['label']) ?> (<?= (int) ($_flTabCounts[$_flKey] ?? 0) ?>)

@@ -187,24 +187,4 @@ use Luster\Core\View;
     </div>
   </div>
 </div>
-<script>
-(function () {
-  var btn = document.getElementById('lstr-copy-btn');
-  var ta  = document.getElementById('lstr-composed-body');
-  if (!btn || !ta) return;
-  btn.addEventListener('click', function () {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(ta.value).then(function () {
-        btn.textContent = 'Copied!';
-        setTimeout(function () { btn.textContent = 'Copy to clipboard'; }, 2500);
-      });
-    } else {
-      ta.select();
-      document.execCommand('copy');
-      btn.textContent = 'Copied!';
-      setTimeout(function () { btn.textContent = 'Copy to clipboard'; }, 2500);
-    }
-  });
-}());
-</script>
 <?php endif; ?>

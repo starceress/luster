@@ -413,7 +413,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
 <div class="tabs-select-wrap">
   <span class="overview-section-title">View</span>
   <div class="select-wrap flex-fill">
-    <select onchange="window.location.href=this.value">
+    <select class="js-nav-select">
       <option value="<?= View::e($tabUrl('all')) ?>"<?= $tab === 'all' ? ' selected' : '' ?>>All</option>
       <option value="<?= View::e($tabUrl('pending')) ?>"<?= $tab === 'pending' ? ' selected' : '' ?>>Pending (<?= $_globalPending ?>)</option>
     </select>

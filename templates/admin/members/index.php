@@ -138,7 +138,7 @@ $tabDefs = [
 <div class="tabs-select-wrap">
   <span class="overview-section-title">Status</span>
   <div class="select-wrap flex-fill">
-    <select onchange="window.location.href=this.value">
+    <select class="js-nav-select">
       <?php foreach ($tabDefs as $key => $td): ?>
         <option value="<?= View::e($tabUrl($key)) ?>"<?= $status === $key ? ' selected' : '' ?>>
           <?= View::e($td['label']) ?> (<?= (int) ($tabCounts[$key] ?? 0) ?>)

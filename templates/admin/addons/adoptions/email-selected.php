@@ -268,29 +268,3 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
      data-owner-name="<?= View::e($owner_name) ?>"
      data-owner-email="<?= View::e($owner_email) ?>"
      class="is-hidden"></div>
-
-<script>
-(function () {
-  // Chip removal: remove the chip AND the matching hidden id input, update send count
-  var chip = document.getElementById('es-chip');
-  var idInputs = document.getElementById('es-id-inputs');
-  var sendCount = document.getElementById('es-send-count');
-  var countLabel = document.getElementById('es-count-label');
-
-  if (!chip || !idInputs) return;
-
-  chip.addEventListener('click', function (e) {
-    var btn = e.target.closest('.es-chip-remove');
-    if (!btn) return;
-    var item = btn.closest('.es-chip-item');
-    if (!item) return;
-    var id = item.getAttribute('data-id');
-    item.remove();
-    var hidden = idInputs.querySelector('input[name="ids[]"][value="' + id + '"]');
-    if (hidden) hidden.remove();
-    var remaining = idInputs.querySelectorAll('input[name="ids[]"]').length;
-    if (sendCount)  sendCount.textContent  = remaining;
-    if (countLabel) countLabel.textContent = remaining + ' applicant' + (remaining !== 1 ? 's' : '');
-  });
-}());
-</script>

@@ -65,30 +65,10 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= View::e($page_title) ?> &#10022; Luster</title>
-  <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
-  <script>
-    (function(){
-      var h=document.documentElement;
-      var p=window.location.pathname;
-      var m=[
-        [/\/admin\/(?:listings|affiliates|joined|categories)(?:\/|$)/,'filter-panel','fp-fl'],
-        [/\/admin\/members(?:\/|$)/,'mem-filter-panel','fp-mem'],
-        [/\/admin\/link-checker(?:\/|$)/,'lc-filter-panel','fp-lc'],
-        [/\/admin\/wishlist(?:\/|$)/,'wl-filter-panel','fp-wl'],
-        [/\/admin\/kim(?:\/|$)/,'kim-filter-panel','fp-kim'],
-        [/\/admin\/adoptions(?:\/|$)/,'adopt-filter-panel','fp-adopt'],
-        [/\/admin\/newsfeed(?:\/|$)/,'upd-filter-panel','fp-upd'],
-        [/\/admin\/rules(?:\/|$)/,'rules-filter-panel','fp-rules']
-      ];
-      function cookieMap(){var m=document.cookie.match(/(?:^|; )lstr_fp=([^;]*)/);if(!m)return {};try{return JSON.parse(decodeURIComponent(m[1]));}catch(e){return {};}}
-      function writeCookie(map){document.cookie='lstr_fp='+encodeURIComponent(JSON.stringify(map))+'; path=/; SameSite=Lax';}
-      var cm=cookieMap();
-      var dirty=false;
-      function state(id){var k='fp:'+p+':'+id;if(Object.prototype.hasOwnProperty.call(cm,k))return cm[k];try{var s=sessionStorage.getItem(k);if(s!==null){cm[k]=s;dirty=true;}return s;}catch(e){return null;}}
-      for(var i=0;i<m.length;i++){if(!m[i][0].test(p))continue;var st=state(m[i][1]);h.classList.toggle(m[i][2],st!=='0');}
-      if(dirty)writeCookie(cm);
-    }());
-  </script>
+  <?php $themeInitV = filemtime(LUSTER_BASE . '/public/assets/js/theme-init.js') ?: 0; ?>
+  <script src="<?= $b ?>/assets/js/theme-init.js?v=<?= $themeInitV ?>"></script>
+  <?php $filterPanelInitV = filemtime(LUSTER_BASE . '/public/assets/js/filter-panel-init.js') ?: 0; ?>
+  <script src="<?= $b ?>/assets/js/filter-panel-init.js?v=<?= $filterPanelInitV ?>"></script>
   <style>
     html.fp-fl #filter-panel,
     html.fp-mem #mem-filter-panel,

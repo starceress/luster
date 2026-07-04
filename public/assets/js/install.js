@@ -28,3 +28,9 @@ document.addEventListener('click', function (e) {
   btn.querySelector('.eye-off').style.display = show ? ''     : 'none';
   btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
 });
+
+// Requirements-check "Refresh" button
+var lstrRefreshBtn = document.getElementById('lstr-refresh-btn');
+if (lstrRefreshBtn) {
+  lstrRefreshBtn.addEventListener('click', function () { location.reload(); });
+}

@@ -221,7 +221,7 @@ $showDragHint = isset($typeTabs[$filter_type])
   <div class="tabs-select-wrap">
     <span class="overview-section-title">Status</span>
     <div class="select-wrap flex-fill">
-      <select id="wl-type-select" onchange="window.location.href=this.value">
+      <select id="wl-type-select" class="js-nav-select">
         <?php foreach ($tabs as $key => $tab): ?>
           <option value="<?= View::e($b . '/admin/wishlist' . ($key !== 'all' ? '?type=' . $key : '')) ?>"
                   <?= $filter_type === $key ? 'selected' : '' ?>>

@@ -164,7 +164,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
   <div class="tabs-select-wrap">
     <span class="overview-section-title">Status</span>
     <div class="select-wrap flex-fill">
-      <select onchange="window.location.href=this.value">
+      <select class="js-nav-select">
         <?php foreach ($statusTabs as $key => $tabData): ?>
           <option value="<?= View::e($tabUrl($key)) ?>"
                   <?= $tab === $key ? 'selected' : '' ?>>

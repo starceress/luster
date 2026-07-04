@@ -198,7 +198,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
 <div class="tabs-select-wrap">
   <span class="overview-section-title">Status</span>
   <div class="select-wrap flex-fill">
-    <select onchange="window.location.href=this.value">
+    <select class="js-nav-select">
       <?php foreach ($statusTabs as $key => $label): ?>
         <option value="<?= View::e($tabUrl($key)) ?>"<?= $tab === $key ? ' selected' : '' ?>>
           <?= View::e($label) ?> (<?= (int) ($counts[$key] ?? 0) ?>)

@@ -29,18 +29,15 @@ namespace Luster\Core;
 final class SecurityHeaders
 {
     /**
-     * The CSP script hash covers the one inline <script> block present in
-     * admin templates (theme-toggle initialisation). If that script ever
-     * changes, re-compute:  base64_encode(hash('sha256', $scriptContent, true))
-     */
-    private const CSP_SCRIPT_HASH = 'sha256-lfZvxb5T4sGLkAT0mD3Vb+Uc8DCNaZf6KEuzEkUi0eA=';
-
-    /**
      * Emits all security response headers via PHP header().
      *
      * Safe to call multiple times — returns immediately when headers have already
-     * been sent. The CSP_SCRIPT_HASH constant must be updated if the inline
-     * theme-toggle script in admin layout templates ever changes.
+     * been sent. script-src is 'self' only — every admin script is either a
+     * static asset under public/assets/js/ or an inline handler attribute, and
+     * there are no remaining inline <script> blocks to allow. Keep it that way:
+     * a new inline <script> would be silently blocked by this policy in any
+     * CSP-enforcing browser rather than raising an error, so it's easy to miss
+     * in testing. Move new page behavior into admin.js instead.
      */
     public static function apply(): void
     {
@@ -55,7 +52,7 @@ final class SecurityHeaders
         header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
         header(
             "Content-Security-Policy: default-src 'self'; "
-            . "script-src 'self' '" . self::CSP_SCRIPT_HASH . "'; "
+            . "script-src 'self'; "
             . "style-src 'self' 'unsafe-inline'; "
             . "img-src 'self' data:; "
             . "font-src 'self' data:; "

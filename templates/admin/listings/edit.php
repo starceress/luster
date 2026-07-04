@@ -490,7 +490,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      <?= ($embed_settings['codes_submit_enabled'] ?? true) ? 'checked' : '' ?>>
               <span class="toggle-label">Allow fans to donate codes for this listing</span>
             </label>
-            <p class="form-hint">Enables the public code submission form and the <code>{codes_submit_toggle}</code> token in your codes template shows a collapsible code donation form. Submissions appear in the <a href="#" class="link" onclick="document.querySelector('[data-tab=codes]').click(); return false;">Codes</a> tab for review.</p>
+            <p class="form-hint">Enables the public code submission form and the <code>{codes_submit_toggle}</code> token in your codes template shows a collapsible code donation form. Submissions appear in the <a href="#" class="link" data-jump-tab="codes">Codes</a> tab for review.</p>
             <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
             <div style="margin-top:.75rem">
               <?php
@@ -680,17 +680,17 @@ $_tplCsrf = View::e($csrf_token ?? '');
     <div class="select-wrap">
       <select id="tpl-group-select" class="form">
         <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
-        <option value="members"<?= $activeGroup === 'members' ? ' selected' : '' ?>>Members List</option>
-        <option value="join-form"<?= $activeGroup === 'join-form' ? ' selected' : '' ?>>Join Form</option>
-        <option value="update-form"<?= $activeGroup === 'update-form' ? ' selected' : '' ?>>Update Membership Form</option>
-        <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Lost Password Form</option>
-        <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Listing Statistics</option>
+        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
+        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
         <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Codes Donation Form</option>
-        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
-        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
         <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
+        <option value="join-form"<?= $activeGroup === 'join-form' ? ' selected' : '' ?>>Join Form</option>
+        <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Lost Password Form</option>
+        <option value="members"<?= $activeGroup === 'members' ? ' selected' : '' ?>>Members List</option>
         <option value="newsfeed"<?= $activeGroup === 'newsfeed' ? ' selected' : '' ?>>News Feed</option>
+        <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Statistics</option>
+        <option value="update-form"<?= $activeGroup === 'update-form' ? ' selected' : '' ?>>Update Membership Form</option>
       </select>
     </div>
     <div class="search-field-wrap">

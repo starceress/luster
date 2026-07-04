@@ -443,19 +443,6 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     <input type="hidden" name="type"   value="<?= View::e($type) ?>">
   </form>
   <?php endforeach; ?>
-  <script>
-  (function () {
-    var inp = document.getElementById('et-nav-search');
-    if (!inp) return;
-    inp.addEventListener('input', function () {
-      var q = inp.value.trim().toLowerCase();
-      document.querySelectorAll('[data-et-nav-label]').forEach(function (btn) {
-        var match = !q || btn.dataset.etNavLabel.indexOf(q) !== -1;
-        btn.classList.toggle('is-hidden', !match);
-      });
-    });
-  }());
-  </script>
 </div>
 
 <div id="tab-bulk" class="tabs-panel<?= $active_tab === 'bulk' ? ' active' : '' ?>">

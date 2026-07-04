@@ -21,7 +21,10 @@ define('SENTINEL_PATH', LUSTER_BASE . '/storage/.installed');
 
 // Set cookie_secure only on HTTPS. On plain HTTP (local XAMPP, staging)
 // a Secure cookie is rejected by the browser, silently breaking session state.
+// Mirrors Request::detectHttps() (src/Core/Request.php) — this file is
+// standalone (no autoloader), so the check is duplicated, not reused.
 $_lstr_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
+            || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
             || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
                 && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
 
@@ -384,9 +387,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($appUrl === '') {
                     $errors[] = 'Luster Install URL is required.';
+                } elseif (filter_var($appUrl, FILTER_VALIDATE_URL) === false || !preg_match('#^https?://#i', $appUrl)) {
+                    $errors[] = 'Luster Install URL must be a valid http:// or https:// URL.';
                 }
                 if ($siteUrl === '') {
                     $errors[] = 'Site URL is required.';
+                } elseif (filter_var($siteUrl, FILTER_VALIDATE_URL) === false || !preg_match('#^https?://#i', $siteUrl)) {
+                    $errors[] = 'Site URL must be a valid http:// or https:// URL.';
                 }
                 if ($siteName === '') {
                     $errors[] = 'Site name is required.';
@@ -1295,6 +1302,21 @@ function checkRequirements(): array
             'status' => $status(extension_loaded('curl')),
         ],
         [
+            'label'  => 'Multibyte String Extension',
+            'detail' => $detail(extension_loaded('mbstring'), 'mbstring is enabled.', 'Enable the PHP mbstring extension.'),
+            'status' => $status(extension_loaded('mbstring')),
+        ],
+        [
+            'label'  => 'File Info Extension',
+            'detail' => $detail(extension_loaded('fileinfo'), 'fileinfo is enabled.', 'Enable the PHP fileinfo extension — required to validate uploaded images by MIME type.'),
+            'status' => $status(extension_loaded('fileinfo')),
+        ],
+        [
+            'label'  => 'Zip Extension',
+            'detail' => $detail(extension_loaded('zip'), 'zip is enabled.', 'Enable the PHP zip extension — required for template pack export/import, backups, and some import sources.'),
+            'status' => $status(extension_loaded('zip')),
+        ],
+        [
             'label'  => 'Root Directory Access',
             'detail' => $detail($rootWritable, 'Root directory is writable.', 'Make your root directory writable before continuing.'),
             'status' => $status($rootWritable),
@@ -1539,7 +1561,7 @@ function renderStep1(string $csrf): void
     <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
     <input type="hidden" name="install_step" value="1">
     <?php if (!$canContinue): ?>
-    <button type="button" class="btn btn-secondary" onclick="location.reload()">Refresh</button>
+    <button type="button" class="btn btn-secondary" id="lstr-refresh-btn">Refresh</button>
     <?php endif; ?>
     <button type="submit" class="btn btn-primary" <?= !$canContinue ? 'disabled aria-disabled="true"' : '' ?>>Continue &rarr;</button>
   </form>
@@ -1698,9 +1720,10 @@ function renderStep3(string $csrf, array $stored): void
 
     // Build the guessed URL from REQUEST_URI so subdirectory installs resolve
     // correctly (e.g. http://localhost/luster/public, not just http://localhost).
-    // Use the same two-condition HTTPS check as the session cookie fix so
-    // reverse-proxy installs (HTTP_X_FORWARDED_PROTO=https) get https:// URLs.
+    // Use the same HTTPS check as the session cookie fix above so reverse-proxy
+    // and non-standard-port installs get https:// URLs too.
     $_protocol  = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
+                || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
                 || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
                     && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'))
                 ? 'https' : 'http';

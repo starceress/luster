@@ -141,11 +141,6 @@ $labelFor = static function(string $key): string {
       <?php endforeach; ?>
       </tbody>
     </table>
-    <script>
-    document.getElementById('select-all-importable').addEventListener('change', function() {
-      document.querySelectorAll('.importable-cb').forEach(function(cb) { cb.checked = this.checked; }, this);
-    });
-    </script>
   </div>
   <?php endif; ?>
 

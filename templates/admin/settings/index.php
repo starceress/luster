@@ -212,10 +212,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </table>
         </div>
         <div class="composer-footer">
-          <form method="POST" action="<?= $b ?>/admin/settings/devices/revoke-all" class="action-form-inline">
+          <form method="POST" action="<?= $b ?>/admin/settings/devices/revoke-all" class="action-form-inline"
+                data-confirm="Revoke all remembered devices? You will need to sign in again on each device.">
             <input type="hidden" name="_csrf" value="<?= $devCsrf ?>">
-            <button type="submit" class="btn btn-danger"
-                    onclick="return confirm('Revoke all remembered devices? You will need to sign in again on each device.')">Revoke All Devices</button>
+            <button type="submit" class="btn btn-danger">Revoke All Devices</button>
           </form>
         </div>
         <?php endif; ?>
@@ -566,7 +566,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Settings</button>
-            <button type="button" class="btn btn-ghost" id="general-clear-btn">Clear</button>
+            <button type="button" class="btn btn-ghost" data-clear-target="panel-general">Clear</button>
           </div>
         </div>
       </div>
@@ -678,7 +678,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Settings</button>
-            <button type="button" class="btn btn-ghost" id="smtp-clear-btn">Clear</button>
+            <button type="button" class="btn btn-ghost" data-clear-target="panel-smtp">Clear</button>
           </div>
         </div>
       </div>
@@ -789,7 +789,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <label class="field-label">Send Now</label>
               <div>
                 <button type="button" class="btn btn-quaternary btn-sm"
-                        onclick="document.getElementById('overdue-now-form').requestSubmit()">
+                        data-submit-form="overdue-now-form">
                   <?= View::icon('email') ?> Send overdue email now
                 </button>
                 <p class="form-hint" style="margin-top:.5rem">Bypasses the 24-hour window and immediately sends the overdue email if any listings are due.</p>
@@ -799,7 +799,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Notification Settings</button>
-            <button type="button" id="notifications-clear-btn" class="btn btn-ghost">Clear</button>
+            <button type="button" class="btn btn-ghost" data-clear-target="panel-notifications">Clear</button>
           </div>
         </form>
 

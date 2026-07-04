@@ -142,21 +142,8 @@ $statusLabels = [
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <button type="reset" class="btn btn-quaternary js-form-reset">Reset to Original</button>
-      <button type="button" class="btn btn-ghost" id="adopt-clear-btn">Clear</button>
+      <button type="button" class="btn btn-ghost" data-clear-target="adopt-edit-form">Clear</button>
       <a href="<?= $b ?>/admin/adoptions" class="btn btn-ghost">Cancel</a>
     </div>
   </div>
 </form>
-
-<script>
-(function () {
-  var btn = document.getElementById('adopt-clear-btn');
-  if (!btn) return;
-  btn.addEventListener('click', function () {
-    var form = document.getElementById('adopt-edit-form');
-    if (!form) return;
-    form.querySelectorAll('input[type="text"], input[type="email"], input[type="url"], textarea')
-        .forEach(function (el) { el.value = ''; });
-  });
-}());
-</script>

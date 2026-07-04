@@ -1,6 +1,5 @@
 # Composer
 /vendor/
-composer.lock
 
 # Live config — never commit
 /config/app.php

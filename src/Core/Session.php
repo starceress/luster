@@ -65,8 +65,11 @@ final class Session
             session_write_close();
         }
 
+        // A Secure cookie is silently rejected by browsers on plain HTTP, which
+        // would otherwise break login entirely on non-HTTPS installs. Only force
+        // it when the request actually arrived over HTTPS — see Request::detectHttps().
         ini_set('session.cookie_httponly', '1');
-        ini_set('session.cookie_secure', '1');
+        ini_set('session.cookie_secure', Request::detectHttps() ? '1' : '0');
         ini_set('session.cookie_samesite', 'Strict');
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');

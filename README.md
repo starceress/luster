@@ -81,7 +81,7 @@ it for you.
 - **PHP 8.1 or newer** (PHP 8.2 or 8.3 recommended — check your hosting control panel for the version switcher)
 - **MySQL or MariaDB**
 - **PDO and PDO MySQL extension**
-- **PHP cURL extension**
+- **PHP cURL, mbstring, fileinfo, and zip extensions**
 
 
 
@@ -197,8 +197,10 @@ Full credits are available on [luster.nu](https://luster.nu/credits/).
 Luster is open-source software released under the [GNU General Public License v3.0](LICENSE).
 In plain terms: you're free to use it, change it, and share it — including
 for your own fan site or collective — but any distributed version must also
-remain open source under the same license. You may not use this code in a
-proprietary or commercial product.
+remain open source under the same license. You cannot take Luster — with or
+without modifications — and sell or distribute it as a closed-source,
+proprietary product. You cannot repackage or rebrand Luster as your own
+script and profit from it while denying others access to the source.
 
 [![Tests][tests-badge]][tests-workflow]
 [![License: GPL v3][license-badge]][license]

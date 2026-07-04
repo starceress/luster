@@ -43,6 +43,37 @@ final class Request
     }
 
     // -----------------------------------------------------------------------
+    // Scheme
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns true when $server indicates an HTTPS request — checks the HTTPS
+     * variable, port 443, and X-Forwarded-Proto (for reverse-proxy setups
+     * that terminate TLS upstream of PHP).
+     *
+     * Static and defaults to the live $_SERVER superglobal so it can be
+     * called before a Request instance exists — e.g. Session::start() sets
+     * session.cookie_secure during bootstrap, before the front controller
+     * constructs a Request.
+     *
+     * @param array<string, mixed>|null $server  Defaults to $_SERVER when omitted.
+     */
+    public static function detectHttps(?array $server = null): bool
+    {
+        $server ??= $_SERVER;
+
+        return (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off')
+            || (int) ($server['SERVER_PORT'] ?? 80) === 443
+            || strtolower((string) ($server['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+    }
+
+    /** Returns true when this request was made over HTTPS. */
+    public function isHttps(): bool
+    {
+        return self::detectHttps($this->server);
+    }
+
+    // -----------------------------------------------------------------------
     // Method / path
     // -----------------------------------------------------------------------
 

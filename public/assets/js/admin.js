@@ -4854,7 +4854,11 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   if (!form) return;
 
   var chips       = document.getElementById('es-chip');
-  var emailInputs = document.getElementById('es-email-inputs');
+  // Hidden-recipient-input container: es-email-inputs (KIM: kim_member_ids[];
+  // member: emails[]) or es-id-inputs (adoption: ids[]) — mutually exclusive per page.
+  var idInputsEl    = document.getElementById('es-id-inputs');
+  var emailInputsEl = document.getElementById('es-email-inputs');
+  var emailInputs   = emailInputsEl || idInputsEl;
   var subjectEl   = document.getElementById('es-subject');
   var bodyEl      = document.getElementById('es-body');
   var sendBtn     = document.getElementById('es-send-btn');
@@ -4897,13 +4901,18 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       chip.style.display = 'none';
       if (emailInputs) {
         var id = chip.dataset.id;
-        if (id) {
+        if (idInputsEl) {
+          // ID-based tracking (adoption email-selected)
+          idInputsEl.querySelectorAll('input[name="ids[]"]').forEach(function (inp) {
+            if (inp.value === id) inp.remove();
+          });
+        } else if (id) {
           // ID-based tracking (KIM email-selected)
           emailInputs.querySelectorAll('input[name="kim_member_ids[]"]').forEach(function (inp) {
             if (inp.value === id) inp.remove();
           });
         } else {
-          // Email-based tracking (member/adoption email-selected)
+          // Email-based tracking (member email-selected)
           var email = chip.dataset.email;
           emailInputs.querySelectorAll('input[name="emails[]"]').forEach(function (inp) {
             if (inp.value === email) inp.remove();
@@ -5113,26 +5122,28 @@ document.addEventListener('click', function (e) {
   btn.classList.toggle('is-open', !opening);
 });
 
-// ── 43. Settings -- scoped panel clear buttons ─────────────────────────────────
+// ── 43. Scoped "Clear" buttons ([data-clear-target="containerId"]) ─────────────
+//
+// Blanks text-like inputs and textareas, unchecks checkboxes, and resets
+// selects to their first option, scoped to the container the button names.
+// Used by the Settings panels (General/SMTP/Notifications) and the Adoption
+// edit form's Clear button.
 
-(function () {
-  [['general-clear-btn', 'panel-general'], ['smtp-clear-btn', 'panel-smtp'], ['notifications-clear-btn', 'panel-notifications']].forEach(function (pair) {
-    var btn   = document.getElementById(pair[0]);
-    var panel = document.getElementById(pair[1]);
-    if (!btn || !panel) return;
-    btn.addEventListener('click', function () {
-      panel.querySelectorAll('input[type="text"], input[type="url"], input[type="password"], input[type="number"], textarea').forEach(function (el) {
-        el.value = '';
-      });
-      panel.querySelectorAll('input[type="checkbox"]').forEach(function (el) {
-        el.checked = false;
-      });
-      panel.querySelectorAll('select').forEach(function (el) {
-        el.selectedIndex = 0;
-      });
+document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
+  var target = document.getElementById(btn.dataset.clearTarget);
+  if (!target) return;
+  btn.addEventListener('click', function () {
+    target.querySelectorAll('input[type="text"], input[type="email"], input[type="url"], input[type="password"], input[type="number"], textarea').forEach(function (el) {
+      el.value = '';
+    });
+    target.querySelectorAll('input[type="checkbox"]').forEach(function (el) {
+      el.checked = false;
+    });
+    target.querySelectorAll('select').forEach(function (el) {
+      el.selectedIndex = 0;
     });
   });
-}());
+});
 
 // ── 41. Dashboard: To Do List collapse + per-row Mark Updated ─────────────────
 
@@ -7766,3 +7777,154 @@ document.addEventListener('click', function (e) {
     form.submit();
   });
 }());
+
+// ── 53. Email Templates: template-name sidebar filter ──────────────────────────
+
+(function () {
+  var inp = document.getElementById('et-nav-search');
+  if (!inp) return;
+  inp.addEventListener('input', function () {
+    var q = inp.value.trim().toLowerCase();
+    document.querySelectorAll('[data-et-nav-label]').forEach(function (btn) {
+      var match = !q || btn.dataset.etNavLabel.indexOf(q) !== -1;
+      btn.classList.toggle('is-hidden', !match);
+    });
+  });
+}());
+
+// ── 54. Feedback report: copy composed report body to clipboard ────────────────
+
+(function () {
+  var btn = document.getElementById('lstr-copy-btn');
+  var ta  = document.getElementById('lstr-composed-body');
+  if (!btn || !ta) return;
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(ta.value).then(function () {
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = 'Copy to clipboard'; }, 2500);
+      });
+    } else {
+      ta.select();
+      document.execCommand('copy');
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy to clipboard'; }, 2500);
+    }
+  });
+}());
+
+// ── 55. Fanatically template import: "select all" checkbox ─────────────────────
+
+(function () {
+  var selectAll = document.getElementById('select-all-importable');
+  if (!selectAll) return;
+  selectAll.addEventListener('change', function () {
+    document.querySelectorAll('.importable-cb').forEach(function (cb) { cb.checked = this.checked; }, this);
+  });
+}());
+
+// ── 56. Import wizard connect step: legacy config-file auto-detect ─────────────
+
+(function () {
+  var btn    = document.getElementById('js-autodetect-btn');
+  var result = document.getElementById('js-autodetect-result');
+  if (!btn || !result) return;
+
+  var detectUrl   = btn.dataset.detectUrl;
+  var prefixField = btn.dataset.prefixField || '';
+
+  function setResult(msg, color) {
+    result.textContent = msg;
+    result.style.color = color;
+    result.style.display = '';
+  }
+
+  btn.addEventListener('click', function () {
+    var path = (document.getElementById('js-config-path').value || '').trim();
+    if (!path) {
+      setResult('Enter a file path first.', 'var(--c-error, #c00)');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Detecting…';
+
+    var fd = new FormData();
+    fd.append('_csrf', document.querySelector('[name="_csrf"]').value);
+    fd.append('config_path', path);
+
+    fetch(detectUrl, { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        btn.disabled = false;
+        btn.textContent = 'Detect';
+        if (!data.ok) {
+          setResult(data.message || 'Detection failed.', 'var(--c-error, #c00)');
+          return;
+        }
+        var fieldMap = {host: 'db_host', name: 'db_name', user: 'db_user', pass: 'db_pass'};
+        var filled = 0;
+        for (var key in fieldMap) {
+          if (data[key]) {
+            var el = document.getElementById(fieldMap[key]);
+            if (el) { el.value = data[key]; filled++; }
+          }
+        }
+        if (prefixField && data.prefix) {
+          var pfx = document.getElementById(prefixField);
+          if (pfx) { pfx.value = data.prefix; filled++; }
+        }
+        if (filled > 0) {
+          setResult(
+            filled + ' field' + (filled === 1 ? '' : 's') + ' filled in — review before continuing.',
+            'var(--c-success, green)'
+          );
+        } else {
+          setResult(
+            'No recognised credentials found in that file.',
+            'var(--c-warning, #a60)'
+          );
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = 'Detect';
+        setResult('Request failed — check the path and try again.', 'var(--c-error, #c00)');
+      });
+  });
+}());
+
+// ── 57. Generic inline-handler replacements (CSP: no inline on* attributes) ────
+//
+// Small delegated handlers standing in for what used to be onclick/onchange
+// attributes scattered across admin templates. Kept together here since each
+// one is a one-line behavior, not worth its own numbered section.
+
+// Status/type filter dropdowns reuse the existing .js-nav-select pattern
+// (section 10) — no new handler needed here.
+
+// [data-set-field][data-set-value]: stamp a hidden field's value before a
+// multi-button form submits (e.g. Join Rules settings: Save / Reset / Clear
+// all post to the same form, distinguished by a hidden "action" field).
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest ? e.target.closest('[data-set-field]') : null;
+  if (!btn) return;
+  var field = document.getElementById(btn.dataset.setField);
+  if (field) field.value = btn.dataset.setValue || '';
+});
+
+// [data-jump-tab]: activate a .tabs-btn[data-tab] from elsewhere on the page.
+document.addEventListener('click', function (e) {
+  var link = e.target.closest ? e.target.closest('[data-jump-tab]') : null;
+  if (!link) return;
+  e.preventDefault();
+  var tabBtn = document.querySelector('.tabs-btn[data-tab="' + link.dataset.jumpTab + '"]');
+  if (tabBtn) tabBtn.click();
+});
+
+// [data-submit-form]: submit a form referenced by id from a button outside it.
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest ? e.target.closest('[data-submit-form]') : null;
+  if (!btn) return;
+  var form = document.getElementById(btn.dataset.submitForm);
+  if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
+});

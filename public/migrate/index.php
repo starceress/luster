@@ -21,12 +21,22 @@ if (is_file($_migAutoload)) {
 unset($_migAutoload);
 
 // Session guard — must be logged in as admin
+// cookie_secure is conditional on HTTPS (see Request::detectHttps()) — a Secure
+// cookie is silently rejected by browsers on plain HTTP, which would otherwise
+// break the admin session this file relies on. Falls back to an inline copy of
+// the same check if the autoloader above didn't load (e.g. vendor/ missing).
+$_migHttps = class_exists(\Luster\Core\Request::class)
+    ? \Luster\Core\Request::detectHttps()
+    : ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
+        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
 ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_secure', $_migHttps ? '1' : '0');
 ini_set('session.use_strict_mode', '1');
 ini_set('session.cookie_samesite', 'Strict');
 session_name('luster_session');
 session_start();
+unset($_migHttps);
 
 // --- Shared page shell
 function mig_page(string $pageTitle, string $phTitle, string $phSub, string $content, bool $dimGem = false, string $selectedSkin = ''): string
@@ -40,6 +50,7 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
     $skinAttr    = $selectedSkin !== '' ? ' data-skin="' . $h($selectedSkin) . '"' : '';
     $cssLinks    = lusterAdminCssLinks('../assets/css', __DIR__ . '/../assets/css', $selectedSkin);
     $migCssV     = is_file(__DIR__ . '/migrate.css') ? (string) (filemtime(__DIR__ . '/migrate.css') ?: 0) : '0';
+    $themeInitV  = (string) (filemtime(__DIR__ . '/../assets/js/theme-init.js') ?: 0);
     $innerHtml   = "<div class=\"mig-card\">\n    {$content}\n  </div>";
     $year        = (int) date('Y');
     $copyrightYear = $year === 2026 ? '2026' : '2026&ndash;' . $year;
@@ -56,7 +67,7 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
   <link rel="stylesheet" href="migrate.css?v={$migCssV}">
 
 
-  <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+  <script src="../assets/js/theme-init.js?v={$themeInitV}"></script>
 </head>
 <body>
 

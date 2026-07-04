@@ -55,11 +55,11 @@ $b = rtrim(View::e($base_url), '/');
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary"
-              onclick="document.getElementById('rules-settings-action').value=''">Save Settings</button>
+              data-set-field="rules-settings-action" data-set-value="">Save Settings</button>
       <button type="submit" class="btn btn-quaternary"
-              onclick="document.getElementById('rules-settings-action').value='reset'">Reset to Default</button>
+              data-set-field="rules-settings-action" data-set-value="reset">Reset to Default</button>
       <button type="submit" class="btn btn-ghost"
-              onclick="document.getElementById('rules-settings-action').value='clear'">Clear</button>
+              data-set-field="rules-settings-action" data-set-value="clear">Clear</button>
     </div>
   </div>
 </form>
