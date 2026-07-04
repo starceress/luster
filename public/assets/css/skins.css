@@ -313,9 +313,8 @@
 [data-skin="victory-road"][data-theme="light"] .link { color: #e86000; }
 [data-skin="victory-road"][data-theme="light"] .link:hover { color: #00a8cc; }
 [data-skin="victory-road"][data-theme="light"] .todo-toggle { background: #3a3a3a; color: #ffcb05; border-bottom-color: #505050; }
-[data-skin="victory-road"][data-theme="light"] .todo-toggle--warn,
-[data-skin="victory-road"][data-theme="light"] .todo-toggle--warn .todo-toggle-sigil,
-[data-skin="victory-road"][data-theme="light"] .todo-toggle--warn .todo-toggle-title { color: #ffcb05; }
+[data-skin="victory-road"][data-theme="light"] .todo-toggle-sigil,
+[data-skin="victory-road"][data-theme="light"] .todo-toggle-title { color: #ffcb05; }
 [data-skin="victory-road"][data-theme="light"] .btn-ghost { background: #ffffff; border-color: var(--border); color: var(--text-muted); }
 [data-skin="victory-road"][data-theme="light"] .btn-secondary       { background: #e86000; color: #ffffff; }
 [data-skin="victory-road"][data-theme="light"] .btn-secondary:hover { background: #c05000; }
@@ -496,10 +495,9 @@
   --nav-hover-icon-glow: drop-shadow(0 0 6px rgb(224 168 67 / 0.65));
 }
 [data-skin="the-force"][data-theme="light"] .bulk         { background: #c6bfba; }
-[data-skin="the-force"][data-theme="light"] .todo-toggle  { background: #c6bfba; }
-[data-skin="the-force"][data-theme="light"] .todo-toggle--warn,
-[data-skin="the-force"][data-theme="light"] .todo-toggle--warn .todo-toggle-sigil,
-[data-skin="the-force"][data-theme="light"] .todo-toggle--warn .todo-toggle-title { border-left-color: #7a3208; color: #7a3208; }
+[data-skin="the-force"][data-theme="light"] .todo-toggle  { background: #c6bfba; border-left-color: #7a3208; color: #7a3208; }
+[data-skin="the-force"][data-theme="light"] .todo-toggle-sigil,
+[data-skin="the-force"][data-theme="light"] .todo-toggle-title { color: #7a3208; }
 [data-skin="the-force"][data-theme="light"] .badge-inactive { background: #9a8878; color: #ffffff; border-color: #786050; }
 [data-skin="the-force"][data-theme="light"] .badge-info    { background: #0055cc; color: #ffffff; border-color: #003d99; }
 [data-skin="the-force"][data-theme="light"] .badge-info2   { background: #1a8c3d; color: #ffffff; border-color: #0e6b2b; }

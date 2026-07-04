@@ -1319,19 +1319,15 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .card-head + .todo-section { border-top: none; }
 
-.todo-toggle { width: 100%; background: var(--bg-elevated); border: none; border-left: 4px solid var(--warn); border-bottom: 1px solid var(--border); padding: 0.625rem 1rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer; color: var(--accent); font-family: inherit; font-size: var(--fs-md); }
+.todo-toggle { width: 100%; background: var(--bg-elevated); border: none; border-left: 4px solid var(--pending); border-bottom: 1px solid var(--border); padding: 0.625rem 1rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer; color: var(--pending); font-family: inherit; font-size: var(--fs-md); }
 
 .todo-toggle:first-of-type { border-top: none; }
 
-.todo-toggle--warn,
-.todo-toggle--warn .todo-toggle-sigil,
-.todo-toggle--warn .todo-toggle-title { border-left-color: var(--pending); color: var(--pending); }
-
 .todo-toggle-left { display: flex; align-items: center; gap: 0.5rem; }
 
-.todo-toggle-sigil { font-size: var(--fs-xs); font-weight: 700; flex-shrink: 0; }
+.todo-toggle-sigil { font-size: var(--fs-xs); font-weight: 700; flex-shrink: 0; color: var(--pending); }
 
-.todo-toggle-title { font-weight: 500; font-size: var(--fs-md); }
+.todo-toggle-title { font-weight: 500; font-size: var(--fs-md); color: var(--pending); }
 
 .todo-chev { color: var(--accent); font-size: var(--fs-xs); transition: transform 0.2s; flex-shrink: 0; }
 

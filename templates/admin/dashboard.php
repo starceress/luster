@@ -243,7 +243,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
     <?php if ($total_pending > 0): ?>
     <div class="todo-section">
-      <button class="todo-toggle todo-toggle--warn" data-target="todo-action">
+      <button class="todo-toggle" data-target="todo-action">
         <div class="todo-toggle-left">
           <span class="todo-toggle-sigil"><?= View::icon('pending') ?></span>
           <span class="todo-toggle-title">Pending Members</span>
@@ -262,7 +262,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
     <?php if (!empty($stale_listings)): ?>
     <div class="todo-section">
-      <button class="todo-toggle todo-toggle--warn" data-target="todo-maint">
+      <button class="todo-toggle" data-target="todo-maint">
         <div class="todo-toggle-left">
           <span class="todo-toggle-sigil"><?= View::icon('caution') ?></span>
           <span class="todo-toggle-title">Maintenance Needed</span>
@@ -335,7 +335,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
     <?php if (($pending_affiliates ?? 0) > 0): ?>
     <div class="todo-section">
-      <button class="todo-toggle todo-toggle--warn" data-target="todo-affiliates">
+      <button class="todo-toggle" data-target="todo-affiliates">
         <div class="todo-toggle-left">
           <span class="todo-toggle-sigil"><?= View::icon('link') ?></span>
           <span class="todo-toggle-title">Pending Affiliates</span>
@@ -354,7 +354,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
     <?php if (($pending_codes ?? 0) > 0): ?>
     <div class="todo-section">
-      <button class="todo-toggle todo-toggle--warn" data-target="todo-codes">
+      <button class="todo-toggle" data-target="todo-codes">
         <div class="todo-toggle-left">
           <span class="todo-toggle-sigil"><?= View::icon('image') ?></span>
           <span class="todo-toggle-title">Pending Codes</span>
@@ -373,7 +373,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
     <?php if (($pending_adoptions ?? 0) > 0): ?>
     <div class="todo-section">
-      <button class="todo-toggle todo-toggle--warn" data-target="todo-adoptions">
+      <button class="todo-toggle" data-target="todo-adoptions">
         <div class="todo-toggle-left">
           <span class="todo-toggle-sigil"><?= View::icon('adoptions') ?></span>
           <span class="todo-toggle-title">Pending Adoptions</span>
@@ -392,7 +392,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
     <?php if (($pending_kim ?? 0) > 0): ?>
     <div class="todo-section">
-      <button class="todo-toggle todo-toggle--warn" data-target="todo-kim">
+      <button class="todo-toggle" data-target="todo-kim">
         <div class="todo-toggle-left">
           <span class="todo-toggle-sigil"><?= View::icon('kim') ?></span>
           <span class="todo-toggle-title">Pending KIM Sign-Ups</span>
