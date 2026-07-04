@@ -2364,9 +2364,6 @@ div:has(> .mem-table) { overflow-x: visible !important; }
 #lc-filter-form > .search-field-wrap { order: 3; flex: 1 1 auto; min-width: 0; }
 #lc-filter-form > button,
 #lc-filter-form > a { order: 3; }
-#cat-filter-row > .search-field-wrap { order: 3; }
-#cat-filter-row > button,
-#cat-filter-row > a { order: 3; }
 #wl-filter-row { flex-wrap: wrap; }
 #wl-filter-row > .select-wrap { order: 1; flex: 1 1 auto; }
 #wl-filter-row::after { content: ''; display: block; flex-basis: 100%; order: 2; height: 0; }
