@@ -258,7 +258,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
           <p class="form-hint" style="margin-bottom:.75rem">Controls how collective-wide fan codes (codes with no fanlisting assigned) are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
-            <label class="field-label" for="ct-cs-style">Donation toggle style</label>
+            <label class="field-label" for="ct-cs-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
                 <select id="ct-cs-style" name="collective_codes_submit_style" class="form">
@@ -308,7 +308,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full affiliates section on <code>/affiliates</code> and the collective affiliates embed. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row yourself.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
-            <label class="field-label" for="ct-aff-style">Application toggle style</label>
+            <label class="field-label" for="ct-aff-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
                 <select id="ct-aff-style" name="collective_affiliate_apply_style" class="form">

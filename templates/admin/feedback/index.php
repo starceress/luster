@@ -87,7 +87,7 @@ use Luster\Core\View;
         <div>
           <div class="select-wrap">
             <select id="f-type" name="type" class="form">
-              <option value="">&mdash; Select &mdash;</option>
+              <option value="" disabled<?= ($old['type'] ?? '') === '' ? ' selected' : '' ?>>&mdash; Select &mdash;</option>
               <?php foreach (['bug' => 'Bug Report', 'question' => 'Question/Concern', 'feature' => 'Feature Request', 'other' => 'Other'] as $val => $label): ?>
               <option value="<?= View::e($val) ?>"<?= ($old['type'] ?? '') === $val ? ' selected' : '' ?>><?= View::e($label) ?></option>
               <?php endforeach; ?>

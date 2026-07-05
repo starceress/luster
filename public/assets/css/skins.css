@@ -485,6 +485,7 @@
 [data-skin="the-force"][data-theme="light"] .sidebar {
   --accent: #4d94ff;
   --accent3: #e0a843;
+  --sidebar-label-color: #e0a843;
   --text-dim: #9b8878;
   --danger: #ffb3c1;
   --danger-bg: rgba(255, 179, 193, 0.1);
@@ -494,6 +495,7 @@
   --nav-hover-icon-color: #e0a843;
   --nav-hover-icon-glow: drop-shadow(0 0 6px rgb(224 168 67 / 0.65));
 }
+[data-skin="the-force"][data-theme="light"] .sidebar-label::after { background: linear-gradient(to right, rgb(224 168 67 / 0.3), transparent); }
 [data-skin="the-force"][data-theme="light"] .bulk         { background: #c6bfba; }
 [data-skin="the-force"][data-theme="light"] .todo-toggle  { background: #c6bfba; border-left-color: #7a3208; color: #7a3208; }
 [data-skin="the-force"][data-theme="light"] .todo-toggle-sigil,
@@ -644,6 +646,7 @@
   --link-hover-color: #2e8b3a;
   --text-muted: #9060b8;
   --btn-tertiary-bg: #ffbc7f;
+  --btn-secondary-bg: #c48add;
   --strong-color: #d6478a;
   --scrollbar-thumb: rgb(214 71 138 / .35);
   --scrollbar-thumb-hover: rgb(214 71 138 / .58);
@@ -654,8 +657,10 @@
 [data-skin="floating-lights"][data-theme="light"] .panel-header .panel-header-sub   { color: rgba(255, 255, 255, 0.85); }
 [data-skin="floating-lights"][data-theme="light"] .panel-header .panel-header-icon { background: rgba(255, 255, 255, 0.25); color: #ffffff; }
 
-[data-skin="floating-lights"][data-theme="light"] .btn-tertiary { background: #ffe0ee; color: #a0285a; border-color: #f5a8cc; }
-[data-skin="floating-lights"][data-theme="light"] .btn-tertiary:hover { background: #ffc8e0; border-color: #e07aaa; color: #7a1a42; }
+[data-skin="floating-lights"][data-theme="light"] .btn-tertiary { background: #ffe0d6; color: #b8503f; border-color: #f5b8a8; }
+[data-skin="floating-lights"][data-theme="light"] .btn-tertiary:hover { background: #ffc9ba; border-color: #e89578; color: #7a2e1e; }
+
+[data-skin="floating-lights"][data-theme="light"] .btn-secondary:hover { background: color-mix(in srgb, #c48add 75%, #fff); }
 
 [data-skin="floating-lights"][data-theme="light"] .badge-inactive { background: #f5e8f8; color: #7a3b9e; border-color: #d4b0e8; }
 [data-skin="floating-lights"][data-theme="light"] .badge-info   { background: #fde0ee; color: #a0285a; border-color: #f5a8cc; }
@@ -693,24 +698,25 @@
 [data-skin="floating-lights"][data-theme="dark"] {
   --brand-primary: #ffbc80;
   --ch-brand-primary: 255 188 128;
-  --bg: #0d0a17;
-  --bg-card: #1c1330;
-  --bg-sidebar: #1a1433;
-  --bg-subtle: #291d3e;
-  --bg-elevated: #221a38;
-  --bg-code: #0f0c1f;
-  --border: #3a2a4a;
-  --border-soft: #2a2038;
-  --hairline: rgba(255, 188, 128, 0.06);
-  --text: #f5e8f8;
-  --text-muted: #bda8cc;
-  --text-dim: #a68fb8;
-  --text-sidebar: #e0d0ec;
+  --bg: #0c0b1c;
+  --bg-card: #191535;
+  --bg-sidebar: #151432;
+  --bg-subtle: #242046;
+  --bg-elevated: #1f1c40;
+  --bg-code: #0d0b1d;
+  --border: #353058;
+  --border-soft: #272445;
+  --hairline: rgba(255, 188, 128, 0.07);
+  --text: #f2eef8;
+  --text-muted: #b6bfe8;
+  --text-dim: #8790c4;
+  --text-sidebar: #dce2f5;
   --accent: #ffbc80;
   --ch-accent: 255 188 128;
   --accent-glow: rgb(255 188 128 / 0.22);
-  --accent2: #d884cb;
-  --accent3: #ff77a8;
+  --accent2: #f4a94a;
+  --accent3: #e8799e;
+  --btn-secondary-bg: #d884cb;
   --success: #6dd896;
   --ch-success: 109 216 150;
   --success-bg: rgb(109 216 150 / 0.1);
@@ -719,28 +725,45 @@
   --danger-bg: rgb(248 113 113 / 0.1);
   --warn: #ffbc80;
   --warn-bg: rgb(255 188 128 / 0.12);
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 0 28px rgb(255 188 128 / 0.08);
-  --shadow-lg: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 48px rgb(255 188 128 / 0.1), 0 0 32px rgb(216 132 203 / 0.06);
+  --shadow: 0 4px 24px rgba(3, 5, 18, 0.7), 0 0 28px rgb(255 188 128 / 0.08);
+  --shadow-lg: 0 16px 56px rgba(3, 5, 18, 0.8), 0 0 48px rgb(255 188 128 / 0.1), 0 0 32px rgb(111 143 232 / 0.07);
   --glow: 0 0 0 3px rgb(255 188 128 / 0.25);
   --card-border-1: #ffbc80;
-  --card-border-2: #d884cb;
-  --card-border-3: #ff77a8;
-  --card-border-4: #8a65c9;
-  --blush: radial-gradient(ellipse at 110% -10%, rgb(255 188 128 / 0.12) 0%, transparent 60%);
-  --ch-preview: 216 132 203;
+  --card-border-2: #f4a94a;
+  --card-border-3: #e8799e;
+  --card-border-4: #6f8fe8;
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(255 188 128 / 0.14) 0%, transparent 60%);
+  --ch-preview: 111 143 232;
   /* surface tokens */
-  --topbar-bg: linear-gradient(180deg, #1c1835 0%, #10132e 100%);
-  --topbar-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(255 188 128 / 0.3);
-  --card-head-bg: linear-gradient(100deg, #12183a 0%, #33203f 55%, #4a2818 100%);
-  --welcome-bg: linear-gradient(135deg, #1c1835 0%, #1c1330 100%);
-  --welcome-border: #3a2a4a;
-  --welcome-blush: radial-gradient(circle at top right, rgb(255 188 128 / 0.18) 0%, rgb(216 132 203 / 0.1) 50%, transparent 70%);
-  --brand-gradient: linear-gradient(135deg, #fff3e0 0%, #ffbc80 50%, #d884cb 100%);
+  --topbar-bg: linear-gradient(180deg, #191939 0%, #0e112b 100%);
+  --topbar-shadow: 0 4px 24px rgba(3, 5, 18, 0.7), 0 1px 0 rgb(255 188 128 / 0.3);
+  --card-head-bg: linear-gradient(100deg, #101639 0%, #2e1f43 52%, #502c1b 100%);
+  --welcome-bg: linear-gradient(135deg, #191939 0%, #18132f 100%);
+  --welcome-border: #353058;
+  --welcome-blush: radial-gradient(circle at top right, rgb(255 188 128 / 0.2) 0%, rgb(244 169 74 / 0.12) 45%, rgb(44 58 114 / 0.08) 75%, transparent 90%);
+  --brand-gradient: linear-gradient(135deg, #fff3e0 0%, #ffbc80 50%, #6f8fe8 100%);
   --btn-primary-bg: var(--accent);
   --btn-primary-color: #1a0d00;
   --btn-primary-hover-bg: color-mix(in srgb, #ffbc80 85%, #fff);
-  --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(255 188 128 / 0.2), 0 0 48px rgb(216 132 203 / 0.1);
+  --stat-hover-shadow: 0 16px 56px rgba(3, 5, 18, 0.8), 0 0 32px rgb(255 188 128 / 0.2), 0 0 48px rgb(111 143 232 / 0.1);
 }
+/* btn-secondary keeps its original orchid pink even though --accent2 moved to amber for the lantern-glow accents */
+[data-skin="floating-lights"][data-theme="dark"] .btn-secondary:hover { background: color-mix(in srgb, #d884cb 75%, #fff); }
+
+/* Sidebar gets its own magenta/purple/blush identity — the rest of the UI leans night-sky blue, but the
+   sidebar stays closer to Rapunzel's tower palette (like the light-mode sidebar, tuned down for dark) */
+[data-skin="floating-lights"][data-theme="dark"] .sidebar {
+  --text-sidebar: #f0d9ec;
+  --sidebar-label-color: #eda8cf;
+  --nav-hover-bg: #6e1f52;
+  --nav-hover-color: #ffffff;
+  --nav-hover-icon-color: #ffbc80;
+  --nav-hover-icon-glow: none;
+}
+[data-skin="floating-lights"][data-theme="dark"] .sidebar { background: linear-gradient(175deg, #3d2054 0%, #2b1543 55%, #190d2b 100%); }
+[data-skin="floating-lights"][data-theme="dark"] .mig-topbar { background: linear-gradient(175deg, #3d2054 0%, #2b1543 55%, #190d2b 100%); }
+[data-skin="floating-lights"][data-theme="dark"] .sidebar .user-star::before { background: rgb(232 121 158 / 0.24); }
+[data-skin="floating-lights"][data-theme="dark"] .sidebar .sidebar-label::after { background: linear-gradient(to right, rgb(232 121 158 / 0.4), transparent); }
 
 /* The logo's ambient glow (see .luster-glow::before) gets a slow lantern flicker instead of a static halo */
 [data-skin="floating-lights"][data-theme="dark"] .luster-glow::before {
@@ -757,6 +780,6 @@
 
 /* Stat card top bars bleed their own colour onto the card, like a lantern lit from above */
 [data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(1)::before { box-shadow: 0 2px 14px rgb(255 188 128 / 0.55); }
-[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(2)::before { box-shadow: 0 2px 14px rgb(216 132 203 / 0.55); }
-[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(3)::before { box-shadow: 0 2px 14px rgb(255 119 168 / 0.55); }
-[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(4)::before { box-shadow: 0 2px 14px rgb(138 101 201 / 0.55); }
+[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(2)::before { box-shadow: 0 2px 14px rgb(244 169 74 / 0.55); }
+[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(3)::before { box-shadow: 0 2px 14px rgb(232 121 158 / 0.55); }
+[data-skin="floating-lights"][data-theme="dark"] .stat-card:nth-child(4)::before { box-shadow: 0 2px 14px rgb(111 143 232 / 0.55); }

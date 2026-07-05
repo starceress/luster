@@ -24,11 +24,6 @@ use Luster\Core\View;
 </div>
 <?php return; ?>
 <?php endif; ?>
-<p class="fl-hint">
-  Submit a code image for consideration. All submissions are reviewed before being published.
-  Maximum file size: 200&nbsp;KB. Accepted formats: JPEG, PNG, GIF, WebP.
-</p>
-
 <?php if ($errors !== ''): ?>
   <div class="fl-errors"><?= $errors ?></div>
 <?php endif; ?>

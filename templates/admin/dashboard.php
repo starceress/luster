@@ -253,7 +253,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </button>
       <div class="todo-body todo-action-inner" id="todo-action">
           <span><?= (int) $total_pending ?> member<?= $total_pending !== 1 ? 's are' : ' is' ?> awaiting approval</span>
-          <a href="<?= $b ?>/admin/members" class="btn btn-preview btn-sm">Review Now &rarr;</a>
+          <a href="<?= $b ?>/admin/members" class="btn btn-preview btn-sm">Review &rarr;</a>
         </div>
     </div>
     <?php endif; ?>
@@ -343,7 +343,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </button>
       <div class="todo-body todo-action-inner" id="todo-affiliates">
           <span><?= (int) $pending_affiliates ?> affiliate application<?= (int) $pending_affiliates !== 1 ? 's are' : ' is' ?> awaiting review</span>
-          <a href="<?= $b ?>/admin/affiliates/pending" class="btn btn-preview btn-sm">Review Now &rarr;</a>
+          <a href="<?= $b ?>/admin/affiliates/pending" class="btn btn-preview btn-sm">Review &rarr;</a>
         </div>
     </div>
     <?php endif; ?>
@@ -360,7 +360,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </button>
       <div class="todo-body todo-action-inner" id="todo-codes">
           <span><?= (int) $pending_codes ?> code donation<?= (int) $pending_codes !== 1 ? 's are' : ' is' ?> awaiting approval</span>
-          <a href="<?= $b ?>/admin/codes" class="btn btn-preview btn-sm">Review Now &rarr;</a>
+          <a href="<?= $b ?>/admin/codes" class="btn btn-preview btn-sm">Review &rarr;</a>
         </div>
     </div>
     <?php endif; ?>
@@ -377,7 +377,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </button>
       <div class="todo-body todo-action-inner" id="todo-adoptions">
           <span><?= (int) $pending_adoptions ?> adoption application<?= (int) $pending_adoptions !== 1 ? 's are' : ' is' ?> awaiting review</span>
-          <a href="<?= $b ?>/admin/adoptions" class="btn btn-preview btn-sm">Review Now &rarr;</a>
+          <a href="<?= $b ?>/admin/adoptions" class="btn btn-preview btn-sm">Review &rarr;</a>
         </div>
     </div>
     <?php endif; ?>
@@ -394,7 +394,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </button>
       <div class="todo-body todo-action-inner" id="todo-kim">
           <span><?= (int) $pending_kim ?> Keep In Mind member<?= (int) $pending_kim !== 1 ? 's are' : ' is' ?> awaiting approval</span>
-          <a href="<?= $b ?>/admin/kim" class="btn btn-preview btn-sm">Review Now &rarr;</a>
+          <a href="<?= $b ?>/admin/kim" class="btn btn-preview btn-sm">Review &rarr;</a>
         </div>
     </div>
     <?php endif; ?>
