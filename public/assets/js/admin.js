@@ -6194,7 +6194,6 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
 
   var PANEL =
     '<div class="sp-side">' +
-      '<div class="sp-rail"></div>' +
       '<div class="sp-gem"></div>' +
       '<div class="sp-nav">' +
         '<div class="sp-item"></div>' +
@@ -6222,7 +6221,6 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
   pop.setAttribute('aria-hidden', 'true');
   pop.innerHTML =
     '<div class="sp-panel" data-theme="light">' + PANEL + '</div>' +
-    '<div class="sp-sep"></div>' +
     '<div class="sp-panel" data-theme="dark">'  + PANEL + '</div>';
   document.body.appendChild(pop);
 
