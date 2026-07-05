@@ -62,7 +62,17 @@ class SiteSettingsRepo
             $stmt->execute(['key' => $key]);
             $row = $stmt->fetch();
 
-            return $row !== false ? (string) $row['setting_value'] : $default;
+            // set() upserts, so clearing a previously-set key (set($key, null))
+            // leaves the row in place with setting_value = SQL NULL rather than
+            // deleting it. Casting that straight to (string) would silently turn
+            // "cleared" into "" instead of the caller's $default (usually null) —
+            // e.g. (int) '' is 0, not the built-in default a blank field is meant
+            // to fall back to. Row-absent and value-is-null must both mean "unset".
+            if ($row === false || $row['setting_value'] === null) {
+                return $default;
+            }
+
+            return (string) $row['setting_value'];
         } catch (\PDOException) {
             return $default;
         }
@@ -279,7 +289,9 @@ class SiteSettingsRepo
      */
     public static function defaultKimSignupFormTemplate(): string
     {
-        return '<div class="fl-form-fields">' . "\n"
+        return '<p class="fl-form-intro">Want to be kept in mind if a listing becomes available '
+             . 'for adoption? Sign up below.</p>' . "\n"
+             . '<div class="fl-form-fields">' . "\n"
              . '{field_name}' . "\n"
              . '{field_url}' . "\n"
              . '{field_email}' . "\n"
@@ -425,8 +437,7 @@ HTML;
      */
     public static function defaultCollectiveCodesSubmitFormTemplate(): string
     {
-        return '<p>All submissions are reviewed before being published.</p>' . "\n"
-            . '<div class="fl-form-fields">' . "\n"
+        return '<div class="fl-form-fields">' . "\n"
             . '{field_submitter_name}' . "\n"
             . '{field_submitter_email}' . "\n"
             . '{field_submitter_url}' . "\n"
@@ -508,7 +519,9 @@ HTML;
      */
     public static function defaultKimUpdateFormTemplate(): string
     {
-        return '<div class="fl-form-fields">' . "\n"
+        return '<p class="fl-form-intro">Enter the email and password you signed up with to '
+            . 'update your Keep In Mind info.</p>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
             . '{field_email}' . "\n"
             . '{field_password}' . "\n"
             . '</div>' . "\n"
@@ -527,6 +540,8 @@ HTML;
     public static function defaultKimResetFormTemplate(): string
     {
         return '{if_step_email}' . "\n"
+            . '<p class="fl-form-intro">Enter the email you signed up with and we\'ll send you a '
+            . 'link to reset your Keep In Mind password.</p>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_email}' . "\n"
             . '</div>' . "\n"
@@ -540,6 +555,7 @@ HTML;
             . '{if_token_invalid}<p class="fl-errors">This reset link has expired or is invalid. Please <a href="{reset_request_url}">request a new one</a>.</p>{/if_token_invalid}' . "\n"
             . "\n"
             . '{if_token_valid}' . "\n"
+            . '<p class="fl-form-intro">Choose a new password below.</p>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_password}' . "\n"
             . '{field_password_confirm}' . "\n"
@@ -577,7 +593,10 @@ HTML;
      */
     public static function defaultCollectiveUpdateFormTemplate(): string
     {
-        return '<div class="fl-form-fields">' . "\n"
+        return '<p class="fl-form-intro">Update your info across every {site_name} fanlisting '
+            . "you've joined in one step. Enter your email below and we'll send you a secure "
+            . 'link to make changes.</p>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
             . '{field_email}' . "\n"
             . '</div>' . "\n"
             . "\n"
@@ -621,7 +640,12 @@ HTML;
             $stmt->execute(array_values($keys));
 
             foreach ($stmt->fetchAll() as $row) {
-                $result[(string) $row['setting_key']] = (string) $row['setting_value'];
+                // Same distinction as get(): a row with setting_value = NULL
+                // (a cleared key, still present from the set()-upsert) must stay
+                // null here, not become "" — the pre-filled default above.
+                if ($row['setting_value'] !== null) {
+                    $result[(string) $row['setting_key']] = (string) $row['setting_value'];
+                }
             }
         } catch (\PDOException) {
         }

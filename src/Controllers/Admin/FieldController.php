@@ -30,6 +30,11 @@ use Luster\Repositories\FieldRepo;
  */
 final class FieldController extends AdminController
 {
+    /**
+     * Field names that would collide with MembersTemplateRenderer's aggregate
+     * tokens (`{fan_additional_fields}`, `{fan_additional_field_cells}`).
+     */
+    private const RESERVED_FIELD_NAMES = ['additional_fields', 'additional_field_cells'];
 
     // -----------------------------------------------------------------------
     // GET /admin/listings/{fid}/fields
@@ -104,6 +109,13 @@ final class FieldController extends AdminController
         // Pattern validated separately — Validator has no alphanumeric_underscore rule
         if ($name !== '' && !preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
             $v->addFieldError('name', 'The name field may only contain letters, numbers, and underscores.');
+        }
+
+        // These exact names would collide with MembersTemplateRenderer's aggregate
+        // {fan_additional_fields} / {fan_additional_field_cells} tokens, silently
+        // shadowing the field's own {fan_<name>} value in member templates.
+        if (self::isReservedFieldName($name)) {
+            $v->addFieldError('name', "'{$name}' is a reserved name and can't be used for a field.");
         }
 
         $v->field('label')->required()->maxLength(100);
@@ -318,6 +330,16 @@ final class FieldController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
+     * True when $name would collide with one of MembersTemplateRenderer's
+     * aggregate additional-field tokens (case-sensitive exact match, matching
+     * how field names are compared/stored elsewhere in this controller).
+     */
+    private static function isReservedFieldName(string $name): bool
+    {
+        return in_array($name, self::RESERVED_FIELD_NAMES, true);
+    }
+
+    /**
      * Loads the listing and a FieldRepo instance together.
      *
      * @return array{0: \Luster\Models\Listing|null, 1: FieldRepo}
@@ -363,7 +385,7 @@ final class FieldController extends AdminController
                 $session->set('lstr_flash_error', $message);
             }
             return Response::redirect(
-                $this->app->getBaseUrl() . '/admin/listings/' . $listingId . '/edit'
+                $this->app->getBaseUrl() . '/admin/listings/' . $listingId . '/edit?tab=fields'
             );
         }
 

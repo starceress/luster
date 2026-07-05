@@ -261,8 +261,21 @@ final class ResetController
             return Response::redirect($confirmReturnUrl);
         }
 
+        // Confirm the member the token was issued to still exists under that
+        // email before touching anything — PDO's execute() returns true even
+        // when an UPDATE matches zero rows, so without this check a token
+        // pointing at a since-renamed or deleted member would silently do
+        // nothing yet still report success and consume the token.
+        $memberRepo   = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
+        $targetMember = $memberRepo->getByEmail($listing->dbprefix, (string) $tokenRow['email']);
+
+        if ($targetMember === null) {
+            $resetRepo->deleteByToken(hash('sha256', $rawToken));
+            $session->set('lstr_flash_error', 'This reset link has expired or is invalid. Please request a new one.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $resetPageUrl);
+        }
+
         // Update the member's password
-        $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $memberRepo->update(
             $listing->dbprefix,
             (string) $tokenRow['email'],

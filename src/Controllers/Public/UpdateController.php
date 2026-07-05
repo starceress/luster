@@ -44,7 +44,6 @@ use Luster\Support\SuccessRenderer;
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware
  *  - Honeypot field silently rejects bot submissions
- *  - Arithmetic CAPTCHA on the update step (step 2)
  *  - Rate-limited per IP via lstr_rate_limits
  *  - Password verified via MemberRepo::verifyAndUpgrade()
  *  - MD5 and non-Argon2id hashes (bcrypt, legacy) silently upgraded to Argon2id on success
