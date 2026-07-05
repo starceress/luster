@@ -50,8 +50,6 @@ final class ImportOptions
      * @param string   $imageMode                '' | 'auto' | 'zip'  ('auto' = try path first, fall back to URL)
      * @param string   $imagePath                Absolute server path to old script root (tried first in auto mode)
      * @param string   $imageUrl                 Base URL of old script (fallback in auto mode)
-     * @param int|null $enthCategoryParentId     Enthusiast only: lstr_categories id to use as parent for
-     *                                           all imported top-level categories (null = leave as top-level)
      * @param string   $fnTablePrefix            Fanatically: table prefix (default 'fanatic_')
      * @param bool     $fnKimActive              Fanatically: import KIM entries as active (true) or pending (false)
      * @param bool     $fnImportAdoption         Fanatically: import adoption applications → lstr_adoption_applications (requires Adoption add-on)
@@ -81,7 +79,6 @@ final class ImportOptions
         public readonly string $imageMode,
         public readonly string $imagePath,
         public readonly string $imageUrl,
-        public readonly ?int   $enthCategoryParentId = null,
         public readonly string $tablePrefix          = '',
         public readonly string $schemaVariant        = '',
         public readonly string $laTablePrefix        = '',
@@ -246,7 +243,6 @@ final class ImportOptions
             imageMode:            $imageMode,
             imagePath:            rtrim(trim((string) ($post['image_path'] ?? '')), '/\\'),
             imageUrl:             rtrim(trim((string) ($post['image_url'] ?? '')), '/'),
-            enthCategoryParentId: null,
             tablePrefix:          (string) ($post['_dump_table_prefix']   ?? ''),
             schemaVariant:        (string) ($post['_dump_schema_variant'] ?? ''),
             laTablePrefix:        trim((string) ($post['la_table_prefix'] ?? '')),

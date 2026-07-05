@@ -1416,7 +1416,6 @@ final class TemplatePackController
             $incoming['affiliates_section_template']   ?? null,
             $incoming['newsfeed_template']              ?? null,
             $incoming['codes_submit_form_template']    ?? null,
-            null, // rules_intro_template — managed separately
             $incoming['join_form_template']            ?? null,
             $incoming['affiliate_apply_form_template'] ?? null,
             $current['adopt_form_template']            ?? null, // never modified here

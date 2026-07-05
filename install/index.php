@@ -772,7 +772,6 @@ function installTables(PDO $pdo): void
             `codes_template`               TEXT                  NULL DEFAULT NULL,
             `newsfeed_template`            TEXT                  NULL DEFAULT NULL,
             `adoption_intro_template`      TEXT                  NULL DEFAULT NULL,
-            `rules_intro_template`         TEXT                  NULL DEFAULT NULL,
             `join_form_template`           TEXT                  NULL DEFAULT NULL,
             `codes_submit_form_template`   TEXT                  NULL DEFAULT NULL,
             `affiliate_apply_form_template` TEXT                 NULL DEFAULT NULL,
@@ -1138,7 +1137,7 @@ function installTables(PDO $pdo): void
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
          (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93),
-         (94),(95),(96),(97),(98),(99),(100)'
+         (94),(95),(96),(97),(98),(99),(100),(101)'
     );
 }
 

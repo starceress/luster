@@ -27,7 +27,6 @@ $labelFor = static function(string $key): string {
         'affiliates_section_template'   => 'Affiliates Section',
         'newsfeed_template'             => 'News Feed',
         'codes_submit_form_template'    => 'Codes Submit Form',
-        'rules_intro_template'          => 'Rules Intro',
         'join_form_template'            => 'Join Form',
         'affiliate_apply_form_template' => 'Affiliate Apply Form',
         'adopt_form_template'           => 'Adopt Form',

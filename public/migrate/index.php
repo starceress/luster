@@ -3272,6 +3272,21 @@ try {
     $errors[] = 'Migration 100 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// Migration 101: drop unused rules_intro_template column from lstr_fanlisting_settings
+// (the Join Rules add-on never surfaced an admin UI for this field; dead weight since Migration 68).
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 101')->fetchColumn()) {
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'rules_intro_template'")->fetchAll();
+        if (!empty($colCheck)) {
+            $pdo->exec('ALTER TABLE `lstr_fanlisting_settings` DROP COLUMN `rules_intro_template`');
+        }
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (101)');
+        $done[] = 'Dropped unused <code>rules_intro_template</code> column from <code>lstr_fanlisting_settings</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 101 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

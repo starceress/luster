@@ -328,9 +328,6 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $found      = 0;
             $warnings[] = "Table `{$table}` not found — you may be connected to the wrong database, or the schema variant was mis-detected.";
         }
-        if ($options->enthCategoryParentId !== null) {
-            $warnings[] = "Top-level categories will be imported as children of network id {$options->enthCategoryParentId}.";
-        }
         return ['type' => 'Categories', 'found' => $found, 'import' => $found, 'skip' => 0, 'warnings' => $warnings];
     }
 
