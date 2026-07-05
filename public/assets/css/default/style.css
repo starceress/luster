@@ -222,6 +222,10 @@
   margin: 0.2em 0 0;
 }
 
+.fl-form-intro {
+  margin: 0 0 1em;
+}
+
 .fl-checkbox,
 .fl-radio {
   margin-right: 0.25em;
@@ -419,13 +423,9 @@
 }
 
 .fl-member-list {
+  list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.fl-member-list ul {
-  margin: 0;
-  padding: 0 0 0 1.2em;
 }
 
 .fl-member-item {
@@ -438,6 +438,10 @@
 }
 
 .fl-member-country {
+  font-size: 0.9em;
+}
+
+.fl-member-added {
   font-size: 0.9em;
 }
 
@@ -1233,4 +1237,24 @@
   font-size: 0.875em;
   color: #888;
   margin-left: 0.25em;
+}
+
+/* ------------------------------------------------------------------------
+   NARROW CONTAINERS
+   At narrow widths (a phone screen, or a narrow admin preview), a
+   full-size listing photo next to a text column leaves too little room
+   for the text and causes ugly wrapping/clipping. Cap the thumbnail so
+   the text always keeps enough space. Left uncapped above this width so
+   images show at their full intended size everywhere else.
+------------------------------------------------------------------------ */
+
+@media (max-width: 480px) {
+  .fl-listing-image-wrap,
+  .fl-random-listing-image-wrap,
+  .fl-latest-listing-image-wrap,
+  .fl-joined-image-wrap,
+  .fl-random-joined-listing-image-wrap,
+  .fl-latest-joined-listing-image-wrap {
+    max-width: 100px;
+  }
 }
