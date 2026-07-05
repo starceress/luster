@@ -1347,8 +1347,6 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .todo-mrow-check { display: flex; align-items: center; cursor: pointer; }
 
-.todo-head-badge { margin-left: auto; }
-
 .reminder-banner { background: var(--bg-card); border: 1px solid var(--border); border-left: 5px solid var(--warn); border-radius: var(--radius-md); margin-bottom: 1rem; overflow: hidden; }
 
 .reminder-banner--update { border-left: none; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; background-color: transparent; background-image: linear-gradient(var(--bg-card), var(--bg-card)), linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-tertiary)); background-clip: padding-box, border-box; background-origin: padding-box, border-box; position: relative; }

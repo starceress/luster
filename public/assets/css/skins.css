@@ -418,7 +418,7 @@
   --gradient-bar: linear-gradient(90deg, #c42020, #7a0000, #444444);
 }
 
-[data-skin="the-force"] .todo-head-badge {
+[data-skin="the-force"] #todo-total-badge {
   background:   var(--danger);
   color:        #ffffff;
   border-color: var(--danger);

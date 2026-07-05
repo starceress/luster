@@ -238,7 +238,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       + ($pending_kim ?? 0); ?>
   <div class="card" style="margin-bottom:0">
     <div class="card-head"><?= View::icon('bell') ?> To Do List
-      <span class="badge badge-error todo-head-badge" id="todo-total-badge"><?= $todoTotal ?></span>
+      <span class="badge badge-error panel-header-badge" id="todo-total-badge"><?= $todoTotal ?></span>
     </div>
 
     <?php if ($total_pending > 0): ?>
