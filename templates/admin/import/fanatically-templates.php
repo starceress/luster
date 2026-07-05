@@ -19,8 +19,7 @@ $csrf = View::e($csrf_token);
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="gradient-card">
-  <div class="listing-field-section">
+<div class="gradient-card listing-field-section">
     <div class="listing-field-row listing-field-row--top">
       <label class="listing-field-label">About this tool</label>
       <div>
@@ -39,7 +38,6 @@ $csrf = View::e($csrf_token);
       </div>
     </div>
   </div>
-</div>
 
 <form method="POST" action="<?= $b ?>/admin/import/fanatically/templates" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= $csrf ?>">

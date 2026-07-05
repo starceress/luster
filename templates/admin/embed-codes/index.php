@@ -477,8 +477,7 @@ $epSafe = View::e($ep);
           </div>
           <details class="ec-ref-card ec-ref-advanced">
             <summary>Advanced settings</summary>
-            <div class="ec-ref-advanced-body">
-              <div class="table-wrap">
+            <div class="ec-ref-advanced-body table-wrap">
               <table class="data-table">
                 <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
                 <tbody>
@@ -489,7 +488,6 @@ $epSafe = View::e($ep);
                 </tbody>
               </table>
               </div>
-            </div>
           </details>
         </div>
 
@@ -497,7 +495,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Members and passwords</h3>
           <p class="text-muted">Settings for the members list.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -507,10 +505,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Settings for password reset pages.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -518,10 +516,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Settings for the update form.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -529,10 +527,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Settings for listing stats.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -549,10 +547,10 @@ $epSafe = View::e($ep);
             </table>
             </div>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Settings for affiliate lists.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -560,11 +558,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <details class="ec-ref-card ec-ref-advanced">
             <summary>Advanced affiliate setting</summary>
-            <div class="ec-ref-advanced-body">
-              <div class="table-wrap">
+            <div class="ec-ref-advanced-body table-wrap">
               <table class="data-table">
                 <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
                 <tbody>
@@ -572,11 +569,10 @@ $epSafe = View::e($ep);
                 </tbody>
               </table>
               </div>
-            </div>
           </details>
           <p class="text-muted" style="margin-top:.875rem">Settings for news feeds.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -585,11 +581,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <details class="ec-ref-card ec-ref-advanced">
             <summary>Advanced contact form setting</summary>
-            <div class="ec-ref-advanced-body">
-              <div class="table-wrap">
+            <div class="ec-ref-advanced-body table-wrap">
               <table class="data-table">
                 <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
                 <tbody>
@@ -597,7 +592,6 @@ $epSafe = View::e($ep);
                 </tbody>
               </table>
               </div>
-            </div>
           </details>
         </div>
 
@@ -605,7 +599,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Listing pages</h3>
           <p class="text-muted">Settings for owned listings pages.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -617,10 +611,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Settings for joined listings pages.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -630,10 +624,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Setting for random listing.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -641,10 +635,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Setting for wishlist pages.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -652,10 +646,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Settings for KIM List pages.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -669,10 +663,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Setting for collective stats.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
@@ -680,11 +674,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <details class="ec-ref-card ec-ref-advanced">
             <summary>Advanced stats setting</summary>
-            <div class="ec-ref-advanced-body">
-              <div class="table-wrap">
+            <div class="ec-ref-advanced-body table-wrap">
               <table class="data-table">
                 <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
                 <tbody>
@@ -692,7 +685,6 @@ $epSafe = View::e($ep);
                 </tbody>
               </table>
               </div>
-            </div>
           </details>
         </div>
 
@@ -701,7 +693,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Listing stats</h3>
           <p class="text-muted">Put these words in your stats template. Luster replaces each one with real listing information.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -727,7 +719,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- MEMBER ROW TOKENS -->
@@ -735,7 +727,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Member list</h3>
           <p class="text-muted">Put these words in your member list template. Use <code>{each_member}</code> for one member row, then add your own wrapper, empty state, sort links, or summary text around it.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -753,7 +745,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- OWNED LISTINGS TOKENS -->
@@ -761,7 +753,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Owned listings</h3>
           <p class="text-muted">Put these words in your owned listings template. Think of a loop as a repeat box: you design one row, and Luster repeats that row for every owned listing it finds. Add your own <code>&lt;ul&gt;</code>, <code>&lt;li&gt;</code>, cards, or headings in the template if you want them.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -801,10 +793,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Section words for sectioned owned templates. Put these near your section headings, outside the repeated row itself. Example: <code>Current ({current_owned_count})</code>. These count listings, not members.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -822,7 +814,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- JOINED LISTINGS TOKENS -->
@@ -830,7 +822,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Joined listings</h3>
           <p class="text-muted">Put these words in your joined listings template. Use a repeat box for the row, then add your own list, card, or paragraph markup around it.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -847,10 +839,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Section words for joined templates. Put these near headings or summary text, outside the repeated row itself.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -860,7 +852,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- AFFILIATES TOKENS -->
@@ -868,7 +860,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Affiliates</h3>
           <p class="text-muted">Put these words in your affiliates template. Use <code>{each_affiliate}</code> to design each affiliate row yourself.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -881,10 +873,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Section words for affiliate section layouts.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -896,7 +888,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- COLLECTIVE STATS TEMPLATE TOKENS -->
@@ -904,7 +896,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Collective stats template</h3>
           <p class="text-muted">Put these words in your collective stats template. Luster replaces them with your site-wide numbers.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -943,7 +935,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- PAGINATION TOKENS -->
@@ -951,7 +943,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Pagination</h3>
           <p class="text-muted">Pagination is the little page picker under long lists. Put the page-row words inside <code>{each_page}</code>, and Luster repeats them for every page number it needs to show.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -970,7 +962,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- FORM FIELD WRAPPER TOKENS -->
@@ -978,7 +970,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Form fields</h3>
           <p class="text-muted">These control the wrapper around one form field: label, input, hint, and error. Luster repeats this wrapper for every field in a public form.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -995,10 +987,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">These go in whole form layout templates, such as join, code donation, affiliate application, adoption, and KIM sign-up templates. The normal <code>{field_*}</code> tokens include the saved field wrapper. Add <code>_input</code> before the closing brace, such as <code>{field_name_input}</code>, when you want the raw form control only.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -1015,7 +1007,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- SUCCESS TEMPLATE TOKENS -->
@@ -1023,7 +1015,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Success messages</h3>
           <p class="text-muted">These words are for the message shown after someone submits a public form. The action words let one saved message behave differently for join, update, reset, contact, affiliate, KIM, code, and adoption forms.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -1043,7 +1035,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- CODES TEMPLATE TOKENS -->
@@ -1051,7 +1043,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Codes</h3>
           <p class="text-muted">These words are for code gallery templates. Use <code>{each_code}</code> for one flat list, or <code>{each_size_group}</code> when you want Luster to make a section for each button size.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -1072,7 +1064,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- UPDATES TEMPLATE TOKENS -->
@@ -1080,7 +1072,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Updates</h3>
           <p class="text-muted">These words are for news feed row templates. Design one update inside <code>{each_update}</code>, and Luster repeats it for each update post.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -1095,7 +1087,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- WISHLIST TEMPLATE TOKENS -->
@@ -1103,7 +1095,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">Wishlist</h3>
           <p class="text-muted">These words are for wishlist row templates. Luster repeats the row once for each active wishlist item being shown.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -1121,10 +1113,10 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
           <p class="text-muted" style="margin-top:.875rem">Section words for grouping your wishlist by type. Use these to add a heading like "Top Wanted" that only shows up when there's something to put under it.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -1137,7 +1129,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- KIM MEMBER TEMPLATE TOKENS -->
@@ -1145,7 +1137,7 @@ $epSafe = View::e($ep);
           <h3 class="panel-header-title">KIM members</h3>
           <p class="text-muted">These words are for the KIM member row template. Luster repeats the row once for each approved KIM member being shown.</p>
           <div class="ec-ref-card">
-            <div class="table-wrap">
+  <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -1158,7 +1150,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
             </div>
-          </div>
+</div>
         </div>
 
         <!-- COLLECTIVE STATS OUTPUT VARIABLES -->
@@ -1167,8 +1159,7 @@ $epSafe = View::e($ep);
           <p class="text-muted">Advanced. These are plain PHP variables created after you require <code>collective-stats.php</code>. Number and text variables can be echoed directly; object or array variables need PHP code that picks a key or property first.</p>
           <details class="ec-ref-card ec-ref-advanced">
             <summary>Show advanced PHP stats</summary>
-            <div class="ec-ref-advanced-body">
-              <div class="table-wrap">
+            <div class="ec-ref-advanced-body table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">PHP variable</th><th>What it shows</th></tr></thead>
               <tbody>
@@ -1207,7 +1198,6 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
               </div>
-            </div>
           </details>
         </div>
 

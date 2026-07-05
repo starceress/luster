@@ -63,8 +63,7 @@ $labelFor = static function(string $key): string {
     $hasListingKeys    = !empty(array_filter($importable, fn($t) => ($t['key_scope'] ?? 'listing') === 'listing'));
     $hasCollectiveKeys = !empty(array_filter($importable, fn($t) => ($t['key_scope'] ?? 'listing') === 'collective'));
   ?>
-  <div class="gradient-card">
-    <div class="listing-field-section">
+  <div class="gradient-card listing-field-section">
       <?php if ($hasListingKeys): ?>
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="listing_id">Target listing</label>
@@ -90,7 +89,6 @@ $labelFor = static function(string $key): string {
       </div>
       <?php endif; ?>
     </div>
-  </div>
   <?php endif; ?>
 
   <?php if ($hasImportable): ?>
