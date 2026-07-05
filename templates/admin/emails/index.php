@@ -366,7 +366,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                          name="email_enabled_<?= View::e($type) ?>"
                          value="1"
                          <?= $card['isEnabled'] ? 'checked' : '' ?>>
-                  <span class="et-toggle-track"></span><span class="et-toggle-label"><?= $card['isEnabled'] ? 'Enabled' : 'Disabled' ?></span>
+                  <span class="et-toggle-track"></span><span class="toggle-label"><?= $card['isEnabled'] ? 'Enabled' : 'Disabled' ?></span>
                 </label>
               </div>
             </div>

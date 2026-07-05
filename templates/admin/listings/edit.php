@@ -403,7 +403,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               </div>
             </div>
             <div class="img-replace-col">
-              <div class="img-replace-label">Replace with a new image</div>
+              <div class="panel-label">Replace with a new image</div>
               <label class="file-drop-zone file-drop-zone--sm">
                 <input type="file" id="thumbnail" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
                 <span class="file-drop-icon"><?= View::icon('image') ?></span>

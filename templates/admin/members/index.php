@@ -179,7 +179,7 @@ $pendingNewCnt = count($pendingNew);
 
   <div class="card">
     <div class="pending-section-head">
-      <span class="pending-section-label"><?= View::icon('pending') ?> New Join Requests</span>
+      <span class="composer-label"><?= View::icon('pending') ?> New Join Requests</span>
       <?php
         $_plFrom = (int) $total > 0 ? ($page - 1) * $per_page + 1 : 0;
         $_plTo   = min((int) $total, $page * $per_page);
@@ -282,7 +282,7 @@ $pendingNewCnt = count($pendingNew);
   <input type="hidden" name="_listing_id" value="<?= $lid ?>">
   <div class="card">
     <div class="pending-section-head">
-      <span class="pending-section-label"><?= View::icon('pendinginfo') ?> Pending Updates</span>
+      <span class="composer-label"><?= View::icon('pendinginfo') ?> Pending Updates</span>
       <?php
         $_puFrom = $pendingPUTotal > 0 ? ($puPage - 1) * $per_page + 1 : 0;
         $_puTo   = min($pendingPUTotal, $puPage * $per_page);

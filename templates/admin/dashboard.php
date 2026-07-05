@@ -417,7 +417,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
   <div class="card<?= $hasTodo ? '' : ' dash-glance-full' ?>">
     <div class="card-head"><?= View::icon('sparkles') ?> At a Glance</div>
     <div class="row-section">
-      <div class="row-section-label">Listings</div>
+      <div class="composer-label">Listings</div>
       <div class="row">
         <span class="row-label">Newest Joined</span>
         <?php if ($newest_joined_name !== null): ?>
@@ -450,7 +450,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     </div>
 
     <div class="row-section">
-      <div class="row-section-label">Collective</div>
+      <div class="composer-label">Collective</div>
       <div class="row">
         <span class="row-label">Total Active Listings</span>
         <span class="row-val"><?= (int) $fan_current ?></span>
@@ -486,7 +486,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     </div>
 
     <div class="row-section">
-      <div class="row-section-label">Members</div>
+      <div class="composer-label">Members</div>
       <div class="row">
         <span class="row-label">Total Members</span>
         <span class="row-val"><?= number_format((int) $total_members) ?></span>
@@ -520,7 +520,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
     <?php if (!empty($top_countries)): ?>
     <div class="row-section">
-      <div class="row-section-label">Top <?= count($top_countries) ?> Countries</div>
+      <div class="composer-label">Top <?= count($top_countries) ?> Countries</div>
       <?php $rank = 1; foreach ($top_countries as $country => $count): ?>
       <div class="row-country">
         <?= $rank++ ?>.

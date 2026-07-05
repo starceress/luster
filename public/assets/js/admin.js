@@ -1409,7 +1409,7 @@ document.addEventListener('drop', function (e) {
   document.querySelectorAll('.et-enabled-cb').forEach(function (cb) {
     var card   = cb.closest('.card--gradient');
     var banner = card ? card.querySelector('.modal-warning') : null;
-    var label  = cb.parentElement ? cb.parentElement.querySelector('.et-toggle-label') : null;
+    var label  = cb.parentElement ? cb.parentElement.querySelector('.toggle-label') : null;
     function sync() {
       var on = cb.checked;
       if (banner) banner.style.display = on ? 'none' : '';

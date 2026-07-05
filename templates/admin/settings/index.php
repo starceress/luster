@@ -370,7 +370,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input type="hidden" name="skin" value="<?= View::e($slug) ?>">
                 <button type="submit" class="skin-card<?= $activeSkin === $slug ? ' skin-card--active' : '' ?>">
                   <span class="skin-swatch skin-swatch--community">
-                    <span class="skin-swatch-label"><?= View::e(strtoupper(substr($slug, 0, 2))) ?></span>
+                    <span class="composer-label"><?= View::e(strtoupper(substr($slug, 0, 2))) ?></span>
                   </span>
                   <span class="skin-card-name"><?= View::e(ucwords(str_replace('-', ' ', $slug))) ?></span>
                   <span class="skin-card-desc">Community skin</span>
