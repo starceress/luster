@@ -287,4 +287,18 @@ final class PendingUpdateRepo
         );
         $stmt->execute(['fid' => $listingId, 'email' => $email]);
     }
+
+    /**
+     * Re-keys any outstanding pending updates to a member's new email address.
+     * Called when an admin changes a member's email from the Edit Member page,
+     * so queued changes stay attached to the right person instead of becoming
+     * orphaned under the old address.
+     */
+    public function renameMemberEmail(int $listingId, string $oldEmail, string $newEmail): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_pending_updates SET member_email = :new WHERE fanlisting_id = :fid AND member_email = :old'
+        );
+        $stmt->execute(['new' => $newEmail, 'fid' => $listingId, 'old' => $oldEmail]);
+    }
 }

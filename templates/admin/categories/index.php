@@ -206,13 +206,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
           <td class="actions-col" data-label="">
             <a href="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/edit"
                class="btn btn-tertiary btn-xs">Edit</a>
-            <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"
-                  class="action-form-inline"
-                  data-del-modal data-del-entity="category"
-                  data-del-name="<?= View::e($cat->name ?? '') ?>">
-              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-              <button type="submit" class="btn btn-danger btn-xs">Delete</button>
-            </form>
+            <button type="submit" form="del-category-<?= (int) $cat->id ?>" class="btn btn-danger btn-xs">Delete</button>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -221,6 +215,13 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
     </div>
   </div>
 </form>
+
+<?php foreach ($items ?? [] as $cat): ?>
+  <form id="del-category-<?= (int) $cat->id ?>" method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"
+        data-del-modal data-del-entity="category" data-del-name="<?= View::e($cat->name ?? '') ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  </form>
+<?php endforeach; ?>
 <?php endif; ?>
 
 <?php $pg_current = $page; $pg_total = $total_pages; $pg_url = $catPageUrl;

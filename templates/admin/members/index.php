@@ -239,11 +239,11 @@ $pendingNewCnt = count($pendingNew);
             <?php endforeach; ?>
             <td class="actions-col" data-label="">
               <div class="actions-row">
-                <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-sm">Approve</button>
-                <button type="submit" form="reject-member-<?= md5($m->email) ?>" class="btn btn-warning btn-sm">Reject</button>
-                <a href="<?= $b ?>/admin/members/<?= $lid ?>/edit?email=<?= urlencode($m->email) ?>" class="btn btn-tertiary btn-sm">Edit</a>
-                <a href="<?= $b ?>/admin/members/<?= $lid ?>/emailmember?email=<?= urlencode($m->email) ?>" class="btn btn-secondary btn-sm">Email</a>
-                <button type="submit" form="del-member-<?= md5($m->email) ?>" class="btn btn-danger btn-sm">Delete</button>
+                <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-xs">Approve</button>
+                <button type="submit" form="reject-member-<?= md5($m->email) ?>" class="btn btn-warning btn-xs">Reject</button>
+                <a href="<?= $b ?>/admin/members/<?= $lid ?>/edit?email=<?= urlencode($m->email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
+                <a href="<?= $b ?>/admin/members/<?= $lid ?>/emailmember?email=<?= urlencode($m->email) ?>" class="btn btn-secondary btn-xs">Email</a>
+                <button type="submit" form="del-member-<?= md5($m->email) ?>" class="btn btn-danger btn-xs">Delete</button>
               </div>
             </td>
           </tr>
@@ -371,14 +371,14 @@ $pendingNewCnt = count($pendingNew);
                 <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="_listing_id" value="<?= $lid ?>">
-                  <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                  <button type="submit" class="btn btn-success btn-xs">Approve</button>
                 </form>
-                <a href="<?= $b ?>/admin/members/<?= $lid ?>/edit?email=<?= urlencode($pu->member_email) ?>" class="btn btn-tertiary btn-sm">Edit</a>
+                <a href="<?= $b ?>/admin/members/<?= $lid ?>/edit?email=<?= urlencode($pu->member_email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
                 <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
                       data-del-modal data-del-entity="pending_update_reject" data-del-name="<?= View::e($pu->member_email) ?>">
                   <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="_listing_id" value="<?= $lid ?>">
-                  <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                  <button type="submit" class="btn btn-danger btn-xs">Reject</button>
                 </form>
               </div>
             </td>
@@ -430,7 +430,7 @@ endif;
 
   <div class="card">
     <div class="card-head">
-      <?= $status === 'approved' ? 'Approved Members' : 'All Members' ?>
+      <?= $status === 'approved' ? 'Approved Members' : ($status === 'rejected' ? 'Rejected Members' : 'All Members') ?>
       <span class="card-head-sub">
         Showing <?= $from ?>&#8211;<?= $to ?> of <?= number_format((int) $total) ?> member<?= (int) $total !== 1 ? 's' : '' ?><?php if (($pages ?? 1) > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $pages ?><?php endif; ?>
       </span>
@@ -471,7 +471,7 @@ endif;
         </thead>
         <tbody>
           <?php foreach ($members as $m): ?>
-          <tr>
+          <tr class="<?= $m->rejected ? 'row-inactive' : '' ?>">
             <td class="checkbox-col" data-label=""><input type="checkbox" name="emails[]" value="<?= View::e($m->email) ?>" data-name="<?= View::e($m->name) ?>"></td>
             <td data-label="Name">
               <div class="subject-title-stack">
@@ -499,15 +499,15 @@ endif;
             <?php endif; ?>
             <td class="actions-col" data-label="">
               <div class="actions-row">
-                <?php if (!$m->approved): ?>
-                  <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-sm">Approve</button>
+                <?php if (!$m->approved && !$m->rejected): ?>
+                  <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-xs">Approve</button>
+                  <button type="submit" form="reject-member-<?= md5($m->email) ?>" class="btn btn-warning btn-xs">Reject</button>
+                <?php elseif ($m->rejected): ?>
+                  <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-xs">Re-approve</button>
                 <?php endif; ?>
-                <?php if (!$m->rejected): ?>
-                  <button type="submit" form="reject-member-<?= md5($m->email) ?>" class="btn btn-warning btn-sm">Reject</button>
-                <?php endif; ?>
-                <a href="<?= $b ?>/admin/members/<?= $lid ?>/edit?email=<?= urlencode($m->email) ?>" class="btn btn-tertiary btn-sm">Edit</a>
-                <a href="<?= $b ?>/admin/members/<?= $lid ?>/emailmember?email=<?= urlencode($m->email) ?>" class="btn btn-quaternary btn-sm">Email</a>
-                <button type="submit" form="del-member-<?= md5($m->email) ?>" class="btn btn-danger btn-sm">Delete</button>
+                <a href="<?= $b ?>/admin/members/<?= $lid ?>/edit?email=<?= urlencode($m->email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
+                <a href="<?= $b ?>/admin/members/<?= $lid ?>/emailmember?email=<?= urlencode($m->email) ?>" class="btn btn-quaternary btn-xs">Email</a>
+                <button type="submit" form="del-member-<?= md5($m->email) ?>" class="btn btn-danger btn-xs">Delete</button>
               </div>
             </td>
           </tr>
@@ -527,7 +527,7 @@ endif;
     <input type="hidden" name="_page"   value="<?= (int) $page ?>">
   </form>
   <?php endif; ?>
-  <?php if (!$m->rejected): ?>
+  <?php if (!$m->approved && !$m->rejected): ?>
   <form id="reject-member-<?= md5($m->email) ?>" method="POST" action="<?= $b ?>/admin/members/<?= $lid ?>/reject" class="action-form-inline">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
     <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
@@ -581,7 +581,7 @@ include LUSTER_BASE . '/templates/admin/_pagination.php';
           $m    = $row['member'];
           $flId = (int) $fl->id;
         ?>
-        <tr>
+        <tr class="<?= $m->rejected ? 'row-inactive' : '' ?>">
           <td data-label="Listing">
             <div class="subject-title-stack">
               <a href="<?= $b ?>/admin/members?listing_id=<?= $flId ?>" class="link"><b><?= View::e($fl->subject ?: $fl->title) ?></b></a>
@@ -601,34 +601,44 @@ include LUSTER_BASE . '/templates/admin/_pagination.php';
           <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
           <td data-label="Country"><?= View::e($m->country) ?></td>
           <td data-label="Status">
-            <span class="badge <?= $m->approved ? 'badge-current' : 'badge-pending' ?>"><?= $m->approved ? 'Approved' : 'Pending' ?></span>
+            <?php if ($m->approved): ?>
+              <span class="badge badge-current">Approved</span>
+            <?php elseif ($m->rejected): ?>
+              <span class="badge badge-error">Rejected</span>
+            <?php else: ?>
+              <span class="badge badge-pending">Pending</span>
+            <?php endif; ?>
           </td>
           <td data-label="Joined" class="cell-meta-nowrap">
             <?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?>
           </td>
           <td class="actions-col" data-label="">
             <div class="actions-row">
-              <?php if (!$m->approved): ?>
+              <?php if (!$m->approved && !$m->rejected): ?>
                 <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
-                  <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                  <button type="submit" class="btn btn-success btn-xs">Approve</button>
                 </form>
-              <?php endif; ?>
-              <?php if (!$m->rejected): ?>
                 <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/reject" class="action-form-inline">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
-                  <button type="submit" class="btn btn-warning btn-sm">Reject</button>
+                  <button type="submit" class="btn btn-warning btn-xs">Reject</button>
+                </form>
+              <?php elseif ($m->rejected): ?>
+                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
+                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+                  <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
+                  <button type="submit" class="btn btn-success btn-xs">Re-approve</button>
                 </form>
               <?php endif; ?>
-              <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>" class="btn btn-tertiary btn-sm">Edit</a>
-              <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>" class="btn btn-secondary btn-sm">Email</a>
+              <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
+              <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>" class="btn btn-secondary btn-xs">Email</a>
               <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/delete"
                     data-del-modal data-del-entity="member" data-del-name="<?= View::e($m->name) ?>">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                <button type="submit" class="btn btn-danger btn-xs">Delete</button>
               </form>
             </div>
           </td>

@@ -598,4 +598,44 @@ SQL;
         self::assertNull($repo->getById($id1));
         self::assertNotNull($repo->getById($id2));
     }
+
+    // --- renameMemberEmail
+
+    public function testRenameMemberEmailUpdatesTheRow(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id = $this->insertCheck($db, 1, 'old@test.com', 'Alice', 'https://a.test');
+
+        $repo->renameMemberEmail(1, 'old@test.com', 'new@test.com');
+
+        $row = $repo->getById($id);
+        self::assertNotNull($row);
+        self::assertSame('new@test.com', $row->member_email);
+    }
+
+    public function testRenameMemberEmailIsNoOpWhenRowMissing(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        // Should not throw
+        $repo->renameMemberEmail(1, 'nobody@test.com', 'new@test.com');
+        self::assertSame(0, $repo->paginate(1, '', '', 'member_name', 'asc', 10, 1)['total']);
+    }
+
+    public function testRenameMemberEmailDoesNotAffectOtherListings(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id1 = $this->insertCheck($db, 1, 'old@test.com', 'Alice', 'https://a.test');
+        $id2 = $this->insertCheck($db, 2, 'old@test.com', 'Alice', 'https://a.test');
+
+        $repo->renameMemberEmail(1, 'old@test.com', 'new@test.com');
+
+        self::assertSame('new@test.com', $repo->getById($id1)->member_email);
+        self::assertSame('old@test.com', $repo->getById($id2)->member_email);
+    }
 }

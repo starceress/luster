@@ -509,6 +509,21 @@ final class MemberLinkCheckRepo
         )->execute(['lid' => $listingId, 'email' => $email]);
     }
 
+    /**
+     * Re-keys a member's link-check row to their new email address. Called
+     * when an admin changes a member's email from the Edit Member page, so
+     * the cached check state (and history) stays with the row instead of
+     * being orphaned under the old address while upsertMember() creates a
+     * fresh, un-checked row under the new one.
+     */
+    public function renameMemberEmail(int $listingId, string $oldEmail, string $newEmail): void
+    {
+        $this->db->pdo()->prepare(
+            'UPDATE `lstr_member_link_checks` SET member_email = :new
+              WHERE listing_id = :lid AND member_email = :old'
+        )->execute(['new' => $newEmail, 'lid' => $listingId, 'old' => $oldEmail]);
+    }
+
     // -----------------------------------------------------------------------
     // Backlink (Step 4.1) — does the member's site link back to the fanlisting?
     // -----------------------------------------------------------------------

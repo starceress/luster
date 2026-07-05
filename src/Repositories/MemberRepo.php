@@ -77,6 +77,17 @@ final class MemberRepo
     }
 
     /**
+     * True when this install's schema has a genuine third "rejected" state
+     * (unprefixed Enthusiast 3, pending=2). The standard enth_ schema has no
+     * such column — reject() falls back to permanently deleting the member,
+     * since there's nowhere to persist a rejected status.
+     */
+    public function supportsRejectedState(): bool
+    {
+        return !$this->appendMembers;
+    }
+
+    /**
      * Resolves the actual member table name from the dbprefix/dbtable value.
      *
      * Standard schema:   'fl_music_'  → validates 'fl_music_members'

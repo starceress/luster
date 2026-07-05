@@ -161,28 +161,39 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <!-- Status (edit mode only) -->
       <?php if ($isEdit): ?>
       <div class="field-row">
-        <label class="field-label" for="aff-status">Status</label>
+        <span class="field-label">Status</span>
         <div>
           <?php $currentStatus = $old['status'] ?? $affiliate->status ?? 'approved'; ?>
-          <div class="select-wrap">
-            <select id="aff-status" name="status">
-              <option value="approved" <?= $currentStatus === 'approved' ? 'selected' : '' ?>>Approved</option>
-              <option value="pending"  <?= $currentStatus === 'pending'  ? 'selected' : '' ?>>Pending</option>
-              <option value="rejected" <?= $currentStatus === 'rejected' ? 'selected' : '' ?>>Rejected</option>
-            </select>
+          <div class="choice-inline-group">
+            <label class="form-check">
+              <input type="radio" name="status" value="approved" <?= $currentStatus === 'approved' ? 'checked' : '' ?>>
+              <span class="toggle-label">Approved</span>
+            </label>
+            <label class="form-check">
+              <input type="radio" name="status" value="pending" <?= $currentStatus === 'pending' ? 'checked' : '' ?>>
+              <span class="toggle-label">Pending</span>
+            </label>
+            <label class="form-check">
+              <input type="radio" name="status" value="rejected" <?= $currentStatus === 'rejected' ? 'checked' : '' ?>>
+              <span class="toggle-label">Rejected</span>
+            </label>
           </div>
           <p class="form-hint">Changing to Rejected will also deactivate the affiliate.</p>
         </div>
       </div>
       <div class="field-row">
-        <label class="field-label" for="aff-active">Active</label>
+        <span class="field-label">Active</span>
         <div>
           <?php $isActive = isset($old['active']) ? $old['active'] === '1' : ($affiliate->active ?? false); ?>
-          <div class="select-wrap">
-            <select id="aff-active" name="active">
-              <option value="1" <?= $isActive ? 'selected' : '' ?>>Active</option>
-              <option value="0" <?= !$isActive ? 'selected' : '' ?>>Inactive</option>
-            </select>
+          <div class="choice-inline-group">
+            <label class="form-check">
+              <input type="radio" name="active" value="1" <?= $isActive ? 'checked' : '' ?>>
+              <span class="toggle-label">Active</span>
+            </label>
+            <label class="form-check">
+              <input type="radio" name="active" value="0" <?= !$isActive ? 'checked' : '' ?>>
+              <span class="toggle-label">Inactive</span>
+            </label>
           </div>
           <p class="form-hint">Inactive affiliates are hidden from the public site.</p>
         </div>

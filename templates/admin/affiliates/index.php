@@ -397,29 +397,12 @@ $rangeEnd   = min($total, $page * $per_page);
           <td class="actions-col" data-label="">
             <div class="actions-row">
               <?php if ($aff->status === 'pending'): ?>
-                <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/approve"
-                      class="action-form-inline">
-                  <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
-                  <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
-                  <button type="submit" class="btn btn-success btn-xs">Approve</button>
-                </form>
-                <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/reject"
-                      class="action-form-inline"
-                      data-del-modal data-del-entity="affiliate_application"
-                      data-del-name="<?= View::e($aff->name) ?>">
-                  <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
-                  <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
-                  <button type="submit" class="btn btn-danger btn-xs">Reject</button>
-                </form>
+                <button type="submit" form="aff-approve-<?= (int) $aff->id ?>" class="btn btn-success btn-xs">Approve</button>
+                <button type="submit" form="aff-reject-<?= (int) $aff->id ?>" class="btn btn-danger btn-xs">Reject</button>
               <?php endif; ?>
 
               <?php if ($aff->status === 'rejected'): ?>
-                <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/re-approve"
-                      class="action-form-inline">
-                  <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
-                  <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
-                  <button type="submit" class="btn btn-success btn-xs">Re-approve</button>
-                </form>
+                <button type="submit" form="aff-reapprove-<?= (int) $aff->id ?>" class="btn btn-success btn-xs">Re-approve</button>
               <?php endif; ?>
 
               <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit<?= $_tableOnly && is_numeric($scope) ? '?from_listing=' . (int) $scope : '' ?>"
@@ -430,13 +413,7 @@ $rangeEnd   = min($total, $page * $per_page);
                         class="btn btn-secondary btn-xs">Email</button>
               <?php endif; ?>
 
-              <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
-                    class="action-form-inline"
-                    data-del-modal data-del-entity="affiliate"
-                    data-del-name="<?= View::e($aff->name) ?>">
-                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-                <button type="submit" class="btn btn-danger btn-xs">Delete</button>
-              </form>
+              <button type="submit" form="aff-delete-<?= (int) $aff->id ?>" class="btn btn-danger btn-xs">Delete</button>
             </div>
           </td>
         </tr>
@@ -453,6 +430,23 @@ $rangeEnd   = min($total, $page * $per_page);
 endif; ?>
 
 <?php foreach ($affiliates as $aff): ?>
+  <?php if ($aff->status === 'pending'): ?>
+    <form id="aff-approve-<?= (int) $aff->id ?>" method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/approve">
+      <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
+      <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
+    </form>
+    <form id="aff-reject-<?= (int) $aff->id ?>" method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/reject"
+          data-del-modal data-del-entity="affiliate_application" data-del-name="<?= View::e($aff->name) ?>">
+      <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
+      <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
+    </form>
+  <?php endif; ?>
+  <?php if ($aff->status === 'rejected'): ?>
+    <form id="aff-reapprove-<?= (int) $aff->id ?>" method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/re-approve">
+      <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
+      <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
+    </form>
+  <?php endif; ?>
   <?php if ($aff->email !== null && $aff->email !== ''): ?>
     <form id="aff-email-<?= (int) $aff->id ?>"
           method="POST" action="<?= $b ?>/admin/affiliates/bulk">
@@ -463,6 +457,10 @@ endif; ?>
       <input type="hidden" name="selected[]" value="<?= (int) $aff->id ?>">
     </form>
   <?php endif; ?>
+  <form id="aff-delete-<?= (int) $aff->id ?>" method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
+        data-del-modal data-del-entity="affiliate" data-del-name="<?= View::e($aff->name) ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  </form>
 <?php endforeach; ?>
 
 <?php endif; ?>

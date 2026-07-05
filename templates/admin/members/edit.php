@@ -44,11 +44,18 @@ $id = (int) $listing->id;
     <div class="card-body">
       <div class="section-label">General Information</div>
 
-      <div class="field-row">
-        <span class="field-label">Email</span>
+      <div class="field-row<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+        <label class="field-label" for="m-email">
+          Email <span class="req">*</span>
+        </label>
         <div>
-          <div class="readonly-field"><?= View::e($member->email) ?></div>
-          <p class="form-hint">Email is the member identifier and cannot be changed here.</p>
+          <input id="m-email" type="email" name="email" class="form"
+                 maxlength="255" required
+                 value="<?= View::e($old['email'] ?? $member->email) ?>">
+          <p class="form-hint">Changing this moves the member's record, any queued pending updates, and link-check history to the new address.</p>
+          <?php if (!empty($fe['email'])): ?>
+            <p class="field-error"><?= View::e($fe['email'][0]) ?></p>
+          <?php endif; ?>
         </div>
       </div>
 
@@ -107,6 +114,31 @@ $id = (int) $listing->id;
             <span class="toggle-label">Hide</span>
           </label>
         </div>
+      </div>
+
+      <?php
+        $_currentStatus = $member->approved ? 'approved' : ($member->rejected ? 'rejected' : 'pending');
+        $_statusVal     = $old['status'] ?? $_currentStatus;
+      ?>
+      <div class="field-row">
+        <span class="field-label">Status</span>
+        <div class="choice-inline-group">
+          <label class="form-check">
+            <input type="radio" name="status" value="approved" <?= $_statusVal === 'approved' ? 'checked' : '' ?>>
+            <span class="toggle-label">Approved</span>
+          </label>
+          <label class="form-check">
+            <input type="radio" name="status" value="pending" <?= $_statusVal === 'pending' ? 'checked' : '' ?>>
+            <span class="toggle-label">Pending</span>
+          </label>
+          <label class="form-check">
+            <input type="radio" name="status" value="rejected" <?= $_statusVal === 'rejected' ? 'checked' : '' ?>>
+            <span class="toggle-label">Rejected</span>
+          </label>
+        </div>
+        <?php if (!($supports_rejected_state ?? true)): ?>
+          <p class="form-hint">This install has no separate rejected state &mdash; switching to Rejected removes the member instead, the same as the Reject button on the Members list.</p>
+        <?php endif; ?>
       </div>
     </div>
 
