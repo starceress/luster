@@ -10,9 +10,6 @@
 use Luster\Core\View;
 use Luster\Repositories\SiteSettingsRepo;
 $b = rtrim(View::e($base_url), '/');
-function flsCfgVal(array $cfg, string $key, $default = ''): string {
-    return (string) ($cfg[$key] ?? $default);
-}
 $_formUrls    = $form_urls ?? [];
 $_urlDefaults = SiteSettingsRepo::GLOBAL_FORM_URL_KEYS;
 $_urlFields   = [
@@ -47,32 +44,6 @@ $_urlFields   = [
       <div class="panel-header-meta">
         <div class="panel-header-title">Owned Listing Settings</div>
         <div class="panel-header-sub">Display preferences and default form page URLs for your listings.</div>
-      </div>
-    </div>
-
-    <div class="card-body">
-      <div class="field-row">
-        <label class="field-label" for="fl-sort">Sort listings by</label>
-        <div>
-          <div class="select-wrap select-auto">
-            <select id="fl-sort" name="owned_sort" >
-              <?php
-                $currentSort = flsCfgVal($cfg, 'owned_sort', 'id');
-                $sortOptions = [
-                    'id'       => 'Listing #',
-                    'subject'  => 'Subject (A-Z)',
-                    'category' => 'Category (A-Z)',
-                    'status'   => 'Status (Current -> Upcoming -> Pending)',
-                ];
-                foreach ($sortOptions as $val => $lbl):
-              ?>
-                <option value="<?= View::e($val) ?>" <?= $currentSort === $val ? 'selected' : '' ?>>
-                  <?= View::e($lbl) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-        </div>
       </div>
     </div>
 

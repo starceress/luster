@@ -237,7 +237,7 @@ final class ListingRepo
      * lstr_listing_categories junction table (Migration 51). Passing null for
      * $categoryIds leaves the junction table untouched.
      */
-    public function update(int $id, ?int $categoryId, string $subject = '', string $opened = '', string $catid = '', ?array $categoryIds = null): void
+    public function update(int $id, ?int $categoryId, string $subject = '', ?string $opened = null, string $catid = '', ?array $categoryIds = null): void
     {
         // The standard schema (enth_fanlistings) has no catid column.
         // The owned schema (unprefixed) has opened added by Migration 52.

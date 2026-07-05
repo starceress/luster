@@ -194,12 +194,14 @@ final class EmbedCodesController
             if (!is_file($embedFile)) {
                 return Response::html($this->previewWrap('<p>Embed file not found.</p>', $appUrl));
             }
-            $lid = max(1, (int) $request->query('lid', 1));
-            $runSort = static function (string $sortBy) use ($embedFile, $lid): string {
+            $lid         = max(1, (int) $request->query('lid', 1));
+            $dateFormat  = (string) $request->query('date_format', '');
+            $runSort = static function (string $sortBy) use ($embedFile, $lid, $dateFormat): string {
                 $luster_return        = true;
                 $luster_fanlisting_id = $lid;
                 $luster_sort_by       = $sortBy;
                 $luster_show_search   = true;
+                $luster_date_format   = $dateFormat;
                 try {
                     ob_start();
                     $result   = require $embedFile;
@@ -212,7 +214,7 @@ final class EmbedCodesController
                 }
             };
             $panels = [
-                ['label' => 'View All', 'html' => $runSort('added')],
+                ['label' => 'Date Joined', 'html' => $runSort('added')],
                 ['label' => 'Name',     'html' => $runSort('name')],
                 ['label' => 'Country',  'html' => $runSort('country')],
             ];

@@ -13,6 +13,7 @@
 declare(strict_types=1);
 
 use Luster\Core\View;
+use Luster\Support\DateFormatter;
 ?>
 <div class="fl-embed fl-embed--members">
 <?php if (($members_html ?? null) !== null && $members_html !== ''): ?>
@@ -32,7 +33,7 @@ use Luster\Core\View;
         $nameUrl    = View::e($members_base . '?sort=name');
         $countryUrl = View::e($members_base . '?sort=country');
       ?>
-      <?= $sort === 'added'   ? '<strong aria-current="page" class="fl-member-sort-link">View All</strong>' : '<a class="fl-member-sort-link" href="' . $allUrl    . '">View All</a>' ?> |
+      <?= $sort === 'added'   ? '<strong aria-current="page" class="fl-member-sort-link">Date Joined</strong>' : '<a class="fl-member-sort-link" href="' . $allUrl    . '">Date Joined</a>' ?> |
       <?= $sort === 'name'    ? '<strong aria-current="page" class="fl-member-sort-link">Name</strong>'     : '<a class="fl-member-sort-link" href="' . $nameUrl   . '">Name</a>'    ?> |
       <?= $sort === 'country' ? '<strong aria-current="page" class="fl-member-sort-link">Country</strong>'  : '<a class="fl-member-sort-link" href="' . $countryUrl . '">Country</a>' ?>
     </p>
@@ -66,9 +67,29 @@ use Luster\Core\View;
           <?php else: ?>
             <span class="fl-member-name"><?= View::e($member->name) ?></span>
           <?php endif; ?>
-          <?php if ($member->country !== ''): ?>
-            <span class="fl-member-country"><?= View::e($member->country) ?></span>
+          <?php if ($member->country !== ''): ?>&mdash; <span class="fl-member-country"><?= View::e($member->country) ?></span><?php endif; ?>
+          <?php if (($sort ?? '') === 'added'): ?>,
+          <?php
+            // No explicit format ("Automatic") falls back to the ordinal style,
+            // matching MembersTemplateRenderer's {fan_added} default so the
+            // custom-template and no-custom-template paths render dates the same way.
+            $_addedFormat = $date_format ?? '';
+            $_addedText   = $_addedFormat === ''
+                ? DateFormatter::format($member->added)
+                : DateFormatter::formatWith($member->added, $_addedFormat);
+          ?>
+          Joined <span class="fl-member-added"><?= View::e($_addedText) ?></span>
           <?php endif; ?>
+          <?php
+            $hasAnyFieldValue = false;
+            foreach ($fields as $field) {
+                if (($member->additionalFields[$field->name] ?? '') !== '') {
+                    $hasAnyFieldValue = true;
+                    break;
+                }
+            }
+          ?>
+          <?php if ($hasAnyFieldValue): ?>,<?php endif; ?>
           <?php foreach ($fields as $field): ?>
             <?php $val = $member->additionalFields[$field->name] ?? ''; ?>
             <?php if ($val !== ''): ?>

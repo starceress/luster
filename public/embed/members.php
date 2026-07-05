@@ -103,12 +103,16 @@ $_lusterCountry = trim((string) ($_GET['country'] ?? ''));
 
 // Build pre-rendered sort link tokens for the members template
 $_lusterEscape          = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-$_lusterSortLinkAll     = $_lusterSort === 'added'   ? '<strong aria-current="page" class="fl-member-sort-link">View All</strong>'  : '<a class="fl-member-sort-link" href="' . $_lusterEscape($_lusterMembersBase . '?sort=added')   . '">View All</a>';
+$_lusterSortLinkDate    = $_lusterSort === 'added'   ? '<strong aria-current="page" class="fl-member-sort-link">Date Joined</strong>'  : '<a class="fl-member-sort-link" href="' . $_lusterEscape($_lusterMembersBase . '?sort=added')   . '">Date Joined</a>';
 $_lusterSortLinkName    = $_lusterSort === 'name'    ? '<strong aria-current="page" class="fl-member-sort-link">Name</strong>'      : '<a class="fl-member-sort-link" href="' . $_lusterEscape($_lusterMembersBase . '?sort=name')    . '">Name</a>';
 $_lusterSortLinkCountry = $_lusterSort === 'country' ? '<strong aria-current="page" class="fl-member-sort-link">Country</strong>'   : '<a class="fl-member-sort-link" href="' . $_lusterEscape($_lusterMembersBase . '?sort=country') . '">Country</a>';
 
 // $luster_show_search — whether to render sort/filter controls in the template
 $_lusterShowSearch = (bool) ($luster_show_search ?? true);
+
+// $luster_date_format — PHP date() format string for {fan_added}; blank ("Automatic")
+// falls back to the ordinal style (e.g. "March 1st 2026"), not the raw stored value
+$_lusterDateFormat = (string) ($luster_date_format ?? '');
 
 $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
 
@@ -119,9 +123,14 @@ $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->get
 $_lusterSettingsRepo     = new ListingSettingsRepo($_lusterApp->getDatabase());
 $_lusterSiteRepo         = new SiteSettingsRepo($_lusterApp->getDatabase());
 
-// Resolve per-page: embed override > per-listing setting > global default > app config.
+// Resolve per-page: embed override > per-listing setting > global default > built-in 25.
 // Use getMembersPerPageOrNull() so an unset per-listing value (null) falls through to
 // the global default instead of being mistaken for an explicit 25.
+// The final fallback is a plain constant, not the admin panel's own `per_page`
+// config value (config/app.php) — that key controls admin list-view pagination
+// (Admin -> Members -> Settings) and has nothing to do with the public site;
+// reusing it here would silently change the public embed's default whenever
+// an admin adjusts their own admin-panel page size.
 if ($_lusterPerPageOverride > 0) {
     $_lusterPerPage = $_lusterPerPageOverride;
 } else {
@@ -132,7 +141,7 @@ if ($_lusterPerPageOverride > 0) {
         $globalMpp = $_lusterSiteRepo->get('listing_default_members_per_page');
         $_lusterPerPage = ($globalMpp !== null && (int) $globalMpp > 0)
             ? (int) $globalMpp
-            : max(1, (int) $_lusterApp->getConfig()->get('per_page', 50));
+            : 25;
     }
 }
 
@@ -153,13 +162,14 @@ $_lusterApplyMembersTemplate = static function (
     string $joinUrl,
     array  $fields,
     string $statsLine = '',
-    string $sortLinkAll = '',
+    string $sortLinkDate = '',
     string $sortLinkName = '',
     string $sortLinkCountry = '',
-): string {
+) use ($_lusterShowSearch, $_lusterDateFormat, $_lusterSort): string {
     return MembersTemplateRenderer::render(
         $tpl, $members, $fields, $joinUrl, $total,
-        $statsLine, $sortLinkAll, $sortLinkName, $sortLinkCountry,
+        $statsLine, $sortLinkDate, $sortLinkName, $sortLinkCountry, $_lusterShowSearch, $_lusterDateFormat,
+        $_lusterSort === 'added',
     );
 };
 
@@ -179,6 +189,7 @@ $_lusterCommonData = [
     'members_base'    => $_lusterMembersBase,
     'sort'            => $_lusterSort,
     'show_search'     => $_lusterShowSearch,
+    'date_format'     => $_lusterDateFormat,
     'fields'          => $_lusterFields,
     'base_url'        => $_lusterBaseUrl,
     'theme_path'      => $_lusterBaseUrl . '/assets/default/',
@@ -210,7 +221,7 @@ if ($_lusterCountry !== '') {
         $_lusterMembersHtml = $_lusterApplyMembersTemplate(
             $_lusterMemberTemplate, $_lusterResult['members'], $_lusterResult['total'],
             $_lusterJoinUrl, $_lusterFields,
-            $_lusterStatsLine, $_lusterSortLinkAll, $_lusterSortLinkName, $_lusterSortLinkCountry,
+            $_lusterStatsLine, $_lusterSortLinkDate, $_lusterSortLinkName, $_lusterSortLinkCountry,
         );
     }
     $_lusterHtml = $_lusterApp->getView()->renderFragment('members.php', array_merge($_lusterCommonData, [
@@ -248,7 +259,8 @@ if ($_lusterCountry !== '') {
         $_lusterMembersHtml = MembersTemplateRenderer::renderWithBody(
             $_lusterMemberTemplate, $_lusterCountryBody,
             $_lusterJoinUrl, $_lusterTotal,
-            $_lusterStatsLine, $_lusterSortLinkAll, $_lusterSortLinkName, $_lusterSortLinkCountry,
+            $_lusterStatsLine, $_lusterSortLinkDate, $_lusterSortLinkName, $_lusterSortLinkCountry,
+            $_lusterFields, $_lusterShowSearch,
         );
     }
 
@@ -282,7 +294,7 @@ if ($_lusterCountry !== '') {
         $_lusterMembersHtml = $_lusterApplyMembersTemplate(
             $_lusterMemberTemplate, $_lusterResult['members'], $_lusterResult['total'],
             $_lusterJoinUrl, $_lusterFields,
-            $_lusterStatsLine, $_lusterSortLinkAll, $_lusterSortLinkName, $_lusterSortLinkCountry,
+            $_lusterStatsLine, $_lusterSortLinkDate, $_lusterSortLinkName, $_lusterSortLinkCountry,
         );
     }
     $_lusterHtml = $_lusterApp->getView()->renderFragment('members.php', array_merge($_lusterCommonData, [

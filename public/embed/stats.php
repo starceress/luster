@@ -81,7 +81,7 @@ $_lusterSiteSettingsRepo = new SiteSettingsRepo($_lusterApp->getDatabase());
 $_lusterNewestLimit = (static function (?int $pl, ?string $gl): int {
     if ($pl !== null) return $pl;
     if ($gl !== null && $gl !== '' && ctype_digit($gl)) return (int) $gl;
-    return 5;
+    return 0; // Show all — the built-in default when nothing is configured anywhere
 })(
     $_lusterSettingsRepo->getStatNewmembersLimit($_lusterListingId),
     $_lusterSiteSettingsRepo->get('stat_newmembers_limit'),

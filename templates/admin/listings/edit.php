@@ -428,15 +428,6 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       <div class="card-body">
         <div class="section-label">Public Display Preferences</div>
-         <div class="field-row field-row--top">
-          <label class="field-label" for="fl-members-per-page">Members Per Page</label>
-          <div>
-            <input id="fl-members-per-page" type="number" name="members_per_page" class="form form--compact"
-                   min="10" max="100" value="<?= (int) ($members_per_page ?? 25) ?>">
-            <p class="form-hint">How many members to show per page on the public members list. Default is 25. Choose 10&ndash;100.</p>
-          </div>
-        </div>
-
         <?php $ab = $approved_by ?? ''; ?>
         <div class="field-row field-row--top">
           <label class="field-label" for="fl-approved-by">Approved By</label>
@@ -595,8 +586,82 @@ $_isOldStatsTemplate = static function (?string $v): bool {
 
 $_isOldMembersTemplate = static function (?string $v): bool {
     if ($v === null || trim($v) === '') return false;
-    // Pre-sort-bar default: starts with {if_members} and has no sort link tokens
-    if (str_starts_with(ltrim($v), '{if_members}') && !str_contains($v, '{sort_link_all}')) return true;
+    // The very first built-in default (exact match only, same reasoning as the
+    // second legacy default below): no <h1>, no sort bar, no {if_members} wrap
+    // at all — just an unconditional list.
+    $originalMembersDefault = '<div class="fl-member-list">'
+        . "\n" . '{each_member}'
+        . "\n" . '<div class="fl-member-item">'
+        . "\n" . '  {if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url}'
+        . "\n" . '  {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}'
+        . "\n" . '</div>'
+        . "\n" . '{/each_member}'
+        . "\n" . '</div>';
+    if (trim($v) === trim($originalMembersDefault)) return true;
+    // The two commit-e1219457 shapes: first added <h1> + sort bar + {stats_line}
+    // + {if_members} wrap (with each row in its own <ul class="fl-member-item">),
+    // then a follow-up commit dropped {stats_line} again a few commits later.
+    // Both are exact-matched since they briefly shipped as the real built-in
+    // default before the layout settled into the shape below.
+    $statsLineMembersDefault = '<h1>Member List</h1>'
+        . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
+        . "\n" . '<p class="fl-member-stats">{stats_line}</p>'
+        . "\n"
+        . "\n" . '{if_members}'
+        . "\n" . '<div class="fl-member-list">'
+        . "\n" . '{each_member}'
+        . "\n" . '  <ul class="fl-member-item">'
+        . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
+        . "\n" . '  </ul>'
+        . "\n" . '{/each_member}'
+        . "\n" . '</div>'
+        . "\n" . '{/if_members}'
+        . "\n" . '{if_no_members}'
+        . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
+        . "\n" . '{/if_no_members}';
+    if (trim($v) === trim($statsLineMembersDefault)) return true;
+    $noStatsLineMembersDefault = '<h1>Member List</h1>'
+        . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
+        . "\n"
+        . "\n" . '{if_members}'
+        . "\n" . '<div class="fl-member-list">'
+        . "\n" . '{each_member}'
+        . "\n" . '  <ul class="fl-member-item">'
+        . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
+        . "\n" . '  </ul>'
+        . "\n" . '{/each_member}'
+        . "\n" . '</div>'
+        . "\n" . '{/if_members}'
+        . "\n" . '{if_no_members}'
+        . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
+        . "\n" . '{/if_no_members}';
+    if (trim($v) === trim($noStatsLineMembersDefault)) return true;
+    // Pre-show-search-conditional default (exact match only — a hand-customized
+    // template that happens to share the old <h1> heading must NOT be mistaken
+    // for this and get replaced): had its own <h1> heading and wrapped the list
+    // in an extra <div class="fl-member-list"> instead of putting the class
+    // directly on the <ul>, superseded when the sort bar became hideable via
+    // {if_show_search} and the layout was aligned with the PHP fallback
+    // (templates/default/members.php).
+    $legacyMembersDefault = '<h1>Member List</h1>' . "\n"
+        . '<p>Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>' . "\n"
+        . "\n"
+        . '{if_members}' . "\n"
+        . '<div class="fl-member-list">' . "\n"
+        . "\n"
+        . '<ul>' . "\n"
+        . '{each_member}' . "\n"
+        . '<li class="fl-member-item">{if_fan_url}<a href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}{fan_name}{/if_no_fan_url}{if_fan_country} &mdash; {fan_country}{/if_fan_country}</li>' . "\n"
+        . '{/each_member}' . "\n"
+        . '</ul>' . "\n"
+        . "\n"
+        . '</div>' . "\n"
+        . '{/if_members}' . "\n"
+        . "\n"
+        . '{if_no_members}' . "\n"
+        . '<p>No members yet. <a href="{join_url}">Want to join?</a></p>' . "\n"
+        . '{/if_no_members}';
+    if (trim($v) === trim($legacyMembersDefault)) return true;
     return false;
 };
 // When no per-listing override exists, show the global default if one is set, otherwise the built-in.
@@ -683,7 +748,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
     <div class="select-wrap">
       <select id="tpl-group-select" class="form">
         <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
-        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
+        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application Form</option>
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
         <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Codes Donation Form</option>
@@ -755,6 +820,15 @@ $_tplCsrf = View::e($csrf_token ?? '');
 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
           <div class="section-label">Members List <?= $srcBadge('members_template') ?></div>
+          <p class="form-hint form-hint--spaced">Wrap your row design in <code>{each_member}&hellip;{/each_member}</code>.</p>
+          <div class="field-row" style="margin-bottom: 1em">
+            <label class="field-label" for="fl-members-per-page">Members Per Page</label>
+            <div>
+              <input id="fl-members-per-page" type="number" name="members_per_page" class="form form--compact"
+                     min="10" max="100" placeholder="25" value="<?= $members_per_page !== null ? (int) $members_per_page : '' ?>">
+              <p class="form-hint">Leave blank to use the global default (25 unless changed in Collective &rarr; Templates). Choose 10&ndash;100 to override for this listing only.</p>
+            </div>
+          </div>
           <div class="field-row field-row--top" style="margin-bottom: 1em">
             <label class="field-label">Display style</label>
             <div>
@@ -785,7 +859,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-          <div class="section-label">Update Form <?= $srcBadge('update_form_template') ?></div>
+          <div class="section-label">Update Membership Form <?= $srcBadge('update_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls the full layout of the update form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
           <div class="field-group">
             <textarea id="update_form_template" name="update_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdateFormVal) ?></textarea>
@@ -809,7 +883,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
 
         <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
-          <div class="section-label">Listing Statistics <?= $srcBadge('stats_template') ?></div>
+          <div class="section-label">Statistics <?= $srcBadge('stats_template') ?></div>
 
           <?php $_nmlVal = ($stat_newmembers_limit ?? null) !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : null; ?>
           <div class="field-row field-row--top" style="margin-bottom: 1em">
@@ -841,7 +915,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
 
           <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
           <div class="field-row field-row--top" style="margin-bottom: 1em">
-            <label class="field-label" for="fl-cs-toggle-style">Donation toggle style</label>
+            <label class="field-label" for="fl-cs-toggle-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
                 <select id="fl-cs-toggle-style" name="codes_submit_style">
@@ -891,12 +965,12 @@ $_tplCsrf = View::e($csrf_token ?? '');
         <?php endif; ?>
 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-          <div class="section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
+          <div class="section-label">Affiliates Display <?= $srcBadge('affiliates_section_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
 
           <?php if ($affiliate_apply_enabled ?? false): ?>
           <div class="field-row field-row--top" style="margin-bottom: 1em">
-            <label class="field-label" for="fl-aff-apply-style">Application toggle style</label>
+            <label class="field-label" for="fl-aff-apply-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
                 <select id="fl-aff-apply-style" name="affiliate_apply_style">
@@ -1015,19 +1089,29 @@ $_tplCsrf = View::e($csrf_token ?? '');
             <?= $ltok('members_template', '{fan_email}',   '{fan_email}',   'The member\'s email. Only use this if you want emails visible publicly.') ?>
             <?= $ltok('members_template', '{fan_url}',     '{fan_url}',     'The member\'s website URL.') ?>
             <?= $ltok('members_template', '{fan_country}', '{fan_country}', 'The member\'s country.') ?>
+            <?= $ltok('members_template', '{fan_added}', '{fan_added}', 'The date the member joined, formatted using the Date Format set in Settings &rarr; General.') ?>
             <?= $ltok('members_template', '{fan_FIELDNAME}', '{fan_FIELDNAME}', 'Additional field value. Replace FIELDNAME with the field\'s internal name, e.g. {fan_fave_song}.') ?>
+            <?= $ltok('members_template', '{fan_additional_fields}', '{fan_additional_fields}', 'All of the member\'s additional field values at once, pre-formatted as label: value pairs. Use this instead of listing every {fan_FIELDNAME} by hand.') ?>
+            <?= $ltok('members_template', '{fan_additional_field_cells}', '{fan_additional_field_cells}', 'Table-layout variant of {fan_additional_fields} &mdash; value only, no inline label. Pair with {additional_field_headers} for the header row.') ?>
+            <?= $ltok('members_template', '{additional_field_headers}', '{additional_field_headers}', 'One header cell per additional field, for table-style layouts. Place outside {each_member}, rendered once.') ?>
             <?= $ltok('members_template', '{if_fan_url}{/if_fan_url}',             '{if_fan_url}...{/if_fan_url}',             'Shows only when the member has a website URL.') ?>
             <?= $ltok('members_template', '{if_no_fan_url}{/if_no_fan_url}',       '{if_no_fan_url}...{/if_no_fan_url}',       'Shows only when the member has no website URL.') ?>
             <?= $ltok('members_template', '{if_fan_country}{/if_fan_country}',     '{if_fan_country}...{/if_fan_country}',     'Shows only when the member has a country saved.') ?>
             <?= $ltok('members_template', '{if_no_fan_country}{/if_no_fan_country}','{if_no_fan_country}...{/if_no_fan_country}','Shows only when the member has no country saved.') ?>
+            <?= $ltok('members_template', '{if_fan_additional_fields}{/if_fan_additional_fields}', '{if_fan_additional_fields}...{/if_fan_additional_fields}', 'Shows only when the member has at least one additional field value saved.') ?>
+            <?= $ltok('members_template', '{if_no_fan_additional_fields}{/if_no_fan_additional_fields}', '{if_no_fan_additional_fields}...{/if_no_fan_additional_fields}', 'Shows only when the member has no additional field values saved.') ?>
             <?= $ltok('members_template', '{if_members}{/if_members}',       '{if_members}...{/if_members}',       'Shows when there is at least one member. Place outside {each_member}.') ?>
             <?= $ltok('members_template', '{if_no_members}{/if_no_members}', '{if_no_members}...{/if_no_members}', 'Shows when the list is empty (empty state). Place outside {each_member}.') ?>
             <?= $ltok('members_template', '{join_url}',     '{join_url}',     'URL of the join form. Useful inside {if_no_members} for a &ldquo;Want to join?&rdquo; link.') ?>
             <?= $ltok('members_template', '{member_count}', '{member_count}', 'Total approved member count. Place outside {each_member}.') ?>
             <?= $ltok('members_template', '{stats_line}',   '{stats_line}',   'The stats summary line: &ldquo;11 member(s) &mdash; page 1 of 2&rdquo; or &ldquo;5 countries represented&rdquo;. Lets you relocate or wrap it inside your custom layout.') ?>
-            <?= $ltok('members_template', '{sort_link_all}',     '{sort_link_all}',     'The &ldquo;View All&rdquo; sort link, rendered as &lt;strong&gt; when active or &lt;a&gt; otherwise.') ?>
+            <?= $ltok('members_template', '{sort_link_date}',     '{sort_link_date}',     'The &ldquo;Date Joined&rdquo; sort link, rendered as &lt;strong&gt; when active or &lt;a&gt; otherwise.') ?>
             <?= $ltok('members_template', '{sort_link_name}',    '{sort_link_name}',    'The &ldquo;Name&rdquo; sort link, rendered as &lt;strong&gt; when active or &lt;a&gt; otherwise.') ?>
             <?= $ltok('members_template', '{sort_link_country}', '{sort_link_country}', 'The &ldquo;Country&rdquo; sort link, rendered as &lt;strong&gt; when active or &lt;a&gt; otherwise.') ?>
+            <?= $ltok('members_template', '{if_sort_date}{/if_sort_date}',       '{if_sort_date}...{/if_sort_date}',       'Shows only when the list is currently sorted by Date Joined. Works inside or outside {each_member} — use it to hide the join date when sorting by Name or Country instead.') ?>
+            <?= $ltok('members_template', '{if_no_sort_date}{/if_no_sort_date}', '{if_no_sort_date}...{/if_no_sort_date}', 'Shows only when the list is NOT currently sorted by Date Joined.') ?>
+            <?= $ltok('members_template', '{if_show_search}{/if_show_search}',       '{if_show_search}...{/if_show_search}',       'Shows only when sort/filter controls are enabled for this embed. Place outside {each_member}.') ?>
+            <?= $ltok('members_template', '{if_no_show_search}{/if_no_show_search}', '{if_no_show_search}...{/if_no_show_search}', 'Shows only when sort/filter controls are hidden for this embed. Place outside {each_member}.') ?>
           </tbody></table>
         </div>
       </details>
@@ -1064,9 +1148,9 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
       </details>
 
-      <!-- Update Form -->
+      <!-- Update Membership Form -->
       <details class="card chevron" data-token-card data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-        <summary class="chevron-head">Update Form Tokens</summary>
+        <summary class="chevron-head">Update Membership Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Use {if_not_signed_in}...{/if_not_signed_in} for the sign-in step and {if_signed_in}...{/if_signed_in} for the update fields step. Both conditionals can share the same template.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -1119,9 +1203,9 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
       </details>
 
-      <!-- Listing Statistics -->
+      <!-- Statistics -->
       <details class="card chevron" data-token-card data-tpl-group="statistics" <?= $_grp('statistics') ?>>
-        <summary class="chevron-head">Listing Statistics Tokens</summary>
+        <summary class="chevron-head">Statistics Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>These tokens fill in the public stats block for this listing.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -1208,9 +1292,9 @@ $_tplCsrf = View::e($csrf_token ?? '');
       </details>
       <?php endif; ?>
 
-      <!-- Affiliates Section -->
+      <!-- Affiliates Display -->
       <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-        <summary class="chevron-head">Affiliates Section Tokens</summary>
+        <summary class="chevron-head">Affiliates Display Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -1292,7 +1376,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
       <details class="card chevron" data-token-card data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
         <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Wrap each entry in {each_update}...{/each_update}. Luster repeats it once per newsfeed entry.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Wrap each entry in {each_update}...{/each_update}. Luster repeats it once per news feed entry.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('newsfeed_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('newsfeed_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>

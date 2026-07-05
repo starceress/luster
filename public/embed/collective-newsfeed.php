@@ -44,7 +44,10 @@ $luster_attribution = \Luster\Core\View::attribution();
 // ---------------------------------------------------------------------------
 
 $_lusterConfig   = $_lusterApp->getConfig();
-$_lusterPerPage  = isset($luster_per_page)  ? max(1, (int) $luster_per_page)  : max(1, (int) $_lusterConfig->get('per_page', 20));
+// Fixed default (20), not the admin panel's own `per_page` config value —
+// that key controls admin list-view pagination and is unrelated to the
+// public site (see public/embed/members.php for the same reasoning).
+$_lusterPerPage  = isset($luster_per_page)  ? max(1, (int) $luster_per_page)  : 20;
 $_lusterShowCats = isset($luster_show_cats) ? (bool) $luster_show_cats : true;
 $_lusterPage     = max(1, (int) ($_GET['page'] ?? 1));
 $_lusterCat      = trim((string) ($_GET['cat'] ?? ''));

@@ -1961,9 +1961,10 @@ document.addEventListener('drop', function (e) {
     }
     // Type-specific options
     if (type === 'members') {
-      if (vals.per_page && vals.per_page !== '' && vals.per_page !== '20') lines.push('$luster_per_page     = ' + (parseInt(vals.per_page, 10) || 20) + ';');
+      if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page     = ' + (parseInt(vals.per_page, 10) || 25) + ';');
       if (vals.sort_by)                                                    lines.push('$luster_sort_by      = ' + phpStr(vals.sort_by) + ';');
       if (vals.show_search === 'false')                                    lines.push('$luster_show_search  = false;');
+      if (vals.date_format)                                                lines.push('$luster_date_format  = ' + phpStr(vals.date_format) + ';');
     }
     if (type === 'affiliates') {
       if (vals.per_page && vals.per_page !== '')       lines.push('$luster_per_page        = ' + (parseInt(vals.per_page, 10) || 50) + ';');
@@ -1984,7 +1985,7 @@ document.addEventListener('drop', function (e) {
     }
     if (type === 'random' && vals.status) lines.push('$luster_status = ' + phpStr(vals.status) + ';');
     if (type === 'newsfeed' || type === 'col-newsfeed') {
-      if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page  = ' + (parseInt(vals.per_page, 10) || 10) + ';');
+      if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page  = ' + (parseInt(vals.per_page, 10) || 20) + ';');
       if (vals.show_cats === 'false')            lines.push('$luster_show_cats = false;');
     }
     if (type === 'wishlist') {
@@ -2076,9 +2077,12 @@ document.addEventListener('drop', function (e) {
     members: {
       fields: [
         { id: 'lid',          label: 'Listing',                 type: 'listing', hint: '' },
-        { id: 'per_page',     label: 'Members per page',        type: 'number', ph: '25', hint: 'How many members to show per page. Leave blank to use your normal Luster setting (default 25).' },
-        { id: 'sort_by',      label: 'Start sorted by',         type: 'select', opts: [['country','Country'],['name','Name']], hint: '' },
-        { id: 'show_search',  label: 'Sort and filter tools',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'Shows or hides the sort links (View All / Name / Country) above the member list.' },
+        { id: 'per_page',     label: 'Members per page',        type: 'number', ph: '25', hint: 'How many members to show per page. Leave blank to use your per-listing/global default, or 25 if neither is set.' },
+        { id: 'sort_by',      label: 'Start sorted by',         type: 'select', opts: [['country','Country'],['name','Name'],['added','Date Joined']], hint: '' },
+        { id: 'show_search',  label: 'Sort and filter tools',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'Shows or hides the sort links (Date Joined / Name / Country) above the member list.' },
+        { id: 'date_format', label: 'Date format', type: 'select',
+          opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
+          hint: 'How each member\'s join date ({fan_added}) appears.' },
       ],
     },
     stats: {
@@ -2184,7 +2188,7 @@ document.addEventListener('drop', function (e) {
     newsfeed: {
       fields: [
         { id: 'lid',       label: 'Listing',            type: 'listing', hint: '' },
-        { id: 'per_page',  label: 'Entries per page',   type: 'number', ph: '10', hint: '' },
+        { id: 'per_page',  label: 'Entries per page',   type: 'number', ph: '20', hint: 'Leave blank to use the default (20).' },
         { id: 'show_cats', label: 'Category labels',    type: 'select', opts: [['','Show'],['false','Hide']], hint: '' },
       ],
     },
@@ -2212,7 +2216,7 @@ document.addEventListener('drop', function (e) {
     },
     'col-newsfeed': {
       fields: [
-        { id: 'per_page',  label: 'Entries per page',   type: 'number', ph: '10', hint: '' },
+        { id: 'per_page',  label: 'Entries per page',   type: 'number', ph: '20', hint: 'Leave blank to use the default (20).' },
         { id: 'show_cats', label: 'Category labels',    type: 'select', opts: [['','Show'],['false','Hide']], hint: '' },
       ],
     },
@@ -3992,8 +3996,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   }
 
   function isTba(val) {
-    return val === 'upcoming' || val === 'pending'
-        || val === 'closed' || val === 'adopted_out';
+    return val === 'upcoming' || val === 'pending';
   }
 
   function setTbaState(tba) {
@@ -5772,7 +5775,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
     var status    = data.listed_status || 'unchecked';
     var heuristic = status === 'listed' && data.heuristic !== false;
     var clsMap    = { listed: 'badge-current', not_found: 'badge-error', unchecked: 'badge-inactive' };
-    var labelMap  = { listed: heuristic ? 'Name Match' : 'Listed', not_found: 'Not Found', unchecked: '—' };
+    var labelMap  = { listed: heuristic ? 'Name Match' : 'Listed', not_found: 'Not Listed', unchecked: '—' };
     ['badge-current', 'badge-error', 'badge-inactive'].forEach(function (c) { badge.classList.remove(c); });
     badge.classList.add(clsMap[status] || 'badge-inactive');
     badge.textContent = labelMap[status] || status;

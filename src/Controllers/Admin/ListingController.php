@@ -77,8 +77,7 @@ final class ListingController extends AdminController
         $memberRepo     = new MemberRepo($db, $config);
         $settingsRepo   = new ListingSettingsRepo($db);
 
-        $cfgAll    = $config->all();
-        $ownedSort = (string) ($cfgAll['owned_sort'] ?? 'id');
+        $cfgAll = $config->all();
 
         $tabExplicit = $request->query('tab', null) !== null;
         $tab         = trim((string) $request->query('tab', 'all'));
@@ -236,14 +235,15 @@ final class ListingController extends AdminController
             $listings = array_values(array_filter($listings, fn($fl) => ($allListingTypes[$fl->id] ?? 'listing') === $filterType));
         }
 
-        // Column-header sort (URL param) overrides the configured display sort.
+        // Column-header sort (URL param). No configurable default sort — the
+        // column headers themselves are the only way to change sort order.
         $sort = trim((string) $request->query('sort', ''));
         $dir  = trim((string) $request->query('dir', 'asc'));
         if (!in_array($sort, ['id', 'subject', 'name', 'category', 'status'], true)) { $sort = ''; }
         if (!in_array($dir, ['asc', 'desc'], true)) { $dir = 'asc'; }
 
-        $activeSort = $sort !== '' ? $sort : $ownedSort;
-        $activeDir  = $sort !== '' ? $dir  : 'asc';
+        $activeSort = $sort;
+        $activeDir  = $dir;
 
         if ($activeSort === 'subject') {
             usort($listings, static function ($a, $b) use ($activeDir): int {
@@ -455,9 +455,14 @@ final class ListingController extends AdminController
             $listingType = 'listing';
         }
         $description = trim((string) $request->post('description', ''));
-        $opened = $status === 'current'
-            ? (trim((string) $request->post('opened', '')) ?: date('Y-m-d'))
-            : 'TBA';
+        $openedRaw = trim((string) $request->post('opened', ''));
+        $opened = match (true) {
+            in_array($status, ['upcoming', 'pending'], true) => null,
+            $status === 'current' => ($openedRaw !== '' ? $openedRaw : date('Y-m-d')),
+            // closed / adopted_out — these were open before being archived, so
+            // preserve a real opened date instead of forcing it blank like TBA.
+            default => ($openedRaw !== '' ? $openedRaw : null),
+        };
 
         $tflCats        = $categoryRepo->getBySource('tfl');
         $taflCats       = $categoryRepo->getBySource('tafl');
@@ -912,9 +917,13 @@ final class ListingController extends AdminController
             if ($title === '') {
                 $title = $subject;
             }
-            $opened      = $status !== 'current'
-                ? 'TBA'
-                : trim((string) $request->post('opened', ''));
+            $openedRaw   = trim((string) $request->post('opened', ''));
+            // upcoming/pending have no real opened date yet; closed/adopted_out
+            // were open before being archived, so preserve their real date
+            // instead of overwriting it with TBA on every save.
+            $opened      = in_array($status, ['upcoming', 'pending'], true)
+                ? null
+                : ($openedRaw !== '' ? $openedRaw : null);
             $nets       = array_values((array) $request->post('cat_network', []));
             $nms        = array_values((array) $request->post('cat_name', []));
             $otherNets  = array_values((array) $request->post('cat_network_other', []));
@@ -947,26 +956,31 @@ final class ListingController extends AdminController
             $forAdoptionInput = $this->app->isAddonInstalled('Adoption')
                              && $request->post('for_adoption') === '1';
 
-            $membersPerPage   = max(10, min(100, (int) $request->post('members_per_page', 25)));
+            // members_per_page lives on the Templates tab's own form now
+            // (saveTemplates()) — not read or saved here, so saving the
+            // General tab can never clobber it.
             $contactEnabled   = $request->post('contact_enabled') === '1';
             $contactRecipient = trim((string) $request->post('contact_recipient', ''));
             if ($contactRecipient !== '' && !filter_var($contactRecipient, FILTER_VALIDATE_EMAIL)) {
                 $contactRecipient = '';
             }
 
+            // The "Allow Codes Donations" checkbox lives on this (General) tab,
+            // but the column it controls is written via saveEmbedSettings() —
+            // shared with the Embed/Advanced tabs' own forms, neither of which
+            // carries this field. Read the rest of that row's current values
+            // so this save only changes codes_submit_enabled, nothing else.
+            $codesSubmitEnabledInput = $request->post('codes_submit_enabled') === '1';
+
             $affiliateApplyEnabled = $request->post('affiliate_apply_enabled') === '1';
             $existingAffApplySettings = $settingsRepo->getAffiliateApplySettings($id);
             $affiliateApplyFormUrl = $existingAffApplySettings['form_url'];
             $affiliateApplyRedirectUrl = $existingAffApplySettings['redirect_url'];
 
-            $affiliateApplyStylePost = trim((string) $request->post('affiliate_apply_style', ''));
-            $affiliateApplyStyle = in_array($affiliateApplyStylePost, ['link', 'button'], true) ? $affiliateApplyStylePost : null;
-
-            $codesSubmitStylePost = trim((string) $request->post('codes_submit_style', ''));
-            $codesSubmitStyle = in_array($codesSubmitStylePost, ['link', 'button'], true) ? $codesSubmitStylePost : null;
-
-            $statNewmembersLimitRaw = trim((string) $request->post('stat_newmembers_limit', ''));
-            $statNewmembersLimit = $statNewmembersLimitRaw !== '' ? ((int) $statNewmembersLimitRaw === 0 ? 0 : 5) : null;
+            // affiliate_apply_style/toggle_label, codes_submit_style/toggle_label,
+            // and stat_newmembers_limit live on the Templates tab's own form now
+            // (saveTemplates()) — not read or saved here, so saving the General
+            // tab can never clobber them.
 
             $autoApproveJoins = $request->post('auto_approve_joins') === '1';
             $queueUpdates     = $request->post('queue_updates') === '1';
@@ -1084,7 +1098,7 @@ final class ListingController extends AdminController
                     'custom_networks'         => $customNetsErr,
                     'custom_cats'             => $customCatsErr,
                     'listing_type'            => $listingType,
-                    'members_per_page'        => $membersPerPage,
+                    'members_per_page'        => $settingsRepo->getMembersPerPageOrNull($id),
                     'contact_enabled'         => $contactEnabled,
                     'contact_recipient'       => $contactRecipient,
                     'auto_approve_joins'      => $autoApproveJoins,
@@ -1141,8 +1155,20 @@ final class ListingController extends AdminController
             $listingRepo->updateMeta($id, $title, $url, $email, $upcoming, $trouble);
             $listingRepo->update($id, !empty($catids) ? $catids[0] : null, $subject, $opened, $catidStr, $catids);
             $settingsRepo->saveListingType($id, $listingType);
-            $settingsRepo->saveMembersPerPage($id, $membersPerPage);
             $settingsRepo->saveContactSettings($id, $contactEnabled, $contactRecipient !== '' ? $contactRecipient : null);
+            $existingEmbed = $settingsRepo->getEmbedSettings($id);
+            $settingsRepo->saveEmbedSettings(
+                $id,
+                $existingEmbed['form_url_join'],
+                $existingEmbed['form_url_update'],
+                $existingEmbed['form_url_reset'],
+                $existingEmbed['form_url_codes_submit'],
+                $codesSubmitEnabledInput,
+                $existingEmbed['db_host'],
+                $existingEmbed['db_name'],
+                $existingEmbed['db_user'],
+                $existingEmbed['db_pass'],
+            );
             // Read the current network before overwriting so we can detect changes.
             $prevApprovedBy   = $settingsRepo->getApprovedBy($id);
             $settingsRepo->saveApprovedBy($id, $approvedByInput);
@@ -1163,24 +1189,6 @@ final class ListingController extends AdminController
             }
             $settingsRepo->saveAffiliateApplySettings($id, $affiliateApplyEnabled, $affiliateApplyFormUrl, $affiliateApplyRedirectUrl);
             $postData = $request->postAll();
-            if ($affiliateApplyEnabled && array_key_exists('affiliate_apply_style', $postData)) {
-                $settingsRepo->setAffiliateApplyStyle($id, $affiliateApplyStyle);
-            }
-            if ($affiliateApplyEnabled && array_key_exists('affiliate_apply_toggle_label', $postData)) {
-                $affLabel = trim((string) $request->post('affiliate_apply_toggle_label', ''));
-                $settingsRepo->setAffiliateApplyToggleLabel($id, $affLabel !== '' ? $affLabel : null);
-            }
-
-            $codesSubmitEnabled = $request->post('codes_submit_enabled') === '1';
-            if ($codesSubmitEnabled && array_key_exists('codes_submit_style', $postData)) {
-                $settingsRepo->setCodesSubmitToggleStyle($id, $codesSubmitStyle);
-            }
-            if ($codesSubmitEnabled && array_key_exists('codes_submit_toggle_label', $postData)) {
-                $csLabel = trim((string) $request->post('codes_submit_toggle_label', ''));
-                $settingsRepo->setCodesSubmitToggleLabel($id, $csLabel !== '' ? $csLabel : null);
-            }
-
-            $settingsRepo->setStatNewmembersLimit($id, $statNewmembersLimit);
 
             // code_approval_email: null=inherit global, true=on, false=off
             // Only save when the dropdown was present in the form (codes_submit was enabled at page load)
@@ -1239,7 +1247,10 @@ final class ListingController extends AdminController
         // ---- GET: show form ----
         $currentImage       = $settingsRepo->getImage($id);
         $listingType        = $settingsRepo->getListingType($id);
-        $membersPerPage     = $settingsRepo->getMembersPerPage($id);
+        // Nullable, not getMembersPerPage()'s defaulted-to-25 value: the edit
+        // form needs to show blank (not a defaulted 25) when no per-listing
+        // override is actually stored, matching stat_newmembers_limit below.
+        $membersPerPage     = $settingsRepo->getMembersPerPageOrNull($id);
         $flLastUpdated      = $settingsRepo->getLastUpdated($id);
         $embedSettings      = $settingsRepo->getEmbedSettings($id);
         $contactSettings    = $settingsRepo->getContactSettings($id);
@@ -1838,7 +1849,35 @@ final class ListingController extends AdminController
         $resetFormTemplate          = $nil((string) $request->post('reset_form_template',             ''), 'reset_form_template');
         $codesTemplate              = $nil((string) $request->post('codes_template',                  ''), 'codes_template');
 
+        // Blank means "use the global default" — distinct from an explicit
+        // choice, same as the template-nulling above. Must NOT default to 25
+        // here: that would silently save an explicit per-listing override on
+        // every save, permanently shadowing the global "Members Per Page"
+        // default even when the admin never touched this field.
+        $membersPerPageRaw = trim((string) $request->post('members_per_page', ''));
+        $membersPerPage    = $membersPerPageRaw !== '' ? max(10, min(100, (int) $membersPerPageRaw)) : null;
+
+        // null = inherit the global default; explicit 0 ("Show all") or 5
+        // ("Truncate after 5") overrides it for this listing only.
+        $statNewmembersLimitRaw = trim((string) $request->post('stat_newmembers_limit', ''));
+        $statNewmembersLimit    = $statNewmembersLimitRaw !== '' ? ((int) $statNewmembersLimitRaw === 0 ? 0 : 5) : null;
+
+        $affiliateApplyStylePost = trim((string) $request->post('affiliate_apply_style', ''));
+        $affiliateApplyStyle     = in_array($affiliateApplyStylePost, ['link', 'button'], true) ? $affiliateApplyStylePost : null;
+
+        $codesSubmitStylePost = trim((string) $request->post('codes_submit_style', ''));
+        $codesSubmitStyle     = in_array($codesSubmitStylePost, ['link', 'button'], true) ? $codesSubmitStylePost : null;
+
         $settingsRepo = new ListingSettingsRepo($db);
+
+        // affiliate_apply_style/toggle_label and codes_submit_style/toggle_label
+        // only render on this form when the feature is enabled (edit.php wraps
+        // them in a server-side conditional) — that enabled flag is itself
+        // saved via the General tab's separate form, so it must be read fresh
+        // from the DB here rather than from this request's POST data.
+        $postData              = $request->postAll();
+        $affiliateApplyEnabled = $settingsRepo->getAffiliateApplySettings($id)['enabled'];
+        $codesSubmitEnabled    = $settingsRepo->getEmbedSettings($id)['codes_submit_enabled'];
 
         // Preserve templates not editable via this form so they are not cleared on save.
         // adopt_form_template is managed by the Adoption addon.
@@ -1867,11 +1906,27 @@ final class ListingController extends AdminController
         $settingsRepo->saveTemplates(
             $id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate,
             $updatesTemplate, $codesSubmitFormTemplate,
-            null, $joinFormTemplate, $affiliateApplyFormTemplate,
+            $joinFormTemplate, $affiliateApplyFormTemplate,
             $adoptFormTemplate, $contactFormTemplate,
             $updateFormTemplate, $resetFormTemplate,
         );
         $settingsRepo->saveCodesTemplate($id, $codesTemplate);
+        $settingsRepo->saveMembersPerPage($id, $membersPerPage);
+        $settingsRepo->setStatNewmembersLimit($id, $statNewmembersLimit);
+        if ($affiliateApplyEnabled && array_key_exists('affiliate_apply_style', $postData)) {
+            $settingsRepo->setAffiliateApplyStyle($id, $affiliateApplyStyle);
+        }
+        if ($affiliateApplyEnabled && array_key_exists('affiliate_apply_toggle_label', $postData)) {
+            $affLabel = trim((string) $request->post('affiliate_apply_toggle_label', ''));
+            $settingsRepo->setAffiliateApplyToggleLabel($id, $affLabel !== '' ? $affLabel : null);
+        }
+        if ($codesSubmitEnabled && array_key_exists('codes_submit_style', $postData)) {
+            $settingsRepo->setCodesSubmitToggleStyle($id, $codesSubmitStyle);
+        }
+        if ($codesSubmitEnabled && array_key_exists('codes_submit_toggle_label', $postData)) {
+            $csLabel = trim((string) $request->post('codes_submit_toggle_label', ''));
+            $settingsRepo->setCodesSubmitToggleLabel($id, $csLabel !== '' ? $csLabel : null);
+        }
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 
@@ -1907,7 +1962,7 @@ final class ListingController extends AdminController
 
         $settingsRepo = new ListingSettingsRepo($db);
         $settingsRepo->saveTemplates(
-            $id, null, null, null, null, null, null, null, null, null, null, null, null,
+            $id, null, null, null, null, null, null, null, null, null, null, null,
         );
         $settingsRepo->saveCodesTemplate($id, null);
 
@@ -2032,6 +2087,10 @@ final class ListingController extends AdminController
         $page       = $memberRepo->paginateByStatus($prefix, 'approved', 1, 10);
         $members    = $page['members'];
         $total      = $page['total'];
+        // Empty string, not the admin panel's own date_format setting — this
+        // preview must match what a host page sees with no $luster_date_format
+        // override (MembersTemplateRenderer falls back to the ordinal style).
+        $dateFormat = '';
 
         $result = MembersTemplateRenderer::render(
             $tpl,
@@ -2040,9 +2099,12 @@ final class ListingController extends AdminController
             (string) ($listing->url ?? '#'),
             $total,
             $total . ' member(s)',
-            '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
+            '<a class="fl-member-sort-link" href="#">Date Joined</a>',
             '<a class="fl-member-sort-link" href="#">Name</a>',
-            '<a class="fl-member-sort-link" href="#">Country</a>',
+            '<strong aria-current="page" class="fl-member-sort-link">Country</strong>',
+            true,
+            $dateFormat,
+            false, // Country is the real embed's default sort, not Date Joined — keep the preview consistent
         );
 
         if (trim($result) === '' && empty($members)) {
@@ -2161,14 +2223,14 @@ final class ListingController extends AdminController
         if ($limitRaw !== null) {
             if (trim($limitRaw) === '') {
                 $globalVal   = (new SiteSettingsRepo($db))->get('stat_newmembers_limit');
-                $newestLimit = ($globalVal === '0') ? 0 : 5;
+                $newestLimit = ($globalVal === '5') ? 5 : 0;
             } else {
                 $newestLimit = trim($limitRaw) === '0' ? 0 : 5;
             }
         } else {
             $siteRepo    = new SiteSettingsRepo($db);
             $savedLimit  = $settingsRepo->getStatNewmembersLimit((int) $listing->id);
-            $newestLimit = $savedLimit ?? (int) ($siteRepo->get('stat_newmembers_limit') ?? '5');
+            $newestLimit = $savedLimit ?? (($siteRepo->get('stat_newmembers_limit') === '5') ? 5 : 0);
         }
 
         $prefix     = (string) ($listing->dbprefix ?? '');
@@ -2764,23 +2826,33 @@ final class ListingController extends AdminController
 
         $settingsRepo = new ListingSettingsRepo($db);
 
-        $formUrlJoin         = ltrim(trim((string) $request->post('form_url_join',         '')), '/');
-        $formUrlUpdate       = ltrim(trim((string) $request->post('form_url_update',       '')), '/');
-        $formUrlReset        = ltrim(trim((string) $request->post('form_url_reset',        '')), '/');
-        $formUrlCodesSubmit  = ltrim(trim((string) $request->post('form_url_codes_submit', '')), '/');
-        $codesSubmitEnabled  = $request->post('codes_submit_enabled') === '1';
-        $dbHost              = trim((string) $request->post('db_host', ''));
-        $dbName              = trim((string) $request->post('db_name', ''));
-        $dbUser              = trim((string) $request->post('db_user', ''));
-        $newDbPass           = (string) $request->post('db_pass', '');
+        // This route is shared by two separate forms on separate tabs (Embed:
+        // the form_url_* fields; Advanced: the db_* credentials), and neither
+        // of them carries codes_submit_enabled at all (that checkbox lives on
+        // the General tab's own form). saveEmbedSettings() below is a single
+        // combined upsert covering all of these columns, so every field this
+        // specific request didn't actually submit must fall back to its
+        // current stored value — otherwise saving one tab silently blanks out
+        // the other tab's fields and always disables codes donations.
+        $existing  = $settingsRepo->getEmbedSettings($id);
+        $postData  = $request->postAll();
 
-        // Only update db_pass if a new value was submitted; empty = keep existing
-        if ($newDbPass === '') {
-            $existing = $settingsRepo->getEmbedSettings($id);
-            $dbPass   = $existing['db_pass'];
-        } else {
-            $dbPass = $newDbPass;
-        }
+        $formUrlJoin        = array_key_exists('form_url_join', $postData)
+            ? ltrim(trim((string) $postData['form_url_join']), '/') : $existing['form_url_join'];
+        $formUrlUpdate      = array_key_exists('form_url_update', $postData)
+            ? ltrim(trim((string) $postData['form_url_update']), '/') : $existing['form_url_update'];
+        $formUrlReset       = array_key_exists('form_url_reset', $postData)
+            ? ltrim(trim((string) $postData['form_url_reset']), '/') : $existing['form_url_reset'];
+        $formUrlCodesSubmit = array_key_exists('form_url_codes_submit', $postData)
+            ? ltrim(trim((string) $postData['form_url_codes_submit']), '/') : $existing['form_url_codes_submit'];
+
+        $dbHost = array_key_exists('db_host', $postData) ? trim((string) $postData['db_host']) : $existing['db_host'];
+        $dbName = array_key_exists('db_name', $postData) ? trim((string) $postData['db_name']) : $existing['db_name'];
+        $dbUser = array_key_exists('db_user', $postData) ? trim((string) $postData['db_user']) : $existing['db_user'];
+
+        // db_pass: only update if a new value was submitted; empty/absent = keep existing
+        $newDbPass = array_key_exists('db_pass', $postData) ? (string) $postData['db_pass'] : '';
+        $dbPass    = $newDbPass !== '' ? $newDbPass : $existing['db_pass'];
 
         $settingsRepo->saveEmbedSettings(
             $id,
@@ -2788,18 +2860,25 @@ final class ListingController extends AdminController
             $formUrlUpdate,
             $formUrlReset,
             $formUrlCodesSubmit,
-            $codesSubmitEnabled,
+            $existing['codes_submit_enabled'],
             $dbHost,
             $dbName,
             $dbUser,
             $dbPass,
         );
 
-        $formUrlContact        = ltrim(trim((string) $request->post('form_url_contact',        '')), '/');
-        $formUrlAffiliateApply = ltrim(trim((string) $request->post('form_url_affiliate_apply', '')), '/');
+        // Same fallback logic as above: the Advanced tab's form doesn't carry
+        // either of these two fields, so saving it must not blank them out.
+        $existingAffApply = $settingsRepo->getAffiliateApplySettings($id);
+
+        $formUrlContact = array_key_exists('form_url_contact', $postData)
+            ? ltrim(trim((string) $postData['form_url_contact']), '/')
+            : $settingsRepo->getContactSettings($id)['form_url_contact'];
+        $formUrlAffiliateApply = array_key_exists('form_url_affiliate_apply', $postData)
+            ? ltrim(trim((string) $postData['form_url_affiliate_apply']), '/')
+            : $existingAffApply['form_url'];
         $settingsRepo->saveFormUrlContact($id, $formUrlContact);
 
-        $existingAffApply = $settingsRepo->getAffiliateApplySettings($id);
         $settingsRepo->saveAffiliateApplySettings(
             $id,
             $existingAffApply['enabled'],
@@ -2847,7 +2926,7 @@ final class ListingController extends AdminController
         $categoryId    = $rawCategoryId > 0 ? $rawCategoryId : null;
 
         $allCatIds = $categoryId !== null ? [$categoryId] : [];
-        $listingRepo->update($id, $categoryId, $listing->subject, (string) ($listing->joined ?? ''), (string) ($listing->catid ?? ''), $allCatIds);
+        $listingRepo->update($id, $categoryId, $listing->subject, $listing->joined, (string) ($listing->catid ?? ''), $allCatIds);
 
         $this->app->getSession()->set('lstr_flash_success', 'Category updated.');
 
@@ -3047,8 +3126,12 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewMembers(string $tpl): string
     {
-        $fields  = SampleTemplateData::additionalFields();
-        $members = SampleTemplateData::members();
+        $fields     = SampleTemplateData::additionalFields();
+        $members    = SampleTemplateData::members();
+        // Empty string, not the admin panel's own date_format setting — this
+        // preview must match what a host page sees with no $luster_date_format
+        // override (MembersTemplateRenderer falls back to the ordinal style).
+        $dateFormat = '';
 
         $sample = MembersTemplateRenderer::render(
             $tpl,
@@ -3057,9 +3140,12 @@ final class ListingController extends AdminController
             '#',
             count($members),
             count($members) . ' member(s)',
-            '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
+            '<a class="fl-member-sort-link" href="#">Date Joined</a>',
             '<a class="fl-member-sort-link" href="#">Name</a>',
-            '<a class="fl-member-sort-link" href="#">Country</a>',
+            '<strong aria-current="page" class="fl-member-sort-link">Country</strong>',
+            true,
+            $dateFormat,
+            false, // Country is the real embed's default sort, not Date Joined — keep the preview consistent
         );
 
         $empty = MembersTemplateRenderer::render(
@@ -3069,9 +3155,12 @@ final class ListingController extends AdminController
             '#',
             0,
             '0 member(s)',
-            '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
+            '<a class="fl-member-sort-link" href="#">Date Joined</a>',
             '<a class="fl-member-sort-link" href="#">Name</a>',
-            '<a class="fl-member-sort-link" href="#">Country</a>',
+            '<strong aria-current="page" class="fl-member-sort-link">Country</strong>',
+            true,
+            $dateFormat,
+            false, // Country is the real embed's default sort, not Date Joined — keep the preview consistent
         );
 
         if (trim($empty) === '') {
@@ -3135,7 +3224,7 @@ final class ListingController extends AdminController
     private function gtplPreviewStats(string $tpl, ?\Luster\Core\Request $request = null): string
     {
         $limitRaw    = $request ? $request->post('stat_newmembers_limit', null) : null;
-        $newestLimit = $limitRaw !== null ? (trim($limitRaw) === '0' ? 0 : 5) : 5;
+        $newestLimit = $limitRaw !== null ? (trim($limitRaw) === '0' ? 0 : 5) : 0;
 
         $sampleMembers = array_map(
             fn($m) => ['name' => $m->name, 'url' => $m->showurl ? $m->url : ''],
@@ -3549,30 +3638,22 @@ final class ListingController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * Saves the Owned Listings display settings (sort order, per-page count,
-     * image preview size) to config/app.php and logs the change.
+     * Saves the Owned Listings display settings (per-page count) to
+     * config/app.php and logs the change.
      */
     public function saveSettings(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $sort        = trim((string) $request->post('owned_sort', 'id'));
-        $perPage     = max(5, min(200, (int) $request->post('owned_per_page', 10)));
-        $previewSize = trim((string) $request->post('image_preview_size', 'medium'));
+        $perPage = max(5, min(200, (int) $request->post('owned_per_page', 10)));
 
-        if (!in_array($sort, ['id', 'subject', 'category', 'status'], true)) {
-            $sort = 'id';
-        }
-
-        if (!in_array($previewSize, ['small', 'medium', 'large'], true)) {
-            $previewSize = 'medium';
-        }
-
-        $updated                       = $this->app->getConfig()->all();
-        $updated['owned_sort']         = $sort;
-        $updated['owned_per_page']     = $perPage;
-        $updated['image_preview_size'] = $previewSize;
+        // $updated starts as a copy of the full current config, so any key with
+        // no corresponding field on this form (e.g. image_preview_size, which
+        // has no UI anywhere) is preserved as-is rather than silently reset to
+        // some hardcoded default on every save.
+        $updated                   = $this->app->getConfig()->all();
+        $updated['owned_per_page'] = $perPage;
 
         try {
             $this->writeConfig($updated);

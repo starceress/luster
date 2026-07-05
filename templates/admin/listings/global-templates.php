@@ -27,8 +27,97 @@ $d  = [
     'listing_default_contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
 ];
 
+// For templates that have known code defaults, treat a saved global value that
+// matches a recognised old default format as absent so the current code default
+// is shown instead. This lets default changes flow through without a manual
+// reset — mirrors the per-listing equivalent in templates/admin/listings/edit.php.
+$_isOldMembersTemplate = static function (string $v): bool {
+    if (trim($v) === '') return false;
+    // The very first built-in default (exact match only, same reasoning as the
+    // second legacy default below): no <h1>, no sort bar, no {if_members} wrap
+    // at all — just an unconditional list.
+    $originalMembersDefault = '<div class="fl-member-list">'
+        . "\n" . '{each_member}'
+        . "\n" . '<div class="fl-member-item">'
+        . "\n" . '  {if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url}'
+        . "\n" . '  {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}'
+        . "\n" . '</div>'
+        . "\n" . '{/each_member}'
+        . "\n" . '</div>';
+    if (trim($v) === trim($originalMembersDefault)) return true;
+    // The two commit-e1219457 shapes: first added <h1> + sort bar + {stats_line}
+    // + {if_members} wrap (with each row in its own <ul class="fl-member-item">),
+    // then a follow-up commit dropped {stats_line} again a few commits later.
+    // Both are exact-matched since they briefly shipped as the real built-in
+    // default before the layout settled into the shape below.
+    $statsLineMembersDefault = '<h1>Member List</h1>'
+        . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
+        . "\n" . '<p class="fl-member-stats">{stats_line}</p>'
+        . "\n"
+        . "\n" . '{if_members}'
+        . "\n" . '<div class="fl-member-list">'
+        . "\n" . '{each_member}'
+        . "\n" . '  <ul class="fl-member-item">'
+        . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
+        . "\n" . '  </ul>'
+        . "\n" . '{/each_member}'
+        . "\n" . '</div>'
+        . "\n" . '{/if_members}'
+        . "\n" . '{if_no_members}'
+        . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
+        . "\n" . '{/if_no_members}';
+    if (trim($v) === trim($statsLineMembersDefault)) return true;
+    $noStatsLineMembersDefault = '<h1>Member List</h1>'
+        . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
+        . "\n"
+        . "\n" . '{if_members}'
+        . "\n" . '<div class="fl-member-list">'
+        . "\n" . '{each_member}'
+        . "\n" . '  <ul class="fl-member-item">'
+        . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
+        . "\n" . '  </ul>'
+        . "\n" . '{/each_member}'
+        . "\n" . '</div>'
+        . "\n" . '{/if_members}'
+        . "\n" . '{if_no_members}'
+        . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
+        . "\n" . '{/if_no_members}';
+    if (trim($v) === trim($noStatsLineMembersDefault)) return true;
+    // Pre-show-search-conditional default (exact match only — a hand-customized
+    // template that happens to share the old <h1> heading must NOT be mistaken
+    // for this and get replaced): had its own <h1> heading and wrapped the list
+    // in an extra <div class="fl-member-list"> instead of putting the class
+    // directly on the <ul>.
+    $legacyMembersDefault = '<h1>Member List</h1>' . "\n"
+        . '<p>Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>' . "\n"
+        . "\n"
+        . '{if_members}' . "\n"
+        . '<div class="fl-member-list">' . "\n"
+        . "\n"
+        . '<ul>' . "\n"
+        . '{each_member}' . "\n"
+        . '<li class="fl-member-item">{if_fan_url}<a href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}{fan_name}{/if_no_fan_url}{if_fan_country} &mdash; {fan_country}{/if_fan_country}</li>' . "\n"
+        . '{/each_member}' . "\n"
+        . '</ul>' . "\n"
+        . "\n"
+        . '</div>' . "\n"
+        . '{/if_members}' . "\n"
+        . "\n"
+        . '{if_no_members}' . "\n"
+        . '<p>No members yet. <a href="{join_url}">Want to join?</a></p>' . "\n"
+        . '{/if_no_members}';
+    if (trim($v) === trim($legacyMembersDefault)) return true;
+    return false;
+};
+
 // Resolve display value: prefer stored global, otherwise fall through to built-in
-$val = static fn(string $key): string => ($g[$key] ?? '') ?: $d[$key];
+$val = static function (string $key) use ($g, $d, $_isOldMembersTemplate): string {
+    $stored = $g[$key] ?? '';
+    if ($key === 'listing_default_members_template' && $_isOldMembersTemplate($stored)) {
+        return $d[$key];
+    }
+    return $stored !== '' ? $stored : $d[$key];
+};
 
 // Renders one clickable token row for the sidebar reference panel.
 $tok = static fn(string $ta, string $token, string $label, string $desc): string =>
@@ -67,7 +156,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
     <div class="select-wrap">
       <select id="tpl-group-select" class="form">
         <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
-        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
+        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application Form</option>
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
         <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Codes Donation Form</option>
@@ -141,12 +230,12 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <div class="section-label">Members List</div>
           <p class="form-hint form-hint--spaced">Default for all listings. Wrap your row design in <code>{each_member}&hellip;{/each_member}</code>.</p>
           <div class="field-row" style="margin-bottom: 1em">
-            <label class="field-label" for="gl-members-per-page">Members per page</label>
+            <label class="field-label" for="gl-members-per-page">Members Per Page</label>
             <div>
               <input id="gl-members-per-page" type="number" name="listing_default_members_per_page" class="form form--compact"
                      min="10" max="100" placeholder="25"
                      value="<?= $global_members_per_page !== null ? (int) $global_members_per_page : '' ?>">
-              <p class="form-hint">Global default members per page. Leave blank to use the <code>per_page</code> app config value. Per-listing setting overrides this.</p>
+              <p class="form-hint">Global default members per page. Leave blank to use the built-in default (25). Per-listing setting overrides this.</p>
             </div>
           </div>
           <div class="field-row field-row--top" style="margin-bottom: 1em">
@@ -168,7 +257,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="join-form" <?= $_grp('join-form') ?>>
           <div class="section-label">Join Form</div>
-          <p class="form-hint form-hint--spaced">Default join form layout. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields.</p>
+          <p class="form-hint form-hint--spaced">Default layout for the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_join_form_template" id="listing_default_join_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_join_form_template')) ?></textarea>
           </div>
@@ -180,7 +269,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
           <div class="section-label">Update Membership Form</div>
-          <p class="form-hint form-hint--spaced">Default layout for the update (edit membership) form. Two steps: sign-in and edit fields.</p>
+          <p class="form-hint form-hint--spaced">Default layout for the update (edit membership) form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
           <div class="field-group">
             <textarea name="listing_default_update_form_template" id="listing_default_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_update_form_template')) ?></textarea>
           </div>
@@ -192,7 +281,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
           <div class="section-label">Lost Password Form</div>
-          <p class="form-hint form-hint--spaced">Default layout for the password reset form. Two steps: email entry and new password.</p>
+          <p class="form-hint form-hint--spaced">Default layout for the password reset form. Use <code>{if_step_email}&hellip;{/if_step_email}</code> for the email-entry step and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> for the new-password step.</p>
           <div class="field-group">
             <textarea name="listing_default_reset_form_template" id="listing_default_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_reset_form_template')) ?></textarea>
           </div>
@@ -211,8 +300,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <div>
               <div class="select-wrap select-auto">
                 <select id="gl-newmembers-limit" name="stat_newmembers_limit" class="form">
-                  <option value="0"<?= $_glNml !== null && $_glNml === 0 ? ' selected' : '' ?>>Show all</option>
-                  <option value="5"<?= $_glNml === null || $_glNml > 0 ? ' selected' : '' ?>>Truncate after 5</option>
+                  <option value="0"<?= $_glNml === null || $_glNml === 0 ? ' selected' : '' ?>>Show all</option>
+                  <option value="5"<?= $_glNml !== null && $_glNml > 0 ? ' selected' : '' ?>>Truncate after 5</option>
                 </select>
               </div>
               <p class="form-hint">Global default for <code>{stat_newmembers}</code>. &ldquo;Show all&rdquo; lists every member. &ldquo;Truncate&rdquo; shows the 5 most recent and adds &ldquo;&hellip;and more&rdquo;. Per-listing overrides this.</p>
@@ -233,7 +322,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <p class="form-hint form-hint--spaced">Default layout for the codes/buttons gallery. Use <code>{each_size_group}</code> for grouped mode or <code>{each_code}</code> for flat mode.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
-            <label class="field-label" for="gl-cs-toggle-style">Donation toggle style</label>
+            <label class="field-label" for="gl-cs-toggle-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
                 <select id="gl-cs-toggle-style" name="codes_submit_toggle_style" class="form">
@@ -266,7 +355,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
           <div class="section-label">Codes Donation Form</div>
-          <p class="form-hint form-hint--spaced">Default layout for the code donation form.</p>
+          <p class="form-hint form-hint--spaced">Default layout for the Codes Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_codes_submit_form_template" id="listing_default_codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_submit_form_template')) ?></textarea>
           </div>
@@ -281,7 +370,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <p class="form-hint form-hint--spaced">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
-            <label class="field-label" for="gl-aff-apply-style">Application toggle style</label>
+            <label class="field-label" for="gl-aff-apply-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
                 <select id="gl-aff-apply-style" name="affiliate_apply_style" class="form">
@@ -313,8 +402,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-          <div class="section-label">Affiliate Application</div>
-          <p class="form-hint form-hint--spaced">Default layout for affiliate application forms.</p>
+          <div class="section-label">Affiliate Application Form</div>
+          <p class="form-hint form-hint--spaced">Default layout for the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
           </div>
@@ -326,7 +415,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
           <div class="section-label">Contact Form</div>
-          <p class="form-hint form-hint--spaced">Default layout for the contact form (name, email, subject, message).</p>
+          <p class="form-hint form-hint--spaced">Default layout for the contact form (name, email, subject, message). Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_contact_form_template" id="listing_default_contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_contact_form_template')) ?></textarea>
           </div>
@@ -392,19 +481,29 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_members_template', '{fan_email}',   '{fan_email}',   'The member\'s email. Only use this if you want emails visible publicly.') ?>
             <?= $tok('listing_default_members_template', '{fan_url}',     '{fan_url}',     'The member\'s website URL.') ?>
             <?= $tok('listing_default_members_template', '{fan_country}', '{fan_country}', 'The member\'s country.') ?>
+            <?= $tok('listing_default_members_template', '{fan_added}', '{fan_added}', 'The date the member joined, formatted using the Date Format set in Settings &rarr; General.') ?>
             <?= $tok('listing_default_members_template', '{fan_FIELDNAME}', '{fan_FIELDNAME}', 'Additional field value. Replace FIELDNAME with the field\'s internal name, e.g. {fan_fave_song}.') ?>
+            <?= $tok('listing_default_members_template', '{fan_additional_fields}', '{fan_additional_fields}', 'All of the member\'s additional field values at once, pre-formatted as label: value pairs. Use this instead of listing every {fan_FIELDNAME} by hand.') ?>
+            <?= $tok('listing_default_members_template', '{fan_additional_field_cells}', '{fan_additional_field_cells}', 'Table-layout variant of {fan_additional_fields} — value only, no inline label. Pair with {additional_field_headers} for the header row.') ?>
+            <?= $tok('listing_default_members_template', '{additional_field_headers}', '{additional_field_headers}', 'One header cell per additional field, for table-style layouts. Place outside {each_member}, rendered once.') ?>
             <?= $tok('listing_default_members_template', '{if_fan_url}{/if_fan_url}',               '{if_fan_url}...{/if_fan_url}',               'Shows only when the member has a website URL.') ?>
             <?= $tok('listing_default_members_template', '{if_no_fan_url}{/if_no_fan_url}',         '{if_no_fan_url}...{/if_no_fan_url}',         'Shows only when the member has no website URL.') ?>
             <?= $tok('listing_default_members_template', '{if_fan_country}{/if_fan_country}',       '{if_fan_country}...{/if_fan_country}',       'Shows only when the member has a country saved.') ?>
             <?= $tok('listing_default_members_template', '{if_no_fan_country}{/if_no_fan_country}', '{if_no_fan_country}...{/if_no_fan_country}', 'Shows only when the member has no country saved.') ?>
+            <?= $tok('listing_default_members_template', '{if_fan_additional_fields}{/if_fan_additional_fields}',       '{if_fan_additional_fields}...{/if_fan_additional_fields}',       'Shows only when the member has at least one additional field value saved.') ?>
+            <?= $tok('listing_default_members_template', '{if_no_fan_additional_fields}{/if_no_fan_additional_fields}', '{if_no_fan_additional_fields}...{/if_no_fan_additional_fields}', 'Shows only when the member has no additional field values saved.') ?>
             <?= $tok('listing_default_members_template', '{if_members}{/if_members}',       '{if_members}...{/if_members}',       'Shows when there is at least one member. Place outside {each_member}.') ?>
             <?= $tok('listing_default_members_template', '{if_no_members}{/if_no_members}', '{if_no_members}...{/if_no_members}', 'Shows when the list is empty (empty state). Place outside {each_member}.') ?>
             <?= $tok('listing_default_members_template', '{join_url}',     '{join_url}',     'URL of the join form. Useful inside {if_no_members} for a "Want to join?" link.') ?>
             <?= $tok('listing_default_members_template', '{member_count}', '{member_count}', 'Total approved member count. Place outside {each_member}.') ?>
             <?= $tok('listing_default_members_template', '{stats_line}',   '{stats_line}',   'The stats summary line, e.g. "11 member(s) — page 1 of 2".') ?>
-            <?= $tok('listing_default_members_template', '{sort_link_all}',     '{sort_link_all}',     'The "View All" sort link, bold when active.') ?>
+            <?= $tok('listing_default_members_template', '{sort_link_date}',     '{sort_link_date}',     'The "Date Joined" sort link, bold when active.') ?>
             <?= $tok('listing_default_members_template', '{sort_link_name}',    '{sort_link_name}',    'The "Name" sort link, bold when active.') ?>
             <?= $tok('listing_default_members_template', '{sort_link_country}', '{sort_link_country}', 'The "Country" sort link, bold when active.') ?>
+            <?= $tok('listing_default_members_template', '{if_sort_date}{/if_sort_date}',       '{if_sort_date}...{/if_sort_date}',       'Shows only when the list is currently sorted by Date Joined. Use it to hide the join date when sorting by Name or Country instead.') ?>
+            <?= $tok('listing_default_members_template', '{if_no_sort_date}{/if_no_sort_date}', '{if_no_sort_date}...{/if_no_sort_date}', 'Shows only when the list is NOT currently sorted by Date Joined.') ?>
+            <?= $tok('listing_default_members_template', '{if_show_search}{/if_show_search}',       '{if_show_search}...{/if_show_search}',       'Shows only when sort/filter controls are enabled for this embed. Place outside {each_member}.') ?>
+            <?= $tok('listing_default_members_template', '{if_no_show_search}{/if_no_show_search}', '{if_no_show_search}...{/if_no_show_search}', 'Shows only when sort/filter controls are hidden for this embed. Place outside {each_member}.') ?>
           </tbody></table>
         </div>
       </details>
@@ -413,7 +512,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="join-form" <?= $_grp('join-form') ?>>
         <summary class="chevron-head">Join Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the join form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the join form, and write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_join_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_join_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -443,9 +542,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
       <!-- Update Membership Form -->
       <details class="card chevron" data-token-card data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-        <summary class="chevron-head">Update Form Tokens</summary>
+        <summary class="chevron-head">Update Membership Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Use {if_not_signed_in}...{/if_not_signed_in} for the sign-in step and {if_signed_in}...{/if_signed_in} for the update fields step.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Use {if_not_signed_in}...{/if_not_signed_in} for the sign-in step and {if_signed_in}...{/if_signed_in} for the update fields step. Both conditionals can share the same template.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_update_form_template', '{if_not_signed_in}{/if_not_signed_in}', '{if_not_signed_in}...{/if_not_signed_in}', 'Shows the sign-in step (email + password).') ?>
             <?= $tok('listing_default_update_form_template', '{if_signed_in}{/if_signed_in}',         '{if_signed_in}...{/if_signed_in}',         'Shows the update form step.') ?>
@@ -558,7 +657,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
         <summary class="chevron-head">Codes Donation Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the code donation form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the Codes Donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_codes_submit_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_codes_submit_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -580,9 +679,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
-      <!-- Affiliates Section -->
+      <!-- Affiliates Display -->
       <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-        <summary class="chevron-head">Affiliates Section Tokens</summary>
+        <summary class="chevron-head">Affiliates Display Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -605,7 +704,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
         <summary class="chevron-head">Affiliate Application Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the affiliate application form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the affiliate application form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_affiliate_apply_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_affiliate_apply_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>

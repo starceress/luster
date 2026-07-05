@@ -499,7 +499,7 @@ $epSafe = View::e($ep);
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="actions-col"><code>$luster_per_page</code></td><td>How many members to show before Luster adds a next-page link. Leave this out to use your normal Luster setting.</td></tr>
+                <tr><td class="actions-col"><code>$luster_per_page</code></td><td>How many members to show before Luster adds a next-page link. The default is 25, or your per-listing/global Members Per Page setting if you've set one.</td></tr>
                 <tr><td class="actions-col"><code>$luster_sort_by</code></td><td>Choose how the member list starts: <code>'name'</code>, <code>'country'</code>, or <code>'added'</code> for newest joined first. Leave this out if you want visitors to choose the order themselves.</td></tr>
                 <tr><td class="actions-col"><code>$luster_show_search</code></td><td>Set this to <code>false</code> if you want to hide the member sort and country filter tools.</td></tr>
               </tbody>
@@ -576,7 +576,7 @@ $epSafe = View::e($ep);
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="actions-col"><code>$luster_per_page</code></td><td>How many updates to show before Luster adds a next-page link. Leave this out to use your normal Luster setting.</td></tr>
+                <tr><td class="actions-col"><code>$luster_per_page</code></td><td>How many updates to show before Luster adds a next-page link. The default is 20.</td></tr>
                 <tr><td class="actions-col"><code>$luster_show_cats</code></td><td>Set this to <code>false</code> if you do not want category labels shown on updates.</td></tr>
               </tbody>
             </table>
@@ -741,7 +741,7 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{if_fan_country}</code>, <code class="ec-tk">{if_no_fan_country}</code></td><td>Shows country or no-country markup depending on whether the member has a country saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_members}&hellip;{/if_members}</code>, <code class="ec-tk">{if_no_members}&hellip;{/if_no_members}</code></td><td>Shows wrapper or empty-state markup depending on whether the member list has approved members.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{join_url}</code>, <code class="ec-tk">{member_count}</code>, <code class="ec-tk">{stats_line}</code></td><td>Page-level details for links, totals, and summary text outside the repeated row.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{sort_link_all}</code>, <code class="ec-tk">{sort_link_name}</code>, <code class="ec-tk">{sort_link_country}</code></td><td>Ready-made member-list sort links that keep visitors on the current member page.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{sort_link_date}</code>, <code class="ec-tk">{sort_link_name}</code>, <code class="ec-tk">{sort_link_country}</code></td><td>Ready-made member-list sort links that keep visitors on the current member page.</td></tr>
               </tbody>
             </table>
             </div>
