@@ -3072,8 +3072,15 @@ final class ListingController extends AdminController
             'listing_default_contact_sent_template',
         ];
 
-        $oldValues = $siteRepo->getMany($keys);
-        $newValues = array_fill_keys($keys, null);
+        // listing_default_contact_sent_template is a stale setting with no
+        // matching entry in TemplatePackController::GLOBAL_KEY_MAP, so a
+        // revision recorded for it could never be listed, restored, or
+        // flushed through the history endpoints. Still cleared below, just
+        // excluded from revision recording.
+        $trackedKeys = array_values(array_diff($keys, ['listing_default_contact_sent_template']));
+
+        $oldValues = $siteRepo->getMany($trackedKeys);
+        $newValues = array_fill_keys($trackedKeys, null);
         $adminId   = (int) $session->get('lstr_admin_id');
         (new \Luster\Repositories\TemplateRevisionRepo($db))
             ->recordChanged(\Luster\Repositories\TemplateRevisionRepo::GLOBAL_DEFAULTS_ID, $oldValues, $newValues, $adminId);
