@@ -3071,6 +3071,13 @@ final class ListingController extends AdminController
             'listing_default_contact_form_template',
             'listing_default_contact_sent_template',
         ];
+
+        $oldValues = $siteRepo->getMany($keys);
+        $newValues = array_fill_keys($keys, null);
+        $adminId   = (int) $session->get('lstr_admin_id');
+        (new \Luster\Repositories\TemplateRevisionRepo($db))
+            ->recordChanged(\Luster\Repositories\TemplateRevisionRepo::GLOBAL_DEFAULTS_ID, $oldValues, $newValues, $adminId);
+
         foreach ($keys as $key) {
             $siteRepo->set($key, null);
         }
