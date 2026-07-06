@@ -389,6 +389,8 @@ if ($_lusterCStatsTemplate !== null) {
 }
 
 
+$_lusterHtml .= $luster_attribution;
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

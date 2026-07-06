@@ -150,6 +150,8 @@ $_lusterHtml = ListingRowRenderer::renderTemplate(
 // 5. Return or echo
 // ---------------------------------------------------------------------------
 
+$_lusterHtml .= $luster_attribution;
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

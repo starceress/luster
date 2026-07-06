@@ -254,6 +254,8 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/update.php', [
     'theme_path'  => $_lusterBaseUrl . '/assets/css/default/',
 ]);
 
+$_lusterHtml .= $luster_attribution;
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

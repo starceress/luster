@@ -273,6 +273,8 @@ if ($_lusterSubjectId > 0) {
 }
 
 
+$_lusterHtml .= $luster_attribution;
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

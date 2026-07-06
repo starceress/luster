@@ -39,7 +39,6 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = $_lusterApp ?? require $_lusterRoot . '/bootstrap.php';
-$luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
