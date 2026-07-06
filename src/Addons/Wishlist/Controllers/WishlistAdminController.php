@@ -457,9 +457,7 @@ final class WishlistAdminController extends AdminController
      */
     public function reorder(Request $request, array $params): Response
     {
-        if (!$this->validCsrf($request)) {
-            return Response::json(['ok' => false, 'error' => 'Invalid security token.'], 403);
-        }
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
 
         $type = trim((string) $request->post('type', ''));
         if (!in_array($type, self::VALID_TYPES, true)) {

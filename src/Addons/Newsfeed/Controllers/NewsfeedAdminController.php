@@ -133,10 +133,7 @@ final class NewsfeedAdminController extends AdminController
         $session->remove('lstr_flash_error');
 
         if ($request->isPost()) {
-            if (!$this->validCsrf($request)) {
-                $session->set('lstr_flash_error', 'Invalid security token.');
-                return Response::redirect($this->app->getBaseUrl() . '/admin/newsfeed/settings');
-            }
+            $this->app->getCSRF()->validate($request->post('_csrf', ''));
 
             $perPage = max(5, min(25, (int) $request->post('newsfeed_per_page', 10)));
             $settingsRepo->set('newsfeed_per_page', (string) $perPage);

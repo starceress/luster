@@ -2398,9 +2398,7 @@ final class SettingsController extends AdminController
      */
     public function checkHttp(Request $request, array $params): Response
     {
-        if (!$this->validCsrf($request)) {
-            return Response::json(['ok' => false, 'message' => 'Invalid security token.'], 403);
-        }
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
 
         if (!function_exists('curl_init')) {
             return Response::json(['ok' => false, 'message' => 'cURL is not available on this server.']);
