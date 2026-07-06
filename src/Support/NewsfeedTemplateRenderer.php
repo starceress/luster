@@ -23,25 +23,25 @@ final class NewsfeedTemplateRenderer
     {
         $hasEntries = count($entries) > 0;
         $template = TemplateEngine::conditionals($template, [
-            'updates'    => $hasEntries,
-            'no_updates' => !$hasEntries,
+            'newsfeed'    => $hasEntries,
+            'no_newsfeed' => !$hasEntries,
         ]);
 
         return TemplateEngine::loop(
             $template,
-            'update',
+            'newsfeed_entry',
             $entries,
             static function (string $inner, object $entry): string {
                 return TemplateEngine::render(
                     $inner,
                     [
-                        'update_title'      => $entry->title,
-                        'update_date'       => date('F j, Y', strtotime($entry->postedAt)),
-                        'update_author'     => $entry->author ?? '',
-                        'update_categories' => implode(', ', $entry->categories()),
+                        'newsfeed_title'      => $entry->title,
+                        'newsfeed_date'       => date('F j, Y', strtotime($entry->postedAt)),
+                        'newsfeed_author'     => $entry->author ?? '',
+                        'newsfeed_categories' => implode(', ', $entry->categories()),
                     ],
                     [
-                        'update_body_html' => nl2br(View::e($entry->body)),
+                        'newsfeed_body_html' => nl2br(View::e($entry->body)),
                     ],
                     [
                         'author'     => ($entry->author ?? '') !== '',

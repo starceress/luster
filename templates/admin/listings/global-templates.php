@@ -429,7 +429,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
           <div class="section-label">News Feed</div>
-          <p class="form-hint form-hint--spaced">Default for listings with the News Feed add-on. Wrap each entry in <code>{each_update}&hellip;{/each_update}</code>.</p>
+          <p class="form-hint form-hint--spaced">Default for listings with the News Feed add-on. Wrap each entry in <code>{each_newsfeed_entry}&hellip;{/each_newsfeed_entry}</code>.</p>
           <div class="field-group">
             <textarea name="listing_default_newsfeed_template" id="listing_default_newsfeed_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_newsfeed_template')) ?></textarea>
           </div>
@@ -762,19 +762,19 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
         <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Wrap each entry in {each_update}...{/each_update}. Luster repeats it once per news feed entry. Requires the News Feed add-on.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Wrap each entry in {each_newsfeed_entry}...{/each_newsfeed_entry}. Luster repeats it once per news feed entry. Requires the News Feed add-on.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_newsfeed_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_newsfeed_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
             <?= $tok('listing_default_newsfeed_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $tok('listing_default_newsfeed_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one entry on the current page.') ?>
-            <?= $tok('listing_default_newsfeed_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no entries (use for an empty state message).') ?>
-            <?= $tok('listing_default_newsfeed_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each entry shown.') ?>
-            <?= $tok('listing_default_newsfeed_template', '{update_title}',      '{update_title}',      'The entry title.') ?>
-            <?= $tok('listing_default_newsfeed_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
-            <?= $tok('listing_default_newsfeed_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
-            <?= $tok('listing_default_newsfeed_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
-            <?= $tok('listing_default_newsfeed_template', '{update_body_html}',  '{update_body_html}',  'The entry body text, with line breaks converted to HTML.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{if_newsfeed}{/if_newsfeed}',       '{if_newsfeed}...{/if_newsfeed}',       'Shows only when there is at least one entry on the current page.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{if_no_newsfeed}{/if_no_newsfeed}', '{if_no_newsfeed}...{/if_no_newsfeed}', 'Shows when the current page has no entries (use for an empty state message).') ?>
+            <?= $tok('listing_default_newsfeed_template', '{each_newsfeed_entry}{/each_newsfeed_entry}', '{each_newsfeed_entry}...{/each_newsfeed_entry}', 'Repeats the HTML inside it once for each entry shown.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{newsfeed_title}',      '{newsfeed_title}',      'The entry title.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{newsfeed_date}',       '{newsfeed_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{newsfeed_author}',     '{newsfeed_author}',     'The author name. Empty when not set.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{newsfeed_categories}', '{newsfeed_categories}', 'Category names, comma-separated. Empty when not set.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{newsfeed_body_html}',  '{newsfeed_body_html}',  'The entry body text, with line breaks converted to HTML.') ?>
             <?= $tok('listing_default_newsfeed_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the entry has an author set.') ?>
             <?= $tok('listing_default_newsfeed_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the entry has categories set.') ?>
           </tbody></table>

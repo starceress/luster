@@ -980,57 +980,57 @@
 }
 
 /* ------------------------------------------------------------------------
-   UPDATES FEED
-   News/updates feed for per-listing and collective update posts.
+   NEWS FEED
+   News feed for per-listing and collective newsfeed entries.
 ------------------------------------------------------------------------ */
 
-.fl-updates {
+.fl-newsfeed {
   --fl: ; /* Outer container */
 }
 
-.fl-update-item {
+.fl-newsfeed-item {
   margin-bottom: 1.5em;
   padding-bottom: 1.5em;
 }
 
-.fl-update-item:last-child {
+.fl-newsfeed-item:last-child {
   margin-bottom: 0;
   padding-bottom: 0;
 }
 
-.fl-update-header {
+.fl-newsfeed-header {
   margin-bottom: 0.35em;
 }
 
-.fl-update-title {
+.fl-newsfeed-title {
   font-weight: 600;
   font-size: 1.05em;
   display: block;
 }
 
-.fl-update-date {
+.fl-newsfeed-date {
   font-size: inherit;
 }
 
-.fl-update-author {
+.fl-newsfeed-author {
   font-style: italic;
 }
 
-.fl-update-body {
+.fl-newsfeed-body {
   margin-top: 1rem;
   line-height: 1.6;
 }
 
-.fl-update-meta {
+.fl-newsfeed-meta {
   font-size: 0.85em;
   margin-top: 0.4em;
 }
 
-.fl-update-categories {
+.fl-newsfeed-categories {
   display: inline;
 }
 
-.fl-update-category-tag {
+.fl-newsfeed-category-tag {
   margin-right: 0.3em;
 }
 

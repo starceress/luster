@@ -89,7 +89,7 @@ final class TemplatePackZipExportTest extends TestCase
     public function testDetectRequiredAddonsFindsNewsfeedAddon(): void
     {
         $addons = $this->callDetectRequiredAddons([
-            'newsfeed_template' => '{each_update}<li>{update_title}: {update_body}</li>{/each_update}',
+            'newsfeed_template' => '{each_newsfeed_entry}<li>{newsfeed_title}: {newsfeed_body}</li>{/each_newsfeed_entry}',
         ]);
         self::assertContains('Newsfeed', $addons);
     }
@@ -130,7 +130,7 @@ final class TemplatePackZipExportTest extends TestCase
     public function testDetectRequiredAddonsDeduplicatesMultipleSignals(): void
     {
         $addons = $this->callDetectRequiredAddons([
-            'newsfeed_template' => '{each_update}{update_title}{update_body}{/each_update}',
+            'newsfeed_template' => '{each_newsfeed_entry}{newsfeed_title}{newsfeed_body}{/each_newsfeed_entry}',
         ]);
         self::assertSame(1, count(array_keys($addons, 'Newsfeed')));
     }

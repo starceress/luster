@@ -459,7 +459,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <!-- ── News Feed ── -->
         <div class="tpl-group-section" data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
           <div class="section-label">News Feed</div>
-          <p class="form-hint" style="margin-bottom:.75rem">Used by the collective News Feed embed. Wrap each entry in <code>{each_update}&hellip;{/each_update}</code> &mdash; the outer wrapper and pagination are added automatically.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the collective News Feed embed. Wrap each entry in <code>{each_newsfeed_entry}&hellip;{/each_newsfeed_entry}</code> &mdash; the outer wrapper and pagination are added automatically.</p>
           <div class="field-group">
             <textarea name="collective_newsfeed_template" id="collective_newsfeed_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveUpdatesVal) ?></textarea>
           </div>
@@ -1066,17 +1066,17 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
       <details class="card chevron" data-token-card data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
         <summary class="chevron-head">News Feed Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Wrap each entry in {each_update}...{/each_update}. Luster repeats it once per newsfeed entry and adds the wrapper and pagination automatically.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Wrap each entry in {each_newsfeed_entry}...{/each_newsfeed_entry}. Luster repeats it once per newsfeed entry and adds the wrapper and pagination automatically.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('collective_newsfeed_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one entry on the current page.') ?>
-            <?= $tok('collective_newsfeed_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no entries (use for an empty state message).') ?>
+            <?= $tok('collective_newsfeed_template', '{if_newsfeed}{/if_newsfeed}',       '{if_newsfeed}...{/if_newsfeed}',       'Shows only when there is at least one entry on the current page.') ?>
+            <?= $tok('collective_newsfeed_template', '{if_no_newsfeed}{/if_no_newsfeed}', '{if_no_newsfeed}...{/if_no_newsfeed}', 'Shows when the current page has no entries (use for an empty state message).') ?>
             <?= $tok('collective_newsfeed_template', '{site_name}',                  '{site_name}',                  'The collective/site name.') ?>
-            <?= $tok('collective_newsfeed_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each entry shown.') ?>
-            <?= $tok('collective_newsfeed_template', '{update_title}',      '{update_title}',      'The entry title.') ?>
-            <?= $tok('collective_newsfeed_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
-            <?= $tok('collective_newsfeed_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
-            <?= $tok('collective_newsfeed_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
-            <?= $tok('collective_newsfeed_template', '{update_body_html}',  '{update_body_html}',  'The entry body text, with line breaks converted to HTML.') ?>
+            <?= $tok('collective_newsfeed_template', '{each_newsfeed_entry}{/each_newsfeed_entry}', '{each_newsfeed_entry}...{/each_newsfeed_entry}', 'Repeats the HTML inside it once for each entry shown.') ?>
+            <?= $tok('collective_newsfeed_template', '{newsfeed_title}',      '{newsfeed_title}',      'The entry title.') ?>
+            <?= $tok('collective_newsfeed_template', '{newsfeed_date}',       '{newsfeed_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
+            <?= $tok('collective_newsfeed_template', '{newsfeed_author}',     '{newsfeed_author}',     'The author name. Empty when not set.') ?>
+            <?= $tok('collective_newsfeed_template', '{newsfeed_categories}', '{newsfeed_categories}', 'Category names, comma-separated. Empty when not set.') ?>
+            <?= $tok('collective_newsfeed_template', '{newsfeed_body_html}',  '{newsfeed_body_html}',  'The entry body text, with line breaks converted to HTML.') ?>
             <?= $tok('collective_newsfeed_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the entry has an author set.') ?>
             <?= $tok('collective_newsfeed_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the entry has categories set.') ?>
           </tbody></table>

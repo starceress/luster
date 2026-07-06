@@ -792,32 +792,32 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Default updates-feed template used when no override is stored in the database.
+     * Default News Feed template used when no override is stored in the database.
      *
-     * Uses the {each_update} loop with per-entry tokens: {update_title}, {update_date},
-     * {update_author}, {update_categories}, {update_body_html}, and the
+     * Uses the {each_newsfeed_entry} loop with per-entry tokens: {newsfeed_title}, {newsfeed_date},
+     * {newsfeed_author}, {newsfeed_categories}, {newsfeed_body_html}, and the
      * {if_author} / {if_categories} conditionals.
      */
     public static function defaultNewsfeedTemplate(): string
     {
-        return '<h2>{listing_subject} Updates</h2>' . "\n"
-            . '<div class="fl-updates-list">' . "\n"
-            . '{if_no_updates}<p>No updates yet.</p>{/if_no_updates}' . "\n"
-            . '{if_updates}' . "\n"
-            . '{each_update}' . "\n"
+        return '<h2>{listing_subject} News Feed</h2>' . "\n"
+            . '<div class="fl-newsfeed-list">' . "\n"
+            . '{if_no_newsfeed}<p>No entries yet.</p>{/if_no_newsfeed}' . "\n"
+            . '{if_newsfeed}' . "\n"
+            . '{each_newsfeed_entry}' . "\n"
             . "\n"
-            . '<div class="fl-update-item">' . "\n"
-            . '<h3 class="fl-update-title">{update_title}</h3>' . "\n"
-            . '<div class="fl-update-meta">' . "\n"
-            . '<span class="fl-update-date"><b>Date Posted:</b> {update_date}</span>'
-            . '{if_author} by <span class="fl-update-author">{update_author}</span>{/if_author}<br>' . "\n"
-            . '{if_categories}<b>Categories:</b> <span class="fl-update-categories">{update_categories}</span>{/if_categories}</div>' . "\n"
+            . '<div class="fl-newsfeed-item">' . "\n"
+            . '<h3 class="fl-newsfeed-title">{newsfeed_title}</h3>' . "\n"
+            . '<div class="fl-newsfeed-meta">' . "\n"
+            . '<span class="fl-newsfeed-date"><b>Date Posted:</b> {newsfeed_date}</span>'
+            . '{if_author} by <span class="fl-newsfeed-author">{newsfeed_author}</span>{/if_author}<br>' . "\n"
+            . '{if_categories}<b>Categories:</b> <span class="fl-newsfeed-categories">{newsfeed_categories}</span>{/if_categories}</div>' . "\n"
             . "\n"
-            . '<div class="fl-update-body">{update_body_html}</div>' . "\n"
+            . '<div class="fl-newsfeed-body">{newsfeed_body_html}</div>' . "\n"
             . '</div>' . "\n"
             . "\n"
-            . '{/each_update}' . "\n"
-            . '{/if_updates}' . "\n"
+            . '{/each_newsfeed_entry}' . "\n"
+            . '{/if_newsfeed}' . "\n"
             . '</div>';
     }
 

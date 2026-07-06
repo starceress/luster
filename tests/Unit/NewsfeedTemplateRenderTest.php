@@ -33,7 +33,7 @@ final class NewsfeedTemplateRenderTest extends TestCase
     {
         $result = self::render(
             SampleTemplateData::updates(),
-            '{each_update}{update_title}|{/each_update}',
+            '{each_newsfeed_entry}{newsfeed_title}|{/each_newsfeed_entry}',
         );
 
         self::assertStringContainsString('Site Relaunch', $result);
@@ -46,7 +46,7 @@ final class NewsfeedTemplateRenderTest extends TestCase
         // SampleTemplateData::updates() posts 2026-06-10 — formatted "June 10, 2026"
         $result = self::render(
             SampleTemplateData::updates(),
-            '{each_update}{update_date}|{/each_update}',
+            '{each_newsfeed_entry}{newsfeed_date}|{/each_newsfeed_entry}',
         );
 
         self::assertStringContainsString('June 10, 2026', $result);
@@ -56,41 +56,41 @@ final class NewsfeedTemplateRenderTest extends TestCase
     {
         $result = self::render(
             SampleTemplateData::updates(),
-            '{each_update}{update_body_html}{/each_update}',
+            '{each_newsfeed_entry}{newsfeed_body_html}{/each_newsfeed_entry}',
         );
 
         self::assertStringContainsString('Crystal Tokyo', $result);
-        self::assertStringNotContainsString('{update_body_html}', $result);
+        self::assertStringNotContainsString('{newsfeed_body_html}', $result);
     }
 
     // -----------------------------------------------------------------------
-    // {if_updates} / {if_no_updates} page-level conditionals
+    // {if_newsfeed} / {if_no_newsfeed} page-level conditionals
     // -----------------------------------------------------------------------
 
-    public function testIfUpdatesBlockKeptWhenDataPresent(): void
+    public function testIfNewsfeedBlockKeptWhenDataPresent(): void
     {
-        $result = self::render(SampleTemplateData::updates(), '{if_updates}HAS_UPDATES{/if_updates}');
+        $result = self::render(SampleTemplateData::updates(), '{if_newsfeed}HAS_ENTRIES{/if_newsfeed}');
 
-        self::assertSame('HAS_UPDATES', $result);
+        self::assertSame('HAS_ENTRIES', $result);
     }
 
-    public function testIfNoUpdatesBlockStrippedWhenDataPresent(): void
+    public function testIfNoNewsfeedBlockStrippedWhenDataPresent(): void
     {
-        $result = self::render(SampleTemplateData::updates(), '{if_no_updates}EMPTY{/if_no_updates}');
+        $result = self::render(SampleTemplateData::updates(), '{if_no_newsfeed}EMPTY{/if_no_newsfeed}');
 
         self::assertSame('', $result);
     }
 
-    public function testIfNoUpdatesBlockKeptWhenEmpty(): void
+    public function testIfNoNewsfeedBlockKeptWhenEmpty(): void
     {
-        $result = self::render([], '{if_no_updates}EMPTY{/if_no_updates}');
+        $result = self::render([], '{if_no_newsfeed}EMPTY{/if_no_newsfeed}');
 
         self::assertSame('EMPTY', $result);
     }
 
-    public function testIfUpdatesBlockStrippedWhenEmpty(): void
+    public function testIfNewsfeedBlockStrippedWhenEmpty(): void
     {
-        $result = self::render([], '{if_updates}HAS_UPDATES{/if_updates}');
+        $result = self::render([], '{if_newsfeed}HAS_ENTRIES{/if_newsfeed}');
 
         self::assertSame('', $result);
     }
@@ -103,7 +103,7 @@ final class NewsfeedTemplateRenderTest extends TestCase
 
     public function testEmptyArrayWithLoopOnlyReturnsEmptyString(): void
     {
-        $result = self::render([], '{each_update}{update_title}{/each_update}');
+        $result = self::render([], '{each_newsfeed_entry}{newsfeed_title}{/each_newsfeed_entry}');
 
         self::assertSame('', $result);
     }
@@ -117,7 +117,7 @@ final class NewsfeedTemplateRenderTest extends TestCase
         // SampleTemplateData Update 1 and 3 both have author='Admin'
         $result = self::render(
             SampleTemplateData::updates(),
-            '{each_update}{if_author}BY:{update_author}{/if_author}|{/each_update}',
+            '{each_newsfeed_entry}{if_author}BY:{newsfeed_author}{/if_author}|{/each_newsfeed_entry}',
         );
 
         self::assertStringContainsString('BY:Admin', $result);
@@ -127,7 +127,7 @@ final class NewsfeedTemplateRenderTest extends TestCase
     {
         $entries = [new NewsfeedEntry(1, null, 'T', 'B', 'News', '', '2026-01-01', '2026-01-01 00:00:00')];
 
-        $result = self::render($entries, '{each_update}{if_author}HAS_AUTHOR{/if_author}|{/each_update}');
+        $result = self::render($entries, '{each_newsfeed_entry}{if_author}HAS_AUTHOR{/if_author}|{/each_newsfeed_entry}');
 
         self::assertSame('|', $result);
     }
@@ -141,7 +141,7 @@ final class NewsfeedTemplateRenderTest extends TestCase
         // SampleTemplateData Update 1 has categories 'News, Site'
         $result = self::render(
             SampleTemplateData::updates(),
-            '{each_update}{if_categories}CATS:{update_categories}|{/if_categories}{/each_update}',
+            '{each_newsfeed_entry}{if_categories}CATS:{newsfeed_categories}|{/if_categories}{/each_newsfeed_entry}',
         );
 
         self::assertStringContainsString('CATS:News, Site|', $result);
@@ -151,7 +151,7 @@ final class NewsfeedTemplateRenderTest extends TestCase
     {
         $entries = [new NewsfeedEntry(1, null, 'T', 'B', '', 'Admin', '2026-01-01', '2026-01-01 00:00:00')];
 
-        $result = self::render($entries, '{each_update}{if_categories}HAS_CATS{/if_categories}|{/each_update}');
+        $result = self::render($entries, '{each_newsfeed_entry}{if_categories}HAS_CATS{/if_categories}|{/each_newsfeed_entry}');
 
         self::assertSame('|', $result);
     }
@@ -165,23 +165,23 @@ final class NewsfeedTemplateRenderTest extends TestCase
         $tpl    = ListingSettingsRepo::defaultNewsfeedTemplate();
         $result = self::render(SampleTemplateData::updates(), $tpl);
 
-        self::assertStringContainsString('fl-update-item', $result);
+        self::assertStringContainsString('fl-newsfeed-item', $result);
         self::assertStringContainsString('Site Relaunch', $result);
-        self::assertStringNotContainsString('{update_title}', $result);
-        self::assertStringNotContainsString('{if_updates}', $result);
-        self::assertStringNotContainsString('{if_no_updates}', $result);
-        self::assertStringNotContainsString('{each_update}', $result);
+        self::assertStringNotContainsString('{newsfeed_title}', $result);
+        self::assertStringNotContainsString('{if_newsfeed}', $result);
+        self::assertStringNotContainsString('{if_no_newsfeed}', $result);
+        self::assertStringNotContainsString('{each_newsfeed_entry}', $result);
     }
 
-    public function testDefaultTemplateEmptyStateShowsNoUpdatesMessage(): void
+    public function testDefaultTemplateEmptyStateShowsNoEntriesMessage(): void
     {
         $tpl    = ListingSettingsRepo::defaultNewsfeedTemplate();
         $result = self::render([], $tpl);
 
-        self::assertStringContainsString('No updates yet.', $result);
-        self::assertStringNotContainsString('fl-update-item', $result);
-        self::assertStringNotContainsString('{if_updates}', $result);
-        self::assertStringNotContainsString('{if_no_updates}', $result);
+        self::assertStringContainsString('No entries yet.', $result);
+        self::assertStringNotContainsString('fl-newsfeed-item', $result);
+        self::assertStringNotContainsString('{if_newsfeed}', $result);
+        self::assertStringNotContainsString('{if_no_newsfeed}', $result);
     }
 
     public function testDefaultTemplateNoUnreplacedTokensWithSampleData(): void
@@ -189,7 +189,7 @@ final class NewsfeedTemplateRenderTest extends TestCase
         $tpl    = ListingSettingsRepo::defaultNewsfeedTemplate();
         $result = self::render(SampleTemplateData::updates(), $tpl);
 
-        self::assertStringNotContainsString('{update_', $result);
+        self::assertStringNotContainsString('{newsfeed_', $result);
         self::assertStringNotContainsString('{if_', $result);
         self::assertStringNotContainsString('{/if_', $result);
         self::assertStringNotContainsString('{each_', $result);

@@ -98,25 +98,25 @@ $_lusterNewsfeedTemplate     = $_lusterSiteRepo->get('collective_newsfeed_templa
 if ($_lusterNewsfeedTemplate !== null && trim($_lusterNewsfeedTemplate) !== '') {
     $_lusterNewsfeedTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterNewsfeedTemplate);
     $tplForLoop = TemplateEngine::conditionals($_lusterNewsfeedTemplate, [
-        'updates'    => count($_lusterUpdates) > 0,
-        'no_updates' => count($_lusterUpdates) === 0,
+        'newsfeed'    => count($_lusterUpdates) > 0,
+        'no_newsfeed' => count($_lusterUpdates) === 0,
     ]);
 
     $_lusterNewsfeedTemplateHtml = TemplateEngine::loop(
         $tplForLoop,
-        'update',
+        'newsfeed_entry',
         $_lusterUpdates,
         static function (string $inner, object $entry): string {
             return TemplateEngine::render(
                 $inner,
                 [
-                    'update_title'      => $entry->title,
-                    'update_date'       => date('F j, Y', strtotime($entry->postedAt)),
-                    'update_author'     => $entry->author ?? '',
-                    'update_categories' => implode(', ', $entry->categories()),
+                    'newsfeed_title'      => $entry->title,
+                    'newsfeed_date'       => date('F j, Y', strtotime($entry->postedAt)),
+                    'newsfeed_author'     => $entry->author ?? '',
+                    'newsfeed_categories' => implode(', ', $entry->categories()),
                 ],
                 [
-                    'update_body_html' => nl2br(View::e($entry->body)),
+                    'newsfeed_body_html' => nl2br(View::e($entry->body)),
                 ],
                 [
                     'author'     => ($entry->author ?? '') !== '',

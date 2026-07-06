@@ -1070,20 +1070,20 @@ $epSafe = View::e($ep);
         <!-- UPDATES TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-updates-tokens">
           <h3 class="panel-header-title">Updates</h3>
-          <p class="text-muted">These words are for news feed row templates. Design one update inside <code>{each_update}</code>, and Luster repeats it for each update post.</p>
+          <p class="text-muted">These words are for news feed row templates. Design one update inside <code>{each_newsfeed_entry}</code>, and Luster repeats it for each update post.</p>
           <div class="ec-ref-card">
   <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">Embed Token</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="actions-col"><code class="ec-tk">{each_update}&hellip;{/each_update}</code></td><td>Repeat box for one update post.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{update_title}</code></td><td>Update title.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{update_date}</code></td><td>Friendly date, such as January 15, 2026.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{update_body_html}</code></td><td>The update body with line breaks converted to <code>&lt;br&gt;</code>. Luster escapes the text first, so visitor-supplied HTML is not allowed through.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{update_author}</code></td><td>Update author, when saved.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{update_categories}</code></td><td>Update category names, separated by commas.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{each_newsfeed_entry}&hellip;{/each_newsfeed_entry}</code></td><td>Repeat box for one update post.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{newsfeed_title}</code></td><td>Update title.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{newsfeed_date}</code></td><td>Friendly date, such as January 15, 2026.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{newsfeed_body_html}</code></td><td>The update body with line breaks converted to <code>&lt;br&gt;</code>. Luster escapes the text first, so visitor-supplied HTML is not allowed through.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{newsfeed_author}</code></td><td>Update author, when saved.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{newsfeed_categories}</code></td><td>Update category names, separated by commas.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_author}&hellip;{/if_author}</code>, <code class="ec-tk">{if_categories}&hellip;{/if_categories}</code></td><td>Shows author or category markup only when that information exists.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{if_updates}&hellip;{/if_updates}</code>, <code class="ec-tk">{if_no_updates}&hellip;{/if_no_updates}</code></td><td>Shows the text inside only when there are updates (or none). Useful for empty-state messaging in your template.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_newsfeed}&hellip;{/if_newsfeed}</code>, <code class="ec-tk">{if_no_newsfeed}&hellip;{/if_no_newsfeed}</code></td><td>Shows the text inside only when there are updates (or none). Useful for empty-state messaging in your template.</td></tr>
               </tbody>
             </table>
             </div>

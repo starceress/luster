@@ -49,10 +49,10 @@ final class CollectiveWishlistUpdatesTemplateTest extends TestCase
         $defaults = SiteSettingsRepo::collectiveDefaults();
 
         self::assertNotSame('', $defaults['collective_newsfeed_template']);
-        self::assertStringContainsString('{each_update}', $defaults['collective_newsfeed_template']);
-        self::assertStringContainsString('{update_title}', $defaults['collective_newsfeed_template']);
-        self::assertStringContainsString('{update_body_html}', $defaults['collective_newsfeed_template']);
-        self::assertStringContainsString('fl-updates-list', $defaults['collective_newsfeed_template']);
+        self::assertStringContainsString('{each_newsfeed_entry}', $defaults['collective_newsfeed_template']);
+        self::assertStringContainsString('{newsfeed_title}', $defaults['collective_newsfeed_template']);
+        self::assertStringContainsString('{newsfeed_body_html}', $defaults['collective_newsfeed_template']);
+        self::assertStringContainsString('fl-newsfeed-list', $defaults['collective_newsfeed_template']);
         self::assertStringNotContainsString('{listing_subject}', $defaults['collective_newsfeed_template']);
         self::assertSame(
             SiteSettingsRepo::defaultCollectiveNewsfeedTemplate(),

@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Tests content-row template rendering contracts:
  *   - Codes: grouped {each_size_group} with nested {each_code}
- *   - Updates: {update_body_html} raw insertion + author/category conditionals
+ *   - Newsfeed: {newsfeed_body_html} raw insertion + author/category conditionals
  *   - Wishlist: {type_top}/{type_wanted}/{type_granted} conditionals
  *   - KIM member: {if_kim_url}/{if_no_kim_url} conditionals
  */
@@ -110,7 +110,7 @@ final class ContentRowTemplatesTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Updates template
+    // Newsfeed template
     // -------------------------------------------------------------------------
 
     public function testUpdatesTemplateBodyIsEscapedBeforeRawInsertion(): void
@@ -120,17 +120,17 @@ final class ContentRowTemplatesTest extends TestCase
         $body    = '<script>alert("xss")</script>';
         $escaped = nl2br(htmlspecialchars($body, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
 
-        $tpl = '{each_update}{update_body_html}{/each_update}';
+        $tpl = '{each_newsfeed_entry}{newsfeed_body_html}{/each_newsfeed_entry}';
 
         $result = TemplateEngine::loop(
             $tpl,
-            'update',
+            'newsfeed_entry',
             [['body' => $body]],
             static function (string $inner, array $update) use ($escaped): string {
                 return TemplateEngine::render(
                     $inner,
                     [],
-                    ['update_body_html' => nl2br(htmlspecialchars(
+                    ['newsfeed_body_html' => nl2br(htmlspecialchars(
                         $update['body'],
                         ENT_QUOTES | ENT_SUBSTITUTE,
                         'UTF-8',
@@ -145,7 +145,7 @@ final class ContentRowTemplatesTest extends TestCase
 
     public function testUpdatesTemplateAuthorConditional(): void
     {
-        $tpl = '{each_update}{if_author}by {update_author}{/if_author};{/each_update}';
+        $tpl = '{each_newsfeed_entry}{if_author}by {newsfeed_author}{/if_author};{/each_newsfeed_entry}';
 
         $updates = [
             ['author' => 'Alice', 'has_author' => true],
@@ -154,11 +154,11 @@ final class ContentRowTemplatesTest extends TestCase
 
         $result = TemplateEngine::loop(
             $tpl,
-            'update',
+            'newsfeed_entry',
             $updates,
             static fn(string $inner, array $u): string => TemplateEngine::render(
                 $inner,
-                ['update_author' => $u['author']],
+                ['newsfeed_author' => $u['author']],
                 [],
                 ['author' => $u['has_author']],
             ),
@@ -169,7 +169,7 @@ final class ContentRowTemplatesTest extends TestCase
 
     public function testUpdatesTemplateCategoryConditional(): void
     {
-        $tpl = '{each_update}{if_categories}({update_categories}){/if_categories}{update_title}{/each_update}';
+        $tpl = '{each_newsfeed_entry}{if_categories}({newsfeed_categories}){/if_categories}{newsfeed_title}{/each_newsfeed_entry}';
 
         $updates = [
             ['title' => 'A', 'cats' => 'Music, Rock', 'has_cats' => true],
@@ -178,11 +178,11 @@ final class ContentRowTemplatesTest extends TestCase
 
         $result = TemplateEngine::loop(
             $tpl,
-            'update',
+            'newsfeed_entry',
             $updates,
             static fn(string $inner, array $u): string => TemplateEngine::render(
                 $inner,
-                ['update_title' => $u['title'], 'update_categories' => $u['cats']],
+                ['newsfeed_title' => $u['title'], 'newsfeed_categories' => $u['cats']],
                 [],
                 ['categories' => $u['has_cats']],
             ),

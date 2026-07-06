@@ -124,7 +124,7 @@ final class TemplatePackController
 
     /** Token substrings that indicate a required add-on. */
     private const ADDON_SIGNALS = [
-        'Newsfeed'  => ['{each_update}', '{update_title}', '{update_body}'],
+        'Newsfeed'  => ['{each_newsfeed_entry}', '{newsfeed_title}', '{newsfeed_body}'],
         'Rules'     => ['{rules_body}', '{rules_title}'],
         'Adoption'  => ['{adopt_form}', 'adopt_form_template'],
         'Wishlist'  => ['{wishlist_'],
