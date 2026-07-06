@@ -569,8 +569,8 @@
 }
 
 /* ------------------------------------------------------------------------
-   COLLAPSIBLE AFFILIATE APPLICATION
-   Inline affiliate application form toggled by a link or button.
+   COLLAPSIBLE AFFILIATE & CODE DONATION FORMS
+   Inline affiliate & codes forms toggled by a link or button.
 ------------------------------------------------------------------------ */
 
 .fl-affiliate-apply-collapsible {
@@ -581,6 +581,10 @@
 }
 .fl-affiliate-apply-collapsible:has(.fl-affiliate-apply-toggle--link) {
   margin-top: 0;
+}
+.fl-affiliate-apply-collapsible[open] {
+  display: block;
+  width: 100%;
 }
 .fl-affiliate-apply-toggle {
   cursor: pointer;
@@ -602,7 +606,7 @@
 .fl-affiliate-apply-toggle--button::-webkit-details-marker,
 .fl-affiliate-apply-toggle--button::marker { display: none; content: ''; }
 .fl-affiliate-apply-form-wrap {
-  max-width: var(--fl-toggle-form-max-width, 24em);
+  max-width: 100%;
   margin-top: 1em;
 }
 .fl-codes-submit-collapsible {
@@ -613,6 +617,10 @@
 }
 .fl-codes-submit-collapsible:has(.fl-codes-submit-toggle--link) {
   margin-top: 0;
+}
+.fl-codes-submit-collapsible[open] {
+  display: block;
+  width: 100%;
 }
 .fl-codes-submit-toggle {
   cursor: pointer;
@@ -634,7 +642,7 @@
 .fl-codes-submit-toggle--button::-webkit-details-marker,
 .fl-codes-submit-toggle--button::marker { display: none; content: ''; }
 .fl-codes-submit-form-wrap {
-  max-width: var(--fl-toggle-form-max-width, 24em);
+  max-width: 100%;
   margin-top: 1em;
 }
 
@@ -1138,11 +1146,11 @@
   padding: 0.45em 0.65em;
   text-align: left;
   vertical-align: middle;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid currentColor;
 }
 
 .fl-kim-table thead th {
-  border-bottom: 2px solid #c0c0c0;
+  border-bottom: 2px solid currentColor;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1161,7 +1169,6 @@
 
 .fl-kim-entry-pending {
   font-size: 0.8em;
-  color: #888;
   font-style: italic;
   display: inline-block;
   margin-left: 0.35em;
@@ -1255,7 +1262,6 @@
 
 .fl-collective-update-url {
   font-size: 0.875em;
-  color: #888;
   margin-left: 0.25em;
 }
 
