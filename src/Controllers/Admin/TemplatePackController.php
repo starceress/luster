@@ -828,16 +828,30 @@ final class TemplatePackController
             return Response::json(['error' => 'Invalid payload.']);
         }
 
-        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $db       = $this->app->getDatabase();
+        $siteRepo = new SiteSettingsRepo($db);
         $stored   = $siteRepo->getGlobalTemplates();
 
-        $saved = 0;
+        // Default every key to its current value, then override only the keys
+        // the import payload actually touched — so recordChanged() below sees
+        // untouched keys as unchanged, not as a diff against a missing key.
+        $newValues = $stored;
+        $touched   = [];
         foreach (self::GLOBAL_KEY_MAP as $packKey => $storageKey) {
             if (!array_key_exists($packKey, $templates)) {
                 continue;
             }
             $value = is_string($templates[$packKey]) && $templates[$packKey] !== '' ? $templates[$packKey] : null;
-            $siteRepo->set($storageKey, $value !== $stored[$storageKey] ? $value : $stored[$storageKey]);
+            $newValues[$storageKey] = $value;
+            $touched[]              = $storageKey;
+        }
+
+        $adminId = (int) $this->app->getSession()->get('lstr_admin_id');
+        (new TemplateRevisionRepo($db))->recordChanged(TemplateRevisionRepo::GLOBAL_DEFAULTS_ID, $stored, $newValues, $adminId);
+
+        $saved = 0;
+        foreach ($touched as $storageKey) {
+            $siteRepo->set($storageKey, $newValues[$storageKey]);
             $saved++;
         }
 
@@ -920,6 +934,15 @@ final class TemplatePackController
         $resolved  = $this->resolveGlobalSourceTemplates($sourceId, $db, $siteRepo);
         $validKeys = array_intersect($selectedKeys, array_keys(self::GLOBAL_KEY_MAP));
 
+        $stored    = $siteRepo->getGlobalTemplates();
+        $newValues = $stored;
+        foreach ($validKeys as $packKey) {
+            $newValues[self::GLOBAL_KEY_MAP[$packKey]] = $resolved[$packKey];
+        }
+
+        $adminId = (int) $this->app->getSession()->get('lstr_admin_id');
+        (new TemplateRevisionRepo($db))->recordChanged(TemplateRevisionRepo::GLOBAL_DEFAULTS_ID, $stored, $newValues, $adminId);
+
         $saved = 0;
         foreach ($validKeys as $packKey) {
             $storageKey = self::GLOBAL_KEY_MAP[$packKey];
@@ -941,7 +964,7 @@ final class TemplatePackController
      *
      * @return array<string, string>
      */
-    private function resolveGlobalSourceTemplates(int $sourceId, \PDO $db, SiteSettingsRepo $siteRepo): array
+    private function resolveGlobalSourceTemplates(int $sourceId, \Luster\Core\Database $db, SiteSettingsRepo $siteRepo): array
     {
         $settingsRepo    = new ListingSettingsRepo($db);
         $perListing      = $settingsRepo->getTemplates($sourceId);
