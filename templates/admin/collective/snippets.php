@@ -14,14 +14,36 @@ use Luster\Core\View;
 
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $ep = rtrim(str_replace('\\', '/', (string) ($embed_path ?? '/path/to/luster/public/embed')), '/');
-$escapedEp = str_replace(["\\", "'"], ["\\\\", "\\'"], $ep);
+$escapedEp  = str_replace(["\\", "'"], ["\\\\", "\\'"], $ep);
+$setupLine1 = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . $escapedEp . "'); ?>";
+$setupLine2 = "<?php require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.php'; ?>";
+$setupLine3 = "<?php if (isset(\$_GET['luster_css'])) { Luster\\Core\\View::serveCss(); exit; } ?>";
+$setupLine4 = '<link rel="stylesheet" href="?luster_css">';
 
-// Builds an HTML-escaped PHP snippet from an array of code lines.
-$snip = static function(array $lines) use ($escapedEp): string {
+// Same PHP syntax highlighter used by the Full Embed Wizard's setup snippet.
+$hlPhp = static function (string $code): string {
+    $e = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return (string) preg_replace_callback(
+        '/(\/\/[^\n]*)|(&#039;(?:[^&]|&(?!#039;))*&#039;)|(&lt;\?php|\?&gt;)|(\b(?:require_once|require|defined|define|isset|exit|true|false|null|if)\b)|(\$\w+)|(\b\d+\b)/',
+        static function (array $m): string {
+            if ($m[1] !== '') return '<span class="ec-hl-c">' . $m[0] . '</span>';
+            if ($m[2] !== '') return '<span class="ec-hl-s">' . $m[0] . '</span>';
+            if ($m[3] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
+            if ($m[4] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
+            if ($m[5] !== '') return '<span class="ec-hl-v">' . $m[0] . '</span>';
+            if ($m[6] !== '') return '<span class="ec-hl-n">' . $m[0] . '</span>';
+            return $m[0];
+        },
+        $e,
+    );
+};
+
+// Builds an HTML-escaped PHP snippet from an array of code lines. Every embed
+// line refers to the LUSTER_EMBED constant defined by the one-time setup
+// snippet above, rather than baking the install path into every snippet.
+$snip = static function(array $lines): string {
     $lines[] = '?>';
-    $code = implode("\n", $lines);
-    $code = str_replace('EMBED_PATH', $escapedEp, $code);
-    return htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return htmlspecialchars(implode("\n", $lines), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 };
 ?>
 
@@ -30,7 +52,32 @@ $snip = static function(array $lines) use ($escapedEp): string {
   <a href="<?= $b ?>/admin/embed-codes" class="btn btn-quaternary btn-sm"><?= View::icon('embed', ['width' => 14, 'height' => 14]) ?> Full Embed Wizard</a>
 </div>
 
-<p>Drop any snippet into a PHP page on your site. The path is already filled in based on where Luster is installed. The <a href="<?= $b ?>/admin/embed-codes" class="link">Full Embed Wizard</a> has per-listing snippets and all customisation options.</p>
+<p>Paste the setup snippet below once — ideally in your site's shared header file — then drop any of the ready-to-copy snippets underneath it into your pages. The <a href="<?= $b ?>/admin/embed-codes" class="link">Full Embed Wizard</a> has per-listing snippets and all customisation options.</p>
+
+<!-- ── One-Time Setup ───────────────────────────────────────────────────── -->
+<section class="es-section">
+  <div class="card ec-wizard-card">
+    <div class="ec-setup-top">
+      <div class="ec-setup-head">
+        <strong class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></strong>
+        <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
+                data-setup-text="<?= htmlspecialchars($setupLine1 . "\n" . $setupLine2 . "\n" . $setupLine3 . "\n\n" . $setupLine4, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
+      </div>
+
+      <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>): <span class="ec-setup-help" data-desc="These three lines set up your page to work with Luster. The first line tells your page where Luster is installed. The second loads the tools Luster needs to run. The third lets your page serve Luster&rsquo;s stylesheet without showing visitors where Luster lives on your server.">?</span></p>
+      <div class="ec-setup-snip">
+        <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine1) ?></code></div>
+        <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine2) ?></code></div>
+        <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine3) ?></code></div>
+      </div>
+
+      <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked: <span class="ec-setup-help" data-desc="This loads Luster&rsquo;s default styles for embeds so they're styled automatically. It uses ?luster_css instead of a direct file path so visitors can&rsquo;t see where Luster is installed on your server. Placing it before your own stylesheets lets your CSS override Luster&rsquo;s default.">?</span></p>
+      <div class="ec-setup-snip">
+        <div class="ec-setup-snip-line"><code>&lt;<span class="ec-hl-k">link</span> <span class="ec-hl-v">rel</span>=<span class="ec-hl-s">&quot;stylesheet&quot;</span> <span class="ec-hl-v">href</span>=<span class="ec-hl-s">&quot;?luster_css&quot;</span>&gt;</code></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 
 <!-- ── Listings & Data ──────────────────────────────────────────────────── -->
@@ -42,7 +89,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '// Requires Adoption add-on (Admin → Add-ons)',
-          "require 'EMBED_PATH/adopt.php';",
+          "require LUSTER_EMBED . '/adopt.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -62,7 +109,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
           '<?php',
           '// Enable collective affiliate applications in Admin → Settings',
           '$luster_fanlisting_id = 0; // collective affiliate application',
-          "require 'EMBED_PATH/affiliate-apply.php';",
+          "require LUSTER_EMBED . '/affiliate-apply.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -81,7 +128,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '$luster_fanlisting_id = 0; // collective affiliates',
-          "require 'EMBED_PATH/affiliates.php';",
+          "require LUSTER_EMBED . '/affiliates.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -100,7 +147,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '$luster_fanlisting_id = 0; // collective codes',
-          "require 'EMBED_PATH/codes.php';",
+          "require LUSTER_EMBED . '/codes.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -119,7 +166,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '$luster_fanlisting_id = 0; // collective codes',
-          "require 'EMBED_PATH/collective-codes-submit.php';",
+          "require LUSTER_EMBED . '/collective-codes-submit.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -137,7 +184,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
 
       <?php $_s = $snip([
           '<?php',
-          "require 'EMBED_PATH/collective-stats.php';",
+          "require LUSTER_EMBED . '/collective-stats.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -155,7 +202,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
 
       <?php $_s = $snip([
           '<?php',
-          "require 'EMBED_PATH/collective-contact.php';",
+          "require LUSTER_EMBED . '/collective-contact.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -173,7 +220,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
 
       <?php $_s = $snip([
           '<?php',
-          "require 'EMBED_PATH/joined.php';",
+          "require LUSTER_EMBED . '/joined.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -192,7 +239,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '// Requires KIM List add-on (Admin → Add-ons)',
-          "require 'EMBED_PATH/kim-list.php';",
+          "require LUSTER_EMBED . '/kim-list.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -211,7 +258,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '// Requires KIM List add-on (Admin → Add-ons)',
-          "require 'EMBED_PATH/kim-reset.php';",
+          "require LUSTER_EMBED . '/kim-reset.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -230,7 +277,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '// Requires KIM List add-on (Admin → Add-ons)',
-          "require 'EMBED_PATH/kim-signup.php';",
+          "require LUSTER_EMBED . '/kim-signup.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -249,7 +296,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '// Requires KIM List add-on (Admin → Add-ons)',
-          "require 'EMBED_PATH/kim-update.php';",
+          "require LUSTER_EMBED . '/kim-update.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -268,7 +315,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           "// Renders the joined listing with the most recent join date.",
-          "require 'EMBED_PATH/latest-joined-listing.php';",
+          "require LUSTER_EMBED . '/latest-joined-listing.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -287,7 +334,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           "// Renders the listing with the most recent open date.",
-          "require 'EMBED_PATH/latest-listing.php';",
+          "require LUSTER_EMBED . '/latest-listing.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -306,7 +353,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '// Requires News Feed add-on (Admin → Add-ons)',
-          "require 'EMBED_PATH/collective-newsfeed.php';",
+          "require LUSTER_EMBED . '/collective-newsfeed.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -324,7 +371,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
 
       <?php $_s = $snip([
           '<?php',
-          "require 'EMBED_PATH/owned.php';",
+          "require LUSTER_EMBED . '/owned.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -343,7 +390,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           "// Renders one active, approved joined listing at random.",
-          "require 'EMBED_PATH/random-joined-listing.php';",
+          "require LUSTER_EMBED . '/random-joined-listing.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -362,7 +409,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           "// Renders one current owned listing at random.",
-          "require 'EMBED_PATH/random-listing.php';",
+          "require LUSTER_EMBED . '/random-listing.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
@@ -381,7 +428,7 @@ $snip = static function(array $lines) use ($escapedEp): string {
       <?php $_s = $snip([
           '<?php',
           '// Requires Wishlist add-on (Admin → Add-ons)',
-          "require 'EMBED_PATH/wishlist.php';",
+          "require LUSTER_EMBED . '/wishlist.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
