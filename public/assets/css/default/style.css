@@ -574,7 +574,13 @@
 ------------------------------------------------------------------------ */
 
 .fl-affiliate-apply-collapsible {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
   margin-top: 1em;
+}
+.fl-affiliate-apply-collapsible:has(.fl-affiliate-apply-toggle--link) {
+  margin-top: 0;
 }
 .fl-affiliate-apply-toggle {
   cursor: pointer;
@@ -588,15 +594,25 @@
 .fl-affiliate-apply-toggle--button {
   display: inline-block;
   padding: 0.4em 1em;
+  border: 1px solid currentColor;
+  border-radius: var(--fl-radius, 3px);
+  text-decoration: none;
   list-style: none;
 }
 .fl-affiliate-apply-toggle--button::-webkit-details-marker,
 .fl-affiliate-apply-toggle--button::marker { display: none; content: ''; }
 .fl-affiliate-apply-form-wrap {
+  max-width: var(--fl-toggle-form-max-width, 24em);
   margin-top: 1em;
 }
 .fl-codes-submit-collapsible {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
   margin-top: 1em;
+}
+.fl-codes-submit-collapsible:has(.fl-codes-submit-toggle--link) {
+  margin-top: 0;
 }
 .fl-codes-submit-toggle {
   cursor: pointer;
@@ -610,11 +626,15 @@
 .fl-codes-submit-toggle--button {
   display: inline-block;
   padding: 0.4em 1em;
+  border: 1px solid currentColor;
+  border-radius: var(--fl-radius, 3px);
+  text-decoration: none;
   list-style: none;
 }
 .fl-codes-submit-toggle--button::-webkit-details-marker,
 .fl-codes-submit-toggle--button::marker { display: none; content: ''; }
 .fl-codes-submit-form-wrap {
+  max-width: var(--fl-toggle-form-max-width, 24em);
   margin-top: 1em;
 }
 
