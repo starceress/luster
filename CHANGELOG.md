@@ -53,11 +53,3 @@ for you.
   backlink verification, one-click URL updates, activity and error logs.
 - **Security-first foundations:** Argon2id passwords, CSRF protection,
   prepared statements, rate limiting, and 1,650+ automated tests.
-
-A note for anyone who's been running a pre-release copy: the members-list
-`{sort_link_all}` template token was renamed to `{sort_link_date}`, and the
-News Feed embed's tokens/CSS classes were renamed from the old `update_*`
-wording to `newsfeed_*` (`{each_update}` → `{each_newsfeed_entry}`,
-`{update_title}` → `{newsfeed_title}`, `{if_updates}` → `{if_newsfeed}`,
-`.fl-update-item` → `.fl-newsfeed-item`, and so on across the whole set) —
-update any custom templates using the old names.

@@ -66,7 +66,7 @@ of it for you.
   protection, output escaping, prepared statements, safer upload/import
   handling, concealed install paths, arithmetic CAPTCHA and per-IP rate
   limiting on every public join form to block bots, and an automated test
-  suite of 1,500+ tests. Member update and delete forms stay secure even on
+  suite of 1,650+ tests. Member update and delete forms stay secure even on
   shared hosting where PHP sessions can drop mid-flow. Plus a one-click
   database backup download.
 
@@ -177,8 +177,6 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
   navigation sidebar.
 - Use the *Contact Form* at [luster.nu](https://luster.nu/contact/)
 - *Email me* directly at `support@luster.nu`
-- Via *GitHub* at [Luster's GitHub issues](https://github.com/starceress/luster/issues)
-  (requires GitHub account)
 
 
 
