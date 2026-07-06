@@ -3002,9 +3002,18 @@ final class ListingController extends AdminController
         $siteRepo = new SiteSettingsRepo($db);
         $normalize = static fn(string $v): string => trim(str_replace("\r\n", "\n", $v));
 
+        $oldValues = $siteRepo->getMany(array_keys($types));
+        $newValues = [];
         foreach ($types as $key => $builtIn) {
-            $submitted = $normalize((string) $request->post($key, ''));
-            $value     = ($submitted === '' || $submitted === $normalize($builtIn)) ? null : $submitted;
+            $submitted        = $normalize((string) $request->post($key, ''));
+            $newValues[$key]  = ($submitted === '' || $submitted === $normalize($builtIn)) ? null : $submitted;
+        }
+
+        $adminId = (int) $session->get('lstr_admin_id');
+        (new \Luster\Repositories\TemplateRevisionRepo($db))
+            ->recordChanged(\Luster\Repositories\TemplateRevisionRepo::GLOBAL_DEFAULTS_ID, $oldValues, $newValues, $adminId);
+
+        foreach ($newValues as $key => $value) {
             $siteRepo->set($key, $value);
         }
 

@@ -27,6 +27,16 @@ final class TemplateRevisionRepo
      */
     public const COLLECTIVE_ID = 0;
 
+    /**
+     * Sentinel fanlisting_id used for the site-wide "Global Templates"
+     * defaults (Admin -> Owned Listings -> Global Templates). Like collective
+     * templates, these apply everywhere rather than to one listing row, so
+     * they need their own scope key distinct from COLLECTIVE_ID. fanlisting_id
+     * is INT UNSIGNED, so this uses the column's max value — a real listing's
+     * autoincrement id will never reach it.
+     */
+    public const GLOBAL_DEFAULTS_ID = 4294967295;
+
     public function __construct(private readonly Database $db) {}
 
     /**

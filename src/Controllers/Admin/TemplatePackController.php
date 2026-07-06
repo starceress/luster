@@ -992,6 +992,127 @@ final class TemplatePackController
     }
 
     // =========================================================================
+    // Global Templates revision history
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // GET /admin/listings/global-templates/template-revisions?key=...
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the revision history list for one global template key.
+     * JSON response: {ok, revisions: [{id, saved_at, preview, has_value}]}
+     */
+    public function globalRevisions(Request $request, array $params): Response
+    {
+        $key = (string) ($request->query('key', ''));
+
+        if (!in_array($key, self::GLOBAL_KEY_MAP, true)) {
+            return Response::json(['error' => 'Unknown template key.']);
+        }
+
+        $history = (new TemplateRevisionRepo($this->app->getDatabase()))
+            ->getHistory(TemplateRevisionRepo::GLOBAL_DEFAULTS_ID, $key);
+
+        $result = array_map(static fn(array $r): array => [
+            'id'        => $r['id'],
+            'saved_at'  => $r['saved_at'],
+            'preview'   => mb_substr((string) ($r['value'] ?? ''), 0, 200),
+            'has_value' => $r['value'] !== null,
+        ], $history);
+
+        return Response::json(['ok' => true, 'revisions' => $result]);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /admin/listings/global-templates/template-revisions/{revisionId}
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the full value of a single global-template revision (for preview before restore).
+     * JSON response: {ok, value}
+     */
+    public function globalRevisionValue(Request $request, array $params): Response
+    {
+        $revisionId = (int) ($params['revisionId'] ?? 0);
+
+        $revision = (new TemplateRevisionRepo($this->app->getDatabase()))->getById($revisionId);
+
+        if ($revision === null || $revision['fanlisting_id'] !== TemplateRevisionRepo::GLOBAL_DEFAULTS_ID) {
+            return Response::json(['error' => 'Revision not found.'], 404);
+        }
+
+        return Response::json(['ok' => true, 'value' => $revision['value']]);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/listings/global-templates/template-revisions/{revisionId}/restore
+    // -------------------------------------------------------------------------
+
+    /**
+     * Restores a global-template revision value as the current template value.
+     * JSON response: {ok, key, value}
+     */
+    public function globalRestoreRevision(Request $request, array $params): Response
+    {
+        $revisionId = (int) ($params['revisionId'] ?? 0);
+
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $db      = $this->app->getDatabase();
+        $adminId = (int) $this->app->getSession()->get('lstr_admin_id');
+
+        $revisionRepo = new TemplateRevisionRepo($db);
+        $revision     = $revisionRepo->getById($revisionId);
+
+        if ($revision === null || $revision['fanlisting_id'] !== TemplateRevisionRepo::GLOBAL_DEFAULTS_ID) {
+            return Response::json(['error' => 'Revision not found.'], 404);
+        }
+
+        $key   = $revision['template_key'];
+        $value = $revision['value'];
+
+        if (!in_array($key, self::GLOBAL_KEY_MAP, true)) {
+            return Response::json(['error' => 'Unknown template key.']);
+        }
+
+        $siteRepo     = new SiteSettingsRepo($db);
+        $currentValue = $siteRepo->get($key);
+
+        // Record the current value before replacing it
+        $revisionRepo->record(TemplateRevisionRepo::GLOBAL_DEFAULTS_ID, $key, $currentValue, $adminId);
+
+        // Apply the restored value (empty string means reset to default = null)
+        $siteRepo->set($key, ($value !== null && $value !== '') ? $value : null);
+
+        return Response::json(['ok' => true, 'key' => $key, 'value' => $value]);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/listings/global-templates/template-revisions/flush
+    // -------------------------------------------------------------------------
+
+    /**
+     * Deletes all revision history for one global template key.
+     * JSON response: {ok}
+     */
+    public function globalFlushRevisions(Request $request, array $params): Response
+    {
+        $key = (string) $request->post('key', '');
+
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        if (!in_array($key, self::GLOBAL_KEY_MAP, true)) {
+            return Response::json(['ok' => false, 'error' => 'Unknown template key.']);
+        }
+
+        (new TemplateRevisionRepo($this->app->getDatabase()))
+            ->deleteByKey(TemplateRevisionRepo::GLOBAL_DEFAULTS_ID, $key);
+
+        return Response::json(['ok' => true]);
+    }
+
+    // =========================================================================
     // Collective template pack endpoints
     // =========================================================================
 

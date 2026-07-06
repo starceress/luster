@@ -142,6 +142,14 @@ return [
             TemplatePackController::class, 'globalCopyApply');
         $router->get('/admin/listings/global-templates/template-pack/listings-for-copy',
             TemplatePackController::class, 'globalListingsForCopy');
+        $router->get('/admin/listings/global-templates/template-revisions',
+            TemplatePackController::class, 'globalRevisions');
+        $router->get('/admin/listings/global-templates/template-revisions/{revisionId}',
+            TemplatePackController::class, 'globalRevisionValue');
+        $router->post('/admin/listings/global-templates/template-revisions/{revisionId}/restore',
+            TemplatePackController::class, 'globalRestoreRevision');
+        $router->post('/admin/listings/global-templates/template-revisions/flush',
+            TemplatePackController::class, 'globalFlushRevisions');
         $router->get('/admin/listings/settings', ListingController::class, 'indexSettings');
         $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
         $router->post('/admin/listings/settings/send-overdue-now', ListingController::class, 'sendOverdueNow');
