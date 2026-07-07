@@ -352,6 +352,8 @@ final class AuthController
 
             $resetLink = $baseUrl . '/admin/reset/' . $rawToken;
             $siteName  = (string) $this->app->getConfig()->get('site_name', 'Luster');
+            $ownerName = (string) $this->app->getConfig()->get('owner_name', $siteName);
+            $siteUrl   = (string) $this->app->getConfig()->get('site_url', '');
 
             try {
                 $mailer = new Mailer($this->app->getConfig());
@@ -361,10 +363,11 @@ final class AuthController
                     'Reset your ' . $siteName . ' admin password',
                     "Hello {$user['username']},\n\n"
                     . "A password reset was requested for your {$siteName} admin account.\n\n"
-                    . "Click the link below to set a new password. This link expires in 60 minutes.\n\n"
+                    . "Click the link below to set a new password. This link expires in 1 hour.\n\n"
                     . $resetLink . "\n\n"
                     . "If you did not request this, you can safely ignore this email.\n\n"
-                    . "— {$siteName}"
+                    . "-- {$ownerName}\n"
+                    . "{$siteName} ({$siteUrl})"
                 );
             } catch (\Throwable $e) {
                 try {
