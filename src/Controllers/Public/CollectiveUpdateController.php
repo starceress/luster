@@ -195,6 +195,24 @@ final class CollectiveUpdateController
         $newCountry         = trim((string) $request->post('country', ''));
         $newPassword        = (string) $request->post('new_password', '');
         $newPasswordConfirm = (string) $request->post('new_password_confirm', '');
+        $deleteMembership   = ((string) $request->post('delete_membership', '') === '1');
+
+        if ($selectedIds === []) {
+            $session->set('lstr_flash_error', 'Please select at least one fanlisting to update.');
+            return Response::redirect($tokenUrl);
+        }
+
+        // Permanently delete membership instead of updating it — skips every
+        // other field entirely, matching the single-listing update form.
+        if ($deleteMembership) {
+            if ($tokenRepo->verifyAndConsume($rawToken) === null) {
+                $session->set('lstr_flash_error', 'That update link is invalid or has expired. Please request a new one.');
+                return Response::redirect($embedReturnTo);
+            }
+
+            $session->remove('lstr_embed_return_to');
+            return $this->deleteMemberships($selectedIds, $validMap, $email, $embedReturnTo);
+        }
 
         $v = new Validator(['name' => $newName, 'new_email' => $newEmail, 'url' => $newUrl, 'country' => $newCountry, 'new_password' => $newPassword]);
         if ($newName !== '') {
@@ -228,11 +246,6 @@ final class CollectiveUpdateController
         if ($newEmail !== '' && $newEmail !== $email && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($newEmail)) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', 'That email address cannot be used.');
-            return Response::redirect($tokenUrl);
-        }
-
-        if ($selectedIds === []) {
-            $session->set('lstr_flash_error', 'Please select at least one fanlisting to update.');
             return Response::redirect($tokenUrl);
         }
 
@@ -335,6 +348,90 @@ final class CollectiveUpdateController
         }
 
         $session->remove('lstr_embed_return_to');
+        return Response::redirect($embedReturnTo);
+    }
+
+    /**
+     * Permanently removes the member's row from every selected listing,
+     * discarding any other requested field changes. Mirrors
+     * UpdateController's single-listing delete_membership handling, applied
+     * across every selected fanlisting, plus the same side-table cleanup
+     * MemberController::edit() does for a permanently-removed member
+     * (pending updates, link-check history, outstanding reset tokens).
+     *
+     * @param int[] $selectedIds
+     * @param array<int, array{listing: Listing, member: Member}> $validMap
+     */
+    private function deleteMemberships(array $selectedIds, array $validMap, string $email, string $embedReturnTo): Response
+    {
+        $db            = $this->app->getDatabase();
+        $config        = $this->app->getConfig();
+        $session       = $this->app->getSession();
+        $memberRepo    = new MemberRepo($db, $config);
+        $lifecycleRepo = new ListingLifecycleRepo($db);
+        $pendingRepo   = new PendingUpdateRepo($db);
+        $mailer        = new Mailer($config);
+
+        $deleted = [];
+        $skipped = [];
+
+        foreach ($selectedIds as $listingId) {
+            $entry   = $validMap[$listingId];
+            $listing = $entry['listing'];
+            $member  = $entry['member'];
+
+            // Skip if archived since the memberships were loaded
+            if ($lifecycleRepo->getByListingId($listingId) !== null) {
+                $skipped[] = $listing->title;
+                continue;
+            }
+
+            $memberRepo->deleteByEmail($listing->dbprefix, $email);
+            $pendingRepo->deleteByListingAndEmail($listingId, $email);
+            (new FanPasswordResetRepo($db))->deleteByEmail($listingId, $email);
+            try {
+                (new MemberLinkCheckRepo($db, $config))->removeMember($listingId, $email);
+            } catch (\Throwable) {}
+
+            // Farewell email (best-effort)
+            try {
+                $emailRepo = new EmailTemplateRepo($db);
+                $_es       = (new ListingSettingsRepo($db))->getResolvedEmbedSettings($listingId);
+                $tokens    = EmailTemplateRepo::buildTokens(
+                    listingName:    $listing->title,
+                    listingUrl:     $listing->url,
+                    siteName:       (string) $config->get('site_name', 'Luster'),
+                    listingSubject: $listing->subject,
+                    ownerName:      (string) $config->get('owner_name', ''),
+                    ownerEmail:     (string) $config->get('owner_email', ''),
+                    fanName:        $member->name,
+                    fanEmail:       $email,
+                    listingEmail:   $listing->email,
+                    formUrlJoin:    (string) $_es['form_url_join'],
+                    formUrlUpdate:  (string) $_es['form_url_update'],
+                    formUrlReset:   (string) $_es['form_url_reset'],
+                    listingType:    (new ListingSettingsRepo($db))->getListingType($listingId),
+                );
+                [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_REMOVE, $tokens);
+                if ($subject !== '') {
+                    $mailer->send($email, $member->name, $subject, $body);
+                }
+            } catch (\Throwable $e) {
+                error_log('[Luster] Collective update removal email failed: ' . $e->getMessage());
+            }
+
+            $deleted[] = $listing->title;
+        }
+
+        $parts = [];
+        if ($deleted !== []) {
+            $parts[] = 'Membership deleted: ' . implode(', ', array_map('htmlspecialchars', $deleted));
+        }
+        if ($skipped !== []) {
+            $parts[] = 'No longer available: ' . implode(', ', array_map('htmlspecialchars', $skipped));
+        }
+
+        $session->set('lstr_flash_success_html', '<p class="fl-success">Done! ' . implode('. ', $parts) . '.</p>');
         return Response::redirect($embedReturnTo);
     }
 

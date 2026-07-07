@@ -1503,14 +1503,21 @@ final class SettingsController extends AdminController
         // Step 2: update form (hardcoded — listing checkboxes are dynamic, not template-controlled)
         $_e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $f2 = $fb->build([
-            ['type' => 'text',     'name' => 'name',                'id' => 'cu-name',            'label' => 'Name',                 'required' => false, 'attrs' => ['maxlength' => '100', 'value' => 'Usagi']],
-            ['type' => 'email',    'name' => 'new_email',           'id' => 'cu-email',           'label' => 'Email address',        'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email', 'value' => 'fan@example.com'], 'hint' => 'Changes the email on every fanlisting you select below.'],
+            ['type' => 'text',     'name' => 'name',                'id' => 'cu-name',            'label' => 'New Name',             'required' => false, 'attrs' => ['maxlength' => '100', 'placeholder' => 'Usagi']],
+            ['type' => 'email',    'name' => 'new_email',           'id' => 'cu-email',           'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email', 'placeholder' => 'fan@example.com'], 'hint' => 'Changes the email on every fanlisting you select below.'],
             ['type' => 'url',      'name' => 'url',                 'id' => 'cu-url',             'label' => 'Website URL',          'required' => false, 'attrs' => ['maxlength' => '500', 'value' => 'https://example.com']],
             ['type' => 'select',   'name' => 'country',             'id' => 'cu-country',         'label' => 'Country',              'required' => false,
                 'raw_input' => '<select class="fl-select" id="cu-country" name="country"><option value="US" selected>United States</option></select>'],
             ['type' => 'password', 'name' => 'new_password',        'id' => 'cu-password',        'label' => 'New password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep your current password.'],
             ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'cu-password-confirm', 'label' => 'Confirm new password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ], '');
+        $deleteMembershipHtml = '<div class="fl-field fl-field--danger">'
+            . '<label class="fl-label fl-label-danger">'
+            . '<input type="checkbox" class="fl-checkbox" id="cu-delete-membership" disabled>'
+            . ' Permanently delete my membership(s) instead of updating them.'
+            . '</label>'
+            . '<p class="fl-field-hint">This immediately and permanently removes your membership from every fanlisting you select below. Any changes above are ignored, and this cannot be undone.</p>'
+            . '</div>';
         $sampleRows = [
             ['title' => SampleTemplateData::LISTING_TITLE_A, 'subject' => SampleTemplateData::LISTING_SUBJECT, 'url' => SampleTemplateData::LISTING_URL],
             ['title' => SampleTemplateData::LISTING_TITLE_B, 'subject' => 'Star Wars', 'url' => 'https://example.com/jedi-order'],
@@ -1534,8 +1541,10 @@ final class SettingsController extends AdminController
             . '</div>';
         $step2Html = '<div class="fl-collective-update">'
             . '<p class="fl-hint">Updating memberships for: <strong>' . $_e('fan@example.com') . '</strong></p>'
+            . '<p class="fl-hint">Fill in only the fields you want to change. Leave a field blank to keep your current value.</p>'
             . $f2['name'] . $f2['new_email'] . $f2['url'] . $f2['country']
             . $f2['new_password'] . $f2['new_password_confirm']
+            . $deleteMembershipHtml
             . $listingsHtml
             . '<div class="fl-form-actions"><button class="fl-submit fl-btn" disabled>Update Memberships</button></div>'
             . '</div>';
