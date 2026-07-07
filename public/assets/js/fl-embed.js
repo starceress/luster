@@ -22,14 +22,25 @@
   function wireToggleForms() {
     document.querySelectorAll('[data-fl-toggle]:not([data-fl-wired-toggle])').forEach(function (btn) {
       btn.setAttribute('data-fl-wired-toggle', '1');
-      btn.addEventListener('click', function (e) {
+      var activate = function (e) {
         e.preventDefault();
         var target = document.getElementById(btn.getAttribute('data-fl-toggle'));
         if (!target) { return; }
         var willShow = target.hidden;
         target.hidden = !willShow;
         btn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
-      });
+      };
+      btn.addEventListener('click', activate);
+      // Link-style toggles are <a> with no href (so there's no real navigation
+      // to prevent), which means they also don't get native Enter/Space
+      // activation the way a <button> does — wire it by hand.
+      if (btn.tagName === 'A') {
+        btn.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            activate(e);
+          }
+        });
+      }
     });
   }
 

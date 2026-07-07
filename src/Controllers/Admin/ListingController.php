@@ -2202,7 +2202,7 @@ final class ListingController extends AdminController
         if ($applyFormHtml !== '') {
             $formId = 'fl-affiliate-apply-form-' . $e($idSuffix);
             $tag    = $applyStyle === 'link' ? 'a' : 'button';
-            $attrs  = $applyStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+            $attrs  = $applyStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
             $toggleHtml = '<' . $tag . ' class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '"'
                 . $attrs
                 . ' data-fl-toggle="' . $formId . '" aria-expanded="false" aria-controls="' . $formId . '">'
@@ -2492,7 +2492,7 @@ final class ListingController extends AdminController
 
         $e    = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $tag   = $csStyle === 'link' ? 'a' : 'button';
-        $attrs = $csStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+        $attrs = $csStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
         $toggleHtml = '<' . $tag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '"'
             . $attrs
             . ' data-fl-toggle="fl-codes-submit-form-preview" aria-expanded="false" aria-controls="fl-codes-submit-form-preview">' . $e($csLabel) . '</' . $tag . '>';
@@ -3277,15 +3277,18 @@ final class ListingController extends AdminController
             fn($m) => ['name' => $m->name, 'url' => $m->showurl ? $m->url : ''],
             SampleTemplateData::members(),
         );
-        $sliced = $newestLimit === 0 ? $sampleMembers : array_slice($sampleMembers, 0, $newestLimit);
-        // When truncating, inflate totalApproved so "…and more" appears in preview
-        $totalForPreview = $newestLimit === 0 ? count($sliced) : count($sliced) + 3;
-        $sampleNewest = self::formatNewestMembers($sliced, $totalForPreview);
+        $sampleApprovedCount = 42;
+        // "Show all" means every member who joined on the most recent join
+        // date, not literally every approved member — demo that with a small
+        // slice (3 of the 5 sample members), same as "Truncate after 5" does.
+        $sliced = $newestLimit === 0 ? array_slice($sampleMembers, 0, 3) : array_slice($sampleMembers, 0, $newestLimit);
+        // Approved count is always well above what's shown, so "…and more" always appears in this preview.
+        $sampleNewest = self::formatNewestMembers($sliced, $sampleApprovedCount);
 
         $sampleValues = [
             'stat_opened'     => '2020-01-15',
             'stat_updated'    => '2026-06-10',
-            'stat_approved'   => '42',
+            'stat_approved'   => (string) $sampleApprovedCount,
             'stat_pending'    => '3',
             'stat_countries'  => '12',
             'stat_newmembers' => $sampleNewest,
@@ -3552,7 +3555,7 @@ final class ListingController extends AdminController
             $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             if ($formHtml !== '') {
                 $tag   = $csGStyle === 'link' ? 'a' : 'button';
-                $attrs = $csGStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+                $attrs = $csGStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
                 $csToggle = '<' . $tag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csGStyle) . '"'
                     . $attrs
                     . ' data-fl-toggle="fl-codes-submit-form-gpreview" aria-expanded="false" aria-controls="fl-codes-submit-form-gpreview">' . $e($csGLabel) . '</' . $tag . '>';

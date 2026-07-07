@@ -215,7 +215,7 @@ if ($_lusterSectionTemplate !== null) {
 
             $_lusterAffFormId = 'fl-affiliate-apply-form-' . $_lusterListingId;
             $_lusterAffTag    = $_lusterApplyStyle === 'link' ? 'a' : 'button';
-            $_lusterAffAttrs  = $_lusterApplyStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+            $_lusterAffAttrs  = $_lusterApplyStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
 
             $_lusterToggleHtml = '<' . $_lusterAffTag . ' class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($_lusterApplyStyle) . '"'
                 . $_lusterAffAttrs

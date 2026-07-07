@@ -256,7 +256,7 @@ if ($_lusterCodesTemplateHtml !== null
             $_lusterCsToggleRendered = true;
             $_lusterCsFormId = 'fl-codes-submit-form-' . ($_lusterListingId ?? 0);
             $_lusterCsTag    = $_lusterCsToggleStyle === 'link' ? 'a' : 'button';
-            $_lusterCsAttrs  = $_lusterCsToggleStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+            $_lusterCsAttrs  = $_lusterCsToggleStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
 
             $_lusterCsToggleHtml = '<' . $_lusterCsTag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($_lusterCsToggleStyle) . '"'
                 . $_lusterCsAttrs

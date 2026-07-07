@@ -651,7 +651,7 @@ final class SettingsController extends AdminController
             }
             $formId = 'fl-affiliate-apply-form-' . $e($idSuffix);
             $tag    = $applyStyle === 'link' ? 'a' : 'button';
-            $attrs  = $applyStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+            $attrs  = $applyStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
             $toggle = '<' . $tag . ' class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '"'
                 . $attrs
                 . ' data-fl-toggle="' . $formId . '" aria-expanded="false" aria-controls="' . $formId . '">'
@@ -1341,7 +1341,7 @@ final class SettingsController extends AdminController
                     $buildCsToggle = static function (string $idSuffix) use ($e, $csFormHtml, $csStyle, $csLabel): array {
                         $formId = 'fl-codes-submit-form-' . $e($idSuffix);
                         $tag    = $csStyle === 'link' ? 'a' : 'button';
-                        $attrs  = $csStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+                        $attrs  = $csStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
                         $toggle = '<' . $tag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '"'
                             . $attrs
                             . ' data-fl-toggle="' . $formId . '" aria-expanded="false" aria-controls="' . $formId . '">'
