@@ -17,7 +17,6 @@
 declare(strict_types=1);
 
 use Luster\Controllers\Public\CollectiveUpdateController;
-use Luster\Core\Countries;
 use Luster\Core\View;
 use Luster\Repositories\CollectiveUpdateTokenRepo;
 use Luster\Repositories\SiteSettingsRepo;
@@ -146,7 +145,7 @@ $_lusterRequestTokens = [
     '{site_name}'         => htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
     '{field_email}'       => $_lusterEmailFields['email'],
     '{field_email_input}' => $_lusterEmailFields['email_input'],
-    '{submit_button}'     => '<button type="submit" class="fl-submit">Send verification link</button>',
+    '{submit_button}'     => '<button type="submit" class="fl-submit">Send Verification Link</button>',
     '{clear_button}'      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
 ];
 
@@ -177,7 +176,6 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('collective-update.php', [
     'raw_token'         => $_lusterRawToken,
     'token_email'       => htmlspecialchars($_lusterTokenEmail, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
     'memberships'       => $_lusterMemberships,
-    'countries'         => Countries::list(),
 ]);
 
 if ($luster_return ?? false) {

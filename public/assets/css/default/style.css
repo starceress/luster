@@ -1219,19 +1219,35 @@
   margin-top: 1em;
 }
 
-.fl-collective-update-list {
-  list-style: none;
-  margin: 0.5em 0 0;
-  padding: 0;
+.fl-collective-update-table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5em;
 }
 
-.fl-collective-update-item {
-  padding: 0.25em 0;
+.fl-collective-update-row {
+  display: table-row;
 }
 
-.fl-collective-update-url {
-  font-size: 0.875em;
-  margin-left: 0.25em;
+.fl-collective-update-row + .fl-collective-update-row .fl-collective-update-cell {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.fl-collective-update-cell {
+  display: table-cell;
+  padding: 0.5em 0.5em 0.5em 0;
+  vertical-align: middle;
+}
+
+.fl-collective-update-cell--check {
+  width: 1px;
+  white-space: nowrap;
+  padding-right: 0.75em;
+}
+
+.fl-collective-update-cell--title label {
+  cursor: pointer;
 }
 
 /* ------------------------------------------------------------------------

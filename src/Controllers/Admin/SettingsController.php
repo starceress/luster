@@ -1493,7 +1493,7 @@ final class SettingsController extends AdminController
             '{site_name}'         => View::e($siteName),
             '{field_email}'       => $f['email'],
             '{field_email_input}' => $f['email_input'],
-            '{submit_button}'     => '<button type="submit" class="fl-submit">Send verification link</button>',
+            '{submit_button}'     => '<button type="submit" class="fl-submit">Send Verification Link</button>',
             '{clear_button}'      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
 
@@ -1504,26 +1504,40 @@ final class SettingsController extends AdminController
         $_e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $f2 = $fb->build([
             ['type' => 'text',     'name' => 'name',                'id' => 'cu-name',            'label' => 'Name',                 'required' => false, 'attrs' => ['maxlength' => '100', 'value' => 'Usagi']],
+            ['type' => 'email',    'name' => 'new_email',           'id' => 'cu-email',           'label' => 'Email address',        'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email', 'value' => 'fan@example.com'], 'hint' => 'Changes the email on every fanlisting you select below.'],
             ['type' => 'url',      'name' => 'url',                 'id' => 'cu-url',             'label' => 'Website URL',          'required' => false, 'attrs' => ['maxlength' => '500', 'value' => 'https://example.com']],
             ['type' => 'select',   'name' => 'country',             'id' => 'cu-country',         'label' => 'Country',              'required' => false,
                 'raw_input' => '<select class="fl-select" id="cu-country" name="country"><option value="US" selected>United States</option></select>'],
             ['type' => 'password', 'name' => 'new_password',        'id' => 'cu-password',        'label' => 'New password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep your current password.'],
             ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'cu-password-confirm', 'label' => 'Confirm new password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ], '');
+        $sampleRows = [
+            ['title' => SampleTemplateData::LISTING_TITLE_A, 'subject' => SampleTemplateData::LISTING_SUBJECT, 'url' => SampleTemplateData::LISTING_URL],
+            ['title' => SampleTemplateData::LISTING_TITLE_B, 'subject' => 'Star Wars', 'url' => 'https://example.com/jedi-order'],
+        ];
+        $listingRows = '';
+        foreach ($sampleRows as $i => $row) {
+            $titleSubject = $row['subject'] !== '' ? $row['title'] . ' - ' . $row['subject'] : $row['title'];
+            $checkboxId   = 'cu-listing-preview-' . $i;
+            $listingRows .= '<div class="fl-collective-update-row" role="row">'
+                . '<div class="fl-collective-update-cell fl-collective-update-cell--check" role="cell">'
+                . '<input type="checkbox" class="fl-checkbox" id="' . $_e($checkboxId) . '" checked disabled>'
+                . '</div>'
+                . '<div class="fl-collective-update-cell fl-collective-update-cell--title" role="cell">'
+                . '<label for="' . $_e($checkboxId) . '"><a href="' . $_e($row['url']) . '">' . $_e($titleSubject) . '</a></label>'
+                . '</div>'
+                . '</div>';
+        }
         $listingsHtml = '<div class="fl-field fl-collective-update-listings">'
             . '<p class="fl-label">Apply to these fanlistings:</p>'
-            . '<ul class="fl-collective-update-list">'
-            . '<li class="fl-collective-update-item"><label class="fl-check-label">'
-            . '<input type="checkbox" class="fl-checkbox" checked disabled> ' . $_e(SampleTemplateData::LISTING_TITLE_A) . '</label></li>'
-            . '<li class="fl-collective-update-item"><label class="fl-check-label">'
-            . '<input type="checkbox" class="fl-checkbox" checked disabled> ' . $_e(SampleTemplateData::LISTING_TITLE_B) . '</label></li>'
-            . '</ul></div>';
+            . '<div class="fl-collective-update-table" role="table">' . $listingRows . '</div>'
+            . '</div>';
         $step2Html = '<div class="fl-collective-update">'
             . '<p class="fl-hint">Updating memberships for: <strong>' . $_e('fan@example.com') . '</strong></p>'
-            . $f2['name'] . $f2['url'] . $f2['country']
+            . $f2['name'] . $f2['new_email'] . $f2['url'] . $f2['country']
             . $f2['new_password'] . $f2['new_password_confirm']
             . $listingsHtml
-            . '<div class="fl-form-actions"><button class="fl-submit fl-btn" disabled>Update memberships</button></div>'
+            . '<div class="fl-form-actions"><button class="fl-submit fl-btn" disabled>Update Memberships</button></div>'
             . '</div>';
 
         return self::previewSectionLabel('Step 1 — Request Verification Link') . $step1Html

@@ -8,6 +8,7 @@
  template) or the multi-listing update form (Step 2), depending on whether
  a verified token is present.
 */
+use Luster\Core\Countries;
 use Luster\Core\View;
 ?>
 <?php if ($success_html !== ''): ?>
@@ -51,12 +52,7 @@ use Luster\Core\View;
   </div>
   <div class="fl-field">
     <label class="fl-label" for="fl-cu-country">Country</label>
-    <select class="fl-select" id="fl-cu-country" name="country">
-      <option value="">-- Select --</option>
-      <?php foreach ($countries as $code => $label): ?>
-      <option value="<?= View::e($code) ?>"<?= $firstMember->country === $code ? ' selected' : '' ?>><?= View::e($label) ?></option>
-      <?php endforeach; ?>
-    </select>
+    <?= Countries::buildSelect($firstMember->country, 'fl-cu-country', 'country') ?>
   </div>
   <div class="fl-field">
     <label class="fl-label" for="fl-cu-password">New password (optional)</label>
@@ -69,22 +65,31 @@ use Luster\Core\View;
   </div>
   <div class="fl-field fl-collective-update-listings">
     <p class="fl-label">Apply to these fanlistings:</p>
-    <ul class="fl-collective-update-list">
-      <?php foreach ($memberships as $m): ?>
-      <li class="fl-collective-update-item">
-        <label class="fl-check-label">
-          <input type="checkbox" class="fl-checkbox" name="listing_ids[]" value="<?= (int) $m['listing']->id ?>" checked>
-          <?= View::e($m['listing']->title) ?>
-          <?php if ($m['listing']->url !== ''): ?>
-          <span class="fl-collective-update-url">(<a href="<?= View::e($m['listing']->url) ?>" rel="nofollow noreferrer" target="_blank"><?= View::e($m['listing']->url) ?></a>)</span>
-          <?php endif; ?>
-        </label>
-      </li>
+    <div class="fl-collective-update-table" role="table">
+      <?php foreach ($memberships as $m):
+        $listing     = $m['listing'];
+        $titleSubject = $listing->subject !== '' ? $listing->title . ' - ' . $listing->subject : $listing->title;
+        $checkboxId   = 'fl-cu-listing-' . (int) $listing->id;
+      ?>
+      <div class="fl-collective-update-row" role="row">
+        <div class="fl-collective-update-cell fl-collective-update-cell--check" role="cell">
+          <input type="checkbox" class="fl-checkbox" id="<?= View::e($checkboxId) ?>" name="listing_ids[]" value="<?= (int) $listing->id ?>" checked>
+        </div>
+        <div class="fl-collective-update-cell fl-collective-update-cell--title" role="cell">
+          <label for="<?= View::e($checkboxId) ?>">
+            <?php if ($listing->url !== ''): ?>
+            <a href="<?= View::e($listing->url) ?>" rel="nofollow noreferrer" target="_blank"><?= View::e($titleSubject) ?></a>
+            <?php else: ?>
+            <?= View::e($titleSubject) ?>
+            <?php endif; ?>
+          </label>
+        </div>
+      </div>
       <?php endforeach; ?>
-    </ul>
+    </div>
   </div>
   <div class="fl-field">
-    <button type="submit" class="fl-btn">Update memberships</button>
+    <button type="submit" class="fl-btn">Update Memberships</button>
   </div>
 </form>
 <?php endif; ?>
