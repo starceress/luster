@@ -1540,8 +1540,8 @@ final class SettingsController extends AdminController
             . '<div class="fl-collective-update-table" role="table">' . $listingRows . '</div>'
             . '</div>';
         $step2Html = '<div class="fl-collective-update">'
-            . '<p class="fl-hint">Updating memberships for: <strong>' . $_e('fan@example.com') . '</strong></p>'
-            . '<p class="fl-hint">Fill in only the fields you want to change. Leave a field blank to keep your current value.</p>'
+            . '<p class="fl-form-intro">Updating memberships for: <strong>' . $_e('fan@example.com') . '</strong></p>'
+            . '<p class="fl-form-intro">Fill in only the fields you want to change. Leave a field blank to keep your current value.</p>'
             . $f2['name'] . $f2['new_email'] . $f2['url'] . $f2['country']
             . $f2['new_password'] . $f2['new_password_confirm']
             . $deleteMembershipHtml

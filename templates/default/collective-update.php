@@ -34,8 +34,8 @@ use Luster\Core\View;
   <input type="hidden" name="_luster_embed_form" value="collective_update">
   <input type="hidden" name="_cu_token" value="<?= View::e($raw_token) ?>">
   <div style="display:none" aria-hidden="true"><input type="text" name="website_confirm" tabindex="-1" autocomplete="off"></div>
-  <p class="fl-hint">Updating memberships for: <strong><?= $token_email ?></strong></p>
-  <p class="fl-hint">Fill in only the fields you want to change. Leave a field blank to keep your current value.</p>
+  <p class="fl-form-intro">Updating memberships for: <strong><?= $token_email ?></strong></p>
+  <p class="fl-form-intro">Fill in only the fields you want to change. Leave a field blank to keep your current value.</p>
   <div class="fl-field">
     <label class="fl-label" for="fl-cu-name">New Name</label>
     <input class="fl-input" type="text" id="fl-cu-name" name="name" value="" maxlength="100" placeholder="<?= View::e($firstMember->name) ?>">
