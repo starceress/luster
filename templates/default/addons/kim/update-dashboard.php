@@ -59,7 +59,7 @@ if (($success_html ?? '') !== '') {
         <thead>
           <tr>
             <th></th>
-            <th>Fanlisting</th>
+            <th>Listing</th>
             <th>Name</th>
             <th>Email</th>
             <th>Website URL</th>

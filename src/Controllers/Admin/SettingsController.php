@@ -1061,7 +1061,7 @@ final class SettingsController extends AdminController
         };
         $tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:.9em"><thead><tr>'
             . '<th style="width:2em;padding:.4em .35em;border-bottom:2px solid #c0c0c0"></th>'
-            . $th('Fanlisting') . $th('Name') . $th('Email') . $th('Website URL')
+            . $th('Listing') . $th('Name') . $th('Email') . $th('Website URL')
             . $th('Remove?', 'text-align:center')
             . '</tr></thead><tbody>'
             . $row(true,  SampleTemplateData::LISTING_TITLE_A, 'Usagi', 'usagi@example.com', 'https://example.com/usagi')
@@ -1505,7 +1505,9 @@ final class SettingsController extends AdminController
         $f2 = $fb->build([
             ['type' => 'text',     'name' => 'name',                'id' => 'cu-name',            'label' => 'New Name',             'required' => false, 'attrs' => ['maxlength' => '100', 'placeholder' => 'Usagi']],
             ['type' => 'email',    'name' => 'new_email',           'id' => 'cu-email',           'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email', 'placeholder' => 'fan@example.com'], 'hint' => 'Changes the email on every fanlisting you select below.'],
-            ['type' => 'url',      'name' => 'url',                 'id' => 'cu-url',             'label' => 'Website URL',          'required' => false, 'attrs' => ['maxlength' => '500', 'value' => 'https://example.com']],
+            ['type' => 'url',      'name' => 'url',                 'id' => 'cu-url',             'label' => 'New Website URL',      'required' => false,
+                'raw_input' => '<input class="fl-input" type="url" id="cu-url" name="url" value="" placeholder="https://example.com" maxlength="500">'
+                    . '<label class="fl-check-label"><input type="checkbox" class="fl-checkbox" name="delete_url" value="1"> Remove my website URL</label>'],
             ['type' => 'select',   'name' => 'country',             'id' => 'cu-country',         'label' => 'Country',              'required' => false,
                 'raw_input' => '<select class="fl-select" id="cu-country" name="country"><option value="US" selected>United States</option></select>'],
             ['type' => 'password', 'name' => 'new_password',        'id' => 'cu-password',        'label' => 'New password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep your current password.'],
@@ -1516,7 +1518,7 @@ final class SettingsController extends AdminController
             . '<input type="checkbox" class="fl-checkbox" id="cu-delete-membership" disabled>'
             . ' Permanently delete my membership(s) instead of updating them.'
             . '</label>'
-            . '<p class="fl-field-hint">This immediately and permanently removes your membership from every fanlisting you select below. Any changes above are ignored, and this cannot be undone.</p>'
+            . '<p class="fl-field-hint">This immediately and permanently removes your membership from every fanlisting you select above. Any changes below are ignored, and this cannot be undone.</p>'
             . '</div>';
         $sampleRows = [
             ['title' => SampleTemplateData::LISTING_TITLE_A, 'subject' => SampleTemplateData::LISTING_SUBJECT, 'url' => SampleTemplateData::LISTING_URL],
@@ -1524,29 +1526,31 @@ final class SettingsController extends AdminController
         ];
         $listingRows = '';
         foreach ($sampleRows as $i => $row) {
-            $titleSubject = $row['subject'] !== '' ? $row['title'] . ' - ' . $row['subject'] : $row['title'];
-            $checkboxId   = 'cu-listing-preview-' . $i;
-            $listingRows .= '<div class="fl-collective-update-row" role="row">'
-                . '<div class="fl-collective-update-cell fl-collective-update-cell--check" role="cell">'
-                . '<input type="checkbox" class="fl-checkbox" id="' . $_e($checkboxId) . '" checked disabled>'
-                . '</div>'
-                . '<div class="fl-collective-update-cell fl-collective-update-cell--title" role="cell">'
-                . '<label for="' . $_e($checkboxId) . '"><a href="' . $_e($row['url']) . '">' . $_e($titleSubject) . '</a></label>'
-                . '</div>'
-                . '</div>';
+            $checkboxId = 'cu-listing-preview-' . $i;
+            $listingRows .= '<tr>'
+                . '<td><input type="checkbox" class="fl-checkbox" id="' . $_e($checkboxId) . '" checked disabled></td>'
+                . '<td><label for="' . $_e($checkboxId) . '">' . $_e($row['title']) . '</label></td>'
+                . '<td>' . $_e($row['subject']) . '</td>'
+                . '<td><a href="' . $_e($row['url']) . '">' . $_e($row['url']) . '</a></td>'
+                . '</tr>';
         }
-        $listingsHtml = '<div class="fl-field fl-collective-update-listings">'
-            . '<p class="fl-label">Apply to these fanlistings:</p>'
-            . '<div class="fl-collective-update-table" role="table">' . $listingRows . '</div>'
-            . '</div>';
-        $step2Html = '<div class="fl-collective-update">'
-            . '<p class="fl-form-intro">Updating memberships for: <strong>' . $_e('fan@example.com') . '</strong></p>'
-            . '<p class="fl-form-intro">Fill in only the fields you want to change. Leave a field blank to keep your current value.</p>'
+        $listingsHtml = '<div class="fl-collective-update-table-wrap">'
+            . '<table class="fl-collective-update-table">'
+            . '<thead><tr><th></th><th>Listing</th><th>Subject</th><th>Website URL</th></tr></thead>'
+            . '<tbody>' . $listingRows . '</tbody>'
+            . '</table></div>';
+        $changesHtml = '<fieldset class="fl-fieldset fl-collective-update-changes">'
+            . '<legend class="fl-label">Changes to apply to selected fanlistings</legend>'
             . $f2['name'] . $f2['new_email'] . $f2['url'] . $f2['country']
             . $f2['new_password'] . $f2['new_password_confirm']
-            . $deleteMembershipHtml
+            . '</fieldset>';
+        $step2Html = '<div class="fl-collective-update">'
+            . '<p class="fl-form-intro"><strong>Updating memberships for:</strong> ' . $_e('fan@example.com') . '</p>'
+            . '<p class="fl-form-intro">Select the listings to apply changes to below, fill in any fields you want to change, and click <strong>Update Memberships</strong>. Leave a field blank to keep your current value.</p>'
             . $listingsHtml
-            . '<div class="fl-form-actions"><button class="fl-submit fl-btn" disabled>Update Memberships</button></div>'
+            . $deleteMembershipHtml
+            . $changesHtml
+            . '<div class="fl-form-actions"><button class="fl-submit fl-btn" disabled>Update Memberships</button> <button class="fl-btn" disabled>Clear</button></div>'
             . '</div>';
 
         return self::previewSectionLabel('Step 1 — Request Verification Link') . $step1Html

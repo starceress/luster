@@ -1215,39 +1215,49 @@
    Collective-level cross-listing membership update form (Step 2).
 ------------------------------------------------------------------------ */
 
-.fl-collective-update-listings {
-  margin-top: 1em;
+.fl-collective-update-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1em;
 }
 
 .fl-collective-update-table {
-  display: table;
   width: 100%;
   border-collapse: collapse;
-  margin-top: 0.5em;
+  font-size: 0.9em;
 }
 
-.fl-collective-update-row {
-  display: table-row;
-}
-
-.fl-collective-update-row + .fl-collective-update-row .fl-collective-update-cell {
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.fl-collective-update-cell {
-  display: table-cell;
-  padding: 0.5em 0.5em 0.5em 0;
+.fl-collective-update-table th,
+.fl-collective-update-table td {
+  padding: 0.45em 0.65em;
+  text-align: left;
   vertical-align: middle;
+  border-bottom: 1px solid currentColor;
 }
 
-.fl-collective-update-cell--check {
-  width: 1px;
+.fl-collective-update-table thead th {
+  border-bottom: 2px solid currentColor;
+  font-weight: 600;
   white-space: nowrap;
-  padding-right: 0.75em;
 }
 
-.fl-collective-update-cell--title label {
+.fl-collective-update-table td:first-child,
+.fl-collective-update-table th:first-child {
+  width: 2em;
+  text-align: center;
+  padding-left: 0.35em;
+  padding-right: 0.35em;
+}
+
+.fl-collective-update-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.fl-collective-update-table td label {
   cursor: pointer;
+}
+
+.fl-collective-update-changes {
+  margin-top: 1em;
 }
 
 /* ------------------------------------------------------------------------
