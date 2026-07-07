@@ -605,6 +605,7 @@
 .fl-affiliate-apply-form-wrap {
   max-width: 100%;
   margin-top: 1em;
+  text-align: left;
 }
 .fl-codes-submit-collapsible {
   display: block;
@@ -638,6 +639,7 @@
 .fl-codes-submit-form-wrap {
   max-width: 100%;
   margin-top: 1em;
+  text-align: left;
 }
 
 /* ------------------------------------------------------------------------
