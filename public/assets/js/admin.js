@@ -1763,7 +1763,7 @@ document.addEventListener('drop', function (e) {
 
   var navGroups = [
     { val: 'l', keys: ['join','members','stats','affiliates','aff-apply','update','reset','codes','codes-submit','contact','newsfeed','rules-gate'] },
-    { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','random-joined','latest-joined','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-newsfeed','col-contact','wishlist','adopt'] },
+    { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','random-joined','latest-joined','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-newsfeed','col-contact','col-update','wishlist','adopt'] },
   ];
 
   var secSel   = document.getElementById('ec-sec-sel');
@@ -1932,6 +1932,7 @@ document.addEventListener('drop', function (e) {
     codes: 'codes.php', 'codes-submit': 'codes-submit.php',
     contact: 'contact.php', newsfeed: 'newsfeed.php', adopt: 'adopt.php',
     'col-newsfeed': 'collective-newsfeed.php', 'col-contact': 'collective-contact.php',
+    'col-update': 'collective-update.php',
     wishlist: 'wishlist.php', 'rules-gate': 'rules-gate.php',
   };
 
@@ -2222,6 +2223,10 @@ document.addEventListener('drop', function (e) {
     },
     'col-contact': {
       fields: [],
+    },
+    'col-update': {
+      fields: [],
+      note: 'Does not require a listing selection -- it looks up every fanlisting the entered email belongs to.',
     },
     wishlist: {
       fields: [
@@ -2634,6 +2639,12 @@ document.addEventListener('drop', function (e) {
           + '<button class="site-btn">Load my details</button>'
           + '<p class="site-sub" style="margin-top:0.75em">Once signed in, members can also check '
           + '"Permanently delete my membership instead of updating it" to leave ' + name + '.</p>';
+
+      case 'col-update':
+        return '<h4>Update your details</h4>'
+          + '<p class="site-sub">Enter your email and we&apos;ll send a link to update your details across every fanlisting you belong to.</p>'
+          + '<label>Email</label><input class="fld" placeholder="you@example.com" />'
+          + '<button class="site-btn">Send update link</button>';
 
       case 'reset':
         if (vals.reset_step === 'confirm') {

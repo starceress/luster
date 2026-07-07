@@ -68,6 +68,7 @@ $iconMap = [
     'col-codes-submit' => 'image',
     'col-newsfeed' => 'updates',
     'col-contact'  => 'email',
+    'col-update'   => 'notes',
     'wishlist'     => 'wishlist',
     'rules-gate'   => 'rules',
 ];
@@ -259,6 +260,12 @@ $items = [
         'badge' => 'Form',
         'file'  => 'collective-contact.php',
         'desc'  => 'A contact form for the collective. Messages are sent to the site owner\'s email address.',
+    ],
+    'col-update' => [
+        'label' => 'Collective Update Form',
+        'badge' => 'Form',
+        'file'  => 'collective-update.php',
+        'desc'  => 'Lets a visitor enter their email to receive a verification link, then update their name, URL, and country across every fanlisting they belong to in one go. Does not require a listing ID — operates at the collective/site-wide level. Edit the email-request step\'s template in Admin → Collective → Templates.',
     ],
     'wishlist' => [
         'label' => 'Wishlist',
