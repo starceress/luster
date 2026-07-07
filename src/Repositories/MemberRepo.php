@@ -523,23 +523,41 @@ final class MemberRepo
      * Intended for stats display — avoids fetching full member rows.
      * URL is only included when the member has opted in via showurl.
      *
+     * $limit > 0 returns the N most recent approved members. $limit <= 0
+     * ("show all") does NOT mean every approved member the listing has ever
+     * had — it means every approved member who joined on the most recent
+     * join date, so a wave of same-day approvals shows together instead of
+     * the entire membership history.
+     *
      * @return array<int, array{name: string, url: string}>
      */
     public function getNewestMembers(string $prefix, int $limit): array
     {
-        $p   = $this->resolveTable($prefix);
-        $sql = "SELECT name, url, showurl FROM {$p}
-                WHERE {$this->approvedWhere}
-                ORDER BY added DESC";
+        $p = $this->resolveTable($prefix);
 
         if ($limit > 0) {
-            $sql .= ' LIMIT :limit';
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->db->prepare(
+                "SELECT name, url, showurl FROM {$p}
+                 WHERE {$this->approvedWhere}
+                 ORDER BY added DESC
+                 LIMIT :limit"
+            );
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
         } else {
-            $stmt = $this->db->prepare($sql);
+            $latest = $this->getMostRecentApprovedDate($prefix);
+
+            if ($latest === null) {
+                return [];
+            }
+
+            $stmt = $this->db->prepare(
+                "SELECT name, url, showurl FROM {$p}
+                 WHERE {$this->approvedWhere} AND added = :latest
+                 ORDER BY name ASC"
+            );
+            $stmt->execute(['latest' => $latest]);
         }
-        $stmt->execute();
 
         return array_map(
             static fn(array $r) => [

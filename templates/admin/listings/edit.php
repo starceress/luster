@@ -896,7 +896,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
                   <option value="5"<?= $_nmlVal !== null && $_nmlVal > 0 ? ' selected' : '' ?>>Truncate after 5</option>
                 </select>
               </div>
-              <p class="form-hint">Controls how the <code>{stat_newmembers}</code> token displays names. &ldquo;Show all&rdquo; lists every member. &ldquo;Truncate&rdquo; shows the 5 most recent and adds &ldquo;&hellip;and more&rdquo;. Per-listing overrides the global default.</p>
+              <p class="form-hint">Controls how the <code>{stat_newmembers}</code> token displays names. &ldquo;Show all&rdquo; lists every approved member who joined on the most recent join date. &ldquo;Truncate&rdquo; shows the 5 most recent and adds &ldquo;&hellip;and more&rdquo;. Per-listing overrides the global default.</p>
             </div>
           </div>
 

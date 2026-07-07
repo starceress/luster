@@ -306,7 +306,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
                   <option value="5"<?= $_glNml !== null && $_glNml > 0 ? ' selected' : '' ?>>Truncate after 5</option>
                 </select>
               </div>
-              <p class="form-hint">Global default for <code>{stat_newmembers}</code>. &ldquo;Show all&rdquo; lists every member. &ldquo;Truncate&rdquo; shows the 5 most recent and adds &ldquo;&hellip;and more&rdquo;. Per-listing overrides this.</p>
+              <p class="form-hint">Global default for <code>{stat_newmembers}</code>. &ldquo;Show all&rdquo; lists every approved member who joined on the most recent join date. &ldquo;Truncate&rdquo; shows the 5 most recent and adds &ldquo;&hellip;and more&rdquo;. Per-listing overrides this.</p>
             </div>
           </div>
 
