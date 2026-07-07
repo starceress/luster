@@ -590,6 +590,7 @@
   cursor: pointer;
 }
 .fl-affiliate-apply-toggle--link {
+  display: inline-block;
   text-decoration: underline;
   list-style: none;
 }
@@ -626,6 +627,7 @@
   cursor: pointer;
 }
 .fl-codes-submit-toggle--link {
+  display: inline-block;
   text-decoration: underline;
   list-style: none;
 }
