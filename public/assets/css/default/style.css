@@ -574,17 +574,13 @@
 ------------------------------------------------------------------------ */
 
 .fl-affiliate-apply-collapsible {
-  display: inline-block;
-  max-width: 100%;
-  vertical-align: top;
+  display: block;
+  width: 100%;
+  text-align: center;
   margin-top: 1em;
 }
 .fl-affiliate-apply-collapsible:has(.fl-affiliate-apply-toggle--link) {
   margin-top: 0;
-}
-.fl-affiliate-apply-collapsible[open] {
-  display: block;
-  width: 100%;
 }
 .fl-affiliate-apply-toggle {
   cursor: pointer;
@@ -611,17 +607,13 @@
   margin-top: 1em;
 }
 .fl-codes-submit-collapsible {
-  display: inline-block;
-  max-width: 100%;
-  vertical-align: top;
+  display: block;
+  width: 100%;
+  text-align: center;
   margin-top: 1em;
 }
 .fl-codes-submit-collapsible:has(.fl-codes-submit-toggle--link) {
   margin-top: 0;
-}
-.fl-codes-submit-collapsible[open] {
-  display: block;
-  width: 100%;
 }
 .fl-codes-submit-toggle {
   cursor: pointer;
