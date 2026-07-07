@@ -11,6 +11,7 @@
 use Luster\Core\Countries;
 use Luster\Core\View;
 ?>
+<div class="fl-embed fl-embed--collective-update">
 <?php if ($success_html !== ''): ?>
 <?= $success_html ?>
 <?php elseif (!$token_valid): ?>
