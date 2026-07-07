@@ -195,7 +195,17 @@ final class PendingUpdateController
         $count    = 0;
         $skipped  = 0;
 
-        foreach ($pendings as $pending) {
+        foreach ($pendings as $pendingStale) {
+            // Re-fetch by ID: an earlier row in this same batch may have
+            // renamed this row's member_email via rekeyOnEmailChange()
+            // (renameMemberEmail() re-keys every sibling row for that
+            // listing+old-email, not just the one being approved), so the
+            // copy loaded before the loop started can be stale.
+            $pending = $pendingRepo->getById($pendingStale->id);
+            if ($pending === null) {
+                continue;
+            }
+
             $listing = $listingRepo->getById($pending->fanlisting_id);
             if ($listing === null) {
                 $pendingRepo->delete($pending->id);
@@ -313,14 +323,23 @@ final class PendingUpdateController
         $count    = 0;
         $skipped  = 0;
 
-        foreach ($pendings as $pending) {
+        foreach ($pendings as $pendingStale) {
             if ($action === 'reject') {
-                $pendingRepo->delete($pending->id);
+                $pendingRepo->delete($pendingStale->id);
                 $count++;
                 continue;
             }
 
-            // approve
+            // approve — re-fetch by ID: an earlier row in this same batch may
+            // have renamed this row's member_email via rekeyOnEmailChange()
+            // (renameMemberEmail() re-keys every sibling row for that
+            // listing+old-email, not just the one being approved), so the
+            // copy loaded before the loop started can be stale.
+            $pending = $pendingRepo->getById($pendingStale->id);
+            if ($pending === null) {
+                continue;
+            }
+
             $listing = $listingRepo->getById($pending->fanlisting_id);
             if ($listing === null) {
                 $pendingRepo->delete($pending->id);
