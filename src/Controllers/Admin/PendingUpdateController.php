@@ -16,11 +16,14 @@ declare(strict_types=1);
 namespace Luster\Controllers\Admin;
 
 use Luster\Core\Application;
+use Luster\Core\Config;
+use Luster\Core\Database;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
+use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberLinkCheckRepo;
@@ -99,6 +102,7 @@ final class PendingUpdateController
 
         // Apply the queued changes
         $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
+        self::rekeyOnEmailChange($db, $config, $pending);
 
         $pendingRepo->delete($id);
 
@@ -211,6 +215,7 @@ final class PendingUpdateController
             }
 
             $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
+            self::rekeyOnEmailChange($db, $config, $pending);
             $pendingRepo->delete($pending->id);
 
             $finalEmail = (string) ($pending->changes['email'] ?? $pending->member_email);
@@ -335,6 +340,7 @@ final class PendingUpdateController
             }
 
             $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
+            self::rekeyOnEmailChange($db, $config, $pending);
             $pendingRepo->delete($pending->id);
 
             $finalEmail = (string) ($pending->changes['email'] ?? $pending->member_email);
@@ -427,5 +433,28 @@ final class PendingUpdateController
             return false;
         }
         return $memberRepo->getByEmail($listing->dbprefix, $changes['email']) !== null;
+    }
+
+    /**
+     * Re-keys side tables that reference the member by email string (no FK) so
+     * queued updates and link-check history follow an email rename instead of
+     * being orphaned under the old address, and invalidates any outstanding
+     * password-reset token issued to the old address. Mirrors the same
+     * re-keying MemberController::edit() does for admin-initiated email changes.
+     *
+     * No-op when this pending update doesn't actually change the email.
+     */
+    private static function rekeyOnEmailChange(Database $db, Config $config, object $pending): void
+    {
+        $newEmail = (string) ($pending->changes['email'] ?? '');
+        if ($newEmail === '' || $newEmail === $pending->member_email) {
+            return;
+        }
+
+        (new PendingUpdateRepo($db))->renameMemberEmail($pending->fanlisting_id, $pending->member_email, $newEmail);
+        try {
+            (new MemberLinkCheckRepo($db, $config))->renameMemberEmail($pending->fanlisting_id, $pending->member_email, $newEmail);
+        } catch (\Throwable) {}
+        (new FanPasswordResetRepo($db))->deleteByEmail($pending->fanlisting_id, $pending->member_email);
     }
 }

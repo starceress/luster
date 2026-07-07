@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
+use Luster\Core\Config;
+use Luster\Core\Database;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
@@ -25,9 +27,11 @@ use Luster\Models\Member;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\CollectiveUpdateTokenRepo;
 use Luster\Repositories\EmailTemplateRepo;
+use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 
@@ -305,6 +309,7 @@ final class CollectiveUpdateController
                 $results['queued'][] = $listing->title;
             } else {
                 $memberRepo->update($listing->dbprefix, $email, $updateData);
+                self::rekeyOnEmailChange($this->app->getDatabase(), $this->app->getConfig(), $listingId, $email, $updateData);
                 $results['updated'][] = $listing->title;
             }
         }
@@ -331,6 +336,31 @@ final class CollectiveUpdateController
 
         $session->remove('lstr_embed_return_to');
         return Response::redirect($embedReturnTo);
+    }
+
+    /**
+     * Re-keys side tables that reference the member by email string (no FK) so
+     * queued updates and link-check history follow an email rename instead of
+     * being orphaned under the old address, and invalidates any outstanding
+     * password-reset token issued to the old address. Mirrors the same
+     * re-keying MemberController::edit() does for admin-initiated email changes.
+     *
+     * No-op when $updateData doesn't actually change the email.
+     *
+     * @param array<string, mixed> $updateData
+     */
+    private static function rekeyOnEmailChange(Database $db, Config $config, int $listingId, string $oldEmail, array $updateData): void
+    {
+        $newEmail = (string) ($updateData['email'] ?? '');
+        if ($newEmail === '' || $newEmail === $oldEmail) {
+            return;
+        }
+
+        (new PendingUpdateRepo($db))->renameMemberEmail($listingId, $oldEmail, $newEmail);
+        try {
+            (new MemberLinkCheckRepo($db, $config))->renameMemberEmail($listingId, $oldEmail, $newEmail);
+        } catch (\Throwable) {}
+        (new FanPasswordResetRepo($db))->deleteByEmail($listingId, $oldEmail);
     }
 
     /**
