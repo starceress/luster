@@ -22,6 +22,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Listing;
 use Luster\Models\Member;
+use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\CollectiveUpdateTokenRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingLifecycleRepo;
@@ -184,15 +185,19 @@ final class CollectiveUpdateController
         $selectedIds = array_values(array_filter($selectedIds, fn(int $id) => isset($validMap[$id])));
 
         $newName            = trim((string) $request->post('name', ''));
+        $newEmail           = trim((string) $request->post('new_email', ''));
         $newUrl             = trim((string) $request->post('url', ''));
         $deleteUrl          = ((string) $request->post('delete_url', '') === '1');
         $newCountry         = trim((string) $request->post('country', ''));
         $newPassword        = (string) $request->post('new_password', '');
         $newPasswordConfirm = (string) $request->post('new_password_confirm', '');
 
-        $v = new Validator(['name' => $newName, 'url' => $newUrl, 'country' => $newCountry, 'new_password' => $newPassword]);
+        $v = new Validator(['name' => $newName, 'new_email' => $newEmail, 'url' => $newUrl, 'country' => $newCountry, 'new_password' => $newPassword]);
         if ($newName !== '') {
             $v->field('name')->maxLength(100);
+        }
+        if ($newEmail !== '') {
+            $v->field('new_email')->email()->maxLength(255);
         }
         if ($newUrl !== '' && !$deleteUrl) {
             $v->field('url')->httpUrl()->maxLength(500);
@@ -216,6 +221,12 @@ final class CollectiveUpdateController
             return Response::redirect($tokenUrl);
         }
 
+        if ($newEmail !== '' && $newEmail !== $email && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($newEmail)) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
+            $session->set('lstr_flash_error', 'That email address cannot be used.');
+            return Response::redirect($tokenUrl);
+        }
+
         if ($selectedIds === []) {
             $session->set('lstr_flash_error', 'Please select at least one fanlisting to update.');
             return Response::redirect($tokenUrl);
@@ -232,7 +243,7 @@ final class CollectiveUpdateController
         $memberRepo    = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $lifecycleRepo = new ListingLifecycleRepo($this->app->getDatabase());
-        $results       = ['updated' => [], 'queued' => [], 'skipped' => []];
+        $results       = ['updated' => [], 'queued' => [], 'skipped' => [], 'email_conflict' => []];
 
         // Hash once; applied immediately to every selected listing (never queued)
         $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
@@ -269,6 +280,16 @@ final class CollectiveUpdateController
             if ($newCountry !== '' && $newCountry !== $member->country) {
                 $updateData['country'] = $newCountry;
             }
+            if ($newEmail !== '' && $newEmail !== $email) {
+                // Email is unique per-listing (it's the member table's key), so a
+                // match elsewhere doesn't block this listing — only a conflict
+                // within this specific listing's own member table does.
+                if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
+                    $results['email_conflict'][] = $listing->title;
+                } else {
+                    $updateData['email'] = $newEmail;
+                }
+            }
 
             if ($updateData === []) {
                 if (!$passwordChanged) {
@@ -297,6 +318,9 @@ final class CollectiveUpdateController
         }
         if ($results['skipped'] !== [] && ($results['updated'] !== [] || $results['queued'] !== [])) {
             $parts[] = 'No changes: ' . implode(', ', array_map('htmlspecialchars', $results['skipped']));
+        }
+        if ($results['email_conflict'] !== []) {
+            $parts[] = 'Email address already in use, so it was not changed for: ' . implode(', ', array_map('htmlspecialchars', $results['email_conflict']));
         }
 
         if ($parts === []) {

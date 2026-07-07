@@ -38,6 +38,11 @@ use Luster\Core\View;
     <input class="fl-input" type="text" id="fl-cu-name" name="name" value="<?= View::e($firstMember->name) ?>" maxlength="100">
   </div>
   <div class="fl-field">
+    <label class="fl-label" for="fl-cu-email">Email address</label>
+    <input class="fl-input" type="email" id="fl-cu-email" name="new_email" value="<?= $token_email ?>" maxlength="255" autocomplete="email">
+    <p class="fl-hint">Changes the email on every fanlisting you select below.</p>
+  </div>
+  <div class="fl-field">
     <label class="fl-label" for="fl-cu-url">Website URL</label>
     <input class="fl-input" type="url" id="fl-cu-url" name="url" value="<?= View::e($firstMember->url) ?>" maxlength="500">
     <label class="fl-check-label">
