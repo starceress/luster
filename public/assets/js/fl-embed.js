@@ -19,9 +19,23 @@
     });
   }
 
+  function wireToggleForms() {
+    document.querySelectorAll('[data-fl-toggle]:not([data-fl-wired-toggle])').forEach(function (btn) {
+      btn.setAttribute('data-fl-wired-toggle', '1');
+      btn.addEventListener('click', function () {
+        var target = document.getElementById(btn.getAttribute('data-fl-toggle'));
+        if (!target) { return; }
+        var willShow = target.hidden;
+        target.hidden = !willShow;
+        btn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+      });
+    });
+  }
+
   function wireAll() {
     wireDropdowns();
     wireDeleteMembershipConfirm();
+    wireToggleForms();
   }
 
   if (document.readyState === 'loading') {

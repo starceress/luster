@@ -116,6 +116,13 @@
   flex-wrap: wrap;
 }
 
+/* Override so category dropdown shares the row with the label */
+.fl-category-dropdown .fl-select {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
 /* Back link in browse-by-category mode */
 .fl-category-back {
   display: inline-block;
@@ -569,73 +576,39 @@
 }
 
 /* ------------------------------------------------------------------------
-   COLLAPSIBLE AFFILIATE & CODE DONATION FORMS
-   Inline affiliate & codes forms toggled by a link or button.
+   AFFILIATE & CODE DONATION TOGGLE FORMS
+   A trigger (link or button) shows/hides a separate form placed anywhere
+   else in the template, wired up in fl-embed.js via [data-fl-toggle].
 ------------------------------------------------------------------------ */
 
-.fl-affiliate-apply-collapsible {
-  display: block;
-  width: 100%;
-  text-align: center;
-  margin-top: 1em;
-}
-.fl-affiliate-apply-collapsible:has(.fl-affiliate-apply-toggle--link) {
-  margin-top: 0;
-}
-.fl-affiliate-apply-toggle {
-  cursor: pointer;
-}
-.fl-affiliate-apply-toggle--link {
-  display: inline-block;
-  text-decoration: underline;
-  list-style: none;
-}
-.fl-affiliate-apply-toggle--link::-webkit-details-marker,
-.fl-affiliate-apply-toggle--link::marker { display: none; content: ''; }
-.fl-affiliate-apply-toggle--button {
-  display: inline-block;
-  padding: 0.4em 1em;
-  border: 1px solid currentColor;
-  border-radius: var(--fl-radius, 3px);
-  text-decoration: none;
-  list-style: none;
-}
-.fl-affiliate-apply-toggle--button::-webkit-details-marker,
-.fl-affiliate-apply-toggle--button::marker { display: none; content: ''; }
-.fl-affiliate-apply-form-wrap {
-  max-width: 100%;
-  margin-top: 1em;
-  text-align: left;
-}
-.fl-codes-submit-collapsible {
-  display: block;
-  width: 100%;
-  text-align: center;
-  margin-top: 1em;
-}
-.fl-codes-submit-collapsible:has(.fl-codes-submit-toggle--link) {
-  margin-top: 0;
-}
+.fl-affiliate-apply-toggle,
 .fl-codes-submit-toggle {
   cursor: pointer;
+  background: none;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
 }
+.fl-affiliate-apply-toggle--link,
 .fl-codes-submit-toggle--link {
-  display: inline-block;
+  display: inline;
+  border: none;
+  padding: 0;
   text-decoration: underline;
-  list-style: none;
 }
-.fl-codes-submit-toggle--link::-webkit-details-marker,
-.fl-codes-submit-toggle--link::marker { display: none; content: ''; }
+.fl-affiliate-apply-toggle--button,
 .fl-codes-submit-toggle--button {
   display: inline-block;
   padding: 0.4em 1em;
   border: 1px solid currentColor;
   border-radius: var(--fl-radius, 3px);
   text-decoration: none;
-  list-style: none;
 }
-.fl-codes-submit-toggle--button::-webkit-details-marker,
-.fl-codes-submit-toggle--button::marker { display: none; content: ''; }
+/* Form is a plain sibling now, shown/hidden via the JS-toggled [hidden]
+   attribute in fl-embed.js - no more <details>/<summary>, so no shrink-to-fit
+   or blockification quirks tied to where the trigger happens to sit. */
+.fl-affiliate-apply-form-wrap,
 .fl-codes-submit-form-wrap {
   max-width: 100%;
   margin-top: 1em;

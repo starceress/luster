@@ -49,3 +49,6 @@ use Luster\Core\View;
   <?php endif; ?>
 <?php endif; ?>
 </div>
+<?php if (!defined('FL_EMBED_JS_LOADED')): define('FL_EMBED_JS_LOADED', true); ?>
+<script src="<?= View::e($base_url) ?>/assets/js/fl-embed.js"></script>
+<?php endif; ?>

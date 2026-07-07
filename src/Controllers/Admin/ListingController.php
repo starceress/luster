@@ -2049,6 +2049,10 @@ final class ListingController extends AdminController
             $appUrl . '/assets/css/default/style.css',
             ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8',
         );
+        $jsUrl = htmlspecialchars(
+            $appUrl . '/assets/js/fl-embed.js',
+            ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8',
+        );
         return Response::html(
             '<!DOCTYPE html><html lang="en"><head>'
             . '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -2056,7 +2060,7 @@ final class ListingController extends AdminController
                 rtrim(LUSTER_BASE, '/') . '/public/assets/css/default/style.css'
             ) . '">'
             . '<style>body{padding:1rem;background:#fff;font-family:sans-serif;font-size:14px}</style>'
-            . '</head><body>' . $content . '</body></html>'
+            . '</head><body>' . $content . '<script src="' . $jsUrl . '"></script></body></html>'
         );
     }
 
@@ -2134,7 +2138,7 @@ final class ListingController extends AdminController
         // Check if affiliate applications are enabled for this listing (matches production behaviour)
         $applyEnabled  = $settingsRepo->getAffiliateApplySettings((int) $listing->id)['enabled'] ?? false;
         $applyFormHtml = '';
-        if ($applyEnabled && str_contains($tpl, '{affiliate_apply_toggle}')) {
+        if ($applyEnabled && (str_contains($tpl, '{affiliate_apply_toggle}') || str_contains($tpl, '{affiliate_apply_form}'))) {
             $affApplyTpl = $settingsRepo->getAffiliateApplyFormTemplate((int) $listing->id);
             $globalTpls  = (new SiteSettingsRepo($db))->getGlobalTemplates();
             $resolved    = ListingTemplateResolver::resolve(
@@ -2151,8 +2155,8 @@ final class ListingController extends AdminController
                 ?? $siteRepoAff->get('global_affiliate_apply_toggle_label')
                 ?? 'Apply to become an affiliate?');
 
-        $sample = self::renderAffiliatesSection($tpl, $affiliates, $uploadsUrl, $affiliateApplyUrl, $applyStyle, $applyFormHtml, $applyLabel);
-        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl, $applyStyle, $applyFormHtml, $applyLabel);
+        $sample = self::renderAffiliatesSection($tpl, $affiliates, $uploadsUrl, $affiliateApplyUrl, $applyStyle, $applyFormHtml, $applyLabel, 'active');
+        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl, $applyStyle, $applyFormHtml, $applyLabel, 'empty');
 
         if (empty($affiliates)) {
             return $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>');
@@ -2168,7 +2172,7 @@ final class ListingController extends AdminController
      *
      * @param \Luster\Models\Affiliate[] $affiliates
      */
-    private static function renderAffiliatesSection(string $tpl, array $affiliates, string $uploadsUrl, string $affiliateApplyUrl = '', string $applyStyle = 'link', string $applyFormHtml = '', string $applyLabel = 'Apply to become an affiliate?'): string
+    private static function renderAffiliatesSection(string $tpl, array $affiliates, string $uploadsUrl, string $affiliateApplyUrl = '', string $applyStyle = 'link', string $applyFormHtml = '', string $applyLabel = 'Apply to become an affiliate?', string $idSuffix = 'preview'): string
     {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -2194,17 +2198,22 @@ final class ListingController extends AdminController
         }
 
         $toggleHtml = '';
+        $formTokenHtml = '';
         if ($applyFormHtml !== '') {
-            $toggleHtml = '<details class="fl-affiliate-apply-collapsible">'
-                . '<summary class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '">'
+            $formId = 'fl-affiliate-apply-form-' . $e($idSuffix);
+            $toggleHtml = '<button type="button" class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '"'
+                . ' data-fl-toggle="' . $formId . '" aria-expanded="false" aria-controls="' . $formId . '">'
                 . $e($applyLabel)
-                . '</summary>'
-                . '<div class="fl-affiliate-apply-form-wrap">'
+                . '</button>';
+            $formTokenHtml = '<div class="fl-affiliate-apply-form-wrap" id="' . $formId . '" hidden>'
                 . $applyFormHtml
-                . '</div>'
-                . '</details>';
+                . '</div>';
         }
-        $tpl = str_replace('{affiliate_apply_toggle}', $toggleHtml, $tpl);
+        $tpl = str_replace(
+            ['{affiliate_apply_toggle}', '{affiliate_apply_form}'],
+            [$toggleHtml, $formTokenHtml],
+            $tpl,
+        );
 
         return str_replace(
             ['{affiliates_count}', '{affiliate_apply_url}'],
@@ -2408,9 +2417,14 @@ final class ListingController extends AdminController
             return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
         });
 
-        $csToggle      = $this->renderCodesSubmitTogglePreview($tpl, $listing, $db, $request);
-        $csPlaceholder = '<!--lstr-cs-toggle-preview-->';
-        $tpl = str_replace('{codes_submit_toggle}', $csPlaceholder, $tpl);
+        $csResult          = $this->renderCodesSubmitTogglePreview($tpl, $listing, $db, $request);
+        $csTogglePlaceholder = '<!--lstr-cs-toggle-preview-->';
+        $csFormPlaceholder   = '<!--lstr-cs-form-preview-->';
+        $tpl = str_replace(
+            ['{codes_submit_toggle}', '{codes_submit_form}'],
+            [$csTogglePlaceholder, $csFormPlaceholder],
+            $tpl,
+        );
 
         $html = CodesTemplateRenderer::render(
             $tpl, $codes, $grouped, $donorMap, $uploadsUrl,
@@ -2425,23 +2439,26 @@ final class ListingController extends AdminController
             $tpl, [], [], [], $uploadsUrl, [], [], $listing->title ?? '',
         );
 
-        $html  = str_replace($csPlaceholder, $csToggle, (string) $html);
-        $empty = str_replace($csPlaceholder, '', (string) $empty);
+        $html  = str_replace([$csTogglePlaceholder, $csFormPlaceholder], [$csResult['toggle'], $csResult['form']], (string) $html);
+        $empty = str_replace([$csTogglePlaceholder, $csFormPlaceholder], ['', ''], (string) $empty);
 
         return $this->previewSectionLabel(empty($codes) ? 'Empty State' : 'Active Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>')
             . (empty($codes) ? '' : $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>'));
     }
 
-    private function renderCodesSubmitTogglePreview(string $tpl, object $listing, \Luster\Core\Database $db, ?\Luster\Core\Request $request = null): string
+    /**
+     * @return array{toggle: string, form: string}
+     */
+    private function renderCodesSubmitTogglePreview(string $tpl, object $listing, \Luster\Core\Database $db, ?\Luster\Core\Request $request = null): array
     {
-        if (!str_contains($tpl, '{codes_submit_toggle}')) {
-            return '';
+        if (!str_contains($tpl, '{codes_submit_toggle}') && !str_contains($tpl, '{codes_submit_form}')) {
+            return ['toggle' => '', 'form' => ''];
         }
 
         $settingsRepo = new ListingSettingsRepo($db);
         $embedCfg     = $settingsRepo->getResolvedEmbedSettings((int) $listing->id);
         if (!($embedCfg['codes_submit_enabled'] ?? true)) {
-            return '';
+            return ['toggle' => '', 'form' => ''];
         }
 
         $siteRepo     = new SiteSettingsRepo($db);
@@ -2467,16 +2484,17 @@ final class ListingController extends AdminController
         $formHtml = $this->renderCodesSubmitFormPreview($resolved['value'], $listing->title, $listing->url, (string) $listing->subject);
 
         if ($formHtml === '') {
-            return '';
+            return ['toggle' => '', 'form' => ''];
         }
 
         $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        return '<details class="fl-codes-submit-collapsible">'
-            . '<summary class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '">' . $e($csLabel) . '</summary>'
-            . '<div class="fl-codes-submit-form-wrap">'
+        $toggleHtml = '<button type="button" class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '"'
+            . ' data-fl-toggle="fl-codes-submit-form-preview" aria-expanded="false" aria-controls="fl-codes-submit-form-preview">' . $e($csLabel) . '</button>';
+        $formTokenHtml = '<div class="fl-codes-submit-form-wrap" id="fl-codes-submit-form-preview" hidden>'
             . $formHtml
-            . '</div>'
-            . '</details>';
+            . '</div>';
+
+        return ['toggle' => $toggleHtml, 'form' => $formTokenHtml];
     }
 
     private function ltplPreviewRules(string $tpl, object $listing, string $gateLabel = '', bool $gateEnabled = true, string $gateType = ''): string
@@ -3210,7 +3228,7 @@ final class ListingController extends AdminController
         $affiliateApplyUrl = $appUrl . '/affiliate-apply/1';
 
         $applyFormHtml = '';
-        if (str_contains($tpl, '{affiliate_apply_toggle}')) {
+        if (str_contains($tpl, '{affiliate_apply_toggle}') || str_contains($tpl, '{affiliate_apply_form}')) {
             $globalTpls  = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
             $resolved    = ListingTemplateResolver::resolve(
                 null,
@@ -3229,8 +3247,8 @@ final class ListingController extends AdminController
         $gAffLabel = $previewLabel !== null
             ? (trim($previewLabel) !== '' ? trim($previewLabel) : 'Apply to become an affiliate?')
             : ($siteRepo->get('global_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
-        $sample = self::renderAffiliatesSection($tpl, SampleTemplateData::affiliates(), $sampleImagesUrl, $affiliateApplyUrl, $gAffStyle, $applyFormHtml, $gAffLabel);
-        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl, $gAffStyle, $applyFormHtml, $gAffLabel);
+        $sample = self::renderAffiliatesSection($tpl, SampleTemplateData::affiliates(), $sampleImagesUrl, $affiliateApplyUrl, $gAffStyle, $applyFormHtml, $gAffLabel, 'gsample');
+        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl, $gAffStyle, $applyFormHtml, $gAffLabel, 'gempty');
 
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>';
@@ -3503,9 +3521,11 @@ final class ListingController extends AdminController
             return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
         });
 
-        $csToggle      = '';
-        $csPlaceholder = '<!--lstr-cs-toggle-gpreview-->';
-        if (str_contains($tpl, '{codes_submit_toggle}')) {
+        $csToggle            = '';
+        $csFormTokenHtml     = '';
+        $csTogglePlaceholder = '<!--lstr-cs-toggle-gpreview-->';
+        $csFormPlaceholder   = '<!--lstr-cs-form-gpreview-->';
+        if (str_contains($tpl, '{codes_submit_toggle}') || str_contains($tpl, '{codes_submit_form}')) {
             $siteRepo   = new SiteSettingsRepo($db);
             $globalTpls = $siteRepo->getGlobalTemplates();
             $csFormTpl  = $globalTpls['listing_default_codes_submit_form_template'] ?? null;
@@ -3525,15 +3545,18 @@ final class ListingController extends AdminController
                 : ($siteRepo->get('global_codes_submit_toggle_label') ?? 'Donate a code?');
             $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             if ($formHtml !== '') {
-                $csToggle = '<details class="fl-codes-submit-collapsible">'
-                    . '<summary class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csGStyle) . '">' . $e($csGLabel) . '</summary>'
-                    . '<div class="fl-codes-submit-form-wrap">'
+                $csToggle = '<button type="button" class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csGStyle) . '"'
+                    . ' data-fl-toggle="fl-codes-submit-form-gpreview" aria-expanded="false" aria-controls="fl-codes-submit-form-gpreview">' . $e($csGLabel) . '</button>';
+                $csFormTokenHtml = '<div class="fl-codes-submit-form-wrap" id="fl-codes-submit-form-gpreview" hidden>'
                     . $formHtml
-                    . '</div>'
-                    . '</details>';
+                    . '</div>';
             }
         }
-        $tpl = str_replace('{codes_submit_toggle}', $csPlaceholder, $tpl);
+        $tpl = str_replace(
+            ['{codes_submit_toggle}', '{codes_submit_form}'],
+            [$csTogglePlaceholder, $csFormPlaceholder],
+            $tpl,
+        );
 
         $html = CodesTemplateRenderer::render(
             $tpl, $codes, $grouped, $donorMap, $uploadsUrl,
@@ -3548,8 +3571,8 @@ final class ListingController extends AdminController
             $tpl, [], [], [], $uploadsUrl, [], [], SampleTemplateData::LISTING_TITLE,
         );
 
-        $html  = str_replace($csPlaceholder, $csToggle, (string) $html);
-        $empty = str_replace($csPlaceholder, '', (string) $empty);
+        $html  = str_replace([$csTogglePlaceholder, $csFormPlaceholder], [$csToggle, $csFormTokenHtml], (string) $html);
+        $empty = str_replace([$csTogglePlaceholder, $csFormPlaceholder], ['', ''], (string) $empty);
 
         return $this->previewSectionLabel(empty($codes) ? 'Empty State' : 'Sample Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>')
             . (empty($codes) ? '' : $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>'));

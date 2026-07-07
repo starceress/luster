@@ -487,6 +487,11 @@ final class SettingsController extends AdminController
             'UTF-8',
         );
         $cssVer = @filemtime(rtrim(LUSTER_BASE, '/') . '/public/assets/css/default/style.css') ?: 0;
+        $jsUrl = htmlspecialchars(
+            rtrim($appUrl, '/') . '/assets/js/fl-embed.js',
+            ENT_QUOTES | ENT_SUBSTITUTE,
+            'UTF-8',
+        );
         return '<!DOCTYPE html><html lang="en"><head>'
              . '<meta charset="utf-8">'
              . '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -496,6 +501,7 @@ final class SettingsController extends AdminController
              . 'p{margin:.5rem 0}</style>'
              . '</head><body>'
              . $content
+             . '<script src="' . $jsUrl . '"></script>'
              . '</body></html>';
     }
 
@@ -623,7 +629,7 @@ final class SettingsController extends AdminController
             $applyStyle = 'link';
         }
         $applyFormHtml = '';
-        if ($applyEnabled && str_contains($rawTpl, '{affiliate_apply_toggle}')) {
+        if ($applyEnabled && (str_contains($rawTpl, '{affiliate_apply_toggle}') || str_contains($rawTpl, '{affiliate_apply_form}'))) {
             $collectiveAffTpl = $siteRepo->get('collective_affiliate_apply_form_template') ?? '';
             if ($collectiveAffTpl === '') {
                 $collectiveAffTpl = SiteSettingsRepo::defaultCollectiveAffiliateApplyFormTemplate();
@@ -638,17 +644,23 @@ final class SettingsController extends AdminController
         $applyLabel   = $previewLabel !== null
             ? (trim((string) $previewLabel) !== '' ? trim((string) $previewLabel) : 'Apply to become an affiliate?')
             : (string) ($siteRepo->get('collective_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
-        $toggleHtml = '';
-        if ($applyFormHtml !== '') {
-            $toggleHtml = '<details class="fl-affiliate-apply-collapsible">'
-                . '<summary class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '">'
+
+        $buildToggle = static function (string $idSuffix) use ($e, $applyFormHtml, $applyStyle, $applyLabel): array {
+            if ($applyFormHtml === '') {
+                return ['', ''];
+            }
+            $formId = 'fl-affiliate-apply-form-' . $e($idSuffix);
+            $toggle = '<button type="button" class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '"'
+                . ' data-fl-toggle="' . $formId . '" aria-expanded="false" aria-controls="' . $formId . '">'
                 . $e($applyLabel)
-                . '</summary>'
-                . '<div class="fl-affiliate-apply-form-wrap">'
+                . '</button>';
+            $form = '<div class="fl-affiliate-apply-form-wrap" id="' . $formId . '" hidden>'
                 . $applyFormHtml
-                . '</div>'
-                . '</details>';
-        }
+                . '</div>';
+            return [$toggle, $form];
+        };
+        [$toggleHtmlActive, $formHtmlActive] = $buildToggle('active');
+        [$toggleHtmlEmpty, $formHtmlEmpty]   = $buildToggle('empty');
 
         $siteName = (string) $this->app->getConfig()->get('site_name', 'Collective');
         $flatTokens = ['{site_name}', '{affiliates_count}', '{affiliate_apply_url}'];
@@ -661,7 +673,7 @@ final class SettingsController extends AdminController
         }
         $active = (string) preg_replace('/\{if_affiliates\}(.*?)\{\/if_affiliates\}/s',       $total > 0 ? '$1' : '',  $active);
         $active = (string) preg_replace('/\{if_no_affiliates\}(.*?)\{\/if_no_affiliates\}/s', $total > 0 ? ''  : '$1', $active);
-        $active = str_replace('{affiliate_apply_toggle}', $toggleHtml, $active);
+        $active = str_replace(['{affiliate_apply_toggle}', '{affiliate_apply_form}'], [$toggleHtmlActive, $formHtmlActive], $active);
         $activeHtml = str_replace($flatTokens, [$e($siteName), (string) $total, $e($affiliateApplyUrl)], $active);
 
         // --- Empty state
@@ -669,7 +681,7 @@ final class SettingsController extends AdminController
         $empty = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', '', $empty, 1);
         $empty = (string) preg_replace('/\{if_affiliates\}(.*?)\{\/if_affiliates\}/s',       '', $empty);
         $empty = (string) preg_replace('/\{if_no_affiliates\}(.*?)\{\/if_no_affiliates\}/s', '$1', $empty);
-        $empty = str_replace('{affiliate_apply_toggle}', $toggleHtml, $empty);
+        $empty = str_replace(['{affiliate_apply_toggle}', '{affiliate_apply_form}'], [$toggleHtmlEmpty, $formHtmlEmpty], $empty);
         $emptyHtml = str_replace($flatTokens, [$e($siteName), '0', $e($affiliateApplyUrl)], $empty);
 
         return self::previewSectionLabel($total > 0 ? 'Active Data' : 'Sample Data')
@@ -1269,24 +1281,34 @@ final class SettingsController extends AdminController
 
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        // Extract {codes_submit_toggle} from the raw template BEFORE any other
-        // substitution so a site name or other token value can never inject a
-        // toggle that the raw template didn't actually request.
-        $csPlaceholder = '<!--lstr-cs-toggle-' . bin2hex(random_bytes(8)) . '-->';
-        $hasCsToggle   = str_contains($tpl, '{codes_submit_toggle}');
+        // Extract {codes_submit_toggle} / {codes_submit_form} from the raw
+        // template BEFORE any other substitution so a site name or other
+        // token value can never inject markup the raw template didn't
+        // actually request.
+        $csTogglePlaceholder = '<!--lstr-cs-toggle-' . bin2hex(random_bytes(8)) . '-->';
+        $csFormPlaceholder   = '<!--lstr-cs-form-' . bin2hex(random_bytes(8)) . '-->';
+        $hasCsToggle = str_contains($tpl, '{codes_submit_toggle}') || str_contains($tpl, '{codes_submit_form}');
         if ($hasCsToggle) {
-            $tpl = str_replace('{codes_submit_toggle}', $csPlaceholder, $tpl);
+            $tpl = str_replace(
+                ['{codes_submit_toggle}', '{codes_submit_form}'],
+                [$csTogglePlaceholder, $csFormPlaceholder],
+                $tpl,
+            );
         }
 
         $siteName = (string) ($this->app->getConfig()->get('site_name', '') ?: 'Collective');
         $tpl = str_replace('{site_name}', htmlspecialchars($siteName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $tpl);
 
-        // {codes_submit_toggle} — collapsible inline code donation form.
-        // The placeholder is left in $tpl through rendering (just like production's
-        // codes.php) and swapped for the real form HTML afterward, so codes-template
-        // syntax that happens to appear inside a customized donation-form template
-        // is never re-interpreted by CodesTemplateRenderer.
-        $toggleHtml = '';
+        // {codes_submit_toggle} / {codes_submit_form} — trigger button + a
+        // separately-placed code donation form. The placeholders are left in
+        // $tpl through rendering (just like production's codes.php) and
+        // swapped for the real HTML afterward, so codes-template syntax that
+        // happens to appear inside a customized donation-form template is
+        // never re-interpreted by CodesTemplateRenderer.
+        $toggleHtmlActive = '';
+        $formHtmlActive   = '';
+        $toggleHtmlEmpty  = '';
+        $formHtmlEmpty    = '';
         if ($hasCsToggle) {
             $siteRepo   = new SiteSettingsRepo($db);
             $csEnabled  = ($siteRepo->get('collective_codes_submit_enabled') ?? '1') === '1';
@@ -1312,14 +1334,21 @@ final class SettingsController extends AdminController
                 }
                 $csFormHtml = $this->coltplPreviewCodesSubmitForm($csFormTpl, $this->app->getConfig());
 
-                $toggleHtml = '<details class="fl-codes-submit-collapsible">'
-                    . '<summary class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '">'
-                    . $e($csLabel)
-                    . '</summary>'
-                    . '<div class="fl-codes-submit-form-wrap">'
-                    . $csFormHtml
-                    . '</div>'
-                    . '</details>';
+                if ($csFormHtml !== '') {
+                    $buildCsToggle = static function (string $idSuffix) use ($e, $csFormHtml, $csStyle, $csLabel): array {
+                        $formId = 'fl-codes-submit-form-' . $e($idSuffix);
+                        $toggle = '<button type="button" class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '"'
+                            . ' data-fl-toggle="' . $formId . '" aria-expanded="false" aria-controls="' . $formId . '">'
+                            . $e($csLabel)
+                            . '</button>';
+                        $form = '<div class="fl-codes-submit-form-wrap" id="' . $formId . '" hidden>'
+                            . $csFormHtml
+                            . '</div>';
+                        return [$toggle, $form];
+                    };
+                    [$toggleHtmlActive, $formHtmlActive] = $buildCsToggle('active');
+                    [$toggleHtmlEmpty, $formHtmlEmpty]   = $buildCsToggle('empty');
+                }
             }
         }
 
@@ -1337,8 +1366,8 @@ final class SettingsController extends AdminController
         );
 
         if ($hasCsToggle) {
-            $html  = $html  !== null ? str_replace($csPlaceholder, $toggleHtml, $html)  : $html;
-            $empty = $empty !== null ? str_replace($csPlaceholder, $toggleHtml, $empty) : $empty;
+            $html  = $html  !== null ? str_replace([$csTogglePlaceholder, $csFormPlaceholder], [$toggleHtmlActive, $formHtmlActive], $html)  : $html;
+            $empty = $empty !== null ? str_replace([$csTogglePlaceholder, $csFormPlaceholder], [$toggleHtmlEmpty, $formHtmlEmpty], $empty) : $empty;
         }
 
         return self::previewSectionLabel(empty($codes) ? 'Empty State' : 'Active Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved collective codes to preview with.</p>')

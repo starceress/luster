@@ -882,7 +882,8 @@ $epSafe = View::e($ep);
               <tbody>
                 <tr><td class="actions-col"><code class="ec-tk">{affiliates_count}</code></td><td>Number of active affiliates.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{affiliate_apply_url}</code></td><td>Link to the matching affiliate application form. Listing affiliates point to that listing; collective affiliates point to the collective application form.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{affiliate_apply_toggle}</code></td><td>Collapsible affiliate application form. Shows a text link or button that reveals the full application form inline. Empty when applications are disabled.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{affiliate_apply_toggle}</code></td><td>Clickable trigger (link or button) that shows/hides the affiliate application form. Empty when applications are disabled.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{affiliate_apply_form}</code></td><td>The affiliate application form itself. Place anywhere - it starts hidden and is revealed by clicking {affiliate_apply_toggle}.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shows the text inside only when there are affiliates.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Shows the text inside only when there are no affiliates.</td></tr>
               </tbody>
@@ -1061,6 +1062,8 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{if_donor}</code>, <code class="ec-tk">{if_no_donor}</code>, <code class="ec-tk">{if_donor_url}</code>, <code class="ec-tk">{if_no_donor_url}</code></td><td>Shows donor markup only when donor details exist, or alternate markup when they do not.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_code_name}</code></td><td>Shows the text inside only when the code has a saved name.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_codes}&hellip;{/if_codes}</code>, <code class="ec-tk">{if_no_codes}&hellip;{/if_no_codes}</code></td><td>Shows the text inside only when codes exist (or do not). Useful for showing an empty-state message in your template.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{codes_submit_toggle}</code></td><td>Clickable trigger (link or button) that shows/hides the code donation form. Empty when code donations are disabled.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{codes_submit_form}</code></td><td>The code donation form itself. Place anywhere - it starts hidden and is revealed by clicking {codes_submit_toggle}.</td></tr>
               </tbody>
             </table>
             </div>

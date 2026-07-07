@@ -178,7 +178,8 @@ class SiteSettingsRepo
                                                     . '{if_no_affiliates}' . "\n"
                                                     . 'No affiliates yet.' . "\n"
                                                     . '{/if_no_affiliates}' . "\n"
-                                                    . '{affiliate_apply_toggle}' . "\n"
+                                                    . '<div style="text-align:center">{affiliate_apply_toggle}</div>' . "\n"
+                                                    . '{affiliate_apply_form}' . "\n"
                                                     . '</div>',
             // Single-listing embeds — each has its own separate template so site
             // owners can style them independently from the full owned-listings list.
@@ -426,7 +427,8 @@ HTML;
             . '</div>' . "\n"
             . "\n"
             . '{/if_codes}' . "\n"
-            . '{codes_submit_toggle}';
+            . '<div style="text-align:center">{codes_submit_toggle}</div>' . "\n"
+            . '{codes_submit_form}';
     }
 
     /**

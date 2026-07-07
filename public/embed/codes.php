@@ -186,12 +186,18 @@ if ($_lusterIsCollective) {
     $_lusterCodesTemplate = $_lusterCodesResolved['should_render_template'] ? $_lusterCodesResolved['value'] : null;
 }
 
-// Extract {codes_submit_toggle} from raw template BEFORE rendering so
-// user-supplied donor names or code titles can never match the token.
+// Extract {codes_submit_toggle} / {codes_submit_form} from raw template
+// BEFORE rendering so user-supplied donor names or code titles can never
+// match either token.
 $_lusterCsToggleRendered = false;
-$_lusterCsPlaceholder    = '<!--lstr-cs-toggle-' . bin2hex(random_bytes(8)) . '-->';
-if ($_lusterCodesTemplate !== null && str_contains($_lusterCodesTemplate, '{codes_submit_toggle}')) {
-    $_lusterCodesTemplate = str_replace('{codes_submit_toggle}', $_lusterCsPlaceholder, $_lusterCodesTemplate);
+$_lusterCsTogglePlaceholder = '<!--lstr-cs-toggle-' . bin2hex(random_bytes(8)) . '-->';
+$_lusterCsFormPlaceholder   = '<!--lstr-cs-form-' . bin2hex(random_bytes(8)) . '-->';
+if ($_lusterCodesTemplate !== null) {
+    $_lusterCodesTemplate = str_replace(
+        ['{codes_submit_toggle}', '{codes_submit_form}'],
+        [$_lusterCsTogglePlaceholder, $_lusterCsFormPlaceholder],
+        $_lusterCodesTemplate,
+    );
 }
 
 if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
@@ -208,9 +214,13 @@ if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
     );
 }
 
-// {codes_submit_toggle} — collapsible inline code donation form
-if ($_lusterCodesTemplateHtml !== null && str_contains($_lusterCodesTemplateHtml, $_lusterCsPlaceholder)) {
+// {codes_submit_toggle} / {codes_submit_form} — trigger button + a
+// separately-placed code donation form, shown/hidden via fl-embed.js.
+if ($_lusterCodesTemplateHtml !== null
+    && (str_contains($_lusterCodesTemplateHtml, $_lusterCsTogglePlaceholder) || str_contains($_lusterCodesTemplateHtml, $_lusterCsFormPlaceholder))
+) {
     $_lusterCsToggleHtml = '';
+    $_lusterCsFormTokenHtml = '';
     $_lusterCsEnabled    = false;
 
     $_lusterCsToggleStyle = 'link';
@@ -244,16 +254,24 @@ if ($_lusterCodesTemplateHtml !== null && str_contains($_lusterCodesTemplateHtml
 
         if ($_lusterCsFormHtml !== '') {
             $_lusterCsToggleRendered = true;
-            $_lusterCsToggleHtml = '<details class="fl-codes-submit-collapsible"' . ($_lusterCsHasFeedback ? ' open' : '') . '>'
-                . '<summary class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($_lusterCsToggleStyle) . '">' . $e($_lusterCsToggleLabel) . '</summary>'
-                . '<div class="fl-codes-submit-form-wrap">'
+            $_lusterCsFormId = 'fl-codes-submit-form-' . ($_lusterListingId ?? 0);
+
+            $_lusterCsToggleHtml = '<button type="button" class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($_lusterCsToggleStyle) . '"'
+                . ' data-fl-toggle="' . $e($_lusterCsFormId) . '" aria-expanded="' . ($_lusterCsHasFeedback ? 'true' : 'false') . '" aria-controls="' . $e($_lusterCsFormId) . '">'
+                . $e($_lusterCsToggleLabel)
+                . '</button>';
+
+            $_lusterCsFormTokenHtml = '<div class="fl-codes-submit-form-wrap" id="' . $e($_lusterCsFormId) . '"' . ($_lusterCsHasFeedback ? '' : ' hidden') . '>'
                 . $_lusterCsFormHtml
-                . '</div>'
-                . '</details>';
+                . '</div>';
         }
     }
 
-    $_lusterCodesTemplateHtml = str_replace($_lusterCsPlaceholder, $_lusterCsToggleHtml, $_lusterCodesTemplateHtml);
+    $_lusterCodesTemplateHtml = str_replace(
+        [$_lusterCsTogglePlaceholder, $_lusterCsFormPlaceholder],
+        [$_lusterCsToggleHtml, $_lusterCsFormTokenHtml],
+        $_lusterCodesTemplateHtml,
+    );
 }
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [

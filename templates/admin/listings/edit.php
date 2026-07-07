@@ -472,7 +472,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      <?= ($affiliate_apply_enabled ?? false) ? 'checked' : '' ?>>
               <span class="toggle-label">Accept affiliate applications for this listing</span>
             </label>
-            <p class="form-hint">When enabled, the <code>{affiliate_apply_toggle}</code> token in your affiliates template shows a collapsible application form.</p>
+            <p class="form-hint">When enabled, the <code>{affiliate_apply_toggle}</code> token in your affiliates template shows a trigger that reveals the <code>{affiliate_apply_form}</code> application form.</p>
           </div>
         </div>
 
@@ -484,7 +484,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      <?= ($embed_settings['codes_submit_enabled'] ?? true) ? 'checked' : '' ?>>
               <span class="toggle-label">Allow fans to donate codes for this listing</span>
             </label>
-            <p class="form-hint">Enables the public code submission form and the <code>{codes_submit_toggle}</code> token in your codes template shows a collapsible code donation form. Submissions appear in the <a href="#" class="link" data-jump-tab="codes">Codes</a> tab for review.</p>
+            <p class="form-hint">Enables the public code submission form. The <code>{codes_submit_toggle}</code> token in your codes template shows a trigger that reveals the <code>{codes_submit_form}</code> donation form. Submissions appear in the <a href="#" class="link" data-jump-tab="codes">Codes</a> tab for review.</p>
             <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
             <div style="margin-top:.75rem">
               <?php
@@ -1259,7 +1259,8 @@ $_tplCsrf = View::e($csrf_token ?? '');
             <?= $ltok('codes_template', '{if_code_name}{/if_code_name}',   '{if_code_name}...{/if_code_name}',   'Shows only when the code has a saved name.') ?>
             <?= $ltok('codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
             <?= $ltok('codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
-            <?= $ltok('codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Label, style (link or button) are configurable above. Empty when code donations are disabled.') ?>
+            <?= $ltok('codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Clickable trigger (link or button) that shows/hides the code donation form. Label and style are configurable above. Empty when code donations are disabled.') ?>
+            <?= $ltok('codes_template', '{codes_submit_form}', '{codes_submit_form}', 'The code donation form itself. Place anywhere - it starts hidden and is revealed by clicking {codes_submit_toggle}.') ?>
           </tbody></table>
         </div>
       </details>
@@ -1304,7 +1305,8 @@ $_tplCsrf = View::e($csrf_token ?? '');
             <?= $ltok('affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
             <?= $ltok('affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
             <?= $ltok('affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
-            <?= $ltok('affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Label, style (link or button) are configurable above. Empty when applications are disabled.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Clickable trigger (link or button) that shows/hides the affiliate application form. Label and style are configurable above. Empty when applications are disabled.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliate_apply_form}', '{affiliate_apply_form}', 'The affiliate application form itself. Place anywhere - it starts hidden and is revealed by clicking {affiliate_apply_toggle}.') ?>
             <?= $ltok('affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
             <?= $ltok('affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
             <?= $ltok('affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>

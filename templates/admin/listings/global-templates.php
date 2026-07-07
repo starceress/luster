@@ -650,7 +650,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_codes_template', '{if_code_name}{/if_code_name}', '{if_code_name}...{/if_code_name}', 'Shows only when the code has a saved name.') ?>
             <?= $tok('listing_default_codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
             <?= $tok('listing_default_codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
-            <?= $tok('listing_default_codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Label, style (link or button) are configurable above. Empty when code donations are disabled.') ?>
+            <?= $tok('listing_default_codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Clickable trigger (link or button) that shows/hides the code donation form. Label and style are configurable above. Empty when code donations are disabled.') ?>
+            <?= $tok('listing_default_codes_template', '{codes_submit_form}', '{codes_submit_form}', 'The code donation form itself. Place anywhere - it starts hidden and is revealed by clicking {codes_submit_toggle}.') ?>
           </tbody></table>
         </div>
       </details>
@@ -693,7 +694,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Label, style (link or button) are configurable above. Empty when applications are disabled.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Clickable trigger (link or button) that shows/hides the affiliate application form. Label and style are configurable above. Empty when applications are disabled.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_form}', '{affiliate_apply_form}', 'The affiliate application form itself. Place anywhere - it starts hidden and is revealed by clicking {affiliate_apply_toggle}.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>

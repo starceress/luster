@@ -780,7 +780,8 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('collective_codes_template', '{if_donor_url}{/if_donor_url}', '{if_donor_url}...{/if_donor_url}', 'Shows only when the donor has a website URL saved.') ?>
             <?= $tok('collective_codes_template', '{if_no_donor_url}{/if_no_donor_url}', '{if_no_donor_url}...{/if_no_donor_url}', 'Shows only when the donor has no website URL.') ?>
             <?= $tok('collective_codes_template', '{if_code_name}{/if_code_name}',   '{if_code_name}...{/if_code_name}',   'Shows only when the code has a saved name.') ?>
-            <?= $tok('collective_codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Collapsible code donation form. Shows a text link or button that reveals the full donation form inline. Empty when collective code donations are disabled.') ?>
+            <?= $tok('collective_codes_template', '{codes_submit_toggle}', '{codes_submit_toggle}', 'Clickable trigger (link or button) that shows/hides the code donation form. Empty when collective code donations are disabled.') ?>
+            <?= $tok('collective_codes_template', '{codes_submit_form}', '{codes_submit_form}', 'The code donation form itself. Place anywhere - it starts hidden and is revealed by clicking {codes_submit_toggle}.') ?>
             <?= $tok('collective_codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when there is at least one approved collective code. Place outside the loop.') ?>
             <?= $tok('collective_codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when there are no approved collective codes (empty state). Place outside the loop.') ?>
           </tbody></table>
@@ -824,7 +825,8 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('collective_affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
             <?= $tok('collective_affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates there are.') ?>
             <?= $tok('collective_affiliates_section_template', '{affiliate_apply_url}', '{affiliate_apply_url}', 'The link to the collective affiliate application form.') ?>
-            <?= $tok('collective_affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Collapsible affiliate application form. Shows a text link or button that reveals the full application form inline. Empty when collective applications are disabled.') ?>
+            <?= $tok('collective_affiliates_section_template', '{affiliate_apply_toggle}',              '{affiliate_apply_toggle}',                'Clickable trigger (link or button) that shows/hides the affiliate application form. Empty when collective applications are disabled.') ?>
+            <?= $tok('collective_affiliates_section_template', '{affiliate_apply_form}', '{affiliate_apply_form}', 'The affiliate application form itself. Place anywhere - it starts hidden and is revealed by clicking {affiliate_apply_toggle}.') ?>
             <?= $tok('collective_affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when there is at least one affiliate.') ?>
             <?= $tok('collective_affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when there are no affiliates.') ?>
             <?= $tok('collective_affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>

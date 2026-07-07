@@ -176,9 +176,13 @@ if ($_lusterSectionTemplate !== null) {
         );
     }
 
-    // {affiliate_apply_toggle} — collapsible inline affiliate application form
+    // {affiliate_apply_toggle} / {affiliate_apply_form} — trigger button + a
+    // separately-placed form, shown/hidden via fl-embed.js. Kept as two
+    // tokens (rather than one self-contained blob) so a template can put the
+    // trigger inline with other text without the form disrupting that flow.
     $_lusterToggleHtml = '';
-    if (str_contains($_lusterSectionHtml, '{affiliate_apply_toggle}')) {
+    $_lusterFormTokenHtml = '';
+    if (str_contains($_lusterSectionHtml, '{affiliate_apply_toggle}') || str_contains($_lusterSectionHtml, '{affiliate_apply_form}')) {
         $_lusterApplyEnabled = false;
         $_lusterApplyStyle   = 'link';
 
@@ -209,17 +213,23 @@ if ($_lusterSectionTemplate !== null) {
             $_lusterApplyFormHtml = (string) require __DIR__ . '/affiliate-apply.php';
             $luster_return     = $_lusterReturnOrig;
 
-            $_lusterToggleHtml = '<details class="fl-affiliate-apply-collapsible">'
-                . '<summary class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($_lusterApplyStyle) . '">'
+            $_lusterAffFormId = 'fl-affiliate-apply-form-' . $_lusterListingId;
+
+            $_lusterToggleHtml = '<button type="button" class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($_lusterApplyStyle) . '"'
+                . ' data-fl-toggle="' . $e($_lusterAffFormId) . '" aria-expanded="false" aria-controls="' . $e($_lusterAffFormId) . '">'
                 . $e($_lusterApplyLabel)
-                . '</summary>'
-                . '<div class="fl-affiliate-apply-form-wrap">'
+                . '</button>';
+
+            $_lusterFormTokenHtml = '<div class="fl-affiliate-apply-form-wrap" id="' . $e($_lusterAffFormId) . '" hidden>'
                 . $_lusterApplyFormHtml
-                . '</div>'
-                . '</details>';
+                . '</div>';
         }
 
-        $_lusterSectionHtml = str_replace('{affiliate_apply_toggle}', $_lusterToggleHtml, $_lusterSectionHtml);
+        $_lusterSectionHtml = str_replace(
+            ['{affiliate_apply_toggle}', '{affiliate_apply_form}'],
+            [$_lusterToggleHtml, $_lusterFormTokenHtml],
+            $_lusterSectionHtml,
+        );
     }
 
     $_lusterSectionHtml = str_replace(

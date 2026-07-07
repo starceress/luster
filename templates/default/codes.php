@@ -22,6 +22,10 @@ if (isset($codes_template_html) && $codes_template_html !== null) {
         echo '<div class="fl-pagination-wrap">' . $pagination . '</div>';
     }
     echo '</div>';
+    if (!defined('FL_EMBED_JS_LOADED')) {
+        define('FL_EMBED_JS_LOADED', true);
+        echo '<script src="' . htmlspecialchars($base_url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '/assets/js/fl-embed.js"></script>';
+    }
     return;
 }
 
@@ -106,3 +110,6 @@ $_showHeadings  = count($grouped) > 1;
 
 <?php endif; ?>
 </div>
+<?php if (!defined('FL_EMBED_JS_LOADED')): define('FL_EMBED_JS_LOADED', true); ?>
+<script src="<?= View::e($base_url) ?>/assets/js/fl-embed.js"></script>
+<?php endif; ?>
