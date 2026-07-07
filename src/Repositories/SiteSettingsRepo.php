@@ -595,9 +595,9 @@ HTML;
      */
     public static function defaultCollectiveUpdateFormTemplate(): string
     {
-        return '<p class="fl-form-intro">Update your info across every {site_name} fanlisting '
-            . "you've joined in one step. Enter your email below and we'll send you a secure "
-            . 'link to make changes.</p>' . "\n"
+        return '<p class="fl-form-intro">Joined more than one {site_name} fanlisting? Enter the '
+            . 'email address you joined with below to receive a secure link for updating your '
+            . 'information across every matching membership.</p>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_email}' . "\n"
             . '</div>' . "\n"
