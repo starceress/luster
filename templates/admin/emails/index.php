@@ -36,6 +36,7 @@ $typeLabels = [
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM Sign-Up Approved',
     EmailTemplateRepo::TYPE_KIM_UPDATE         => 'KIM Entry Updated',
     EmailTemplateRepo::TYPE_KIM_RESET          => 'KIM Password Reset',
+    EmailTemplateRepo::TYPE_COLLECTIVE_UPDATE  => 'Collective Membership Update',
 ];
 
 $navLabels = [
@@ -57,6 +58,7 @@ $navLabels = [
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM Approved',
     EmailTemplateRepo::TYPE_KIM_UPDATE         => 'KIM Updated',
     EmailTemplateRepo::TYPE_KIM_RESET          => 'KIM Reset',
+    EmailTemplateRepo::TYPE_COLLECTIVE_UPDATE  => 'Collective Update',
 ];
 
 $typeHints = [
@@ -78,6 +80,7 @@ $typeHints = [
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'Sent to the KIM member after you approve their sign-up.',
     EmailTemplateRepo::TYPE_KIM_UPDATE         => 'Sent to the KIM member after their entry details are updated.',
     EmailTemplateRepo::TYPE_KIM_RESET          => 'Sent when a KIM member requests a password reset. Keep {reset_url} in this email.',
+    EmailTemplateRepo::TYPE_COLLECTIVE_UPDATE  => 'Sent when a fan requests a secure link to update their info across every {site_name} fanlisting they belong to. Keep {verify_url} in this email.',
 ];
 
 $allTokenDesc = [
@@ -111,6 +114,8 @@ $allTokenDesc = [
     '{kim_url}'            => "KIM member's website link",
     '{kim_password}'       => "KIM member's password (user-chosen or auto-generated)",
     '{kim_update_url}'     => "Link to the KIM update form",
+    '{verify_url}'         => "The secure, single-use link the fan clicks to update their info",
+    '{membership_list}'    => "Bullet list of the fanlistings this email is registered for",
 ];
 
 $commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{listing_email}', '{join_url}', '{update_url}', '{site_name}', '{site_url}', '{owner_name}', '{owner_email}'];
@@ -136,6 +141,7 @@ $typeTokens[EmailTemplateRepo::TYPE_KIM_APPROVED] = $kimTokens;
 $typeTokens[EmailTemplateRepo::TYPE_KIM_UPDATE]   = $kimTokens;
 $kimResetTokens = ['{kim_name}', '{kim_email}', '{kim_url}', '{kim_update_url}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens[EmailTemplateRepo::TYPE_KIM_RESET]    = array_merge(['{reset_url}'], $kimResetTokens);
+$typeTokens[EmailTemplateRepo::TYPE_COLLECTIVE_UPDATE] = ['{verify_url}', '{membership_list}', '{site_name}', '{site_url}', '{owner_name}', '{owner_email}'];
 
 $typeExtraHints = [
     EmailTemplateRepo::TYPE_JOIN  => '{fan_password} is always populated (user-chosen or auto-generated). Include {reset_url} so fans can reset their password later.',
@@ -152,6 +158,7 @@ $typeExtraHints = [
     EmailTemplateRepo::TYPE_KIM_APPROVED => 'KIM emails use {kim_*} tokens instead of {fan_*} tokens. This email is sent to the KIM member when you approve their sign-up.',
     EmailTemplateRepo::TYPE_KIM_UPDATE   => 'KIM emails use {kim_*} tokens. This email is sent to the KIM member after their entry details are changed.',
     EmailTemplateRepo::TYPE_KIM_RESET    => 'KIM emails use {kim_*} tokens. This email must include {reset_url} so the KIM member can click a link to set a new password.',
+    EmailTemplateRepo::TYPE_COLLECTIVE_UPDATE => 'This email needs {verify_url}. Without it, the fan will not have a link to click to update their memberships. There is no per-fan name token since one email address can match several memberships at once.',
 ];
 
 $bulkTokens = [
@@ -282,7 +289,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
     <input type="hidden" name="scope"  value="<?= View::e($scope) ?>">
 
-    <div class="mini-nav-layout">
+    <div class="mini-nav-layout mini-nav-layout--tokens">
       <nav class="card">
         <div class="card-head">Template Name</div>
         <div class="panel-body">

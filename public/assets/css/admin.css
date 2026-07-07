@@ -1095,6 +1095,12 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .mini-nav-tokens { grid-column:1; grid-row:2; }
 
+/* Variant with a right-hand tokens sidebar (Email Templates tab) instead of
+   stacking the tokens panel under the nav list in the narrow left column. */
+.mini-nav-layout--tokens { grid-template-columns:200px 1fr 325px; }
+.mini-nav-layout--tokens > .settings-content { grid-column:2; grid-row:1; }
+.mini-nav-layout--tokens > .mini-nav-tokens { grid-column:3; grid-row:1; }
+
 .mini-nav { position:sticky; top:1.5rem; display:flex; flex-direction:column; gap:2px; background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:0.5rem; box-shadow:var(--shadow); }
 
 .mini-nav-item { display:flex; gap:0.55rem; padding:0.5rem 0.75rem; border-radius:9px; font-size:var(--fs-md); font-weight:500; color:var(--text-muted); cursor:pointer; border:none; background:none; text-align:left; width:100%; font-family:'DM Sans',sans-serif; transition:color 0.15s,background 0.15s; text-decoration:none; line-height:1.4; }
@@ -2204,6 +2210,9 @@ body.sidebar-open { overflow: hidden; }
 .mini-nav-layout > nav.card .mini-nav-item { display: none; }
 .settings-nav-select-wrap { display: block; }
 .mini-nav-layout > .settings-content { padding-top: 1.25rem; }
+.mini-nav-layout--tokens { grid-template-columns: 1fr; }
+.mini-nav-layout--tokens > .settings-content,
+.mini-nav-layout--tokens > .mini-nav-tokens { grid-column: 1; grid-row: auto; }
 .mini-nav-panel { scroll-margin-top: 160px; }
 }
 

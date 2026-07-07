@@ -23,6 +23,7 @@ use Luster\Core\Validator;
 use Luster\Models\Listing;
 use Luster\Models\Member;
 use Luster\Repositories\CollectiveUpdateTokenRepo;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -92,24 +93,28 @@ final class CollectiveUpdateController
             try {
                 $cfg      = $this->app->getConfig();
                 $siteName = (string) $cfg->get('site_name', 'Luster');
-                $fromName = (string) $cfg->get('owner_name', $siteName);
-                $subject  = 'Update your memberships at ' . $siteName;
 
-                $listingList = implode("\n", array_map(
+                $membershipList = implode("\n", array_map(
                     static fn(array $m) => '- ' . $m['listing']->title,
                     $memberships
                 ));
 
-                $body = "Hi,\n\n"
-                    . "You (or someone using this email address) requested a link to update your memberships at {$siteName}.\n\n"
-                    . "Your email is registered for:\n{$listingList}\n\n"
-                    . "Click the link below to update your membership details. This link expires in 60 minutes and can only be used once.\n\n"
-                    . $verifyUrl . "\n\n"
-                    . "If you did not request this, you can safely ignore this email.\n\n"
-                    . "-- {$fromName}";
+                $tokens = EmailTemplateRepo::buildCollectiveUpdateTokens(
+                    siteName:       $siteName,
+                    ownerName:      (string) $cfg->get('owner_name', $siteName),
+                    ownerEmail:     (string) $cfg->get('owner_email', ''),
+                    verifyUrl:      $verifyUrl,
+                    membershipList: $membershipList,
+                    siteUrl:        (string) $cfg->get('site_url', ''),
+                );
 
-                $mailer = new Mailer($cfg);
-                $mailer->send($email, '', $subject, $body);
+                $emailRepo      = new EmailTemplateRepo($this->app->getDatabase());
+                [$subject, $body] = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_COLLECTIVE_UPDATE, $tokens);
+
+                if ($subject !== '') {
+                    $mailer = new Mailer($cfg);
+                    $mailer->send($email, '', $subject, $body);
+                }
             } catch (\Throwable $e) {
                 error_log('[Luster] Collective update email failed: ' . $e->getMessage());
             }

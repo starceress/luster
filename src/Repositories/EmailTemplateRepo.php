@@ -84,6 +84,12 @@ use Luster\Core\Database;
  *   plus {listing_title}, {listing_subject}, {listing_type}, {listing_url},
  *        {site_name}, {owner_name}, {owner_email}
  *
+ * Collective update tokens (collective_update) — sent when a fan requests a
+ * secure link to update their info across every fanlisting they belong to:
+ *   {verify_url}        — one-time link to the update form
+ *   {membership_list}   — bullet list of the fanlistings the email is registered for
+ *   plus {site_name}, {site_url}, {owner_name}, {owner_email}
+ *
  */
 final class EmailTemplateRepo
 {
@@ -116,6 +122,7 @@ final class EmailTemplateRepo
     public const TYPE_KIM_APPROVED       = 'kim_approved';
     public const TYPE_KIM_UPDATE         = 'kim_update';
     public const TYPE_KIM_RESET          = 'kim_reset';
+    public const TYPE_COLLECTIVE_UPDATE  = 'collective_update';
 
     /** Sentinel fanlisting_id for collective-scope templates. */
     public const COLLECTIVE_ID = -1;
@@ -135,6 +142,7 @@ final class EmailTemplateRepo
         self::TYPE_KIM_APPROVED,
         self::TYPE_KIM_UPDATE,
         self::TYPE_KIM_RESET,
+        self::TYPE_COLLECTIVE_UPDATE,
     ];
 
     /** Types shown in the "Global Listings (Default)" and per-listing scopes. */
@@ -165,6 +173,7 @@ final class EmailTemplateRepo
         self::TYPE_KIM_APPROVED,
         self::TYPE_KIM_UPDATE,
         self::TYPE_KIM_RESET,
+        self::TYPE_COLLECTIVE_UPDATE,
     ];
 
     public const DISABLED_BY_DEFAULT = [
@@ -192,6 +201,7 @@ final class EmailTemplateRepo
         self::TYPE_KIM_APPROVED,
         self::TYPE_KIM_UPDATE,
         self::TYPE_KIM_RESET,
+        self::TYPE_COLLECTIVE_UPDATE,
     ];
 
     // -----------------------------------------------------------------------
@@ -294,7 +304,7 @@ final class EmailTemplateRepo
     private const DEFAULT_BODY_AFFILIATE_REJECTED =
         'Hello {aff_name},' . "\n\n"
         . 'Thank you for applying to affiliate with "{listing_title}", the {listing_type} for {listing_subject}.' . "\n\n"
-        . 'Unfortunately, I am not able to accept you as an affiliate at this time. Nevertheless, thank you for reaching out.' . "\n\n"
+        . 'Unfortunately, I am not able to accept you as an affiliate at this time. Thank you for your interest!' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name} ({site_url})';
 
@@ -324,7 +334,7 @@ final class EmailTemplateRepo
     private const DEFAULT_BODY_ADOPTION_REJECTED =
         'Hi {applicant_name},' . "\n\n"
         . 'Thank you for your interest in adopting "{listing_title}", the {listing_type} for {listing_subject}.' . "\n\n"
-        . 'Unfortunately, I am not able to approve your application at this time. Nevertheless, thank you for reaching out and showing your interest.' . "\n\n"
+        . 'Unfortunately, I am not able to approve your application at this time. Thank you for your interest!' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name} ({site_url})';
 
@@ -387,6 +397,7 @@ final class EmailTemplateRepo
         self::TYPE_CODE_APPROVED      => 'Your code donation for {site_name} has been approved!',
         self::TYPE_KIM_UPDATE         => 'Your KIM List entry has been updated',
         self::TYPE_KIM_RESET          => 'Reset your KIM List password',
+        self::TYPE_COLLECTIVE_UPDATE  => 'Update your memberships at {site_name}',
     ];
 
     // -----------------------------------------------------------------------
@@ -418,9 +429,19 @@ final class EmailTemplateRepo
     private const COLLECTIVE_DEFAULT_BODY_AFFILIATE_REJECTED =
         'Hello {aff_name},' . "\n\n"
         . 'Thank you for applying to affiliate with {site_name}.' . "\n\n"
-        . 'Unfortunately, I am not able to accept you as an affiliate at this time. Nevertheless, thank you for reaching out.' . "\n\n"
+        . 'Unfortunately, I am not able to accept you as an affiliate at this time. Thank you for your interest!' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name} ({site_url})';
+
+    private const COLLECTIVE_DEFAULT_BODY_COLLECTIVE_UPDATE =
+        'Hi,' . "\n\n"
+        . 'You (or someone using this email address) requested a link to update your memberships at {site_name}.' . "\n\n"
+        . 'Your email is registered for:' . "\n"
+        . '{membership_list}' . "\n\n"
+        . 'Click the link below to update your membership details. This link expires in 60 minutes and can only be used once.' . "\n\n"
+        . '{verify_url}' . "\n\n"
+        . 'If you did not request this, you can safely ignore this email.' . "\n\n"
+        . '-- {owner_name}';
 
     // -----------------------------------------------------------------------
 
@@ -732,6 +753,7 @@ final class EmailTemplateRepo
             self::TYPE_AFFILIATE_APPROVED => self::COLLECTIVE_DEFAULT_BODY_AFFILIATE_APPROVED,
             self::TYPE_AFFILIATE_REJECTED => self::COLLECTIVE_DEFAULT_BODY_AFFILIATE_REJECTED,
             self::TYPE_CODE_APPROVED      => self::COLLECTIVE_DEFAULT_BODY_CODE_APPROVED,
+            self::TYPE_COLLECTIVE_UPDATE  => self::COLLECTIVE_DEFAULT_BODY_COLLECTIVE_UPDATE,
             // Adoption and KIM types share the listing-level defaults (they already
             // reference {listing_title} for the specific listing being adopted/watched)
             default                       => self::defaultBody($type),
@@ -932,6 +954,31 @@ final class EmailTemplateRepo
             '{kim_password}'     => $kimPassword,
             '{kim_update_url}'   => $kimUpdateUrl,
             '{reset_url}'        => $resetUrl,
+        ];
+    }
+
+    /**
+     * Builds the token map for the collective membership-update verification
+     * email, sent when a fan requests a secure link to update their info
+     * across every fanlisting they belong to (public/embed/collective-update.php).
+     *
+     * @return array<string, string>
+     */
+    public static function buildCollectiveUpdateTokens(
+        string $siteName       = '',
+        string $ownerName      = '',
+        string $ownerEmail     = '',
+        string $verifyUrl      = '',
+        string $membershipList = '',
+        string $siteUrl        = '',
+    ): array {
+        return [
+            '{site_name}'        => $siteName,
+            '{site_url}'         => $siteUrl !== '' ? $siteUrl : self::$globalSiteUrl,
+            '{owner_name}'       => $ownerName,
+            '{owner_email}'      => $ownerEmail,
+            '{verify_url}'       => $verifyUrl,
+            '{membership_list}'  => $membershipList,
         ];
     }
 
