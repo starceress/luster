@@ -95,7 +95,8 @@ final class CollectiveUpdateController
                 $siteName = (string) $cfg->get('site_name', 'Luster');
 
                 $membershipList = implode("\n", array_map(
-                    static fn(array $m) => '- ' . $m['listing']->title,
+                    static fn(array $m) => '- ' . $m['listing']->title
+                        . ($m['listing']->subject !== '' ? ' (' . $m['listing']->subject . ')' : ''),
                     $memberships
                 ));
 

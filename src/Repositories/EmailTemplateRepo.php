@@ -87,7 +87,7 @@ use Luster\Core\Database;
  * Collective update tokens (collective_update) — sent when a fan requests a
  * secure link to update their info across every fanlisting they belong to:
  *   {verify_url}        — one-time link to the update form
- *   {membership_list}   — bullet list of the fanlistings the email is registered for
+ *   {membership_list}   — bullet list of the fanlistings the email is registered for, one per line as "- Title (Subject)"
  *   plus {site_name}, {site_url}, {owner_name}, {owner_email}
  *
  */
@@ -438,10 +438,11 @@ final class EmailTemplateRepo
         . 'You (or someone using this email address) requested a link to update your memberships at {site_name}.' . "\n\n"
         . 'Your email is registered for:' . "\n"
         . '{membership_list}' . "\n\n"
-        . 'Click the link below to update your membership details. This link expires in 60 minutes and can only be used once.' . "\n\n"
+        . 'Click the link below to update your membership details. For your security, the link expires in 1 hour.' . "\n\n"
         . '{verify_url}' . "\n\n"
         . 'If you did not request this, you can safely ignore this email.' . "\n\n"
-        . '-- {owner_name}';
+        . '-- {owner_name}' . "\n"
+        . '{site_name} ({site_url})';
 
     // -----------------------------------------------------------------------
 

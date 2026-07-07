@@ -115,7 +115,7 @@ $allTokenDesc = [
     '{kim_password}'       => "KIM member's password (user-chosen or auto-generated)",
     '{kim_update_url}'     => "Link to the KIM update form",
     '{verify_url}'         => "The secure, single-use link the fan clicks to update their info",
-    '{membership_list}'    => "Bullet list of the fanlistings this email is registered for",
+    '{membership_list}'    => "Bullet list of the fanlistings this email is registered for, one per line as \"- Title (Subject)\"",
 ];
 
 $commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_type}', '{listing_url}', '{listing_email}', '{join_url}', '{update_url}', '{site_name}', '{site_url}', '{owner_name}', '{owner_email}'];

@@ -1366,7 +1366,7 @@ document.addEventListener('drop', function (e) {
     '{kim_password}':    'darkknight123',
     '{kim_update_url}':  'https://batmanfan.com/kim-update.php',
     '{verify_url}':      'https://waynetech.net/update?_luster_cu_token=abc123',
-    '{membership_list}': '- The Dark Knight\n- Justice League Watchtower',
+    '{membership_list}': '- The Dark Knight (Batman)\n- Justice League Watchtower (DC Heroes)',
   };
 
   function updatePreview(type) {
