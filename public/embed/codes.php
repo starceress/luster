@@ -255,11 +255,14 @@ if ($_lusterCodesTemplateHtml !== null
         if ($_lusterCsFormHtml !== '') {
             $_lusterCsToggleRendered = true;
             $_lusterCsFormId = 'fl-codes-submit-form-' . ($_lusterListingId ?? 0);
+            $_lusterCsTag    = $_lusterCsToggleStyle === 'link' ? 'a' : 'button';
+            $_lusterCsAttrs  = $_lusterCsToggleStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
 
-            $_lusterCsToggleHtml = '<button type="button" class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($_lusterCsToggleStyle) . '"'
+            $_lusterCsToggleHtml = '<' . $_lusterCsTag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($_lusterCsToggleStyle) . '"'
+                . $_lusterCsAttrs
                 . ' data-fl-toggle="' . $e($_lusterCsFormId) . '" aria-expanded="' . ($_lusterCsHasFeedback ? 'true' : 'false') . '" aria-controls="' . $e($_lusterCsFormId) . '">'
                 . $e($_lusterCsToggleLabel)
-                . '</button>';
+                . '</' . $_lusterCsTag . '>';
 
             $_lusterCsFormTokenHtml = '<div class="fl-codes-submit-form-wrap" id="' . $e($_lusterCsFormId) . '"' . ($_lusterCsHasFeedback ? '' : ' hidden') . '>'
                 . $_lusterCsFormHtml

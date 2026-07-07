@@ -2201,10 +2201,13 @@ final class ListingController extends AdminController
         $formTokenHtml = '';
         if ($applyFormHtml !== '') {
             $formId = 'fl-affiliate-apply-form-' . $e($idSuffix);
-            $toggleHtml = '<button type="button" class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '"'
+            $tag    = $applyStyle === 'link' ? 'a' : 'button';
+            $attrs  = $applyStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+            $toggleHtml = '<' . $tag . ' class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '"'
+                . $attrs
                 . ' data-fl-toggle="' . $formId . '" aria-expanded="false" aria-controls="' . $formId . '">'
                 . $e($applyLabel)
-                . '</button>';
+                . '</' . $tag . '>';
             $formTokenHtml = '<div class="fl-affiliate-apply-form-wrap" id="' . $formId . '" hidden>'
                 . $applyFormHtml
                 . '</div>';
@@ -2487,9 +2490,12 @@ final class ListingController extends AdminController
             return ['toggle' => '', 'form' => ''];
         }
 
-        $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $toggleHtml = '<button type="button" class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '"'
-            . ' data-fl-toggle="fl-codes-submit-form-preview" aria-expanded="false" aria-controls="fl-codes-submit-form-preview">' . $e($csLabel) . '</button>';
+        $e    = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $tag   = $csStyle === 'link' ? 'a' : 'button';
+        $attrs = $csStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+        $toggleHtml = '<' . $tag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '"'
+            . $attrs
+            . ' data-fl-toggle="fl-codes-submit-form-preview" aria-expanded="false" aria-controls="fl-codes-submit-form-preview">' . $e($csLabel) . '</' . $tag . '>';
         $formTokenHtml = '<div class="fl-codes-submit-form-wrap" id="fl-codes-submit-form-preview" hidden>'
             . $formHtml
             . '</div>';
@@ -3545,8 +3551,11 @@ final class ListingController extends AdminController
                 : ($siteRepo->get('global_codes_submit_toggle_label') ?? 'Donate a code?');
             $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             if ($formHtml !== '') {
-                $csToggle = '<button type="button" class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csGStyle) . '"'
-                    . ' data-fl-toggle="fl-codes-submit-form-gpreview" aria-expanded="false" aria-controls="fl-codes-submit-form-gpreview">' . $e($csGLabel) . '</button>';
+                $tag   = $csGStyle === 'link' ? 'a' : 'button';
+                $attrs = $csGStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+                $csToggle = '<' . $tag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csGStyle) . '"'
+                    . $attrs
+                    . ' data-fl-toggle="fl-codes-submit-form-gpreview" aria-expanded="false" aria-controls="fl-codes-submit-form-gpreview">' . $e($csGLabel) . '</' . $tag . '>';
                 $csFormTokenHtml = '<div class="fl-codes-submit-form-wrap" id="fl-codes-submit-form-gpreview" hidden>'
                     . $formHtml
                     . '</div>';

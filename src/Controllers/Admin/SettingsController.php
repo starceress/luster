@@ -650,10 +650,13 @@ final class SettingsController extends AdminController
                 return ['', ''];
             }
             $formId = 'fl-affiliate-apply-form-' . $e($idSuffix);
-            $toggle = '<button type="button" class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '"'
+            $tag    = $applyStyle === 'link' ? 'a' : 'button';
+            $attrs  = $applyStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+            $toggle = '<' . $tag . ' class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($applyStyle) . '"'
+                . $attrs
                 . ' data-fl-toggle="' . $formId . '" aria-expanded="false" aria-controls="' . $formId . '">'
                 . $e($applyLabel)
-                . '</button>';
+                . '</' . $tag . '>';
             $form = '<div class="fl-affiliate-apply-form-wrap" id="' . $formId . '" hidden>'
                 . $applyFormHtml
                 . '</div>';
@@ -1337,10 +1340,13 @@ final class SettingsController extends AdminController
                 if ($csFormHtml !== '') {
                     $buildCsToggle = static function (string $idSuffix) use ($e, $csFormHtml, $csStyle, $csLabel): array {
                         $formId = 'fl-codes-submit-form-' . $e($idSuffix);
-                        $toggle = '<button type="button" class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '"'
+                        $tag    = $csStyle === 'link' ? 'a' : 'button';
+                        $attrs  = $csStyle === 'link' ? ' href="#" role="button"' : ' type="button"';
+                        $toggle = '<' . $tag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($csStyle) . '"'
+                            . $attrs
                             . ' data-fl-toggle="' . $formId . '" aria-expanded="false" aria-controls="' . $formId . '">'
                             . $e($csLabel)
-                            . '</button>';
+                            . '</' . $tag . '>';
                         $form = '<div class="fl-codes-submit-form-wrap" id="' . $formId . '" hidden>'
                             . $csFormHtml
                             . '</div>';
