@@ -152,7 +152,7 @@ $_lusterUpdated     = $_lusterUpdatedDate !== null
 // 7. Build token values
 // ---------------------------------------------------------------------------
 
-$_lusterNewMembers = (static function (array $members, int $totalApproved): string {
+$_lusterNewMembers = (static function (array $members, int $totalApproved, int $limit): string {
     if ($members === []) {
         return '';
     }
@@ -166,7 +166,10 @@ $_lusterNewMembers = (static function (array $members, int $totalApproved): stri
         return $name;
     }, $members);
 
-    $hasMore = $totalApproved > count($members);
+    // "and more…" only makes sense in Truncate mode — "Show all" already shows
+    // every member matching its own criteria (most recent join date), so there's
+    // nothing being cut off within that group.
+    $hasMore = $limit > 0 && $totalApproved > count($members);
 
     if ($hasMore) {
         return implode(', ', $formatted) . ', and more&hellip;';
@@ -177,7 +180,7 @@ $_lusterNewMembers = (static function (array $members, int $totalApproved): stri
         2       => $formatted[0] . ' and ' . $formatted[1],
         default => implode(', ', array_slice($formatted, 0, -1)) . ', and ' . end($formatted),
     };
-})($_lusterNewest, $_lusterApproved);
+})($_lusterNewest, $_lusterApproved, $_lusterNewestLimit);
 
 $_lusterGrowth = '0.00';
 if ($_lusterListing->joined !== null) {

@@ -2253,7 +2253,7 @@ final class ListingController extends AdminController
         $newest     = $prefix !== '' ? $memberRepo->getNewestMembers($prefix, $newestLimit) : [];
         $memberDate = $prefix !== '' ? $memberRepo->getMostRecentApprovedDate($prefix) : null;
 
-        $newestFormatted = self::formatNewestMembers($newest, $approved);
+        $newestFormatted = self::formatNewestMembers($newest, $approved, $newestLimit);
 
         $adminDate   = $settingsRepo->getLastUpdated((int) $listing->id);
         $updatedDate = DateFormatter::mostRecent($memberDate, $adminDate);
@@ -2314,7 +2314,7 @@ final class ListingController extends AdminController
     /**
      * @param array<int, array{name: string, url: string}> $members
      */
-    private static function formatNewestMembers(array $members, int $totalApproved): string
+    private static function formatNewestMembers(array $members, int $totalApproved, int $limit): string
     {
         if ($members === []) {
             return '';
@@ -2329,7 +2329,10 @@ final class ListingController extends AdminController
             return $name;
         }, $members);
 
-        $hasMore = $totalApproved > count($members);
+        // "and more…" only makes sense in Truncate mode — "Show all" already shows
+        // every member matching its own criteria (most recent join date), so there's
+        // nothing being cut off within that group.
+        $hasMore = $limit > 0 && $totalApproved > count($members);
 
         if ($hasMore) {
             return implode(', ', $formatted) . ', and more&hellip;';
@@ -3282,8 +3285,9 @@ final class ListingController extends AdminController
         // date, not literally every approved member — demo that with a small
         // slice (3 of the 5 sample members), same as "Truncate after 5" does.
         $sliced = $newestLimit === 0 ? array_slice($sampleMembers, 0, 3) : array_slice($sampleMembers, 0, $newestLimit);
-        // Approved count is always well above what's shown, so "…and more" always appears in this preview.
-        $sampleNewest = self::formatNewestMembers($sliced, $sampleApprovedCount);
+        // "…and more" only applies to Truncate mode — "Show all" never appends it,
+        // regardless of how much higher the approved count is.
+        $sampleNewest = self::formatNewestMembers($sliced, $sampleApprovedCount, $newestLimit);
 
         $sampleValues = [
             'stat_opened'     => '2020-01-15',
