@@ -10,6 +10,7 @@
 */
 use Luster\Core\Countries;
 use Luster\Core\View;
+use Luster\Support\DateFormatter;
 ?>
 <div class="fl-embed fl-embed--collective-update">
 <?php if ($success_html !== ''): ?>
@@ -45,11 +46,13 @@ use Luster\Core\View;
           <th>Listing</th>
           <th>Subject</th>
           <th>Website URL</th>
+          <th>Date Joined</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach ($memberships as $m):
           $listing    = $m['listing'];
+          $member     = $m['member'];
           $checkboxId = 'fl-cu-listing-' . (int) $listing->id;
         ?>
         <tr>
@@ -57,6 +60,7 @@ use Luster\Core\View;
           <td><label for="<?= View::e($checkboxId) ?>"><?= View::e($listing->title) ?></label></td>
           <td><?= View::e($listing->subject) ?></td>
           <td><?= $listing->url !== '' ? '<a href="' . View::e($listing->url) . '" rel="nofollow noreferrer" target="_blank">' . View::e($listing->url) . '</a>' : '' ?></td>
+          <td><?= View::e(DateFormatter::format($member->added)) ?></td>
         </tr>
         <?php endforeach; ?>
       </tbody>

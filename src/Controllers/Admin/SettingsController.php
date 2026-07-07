@@ -1521,8 +1521,8 @@ final class SettingsController extends AdminController
             . '<p class="fl-field-hint">This immediately and permanently removes your membership from every fanlisting you select above. Any changes below are ignored, and this cannot be undone.</p>'
             . '</div>';
         $sampleRows = [
-            ['title' => SampleTemplateData::LISTING_TITLE_A, 'subject' => SampleTemplateData::LISTING_SUBJECT, 'url' => SampleTemplateData::LISTING_URL],
-            ['title' => SampleTemplateData::LISTING_TITLE_B, 'subject' => 'Star Wars', 'url' => 'https://example.com/jedi-order'],
+            ['title' => SampleTemplateData::LISTING_TITLE_A, 'subject' => SampleTemplateData::LISTING_SUBJECT, 'url' => SampleTemplateData::LISTING_URL, 'joined' => 'January 15th 2020'],
+            ['title' => SampleTemplateData::LISTING_TITLE_B, 'subject' => 'Star Wars', 'url' => 'https://example.com/jedi-order', 'joined' => 'March 3rd 2026'],
         ];
         $listingRows = '';
         foreach ($sampleRows as $i => $row) {
@@ -1532,11 +1532,12 @@ final class SettingsController extends AdminController
                 . '<td><label for="' . $_e($checkboxId) . '">' . $_e($row['title']) . '</label></td>'
                 . '<td>' . $_e($row['subject']) . '</td>'
                 . '<td><a href="' . $_e($row['url']) . '">' . $_e($row['url']) . '</a></td>'
+                . '<td>' . $_e($row['joined']) . '</td>'
                 . '</tr>';
         }
         $listingsHtml = '<div class="fl-collective-update-table-wrap">'
             . '<table class="fl-collective-update-table">'
-            . '<thead><tr><th></th><th>Listing</th><th>Subject</th><th>Website URL</th></tr></thead>'
+            . '<thead><tr><th></th><th>Listing</th><th>Subject</th><th>Website URL</th><th>Date Joined</th></tr></thead>'
             . '<tbody>' . $listingRows . '</tbody>'
             . '</table></div>';
         $changesHtml = '<fieldset class="fl-fieldset fl-collective-update-changes">'
