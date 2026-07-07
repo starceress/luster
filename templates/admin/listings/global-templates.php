@@ -808,7 +808,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       </div>
     </div>
     <div class="modal-body--iframe">
-      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox=""></iframe>
+      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox="allow-scripts"></iframe>
     </div>
   </div>
 </div>

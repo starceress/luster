@@ -593,6 +593,7 @@
 .fl-affiliate-apply-toggle--link,
 .fl-codes-submit-toggle--link {
   display: inline;
+  width: auto;
   border: none;
   padding: 0;
   text-decoration: underline;

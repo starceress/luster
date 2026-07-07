@@ -934,7 +934,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
               <input id="fl-cs-toggle-label" type="text" name="codes_submit_toggle_label" class="form" maxlength="200"
                      value="<?= View::e($codes_submit_toggle_label ?? '') ?>"
                      placeholder="Donate a code?">
-              <p class="form-hint">The text shown on the collapsible toggle. Leave blank for the default.</p>
+              <p class="form-hint">The text shown on the toggle trigger. Leave blank for the default.</p>
             </div>
           </div>
           <?php endif; ?>
@@ -989,7 +989,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
               <input id="fl-aff-toggle-label" type="text" name="affiliate_apply_toggle_label" class="form" maxlength="200"
                      value="<?= View::e($affiliate_apply_toggle_label ?? '') ?>"
                      placeholder="Apply to become an affiliate?">
-              <p class="form-hint">The text shown on the collapsible toggle. Leave blank for the default.</p>
+              <p class="form-hint">The text shown on the toggle trigger. Leave blank for the default.</p>
             </div>
           </div>
           <?php endif; ?>
@@ -1438,7 +1438,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
       </div>
     </div>
     <div class="modal-body--iframe">
-      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox=""></iframe>
+      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox="allow-scripts"></iframe>
     </div>
   </div>
 </div>

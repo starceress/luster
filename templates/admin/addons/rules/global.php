@@ -168,7 +168,7 @@ $defaultGateLabel = $currentGateType === 'button'
       </div>
     </div>
     <div class="modal-body--iframe">
-      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox=""></iframe>
+      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox="allow-scripts"></iframe>
     </div>
   </div>
 </div>
