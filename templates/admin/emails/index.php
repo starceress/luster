@@ -58,7 +58,7 @@ $navLabels = [
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM Approved',
     EmailTemplateRepo::TYPE_KIM_UPDATE         => 'KIM Updated',
     EmailTemplateRepo::TYPE_KIM_RESET          => 'KIM Reset',
-    EmailTemplateRepo::TYPE_COLLECTIVE_UPDATE  => 'Collective Update',
+    EmailTemplateRepo::TYPE_COLLECTIVE_UPDATE  => 'Collective Update Membership',
 ];
 
 $typeHints = [

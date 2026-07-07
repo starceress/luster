@@ -80,7 +80,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates</option>
         <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes</option>
-        <option value="collective-update-form"<?= $activeGroup === 'collective-update-form' ? ' selected' : '' ?>>Collective Update Form</option>
+        <option value="collective-update-form"<?= $activeGroup === 'collective-update-form' ? ' selected' : '' ?>>Collective Update Membership Form</option>
         <option value="contact"<?= $activeGroup === 'contact' ? ' selected' : '' ?>>Contact Form</option>
         <option value="joined"<?= $activeGroup === 'joined' ? ' selected' : '' ?>>Joined Listings</option>
         <option value="kim-overview"<?= $activeGroup === 'kim-overview' ? ' selected' : '' ?>>KIM List</option>
@@ -189,10 +189,10 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
           </div>
         </div>
 
-        <!-- ── Collective Update Form ── -->
+        <!-- ── Collective Update Membership Form ── -->
         <div class="tpl-group-section" data-tpl-group="collective-update-form" <?= $_grp('collective-update-form') ?>>
-          <div class="section-label">Collective Update Form</div>
-          <p class="form-hint" style="margin-bottom:.75rem">Used by the Collective Update embed. Controls the email-request step (Step 1) that sends a verification link. The update form (Step 2) is rendered automatically and is not customisable here.</p>
+          <div class="section-label">Collective Update Membership Form</div>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the Collective Update Membership Form embed. Controls the email-request step (Step 1) that sends a verification link. The update form (Step 2) is rendered automatically and is not customisable here.</p>
           <div class="field-group">
             <textarea name="collective_update_form_template" id="collective_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveUpdateFormVal) ?></textarea>
           </div>
@@ -634,9 +634,9 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         </div>
       </details>
 
-      <!-- ── Collective Update Form ────────────────── -->
+      <!-- ── Collective Update Membership Form ────────────────── -->
       <details class="card chevron" data-token-card data-tpl-group="collective-update-form" <?= $_grp('collective-update-form') ?>>
-        <summary class="chevron-head">Collective Update Form Tokens</summary>
+        <summary class="chevron-head">Collective Update Membership Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls the email-request step only. The update form (Step 2) is rendered automatically.</p>
           <table class="et-token-table et-token-table--compact"><tbody>

@@ -119,7 +119,7 @@ final class TemplatePackController
         'kim_reset_form_template'                  => 'KIM Reset Form',
         'collective_contact_form_template'         => 'Contact Form',
         'collective_adoption_form_template'        => 'Adoption Form',
-        'collective_update_form_template'          => 'Collective Update Form',
+        'collective_update_form_template'          => 'Collective Update Membership Form',
     ];
 
     /** Token substrings that indicate a required add-on. */
