@@ -2171,10 +2171,10 @@ final class ListingController extends AdminController
         $previewStyle = $request ? $request->post('toggle_style', null) : null;
         $previewLabel = $request ? $request->post('toggle_label', null) : null;
         $applyStyle   = $previewStyle !== null
-            ? (in_array(trim($previewStyle), ['link', 'button'], true) ? trim($previewStyle) : ($siteRepoAff->get('global_affiliate_apply_style') ?? 'link'))
+            ? (in_array(trim($previewStyle), ['link', 'button'], true) ? trim($previewStyle) : ($siteRepoAff->get('global_affiliate_apply_style') ?? 'button'))
             : ($settingsRepo->getAffiliateApplyStyle((int) $listing->id)
                 ?? $siteRepoAff->get('global_affiliate_apply_style')
-                ?? 'link');
+                ?? 'button');
 
         // Check if affiliate applications are enabled for this listing (matches production behaviour)
         $applyEnabled  = $settingsRepo->getAffiliateApplySettings((int) $listing->id)['enabled'] ?? false;
@@ -2520,10 +2520,10 @@ final class ListingController extends AdminController
         $previewCsStyle = $request ? $request->post('toggle_style', null) : null;
         $previewCsLabel = $request ? $request->post('toggle_label', null) : null;
         $csStyle = $previewCsStyle !== null
-            ? (in_array(trim($previewCsStyle), ['link', 'button'], true) ? trim($previewCsStyle) : ($siteRepo->get('global_codes_submit_toggle_style') ?? 'link'))
+            ? (in_array(trim($previewCsStyle), ['link', 'button'], true) ? trim($previewCsStyle) : ($siteRepo->get('global_codes_submit_toggle_style') ?? 'button'))
             : ($settingsRepo->getCodesSubmitToggleStyle((int) $listing->id)
                 ?? $siteRepo->get('global_codes_submit_toggle_style')
-                ?? 'link');
+                ?? 'button');
         $csLabel = $previewCsLabel !== null
             ? (trim($previewCsLabel) !== '' ? trim($previewCsLabel) : ($siteRepo->get('global_codes_submit_toggle_label') ?? 'Donate a code?'))
             : ($settingsRepo->getCodesSubmitToggleLabel((int) $listing->id)
@@ -3041,8 +3041,8 @@ final class ListingController extends AdminController
             'template_sources'           => $templateSources,
             'stat_newmembers_limit'      => $siteRepo->get('stat_newmembers_limit'),
             'global_members_per_page'    => $rawGlobalMpp !== null ? (int) $rawGlobalMpp : null,
-            'affiliate_apply_style'          => $siteRepo->get('global_affiliate_apply_style') ?? 'link',
-            'codes_submit_toggle_style'      => $siteRepo->get('global_codes_submit_toggle_style') ?? 'link',
+            'affiliate_apply_style'          => $siteRepo->get('global_affiliate_apply_style') ?? 'button',
+            'codes_submit_toggle_style'      => $siteRepo->get('global_codes_submit_toggle_style') ?? 'button',
             'affiliate_apply_toggle_label'   => $siteRepo->get('global_affiliate_apply_toggle_label'),
             'codes_submit_toggle_label'      => $siteRepo->get('global_codes_submit_toggle_label'),
         ], '', [
@@ -3105,11 +3105,11 @@ final class ListingController extends AdminController
         $glMppVal = $glMppRaw !== '' ? max(10, min(100, (int) $glMppRaw)) : null;
         $siteRepo->set('listing_default_members_per_page', $glMppVal !== null ? (string) $glMppVal : null);
 
-        $affStyle = (string) $request->post('affiliate_apply_style', 'link');
-        $siteRepo->set('global_affiliate_apply_style', in_array($affStyle, ['link', 'button'], true) ? $affStyle : 'link');
+        $affStyle = (string) $request->post('affiliate_apply_style', 'button');
+        $siteRepo->set('global_affiliate_apply_style', in_array($affStyle, ['link', 'button'], true) ? $affStyle : 'button');
 
-        $csStyle = (string) $request->post('codes_submit_toggle_style', 'link');
-        $siteRepo->set('global_codes_submit_toggle_style', in_array($csStyle, ['link', 'button'], true) ? $csStyle : 'link');
+        $csStyle = (string) $request->post('codes_submit_toggle_style', 'button');
+        $siteRepo->set('global_codes_submit_toggle_style', in_array($csStyle, ['link', 'button'], true) ? $csStyle : 'button');
 
         $gAffLabel = trim((string) $request->post('affiliate_apply_toggle_label', ''));
         $siteRepo->set('global_affiliate_apply_toggle_label', $gAffLabel !== '' ? $gAffLabel : null);
@@ -3331,8 +3331,8 @@ final class ListingController extends AdminController
         $previewStyle = $request ? $request->post('toggle_style', null) : null;
         $previewLabel = $request ? $request->post('toggle_label', null) : null;
         $gAffStyle = $previewStyle !== null
-            ? (in_array(trim($previewStyle), ['link', 'button'], true) ? trim($previewStyle) : ($siteRepo->get('global_affiliate_apply_style') ?? 'link'))
-            : ($siteRepo->get('global_affiliate_apply_style') ?? 'link');
+            ? (in_array(trim($previewStyle), ['link', 'button'], true) ? trim($previewStyle) : ($siteRepo->get('global_affiliate_apply_style') ?? 'button'))
+            : ($siteRepo->get('global_affiliate_apply_style') ?? 'button');
         $gAffLabel = $previewLabel !== null
             ? (trim($previewLabel) !== '' ? trim($previewLabel) : 'Apply to become an affiliate?')
             : ($siteRepo->get('global_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
@@ -3604,8 +3604,8 @@ final class ListingController extends AdminController
             $previewCsStyle = $request ? $request->post('toggle_style', null) : null;
             $previewCsLabel = $request ? $request->post('toggle_label', null) : null;
             $csGStyle = $previewCsStyle !== null
-                ? (in_array(trim($previewCsStyle), ['link', 'button'], true) ? trim($previewCsStyle) : ($siteRepo->get('global_codes_submit_toggle_style') ?? 'link'))
-                : ($siteRepo->get('global_codes_submit_toggle_style') ?? 'link');
+                ? (in_array(trim($previewCsStyle), ['link', 'button'], true) ? trim($previewCsStyle) : ($siteRepo->get('global_codes_submit_toggle_style') ?? 'button'))
+                : ($siteRepo->get('global_codes_submit_toggle_style') ?? 'button');
             $csGLabel = $previewCsLabel !== null
                 ? (trim($previewCsLabel) !== '' ? trim($previewCsLabel) : 'Donate a code?')
                 : ($siteRepo->get('global_codes_submit_toggle_label') ?? 'Donate a code?');

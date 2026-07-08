@@ -125,7 +125,7 @@ final class MembersTemplateRendererTest extends TestCase
 
     public function testDefaultMembersTableTemplateIncludesFanAddedTokenAndJoinedHeader(): void
     {
-        $tpl = ListingSettingsRepo::defaultMembersTableTemplate();
+        $tpl = ListingSettingsRepo::defaultMembersTemplate();
         self::assertStringContainsString('{fan_added}', $tpl);
         self::assertStringContainsString('<span class="fl-member-table-th">Joined</span>', $tpl);
     }
@@ -135,7 +135,7 @@ final class MembersTemplateRendererTest extends TestCase
         $member = $this->makeMember(name: 'Star', added: '2026-11-15');
 
         $html = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersTemplate(),
+            ListingSettingsRepo::defaultMembersListTemplate(),
             [$member],
             [],
             'https://example.com/join',
@@ -157,7 +157,7 @@ final class MembersTemplateRendererTest extends TestCase
         $member = $this->makeMember(name: 'Star', country: 'Canada', url: 'https://example.com/star');
 
         $html = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersTemplate(),
+            ListingSettingsRepo::defaultMembersListTemplate(),
             [$member],
             [],
             'https://example.com/join',
@@ -179,7 +179,7 @@ final class MembersTemplateRendererTest extends TestCase
         $member = $this->makeMember(name: 'Star', country: 'Canada');
 
         $html = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersTemplate(),
+            ListingSettingsRepo::defaultMembersListTemplate(),
             [$member],
             [],
             'https://example.com/join',
@@ -205,7 +205,7 @@ final class MembersTemplateRendererTest extends TestCase
     public function testDefaultMembersTemplateEmptyStateMatchesThePhpFallbackFragment(): void
     {
         $html = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersTemplate(),
+            ListingSettingsRepo::defaultMembersListTemplate(),
             [],
             [],
             'https://example.com/join',
@@ -267,7 +267,7 @@ final class MembersTemplateRendererTest extends TestCase
     public function testDefaultMembersTemplateHidesSortControlsWhenShowSearchIsFalse(): void
     {
         $html = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersTemplate(),
+            ListingSettingsRepo::defaultMembersListTemplate(),
             [],
             [],
             'https://example.com/join',
@@ -383,7 +383,7 @@ final class MembersTemplateRendererTest extends TestCase
         $member = $this->makeMember(name: 'Star', country: 'Canada');
 
         $sortedByDate = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersTableTemplate(),
+            ListingSettingsRepo::defaultMembersTemplate(),
             [$member],
             [],
             'https://example.com/join',
@@ -391,7 +391,7 @@ final class MembersTemplateRendererTest extends TestCase
             isDateSort: true,
         );
         $sortedByCountry = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersTableTemplate(),
+            ListingSettingsRepo::defaultMembersTemplate(),
             [$member],
             [],
             'https://example.com/join',
@@ -594,7 +594,7 @@ final class MembersTemplateRendererTest extends TestCase
         $member = $this->makeMember(name: 'Star', country: 'Canada');
 
         $html = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersTemplate(),
+            ListingSettingsRepo::defaultMembersListTemplate(),
             [$member],
             $fields,
             'https://example.com/join',
@@ -612,7 +612,7 @@ final class MembersTemplateRendererTest extends TestCase
         $member = $this->makeMember(name: 'Star', country: 'Canada', additionalFields: ['fave_song' => 'Bohemian Rhapsody']);
 
         $html = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersTemplate(),
+            ListingSettingsRepo::defaultMembersListTemplate(),
             [$member],
             $fields,
             'https://example.com/join',
@@ -696,12 +696,12 @@ final class MembersTemplateRendererTest extends TestCase
 
     public function testDefaultMembersTemplateIncludesAdditionalFieldsToken(): void
     {
-        self::assertStringContainsString('{fan_additional_fields}', ListingSettingsRepo::defaultMembersTemplate());
+        self::assertStringContainsString('{fan_additional_fields}', ListingSettingsRepo::defaultMembersListTemplate());
     }
 
     public function testDefaultMembersTableTemplateIncludesFieldHeaderAndCellTokens(): void
     {
-        $tpl = ListingSettingsRepo::defaultMembersTableTemplate();
+        $tpl = ListingSettingsRepo::defaultMembersTemplate();
         self::assertStringContainsString('{additional_field_headers}', $tpl);
         self::assertStringContainsString('{fan_additional_field_cells}', $tpl);
     }

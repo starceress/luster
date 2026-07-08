@@ -1310,8 +1310,8 @@ $_tplCsrf = View::e($csrf_token ?? '');
 <script type="application/json" id="luster-coltpl-defaults">
 <?= json_encode([
     'members_template'              => $_gFallback(ListingSettingsRepo::defaultMembersTemplate(),              'listing_default_members_template'),
-    'members_template__list'        => ListingSettingsRepo::defaultMembersTemplate(),
-    'members_template__table'       => ListingSettingsRepo::defaultMembersTableTemplate(),
+    'members_template__list'        => ListingSettingsRepo::defaultMembersListTemplate(),
+    'members_template__table'       => ListingSettingsRepo::defaultMembersTemplate(),
     'affiliates_section_template'   => $_gFallback(ListingSettingsRepo::defaultAffiliatesSectionTemplate(),   'listing_default_affiliates_section_template'),
     'stats_template'                => $_gFallback(ListingSettingsRepo::defaultStatsTemplate(),                'listing_default_stats_template'),
     'newsfeed_template'             => $_gFallback(ListingSettingsRepo::defaultNewsfeedTemplate(),              'listing_default_newsfeed_template'),

@@ -270,8 +270,8 @@ $srcBadge = static function (string $key) use ($ct): string {
             <div>
               <div class="select-wrap select-auto">
                 <select id="ct-cs-style" name="collective_codes_submit_style" class="form">
-                  <option value="link" <?= ($collective_codes_submit_style ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
-                  <option value="button" <?= ($collective_codes_submit_style ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
+                  <option value="link" <?= ($collective_codes_submit_style ?? 'button') === 'link' ? 'selected' : '' ?>>Text link</option>
+                  <option value="button" <?= ($collective_codes_submit_style ?? 'button') === 'button' ? 'selected' : '' ?>>Button</option>
                 </select>
               </div>
               <p class="form-hint">How the <code>{codes_submit_toggle}</code> appears &mdash; as a plain underlined link or a styled button.</p>
@@ -320,8 +320,8 @@ $srcBadge = static function (string $key) use ($ct): string {
             <div>
               <div class="select-wrap select-auto">
                 <select id="ct-aff-style" name="collective_affiliate_apply_style" class="form">
-                  <option value="link" <?= ($collective_affiliate_apply_style ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
-                  <option value="button" <?= ($collective_affiliate_apply_style ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
+                  <option value="link" <?= ($collective_affiliate_apply_style ?? 'button') === 'link' ? 'selected' : '' ?>>Text link</option>
+                  <option value="button" <?= ($collective_affiliate_apply_style ?? 'button') === 'button' ? 'selected' : '' ?>>Button</option>
                 </select>
               </div>
               <p class="form-hint">How the <code>{affiliate_apply_toggle}</code> appears &mdash; as a plain underlined link or a styled button.</p>

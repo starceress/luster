@@ -677,12 +677,13 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Default members row template used when no override is stored in the database.
-     *
-     * Shared by templates/default/members.php (public fallback) and the admin
-     * per-listing template editor (pre-filled textarea).
+     * Default members row template for the "List" display style. Not the
+     * built-in default when nothing is customized — see defaultMembersTemplate()
+     * for that (the "Table" style is the actual default). Used as the preset
+     * content for the List display-style button in the per-listing and global
+     * template editors.
      */
-    public static function defaultMembersTemplate(): string
+    public static function defaultMembersListTemplate(): string
     {
         return '{if_show_search}' . "\n"
             . '<div class="fl-member-controls">' . "\n"
@@ -813,16 +814,30 @@ final class ListingSettingsRepo
             return true;
         }
 
+        // The bullet-list shape that was itself the real built-in default right up
+        // until the Table display style became the default instead. A stored value
+        // that exactly matches it (e.g. from a "no-op" Save Global Defaults click
+        // while List was still current) is treated the same as any other superseded
+        // built-in default here, not as a genuine customisation — otherwise existing
+        // installs would silently stay on the old default forever. Now lives on as
+        // the "List" display-style preset (defaultMembersListTemplate()).
+        if (trim($v) === trim(self::defaultMembersListTemplate())) {
+            return true;
+        }
+
         return false;
     }
 
     /**
-     * Default members table template used when no override is stored in the database.
-     *
-     * Alternate layout that renders members as a two-column table (Name + Country)
-     * instead of the simple list produced by defaultMembersTemplate().
+     * Default members row template used when no override is stored in the database
+     * — a table layout (Name / Country / additional fields, with Joined added
+     * when sorted by date). Shared by templates/default/members.php (public
+     * fallback) and the admin per-listing/global template editors (pre-filled
+     * textarea, and the "Reset to Default"/"Table" preset content). The simpler
+     * bullet-list alternative lives in defaultMembersListTemplate() (the "List"
+     * preset button's content).
      */
-    public static function defaultMembersTableTemplate(): string
+    public static function defaultMembersTemplate(): string
     {
         return '<h1>Member List</h1>' . "\n"
             . '<p>Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>' . "\n"

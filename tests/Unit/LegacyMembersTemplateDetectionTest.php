@@ -127,6 +127,15 @@ final class LegacyMembersTemplateDetectionTest extends TestCase
         self::assertTrue(ListingSettingsRepo::isLegacyMembersTemplate($v));
     }
 
+    public function testPreTableSwapListShapeIsLegacy(): void
+    {
+        // The List display style was itself the real built-in default until Table
+        // became the default instead. A stored value matching it exactly (e.g. a
+        // "no-op" Save Global Defaults click from before the swap) must be treated
+        // as an old built-in default, not a genuine customisation.
+        self::assertTrue(ListingSettingsRepo::isLegacyMembersTemplate(ListingSettingsRepo::defaultMembersListTemplate()));
+    }
+
     public function testHandCustomizedTemplateSharingTheOldHeadingIsNotMistakenForLegacy(): void
     {
         // Same <h1>Member List</h1> heading as the legacy shapes, but genuinely

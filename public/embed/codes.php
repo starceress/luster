@@ -223,7 +223,7 @@ if ($_lusterCodesTemplateHtml !== null
     $_lusterCsFormTokenHtml = '';
     $_lusterCsEnabled    = false;
 
-    $_lusterCsToggleStyle = 'link';
+    $_lusterCsToggleStyle = 'button';
     $_lusterCsToggleLabel = 'Donate a code?';
     $_lusterCsSiteRepo    = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterDb);
     if (!$_lusterIsCollective && $_lusterListingId !== null) {
@@ -232,14 +232,14 @@ if ($_lusterCodesTemplateHtml !== null
         $_lusterCsEnabled      = (bool) ($_lusterCsEmbedCfg['codes_submit_enabled'] ?? true);
         $_lusterCsToggleStyle  = $_lusterCsSettingsRepo->getCodesSubmitToggleStyle($_lusterListingId)
             ?? $_lusterCsSiteRepo->get('global_codes_submit_toggle_style')
-            ?? 'link';
+            ?? 'button';
         $_lusterCsToggleLabel  = $_lusterCsSettingsRepo->getCodesSubmitToggleLabel($_lusterListingId)
             ?? $_lusterCsSiteRepo->get('global_codes_submit_toggle_label')
             ?? 'Donate a code?';
     } else {
         $_lusterCsEnabled     = ($_lusterCsSiteRepo->get('collective_codes_submit_enabled') ?? '1') === '1';
-        $_lusterCsToggleStyle = (string) ($_lusterCsSiteRepo->get('collective_codes_submit_style') ?? 'link');
-        if (!in_array($_lusterCsToggleStyle, ['link', 'button'], true)) { $_lusterCsToggleStyle = 'link'; }
+        $_lusterCsToggleStyle = (string) ($_lusterCsSiteRepo->get('collective_codes_submit_style') ?? 'button');
+        if (!in_array($_lusterCsToggleStyle, ['link', 'button'], true)) { $_lusterCsToggleStyle = 'button'; }
         $_lusterCsToggleLabel = (string) ($_lusterCsSiteRepo->get('collective_codes_submit_toggle_label') ?? 'Donate a code?');
     }
 

@@ -175,7 +175,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
             <label class="field-label">Display style</label>
             <div>
-              <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template">List</button>
+              <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template__list">List</button>
               <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template__table">Table</button>
               <p class="form-hint">Switches the template between a list layout and a table layout.</p>
             </div>
@@ -260,8 +260,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <div>
               <div class="select-wrap select-auto">
                 <select id="gl-cs-toggle-style" name="codes_submit_toggle_style" class="form">
-                  <option value="link" <?= ($codes_submit_toggle_style ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
-                  <option value="button" <?= ($codes_submit_toggle_style ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
+                  <option value="link" <?= ($codes_submit_toggle_style ?? 'button') === 'link' ? 'selected' : '' ?>>Text link</option>
+                  <option value="button" <?= ($codes_submit_toggle_style ?? 'button') === 'button' ? 'selected' : '' ?>>Button</option>
                 </select>
               </div>
               <p class="form-hint">How the <code>{codes_submit_toggle}</code> appears &mdash; as a plain underlined link or a styled button. Per-listing overrides this.</p>
@@ -308,8 +308,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <div>
               <div class="select-wrap select-auto">
                 <select id="gl-aff-apply-style" name="affiliate_apply_style" class="form">
-                  <option value="link" <?= ($affiliate_apply_style ?? 'link') === 'link' ? 'selected' : '' ?>>Text link</option>
-                  <option value="button" <?= ($affiliate_apply_style ?? 'link') === 'button' ? 'selected' : '' ?>>Button</option>
+                  <option value="link" <?= ($affiliate_apply_style ?? 'button') === 'link' ? 'selected' : '' ?>>Text link</option>
+                  <option value="button" <?= ($affiliate_apply_style ?? 'button') === 'button' ? 'selected' : '' ?>>Button</option>
                 </select>
               </div>
               <p class="form-hint">How the <code>{affiliate_apply_toggle}</code> appears &mdash; as a plain underlined link or a styled button. Per-listing overrides this.</p>
@@ -702,7 +702,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
 <script type="application/json" id="luster-coltpl-defaults">
 <?= json_encode(array_merge($d, [
-    'listing_default_members_template__table' => ListingSettingsRepo::defaultMembersTableTemplate(),
+    'listing_default_members_template__list'  => ListingSettingsRepo::defaultMembersListTemplate(),
+    'listing_default_members_template__table' => ListingSettingsRepo::defaultMembersTemplate(),
 ]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 

@@ -188,7 +188,7 @@ if ($_lusterSectionTemplate !== null) {
     $_lusterFormTokenHtml = '';
     if (str_contains($_lusterSectionHtml, '{affiliate_apply_toggle}') || str_contains($_lusterSectionHtml, '{affiliate_apply_form}')) {
         $_lusterApplyEnabled = false;
-        $_lusterApplyStyle   = 'link';
+        $_lusterApplyStyle   = 'button';
 
         $_lusterApplyLabel = 'Apply to become an affiliate?';
         if ($_lusterListingId > 0) {
@@ -197,16 +197,16 @@ if ($_lusterSectionTemplate !== null) {
             $_lusterSiteRepoFallback = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterApp->getDatabase());
             $_lusterApplyStyle       = $_lusterSettingsRepo->getAffiliateApplyStyle($_lusterListingId)
                 ?? $_lusterSiteRepoFallback->get('global_affiliate_apply_style')
-                ?? 'link';
+                ?? 'button';
             $_lusterApplyLabel       = $_lusterSettingsRepo->getAffiliateApplyToggleLabel($_lusterListingId)
                 ?? $_lusterSiteRepoFallback->get('global_affiliate_apply_toggle_label')
                 ?? 'Apply to become an affiliate?';
         } else {
             $_lusterSiteRepoToggle  = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterApp->getDatabase());
             $_lusterApplyEnabled    = ($_lusterSiteRepoToggle->get('collective_affiliate_apply_enabled') ?? '1') === '1';
-            $_lusterApplyStyle      = (string) ($_lusterSiteRepoToggle->get('collective_affiliate_apply_style') ?? 'link');
+            $_lusterApplyStyle      = (string) ($_lusterSiteRepoToggle->get('collective_affiliate_apply_style') ?? 'button');
             if (!in_array($_lusterApplyStyle, ['link', 'button'], true)) {
-                $_lusterApplyStyle = 'link';
+                $_lusterApplyStyle = 'button';
             }
             $_lusterApplyLabel = (string) ($_lusterSiteRepoToggle->get('collective_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
         }

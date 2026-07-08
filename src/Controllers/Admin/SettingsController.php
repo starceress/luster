@@ -393,8 +393,8 @@ final class SettingsController extends AdminController
             'activeGroup'          => $activeGroup,
             'success'              => $success,
             'error'                => $error,
-            'collective_affiliate_apply_style'        => $siteRepo->get('collective_affiliate_apply_style') ?? 'link',
-            'collective_codes_submit_style'           => $siteRepo->get('collective_codes_submit_style') ?? 'link',
+            'collective_affiliate_apply_style'        => $siteRepo->get('collective_affiliate_apply_style') ?? 'button',
+            'collective_codes_submit_style'           => $siteRepo->get('collective_codes_submit_style') ?? 'button',
             'collective_affiliate_apply_toggle_label' => $siteRepo->get('collective_affiliate_apply_toggle_label'),
             'collective_codes_submit_toggle_label'    => $siteRepo->get('collective_codes_submit_toggle_label'),
         ], '', [
@@ -624,10 +624,10 @@ final class SettingsController extends AdminController
         // null = key absent from POST (not a live preview); '' = sent as empty ("Use saved default")
         $previewStyle = $request ? $request->post('toggle_style', null) : null;
         $applyStyle   = $previewStyle !== null
-            ? (in_array(trim((string) $previewStyle), ['link', 'button'], true) ? trim((string) $previewStyle) : ($siteRepo->get('collective_affiliate_apply_style') ?? 'link'))
-            : (string) ($siteRepo->get('collective_affiliate_apply_style') ?? 'link');
+            ? (in_array(trim((string) $previewStyle), ['link', 'button'], true) ? trim((string) $previewStyle) : ($siteRepo->get('collective_affiliate_apply_style') ?? 'button'))
+            : (string) ($siteRepo->get('collective_affiliate_apply_style') ?? 'button');
         if (!in_array($applyStyle, ['link', 'button'], true)) {
-            $applyStyle = 'link';
+            $applyStyle = 'button';
         }
         $applyFormHtml = '';
         if ($applyEnabled && (str_contains($rawTpl, '{affiliate_apply_toggle}') || str_contains($rawTpl, '{affiliate_apply_form}'))) {
@@ -1293,10 +1293,10 @@ final class SettingsController extends AdminController
                 // null = key absent from POST (not a live preview); '' = sent as empty ("Use saved default")
                 $previewCsStyle = $request ? $request->post('toggle_style', null) : null;
                 $csStyle = $previewCsStyle !== null
-                    ? (in_array(trim((string) $previewCsStyle), ['link', 'button'], true) ? trim((string) $previewCsStyle) : ($siteRepo->get('collective_codes_submit_style') ?? 'link'))
-                    : (string) ($siteRepo->get('collective_codes_submit_style') ?? 'link');
+                    ? (in_array(trim((string) $previewCsStyle), ['link', 'button'], true) ? trim((string) $previewCsStyle) : ($siteRepo->get('collective_codes_submit_style') ?? 'button'))
+                    : (string) ($siteRepo->get('collective_codes_submit_style') ?? 'button');
                 if (!in_array($csStyle, ['link', 'button'], true)) {
-                    $csStyle = 'link';
+                    $csStyle = 'button';
                 }
                 // A blank posted label previews as the built-in default, not the still-saved
                 // value — saving blank clears the setting to NULL, which renders as the
@@ -2256,13 +2256,13 @@ final class SettingsController extends AdminController
         $siteRepo->set('collective_contact_form_template', $contactFormTpl !== '' ? $contactFormTpl : null);
         $siteRepo->set('collective_update_form_template', $collectiveUpdateFormTpl !== '' ? $collectiveUpdateFormTpl : null);
 
-        $collAffStyle = (string) $request->post('collective_affiliate_apply_style', 'link');
-        $siteRepo->set('collective_affiliate_apply_style', in_array($collAffStyle, ['link', 'button'], true) ? $collAffStyle : 'link');
+        $collAffStyle = (string) $request->post('collective_affiliate_apply_style', 'button');
+        $siteRepo->set('collective_affiliate_apply_style', in_array($collAffStyle, ['link', 'button'], true) ? $collAffStyle : 'button');
         $collAffLabel = trim((string) $request->post('collective_affiliate_apply_toggle_label', ''));
         $siteRepo->set('collective_affiliate_apply_toggle_label', $collAffLabel !== '' ? $collAffLabel : null);
 
-        $collCsStyle = (string) $request->post('collective_codes_submit_style', 'link');
-        $siteRepo->set('collective_codes_submit_style', in_array($collCsStyle, ['link', 'button'], true) ? $collCsStyle : 'link');
+        $collCsStyle = (string) $request->post('collective_codes_submit_style', 'button');
+        $siteRepo->set('collective_codes_submit_style', in_array($collCsStyle, ['link', 'button'], true) ? $collCsStyle : 'button');
         $collCsLabel = trim((string) $request->post('collective_codes_submit_toggle_label', ''));
         $siteRepo->set('collective_codes_submit_toggle_label', $collCsLabel !== '' ? $collCsLabel : null);
 
