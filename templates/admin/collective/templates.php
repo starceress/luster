@@ -51,6 +51,14 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
 
 // Helper: returns 'hidden' when the active group does not match $g.
 $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup !== $g) ? 'hidden' : '';
+
+// Source badge helper -- Custom when a value is actually stored for this key,
+// Built-in when it falls through to SiteSettingsRepo::collectiveDefaults().
+$srcBadge = static function (string $key) use ($ct): string {
+    return (($ct[$key] ?? '') !== '')
+        ? '<span class="badge badge-current badge-inline-sm">Custom</span>'
+        : '<span class="badge badge-inactive badge-inline-sm">Built-in</span>';
+};
 ?>
 
 <div class="toolbar">
@@ -153,7 +161,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Owned Listings ── -->
         <div class="tpl-group-section" data-tpl-group="owned" <?= $_grp('owned') ?>>
-          <div class="section-label">Owned Listings</div>
+          <div class="section-label">Owned Listings <?= $srcBadge('owned_template') ?></div>
           <div class="field-group">
             <textarea name="owned_template" id="owned_template" class="form form-mono" spellcheck="false"><?= View::e($ownedVal) ?></textarea>
           </div>
@@ -165,7 +173,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Latest Owned ── -->
         <div class="tpl-group-section" data-tpl-group="latest-owned" <?= $_grp('latest-owned') ?>>
-          <div class="section-label">Latest Owned</div>
+          <div class="section-label">Latest Owned <?= $srcBadge('latest_listing_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Used by the Latest Owned embed. Styles the most recently opened listing.</p>
           <div class="field-group">
             <textarea name="latest_listing_template" id="latest_listing_template" class="form form-mono" spellcheck="false"><?= View::e($latestVal) ?></textarea>
@@ -178,7 +186,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Random Owned ── -->
         <div class="tpl-group-section" data-tpl-group="random-owned" <?= $_grp('random-owned') ?>>
-          <div class="section-label">Random Owned</div>
+          <div class="section-label">Random Owned <?= $srcBadge('random_listing_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Used by the Random Owned embed. Styles one listing chosen at random from your active pool.</p>
           <div class="field-group">
             <textarea name="random_listing_template" id="random_listing_template" class="form form-mono" spellcheck="false"><?= View::e($randomVal) ?></textarea>
@@ -191,7 +199,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Collective Update Membership Form ── -->
         <div class="tpl-group-section" data-tpl-group="collective-update-form" <?= $_grp('collective-update-form') ?>>
-          <div class="section-label">Collective Update Membership Form</div>
+          <div class="section-label">Collective Update Membership Form <?= $srcBadge('collective_update_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Used by the Collective Update Membership Form embed. Controls the email-request step (Step 1) that sends a verification link. The update form (Step 2) is rendered automatically and is not customisable here.</p>
           <div class="field-group">
             <textarea name="collective_update_form_template" id="collective_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveUpdateFormVal) ?></textarea>
@@ -204,7 +212,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Joined Listings ── -->
         <div class="tpl-group-section" data-tpl-group="joined" <?= $_grp('joined') ?>>
-          <div class="section-label">Joined Listings</div>
+          <div class="section-label">Joined Listings <?= $srcBadge('joined_template') ?></div>
           <div class="field-group">
             <textarea name="joined_template" id="joined_template" class="form form-mono" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
           </div>
@@ -216,7 +224,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Latest Joined ── -->
         <div class="tpl-group-section" data-tpl-group="latest-joined" <?= $_grp('latest-joined') ?>>
-          <div class="section-label">Latest Joined</div>
+          <div class="section-label">Latest Joined <?= $srcBadge('latest_joined_listing_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Used by the Latest Joined Listing embed. Styles the most recently joined active, approved listing.</p>
           <div class="field-group">
             <textarea name="latest_joined_listing_template" id="latest_joined_listing_template" class="form form-mono" spellcheck="false"><?= View::e($latestJoinedVal) ?></textarea>
@@ -229,7 +237,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Random Joined ── -->
         <div class="tpl-group-section" data-tpl-group="random-joined" <?= $_grp('random-joined') ?>>
-          <div class="section-label">Random Joined</div>
+          <div class="section-label">Random Joined <?= $srcBadge('random_joined_listing_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Used by the Random Joined Listing embed. Styles one joined listing chosen at random from your active, approved pool.</p>
           <div class="field-group">
             <textarea name="random_joined_listing_template" id="random_joined_listing_template" class="form form-mono" spellcheck="false"><?= View::e($randomJoinedVal) ?></textarea>
@@ -242,7 +250,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Statistics ── -->
         <div class="tpl-group-section" data-tpl-group="stats" <?= $_grp('stats') ?>>
-          <div class="section-label">Statistics</div>
+          <div class="section-label">Statistics <?= $srcBadge('collective_stats_template') ?></div>
           <div class="field-group">
             <textarea name="collective_stats_template" id="collective_stats_template" class="form form-mono" spellcheck="false"><?= View::e($statsVal) ?></textarea>
           </div>
@@ -254,7 +262,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Codes ── -->
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
-          <div class="section-label">Codes</div>
+          <div class="section-label">Codes <?= $srcBadge('collective_codes_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls how collective-wide fan codes (codes with no fanlisting assigned) are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
@@ -291,7 +299,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Code Donation Form ── -->
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-          <div class="section-label">Code Donation Form</div>
+          <div class="section-label">Code Donation Form <?= $srcBadge('collective_codes_submit_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the code donation form shown by the collective Code Donation embed. Use the tokens on the right to arrange fields. Leave blank to use the built-in form.</p>
           <div class="field-group">
             <textarea name="collective_codes_submit_form_template" id="collective_codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveCodesSubmitFormVal) ?></textarea>
@@ -304,7 +312,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Affiliates ── -->
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-          <div class="section-label">Affiliates</div>
+          <div class="section-label">Affiliates <?= $srcBadge('collective_affiliates_section_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full affiliates section on <code>/affiliates</code> and the collective affiliates embed. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row yourself.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
@@ -341,7 +349,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Affiliate Form ── -->
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-          <div class="section-label">Affiliate Form</div>
+          <div class="section-label">Affiliate Form <?= $srcBadge('collective_affiliate_apply_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the collective affiliate application form. Use the tokens on the right to arrange fields. This template is used by the affiliate-apply embed in collective mode.</p>
           <div class="field-group">
             <textarea name="collective_affiliate_apply_form_template" id="collective_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($affApplyFormVal) ?></textarea>
@@ -354,7 +362,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Contact Form ── -->
         <div class="tpl-group-section" data-tpl-group="contact" <?= $_grp('contact') ?>>
-          <div class="section-label">Contact Form</div>
+          <div class="section-label">Contact Form <?= $srcBadge('collective_contact_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the collective contact form. Use the tokens on the right to arrange fields. Leave blank to use the built-in form.</p>
           <div class="field-group">
             <textarea name="collective_contact_form_template" id="collective_contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($contactFormVal) ?></textarea>
@@ -367,7 +375,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── KIM List ── -->
         <div class="tpl-group-section" data-tpl-group="kim-overview" <?= $_grp('kim-overview') ?>>
-          <div class="section-label">KIM List</div>
+          <div class="section-label">KIM List <?= $srcBadge('collective_kim_list_overview_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the public KIM list (<code>/kim/list</code>). Use <code>{each_kim_listing}&hellip;{/each_kim_listing}</code> to design each fanlisting row.</p>
           <div class="field-group">
             <textarea name="collective_kim_list_overview_template" id="collective_kim_list_overview_template" class="form form-mono" spellcheck="false"><?= View::e($kimListOverviewVal) ?></textarea>
@@ -380,7 +388,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── KIM Subject View ── -->
         <div class="tpl-group-section" data-tpl-group="kim-subject" <?= $_grp('kim-subject') ?>>
-          <div class="section-label">KIM Subject View</div>
+          <div class="section-label">KIM Subject View <?= $srcBadge('collective_kim_list_subject_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the KIM member list for a single fanlisting (<code>/kim/list/{id}</code>). Use <code>{each_kim_member}&hellip;{/each_kim_member}</code> to design each member row.</p>
           <div class="field-group">
             <textarea name="collective_kim_list_subject_template" id="collective_kim_list_subject_template" class="form form-mono" spellcheck="false"><?= View::e($kimListSubjectVal) ?></textarea>
@@ -393,7 +401,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── KIM Sign-Up Form ── -->
         <div class="tpl-group-section" data-tpl-group="kim-signup" <?= $_grp('kim-signup') ?>>
-          <div class="section-label">KIM Sign-Up Form</div>
+          <div class="section-label">KIM Sign-Up Form <?= $srcBadge('kim_signup_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the KIM (Keep In Mind) sign-up form. Use the tokens on the right to arrange fields.</p>
           <div class="field-group">
             <textarea name="kim_signup_form_template" id="kim_signup_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimSignupFormVal) ?></textarea>
@@ -406,7 +414,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── KIM Update Form ── -->
         <div class="tpl-group-section" data-tpl-group="kim-update" <?= $_grp('kim-update') ?>>
-          <div class="section-label">KIM Update Form</div>
+          <div class="section-label">KIM Update Form <?= $srcBadge('kim_update_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the KIM update form. Use the tokens on the right to arrange fields. Leave blank to use the built-in form.</p>
           <div class="field-group">
             <textarea name="kim_update_form_template" id="kim_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimUpdateFormVal) ?></textarea>
@@ -419,7 +427,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── KIM Reset Form ── -->
         <div class="tpl-group-section" data-tpl-group="kim-reset" <?= $_grp('kim-reset') ?>>
-          <div class="section-label">KIM Reset Form</div>
+          <div class="section-label">KIM Reset Form <?= $srcBadge('kim_reset_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the KIM password reset form &mdash; both the email-entry step and the new-password step. Use <code>{if_step_email}&hellip;{/if_step_email}</code> and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> to separate the two steps. Leave blank to use the built-in form.</p>
           <div class="field-group">
             <textarea name="kim_reset_form_template" id="kim_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimResetFormVal) ?></textarea>
@@ -432,7 +440,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Adoption ── -->
         <div class="tpl-group-section" data-tpl-group="adoption" <?= $_grp('adoption') ?>>
-          <div class="section-label">Collective Adoption Form</div>
+          <div class="section-label">Collective Adoption Form <?= $srcBadge('collective_adoption_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the collective adoption application form. Use the tokens on the right to arrange fields. Requires the Adoption add-on.</p>
           <div class="field-group">
             <textarea name="collective_adoption_form_template" id="collective_adoption_form_template" class="form form-mono" spellcheck="false"><?= View::e($adoptionFormVal) ?></textarea>
@@ -445,7 +453,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── Wishlist ── -->
         <div class="tpl-group-section" data-tpl-group="wishlist" <?= $_grp('wishlist') ?>>
-          <div class="section-label">Wishlist</div>
+          <div class="section-label">Wishlist <?= $srcBadge('wishlist_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Used by the Wishlist embed. This template is self-contained &mdash; include your own wrapper element.</p>
           <div class="field-group">
             <textarea name="wishlist_template" id="wishlist_template" class="form form-mono" spellcheck="false"><?= View::e($wishlistVal) ?></textarea>
@@ -458,7 +466,7 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
 
         <!-- ── News Feed ── -->
         <div class="tpl-group-section" data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
-          <div class="section-label">News Feed</div>
+          <div class="section-label">News Feed <?= $srcBadge('collective_newsfeed_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Used by the collective News Feed embed. Wrap each entry in <code>{each_newsfeed_entry}&hellip;{/each_newsfeed_entry}</code> &mdash; the outer wrapper and pagination are added automatically.</p>
           <div class="field-group">
             <textarea name="collective_newsfeed_template" id="collective_newsfeed_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveUpdatesVal) ?></textarea>
