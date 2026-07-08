@@ -157,7 +157,7 @@ final class AffiliateApplyController
 
         // Duplicate application check
         $affiliateRepo = new AffiliateRepo($this->app->getDatabase());
-        if ($affiliateRepo->isDuplicateApplication($listingId, $url, $email)) {
+        if ($affiliateRepo->isDuplicateApplication($listingId, $url)) {
             $session->set('lstr_flash_error:' . $marker, 'An application from that site is already on file.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
@@ -278,7 +278,7 @@ final class AffiliateApplyController
 
         // Duplicate check (null = collective scope)
         $affiliateRepo = new AffiliateRepo($db);
-        if ($affiliateRepo->isDuplicateApplication(null, $url, $email)) {
+        if ($affiliateRepo->isDuplicateApplication(null, $url)) {
             $session->set('lstr_flash_error:' . $marker, 'An application from that site is already on file.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);

@@ -13,7 +13,10 @@ use PHPUnit\Framework\TestCase;
  *
  * Covers:
  *  - insertPending() stores fanlisting_id IS NULL (not 0) for collective applications
- *  - isDuplicateApplication() works correctly with NULL scope
+ *  - isDuplicateApplication() matches on URL only (not email), so one applicant
+ *    can submit multiple different sites under the same email address
+ *  - isDuplicateApplication() ignores rejected applications, so a rejected site
+ *    can be resubmitted
  *  - isDuplicateApplication() with null scope is isolated from listing scope
  */
 final class CollectiveAffiliateApplyTest extends TestCase
@@ -103,12 +106,12 @@ SQL;
         ]);
 
         self::assertTrue(
-            $this->repo->isDuplicateApplication(null, 'https://existing.example', ''),
+            $this->repo->isDuplicateApplication(null, 'https://existing.example'),
             'Duplicate URL in collective scope must be detected'
         );
     }
 
-    public function testNullScopeDuplicateByEmail(): void
+    public function testNullScopeSameEmailDifferentUrlIsNotDuplicate(): void
     {
         $this->repo->insertPending([
             'fanlisting_id' => null,
@@ -117,16 +120,44 @@ SQL;
             'email'         => 'owner@existing.example',
         ]);
 
-        self::assertTrue(
-            $this->repo->isDuplicateApplication(null, 'https://other.example', 'owner@existing.example'),
-            'Duplicate email in collective scope must be detected'
+        // Same applicant (same email), a different site -- must be allowed so
+        // one person can affiliate multiple sites.
+        self::assertFalse(
+            $this->repo->isDuplicateApplication(null, 'https://other.example'),
+            'Same email with a different URL must NOT be blocked as a duplicate'
         );
     }
 
     public function testNullScopeNoDuplicateWhenEmpty(): void
     {
         self::assertFalse(
-            $this->repo->isDuplicateApplication(null, 'https://new.example', 'new@example.com')
+            $this->repo->isDuplicateApplication(null, 'https://new.example')
+        );
+    }
+
+    public function testNullScopeRejectedApplicationDoesNotBlockResubmission(): void
+    {
+        $this->pdo->exec(
+            "INSERT INTO lstr_affiliates (fanlisting_id, name, url, email, status, pending, active)
+             VALUES (NULL, 'Rejected Site', 'https://rejected.example', 'owner@rejected.example', 'rejected', 0, 0)"
+        );
+
+        self::assertFalse(
+            $this->repo->isDuplicateApplication(null, 'https://rejected.example'),
+            'A rejected application must not block resubmission of the same site'
+        );
+    }
+
+    public function testIntScopeRejectedApplicationDoesNotBlockResubmission(): void
+    {
+        $this->pdo->exec(
+            "INSERT INTO lstr_affiliates (fanlisting_id, name, url, email, status, pending, active)
+             VALUES (7, 'Rejected Site', 'https://rejected-listing.example', 'owner@rejected.example', 'rejected', 0, 0)"
+        );
+
+        self::assertFalse(
+            $this->repo->isDuplicateApplication(7, 'https://rejected-listing.example'),
+            'A rejected application must not block resubmission in listing scope'
         );
     }
 
@@ -143,7 +174,7 @@ SQL;
 
         // Checking listing scope (id = 5) should NOT find the collective row
         self::assertFalse(
-            $this->repo->isDuplicateApplication(5, 'https://shared-url.example', 'shared@example.com'),
+            $this->repo->isDuplicateApplication(5, 'https://shared-url.example'),
             'Collective-scope row must not block per-listing application'
         );
 
@@ -157,7 +188,7 @@ SQL;
 
         // Checking collective scope should NOT find the per-listing row
         self::assertFalse(
-            $this->repo->isDuplicateApplication(null, 'https://listing-url.example', 'listing@example.com'),
+            $this->repo->isDuplicateApplication(null, 'https://listing-url.example'),
             'Per-listing row must not block collective application'
         );
     }
@@ -172,12 +203,12 @@ SQL;
         ]);
 
         self::assertTrue(
-            $this->repo->isDuplicateApplication(3, 'https://a.example', ''),
+            $this->repo->isDuplicateApplication(3, 'https://a.example'),
             'Listing-scope duplicate detection must still work after refactor'
         );
 
         self::assertFalse(
-            $this->repo->isDuplicateApplication(3, 'https://new.example', ''),
+            $this->repo->isDuplicateApplication(3, 'https://new.example'),
             'Non-duplicate in listing scope must return false'
         );
     }

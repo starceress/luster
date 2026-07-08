@@ -968,32 +968,23 @@ final class AffiliateRepo
      * Pass null for $listingId to check the collective scope (fanlisting_id IS NULL).
      * Used to prevent duplicate applications before inserting.
      */
-    public function isDuplicateApplication(?int $listingId, string $url, string $email): bool
+    /**
+     * Matches on URL only (not email) so the same applicant can submit multiple
+     * different sites under one email address. Rejected applications don't count,
+     * so a previously-rejected site can be resubmitted.
+     */
+    public function isDuplicateApplication(?int $listingId, string $url): bool
     {
         if ($listingId === null) {
-            if ($email !== '') {
-                $stmt = $this->db->prepare(
-                    'SELECT COUNT(*) FROM lstr_affiliates
-                     WHERE fanlisting_id IS NULL AND (url = :url OR email = :email)'
-                );
-                $stmt->execute(['url' => $url, 'email' => $email]);
-            } else {
-                $stmt = $this->db->prepare(
-                    'SELECT COUNT(*) FROM lstr_affiliates
-                     WHERE fanlisting_id IS NULL AND url = :url'
-                );
-                $stmt->execute(['url' => $url]);
-            }
-        } elseif ($email !== '') {
             $stmt = $this->db->prepare(
-                'SELECT COUNT(*) FROM lstr_affiliates
-                 WHERE fanlisting_id = :fid AND (url = :url OR email = :email)'
+                "SELECT COUNT(*) FROM lstr_affiliates
+                 WHERE fanlisting_id IS NULL AND url = :url AND status != 'rejected'"
             );
-            $stmt->execute(['fid' => $listingId, 'url' => $url, 'email' => $email]);
+            $stmt->execute(['url' => $url]);
         } else {
             $stmt = $this->db->prepare(
-                'SELECT COUNT(*) FROM lstr_affiliates
-                 WHERE fanlisting_id = :fid AND url = :url'
+                "SELECT COUNT(*) FROM lstr_affiliates
+                 WHERE fanlisting_id = :fid AND url = :url AND status != 'rejected'"
             );
             $stmt->execute(['fid' => $listingId, 'url' => $url]);
         }
