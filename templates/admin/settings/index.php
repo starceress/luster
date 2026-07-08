@@ -894,6 +894,72 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
         </div>
       <?php endif; ?>
+
+      <div class="card card--gradient">
+        <div class="panel-header">
+          <div class="panel-header-icon">
+            <?= View::icon('timer', ['width' => 20, 'height' => 20]) ?>
+          </div>
+          <div class="panel-header-meta">
+            <div class="panel-header-title">Rate Limits</div>
+            <div class="panel-header-sub">Every public form blocks an IP address after too many attempts within an hour (or 15 minutes for admin login). Clear a block early instead of waiting it out.</div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <form method="POST" action="<?= $b ?>/admin/rate-limits/clear-mine">
+            <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+            <button type="submit" class="btn btn-quaternary btn-sm">Clear Rate Limits for My IP (<?= View::e($my_ip ?? '') ?>)</button>
+            <p class="form-hint">Clears every blocked form action for your own IP address in one click &mdash; handy while you're testing forms yourself.</p>
+          </form>
+        </div>
+      </div>
+
+      <?php if (empty($rate_limit_blocks)): ?>
+        <div class="card empty">
+          <?= View::icon('timer', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+          <div><strong>No active rate limit blocks.</strong></div>
+          <div>Nobody is currently blocked from submitting a public form.</div>
+        </div>
+      <?php else: ?>
+        <div class="card">
+          <div class="card-head">
+            <span>Active Blocks</span>
+            <span class="card-head-sub">&mdash; <?= count($rate_limit_blocks) ?> block<?= count($rate_limit_blocks) === 1 ? '' : 's' ?></span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>IP Address</th>
+                  <th>Form</th>
+                  <th>Attempts</th>
+                  <th>Blocked Until</th>
+                  <th class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($rate_limit_blocks as $block): ?>
+                <tr>
+                  <td><code><?= View::e($block['identifier']) ?></code></td>
+                  <td><?= View::e($block['action_label']) ?></td>
+                  <td><?= (int) $block['attempts'] ?></td>
+                  <td class="text-muted nowrap"><?= View::e(date(($admin_date_format ?? 'j M Y') . ', ' . ($admin_time_format ?? 'H:i'), strtotime($block['blocked_until']))) ?></td>
+                  <td class="actions-col">
+                    <form method="POST"
+                          action="<?= $b ?>/admin/rate-limits/<?= (int) $block['id'] ?>/clear"
+                          class="action-form-inline">
+                      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+                      <button type="submit" class="btn btn-danger btn-sm">Clear</button>
+                    </form>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <?php endif; ?>
     </div>
 
 

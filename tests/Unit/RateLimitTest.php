@@ -12,12 +12,13 @@ final class RateLimitTest extends TestCase
 {
     private const DDL = <<<SQL
 CREATE TABLE lstr_rate_limits (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
     identifier    TEXT    NOT NULL,
     action        TEXT    NOT NULL,
     attempts      INTEGER NOT NULL DEFAULT 0,
     last_attempt  TEXT    NOT NULL,
     blocked_until TEXT    NULL,
-    PRIMARY KEY (identifier, action)
+    UNIQUE (identifier, action)
 )
 SQL;
 
@@ -291,6 +292,127 @@ SQL;
         self::assertSame('admin_login',            RateLimit::ACTION_ADMIN_LOGIN);
         self::assertSame('public_join',            RateLimit::ACTION_PUBLIC_JOIN);
         self::assertSame('public_affiliate_apply', RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
+    }
+
+    // -----------------------------------------------------------------------
+    // getActiveBlocks()
+    // -----------------------------------------------------------------------
+
+    public function testGetActiveBlocksReturnsEmptyWhenNothingBlocked(): void
+    {
+        self::assertSame([], $this->rl->getActiveBlocks());
+    }
+
+    public function testGetActiveBlocksIncludesCurrentlyBlockedRow(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->rl->hit('1.2.3.4', RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY, 5, 3600);
+        }
+
+        $blocks = $this->rl->getActiveBlocks();
+
+        self::assertCount(1, $blocks);
+        self::assertSame('1.2.3.4', $blocks[0]['identifier']);
+        self::assertSame(RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY, $blocks[0]['action']);
+        self::assertSame('Affiliate Application', $blocks[0]['action_label']);
+        self::assertSame(5, $blocks[0]['attempts']);
+        self::assertGreaterThan(0, $blocks[0]['id']);
+    }
+
+    public function testGetActiveBlocksExcludesRowsNotYetBlocked(): void
+    {
+        // 3 of 5 attempts — accumulating, but not blocked yet
+        for ($i = 0; $i < 3; $i++) {
+            $this->rl->hit('1.2.3.4', 'test', 5, 3600);
+        }
+
+        self::assertSame([], $this->rl->getActiveBlocks());
+    }
+
+    public function testGetActiveBlocksExcludesExpiredBlocks(): void
+    {
+        $db  = SqliteDatabase::make(self::DDL);
+        $rl  = new RateLimit($db);
+        $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
+        $past = (new \DateTimeImmutable())->modify('-10 minutes')->format('Y-m-d H:i:s');
+
+        $db->pdo()->exec(
+            "INSERT INTO lstr_rate_limits (identifier, action, attempts, last_attempt, blocked_until)
+             VALUES ('1.2.3.4', 'test', 5, '{$now}', '{$past}')"
+        );
+
+        self::assertSame([], $rl->getActiveBlocks());
+    }
+
+    // -----------------------------------------------------------------------
+    // clearById()
+    // -----------------------------------------------------------------------
+
+    public function testClearByIdRemovesOnlyThatRow(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->rl->hit('1.2.3.4', 'action_a', 5, 3600);
+        }
+        for ($i = 0; $i < 5; $i++) {
+            $this->rl->hit('5.6.7.8', 'action_b', 5, 3600);
+        }
+
+        $blocks = $this->rl->getActiveBlocks();
+        self::assertCount(2, $blocks);
+
+        $idToClear = $blocks[0]['identifier'] === '1.2.3.4' ? $blocks[0]['id'] : $blocks[1]['id'];
+        $this->rl->clearById($idToClear);
+
+        $remaining = $this->rl->getActiveBlocks();
+        self::assertCount(1, $remaining);
+        self::assertFalse($this->rl->isBlocked('1.2.3.4', 'action_a'));
+        self::assertTrue($this->rl->isBlocked('5.6.7.8', 'action_b'));
+    }
+
+    public function testClearByIdIsNoOpForUnknownId(): void
+    {
+        // Should not throw
+        $this->rl->clearById(99999);
+        self::assertTrue(true);
+    }
+
+    // -----------------------------------------------------------------------
+    // clearAllForIdentifier()
+    // -----------------------------------------------------------------------
+
+    public function testClearAllForIdentifierClearsEveryActionForThatIp(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->rl->hit('1.2.3.4', 'action_a', 5, 3600);
+        }
+        for ($i = 0; $i < 5; $i++) {
+            $this->rl->hit('1.2.3.4', 'action_b', 5, 3600);
+        }
+        for ($i = 0; $i < 5; $i++) {
+            $this->rl->hit('5.6.7.8', 'action_a', 5, 3600);
+        }
+
+        $this->rl->clearAllForIdentifier('1.2.3.4');
+
+        self::assertFalse($this->rl->isBlocked('1.2.3.4', 'action_a'));
+        self::assertFalse($this->rl->isBlocked('1.2.3.4', 'action_b'));
+        // A different identifier's block must be untouched
+        self::assertTrue($this->rl->isBlocked('5.6.7.8', 'action_a'));
+    }
+
+    // -----------------------------------------------------------------------
+    // actionLabel()
+    // -----------------------------------------------------------------------
+
+    public function testActionLabelReturnsFriendlyNameForKnownAction(): void
+    {
+        self::assertSame('Affiliate Application', RateLimit::actionLabel(RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY));
+        self::assertSame('Admin Login', RateLimit::actionLabel(RateLimit::ACTION_ADMIN_LOGIN));
+    }
+
+    public function testActionLabelFallsBackToRawActionForUnknownAction(): void
+    {
+        self::assertSame('some_custom_action', RateLimit::actionLabel('some_custom_action'));
     }
 
     // -----------------------------------------------------------------------

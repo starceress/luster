@@ -52,6 +52,20 @@ final class RateLimit
         self::ACTION_PUBLIC_COLLECTIVE_UPDATE_REQ => ['max' => 5,  'window' => 3600],
     ];
 
+    /** Human-friendly labels for the admin panel's rate limit list. */
+    private const ACTION_LABELS = [
+        self::ACTION_ADMIN_LOGIN                  => 'Admin Login',
+        self::ACTION_PUBLIC_JOIN                  => 'Join Form',
+        self::ACTION_PUBLIC_UPDATE                => 'Update Form',
+        self::ACTION_PUBLIC_RESET                 => 'Password Reset',
+        self::ACTION_ADMIN_FORGOT                 => 'Admin Forgot Password',
+        self::ACTION_PUBLIC_CONTACT               => 'Contact Form',
+        self::ACTION_PUBLIC_ADOPT                 => 'Adoption Form',
+        self::ACTION_PUBLIC_AFFILIATE_APPLY       => 'Affiliate Application',
+        self::ACTION_PUBLIC_CODE_SUBMIT           => 'Code Donation Form',
+        self::ACTION_PUBLIC_COLLECTIVE_UPDATE_REQ => 'Collective Update Request',
+    ];
+
     public function __construct(private readonly Database $db) {}
 
     /**
@@ -206,5 +220,76 @@ final class RateLimit
              WHERE identifier = :identifier AND action = :action'
         );
         $stmt->execute(['identifier' => $identifier, 'action' => $action]);
+    }
+
+    /**
+     * Deletes a single rate limit row by its primary key. Used by the admin
+     * panel's rate limit list to clear one block without needing the raw
+     * identifier + action pair round-tripped through a form.
+     */
+    public function clearById(int $id): void
+    {
+        $stmt = $this->db->prepare('DELETE FROM lstr_rate_limits WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
+
+    /**
+     * Deletes every rate limit row for the given identifier, across all
+     * actions. Used by the admin panel's "clear my rate limits" shortcut so
+     * the site owner isn't stuck waiting out a block while testing.
+     */
+    public function clearAllForIdentifier(string $identifier): void
+    {
+        $stmt = $this->db->prepare('DELETE FROM lstr_rate_limits WHERE identifier = :identifier');
+        $stmt->execute(['identifier' => $identifier]);
+    }
+
+    /**
+     * Returns every row currently blocking someone (blocked_until in the
+     * future), newest block first. Rows that are merely accumulating attempts
+     * but haven't crossed the threshold yet are not included — there's nothing
+     * for an admin to act on until a block actually exists.
+     *
+     * @return array<int, array{id: int, identifier: string, action: string, action_label: string, attempts: int, blocked_until: string}>
+     */
+    public function getActiveBlocks(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, identifier, action, attempts, blocked_until
+             FROM lstr_rate_limits
+             WHERE blocked_until IS NOT NULL
+             ORDER BY blocked_until DESC'
+        );
+        $stmt->execute();
+
+        $now    = new DateTimeImmutable();
+        $active = [];
+
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $blockedUntil = new DateTimeImmutable((string) $row['blocked_until']);
+            if ($blockedUntil <= $now) {
+                continue; // Expired — isBlocked() will clean it up lazily on next check
+            }
+
+            $active[] = [
+                'id'            => (int) $row['id'],
+                'identifier'    => (string) $row['identifier'],
+                'action'        => (string) $row['action'],
+                'action_label'  => self::actionLabel((string) $row['action']),
+                'attempts'      => (int) $row['attempts'],
+                'blocked_until' => (string) $row['blocked_until'],
+            ];
+        }
+
+        return $active;
+    }
+
+    /**
+     * Returns a human-friendly label for a rate limit action, falling back to
+     * the raw action string for anything not in ACTION_LABELS.
+     */
+    public static function actionLabel(string $action): string
+    {
+        return self::ACTION_LABELS[$action] ?? $action;
     }
 }

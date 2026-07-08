@@ -24,6 +24,7 @@ use Luster\Controllers\Admin\BulkEmailController;
 use Luster\Controllers\Admin\AdminUsersController;
 use Luster\Controllers\Admin\AdminUpdateController;
 use Luster\Controllers\Admin\BlacklistController;
+use Luster\Controllers\Admin\RateLimitsController;
 use Luster\Controllers\Admin\EmailTemplatesController;
 use Luster\Controllers\Admin\AffiliateController;
 use Luster\Controllers\Admin\CodesController;
@@ -606,6 +607,14 @@ return [
             BlacklistController::class, 'add');
         $router->post('/admin/blacklist/{id}/delete',
             BlacklistController::class, 'delete');
+
+        // --- Rate limits (literal sub-path registered before the parameterised route)
+        $router->get('/admin/rate-limits',
+            RateLimitsController::class, 'index');
+        $router->post('/admin/rate-limits/clear-mine',
+            RateLimitsController::class, 'clearMine');
+        $router->post('/admin/rate-limits/{id}/clear',
+            RateLimitsController::class, 'clear');
 
 
         // --- Import wizard

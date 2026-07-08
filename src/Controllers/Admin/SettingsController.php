@@ -25,6 +25,7 @@ use Luster\Core\Countries;
 use Luster\Support\DateFormatter;
 use Luster\Core\Mailer;
 use Luster\Core\Database;
+use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\SkinCatalog;
@@ -1690,6 +1691,7 @@ final class SettingsController extends AdminController
         $db = $this->app->getDatabase();
 
         $blacklistEntries = (new BlacklistRepo($db))->getAll();
+        $rateLimitBlocks  = (new RateLimit($db))->getActiveBlocks();
 
         $pdo           = $db->pdo();
         $dbVersion     = (string) $pdo->query('SELECT VERSION()')->fetchColumn();
@@ -1737,6 +1739,8 @@ final class SettingsController extends AdminController
             'users'                => $adminRepo->getAll(),
             'current_admin_id'     => $adminId,
             'blacklist_entries'    => $blacklistEntries,
+            'rate_limit_blocks'    => $rateLimitBlocks,
+            'my_ip'                => $request->ip(),
             'site_settings'        => $siteSettings,
             'community_skins'      => $communitySkins,
             'success'              => $success,
