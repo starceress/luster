@@ -538,11 +538,17 @@ HTML;
 
     /**
      * Default KIM Password Reset Form template.
+     *
+     * Covers only the request step (email address to receive the reset link)
+     * — the "set new password" step is not template-controlled, so a
+     * misconfigured custom template can never lock a member out of actually
+     * resetting their password. See public/embed/kim-reset.php: the
+     * confirm-step branch always renders the built-in hardcoded markup
+     * regardless of what's saved here.
      */
     public static function defaultKimResetFormTemplate(): string
     {
-        return '{if_step_email}' . "\n"
-            . '<p class="fl-form-intro">Enter the email you signed up with and we\'ll send you a '
+        return '<p class="fl-form-intro">Enter the email you signed up with and we\'ll send you a '
             . 'link to reset your Keep In Mind password.</p>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_email}' . "\n"
@@ -550,24 +556,7 @@ HTML;
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"
-            . '</div>' . "\n"
-            . '{/if_step_email}' . "\n"
-            . "\n"
-            . '{if_step_confirm}' . "\n"
-            . '{if_token_invalid}<p class="fl-errors">This reset link has expired or is invalid. Please <a href="{reset_request_url}">request a new one</a>.</p>{/if_token_invalid}' . "\n"
-            . "\n"
-            . '{if_token_valid}' . "\n"
-            . '<p class="fl-form-intro">Choose a new password below.</p>' . "\n"
-            . '<div class="fl-form-fields">' . "\n"
-            . '{field_password}' . "\n"
-            . '{field_password_confirm}' . "\n"
-            . '</div>' . "\n"
-            . '<div class="fl-form-actions">' . "\n"
-            . '{submit_button}' . "\n"
-            . '{clear_button}' . "\n"
-            . '</div>' . "\n"
-            . '{/if_token_valid}' . "\n"
-            . '{/if_step_confirm}';
+            . '</div>';
     }
 
     /**

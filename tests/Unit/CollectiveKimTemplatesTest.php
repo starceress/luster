@@ -107,34 +107,35 @@ final class CollectiveKimTemplatesTest extends TestCase
         self::assertArrayHasKey('kim_reset_form_template', $defaults);
     }
 
-    public function testKimResetFormTemplateDefaultContainsBothStepBlocks(): void
+    public function testKimResetFormTemplateDefaultContainsEmailStepTokens(): void
     {
         $defaults = SiteSettingsRepo::collectiveDefaults();
         $tpl      = $defaults['kim_reset_form_template'];
 
         self::assertNotSame('', $tpl);
-        self::assertStringContainsString('{if_step_email}', $tpl);
-        self::assertStringContainsString('{/if_step_email}', $tpl);
-        self::assertStringContainsString('{if_step_confirm}', $tpl);
-        self::assertStringContainsString('{/if_step_confirm}', $tpl);
         // Email step tokens — fanlisting selector and captcha removed from runtime and default
         self::assertStringContainsString('{field_email}', $tpl);
         self::assertStringNotContainsString('{field_fanlisting_id}', $tpl);
         self::assertStringNotContainsString('{captcha_block}', $tpl);
-        // Confirm step tokens
-        self::assertStringContainsString('{field_password}', $tpl);
-        self::assertStringContainsString('{field_password_confirm}', $tpl);
         self::assertStringContainsString('{submit_button}', $tpl);
     }
 
-    public function testKimResetFormTemplateDefaultContainsConfirmStepValidityConditionals(): void
+    public function testKimResetFormTemplateDefaultNoLongerCoversTheConfirmStep(): void
     {
+        // Step 2 (actually setting the new password) was locked down to a
+        // fixed, non-customizable rendering (public/embed/kim-reset.php) so a
+        // misconfigured template can never lock a member out of it. This
+        // template now only covers the email-entry (request) step.
         $defaults = SiteSettingsRepo::collectiveDefaults();
         $tpl      = $defaults['kim_reset_form_template'];
 
-        self::assertStringContainsString('{if_token_invalid}', $tpl);
-        self::assertStringContainsString('{if_token_valid}', $tpl);
+        self::assertStringNotContainsString('{if_step_email}', $tpl);
+        self::assertStringNotContainsString('{if_step_confirm}', $tpl);
+        self::assertStringNotContainsString('{if_token_valid}', $tpl);
+        self::assertStringNotContainsString('{if_token_invalid}', $tpl);
+        self::assertStringNotContainsString('{field_password}', $tpl);
+        self::assertStringNotContainsString('{field_password_confirm}', $tpl);
+        self::assertStringNotContainsString('{reset_request_url}', $tpl);
         self::assertStringNotContainsString('{hidden_token}', $tpl, 'Hidden token is auto-injected, not a user-facing template token');
-        self::assertStringContainsString('{reset_request_url}', $tpl);
     }
 }

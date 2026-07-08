@@ -149,13 +149,6 @@ if ($_lusterStep === 'confirm') {
     $_lusterSettingsRepo    = new ListingSettingsRepo($_lusterApp->getDatabase());
     $_lusterGlobalDefaults  = $_lusterSettingsRepo->getGlobalFormUrlDefaults();
     $_lusterWrapperTpl      = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
-    $_lusterGlobalTpls      = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
-    $_lusterRstResolved   = ListingTemplateResolver::resolve(
-        $_lusterSettingsRepo->getResetFormTemplate($_lusterListingId),
-        $_lusterGlobalTpls['listing_default_reset_form_template'] ?? null,
-        ListingSettingsRepo::defaultResetFormTemplate(),
-    );
-    $_lusterResetFormTpl  = $_lusterRstResolved['should_render_template'] ? $_lusterRstResolved['value'] : '';
     $_lusterFb            = $_lusterApp->getFormFieldBuilder();
     $_lusterF             = $_lusterFb->build([
         ['type' => 'password', 'name' => 'new_password',        'id' => 'rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
@@ -169,34 +162,12 @@ if ($_lusterStep === 'confirm') {
         $_lusterGlobalDefaults['form_url_reset'],
     );
 
+    // Step 2 is never template-controlled — always the built-in hardcoded markup
+    // (templates/default/reset_confirm.php), regardless of what's saved in
+    // reset_form_template. A misconfigured custom template can only ever break
+    // the request step, never lock a member out of actually setting their new
+    // password. Mirrors collective-update.php's Step 2.
     $_lusterFormHtml = null;
-    if ($_lusterResetFormTpl !== '') {
-        $_lusterProcessed2 = TemplateEngine::conditionals($_lusterResetFormTpl, [
-            'step_email'    => false,
-            'step_confirm'  => true,
-            'token_valid'   => $_lusterTokenValid,
-            'token_invalid' => !$_lusterTokenValid,
-        ]);
-        $_lusterTokens2 = [
-            '{listing_title}'             => View::e((string) $_lusterListing->title),
-            '{listing_subject}'           => View::e((string) $_lusterListing->subject),
-            '{listing_url}'               => View::e((string) $_lusterListing->url),
-            '{field_email}'               => '',
-            '{captcha_block}'             => '',
-            '{captcha_block_input}'       => '',
-            '{captcha_question}'          => '',
-            '{field_new_password}'        => $_lusterF['new_password'],
-            '{field_new_password_confirm}' => $_lusterF['new_password_confirm'],
-            '{reset_request_url}'         => View::e($_lusterResetUrl),
-            '{submit_button}'             => '<button type="submit" class="fl-submit">Set New Password</button>',
-            '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-        ];
-        $_lusterInner2 = FormTemplateRenderer::expandTokens($_lusterProcessed2, $_lusterTokens2);
-        $_lusterTokenHidden = $_lusterTokenValid
-            ? '<input type="hidden" name="token" value="' . View::e($_lusterRawToken) . '">'
-            : '';
-        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner2, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker, $_lusterTokenHidden);
-    }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset_confirm.php', [
         'listing'      => $_lusterListing,

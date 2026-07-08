@@ -322,53 +322,12 @@ if (!$_lusterSignedIn) {
     ];
     $_lusterF = $_lusterFb->build($_lusterDescriptors, $_lusterWrapperTpl);
 
+    // Step 2 is never template-controlled — always the built-in hardcoded markup
+    // (templates/default/update.php's else-branch below), regardless of what's
+    // saved in update_form_template. A misconfigured custom template can only
+    // ever break the sign-in step, never lock a member out of actually editing
+    // or deleting their membership. Mirrors collective-update.php's Step 2.
     $_lusterFormHtml = null;
-    if ($_lusterUpdateFormTpl !== '') {
-        $_lusterAddlHtml    = implode("\n", array_map(
-            fn(\Luster\Models\AdditionalField $fld) => $_lusterF['field_' . $fld->name] ?? '',
-            $_lusterFields,
-        ));
-        $_lusterRemoveHtml  = '<div class="fl-field fl-field--danger"><label>'
-            . '<input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">'
-            . ' Permanently delete my membership instead of updating it</label>'
-            . '<p class="fl-field-hint">This immediately and permanently removes your membership from this listing. Cannot be undone.</p></div>';
-        $_lusterProcessed = TemplateEngine::conditionals($_lusterUpdateFormTpl, [
-            'not_signed_in' => false,
-            'signed_in'     => true,
-        ]);
-        $_lusterTokens = [
-            '{listing_title}'          => View::e((string) $_lusterListing->title),
-            '{listing_subject}'        => View::e((string) $_lusterListing->subject),
-            '{listing_url}'            => View::e((string) $_lusterListing->url),
-            '{field_signin_email}'     => '',
-            '{field_signin_password}'  => '',
-            '{field_new_name}'         => $_lusterF['new_name'],
-            '{field_new_email}'        => $_lusterF['new_email'],
-            '{field_new_url}'          => $_lusterF['url'],
-            '{field_new_country}'      => $_lusterF['country'],
-            '{additional_fields}'      => $_lusterAddlHtml,
-            '{field_password}'         => $_lusterF['new_password'],
-            '{field_password_confirm}' => $_lusterF['new_password_confirm'],
-            '{captcha_block}'          => '',
-            '{captcha_block_input}'    => '',
-            '{captcha_question}'       => '',
-            '{field_remove}'           => $_lusterRemoveHtml,
-            '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
-            '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-            '{sign_out_url}'           => View::e($_lusterSignOutUrl),
-            '{field_email}'            => View::e($_lusterMember->email),
-            '{lost_password_url}'      => '',
-        ];
-        $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterProcessed, $_lusterTokens);
-        $_lusterExtraHidden = '';
-        if ($_lusterFormTokenUpdate !== '') {
-            $_lusterExtraHidden .= '<input type="hidden" name="_form_token_update" value="' . View::e($_lusterFormTokenUpdate) . '">';
-        }
-        if ($_lusterFormTokenDelete !== '') {
-            $_lusterExtraHidden .= '<input type="hidden" name="_form_token_delete" value="' . View::e($_lusterFormTokenDelete) . '">';
-        }
-        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker, $_lusterExtraHidden);
-    }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
         'listing'       => $_lusterListing,

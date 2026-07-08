@@ -2716,81 +2716,49 @@ final class ListingController extends AdminController
         ]);
     }
 
+    /**
+     * Previews only the sign-in step — the only step this template controls.
+     * The actual edit-info step always uses the built-in hardcoded markup
+     * (see public/embed/update.php), so there is nothing else to preview.
+     */
     private function ltplPreviewUpdateForm(string $tpl, object $listing): string
     {
-        $db     = $this->app->getDatabase();
-        $config = $this->app->getConfig();
-
-        $fieldRepo = new FieldRepo($db, $config);
-        $fields    = $fieldRepo->getFieldsForListing((int) $listing->id);
-
-        $countrySelect   = Countries::buildSelect('');
         $fb = $this->app->getFormFieldBuilder();
 
-        // Build sign-in step fields
         $signInDescriptors = [
             ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'password', 'name' => 'password', 'id' => 'upd-password', 'label' => 'Password',      'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
         ];
         $fSignIn = $fb->build($signInDescriptors, '');
 
-        // Build update step fields
-        $urlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="" maxlength="500" placeholder="https://">'
-                . '<div class="fl-field-hint"><label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label></div>';
-        $updateDescriptors = [
-            ['type' => 'text',     'name' => 'new_name',             'id' => 'upd-name',         'label' => 'New Name',             'required' => false, 'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name',         'placeholder' => 'Your Name']],
-            ['type' => 'email',    'name' => 'new_email',            'id' => 'upd-new-email',    'label' => 'New Email',            'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255',                                    'placeholder' => 'your@email.com']],
-            ['type' => 'url',      'name' => 'url',                  'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
-            ['type' => 'text',     'name' => 'country',              'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySelect],
-            ...$fb->descriptorsFromAdditionalFields($fields, []),
-            ['type' => 'password', 'name' => 'new_password',         'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
-            ['type' => 'password', 'name' => 'new_password_confirm',  'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        $tokens = [
+            '{listing_title}'         => View::e((string) $listing->title),
+            '{listing_url}'           => View::e((string) $listing->url),
+            '{listing_subject}'       => View::e((string) ($listing->subject ?? $listing->title)),
+            '{field_signin_email}'    => $fSignIn['email'],
+            '{field_signin_password}' => $fSignIn['password'],
+            '{submit_button}'         => '<button type="submit" class="fl-submit">Sign In</button>',
+            '{lost_password_url}'     => '#',
         ];
-        $fUpdate = $fb->build($updateDescriptors, '');
 
-        $additionalFieldsHtml = implode("\n", array_map(
-            fn($field) => $fUpdate['field_' . $field->name] ?? '', $fields,
-        ));
-
-        $removeMembershipHtml = '<div class="fl-field fl-field--danger"><label>'
-            . '<input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">'
-            . ' Permanently delete my membership instead of updating it</label>'
-            . '<p class="fl-field-hint">This immediately and permanently removes your membership.</p></div>';
-
-        // Preview shows both steps simultaneously so the admin can see the whole template.
+        // Templates saved before Step 2 was locked down may still physically
+        // contain an {if_signed_in}...{/if_signed_in} block; strip it here so
+        // the preview matches what actually renders now instead of showing
+        // stale editable-step markup.
         $processed = TemplateEngine::conditionals($tpl, [
             'not_signed_in' => true,
-            'signed_in'     => true,
+            'signed_in'     => false,
         ]);
-
-        $tokens = [
-            '{listing_title}'          => View::e((string) $listing->title),
-            '{listing_url}'            => View::e((string) $listing->url),
-            '{listing_subject}'        => View::e((string) ($listing->subject ?? $listing->title)),
-            '{field_signin_email}'     => $fSignIn['email'],
-            '{field_signin_password}'  => $fSignIn['password'],
-            '{field_new_name}'         => $fUpdate['new_name'],
-            '{field_new_email}'        => $fUpdate['new_email'],
-            '{field_new_url}'          => $fUpdate['url'],
-            '{field_new_country}'      => $fUpdate['country'],
-            '{additional_fields}'      => $additionalFieldsHtml,
-            '{field_password}'         => $fUpdate['new_password'],
-            '{field_password_confirm}' => $fUpdate['new_password_confirm'],
-            '{captcha_block}'          => '',
-            '{captcha_block_input}'    => '',
-            '{captcha_question}'       => '',
-            '{field_remove}'           => $removeMembershipHtml,
-            '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
-            '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-            '{sign_out_url}'           => '#',
-            '{field_email}'            => 'example@email.com',
-            '{lost_password_url}'      => '#',
-        ];
 
         $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
     }
 
+    /**
+     * Previews only the request step — the only step this template controls.
+     * The actual "set new password" step always uses the built-in hardcoded
+     * markup (see public/embed/reset.php), so there is nothing else to preview.
+     */
     private function ltplPreviewResetForm(string $tpl, object $listing): string
     {
         $fb = $this->app->getFormFieldBuilder();
@@ -2800,37 +2768,29 @@ final class ListingController extends AdminController
         ];
         $fEmail = $fb->build($emailDescriptors, '');
 
-        $passwordDescriptors = [
-            ['type' => 'password', 'name' => 'new_password',        'id' => 'reset-pass',    'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
-            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'reset-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        $tokens = [
+            '{listing_title}'     => View::e((string) $listing->title),
+            '{listing_url}'       => View::e((string) $listing->url),
+            '{listing_subject}'   => View::e((string) ($listing->subject ?? $listing->title)),
+            '{field_email}'       => $fEmail['email'],
+            '{field_email_input}' => $fEmail['email_input'],
+            '{captcha_block}'       => '',
+            '{captcha_block_input}' => '',
+            '{captcha_question}'    => '',
+            '{reset_request_url}' => '#',
+            '{submit_button}'     => '<button type="submit" class="fl-submit">Send Reset Link</button>',
+            '{clear_button}'      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
-        $fPassword = $fb->build($passwordDescriptors, '');
 
-        // Preview shows all conditional blocks simultaneously.
+        // Templates saved before Step 2 was locked down may still physically
+        // contain an {if_step_confirm}...{/if_step_confirm} block; strip it
+        // here so the preview matches what actually renders now.
         $processed = TemplateEngine::conditionals($tpl, [
             'step_email'    => true,
-            'step_confirm'  => true,
-            'token_valid'   => true,
+            'step_confirm'  => false,
+            'token_valid'   => false,
             'token_invalid' => false,
         ]);
-
-        $tokens = [
-            '{listing_title}'             => View::e((string) $listing->title),
-            '{listing_url}'               => View::e((string) $listing->url),
-            '{listing_subject}'           => View::e((string) ($listing->subject ?? $listing->title)),
-            '{field_email}'               => $fEmail['email'],
-            '{field_email_input}'         => $fEmail['email_input'],
-            '{captcha_block}'             => '',
-            '{captcha_block_input}'       => '',
-            '{captcha_question}'          => '',
-            '{field_new_password}'        => $fPassword['new_password'],
-            '{field_new_password_input}'  => $fPassword['new_password_input'],
-            '{field_new_password_confirm}'       => $fPassword['new_password_confirm'],
-            '{field_new_password_confirm_input}' => $fPassword['new_password_confirm_input'],
-            '{reset_request_url}'         => '#',
-            '{submit_button}'             => '<button type="submit" class="fl-submit">Reset Password</button>',
-            '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-        ];
 
         $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
@@ -3438,11 +3398,14 @@ final class ListingController extends AdminController
         return $this->renderAffiliateApplyFormPreview($tpl, SampleTemplateData::LISTING_TITLE, SampleTemplateData::LISTING_URL, SampleTemplateData::LISTING_SUBJECT);
     }
 
+    /**
+     * Previews only the sign-in step — the only step this template controls.
+     * The actual edit-info step always uses the built-in hardcoded markup
+     * (see public/embed/update.php), so there is nothing else to preview.
+     */
     private function gtplPreviewUpdateForm(string $tpl): string
     {
-        $countrySelect   = Countries::buildSelect('');
         $fb = $this->app->getFormFieldBuilder();
-        $sampleFields = SampleTemplateData::additionalFields();
 
         $signInDescriptors = [
             ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
@@ -3450,59 +3413,33 @@ final class ListingController extends AdminController
         ];
         $fSignIn = $fb->build($signInDescriptors, '');
 
-        $urlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="" maxlength="500" placeholder="https://">'
-                . '<div class="fl-field-hint"><label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label></div>';
-        $updateDescriptors = [
-            ['type' => 'text',     'name' => 'new_name',              'id' => 'upd-name',         'label' => 'New Name',             'required' => false, 'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'email',    'name' => 'new_email',             'id' => 'upd-new-email',    'label' => 'New Email',            'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255']],
-            ['type' => 'url',      'name' => 'url',                   'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
-            ['type' => 'text',     'name' => 'country',               'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySelect],
-            ...$fb->descriptorsFromAdditionalFields($sampleFields, []),
-            ['type' => 'password', 'name' => 'new_password',          'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
-            ['type' => 'password', 'name' => 'new_password_confirm',  'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        $tokens = [
+            '{listing_title}'         => SampleTemplateData::LISTING_TITLE,
+            '{listing_url}'           => SampleTemplateData::LISTING_URL,
+            '{listing_subject}'       => SampleTemplateData::LISTING_SUBJECT,
+            '{field_signin_email}'    => $fSignIn['email'],
+            '{field_signin_password}' => $fSignIn['password'],
+            '{submit_button}'         => '<button type="submit" class="fl-submit">Sign In</button>',
+            '{lost_password_url}'     => '#',
         ];
-        $fUpdate = $fb->build($updateDescriptors, '');
 
-        $additionalFieldsHtml = implode("\n", array_map(
-            fn($field) => $fUpdate['field_' . $field->name] ?? '', $sampleFields,
-        ));
-        $removeMembershipHtml = '<div class="fl-field fl-field--danger"><label>'
-            . '<input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">'
-            . ' Permanently delete my membership instead of updating it</label></div>';
-
+        // Templates saved before Step 2 was locked down may still physically
+        // contain an {if_signed_in}...{/if_signed_in} block; strip it here so
+        // the preview matches what actually renders now.
         $processed = TemplateEngine::conditionals($tpl, [
             'not_signed_in' => true,
-            'signed_in'     => true,
+            'signed_in'     => false,
         ]);
-
-        $tokens = [
-            '{listing_title}'          => SampleTemplateData::LISTING_TITLE,
-            '{listing_url}'            => SampleTemplateData::LISTING_URL,
-            '{listing_subject}'        => SampleTemplateData::LISTING_SUBJECT,
-            '{field_signin_email}'     => $fSignIn['email'],
-            '{field_signin_password}'  => $fSignIn['password'],
-            '{field_new_name}'         => $fUpdate['new_name'],
-            '{field_new_email}'        => $fUpdate['new_email'],
-            '{field_new_url}'          => $fUpdate['url'],
-            '{field_new_country}'      => $fUpdate['country'],
-            '{additional_fields}'      => $additionalFieldsHtml,
-            '{field_password}'         => $fUpdate['new_password'],
-            '{field_password_confirm}' => $fUpdate['new_password_confirm'],
-            '{captcha_block}'          => '',
-            '{captcha_block_input}'    => '',
-            '{captcha_question}'       => '',
-            '{field_remove}'           => $removeMembershipHtml,
-            '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
-            '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-            '{sign_out_url}'           => '#',
-            '{field_email}'            => 'example@email.com',
-            '{lost_password_url}'      => '#',
-        ];
 
         $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
     }
 
+    /**
+     * Previews only the request step — the only step this template controls.
+     * The actual "set new password" step always uses the built-in hardcoded
+     * markup (see public/embed/reset.php), so there is nothing else to preview.
+     */
     private function gtplPreviewResetForm(string $tpl): string
     {
         $fb = $this->app->getFormFieldBuilder();
@@ -3510,35 +3447,30 @@ final class ListingController extends AdminController
         $fEmail = $fb->build([
             ['type' => 'email', 'name' => 'email',          'id' => 'reset-email',  'label' => 'Email Address', 'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
         ], '');
-        $fPassword = $fb->build([
-            ['type' => 'password', 'name' => 'new_password',        'id' => 'reset-pass',    'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters.'],
-            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'reset-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-        ], '');
-
-        $processed = TemplateEngine::conditionals($tpl, [
-            'step_email'    => true,
-            'step_confirm'  => true,
-            'token_valid'   => true,
-            'token_invalid' => false,
-        ]);
 
         $tokens = [
-            '{listing_title}'             => SampleTemplateData::LISTING_TITLE,
-            '{listing_url}'               => SampleTemplateData::LISTING_URL,
-            '{listing_subject}'           => SampleTemplateData::LISTING_SUBJECT,
-            '{field_email}'               => $fEmail['email'],
-            '{field_email_input}'         => $fEmail['email_input'],
-            '{captcha_block}'             => '',
-            '{captcha_block_input}'       => '',
-            '{captcha_question}'          => '',
-            '{field_new_password}'        => $fPassword['new_password'],
-            '{field_new_password_input}'  => $fPassword['new_password_input'],
-            '{field_new_password_confirm}'       => $fPassword['new_password_confirm'],
-            '{field_new_password_confirm_input}' => $fPassword['new_password_confirm_input'],
-            '{reset_request_url}'         => '#',
-            '{submit_button}'             => '<button type="submit" class="fl-submit">Reset Password</button>',
-            '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{listing_title}'     => SampleTemplateData::LISTING_TITLE,
+            '{listing_url}'       => SampleTemplateData::LISTING_URL,
+            '{listing_subject}'   => SampleTemplateData::LISTING_SUBJECT,
+            '{field_email}'       => $fEmail['email'],
+            '{field_email_input}' => $fEmail['email_input'],
+            '{captcha_block}'       => '',
+            '{captcha_block_input}' => '',
+            '{captcha_question}'    => '',
+            '{reset_request_url}' => '#',
+            '{submit_button}'     => '<button type="submit" class="fl-submit">Send Reset Link</button>',
+            '{clear_button}'      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
+
+        // Templates saved before Step 2 was locked down may still physically
+        // contain an {if_step_confirm}...{/if_step_confirm} block; strip it
+        // here so the preview matches what actually renders now.
+        $processed = TemplateEngine::conditionals($tpl, [
+            'step_email'    => true,
+            'step_confirm'  => false,
+            'token_valid'   => false,
+            'token_invalid' => false,
+        ]);
 
         $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);

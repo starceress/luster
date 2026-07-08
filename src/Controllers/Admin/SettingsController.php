@@ -1084,6 +1084,11 @@ final class SettingsController extends AdminController
              . self::previewSectionLabel('Step 2 — Dashboard (Signed In)') . $step2Html;
     }
 
+    /**
+     * Previews only the request step — the only step this template controls.
+     * The actual "set new password" step always uses the built-in hardcoded
+     * markup (see public/embed/kim-reset.php), so there is nothing else to preview.
+     */
     private function coltplPreviewKimResetForm(string $tpl, Config $config): string
     {
         $fb = $this->app->getFormFieldBuilder();
@@ -1091,60 +1096,28 @@ final class SettingsController extends AdminController
         $fEmail = $fb->build([
             ['type' => 'email', 'name' => 'email', 'id' => 'kim-email', 'label' => 'Email', 'required' => true, 'attrs' => ['maxlength' => '255']],
         ], '');
-        $fConfirm = $fb->build([
-            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255'], 'hint' => 'Minimum 12 characters.'],
-            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255']],
-        ], '');
 
         $siteName = (string) $config->get('site_name', 'Collective');
-        $sharedTokens = [
-            '{site_name}'                        => View::e($siteName),
-            '{reset_request_url}'                => '#',
-            '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        $tokens = [
+            '{site_name}'          => View::e($siteName),
+            '{reset_request_url}'  => '#',
+            '{clear_button}'       => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{field_email}'        => $fEmail['email'],
+            '{field_email_input}'  => $fEmail['email_input'],
+            '{submit_button}'      => '<button type="submit" class="fl-submit">Send Reset Link</button>',
         ];
 
-        // Step 1: email entry
-        $step1Tpl = TemplateEngine::conditionals($tpl, [
+        // Templates saved before Step 2 was locked down may still physically
+        // contain an {if_step_confirm}...{/if_step_confirm} block; strip it
+        // here so the preview matches what actually renders now.
+        $processed = TemplateEngine::conditionals($tpl, [
             'step_email'    => true,
             'step_confirm'  => false,
             'token_valid'   => false,
             'token_invalid' => false,
         ]);
-        $step1Tokens = $sharedTokens + [
-            '{field_email}'                      => $fEmail['email'],
-            '{field_email_input}'                => $fEmail['email_input'],
-            '{field_password}'                   => '',
-            '{field_password_input}'             => '',
-            '{field_password_confirm}'           => '',
-            '{field_password_confirm_input}'     => '',
-            '{submit_button}'                    => '<button type="submit" class="fl-submit">Send Reset Link</button>',
-        ];
-        $step1Inner = FormTemplateRenderer::expandTokens($step1Tpl, $step1Tokens);
-        $step1Html  = FormTemplateRenderer::wrapForm($step1Inner, '#', $this->app->getCSRF()->token(), false, preview: true);
-
-        // Step 2: new password
-        $step2Tpl = TemplateEngine::conditionals($tpl, [
-            'step_email'    => false,
-            'step_confirm'  => true,
-            'token_valid'   => true,
-            'token_invalid' => false,
-        ]);
-        $step2Tokens = $sharedTokens + [
-            '{field_email}'                      => '',
-            '{field_email_input}'                => '',
-            '{field_password}'                   => $fConfirm['new_password'],
-            '{field_password_input}'             => $fConfirm['new_password_input'],
-            '{field_password_confirm}'           => $fConfirm['new_password_confirm'],
-            '{field_password_confirm_input}'     => $fConfirm['new_password_confirm_input'],
-            '{submit_button}'                    => '<button type="submit" class="fl-submit">Set New Password</button>',
-        ];
-        $step2Inner = FormTemplateRenderer::expandTokens($step2Tpl, $step2Tokens);
-        $step2Html  = FormTemplateRenderer::wrapForm($step2Inner, '#', $this->app->getCSRF()->token(), false, preview: true);
-
-        return self::previewSectionLabel('Step 1 — Request Reset')
-             . $step1Html
-             . self::previewSectionLabel('Step 2 — Set New Password')
-             . $step2Html;
+        $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
     }
 
     private function coltplPreviewWishlist(string $rawTpl, Database $db, string $uploadsUrl): string

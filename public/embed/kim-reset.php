@@ -171,30 +171,12 @@ if ($_lusterKimResetStep === 'confirm') {
         ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ], '');
 
+    // Step 2 is never template-controlled — always the built-in hardcoded markup
+    // (templates/default/addons/kim/reset-confirm.php), regardless of what's
+    // saved in kim_reset_form_template. A misconfigured custom template can only
+    // ever break the request step, never lock a member out of actually setting
+    // their new password. Mirrors collective-update.php's Step 2.
     $_lusterFormHtml = null;
-    if ($_lusterResetTpl !== '') {
-        $_lusterTplC = TemplateEngine::conditionals($_lusterResetTpl, [
-            'step_email'    => false,
-            'step_confirm'  => true,
-            'token_valid'   => $_lusterTokenValid,
-            'token_invalid' => !$_lusterTokenValid,
-        ]);
-        $_lusterTokensC = [
-            '{site_name}'                    => View::e((string) $_lusterApp->getConfig()->get('site_name', 'Collective')),
-            '{submit_button}'                => '<button type="submit" class="fl-submit">Set New Password</button>',
-            '{clear_button}'                 => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-            '{reset_request_url}'            => View::e($_lusterResetRecoveryUrl),
-            '{field_password}'               => $_lusterF['new_password'],
-            '{field_password_input}'         => $_lusterF['new_password_input'] ?? '',
-            '{field_password_confirm}'       => $_lusterF['new_password_confirm'],
-            '{field_password_confirm_input}' => $_lusterF['new_password_confirm_input'] ?? '',
-        ];
-        $_lusterInnerC   = FormTemplateRenderer::expandTokens($_lusterTplC, $_lusterTokensC);
-        $_lusterTokenHidden = $_lusterTokenValid
-            ? '<input type="hidden" name="token" value="' . View::e($_lusterRawToken) . '">'
-            : '';
-        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInnerC, $_lusterRedirectToClean, $_lusterApp->getCSRF()->token(), false, false, 'kim_reset', $_lusterTokenHidden);
-    }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/kim/reset-confirm.php', [
         'form_action' => $_lusterRedirectToClean,

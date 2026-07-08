@@ -478,22 +478,11 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="update-form" <?= $_grp('update-form') ?>>
         <summary class="chevron-head">Update Membership Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Use {if_not_signed_in}...{/if_not_signed_in} for the sign-in step and {if_signed_in}...{/if_signed_in} for the update fields step. Both conditionals can share the same template.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Controls only the sign-in step (email + password). The step where a member actually edits or deletes their membership is fixed and cannot be customized, so a mistake here can never lock anyone out of updating their info.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_update_form_template', '{if_not_signed_in}{/if_not_signed_in}', '{if_not_signed_in}...{/if_not_signed_in}', 'Shows the sign-in step (email + password).') ?>
-            <?= $tok('listing_default_update_form_template', '{if_signed_in}{/if_signed_in}',         '{if_signed_in}...{/if_signed_in}',         'Shows the update form step.') ?>
-            <?= $tok('listing_default_update_form_template', '{field_signin_email}',    '{field_signin_email}',    'Sign-in step: the Email field, with label and wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{field_signin_password}', '{field_signin_password}', 'Sign-in step: the Password field, with label and wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{lost_password_url}',     '{lost_password_url}',     'Sign-in step: URL of the password reset page.') ?>
-            <?= $tok('listing_default_update_form_template', '{field_new_name}',    '{field_new_name}',    'Update step: the New Name field, with label and wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{field_new_email}',   '{field_new_email}',   'Update step: the New Email field, with label and wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{field_new_url}',     '{field_new_url}',     'Update step: the New Website URL field, with label and wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{field_new_country}', '{field_new_country}', 'Update step: the Country selector, with label and wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{additional_fields}', '{additional_fields}', 'Update step: all additional fields, with labels and wrappers, in order.') ?>
-            <?= $tok('listing_default_update_form_template', '{field_password}',         '{field_password}',         'Update step: the New Password field, with label and wrapper.') ?>
-            <?= $tok('listing_default_update_form_template', '{field_password_confirm}', '{field_password_confirm}', 'Update step: the Confirm New Password field, with label and wrapper.') ?>
-
-            <?= $tok('listing_default_update_form_template', '{field_remove}',     '{field_remove}',     'Update step: the &ldquo;Delete my membership&rdquo; checkbox block.') ?>
+            <?= $tok('listing_default_update_form_template', '{field_signin_email}',    '{field_signin_email}',    'The Email field, with label and wrapper.') ?>
+            <?= $tok('listing_default_update_form_template', '{field_signin_password}', '{field_signin_password}', 'The Password field, with label and wrapper.') ?>
+            <?= $tok('listing_default_update_form_template', '{lost_password_url}',     '{lost_password_url}',     'URL of the password reset page.') ?>
             <?= $tok('listing_default_update_form_template', '{submit_button}',    '{submit_button}',    'The submit button.') ?>
             <?= $tok('listing_default_update_form_template', '{clear_button}',     '{clear_button}',     'The &ldquo;Clear&rdquo; reset button.') ?>
             <?= $tok('listing_default_update_form_template', '{listing_title}',   '{listing_title}',   'The listing&rsquo;s display name.') ?>
@@ -507,19 +496,11 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <details class="card chevron" data-token-card data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
         <summary class="chevron-head">Lost Password Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Use {if_step_email} for the email-entry step and {if_step_confirm} for the new-password step. Use {if_token_valid} or {if_token_invalid} inside the confirm step.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Controls only the email-entry step. The step where a member actually sets their new password is fixed and cannot be customized, so a mistake here can never lock anyone out of resetting their password.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_reset_form_template', '{if_step_email}{/if_step_email}',     '{if_step_email}...{/if_step_email}',     'Shows the email-entry step.') ?>
-            <?= $tok('listing_default_reset_form_template', '{if_step_confirm}{/if_step_confirm}', '{if_step_confirm}...{/if_step_confirm}', 'Shows the new-password step.') ?>
-            <?= $tok('listing_default_reset_form_template', '{if_token_valid}{/if_token_valid}',   '{if_token_valid}...{/if_token_valid}',   'Inside confirm step: shows when the reset token is valid.') ?>
-            <?= $tok('listing_default_reset_form_template', '{if_token_invalid}{/if_token_invalid}', '{if_token_invalid}...{/if_token_invalid}', 'Inside confirm step: shows when the token has expired or is invalid.') ?>
-            <?= $tok('listing_default_reset_form_template', '{field_email}',               '{field_email}',               'Email-entry step: the Email field, with label and wrapper.') ?>
-
-            <?= $tok('listing_default_reset_form_template', '{field_new_password}',        '{field_new_password}',        'Confirm step: the New Password field, with label and wrapper.') ?>
-            <?= $tok('listing_default_reset_form_template', '{field_new_password_confirm}', '{field_new_password_confirm}', 'Confirm step: the Confirm New Password field, with label and wrapper.') ?>
-            <?= $tok('listing_default_reset_form_template', '{reset_request_url}',         '{reset_request_url}',         'URL of the email-entry form. Use inside {if_token_invalid} for a &ldquo;request a new one&rdquo; link.') ?>
-            <?= $tok('listing_default_reset_form_template', '{submit_button}',             '{submit_button}',             'The submit button.') ?>
-            <?= $tok('listing_default_reset_form_template', '{clear_button}',              '{clear_button}',              'The &ldquo;Clear&rdquo; reset button.') ?>
+            <?= $tok('listing_default_reset_form_template', '{field_email}',   '{field_email}',   'The Email field, with label and wrapper.') ?>
+            <?= $tok('listing_default_reset_form_template', '{submit_button}', '{submit_button}', 'The submit button.') ?>
+            <?= $tok('listing_default_reset_form_template', '{clear_button}',  '{clear_button}',  'The &ldquo;Clear&rdquo; reset button.') ?>
             <?= $tok('listing_default_reset_form_template', '{listing_title}',   '{listing_title}',   'The listing&rsquo;s display name.') ?>
             <?= $tok('listing_default_reset_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
             <?= $tok('listing_default_reset_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>

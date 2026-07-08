@@ -993,22 +993,13 @@ $srcBadge = static function (string $key) use ($ct): string {
       <details class="card chevron" data-token-card data-tpl-group="kim-reset" <?= $_grp('kim-reset') ?>>
         <summary class="chevron-head">KIM Reset Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls both steps of the KIM password reset form. Use <code>{if_step_email}</code> and <code>{if_step_confirm}</code> to separate the two flows in a single template.</p>
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls only the email-entry step. The step where a member actually sets their new password is fixed and cannot be customized, so a mistake here can never lock anyone out of resetting their password.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('kim_reset_form_template', '{site_name}',                        '{site_name}',                        'The collective/site name.') ?>
-            <?= $tok('kim_reset_form_template', '{if_step_email}{/if_step_email}',   '{if_step_email}...{/if_step_email}',   'Shows only on the email-entry step (the first step).') ?>
-            <?= $tok('kim_reset_form_template', '{if_step_confirm}{/if_step_confirm}', '{if_step_confirm}...{/if_step_confirm}', 'Shows only on the new-password step (after clicking the email link).') ?>
-            <?= $tok('kim_reset_form_template', '{if_token_valid}{/if_token_valid}', '{if_token_valid}...{/if_token_valid}', 'Inside {if_step_confirm} — shows only when the reset token is valid.') ?>
-            <?= $tok('kim_reset_form_template', '{if_token_invalid}{/if_token_invalid}', '{if_token_invalid}...{/if_token_invalid}', 'Inside {if_step_confirm} — shows only when the reset token is expired or invalid.') ?>
-            <?= $tok('kim_reset_form_template', '{field_email}',                '{field_email}',                'Full label + input for the email field (email step).') ?>
-            <?= $tok('kim_reset_form_template', '{field_email_input}',          '{field_email_input}',          'Just the email input element (email step).') ?>
-            <?= $tok('kim_reset_form_template', '{field_password}',             '{field_password}',             'Full label + input for the new password field (confirm step).') ?>
-            <?= $tok('kim_reset_form_template', '{field_password_input}',       '{field_password_input}',       'Just the new password input element (confirm step).') ?>
-            <?= $tok('kim_reset_form_template', '{field_password_confirm}',     '{field_password_confirm}',     'Full label + input for the confirm new password field (confirm step).') ?>
-            <?= $tok('kim_reset_form_template', '{field_password_confirm_input}', '{field_password_confirm_input}', 'Just the confirm new password input element (confirm step).') ?>
-            <?= $tok('kim_reset_form_template', '{reset_request_url}',          '{reset_request_url}',          'A link to the reset email-entry form (for the invalid-token error message).') ?>
-            <?= $tok('kim_reset_form_template', '{submit_button}',              '{submit_button}',              'The submit button.') ?>
-            <?= $tok('kim_reset_form_template', '{clear_button}',               '{clear_button}',               'The "Clear" reset button.') ?>
+            <?= $tok('kim_reset_form_template', '{site_name}',           '{site_name}',           'The collective/site name.') ?>
+            <?= $tok('kim_reset_form_template', '{field_email}',         '{field_email}',         'Full label + input for the email field.') ?>
+            <?= $tok('kim_reset_form_template', '{field_email_input}',   '{field_email_input}',   'Just the email input element.') ?>
+            <?= $tok('kim_reset_form_template', '{submit_button}',       '{submit_button}',       'The submit button.') ?>
+            <?= $tok('kim_reset_form_template', '{clear_button}',        '{clear_button}',        'The "Clear" reset button.') ?>
           </tbody></table>
         </div>
       </details>

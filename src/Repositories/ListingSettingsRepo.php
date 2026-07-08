@@ -556,10 +556,19 @@ final class ListingSettingsRepo
     /**
      * Default Update (edit membership) Form template used when no override is stored.
      */
+    /**
+     * Default Update Membership Form template used when no override is stored.
+     *
+     * Covers only the sign-in step (email + password to reach the editable
+     * form) — the actual edit-info step is not template-controlled, so a
+     * misconfigured custom template can never lock a member out of editing or
+     * deleting their membership. See TemplateEngine/FormTemplateRenderer call
+     * sites in public/embed/update.php: the signed-in branch always renders
+     * the built-in hardcoded markup regardless of what's saved here.
+     */
     public static function defaultUpdateFormTemplate(): string
     {
-        return '{if_not_signed_in}' . "\n"
-            . '<h2>Update Your Information for {listing_subject}</h2>' . "\n"
+        return '<h2>Update Your Information for {listing_subject}</h2>' . "\n"
             . '<p>Enter your email address and password to continue.</p>' . "\n"
             . "\n"
             . '<div class="fl-form-fields">' . "\n"
@@ -569,37 +578,22 @@ final class ListingSettingsRepo
             . '<p><a href="{lost_password_url}" class="fl-link">Forgot your password?</a></p>' . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
-            . '</div>' . "\n"
-            . '{/if_not_signed_in}' . "\n"
-            . "\n"
-            . '{if_signed_in}' . "\n"
-            . '<h2>Update Your Information for {listing_subject}</h2>' . "\n"
-            . '<p>Signed in as <strong>{field_email}</strong>. <a href="{sign_out_url}" class="fl-link">Not you?</a></p>' . "\n"
-            . '<p>Fill in only the fields you want to change. Leave a field blank to keep your current value.</p>' . "\n"
-            . '<div class="fl-form-fields">' . "\n"
-            . '{field_new_name}' . "\n"
-            . '{field_new_email}' . "\n"
-            . '{field_new_url}' . "\n"
-            . '{field_new_country}' . "\n"
-            . '{additional_fields}' . "\n"
-            . '{field_password}' . "\n"
-            . '{field_password_confirm}' . "\n"
-            . '{field_remove}' . "\n"
-            . '</div>' . "\n"
-            . '<div class="fl-form-actions">' . "\n"
-            . '{submit_button}' . "\n"
-            . '{clear_button}' . "\n"
-            . '</div>' . "\n"
-            . '{/if_signed_in}';
+            . '</div>';
     }
 
     /**
      * Default Password Reset Form template used when no override is stored.
+     *
+     * Covers only the request step (email address to receive the reset link)
+     * — the "set new password" step is not template-controlled, so a
+     * misconfigured custom template can never lock a member out of actually
+     * resetting their password. See public/embed/reset.php: the confirm-step
+     * branch always renders the built-in hardcoded markup regardless of what's
+     * saved here.
      */
     public static function defaultResetFormTemplate(): string
     {
-        return '{if_step_email}' . "\n"
-            . '<h2>Reset Password for {listing_subject}</h2>' . "\n"
+        return '<h2>Reset Password for {listing_subject}</h2>' . "\n"
             . '<p>Enter your email address and a link will be sent to reset your password. The link expires in 1 hour.</p>' . "\n"
             . "\n"
             . '<div class="fl-form-fields">' . "\n"
@@ -608,25 +602,7 @@ final class ListingSettingsRepo
             . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
-            . '</div>' . "\n"
-            . '{/if_step_email}' . "\n"
-            . "\n"
-            . '{if_step_confirm}' . "\n"
-            . '<h2>Set New Password</h2>' . "\n"
-            . '{if_token_invalid}' . "\n"
-            . '<p>This reset link has expired or is invalid. <a href="{reset_request_url}" class="fl-link">Request a new one.</a></p>' . "\n"
-            . '{/if_token_invalid}' . "\n"
-            . '{if_token_valid}' . "\n"
-            . '<div class="fl-form-fields">' . "\n"
-            . '{field_new_password}' . "\n"
-            . '{field_new_password_confirm}' . "\n"
-            . '</div>' . "\n"
-            . "\n"
-            . '<div class="fl-form-actions">' . "\n"
-            . '{submit_button}' . "\n"
-            . '</div>' . "\n"
-            . '{/if_token_valid}' . "\n"
-            . '{/if_step_confirm}';
+            . '</div>';
     }
 
     /**

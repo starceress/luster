@@ -125,16 +125,6 @@ SQL;
         self::assertNotEmpty(ListingSettingsRepo::defaultUpdateFormTemplate());
     }
 
-    public function testDefaultUpdateFormTemplateContainsSignedInConditionals(): void
-    {
-        $tpl = ListingSettingsRepo::defaultUpdateFormTemplate();
-
-        self::assertStringContainsString('{if_not_signed_in}', $tpl);
-        self::assertStringContainsString('{/if_not_signed_in}', $tpl);
-        self::assertStringContainsString('{if_signed_in}', $tpl);
-        self::assertStringContainsString('{/if_signed_in}', $tpl);
-    }
-
     public function testDefaultUpdateFormTemplateContainsSignInTokens(): void
     {
         $tpl = ListingSettingsRepo::defaultUpdateFormTemplate();
@@ -144,14 +134,20 @@ SQL;
         self::assertStringContainsString('{submit_button}', $tpl);
     }
 
-    public function testDefaultUpdateFormTemplateContainsUpdateTokens(): void
+    public function testDefaultUpdateFormTemplateNoLongerCoversTheEditInfoStep(): void
     {
+        // Step 2 (actually editing/deleting the membership) was locked down to
+        // a fixed, non-customizable rendering (public/embed/update.php) so a
+        // misconfigured template can never lock a member out of it. This
+        // template now only covers the sign-in step.
         $tpl = ListingSettingsRepo::defaultUpdateFormTemplate();
 
-        self::assertStringContainsString('{field_new_name}', $tpl);
-        self::assertStringContainsString('{field_new_email}', $tpl);
-        self::assertStringContainsString('{additional_fields}', $tpl);
-        self::assertStringContainsString('{field_remove}', $tpl);
+        self::assertStringNotContainsString('{if_not_signed_in}', $tpl);
+        self::assertStringNotContainsString('{if_signed_in}', $tpl);
+        self::assertStringNotContainsString('{field_new_name}', $tpl);
+        self::assertStringNotContainsString('{field_new_email}', $tpl);
+        self::assertStringNotContainsString('{additional_fields}', $tpl);
+        self::assertStringNotContainsString('{field_remove}', $tpl);
         self::assertStringNotContainsString('{captcha_block}', $tpl, 'Update form no longer uses captcha (password-protected)');
     }
 
@@ -164,26 +160,6 @@ SQL;
         self::assertNotEmpty(ListingSettingsRepo::defaultResetFormTemplate());
     }
 
-    public function testDefaultResetFormTemplateContainsStepConditionals(): void
-    {
-        $tpl = ListingSettingsRepo::defaultResetFormTemplate();
-
-        self::assertStringContainsString('{if_step_email}', $tpl);
-        self::assertStringContainsString('{/if_step_email}', $tpl);
-        self::assertStringContainsString('{if_step_confirm}', $tpl);
-        self::assertStringContainsString('{/if_step_confirm}', $tpl);
-    }
-
-    public function testDefaultResetFormTemplateContainsTokenValidConditionals(): void
-    {
-        $tpl = ListingSettingsRepo::defaultResetFormTemplate();
-
-        self::assertStringContainsString('{if_token_valid}', $tpl);
-        self::assertStringContainsString('{/if_token_valid}', $tpl);
-        self::assertStringContainsString('{if_token_invalid}', $tpl);
-        self::assertStringContainsString('{/if_token_invalid}', $tpl);
-    }
-
     public function testDefaultResetFormTemplateContainsEmailStepTokens(): void
     {
         $tpl = ListingSettingsRepo::defaultResetFormTemplate();
@@ -193,14 +169,22 @@ SQL;
         self::assertStringContainsString('{submit_button}', $tpl);
     }
 
-    public function testDefaultResetFormTemplateContainsConfirmStepTokens(): void
+    public function testDefaultResetFormTemplateNoLongerCoversTheConfirmStep(): void
     {
+        // Step 2 (actually setting the new password) was locked down to a
+        // fixed, non-customizable rendering (public/embed/reset.php) so a
+        // misconfigured template can never lock a member out of it. This
+        // template now only covers the email-entry (request) step.
         $tpl = ListingSettingsRepo::defaultResetFormTemplate();
 
-        self::assertStringContainsString('{field_new_password}', $tpl);
-        self::assertStringContainsString('{field_new_password_confirm}', $tpl);
+        self::assertStringNotContainsString('{if_step_email}', $tpl);
+        self::assertStringNotContainsString('{if_step_confirm}', $tpl);
+        self::assertStringNotContainsString('{if_token_valid}', $tpl);
+        self::assertStringNotContainsString('{if_token_invalid}', $tpl);
+        self::assertStringNotContainsString('{field_new_password}', $tpl);
+        self::assertStringNotContainsString('{field_new_password_confirm}', $tpl);
+        self::assertStringNotContainsString('{reset_request_url}', $tpl);
         self::assertStringNotContainsString('{hidden_token}', $tpl, 'Hidden token is auto-injected, not a user-facing template token');
-        self::assertStringContainsString('{reset_request_url}', $tpl);
     }
 
     // -----------------------------------------------------------------------
