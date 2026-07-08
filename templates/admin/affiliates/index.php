@@ -356,7 +356,7 @@ $rangeEnd   = min($total, $page * $per_page);
               </a>
               <div class="mem-url">Listing</div>
             <?php else: ?>
-              <a href="<?= $b ?>/admin/collective" class="link text-strong"><?= ($site_name ?? '') !== '' ? View::e($site_name) : 'Collective' ?></a>
+              <a href="<?= $b ?>/admin/collective" class="link"><?= ($site_name ?? '') !== '' ? View::e($site_name) : 'Collective' ?></a>
               <div class="mem-url">Collective</div>
             <?php endif; ?>
           </td>
