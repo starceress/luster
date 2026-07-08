@@ -192,7 +192,7 @@ final class AddonsController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', '"' . $addon->getName() . '" disabled. Data is preserved — reinstall to restore access.');
+        $session->set('lstr_flash_success', '"' . $addon->getName() . '" disabled. Data is preserved — re-enable to restore access.');
         return Response::redirect($redirect);
     }
 }

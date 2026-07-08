@@ -80,10 +80,9 @@ $snip = static function(array $lines): string {
 </section>
 
 
-<!-- ── Listings & Data ──────────────────────────────────────────────────── -->
 <section class="es-section">
   <div class="card card--gradient">
-    <div class="card-head">Listings &amp; Data</div>
+    <div class="card-head">Collective Specific Embed Codes</div>
     <ul class="es-list" role="list">
 
       <?php $_s = $snip([
@@ -134,7 +133,7 @@ $snip = static function(array $lines): string {
         <div class="es-item-row">
           <span class="es-item-icon"><?= View::icon('link', ['width' => 15, 'height' => 15]) ?></span>
           <div class="es-item-meta">
-            <span class="es-item-label">Affiliates</span>
+            <span class="es-item-label">Affiliates Display</span>
             <span class="es-item-desc">Shows only collective affiliates.</span>
           </div>
           <span class="badge badge-info">Data</span> ✦
@@ -184,16 +183,16 @@ $snip = static function(array $lines): string {
 
       <?php $_s = $snip([
           '<?php',
-          "require LUSTER_EMBED . '/collective-stats.php';",
+          "require LUSTER_EMBED . '/collective-update.php';",
       ]); ?>
       <li class="es-item">
         <div class="es-item-row">
-          <span class="es-item-icon"><?= View::icon('sparkles', ['width' => 15, 'height' => 15]) ?></span>
+          <span class="es-item-icon"><?= View::icon('notes', ['width' => 15, 'height' => 15]) ?></span>
           <div class="es-item-meta">
-            <span class="es-item-label">Collective Statistics</span>
-            <span class="es-item-desc">Shows collective-wide stats.</span>
+            <span class="es-item-label">Collective Update Form</span>
+            <span class="es-item-desc">Lets a visitor update their name, URL, and country across every fanlisting they belong to in one go via an emailed verification link.</span>
           </div>
-          <span class="badge badge-info3">Stats</span> ✦
+          <span class="badge badge-info2">Form</span> ✦
           <button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>
           <button type="button" class="btn btn-primary btn-xs es-copy" data-snippet="<?= $_s ?>">Copy</button>
         </div>
@@ -283,7 +282,7 @@ $snip = static function(array $lines): string {
         <div class="es-item-row">
           <span class="es-item-icon"><?= View::icon('kim', ['width' => 15, 'height' => 15]) ?></span>
           <div class="es-item-meta">
-            <span class="es-item-label">KIM Signup</span>
+            <span class="es-item-label">KIM Signup Form</span>
             <span class="es-item-desc">KIM List signup form. Requires the Keep In Mind add-on.</span>
           </div>
           <span class="badge badge-upcoming">Add-on</span> <span class="badge badge-info2">Form</span> ✦
@@ -419,6 +418,24 @@ $snip = static function(array $lines): string {
             <span class="es-item-desc">Shows one current owned listing at random. Template editable under Collective &rarr; Templates.</span>
           </div>
           <span class="badge badge-info">Data</span> ✦
+          <button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>
+          <button type="button" class="btn btn-primary btn-xs es-copy" data-snippet="<?= $_s ?>">Copy</button>
+        </div>
+        <div class="es-snippet" hidden><pre class="es-snippet-pre"><?= $_s ?></pre></div>
+      </li>
+
+      <?php $_s = $snip([
+          '<?php',
+          "require LUSTER_EMBED . '/collective-stats.php';",
+      ]); ?>
+      <li class="es-item">
+        <div class="es-item-row">
+          <span class="es-item-icon"><?= View::icon('sparkles', ['width' => 15, 'height' => 15]) ?></span>
+          <div class="es-item-meta">
+            <span class="es-item-label">Statistics</span>
+            <span class="es-item-desc">Shows collective-wide stats.</span>
+          </div>
+          <span class="badge badge-info3">Stats</span> ✦
           <button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>
           <button type="button" class="btn btn-primary btn-xs es-copy" data-snippet="<?= $_s ?>">Copy</button>
         </div>
