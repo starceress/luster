@@ -79,6 +79,30 @@ final class LegacyMembersTemplateDetectionTest extends TestCase
         self::assertTrue(ListingSettingsRepo::isLegacyMembersTemplate($v));
     }
 
+    public function testNoStatsLineShapeIsLegacy(): void
+    {
+        // Same as the stats-line shape, but from the follow-up commit that
+        // dropped {stats_line} again before the layout settled into the
+        // current shape.
+        $v = '<h1>Member List</h1>'
+            . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
+            . "\n"
+            . "\n" . '{if_members}'
+            . "\n" . '<div class="fl-member-list">'
+            . "\n" . '{each_member}'
+            . "\n" . '  <ul class="fl-member-item">'
+            . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
+            . "\n" . '  </ul>'
+            . "\n" . '{/each_member}'
+            . "\n" . '</div>'
+            . "\n" . '{/if_members}'
+            . "\n" . '{if_no_members}'
+            . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
+            . "\n" . '{/if_no_members}';
+
+        self::assertTrue(ListingSettingsRepo::isLegacyMembersTemplate($v));
+    }
+
     public function testLegacyHeadingShapeIsLegacy(): void
     {
         $v = '<h1>Member List</h1>' . "\n"
