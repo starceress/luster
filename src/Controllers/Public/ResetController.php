@@ -74,6 +74,7 @@ final class ResetController
         $rateLimit    = $this->app->getRateLimit();
         $ip           = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $marker        = (string) $request->post('_luster_embed_form', '');
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
@@ -93,14 +94,14 @@ final class ResetController
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_RESET)) {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render('', 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Honeypot — silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render('', 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -111,8 +112,8 @@ final class ResetController
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old_email', $email);
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old_email:' . $marker, $email);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -123,7 +124,7 @@ final class ResetController
         if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'reset-sent'));
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -181,7 +182,7 @@ final class ResetController
         // Always flash the same neutral message and redirect to host page — never reveal whether the email was found
         $session->remove('lstr_embed_return_to');
         $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
-        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'reset-sent'));
+        $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'reset-sent'));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
@@ -202,6 +203,7 @@ final class ResetController
         $rateLimit    = $this->app->getRateLimit();
         $ip           = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $marker        = (string) $request->post('_luster_embed_form', '');
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
@@ -227,12 +229,12 @@ final class ResetController
         }
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_RESET)) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many attempts. Please try again later.');
             return Response::redirect($confirmReturnUrl);
         }
 
         if ($rawToken === '') {
-            $session->set('lstr_flash_error', 'Missing reset token. Please use the link from your email.');
+            $session->set('lstr_flash_error:' . $marker, 'Missing reset token. Please use the link from your email.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $resetPageUrl);
         }
 
@@ -241,7 +243,7 @@ final class ResetController
 
         if ($tokenRow === null || (int) $tokenRow['fanlisting_id'] !== $listingId) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
-            $session->set('lstr_flash_error', 'This reset link has expired or is invalid. Please request a new one.');
+            $session->set('lstr_flash_error:' . $marker, 'This reset link has expired or is invalid. Please request a new one.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $resetPageUrl);
         }
 
@@ -252,12 +254,12 @@ final class ResetController
         PasswordPolicy::apply($v->field('new_password'));
 
         if ($v->fails()) {
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
             return Response::redirect($confirmReturnUrl);
         }
 
         if ($newPassword !== $newPasswordConfirm) {
-            $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
+            $session->set('lstr_flash_error:' . $marker, 'Passwords do not match. Please try again.');
             return Response::redirect($confirmReturnUrl);
         }
 
@@ -271,7 +273,7 @@ final class ResetController
 
         if ($targetMember === null) {
             $resetRepo->deleteByToken(hash('sha256', $rawToken));
-            $session->set('lstr_flash_error', 'This reset link has expired or is invalid. Please request a new one.');
+            $session->set('lstr_flash_error:' . $marker, 'This reset link has expired or is invalid. Please request a new one.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $resetPageUrl);
         }
 
@@ -288,7 +290,7 @@ final class ResetController
 
         $session->remove('lstr_embed_return_to');
         $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';
-        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'reset-done', [
+        $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'reset-done', [
             'listing_title' => $listing->title,
             'listing_url'   => $listing->url,
         ]));

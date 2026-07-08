@@ -83,6 +83,7 @@ final class AffiliateApplyController
         $rateLimit     = $this->app->getRateLimit();
         $ip            = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $marker        = (string) $request->post('_luster_embed_form', '');
 
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $applySettings = $settingsRepo->getAffiliateApplySettings($listingId);
@@ -108,7 +109,7 @@ final class AffiliateApplyController
 
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY)) {
-            $session->set('lstr_flash_error', 'Too many requests. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many requests. Please try again later.');
             return Response::redirect($formUrl);
         }
 
@@ -116,15 +117,15 @@ final class AffiliateApplyController
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $affApplySentTpl = $settingsRepo->getAffiliateApplySentTemplate($listingId) ?? '';
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($affApplySentTpl, 'affiliate-apply-sent'));
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($affApplySentTpl, 'affiliate-apply-sent'));
             return Response::redirect($formUrl);
         }
 
         // Captcha
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'affiliate_apply')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
@@ -136,8 +137,8 @@ final class AffiliateApplyController
         // Blacklist check on optional email
         if ($email !== '' && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', 'This email address cannot be used to submit an application.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'This email address cannot be used to submit an application.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
@@ -149,16 +150,16 @@ final class AffiliateApplyController
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
         // Duplicate application check
         $affiliateRepo = new AffiliateRepo($this->app->getDatabase());
         if ($affiliateRepo->isDuplicateApplication($listingId, $url, $email)) {
-            $session->set('lstr_flash_error', 'An application from that site is already on file.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'An application from that site is already on file.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
@@ -166,8 +167,8 @@ final class AffiliateApplyController
         $imagePath = null;
         $uploadError = $this->handleImageUpload($request, $imagePath);
         if ($uploadError !== null) {
-            $session->set('lstr_flash_error', $uploadError);
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, $uploadError);
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
@@ -188,7 +189,7 @@ final class AffiliateApplyController
 
         $session->remove('lstr_embed_return_to');
         $affApplySentTpl = $settingsRepo->getAffiliateApplySentTemplate($listingId) ?? '';
-        $session->set('lstr_flash_success_html', SuccessRenderer::render($affApplySentTpl, 'affiliate-apply-sent', [
+        $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($affApplySentTpl, 'affiliate-apply-sent', [
             'aff_name'      => $name,
             'aff_url'       => $url,
             'aff_email'     => $email,
@@ -216,6 +217,7 @@ final class AffiliateApplyController
         $rateLimit     = $this->app->getRateLimit();
         $ip            = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $marker        = (string) $request->post('_luster_embed_form', '');
 
         $siteRepo = new SiteSettingsRepo($db);
 
@@ -228,7 +230,7 @@ final class AffiliateApplyController
 
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY)) {
-            $session->set('lstr_flash_error', 'Too many requests. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many requests. Please try again later.');
             return Response::redirect($formUrl);
         }
 
@@ -236,15 +238,15 @@ final class AffiliateApplyController
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $collectiveAffApplySentTpl = $siteRepo->get('collective_affiliate_apply_sent_template') ?? '';
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveAffApplySentTpl, 'affiliate-apply-sent'));
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($collectiveAffApplySentTpl, 'affiliate-apply-sent'));
             return Response::redirect($formUrl);
         }
 
         // Captcha
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'affiliate_apply')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
@@ -256,8 +258,8 @@ final class AffiliateApplyController
         // Blacklist check on optional email
         if ($email !== '' && (new BlacklistRepo($db))->isBlocked($email)) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', 'This email address cannot be used to submit an application.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'This email address cannot be used to submit an application.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
@@ -269,16 +271,16 @@ final class AffiliateApplyController
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
         // Duplicate check (null = collective scope)
         $affiliateRepo = new AffiliateRepo($db);
         if ($affiliateRepo->isDuplicateApplication(null, $url, $email)) {
-            $session->set('lstr_flash_error', 'An application from that site is already on file.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'An application from that site is already on file.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
@@ -286,8 +288,8 @@ final class AffiliateApplyController
         $imagePath   = null;
         $uploadError = $this->handleImageUpload($request, $imagePath);
         if ($uploadError !== null) {
-            $session->set('lstr_flash_error', $uploadError);
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, $uploadError);
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($formUrl);
         }
 
@@ -308,7 +310,7 @@ final class AffiliateApplyController
 
         $session->remove('lstr_embed_return_to');
         $collectiveAffApplySentTpl = $siteRepo->get('collective_affiliate_apply_sent_template') ?? '';
-        $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveAffApplySentTpl, 'affiliate-apply-sent', [
+        $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($collectiveAffApplySentTpl, 'affiliate-apply-sent', [
             'aff_name'  => $name,
             'aff_url'   => $url,
             'aff_email' => $email,

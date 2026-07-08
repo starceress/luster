@@ -65,22 +65,22 @@ final class KimSignupController
 
         // Rate limit check
         if ($rateLimit->isBlocked($ip, 'kim_signup')) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            $session->set('lstr_flash_error:kim_signup', 'Too many attempts. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-signed-up'));
+            $session->set('lstr_flash_success_html:kim_signup', SuccessRenderer::render('', 'kim-signed-up'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // CAPTCHA
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_signup')) {
             $rateLimit->hit($ip, 'kim_signup', 5, 3600);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old', [
+            $session->set('lstr_flash_error:kim_signup', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old:kim_signup', [
                 'name'         => trim((string) $request->post('name',         '')),
                 'email'        => trim((string) $request->post('email',        '')),
                 'url'          => trim((string) $request->post('url',          '')),
@@ -127,15 +127,15 @@ final class KimSignupController
 
         if ($validationFailed) {
             $rateLimit->hit($ip, 'kim_signup', 5, 3600);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()) ?: 'Please select a valid fanlisting.');
-            $session->set('lstr_flash_old', $oldFields);
+            $session->set('lstr_flash_error:kim_signup', implode(' ', $v->allErrors()) ?: 'Please select a valid fanlisting.');
+            $session->set('lstr_flash_old:kim_signup', $oldFields);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Blacklist check
         if ((new \Luster\Repositories\BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
-            $session->set('lstr_flash_error', 'That email address cannot be used to sign up.');
-            $session->set('lstr_flash_old', $oldFields);
+            $session->set('lstr_flash_error:kim_signup', 'That email address cannot be used to sign up.');
+            $session->set('lstr_flash_old:kim_signup', $oldFields);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -143,8 +143,8 @@ final class KimSignupController
 
         // Duplicate check
         if ($kimRepo->findByEmailAndFanlisting($email, $fanlistingId) !== null) {
-            $session->set('lstr_flash_error', 'That email is already signed up for this fanlisting.');
-            $session->set('lstr_flash_old', $oldFields);
+            $session->set('lstr_flash_error:kim_signup', 'That email is already signed up for this fanlisting.');
+            $session->set('lstr_flash_old:kim_signup', $oldFields);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -153,8 +153,8 @@ final class KimSignupController
         $passwordConfirm = (string) $request->post('password_confirm', '');
 
         if ($rawPassword !== '' && $rawPassword !== $passwordConfirm) {
-            $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
-            $session->set('lstr_flash_old', $oldFields);
+            $session->set('lstr_flash_error:kim_signup', 'Passwords do not match. Please try again.');
+            $session->set('lstr_flash_old:kim_signup', $oldFields);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -162,8 +162,8 @@ final class KimSignupController
             $passwordValidator = new Validator(['password' => $rawPassword]);
             PasswordPolicy::apply($passwordValidator->field('password'));
             if ($passwordValidator->fails()) {
-                $session->set('lstr_flash_error', implode(' ', $passwordValidator->allErrors()));
-                $session->set('lstr_flash_old', $oldFields);
+                $session->set('lstr_flash_error:kim_signup', implode(' ', $passwordValidator->allErrors()));
+                $session->set('lstr_flash_old:kim_signup', $oldFields);
                 return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
             }
         }
@@ -278,7 +278,7 @@ final class KimSignupController
         }
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-signed-up'));
+        $session->set('lstr_flash_success_html:kim_signup', SuccessRenderer::render('', 'kim-signed-up'));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 

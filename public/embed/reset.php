@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         return;
     }
     if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
-        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        $_lusterApp->getSession()->set('lstr_flash_error:' . $_lusterMarker, 'Security check failed. Please reload the page and try again.');
         if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
         echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
         return;
@@ -127,8 +127,8 @@ if ($_lusterStep === 'confirm') {
 
     // Consume flash error from a previous confirm-step POST redirect
     $_lusterConfirmSession = $_lusterApp->getSession();
-    $_lusterFlashErr       = (string) $_lusterConfirmSession->get('lstr_flash_error', '');
-    $_lusterConfirmSession->remove('lstr_flash_error');
+    $_lusterFlashErr       = (string) $_lusterConfirmSession->get('lstr_flash_error:' . $_lusterMarker, '');
+    $_lusterConfirmSession->remove('lstr_flash_error:' . $_lusterMarker);
 
     $_lusterError    = $_lusterFlashErr;
     $_lusterTokenValid = false;
@@ -192,12 +192,12 @@ if ($_lusterStep === 'confirm') {
     // --- Request step: email entry form
 
     $_lusterSession  = $_lusterApp->getSession();
-    $_lusterSuccess  = (string) $_lusterSession->get('lstr_flash_success_html', '');
-    $_lusterError    = (string) $_lusterSession->get('lstr_flash_error',        '');
-    $_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email',    '');
-    $_lusterSession->remove('lstr_flash_success_html');
-    $_lusterSession->remove('lstr_flash_error');
-    $_lusterSession->remove('lstr_flash_old_email');
+    $_lusterSuccess  = (string) $_lusterSession->get('lstr_flash_success_html:' . $_lusterMarker, '');
+    $_lusterError    = (string) $_lusterSession->get('lstr_flash_error:' . $_lusterMarker,        '');
+    $_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email:' . $_lusterMarker,    '');
+    $_lusterSession->remove('lstr_flash_success_html:' . $_lusterMarker);
+    $_lusterSession->remove('lstr_flash_error:' . $_lusterMarker);
+    $_lusterSession->remove('lstr_flash_old_email:' . $_lusterMarker);
 
     if ($_lusterSuccess !== '') {
         if ($luster_return ?? false) { return $_lusterSuccess; }

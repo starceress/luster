@@ -245,8 +245,9 @@ if ($_lusterCodesTemplateHtml !== null
 
     if ($_lusterCsEnabled) {
         $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $_lusterCsHasFeedback = $_lusterApp->getSession()->get('lstr_flash_success_html') !== null
-                             || $_lusterApp->getSession()->get('lstr_flash_error') !== null;
+        $_lusterCsSubmitMarker = 'codes_submit:' . $_lusterRawListingId;
+        $_lusterCsHasFeedback = $_lusterApp->getSession()->get('lstr_flash_success_html:' . $_lusterCsSubmitMarker) !== null
+                             || $_lusterApp->getSession()->get('lstr_flash_error:' . $_lusterCsSubmitMarker) !== null;
         $_lusterReturnOrig = $luster_return ?? false;
         $luster_return     = true;
         $_lusterCsFormHtml = (string) require __DIR__ . '/codes-submit.php';

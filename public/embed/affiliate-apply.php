@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         return;
     }
     if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
-        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        $_lusterApp->getSession()->set('lstr_flash_error:' . $_lusterMarker, 'Security check failed. Please reload the page and try again.');
         if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
         echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
         return;
@@ -119,12 +119,12 @@ if ($_lusterListingId === 0) {
 
     $_lusterConfig  = $_lusterApp->getConfig();
     $_lusterSession = $_lusterApp->getSession();
-    $_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
-    $_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
-    $_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
-    $_lusterSession->remove('lstr_flash_success_html');
-    $_lusterSession->remove('lstr_flash_error');
-    $_lusterSession->remove('lstr_flash_old');
+    $_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html:' . $_lusterMarker, '');
+    $_lusterError   = (string) $_lusterSession->get('lstr_flash_error:' . $_lusterMarker,        '');
+    $_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old:' . $_lusterMarker,          []);
+    $_lusterSession->remove('lstr_flash_success_html:' . $_lusterMarker);
+    $_lusterSession->remove('lstr_flash_error:' . $_lusterMarker);
+    $_lusterSession->remove('lstr_flash_old:' . $_lusterMarker);
 
     if ($_lusterSuccess !== '') {
         if ($luster_return ?? false) { return $_lusterSuccess; }
@@ -140,7 +140,7 @@ if ($_lusterListingId === 0) {
     $_lusterCaptchaQ   = Captcha::getQuestion('affiliate_apply');
     $_lusterWrapperTpl = '';
     $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
-        ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Name',                      'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
+        ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site Name',                      'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
         ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Website URL',                                  'required' => true,  'value' => (string) ($_lusterOld['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
         ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
         ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],
@@ -233,12 +233,12 @@ if ($_lusterListing === null) {
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
-$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
-$_lusterSession->remove('lstr_flash_success_html');
-$_lusterSession->remove('lstr_flash_error');
-$_lusterSession->remove('lstr_flash_old');
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html:' . $_lusterMarker, '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error:' . $_lusterMarker,        '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old:' . $_lusterMarker,          []);
+$_lusterSession->remove('lstr_flash_success_html:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_error:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_old:' . $_lusterMarker);
 
 if ($_lusterSuccess !== '') {
     if ($luster_return ?? false) { return $_lusterSuccess; }
@@ -258,7 +258,7 @@ $_lusterFormAction = $_lusterRedirectTo;
 $_lusterCaptchaQ   = Captcha::getQuestion('affiliate_apply');
 $_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
 $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
-    ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Name',                      'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
+    ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site Name',                      'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
     ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Website URL',                       'required' => true,  'value' => (string) ($_lusterOld['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
     ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true,  'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
     ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 500 KB.'],

@@ -50,6 +50,10 @@ if ($_lusterRedirectTo === '') {
 $_lusterRedirectTo = preg_replace('/([?&])kim_signout=1(&|$)/', '$1', $_lusterRedirectTo);
 $_lusterRedirectTo = rtrim(rtrim($_lusterRedirectTo, '?'), '&');
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+// Flash messages are scoped to this single constant marker (not the two
+// '_luster_embed_form' action values below) — sign-in and dashboard-save are
+// two states of the SAME embed instance, sharing one flash slot.
+$_lusterFlashMarker = 'kim_update';
 
 // ---------------------------------------------------------------------------
 // Sign-out — handled as a GET param to avoid needing a separate URL
@@ -78,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
-        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        $_lusterApp->getSession()->set('lstr_flash_error:' . $_lusterFlashMarker, 'Security check failed. Please reload the page and try again.');
         if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
         echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
         return;
@@ -116,11 +120,10 @@ if (!$_lusterApp->isAddonInstalled('Kim')) {
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
-$_lusterSession->remove('lstr_flash_success_html');
-$_lusterSession->remove('lstr_flash_error');
-$_lusterSession->remove('lstr_flash_old');
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html:' . $_lusterFlashMarker, '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error:' . $_lusterFlashMarker,        '');
+$_lusterSession->remove('lstr_flash_success_html:' . $_lusterFlashMarker);
+$_lusterSession->remove('lstr_flash_error:' . $_lusterFlashMarker);
 
 // ---------------------------------------------------------------------------
 // 4. Load common settings

@@ -63,13 +63,13 @@ final class KimUpdateController
         );
 
         if ($rateLimit->isBlocked($ip, 'kim_update')) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            $session->set('lstr_flash_error:kim_update', 'Too many attempts. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Honeypot
         if ((string) $request->post('website_confirm', '') !== '') {
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-updated'));
+            $session->set('lstr_flash_success_html:kim_update', SuccessRenderer::render('', 'kim-updated'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -82,8 +82,8 @@ final class KimUpdateController
 
         if ($v->fails()) {
             $rateLimit->hit($ip, 'kim_update', 5, 3600);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old_email', $email);
+            $session->set('lstr_flash_error:kim_update', implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old_email:kim_update', $email);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -101,8 +101,8 @@ final class KimUpdateController
 
         if (!$authenticated) {
             $rateLimit->hit($ip, 'kim_update', 5, 3600);
-            $session->set('lstr_flash_error', 'No matching entry found, or incorrect password.');
-            $session->set('lstr_flash_old_email', $email);
+            $session->set('lstr_flash_error:kim_update', 'No matching entry found, or incorrect password.');
+            $session->set('lstr_flash_old_email:kim_update', $email);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -170,7 +170,7 @@ final class KimUpdateController
         $hasFieldChanges = $newName !== '' || $newUrl !== '' || $newEmail !== '' || $newPassword !== '';
 
         if ($deleteIds === [] && ($targetIds === [] || !$hasFieldChanges)) {
-            $session->set('lstr_flash_error', ($targetIds === [] && $deleteIds === []) ? 'No entries selected.' : 'No changes were submitted.');
+            $session->set('lstr_flash_error:kim_update', ($targetIds === [] && $deleteIds === []) ? 'No entries selected.' : 'No changes were submitted.');
             return Response::redirect($dashboardUrl);
         }
 
@@ -180,7 +180,7 @@ final class KimUpdateController
                 $vUrl = new Validator(['new_url' => $newUrl]);
                 $vUrl->field('new_url')->httpUrl()->maxLength(500);
                 if ($vUrl->fails()) {
-                    $session->set('lstr_flash_error', implode(' ', $vUrl->allErrors()));
+                    $session->set('lstr_flash_error:kim_update', implode(' ', $vUrl->allErrors()));
                     return Response::redirect($dashboardUrl);
                 }
             }
@@ -189,7 +189,7 @@ final class KimUpdateController
                 $vEmail = new Validator(['new_email' => $newEmail]);
                 $vEmail->field('new_email')->email()->maxLength(255);
                 if ($vEmail->fails()) {
-                    $session->set('lstr_flash_error', implode(' ', $vEmail->allErrors()));
+                    $session->set('lstr_flash_error:kim_update', implode(' ', $vEmail->allErrors()));
                     return Response::redirect($dashboardUrl);
                 }
             }
@@ -198,11 +198,11 @@ final class KimUpdateController
                 $vPw = new Validator(['new_password' => $newPassword]);
                 PasswordPolicy::apply($vPw->field('new_password'));
                 if ($vPw->fails()) {
-                    $session->set('lstr_flash_error', implode(' ', $vPw->allErrors()));
+                    $session->set('lstr_flash_error:kim_update', implode(' ', $vPw->allErrors()));
                     return Response::redirect($dashboardUrl);
                 }
                 if ($newPassword !== $newPasswordConfirm) {
-                    $session->set('lstr_flash_error', 'New passwords do not match.');
+                    $session->set('lstr_flash_error:kim_update', 'New passwords do not match.');
                     return Response::redirect($dashboardUrl);
                 }
             }
@@ -219,10 +219,10 @@ final class KimUpdateController
             if ($remaining === []) {
                 $session->remove(self::SESSION_AUTH_KEY);
                 $session->remove('lstr_embed_return_to');
-                $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-removed'));
+                $session->set('lstr_flash_success_html:kim_update', SuccessRenderer::render('', 'kim-removed'));
                 return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
             }
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-updated'));
+            $session->set('lstr_flash_success_html:kim_update', SuccessRenderer::render('', 'kim-updated'));
             return Response::redirect($dashboardUrl);
         }
 
@@ -244,7 +244,7 @@ final class KimUpdateController
                 }
             }
             if ($emailConflict) {
-                $session->set('lstr_flash_error', 'That email address is already registered for one or more of the selected fanlistings. Email not changed.');
+                $session->set('lstr_flash_error:kim_update', 'That email address is already registered for one or more of the selected fanlistings. Email not changed.');
                 // Clear newEmail so the rest of the update still proceeds
                 $newEmail = '';
             }
@@ -319,7 +319,7 @@ final class KimUpdateController
         if ($newEmail !== '' && $newEmail !== $authedEmail) {
             $session->remove(self::SESSION_AUTH_KEY);
             $session->set(
-                'lstr_flash_success_html',
+                'lstr_flash_success_html:kim_update',
                 SuccessRenderer::render('Your entries were updated. Please sign in again with your new email address.', 'kim-updated'),
             );
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
@@ -331,11 +331,11 @@ final class KimUpdateController
         if ($remaining === []) {
             $session->remove(self::SESSION_AUTH_KEY);
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-removed'));
+            $session->set('lstr_flash_success_html:kim_update', SuccessRenderer::render('', 'kim-removed'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
         }
 
-        $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-updated'));
+        $session->set('lstr_flash_success_html:kim_update', SuccessRenderer::render('', 'kim-updated'));
         return Response::redirect($dashboardUrl);
     }
 

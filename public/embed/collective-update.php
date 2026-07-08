@@ -50,19 +50,20 @@ if ($_lusterRedirectTo === '') {
 $_lusterRedirectTo = preg_replace('/([?&])_luster_cu_token=[^&]*(&|$)/', '$1', $_lusterRedirectTo);
 $_lusterRedirectTo = rtrim($_lusterRedirectTo, '?&');
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'collective_update';
 
 // ---------------------------------------------------------------------------
 // 2. POST handler
 // ---------------------------------------------------------------------------
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (($_POST['_luster_embed_form'] ?? '') !== 'collective_update') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
         if ($luster_return ?? false) { return ''; }
         return;
     }
 
     if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
-        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        $_lusterApp->getSession()->set('lstr_flash_error:' . $_lusterMarker, 'Security check failed. Please reload the page and try again.');
         if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
         echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
         return;
@@ -89,13 +90,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error', '');
-$_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email', '');
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html:' . $_lusterMarker, '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error:' . $_lusterMarker, '');
+$_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email:' . $_lusterMarker, '');
 
-$_lusterSession->remove('lstr_flash_success_html');
-$_lusterSession->remove('lstr_flash_error');
-$_lusterSession->remove('lstr_flash_old_email');
+$_lusterSession->remove('lstr_flash_success_html:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_error:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_old_email:' . $_lusterMarker);
 
 $_lusterCsrfToken = $_lusterApp->getCSRF()->token();
 
@@ -156,7 +157,7 @@ $_lusterRequestFormHtml = FormTemplateRenderer::wrapForm(
     $_lusterCsrfToken,
     false,
     false,
-    'collective_update'
+    $_lusterMarker
 );
 
 // ---------------------------------------------------------------------------

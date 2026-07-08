@@ -60,15 +60,16 @@ final class CollectiveUpdateController
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
         $rateLimit     = $this->app->getRateLimit();
         $ip            = $request->ip();
+        $marker        = 'collective_update';
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_COLLECTIVE_UPDATE_REQ)) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many attempts. Please try again later.');
             return Response::redirect($embedReturnTo);
         }
 
         // Honeypot — silent accept so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            $session->set('lstr_flash_success_html', '<p class="fl-success">If your email is registered for one or more fanlistings here, you\'ll receive a verification link shortly.</p>');
+            $session->set('lstr_flash_success_html:' . $marker, '<p class="fl-success">If your email is registered for one or more fanlistings here, you\'ll receive a verification link shortly.</p>');
             return Response::redirect($embedReturnTo);
         }
 
@@ -81,8 +82,8 @@ final class CollectiveUpdateController
         $v->field('email')->required()->email()->maxLength(255);
 
         if ($v->fails()) {
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old_email', $email);
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old_email:' . $marker, $email);
             return Response::redirect($embedReturnTo);
         }
 
@@ -127,7 +128,7 @@ final class CollectiveUpdateController
         }
 
         // Always the same neutral message to prevent enumeration
-        $session->set('lstr_flash_success_html', '<p class="fl-success">If your email is registered for one or more fanlistings here, you\'ll receive a verification link shortly.</p>');
+        $session->set('lstr_flash_success_html:' . $marker, '<p class="fl-success">If your email is registered for one or more fanlistings here, you\'ll receive a verification link shortly.</p>');
         return Response::redirect($embedReturnTo);
     }
 
@@ -142,16 +143,17 @@ final class CollectiveUpdateController
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
         $rateLimit     = $this->app->getRateLimit();
         $ip            = $request->ip();
+        $marker        = 'collective_update';
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many attempts. Please try again later.');
             return Response::redirect($embedReturnTo);
         }
 
         $rawToken = (string) $request->post('_cu_token', '');
 
         if ($rawToken === '') {
-            $session->set('lstr_flash_error', 'Missing update token. Please use the link from your email.');
+            $session->set('lstr_flash_error:' . $marker, 'Missing update token. Please use the link from your email.');
             return Response::redirect($embedReturnTo);
         }
 
@@ -159,7 +161,7 @@ final class CollectiveUpdateController
         $tokenRow  = $tokenRepo->findValid($rawToken);
 
         if ($tokenRow === null) {
-            $session->set('lstr_flash_error', 'That update link is invalid or has expired. Please request a new one.');
+            $session->set('lstr_flash_error:' . $marker, 'That update link is invalid or has expired. Please request a new one.');
             return Response::redirect($embedReturnTo);
         }
 
@@ -173,7 +175,7 @@ final class CollectiveUpdateController
         $memberships = self::findMembershipsForEmail($email, $this->app);
 
         if ($memberships === []) {
-            $session->set('lstr_flash_error', 'No active memberships were found for your email address.');
+            $session->set('lstr_flash_error:' . $marker, 'No active memberships were found for your email address.');
             return Response::redirect($tokenUrl);
         }
 
@@ -198,7 +200,7 @@ final class CollectiveUpdateController
         $deleteMembership   = ((string) $request->post('delete_membership', '') === '1');
 
         if ($selectedIds === []) {
-            $session->set('lstr_flash_error', 'Please select at least one fanlisting to update.');
+            $session->set('lstr_flash_error:' . $marker, 'Please select at least one fanlisting to update.');
             return Response::redirect($tokenUrl);
         }
 
@@ -206,7 +208,7 @@ final class CollectiveUpdateController
         // other field entirely, matching the single-listing update form.
         if ($deleteMembership) {
             if ($tokenRepo->verifyAndConsume($rawToken) === null) {
-                $session->set('lstr_flash_error', 'That update link is invalid or has expired. Please request a new one.');
+                $session->set('lstr_flash_error:' . $marker, 'That update link is invalid or has expired. Please request a new one.');
                 return Response::redirect($embedReturnTo);
             }
 
@@ -233,19 +235,19 @@ final class CollectiveUpdateController
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
             return Response::redirect($tokenUrl);
         }
 
         if ($newPassword !== '' && $newPassword !== $newPasswordConfirm) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $session->set('lstr_flash_error', 'New passwords do not match. Please try again.');
+            $session->set('lstr_flash_error:' . $marker, 'New passwords do not match. Please try again.');
             return Response::redirect($tokenUrl);
         }
 
         if ($newEmail !== '' && $newEmail !== $email && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($newEmail)) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $session->set('lstr_flash_error', 'That email address cannot be used.');
+            $session->set('lstr_flash_error:' . $marker, 'That email address cannot be used.');
             return Response::redirect($tokenUrl);
         }
 
@@ -253,7 +255,7 @@ final class CollectiveUpdateController
         // verifyAndConsume() returning null here means a race beat us to it;
         // treat it as an expired token rather than applying updates twice.
         if ($tokenRepo->verifyAndConsume($rawToken) === null) {
-            $session->set('lstr_flash_error', 'That update link is invalid or has expired. Please request a new one.');
+            $session->set('lstr_flash_error:' . $marker, 'That update link is invalid or has expired. Please request a new one.');
             return Response::redirect($embedReturnTo);
         }
 
@@ -371,9 +373,9 @@ final class CollectiveUpdateController
         }
 
         if ($sections === []) {
-            $session->set('lstr_flash_success_html', '<p class="fl-success">No changes were needed — your membership details were already up to date.</p>');
+            $session->set('lstr_flash_success_html:' . $marker, '<p class="fl-success">No changes were needed — your membership details were already up to date.</p>');
         } else {
-            $session->set('lstr_flash_success_html', self::renderSuccessSections($sections));
+            $session->set('lstr_flash_success_html:' . $marker, self::renderSuccessSections($sections));
         }
 
         $session->remove('lstr_embed_return_to');
@@ -460,7 +462,7 @@ final class CollectiveUpdateController
             $parts[] = 'No longer available: ' . implode(', ', array_map('htmlspecialchars', $skipped));
         }
 
-        $session->set('lstr_flash_success_html', '<p class="fl-success">Done! ' . implode('. ', $parts) . '.</p>');
+        $session->set('lstr_flash_success_html:collective_update', '<p class="fl-success">Done! ' . implode('. ', $parts) . '.</p>');
         return Response::redirect($embedReturnTo);
     }
 

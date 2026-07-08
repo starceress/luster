@@ -82,6 +82,7 @@ final class UpdateController
         $rateLimit = $this->app->getRateLimit();
         $ip            = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $marker        = (string) $request->post('_luster_embed_form', '');
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
@@ -97,12 +98,12 @@ final class UpdateController
 
         // Archived listings (Closed/Adopted Out) no longer accept sign-ins for updates.
         if ((new \Luster\Repositories\ListingLifecycleRepo($this->app->getDatabase()))->getByListingId($listingId) !== null) {
-            $session->set('lstr_flash_error', 'This fanlisting is no longer accepting membership updates.');
+            $session->set('lstr_flash_error:' . $marker, 'This fanlisting is no longer accepting membership updates.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many attempts. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -120,8 +121,8 @@ final class UpdateController
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', ['email' => $email]);
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old:' . $marker, ['email' => $email]);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -130,8 +131,8 @@ final class UpdateController
 
         if ($member === null) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $session->set('lstr_flash_error', 'No membership found for that email address.');
-            $session->set('lstr_flash_old', ['email' => $email]);
+            $session->set('lstr_flash_error:' . $marker, 'No membership found for that email address.');
+            $session->set('lstr_flash_old:' . $marker, ['email' => $email]);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -140,8 +141,8 @@ final class UpdateController
 
         if (!$verified) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $session->set('lstr_flash_error', 'Incorrect password. Please try again.');
-            $session->set('lstr_flash_old', ['email' => $email]);
+            $session->set('lstr_flash_error:' . $marker, 'Incorrect password. Please try again.');
+            $session->set('lstr_flash_old:' . $marker, ['email' => $email]);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -188,6 +189,7 @@ final class UpdateController
         $ip        = $request->ip();
 
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $marker        = (string) $request->post('_luster_embed_form', '');
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
@@ -206,19 +208,19 @@ final class UpdateController
         // Archived listings (Closed/Adopted Out) no longer accept updates or deletions,
         // even from a member who was already signed in before the listing was archived.
         if ((new \Luster\Repositories\ListingLifecycleRepo($this->app->getDatabase()))->getByListingId($listingId) !== null) {
-            $session->set('lstr_flash_error', 'This fanlisting is no longer accepting membership updates.');
+            $session->set('lstr_flash_error:' . $marker, 'This fanlisting is no longer accepting membership updates.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many attempts. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'updated'));
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render('', 'updated'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -302,7 +304,7 @@ final class UpdateController
             $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'removed', [
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'removed', [
                 'listing_title' => $listing->title,
                 'listing_url'   => $listing->url,
             ]));
@@ -345,8 +347,8 @@ final class UpdateController
             foreach ($fields as $field) {
                 $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
             }
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', $old);
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old:' . $marker, $old);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -356,8 +358,8 @@ final class UpdateController
             foreach ($fields as $field) {
                 $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
             }
-            $session->set('lstr_flash_error', 'New passwords do not match. Please try again.');
-            $session->set('lstr_flash_old', $old);
+            $session->set('lstr_flash_error:' . $marker, 'New passwords do not match. Please try again.');
+            $session->set('lstr_flash_old:' . $marker, $old);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -368,13 +370,13 @@ final class UpdateController
                 $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
             }
             if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($newEmail)) {
-                $session->set('lstr_flash_error', 'That email address cannot be used.');
-                $session->set('lstr_flash_old', $old);
+                $session->set('lstr_flash_error:' . $marker, 'That email address cannot be used.');
+                $session->set('lstr_flash_old:' . $marker, $old);
                 return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
             }
             if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
-                $session->set('lstr_flash_error', 'That email address is already registered for this listing.');
-                $session->set('lstr_flash_old', $old);
+                $session->set('lstr_flash_error:' . $marker, 'That email address is already registered for this listing.');
+                $session->set('lstr_flash_old:' . $marker, $old);
                 return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
             }
         }
@@ -442,7 +444,7 @@ final class UpdateController
             $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'updated-pending', [
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'updated-pending', [
                 'listing_title' => $listing->title,
                 'listing_url'   => $listing->url,
             ]));
@@ -456,7 +458,7 @@ final class UpdateController
             $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'updated', [
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'updated', [
                 'listing_title' => $listing->title,
                 'listing_url'   => $listing->url,
             ]));

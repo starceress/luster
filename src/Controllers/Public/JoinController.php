@@ -83,6 +83,7 @@ final class JoinController
         $rateLimit    = $this->app->getRateLimit();
         $ip           = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $marker        = (string) $request->post('_luster_embed_form', '');
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
@@ -105,20 +106,20 @@ final class JoinController
 
         // Archived listings (Closed/Adopted Out) no longer accept new joins.
         if ((new \Luster\Repositories\ListingLifecycleRepo($this->app->getDatabase()))->getByListingId($listingId) !== null) {
-            $session->set('lstr_flash_error', 'This fanlisting is no longer accepting new members.');
+            $session->set('lstr_flash_error:' . $marker, 'This fanlisting is no longer accepting new members.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_JOIN)) {
-            $session->set('lstr_flash_error', 'Too many join attempts. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many join attempts. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'joined'));
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render('', 'joined'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -131,8 +132,8 @@ final class JoinController
         // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'join')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old', [
+            $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old:' . $marker, [
                 'name'      => trim((string) $request->post('name',    '')),
                 'email'     => trim((string) $request->post('email',   '')),
                 'url'       => trim((string) $request->post('url',     '')),
@@ -169,8 +170,8 @@ final class JoinController
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', [
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old:' . $marker, [
                 'name'      => $name,
                 'email'     => $email,
                 'url'       => $url,
@@ -184,8 +185,8 @@ final class JoinController
 
         // Blacklist check
         if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
-            $session->set('lstr_flash_error', 'That email address cannot be used to join.');
-            $session->set('lstr_flash_old', [
+            $session->set('lstr_flash_error:' . $marker, 'That email address cannot be used to join.');
+            $session->set('lstr_flash_old:' . $marker, [
                 'name'      => $name,
                 'email'     => $email,
                 'url'       => $url,
@@ -198,8 +199,8 @@ final class JoinController
         // Duplicate email check
         if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
-            $session->set('lstr_flash_error', 'That email address is already registered for this listing.');
-            $session->set('lstr_flash_old', [
+            $session->set('lstr_flash_error:' . $marker, 'That email address is already registered for this listing.');
+            $session->set('lstr_flash_old:' . $marker, [
                 'name'      => $name,
                 'email'     => $email,
                 'url'       => $url,
@@ -214,8 +215,8 @@ final class JoinController
         $passwordConfirm = (string) $request->post('password_confirm', '');
 
         if ($rawPassword !== '' && $rawPassword !== $passwordConfirm) {
-            $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
-            $session->set('lstr_flash_old', [
+            $session->set('lstr_flash_error:' . $marker, 'Passwords do not match. Please try again.');
+            $session->set('lstr_flash_old:' . $marker, [
                 'name'      => $name,
                 'email'     => $email,
                 'url'       => $url,
@@ -229,8 +230,8 @@ final class JoinController
             $passwordValidator = new Validator(['password' => $rawPassword]);
             PasswordPolicy::apply($passwordValidator->field('password'));
             if ($passwordValidator->fails()) {
-                $session->set('lstr_flash_error', implode(' ', $passwordValidator->allErrors()));
-                $session->set('lstr_flash_old', [
+                $session->set('lstr_flash_error:' . $marker, implode(' ', $passwordValidator->allErrors()));
+                $session->set('lstr_flash_old:' . $marker, [
                     'name'      => $name,
                     'email'     => $email,
                     'url'       => $url,
@@ -392,7 +393,7 @@ final class JoinController
         $session->remove('lstr_embed_return_to');
         $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';
         $action     = $autoApprove ? 'joined' : 'joined-pending';
-        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, $action, [
+        $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, $action, [
             'fan_name'      => $name,
             'listing_title' => $listing->title,
             'listing_url'   => $listing->url,

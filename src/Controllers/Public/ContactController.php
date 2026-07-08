@@ -63,6 +63,7 @@ final class ContactController
         $rateLimit     = $this->app->getRateLimit();
         $ip            = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $marker        = (string) $request->post('_luster_embed_form', '');
 
         $listingRepo  = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing      = $listingRepo->getById($listingId);
@@ -87,12 +88,12 @@ final class ContactController
 
         // Archived listings (Closed/Adopted Out) no longer accept contact messages.
         if ((new \Luster\Repositories\ListingLifecycleRepo($this->app->getDatabase()))->getByListingId($listingId) !== null) {
-            $session->set('lstr_flash_error', 'This fanlisting is no longer accepting messages.');
+            $session->set('lstr_flash_error:' . $marker, 'This fanlisting is no longer accepting messages.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_CONTACT)) {
-            $session->set('lstr_flash_error', 'Too many messages sent. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many messages sent. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -100,15 +101,15 @@ final class ContactController
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $senderName = trim((string) $request->post('name', '')) ?: 'there';
-            $session->set('lstr_flash_success_html', self::contactSentHtml($senderName));
+            $session->set('lstr_flash_success_html:' . $marker, self::contactSentHtml($senderName));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_listing')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -121,8 +122,8 @@ final class ContactController
         // Blacklist check on submitted email
         if ($email !== '' && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', 'This email address cannot be used to send messages.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'This email address cannot be used to send messages.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -134,15 +135,15 @@ final class ContactController
 
         if ($url !== '' && (filter_var($url, FILTER_VALIDATE_URL) === false || !in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true))) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', 'Website URL must be a valid http:// or https:// address.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'Website URL must be a valid http:// or https:// address.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -165,13 +166,13 @@ final class ContactController
         try {
             (new Mailer($this->app->getConfig()))->sendWithReplyTo($recipient, $listing->title, $emailSubject, $body, $email, $name);
         } catch (\RuntimeException) {
-            $session->set('lstr_flash_error', 'Your message could not be sent. Please try again later.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'Your message could not be sent. Please try again later.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success_html', self::contactSentHtml($name));
+        $session->set('lstr_flash_success_html:' . $marker, self::contactSentHtml($name));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
@@ -193,6 +194,7 @@ final class ContactController
         $rateLimit     = $this->app->getRateLimit();
         $ip            = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $marker        = (string) $request->post('_luster_embed_form', '');
 
         $siteRepo      = new SiteSettingsRepo($this->app->getDatabase());
         $siteUrl       = (string) ($config->get('site_url', '') ?: $baseUrl);
@@ -205,7 +207,7 @@ final class ContactController
         }
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_CONTACT)) {
-            $session->set('lstr_flash_error', 'Too many messages sent. Please try again later.');
+            $session->set('lstr_flash_error:' . $marker, 'Too many messages sent. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -213,15 +215,15 @@ final class ContactController
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $senderName = trim((string) $request->post('name', '')) ?: 'there';
-            $session->set('lstr_flash_success_html', self::contactSentHtml($senderName));
+            $session->set('lstr_flash_success_html:' . $marker, self::contactSentHtml($senderName));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_collective')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -234,8 +236,8 @@ final class ContactController
         // Blacklist check on submitted email
         if ($email !== '' && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', 'This email address cannot be used to send messages.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'This email address cannot be used to send messages.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -247,15 +249,15 @@ final class ContactController
 
         if ($url !== '' && (filter_var($url, FILTER_VALIDATE_URL) === false || !in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true))) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', 'Website URL must be a valid http:// or https:// address.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'Website URL must be a valid http:// or https:// address.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -266,8 +268,8 @@ final class ContactController
         }
 
         if ($recipient === '') {
-            $session->set('lstr_flash_error', 'No contact email is configured. Please try again later.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'No contact email is configured. Please try again later.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -284,13 +286,13 @@ final class ContactController
         try {
             (new Mailer($config))->sendWithReplyTo($recipient, $siteName, $emailSubject, $body, $email, $name);
         } catch (\RuntimeException) {
-            $session->set('lstr_flash_error', 'Your message could not be sent. Please try again later.');
-            $session->set('lstr_flash_old', $this->collectOld($request));
+            $session->set('lstr_flash_error:' . $marker, 'Your message could not be sent. Please try again later.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success_html', self::contactSentHtml($name));
+        $session->set('lstr_flash_success_html:' . $marker, self::contactSentHtml($name));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 

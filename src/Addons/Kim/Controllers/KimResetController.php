@@ -66,14 +66,14 @@ final class KimResetController
         // Never reveal blocked status
         if ($rateLimit->isBlocked($ip, 'kim_reset')) {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
+            $session->set('lstr_flash_success_html:kim_reset', SuccessRenderer::render('', 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Honeypot — silent reject; same neutral message so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
+            $session->set('lstr_flash_success_html:kim_reset', SuccessRenderer::render('', 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -178,7 +178,7 @@ final class KimResetController
 
         // Always flash the same neutral message — never enumerate
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
+        $session->set('lstr_flash_success_html:kim_reset', SuccessRenderer::render('', 'reset-sent'));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
@@ -215,12 +215,12 @@ final class KimResetController
         }
 
         if ($rateLimit->isBlocked($ip, 'kim_reset')) {
-            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            $session->set('lstr_flash_error:kim_reset', 'Too many attempts. Please try again later.');
             return Response::redirect($confirmReturnUrl);
         }
 
         if ($rawToken === '') {
-            $session->set('lstr_flash_error', 'Missing token. Please use the link from your email.');
+            $session->set('lstr_flash_error:kim_reset', 'Missing token. Please use the link from your email.');
             return Response::redirect($fallbackUrl);
         }
 
@@ -229,7 +229,7 @@ final class KimResetController
 
         if ($tokenRow === null) {
             $rateLimit->hit($ip, 'kim_reset', 5, 3600);
-            $session->set('lstr_flash_error', 'This reset link has expired or is invalid. Please request a new one.');
+            $session->set('lstr_flash_error:kim_reset', 'This reset link has expired or is invalid. Please request a new one.');
             return Response::redirect($fallbackUrl);
         }
 
@@ -240,12 +240,12 @@ final class KimResetController
         PasswordPolicy::apply($v->field('new_password'));
 
         if ($v->fails()) {
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_error:kim_reset', implode(' ', $v->allErrors()));
             return Response::redirect($confirmReturnUrl);
         }
 
         if ($newPassword !== $newPasswordConfirm) {
-            $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
+            $session->set('lstr_flash_error:kim_reset', 'Passwords do not match. Please try again.');
             return Response::redirect($confirmReturnUrl);
         }
 
@@ -260,7 +260,7 @@ final class KimResetController
         $rateLimit->clear($ip, 'kim_reset');
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-reset-done'));
+        $session->set('lstr_flash_success_html:kim_reset', SuccessRenderer::render('', 'kim-reset-done'));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 

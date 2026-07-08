@@ -47,18 +47,19 @@ if ($_lusterRedirectTo === '') {
     $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
+$_lusterMarker = 'kim_signup';
 
 // ---------------------------------------------------------------------------
 // POST handler — process form submissions inline (self-post)
 // ---------------------------------------------------------------------------
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (($_POST['_luster_embed_form'] ?? '') !== 'kim_signup') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
         if ($luster_return ?? false) { return ''; }
         return;
     }
     if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
-        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        $_lusterApp->getSession()->set('lstr_flash_error:' . $_lusterMarker, 'Security check failed. Please reload the page and try again.');
         if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
         echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
         return;
@@ -96,12 +97,12 @@ $_lusterFanlistings = $_lusterListingRepo->getAll();
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
-$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
-$_lusterSession->remove('lstr_flash_success_html');
-$_lusterSession->remove('lstr_flash_error');
-$_lusterSession->remove('lstr_flash_old');
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html:' . $_lusterMarker, '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error:' . $_lusterMarker,        '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old:' . $_lusterMarker,          []);
+$_lusterSession->remove('lstr_flash_success_html:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_error:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_old:' . $_lusterMarker);
 
 if ($_lusterSuccess !== '') {
     if ($luster_return ?? false) { return $_lusterSuccess; }
@@ -194,7 +195,7 @@ if ($_lusterKimSignupTpl !== '') {
         '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
     ];
     $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterKimSignupTpl, $_lusterKimTokens);
-    $_lusterFormHtml  = FormTemplateRenderer::wrapForm($_lusterInnerHtml, $_lusterRedirectTo, $_lusterApp->getCSRF()->token(), false, false, 'kim_signup');
+    $_lusterFormHtml  = FormTemplateRenderer::wrapForm($_lusterInnerHtml, $_lusterRedirectTo, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker);
 }
 
 $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/signup.php', [
@@ -206,7 +207,7 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/signup.php', [
     'old'         => $_lusterOld,
     'f'           => $_lusterF,
     'form_html'   => $_lusterFormHtml,
-    'form_marker' => 'kim_signup',
+    'form_marker' => $_lusterMarker,
     'base_url'    => $_lusterBaseUrl,
     'theme_path'  => $_lusterBaseUrl . '/assets/default/',
     'link_update' => $_lusterLinkUpdate,

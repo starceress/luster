@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($luster_contact_action)) {
         return;
     }
     if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
-        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        $_lusterApp->getSession()->set('lstr_flash_error:' . $_lusterMarker, 'Security check failed. Please reload the page and try again.');
         if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
         echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
         return;
@@ -113,12 +113,12 @@ if (!$_lusterContactSettings['enabled']) {
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
-$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
-$_lusterSession->remove('lstr_flash_success_html');
-$_lusterSession->remove('lstr_flash_error');
-$_lusterSession->remove('lstr_flash_old');
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html:' . $_lusterMarker, '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error:' . $_lusterMarker,        '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old:' . $_lusterMarker,          []);
+$_lusterSession->remove('lstr_flash_success_html:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_error:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_old:' . $_lusterMarker);
 
 if ($_lusterSuccess !== '') {
     if ($luster_return ?? false) { return $_lusterSuccess; }

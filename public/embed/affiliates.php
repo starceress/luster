@@ -208,6 +208,10 @@ if ($_lusterSectionTemplate !== null) {
         }
 
         if ($_lusterApplyEnabled) {
+            $_lusterAffApplyMarker = 'affiliate_apply:' . $_lusterListingId;
+            $_lusterAffHasFeedback = $_lusterApp->getSession()->get('lstr_flash_success_html:' . $_lusterAffApplyMarker) !== null
+                                  || $_lusterApp->getSession()->get('lstr_flash_error:' . $_lusterAffApplyMarker) !== null;
+
             $_lusterReturnOrig = $luster_return ?? false;
             $luster_return     = true;
             $_lusterApplyFormHtml = (string) require __DIR__ . '/affiliate-apply.php';
@@ -219,11 +223,11 @@ if ($_lusterSectionTemplate !== null) {
 
             $_lusterToggleHtml = '<' . $_lusterAffTag . ' class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($_lusterApplyStyle) . '"'
                 . $_lusterAffAttrs
-                . ' data-fl-toggle="' . $e($_lusterAffFormId) . '" aria-expanded="false" aria-controls="' . $e($_lusterAffFormId) . '">'
+                . ' data-fl-toggle="' . $e($_lusterAffFormId) . '" aria-expanded="' . ($_lusterAffHasFeedback ? 'true' : 'false') . '" aria-controls="' . $e($_lusterAffFormId) . '">'
                 . $e($_lusterApplyLabel)
                 . '</' . $_lusterAffTag . '>';
 
-            $_lusterFormTokenHtml = '<div class="fl-affiliate-apply-form-wrap" id="' . $e($_lusterAffFormId) . '" hidden>'
+            $_lusterFormTokenHtml = '<div class="fl-affiliate-apply-form-wrap" id="' . $e($_lusterAffFormId) . '"' . ($_lusterAffHasFeedback ? '' : ' hidden') . '>'
                 . $_lusterApplyFormHtml
                 . '</div>';
         }

@@ -47,6 +47,7 @@ if ($_lusterRedirectTo === '') {
 $_lusterRedirectToClean = (string) preg_replace('/([?&])token=[^&]*&?/', '$1', $_lusterRedirectTo);
 $_lusterRedirectToClean = rtrim($_lusterRedirectToClean, '?&');
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectToClean);
+$_lusterMarker = 'kim_reset';
 
 // Determine step: confirm (token in GET) or email-entry
 $_lusterKimResetStep = trim((string) ($_GET['token'] ?? '')) !== '' ? 'confirm' : 'request';
@@ -56,12 +57,12 @@ $_lusterKimResetStep = trim((string) ($_GET['token'] ?? '')) !== '' ? 'confirm' 
 // ---------------------------------------------------------------------------
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (($_POST['_luster_embed_form'] ?? '') !== 'kim_reset') {
+    if (($_POST['_luster_embed_form'] ?? '') !== $_lusterMarker) {
         if ($luster_return ?? false) { return ''; }
         return;
     }
     if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
-        $_lusterApp->getSession()->set('lstr_flash_error', 'Security check failed. Please reload the page and try again.');
+        $_lusterApp->getSession()->set('lstr_flash_error:' . $_lusterMarker, 'Security check failed. Please reload the page and try again.');
         if (!headers_sent()) { header('Location: ' . $_lusterRedirectToClean, true, 302); exit; }
         echo '<script>window.location.replace(' . json_encode($_lusterRedirectToClean) . ');</script>';
         return;
@@ -97,12 +98,12 @@ if (!$_lusterApp->isAddonInstalled('Kim')) {
 // ---------------------------------------------------------------------------
 
 $_lusterSession  = $_lusterApp->getSession();
-$_lusterSuccess  = (string) $_lusterSession->get('lstr_flash_success_html', '');
-$_lusterError    = (string) $_lusterSession->get('lstr_flash_error',        '');
-$_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email',    '');
-$_lusterSession->remove('lstr_flash_success_html');
-$_lusterSession->remove('lstr_flash_error');
-$_lusterSession->remove('lstr_flash_old_email');
+$_lusterSuccess  = (string) $_lusterSession->get('lstr_flash_success_html:' . $_lusterMarker, '');
+$_lusterError    = (string) $_lusterSession->get('lstr_flash_error:' . $_lusterMarker,        '');
+$_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email:' . $_lusterMarker,    '');
+$_lusterSession->remove('lstr_flash_success_html:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_error:' . $_lusterMarker);
+$_lusterSession->remove('lstr_flash_old_email:' . $_lusterMarker);
 
 if ($_lusterSuccess !== '') {
     if ($luster_return ?? false) { return $_lusterSuccess; }
@@ -188,7 +189,7 @@ if ($_lusterKimResetStep === 'confirm') {
         'token_valid' => $_lusterTokenValid,
         'f'           => $_lusterF,
         'form_html'   => $_lusterFormHtml,
-        'form_marker'       => 'kim_reset',
+        'form_marker'       => $_lusterMarker,
         'reset_request_url' => $_lusterResetRecoveryUrl,
         'base_url'          => $_lusterBaseUrl,
     ]);
@@ -218,7 +219,7 @@ if ($_lusterKimResetStep === 'confirm') {
             '{reset_request_url}'            => View::e($_lusterResetRecoveryUrl),
         ];
         $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterTplOut, $_lusterTokens);
-        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterRedirectToClean, $_lusterApp->getCSRF()->token(), false, false, 'kim_reset');
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterRedirectToClean, $_lusterApp->getCSRF()->token(), false, false, $_lusterMarker);
     }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/kim/reset.php', [
@@ -229,7 +230,7 @@ if ($_lusterKimResetStep === 'confirm') {
             : '',
         'f'           => $_lusterF,
         'form_html'   => $_lusterFormHtml,
-        'form_marker' => 'kim_reset',
+        'form_marker' => $_lusterMarker,
         'base_url'    => $_lusterBaseUrl,
         'theme_path'  => $_lusterBaseUrl . '/assets/default/',
         'link_update' => $_lusterLinkUpdate,
