@@ -1917,8 +1917,9 @@ final class ListingSettingsRepo
 
     /**
      * Returns the affiliate application settings for a listing.
-     * Defaults to disabled with empty URL overrides if the row doesn't exist
-     * or Migration 41 hasn't run.
+     * Defaults to enabled with empty URL overrides if the row doesn't exist
+     * or Migration 41 hasn't run, matching the column's own DEFAULT 1 (Migration 60)
+     * and getCodesSubmitToggleStyle()'s equivalent fallback for codes_submit_enabled.
      *
      * Requires Migration 41.
      *
@@ -1935,11 +1936,11 @@ final class ListingSettingsRepo
             $stmt->execute(['id' => $listingId]);
             $row = $stmt->fetch();
         } catch (\Exception) {
-            return ['enabled' => false, 'form_url' => '', 'redirect_url' => ''];
+            return ['enabled' => true, 'form_url' => '', 'redirect_url' => ''];
         }
 
         if ($row === false) {
-            return ['enabled' => false, 'form_url' => '', 'redirect_url' => ''];
+            return ['enabled' => true, 'form_url' => '', 'redirect_url' => ''];
         }
 
         return [
