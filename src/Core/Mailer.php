@@ -50,16 +50,22 @@ final class Mailer
     /**
      * Sends a plain-text email.
      *
+     * @param string[] $attachmentPaths Absolute paths to files to attach. Missing or
+     *                                  unreadable paths are silently skipped rather
+     *                                  than failing the whole send.
      * @throws RuntimeException if sending fails.
      */
-    public function send(string $toEmail, string $toName, string $subject, string $body): void
+    public function send(string $toEmail, string $toName, string $subject, string $body, array $attachmentPaths = []): void
     {
-        $this->dispatch($toEmail, $toName, $subject, $body);
+        $this->dispatch($toEmail, $toName, $subject, $body, '', '', $attachmentPaths);
     }
 
     /**
      * Sends a plain-text email with an optional Reply-To header.
      *
+     * @param string[] $attachmentPaths Absolute paths to files to attach. Missing or
+     *                                  unreadable paths are silently skipped rather
+     *                                  than failing the whole send.
      * @throws RuntimeException if sending fails.
      */
     public function sendWithReplyTo(
@@ -69,14 +75,18 @@ final class Mailer
         string $body,
         string $replyEmail = '',
         string $replyName  = '',
+        array  $attachmentPaths = [],
     ): void {
-        $this->dispatch($toEmail, $toName, $subject, $body, $replyEmail, $replyName);
+        $this->dispatch($toEmail, $toName, $subject, $body, $replyEmail, $replyName, $attachmentPaths);
     }
 
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
 
+    /**
+     * @param string[] $attachmentPaths
+     */
     private function dispatch(
         string $toEmail,
         string $toName,
@@ -84,6 +94,7 @@ final class Mailer
         string $body,
         string $replyEmail = '',
         string $replyName  = '',
+        array  $attachmentPaths = [],
     ): void {
         $toEmail    = $this->stripCrlf($toEmail);
         $toName     = $this->stripCrlf($toName);
@@ -115,6 +126,10 @@ final class Mailer
 
             $mail->Subject = $subject;
             $mail->Body    = $body;
+
+            foreach ($this->filterValidAttachments($attachmentPaths) as $path) {
+                $mail->addAttachment($path);
+            }
 
             $mail->send();
         } catch (PHPMailerException $e) {
@@ -158,5 +173,20 @@ final class Mailer
     private function stripCrlf(string $value): string
     {
         return str_replace(["\r", "\n", "\0"], '', $value);
+    }
+
+    /**
+     * Filters an attachment path list down to ones that actually exist and are
+     * readable, so a missing or invalid path never breaks the whole send.
+     *
+     * @param string[] $paths
+     * @return string[]
+     */
+    private function filterValidAttachments(array $paths): array
+    {
+        return array_values(array_filter(
+            $paths,
+            static fn(mixed $path): bool => is_string($path) && $path !== '' && is_file($path) && is_readable($path),
+        ));
     }
 }

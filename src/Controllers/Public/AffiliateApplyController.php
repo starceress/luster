@@ -185,7 +185,7 @@ final class AffiliateApplyController
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
 
         // Notify admin
-        $this->sendAdminNotification($listing, $name, $url, $email, $message);
+        $this->sendAdminNotification($listing, $name, $url, $email, $message, $this->resolveImagePath($imagePath));
 
         $session->remove('lstr_embed_return_to');
         $affApplySentTpl = $settingsRepo->getAffiliateApplySentTemplate($listingId) ?? '';
@@ -306,7 +306,7 @@ final class AffiliateApplyController
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
 
         // Notify admin
-        $this->sendAdminNotification(null, $name, $url, $email, $message);
+        $this->sendAdminNotification(null, $name, $url, $email, $message, $this->resolveImagePath($imagePath));
 
         $session->remove('lstr_embed_return_to');
         $collectiveAffApplySentTpl = $siteRepo->get('collective_affiliate_apply_sent_template') ?? '';
@@ -419,11 +419,24 @@ final class AffiliateApplyController
     }
 
     /**
+     * Resolves the stored relative filename from handleImageUpload() to the
+     * absolute path Mailer needs to attach it, or null when no image was uploaded.
+     */
+    private function resolveImagePath(?string $imagePath): ?string
+    {
+        if ($imagePath === null || $imagePath === '') {
+            return null;
+        }
+        return dirname(__DIR__, 3) . '/public/uploads/affiliates/' . $imagePath;
+    }
+
+    /**
      * Sends the affiliate_applied email template to the listing owner (or site owner
      * for the collective scope). Silently swallows mailer exceptions so a failed
      * notification never rolls back an already-saved application.
      *
-     * @param object|null $listing  Listing model, or null for collective scope.
+     * @param object|null $listing        Listing model, or null for collective scope.
+     * @param string|null $imageFullPath  Absolute path to the uploaded application image, if any.
      */
     private function sendAdminNotification(
         ?object $listing,
@@ -431,6 +444,7 @@ final class AffiliateApplyController
         string  $affUrl,
         string  $affEmail,
         string  $affMessage,
+        ?string $imageFullPath = null,
     ): void {
         $config = $this->app->getConfig();
 
@@ -482,7 +496,7 @@ final class AffiliateApplyController
 
         try {
             $mailer = new Mailer($config);
-            $mailer->send($adminEmail, '', $subject, $body);
+            $mailer->send($adminEmail, '', $subject, $body, $imageFullPath !== null ? [$imageFullPath] : []);
         } catch (\Exception) {
             // Email failure is non-fatal — the application was already saved
         }

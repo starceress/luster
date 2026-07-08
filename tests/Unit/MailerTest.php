@@ -230,6 +230,41 @@ final class MailerTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Attachment path filtering
+    // -----------------------------------------------------------------------
+
+    public function testFilterValidAttachmentsKeepsExistingReadableFiles(): void
+    {
+        $mailer = $this->makeMailer([]);
+        $path   = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lstr_mailer_attach_' . uniqid('', true) . '.txt';
+        file_put_contents($path, 'test');
+
+        self::assertSame([$path], $this->callFilterValidAttachments($mailer, [$path]));
+
+        unlink($path);
+    }
+
+    public function testFilterValidAttachmentsDropsMissingFile(): void
+    {
+        $mailer = $this->makeMailer([]);
+        $missing = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lstr_mailer_does_not_exist_' . uniqid('', true) . '.txt';
+
+        self::assertSame([], $this->callFilterValidAttachments($mailer, [$missing]));
+    }
+
+    public function testFilterValidAttachmentsDropsEmptyAndNonStringEntries(): void
+    {
+        $mailer = $this->makeMailer([]);
+        self::assertSame([], $this->callFilterValidAttachments($mailer, ['', null, 123]));
+    }
+
+    public function testFilterValidAttachmentsHandlesEmptyInput(): void
+    {
+        $mailer = $this->makeMailer([]);
+        self::assertSame([], $this->callFilterValidAttachments($mailer, []));
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 
@@ -270,5 +305,11 @@ final class MailerTest extends TestCase
     {
         $p = new \ReflectionProperty(Mailer::class, 'fromName');
         return $p->getValue($mailer);
+    }
+
+    private function callFilterValidAttachments(Mailer $mailer, array $paths): array
+    {
+        $m = new ReflectionMethod(Mailer::class, 'filterValidAttachments');
+        return $m->invoke($mailer, $paths);
     }
 }
