@@ -963,15 +963,12 @@ final class AffiliateRepo
 
     /**
      * Checks whether an affiliate application for this listing/collective scope
-     * already exists (either as a live affiliate or a pending application) by URL or email.
+     * already exists (either as a live affiliate or a pending application).
      *
-     * Pass null for $listingId to check the collective scope (fanlisting_id IS NULL).
-     * Used to prevent duplicate applications before inserting.
-     */
-    /**
      * Matches on URL only (not email) so the same applicant can submit multiple
      * different sites under one email address. Rejected applications don't count,
-     * so a previously-rejected site can be resubmitted.
+     * so a previously-rejected site can be resubmitted. Pass null for $listingId
+     * to check the collective scope (fanlisting_id IS NULL).
      */
     public function isDuplicateApplication(?int $listingId, string $url): bool
     {
