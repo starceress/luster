@@ -14,6 +14,27 @@ those files, the admin panel will let you know that a manual update is
 needed and link you to the release page.
 
 
+## [Unreleased]
+
+**"Approve All Pending" actually works now**
+The "Approve All Pending" and "Approve All Updates" buttons on the Members page were
+quietly broken — clicking them didn't do anything, because of some invalid nested
+HTML under the hood confusing the browser. That's fixed now, so bulk-approving
+pending members and pending profile updates works in one click like you'd expect.
+
+**Collective Update: a clearer success message, plus a confirmation email**
+After updating your info across multiple fanlistings through the Collective Update
+form, you'll now see a proper bulleted list of exactly which listings were changed,
+instead of one long run-on sentence. You'll also get a confirmation email listing
+the same thing, with its own editable template in Admin → Emails.
+
+**Other fixes**
+- The Members table now shows a Date Joined column, and a member's Edit page shows
+  their join date too (read-only — it's set automatically and never changes).
+- Collective Update's confirmation email now goes to a member's new address when
+  their submission also changed their email, instead of the old one.
+
+
 ### [1.0.0] — 2026-07-05
 
 The first full release of Luster! A free, open-source management script
