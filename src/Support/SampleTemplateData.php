@@ -53,11 +53,11 @@ final class SampleTemplateData
     public static function members(): array
     {
         $rows = [
-            ['name' => 'Usagi',   'email' => 'usagi@example.com',   'url' => 'https://example.com/usagi',   'country' => 'Japan',         'fave' => 'Sailor Moon'],
-            ['name' => 'Misty',   'email' => 'misty@example.com',   'url' => '',                              'country' => 'United States', 'fave' => 'Togepi'],
-            ['name' => 'Sakura',  'email' => 'sakura@example.com',  'url' => 'https://example.com/sakura',  'country' => '',              'fave' => 'Kero'],
-            ['name' => 'Winry',   'email' => 'winry@example.com',   'url' => '',                              'country' => '',              'fave' => 'Automail'],
-            ['name' => 'Naminé',  'email' => 'namine@example.com',  'url' => 'https://example.com/namine',  'country' => 'Canada',        'fave' => 'Sora'],
+            ['name' => 'Usagi',   'email' => 'usagi@example.com',   'url' => 'https://example.com/usagi',   'country' => 'Japan',         'fave' => 'Sailor Moon', 'added' => '2026-01-15'],
+            ['name' => 'Misty',   'email' => 'misty@example.com',   'url' => '',                              'country' => 'United States', 'fave' => 'Togepi',      'added' => '2026-02-20'],
+            ['name' => 'Sakura',  'email' => 'sakura@example.com',  'url' => 'https://example.com/sakura',  'country' => '',              'fave' => 'Kero',        'added' => '2026-03-10'],
+            ['name' => 'Winry',   'email' => 'winry@example.com',   'url' => '',                              'country' => '',              'fave' => 'Automail',    'added' => '2026-04-05'],
+            ['name' => 'Naminé',  'email' => 'namine@example.com',  'url' => 'https://example.com/namine',  'country' => 'Canada',        'fave' => 'Sora',        'added' => '2026-05-22'],
         ];
 
         $members = [];
@@ -72,7 +72,7 @@ final class SampleTemplateData
                 password: '',
                 approved: true,
                 rejected: false,
-                added: '2026-01-15',
+                added: $row['added'],
                 updated: '',
                 additionalFields: ['favorite_character' => $row['fave']],
             );

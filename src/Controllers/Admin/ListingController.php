@@ -2129,6 +2129,28 @@ final class ListingController extends AdminController
             return '<p style="font-style:italic;color:#888">No approved members for this listing yet.</p>';
         }
 
+        // Also show what the {if_sort_date}/{fan_added} join-date block looks like
+        // when a fan actually sorts by Date Joined, since the main preview above
+        // (matching the embed's real default sort) never renders it.
+        $dateSorted = MembersTemplateRenderer::render(
+            $tpl,
+            $members,
+            $fields,
+            (string) ($listing->url ?? '#'),
+            $total,
+            $total . ' member(s)',
+            '<strong aria-current="page" class="fl-member-sort-link">Date Joined</strong>',
+            '<a class="fl-member-sort-link" href="#">Name</a>',
+            '<a class="fl-member-sort-link" href="#">Country</a>',
+            true,
+            $dateFormat,
+            true,
+        );
+
+        if (trim($dateSorted) !== '') {
+            $result .= $this->previewSectionLabel('Sorted by Date Joined') . $dateSorted;
+        }
+
         return $result;
     }
 
@@ -3216,6 +3238,24 @@ final class ListingController extends AdminController
             false, // Country is the real embed's default sort, not Date Joined — keep the preview consistent
         );
 
+        // Also show what the {if_sort_date}/{fan_added} join-date block looks like
+        // when a fan actually sorts by Date Joined, since the main sample above
+        // (matching the embed's real default sort) never renders it.
+        $dateSorted = MembersTemplateRenderer::render(
+            $tpl,
+            $members,
+            $fields,
+            '#',
+            count($members),
+            count($members) . ' member(s)',
+            '<strong aria-current="page" class="fl-member-sort-link">Date Joined</strong>',
+            '<a class="fl-member-sort-link" href="#">Name</a>',
+            '<a class="fl-member-sort-link" href="#">Country</a>',
+            true,
+            $dateFormat,
+            true,
+        );
+
         $empty = MembersTemplateRenderer::render(
             $tpl,
             [],
@@ -3235,8 +3275,12 @@ final class ListingController extends AdminController
             $empty = '<p style="font-style:italic;color:#888">No approved members for this listing yet.</p>';
         }
 
-        return $this->previewSectionLabel('Sample Data') . $sample
-            . $this->previewSectionLabel('Empty State') . $empty;
+        $result = $this->previewSectionLabel('Sample Data') . $sample;
+        if (trim($dateSorted) !== '') {
+            $result .= $this->previewSectionLabel('Sorted by Date Joined') . $dateSorted;
+        }
+
+        return $result . $this->previewSectionLabel('Empty State') . $empty;
     }
 
     /**
