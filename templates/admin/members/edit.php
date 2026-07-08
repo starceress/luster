@@ -100,6 +100,18 @@ $id = (int) $listing->id;
         </div>
       </div>
 
+      <?php
+        $_addedRaw = (string) ($member->added ?? '');
+        $_addedVal = $_addedRaw !== '' ? date($admin_date_format, strtotime($_addedRaw)) : '&mdash;';
+      ?>
+      <div class="field-row">
+        <span class="field-label">Date Joined</span>
+        <div>
+          <?= $_addedVal === '&mdash;' ? $_addedVal : View::e($_addedVal) ?>
+          <p class="form-hint">This is set automatically when the member joins and can't be edited.</p>
+        </div>
+      </div>
+
       <div class="field-row">
         <span class="field-label">Show Website?</span>
         <div class="choice-inline-group">
