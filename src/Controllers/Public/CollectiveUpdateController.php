@@ -272,7 +272,7 @@ final class CollectiveUpdateController
 
             // Skip if archived since the memberships were loaded
             if ($lifecycleRepo->getByListingId($listingId) !== null) {
-                $results['skipped'][] = $listing->title;
+                $results['skipped'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                 continue;
             }
 
@@ -302,7 +302,7 @@ final class CollectiveUpdateController
                 // match elsewhere doesn't block this listing — only a conflict
                 // within this specific listing's own member table does.
                 if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
-                    $results['email_conflict'][] = $listing->title;
+                    $results['email_conflict'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                 } else {
                     $updateData['email'] = $newEmail;
                 }
@@ -310,41 +310,61 @@ final class CollectiveUpdateController
 
             if ($updateData === []) {
                 if (!$passwordChanged) {
-                    $results['skipped'][] = $listing->title;
+                    $results['skipped'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                 } else {
-                    $results['updated'][] = $listing->title;
+                    $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                 }
                 continue;
             }
 
             if ($settingsRepo->getQueueUpdates($listingId)) {
                 (new PendingUpdateRepo($this->app->getDatabase()))->insert($listingId, $email, $updateData);
-                $results['queued'][] = $listing->title;
+                $results['queued'][] = ['title' => $listing->title, 'subject' => $listing->subject];
             } else {
                 $memberRepo->update($listing->dbprefix, $email, $updateData);
                 self::rekeyOnEmailChange($this->app->getDatabase(), $this->app->getConfig(), $listingId, $email, $updateData);
-                $results['updated'][] = $listing->title;
+                $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
             }
         }
 
-        $parts = [];
         if ($results['updated'] !== []) {
-            $parts[] = 'Updated: ' . implode(', ', array_map('htmlspecialchars', $results['updated']));
-        }
-        if ($results['queued'] !== []) {
-            $parts[] = 'Pending approval: ' . implode(', ', array_map('htmlspecialchars', $results['queued']));
-        }
-        if ($results['skipped'] !== [] && ($results['updated'] !== [] || $results['queued'] !== [])) {
-            $parts[] = 'No changes: ' . implode(', ', array_map('htmlspecialchars', $results['skipped']));
-        }
-        if ($results['email_conflict'] !== []) {
-            $parts[] = 'Email address already in use, so it was not changed for: ' . implode(', ', array_map('htmlspecialchars', $results['email_conflict']));
+            self::sendUpdateConfirmationEmail($this->app, $email, $results['updated']);
         }
 
-        if ($parts === []) {
+        $sections = [];
+        if ($results['updated'] !== []) {
+            $sections[] = [
+                'intro' => 'Your information has been successfully updated across the following listing(s):',
+                'items' => $results['updated'],
+                'outro' => 'Your changes are effective immediately.',
+            ];
+        }
+        if ($results['queued'] !== []) {
+            $sections[] = [
+                'intro' => 'Your requested changes have been submitted for approval on the following listing(s):',
+                'items' => $results['queued'],
+                'outro' => "You'll see them reflected once an admin approves the update.",
+            ];
+        }
+        if ($results['skipped'] !== [] && ($results['updated'] !== [] || $results['queued'] !== [])) {
+            $sections[] = [
+                'intro' => 'No changes were needed for the following listing(s), since your details already matched:',
+                'items' => $results['skipped'],
+                'outro' => '',
+            ];
+        }
+        if ($results['email_conflict'] !== []) {
+            $sections[] = [
+                'intro' => 'That email address is already in use, so it was not changed for the following listing(s):',
+                'items' => $results['email_conflict'],
+                'outro' => '',
+            ];
+        }
+
+        if ($sections === []) {
             $session->set('lstr_flash_success_html', '<p class="fl-success">No changes were needed — your membership details were already up to date.</p>');
         } else {
-            $session->set('lstr_flash_success_html', '<p class="fl-success">Done! ' . implode('. ', $parts) . '.</p>');
+            $session->set('lstr_flash_success_html', self::renderSuccessSections($sections));
         }
 
         $session->remove('lstr_embed_return_to');
@@ -458,6 +478,69 @@ final class CollectiveUpdateController
             (new MemberLinkCheckRepo($db, $config))->renameMemberEmail($listingId, $oldEmail, $newEmail);
         } catch (\Throwable) {}
         (new FanPasswordResetRepo($db))->deleteByEmail($listingId, $oldEmail);
+    }
+
+    /**
+     * Sends a single consolidated confirmation email listing every fanlisting
+     * whose membership was actually updated (best-effort — a delivery failure
+     * doesn't roll back the already-applied changes).
+     *
+     * @param array<int, array{title: string, subject: string}> $updatedListings
+     */
+    private static function sendUpdateConfirmationEmail(Application $app, string $email, array $updatedListings): void
+    {
+        try {
+            $config   = $app->getConfig();
+            $siteName = (string) $config->get('site_name', 'Luster');
+
+            $membershipList = implode("\n", array_map(
+                static fn(array $l) => '- ' . $l['title'] . ($l['subject'] !== '' ? ' (' . $l['subject'] . ')' : ''),
+                $updatedListings
+            ));
+
+            $tokens = EmailTemplateRepo::buildCollectiveUpdateTokens(
+                siteName:       $siteName,
+                ownerName:      (string) $config->get('owner_name', $siteName),
+                ownerEmail:     (string) $config->get('owner_email', ''),
+                membershipList: $membershipList,
+                siteUrl:        (string) $config->get('site_url', ''),
+            );
+
+            $emailRepo         = new EmailTemplateRepo($app->getDatabase());
+            [$subject, $body]  = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_COLLECTIVE_UPDATE_CONFIRM, $tokens);
+
+            if ($subject !== '') {
+                (new Mailer($config))->send($email, '', $subject, $body);
+            }
+        } catch (\Throwable $e) {
+            error_log('[Luster] Collective update confirmation email failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Renders the bulleted-list success message shown after submit(), one
+     * section per outcome bucket (updated / queued / skipped / email_conflict).
+     *
+     * @param array<int, array{intro: string, items: array<int, array{title: string, subject: string}>, outro: string}> $sections
+     */
+    private static function renderSuccessSections(array $sections): string
+    {
+        $html = '';
+        foreach ($sections as $section) {
+            $html .= '<div class="fl-success">';
+            $html .= '<p>' . htmlspecialchars($section['intro']) . '</p>';
+            $html .= '<ul class="fl-success-list">';
+            foreach ($section['items'] as $item) {
+                $label = $item['title'] . ($item['subject'] !== '' ? ' (' . $item['subject'] . ')' : '');
+                $html .= '<li>' . htmlspecialchars($label) . '</li>';
+            }
+            $html .= '</ul>';
+            if ($section['outro'] !== '') {
+                $html .= '<p>' . htmlspecialchars($section['outro']) . '</p>';
+            }
+            $html .= '</div>';
+        }
+        return $html;
     }
 
     /**

@@ -90,6 +90,11 @@ use Luster\Core\Database;
  *   {membership_list}   — bullet list of the fanlistings the email is registered for, one per line as "- Title (Subject)"
  *   plus {site_name}, {site_url}, {owner_name}, {owner_email}
  *
+ * Collective update confirmation tokens (collective_update_confirm) — sent
+ * after a fan's collective update form submission is applied:
+ *   {membership_list}   — bullet list of the fanlistings actually updated, one per line as "- Title (Subject)"
+ *   plus {site_name}, {site_url}, {owner_name}, {owner_email}
+ *
  */
 final class EmailTemplateRepo
 {
@@ -123,6 +128,7 @@ final class EmailTemplateRepo
     public const TYPE_KIM_UPDATE         = 'kim_update';
     public const TYPE_KIM_RESET          = 'kim_reset';
     public const TYPE_COLLECTIVE_UPDATE  = 'collective_update';
+    public const TYPE_COLLECTIVE_UPDATE_CONFIRM = 'collective_update_confirm';
 
     /** Sentinel fanlisting_id for collective-scope templates. */
     public const COLLECTIVE_ID = -1;
@@ -143,6 +149,7 @@ final class EmailTemplateRepo
         self::TYPE_KIM_UPDATE,
         self::TYPE_KIM_RESET,
         self::TYPE_COLLECTIVE_UPDATE,
+        self::TYPE_COLLECTIVE_UPDATE_CONFIRM,
     ];
 
     /** Types shown in the "Global Listings (Default)" and per-listing scopes. */
@@ -174,6 +181,7 @@ final class EmailTemplateRepo
         self::TYPE_KIM_UPDATE,
         self::TYPE_KIM_RESET,
         self::TYPE_COLLECTIVE_UPDATE,
+        self::TYPE_COLLECTIVE_UPDATE_CONFIRM,
     ];
 
     public const DISABLED_BY_DEFAULT = [
@@ -202,6 +210,7 @@ final class EmailTemplateRepo
         self::TYPE_KIM_UPDATE,
         self::TYPE_KIM_RESET,
         self::TYPE_COLLECTIVE_UPDATE,
+        self::TYPE_COLLECTIVE_UPDATE_CONFIRM,
     ];
 
     // -----------------------------------------------------------------------
@@ -398,6 +407,7 @@ final class EmailTemplateRepo
         self::TYPE_KIM_UPDATE         => 'Your KIM List entry has been updated',
         self::TYPE_KIM_RESET          => 'Reset your KIM List password',
         self::TYPE_COLLECTIVE_UPDATE  => 'Update your memberships at {site_name}',
+        self::TYPE_COLLECTIVE_UPDATE_CONFIRM => 'Your memberships at {site_name} have been updated',
     ];
 
     // -----------------------------------------------------------------------
@@ -441,6 +451,14 @@ final class EmailTemplateRepo
         . 'Click the link below to update your membership details. For your security, the link expires in 1 hour.' . "\n\n"
         . '{verify_url}' . "\n\n"
         . 'If you did not request this, you can safely ignore this email.' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name} ({site_url})';
+
+    private const COLLECTIVE_DEFAULT_BODY_COLLECTIVE_UPDATE_CONFIRM =
+        'Hi,' . "\n\n"
+        . 'Your information has been successfully updated across the following listing(s):' . "\n"
+        . '{membership_list}' . "\n\n"
+        . 'Your changes are effective immediately.' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name} ({site_url})';
 
@@ -755,6 +773,7 @@ final class EmailTemplateRepo
             self::TYPE_AFFILIATE_REJECTED => self::COLLECTIVE_DEFAULT_BODY_AFFILIATE_REJECTED,
             self::TYPE_CODE_APPROVED      => self::COLLECTIVE_DEFAULT_BODY_CODE_APPROVED,
             self::TYPE_COLLECTIVE_UPDATE  => self::COLLECTIVE_DEFAULT_BODY_COLLECTIVE_UPDATE,
+            self::TYPE_COLLECTIVE_UPDATE_CONFIRM => self::COLLECTIVE_DEFAULT_BODY_COLLECTIVE_UPDATE_CONFIRM,
             // Adoption and KIM types share the listing-level defaults (they already
             // reference {listing_title} for the specific listing being adopted/watched)
             default                       => self::defaultBody($type),
