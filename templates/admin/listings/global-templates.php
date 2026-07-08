@@ -27,93 +27,16 @@ $d  = [
     'listing_default_contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
 ];
 
-// For templates that have known code defaults, treat a saved global value that
-// matches a recognised old default format as absent so the current code default
-// is shown instead. This lets default changes flow through without a manual
-// reset — mirrors the per-listing equivalent in templates/admin/listings/edit.php.
-$_isOldMembersTemplate = static function (string $v): bool {
-    if (trim($v) === '') return false;
-    // The very first built-in default (exact match only, same reasoning as the
-    // second legacy default below): no <h1>, no sort bar, no {if_members} wrap
-    // at all — just an unconditional list.
-    $originalMembersDefault = '<div class="fl-member-list">'
-        . "\n" . '{each_member}'
-        . "\n" . '<div class="fl-member-item">'
-        . "\n" . '  {if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url}'
-        . "\n" . '  {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}'
-        . "\n" . '</div>'
-        . "\n" . '{/each_member}'
-        . "\n" . '</div>';
-    if (trim($v) === trim($originalMembersDefault)) return true;
-    // The two commit-e1219457 shapes: first added <h1> + sort bar + {stats_line}
-    // + {if_members} wrap (with each row in its own <ul class="fl-member-item">),
-    // then a follow-up commit dropped {stats_line} again a few commits later.
-    // Both are exact-matched since they briefly shipped as the real built-in
-    // default before the layout settled into the shape below.
-    $statsLineMembersDefault = '<h1>Member List</h1>'
-        . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
-        . "\n" . '<p class="fl-member-stats">{stats_line}</p>'
-        . "\n"
-        . "\n" . '{if_members}'
-        . "\n" . '<div class="fl-member-list">'
-        . "\n" . '{each_member}'
-        . "\n" . '  <ul class="fl-member-item">'
-        . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
-        . "\n" . '  </ul>'
-        . "\n" . '{/each_member}'
-        . "\n" . '</div>'
-        . "\n" . '{/if_members}'
-        . "\n" . '{if_no_members}'
-        . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
-        . "\n" . '{/if_no_members}';
-    if (trim($v) === trim($statsLineMembersDefault)) return true;
-    $noStatsLineMembersDefault = '<h1>Member List</h1>'
-        . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
-        . "\n"
-        . "\n" . '{if_members}'
-        . "\n" . '<div class="fl-member-list">'
-        . "\n" . '{each_member}'
-        . "\n" . '  <ul class="fl-member-item">'
-        . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
-        . "\n" . '  </ul>'
-        . "\n" . '{/each_member}'
-        . "\n" . '</div>'
-        . "\n" . '{/if_members}'
-        . "\n" . '{if_no_members}'
-        . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
-        . "\n" . '{/if_no_members}';
-    if (trim($v) === trim($noStatsLineMembersDefault)) return true;
-    // Pre-show-search-conditional default (exact match only — a hand-customized
-    // template that happens to share the old <h1> heading must NOT be mistaken
-    // for this and get replaced): had its own <h1> heading and wrapped the list
-    // in an extra <div class="fl-member-list"> instead of putting the class
-    // directly on the <ul>.
-    $legacyMembersDefault = '<h1>Member List</h1>' . "\n"
-        . '<p>Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>' . "\n"
-        . "\n"
-        . '{if_members}' . "\n"
-        . '<div class="fl-member-list">' . "\n"
-        . "\n"
-        . '<ul>' . "\n"
-        . '{each_member}' . "\n"
-        . '<li class="fl-member-item">{if_fan_url}<a href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}{fan_name}{/if_no_fan_url}{if_fan_country} &mdash; {fan_country}{/if_fan_country}</li>' . "\n"
-        . '{/each_member}' . "\n"
-        . '</ul>' . "\n"
-        . "\n"
-        . '</div>' . "\n"
-        . '{/if_members}' . "\n"
-        . "\n"
-        . '{if_no_members}' . "\n"
-        . '<p>No members yet. <a href="{join_url}">Want to join?</a></p>' . "\n"
-        . '{/if_no_members}';
-    if (trim($v) === trim($legacyMembersDefault)) return true;
-    return false;
-};
-
-// Resolve display value: prefer stored global, otherwise fall through to built-in
-$val = static function (string $key) use ($g, $d, $_isOldMembersTemplate): string {
+// Resolve display value: prefer stored global, otherwise fall through to built-in.
+// A stored value matching a recognised old default format is treated as absent
+// (ListingSettingsRepo::isLegacyMembersTemplate()) so the current code default is
+// shown instead. This lets default changes flow through without a manual reset —
+// mirrors the per-listing equivalent in templates/admin/listings/edit.php. The
+// badge computed in ListingController::globalTemplates() uses this exact same
+// check so it can never disagree with what's shown here.
+$val = static function (string $key) use ($g, $d): string {
     $stored = $g[$key] ?? '';
-    if ($key === 'listing_default_members_template' && $_isOldMembersTemplate($stored)) {
+    if ($key === 'listing_default_members_template' && ListingSettingsRepo::isLegacyMembersTemplate($stored)) {
         return $d[$key];
     }
     return $stored !== '' ? $stored : $d[$key];

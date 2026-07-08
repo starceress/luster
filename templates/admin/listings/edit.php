@@ -584,86 +584,6 @@ $_isOldStatsTemplate = static function (?string $v): bool {
     return $v !== null && str_starts_with(ltrim($v), '<div class="fl-stats">');
 };
 
-$_isOldMembersTemplate = static function (?string $v): bool {
-    if ($v === null || trim($v) === '') return false;
-    // The very first built-in default (exact match only, same reasoning as the
-    // second legacy default below): no <h1>, no sort bar, no {if_members} wrap
-    // at all — just an unconditional list.
-    $originalMembersDefault = '<div class="fl-member-list">'
-        . "\n" . '{each_member}'
-        . "\n" . '<div class="fl-member-item">'
-        . "\n" . '  {if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url}'
-        . "\n" . '  {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}'
-        . "\n" . '</div>'
-        . "\n" . '{/each_member}'
-        . "\n" . '</div>';
-    if (trim($v) === trim($originalMembersDefault)) return true;
-    // The two commit-e1219457 shapes: first added <h1> + sort bar + {stats_line}
-    // + {if_members} wrap (with each row in its own <ul class="fl-member-item">),
-    // then a follow-up commit dropped {stats_line} again a few commits later.
-    // Both are exact-matched since they briefly shipped as the real built-in
-    // default before the layout settled into the shape below.
-    $statsLineMembersDefault = '<h1>Member List</h1>'
-        . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
-        . "\n" . '<p class="fl-member-stats">{stats_line}</p>'
-        . "\n"
-        . "\n" . '{if_members}'
-        . "\n" . '<div class="fl-member-list">'
-        . "\n" . '{each_member}'
-        . "\n" . '  <ul class="fl-member-item">'
-        . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
-        . "\n" . '  </ul>'
-        . "\n" . '{/each_member}'
-        . "\n" . '</div>'
-        . "\n" . '{/if_members}'
-        . "\n" . '{if_no_members}'
-        . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
-        . "\n" . '{/if_no_members}';
-    if (trim($v) === trim($statsLineMembersDefault)) return true;
-    $noStatsLineMembersDefault = '<h1>Member List</h1>'
-        . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
-        . "\n"
-        . "\n" . '{if_members}'
-        . "\n" . '<div class="fl-member-list">'
-        . "\n" . '{each_member}'
-        . "\n" . '  <ul class="fl-member-item">'
-        . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
-        . "\n" . '  </ul>'
-        . "\n" . '{/each_member}'
-        . "\n" . '</div>'
-        . "\n" . '{/if_members}'
-        . "\n" . '{if_no_members}'
-        . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
-        . "\n" . '{/if_no_members}';
-    if (trim($v) === trim($noStatsLineMembersDefault)) return true;
-    // Pre-show-search-conditional default (exact match only — a hand-customized
-    // template that happens to share the old <h1> heading must NOT be mistaken
-    // for this and get replaced): had its own <h1> heading and wrapped the list
-    // in an extra <div class="fl-member-list"> instead of putting the class
-    // directly on the <ul>, superseded when the sort bar became hideable via
-    // {if_show_search} and the layout was aligned with the PHP fallback
-    // (templates/default/members.php).
-    $legacyMembersDefault = '<h1>Member List</h1>' . "\n"
-        . '<p>Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>' . "\n"
-        . "\n"
-        . '{if_members}' . "\n"
-        . '<div class="fl-member-list">' . "\n"
-        . "\n"
-        . '<ul>' . "\n"
-        . '{each_member}' . "\n"
-        . '<li class="fl-member-item">{if_fan_url}<a href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}{fan_name}{/if_no_fan_url}{if_fan_country} &mdash; {fan_country}{/if_fan_country}</li>' . "\n"
-        . '{/each_member}' . "\n"
-        . '</ul>' . "\n"
-        . "\n"
-        . '</div>' . "\n"
-        . '{/if_members}' . "\n"
-        . "\n"
-        . '{if_no_members}' . "\n"
-        . '<p>No members yet. <a href="{join_url}">Want to join?</a></p>' . "\n"
-        . '{/if_no_members}';
-    if (trim($v) === trim($legacyMembersDefault)) return true;
-    return false;
-};
 // When no per-listing override exists, show the global default if one is set, otherwise the built-in.
 // This keeps the textarea contents and reset-button targets consistent with the badge showing 'Global'.
 $_gFallback = static function (string $builtIn, string $globalKey) use ($global_templates): string {
@@ -671,7 +591,7 @@ $_gFallback = static function (string $builtIn, string $globalKey) use ($global_
     return ($g !== null && trim($g) !== '') ? $g : $builtIn;
 };
 
-$tplMembersVal   = ($_isOldMembersTemplate($templates['members_template'] ?? null) || ($templates['members_template'] ?? '') === '')
+$tplMembersVal   = (ListingSettingsRepo::isLegacyMembersTemplate($templates['members_template'] ?? null) || ($templates['members_template'] ?? '') === '')
     ? $_gFallback(ListingSettingsRepo::defaultMembersTemplate(), 'listing_default_members_template')
     : ($templates['members_template'] ?? '');
 $_isOldAffTemplate = static function (?string $v): bool {

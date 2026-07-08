@@ -1337,9 +1337,16 @@ final class ListingController extends AdminController
         ];
         $templateSources = [];
         foreach ($tplBuiltIns as $tplKey => $builtIn) {
-            $globalKey    = $tplGlobalKeyMap[$tplKey];
-            $resolved     = ListingTemplateResolver::resolve(
-                $templates[$tplKey] ?? null,
+            $globalKey       = $tplGlobalKeyMap[$tplKey];
+            $perListingValue = $templates[$tplKey] ?? null;
+            // Mirrors $tplMembersVal's own check just below: a per-listing value
+            // that's really just an old built-in default counts as absent here
+            // too, so this badge can never disagree with what the textarea shows.
+            if ($tplKey === 'members_template' && ListingSettingsRepo::isLegacyMembersTemplate($perListingValue)) {
+                $perListingValue = null;
+            }
+            $resolved = ListingTemplateResolver::resolve(
+                $perListingValue,
                 $globalTemplates[$globalKey] ?? null,
                 $builtIn,
             );
@@ -3009,8 +3016,15 @@ final class ListingController extends AdminController
         ];
         $templateSources = [];
         foreach ($tplBuiltIns as $tplKey => $builtIn) {
-            $globalKey = $tplGlobalKeyMap[$tplKey];
-            $resolved  = ListingTemplateResolver::resolve(null, $globals[$globalKey] ?? null, $builtIn);
+            $globalKey   = $tplGlobalKeyMap[$tplKey];
+            $globalValue = $globals[$globalKey] ?? null;
+            // Mirrors $val()'s own check just below: a stored global value
+            // that's really just an old built-in default counts as absent
+            // here too, so this badge can never disagree with the textarea.
+            if ($tplKey === 'members_template' && ListingSettingsRepo::isLegacyMembersTemplate($globalValue)) {
+                $globalValue = null;
+            }
+            $resolved = ListingTemplateResolver::resolve(null, $globalValue, $builtIn);
             // From this page's perspective, a set global value simply is the
             // custom override -- there's no further per-listing tier above it.
             $templateSources[$tplKey] = $resolved['source'] === 'built_in' ? 'built_in' : 'custom';
