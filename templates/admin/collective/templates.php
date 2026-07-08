@@ -428,7 +428,7 @@ $srcBadge = static function (string $key) use ($ct): string {
         <!-- ── KIM Reset Form ── -->
         <div class="tpl-group-section" data-tpl-group="kim-reset" <?= $_grp('kim-reset') ?>>
           <div class="section-label">KIM Reset Form <?= $srcBadge('kim_reset_form_template') ?></div>
-          <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the KIM password reset form &mdash; both the email-entry step and the new-password step. Use <code>{if_step_email}&hellip;{/if_step_email}</code> and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> to separate the two steps. Leave blank to use the built-in form.</p>
+          <p class="form-hint" style="margin-bottom:.75rem">Controls only the email-entry step. The step where a member actually sets their new password is fixed and cannot be customized. Leave blank to use the built-in form.</p>
           <div class="field-group">
             <textarea name="kim_reset_form_template" id="kim_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimResetFormVal) ?></textarea>
           </div>

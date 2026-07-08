@@ -203,7 +203,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
           <div class="section-label">Update Membership Form <?= $srcBadge('update_form_template') ?></div>
-          <p class="form-hint form-hint--spaced">Default layout for the update (edit membership) form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
+          <p class="form-hint form-hint--spaced">Default layout for the sign-in step only. The step where a member actually edits or deletes their membership is fixed and cannot be customized.</p>
           <div class="field-group">
             <textarea name="listing_default_update_form_template" id="listing_default_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_update_form_template')) ?></textarea>
           </div>
@@ -215,7 +215,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
           <div class="section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
-          <p class="form-hint form-hint--spaced">Default layout for the password reset form. Use <code>{if_step_email}&hellip;{/if_step_email}</code> for the email-entry step and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> for the new-password step.</p>
+          <p class="form-hint form-hint--spaced">Default layout for the email-entry step only. The step where a member actually sets their new password is fixed and cannot be customized.</p>
           <div class="field-group">
             <textarea name="listing_default_reset_form_template" id="listing_default_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_reset_form_template')) ?></textarea>
           </div>

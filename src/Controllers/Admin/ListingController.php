@@ -1402,6 +1402,12 @@ final class ListingController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
+        $lusterBase = defined('LUSTER_BASE') ? \LUSTER_BASE : dirname(__DIR__, 3);
+        $resolvedEmbedPath = realpath($lusterBase . '/public/embed');
+        $embedPath = $resolvedEmbedPath !== false
+            ? rtrim(str_replace('\\', '/', $resolvedEmbedPath), '/')
+            : rtrim(str_replace('\\', '/', $lusterBase), '/') . '/public/embed';
+
         return $this->adminLayout('admin/listings/edit.php', 'Edit Listing', 'listings', [
             'listing'          => $listing,
             'success'             => $success,
@@ -1410,6 +1416,7 @@ final class ListingController extends AdminController
             'lifecycle_meta'      => $lifecycleRow,
             'current_image'       => $currentImage,
             'cfg'                 => $config->all(),
+            'embed_path'          => $embedPath,
             'approved'            => $approved,
             'pending'             => $pending,
             'countries'           => $countries,
@@ -2738,6 +2745,7 @@ final class ListingController extends AdminController
             '{field_signin_email}'    => $fSignIn['email'],
             '{field_signin_password}' => $fSignIn['password'],
             '{submit_button}'         => '<button type="submit" class="fl-submit">Sign In</button>',
+            '{clear_button}'          => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             '{lost_password_url}'     => '#',
         ];
 
@@ -3420,6 +3428,7 @@ final class ListingController extends AdminController
             '{field_signin_email}'    => $fSignIn['email'],
             '{field_signin_password}' => $fSignIn['password'],
             '{submit_button}'         => '<button type="submit" class="fl-submit">Sign In</button>',
+            '{clear_button}'          => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             '{lost_password_url}'     => '#',
         ];
 

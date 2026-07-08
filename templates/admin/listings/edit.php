@@ -780,7 +780,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
           <div class="section-label">Update Membership Form <?= $srcBadge('update_form_template') ?></div>
-          <p class="form-hint form-hint--spaced">Controls the full layout of the update form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
+          <p class="form-hint form-hint--spaced">Controls only the sign-in step. The step where a member actually edits or deletes their membership is fixed and cannot be customized.</p>
           <div class="field-group">
             <textarea id="update_form_template" name="update_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdateFormVal) ?></textarea>
           </div>
@@ -792,7 +792,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
           <div class="section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
-          <p class="form-hint form-hint--spaced">Controls the full layout of the password reset form. Use <code>{if_step_email}&hellip;{/if_step_email}</code> for the email-entry step and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> for the new-password step.</p>
+          <p class="form-hint form-hint--spaced">Controls only the email-entry step. The step where a member actually sets their new password is fixed and cannot be customized.</p>
           <div class="field-group">
             <textarea id="reset_form_template" name="reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplResetFormVal) ?></textarea>
           </div>
@@ -1848,66 +1848,178 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 <!-- ──── TAB: CODE SNIPPETS ────────────────────────────────────────── -->
 <div id="tab-snippets" class="tabs-panel">
 
+<?php
+  $_snipId  = (int) $listing->id;
+  $_ep      = rtrim(str_replace('\\', '/', (string) ($embed_path ?? '/path/to/luster/public/embed')), '/');
+  $_escEp   = str_replace(["\\", "'"], ["\\\\", "\\'"], $_ep);
+  $setupLine1 = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . $_escEp . "'); ?>";
+  $setupLine2 = "<?php require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.php'; ?>";
+  $setupLine3 = "<?php if (isset(\$_GET['luster_css'])) { Luster\\Core\\View::serveCss(); exit; } ?>";
+  $setupLine4 = '<link rel="stylesheet" href="?luster_css">';
+
+  // Same PHP syntax highlighter used by the Full Embed Wizard's setup snippet.
+  $hlPhp = static function (string $code): string {
+      $e = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+      return (string) preg_replace_callback(
+          '/(\/\/[^\n]*)|(&#039;(?:[^&]|&(?!#039;))*&#039;)|(&lt;\?php|\?&gt;)|(\b(?:require_once|require|defined|define|isset|exit|true|false|null|if)\b)|(\$\w+)|(\b\d+\b)/',
+          static function (array $m): string {
+              if ($m[1] !== '') return '<span class="ec-hl-c">' . $m[0] . '</span>';
+              if ($m[2] !== '') return '<span class="ec-hl-s">' . $m[0] . '</span>';
+              if ($m[3] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
+              if ($m[4] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
+              if ($m[5] !== '') return '<span class="ec-hl-v">' . $m[0] . '</span>';
+              if ($m[6] !== '') return '<span class="ec-hl-n">' . $m[0] . '</span>';
+              return $m[0];
+          },
+          $e,
+      );
+  };
+
+  // Builds an HTML-escaped PHP snippet from an array of code lines. Every embed
+  // line refers to the LUSTER_EMBED constant defined by the one-time setup
+  // snippet above, rather than baking the install path into every snippet.
+  $snip = static function (array $lines): string {
+      $lines[] = '?>';
+      return htmlspecialchars(implode("\n", $lines), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  };
+
+  // Renders one snippet row in the same card/toggle format as the Collective
+  // Embed Snippets page and the Full Embed Wizard.
+  $snipRow = static function (string $icon, string $label, string $desc, string $badge, array $lines) use ($snip): void {
+      $_s = $snip($lines);
+      echo '<li class="es-item">';
+      echo '<div class="es-item-row">';
+      echo '<span class="es-item-icon">' . View::icon($icon, ['width' => 15, 'height' => 15]) . '</span>';
+      echo '<div class="es-item-meta">';
+      echo '<span class="es-item-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+      echo '<span class="es-item-desc">' . htmlspecialchars($desc, ENT_QUOTES, 'UTF-8') . '</span>';
+      echo '</div>';
+      echo '<span class="badge ' . htmlspecialchars($badge, ENT_QUOTES, 'UTF-8') . '">' . ($badge === 'badge-info2' ? 'Form' : ($badge === 'badge-info3' ? 'Stats' : 'Data')) . '</span> &#10070;';
+      echo '<button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>';
+      echo '<button type="button" class="btn btn-primary btn-xs es-copy" data-snippet="' . $_s . '">Copy</button>';
+      echo '</div>';
+      echo '<div class="es-snippet" hidden><pre class="es-snippet-pre">' . $_s . '</pre></div>';
+      echo '</li>';
+  };
+?>
+
 <div class="card card--gradient">
   <div class="panel-header">
     <div class="panel-header-icon"><?= View::icon('embed') ?></div>
     <div class="panel-header-meta">
       <div class="panel-header-title">Code Snippets</div>
-      <div class="panel-header-sub">Ready-to-use PHP include snippets for your site pages.</div>
+      <div class="panel-header-sub">Ready-to-use PHP include snippets for this listing's site pages.</div>
     </div>
   </div>
   <div class="card-body">
-    <?php if ($installPath !== ''): ?>
-      <?php
-        $_es = $embedSettings ?? [];
-        $_snipPathRaw = $installPath;
-        $_snipPath    = View::e($installPath);
-        $_snipId      = (int) $listing->id;
-        // Helper to render one snippet row
-        $snip = static function (string $label, string $file) use ($_snipPathRaw, $_snipPath, $_snipId, $b): void {
-            $plain = "<?php\n\$luster_fanlisting_id = {$_snipId};\nrequire '{$_snipPathRaw}/public/embed/{$file}';\n?>";
-            echo '<div class="field-row field-row--top">';
-            echo '<span class="field-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
-            echo '<div class="embed-snippet-wrap">';
-            echo '<div class="readonly-field embed-snippet">';
-            echo '&lt;?php<br>';
-            echo '$luster_fanlisting_id = ' . $_snipId . ';<br>';
-            echo "require '" . $_snipPath . '/public/embed/' . htmlspecialchars($file, ENT_QUOTES, 'UTF-8') . "';";
-            echo '<br>?&gt;';
-            echo '</div>';
-            echo '<button type="button" class="btn btn-tertiary btn-xs embed-copy-btn" data-copy="' . htmlspecialchars($plain, ENT_QUOTES, 'UTF-8') . '">Copy</button>';
-            echo '</div></div>';
-        };
-      ?>
 
-      <?php $snip('Members List', 'members.php') ?>
+    <p class="form-hint form-hint--spaced">Paste the setup snippet below once — ideally in your site's shared header file — then drop any of the ready-to-copy snippets underneath it into your pages. The <a href="<?= $b ?>/admin/embed-codes?listing=<?= $_snipId ?>" class="link">Full Embed Wizard</a> has more embeds and all customisation options.</p>
+
+    <!-- ── One-Time Setup ─────────────────────────────────────────── -->
+    <div class="card ec-wizard-card" style="margin-bottom:1em">
+      <div class="ec-setup-top">
+        <div class="ec-setup-head">
+          <strong class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></strong>
+          <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
+                  data-setup-text="<?= htmlspecialchars($setupLine1 . "\n" . $setupLine2 . "\n" . $setupLine3 . "\n\n" . $setupLine4, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
+        </div>
+
+        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>):</p>
+        <div class="ec-setup-snip">
+          <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine1) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine2) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine3) ?></code></div>
+        </div>
+
+        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked:</p>
+        <div class="ec-setup-snip">
+          <div class="ec-setup-snip-line"><code>&lt;<span class="ec-hl-k">link</span> <span class="ec-hl-v">rel</span>=<span class="ec-hl-s">&quot;stylesheet&quot;</span> <span class="ec-hl-v">href</span>=<span class="ec-hl-s">&quot;?luster_css&quot;</span>&gt;</code></div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="es-list" role="list">
+      <?php $snipRow('members', 'Members List', 'Shows approved members for this listing.', 'badge-info', [
+          '<?php',
+          "\$luster_fanlisting_id = {$_snipId};",
+          "require LUSTER_EMBED . '/members.php';",
+      ]); ?>
+
       <?php if (($rules_addon_installed ?? false) && ($rules_enabled_for_listing ?? false)): ?>
-        <?php $snip('Rules', 'rules-gate.php') ?>
+        <?php $snipRow('rules', 'Rules', 'Shows the joining rules and an agreement checkbox. Place it before the Join Form.', 'badge-info', [
+            '<?php',
+            "\$luster_fanlisting_id = {$_snipId};",
+            "require LUSTER_EMBED . '/rules-gate.php';",
+        ]); ?>
       <?php endif; ?>
-      <?php $snip('Join Form', 'join.php') ?>
-      <?php $snip('Update Form', 'update.php') ?>
-      <?php $snip('Password Reset Form', 'reset.php') ?>
-      <?php $snip('Listing Statistics', 'stats.php') ?>
-      <?php $snip('Codes Display', 'codes.php') ?>
-      <?php $snip('Codes Donation Form', 'codes-submit.php') ?>
-      <?php $snip('Affiliates Section', 'affiliates.php') ?>
+
+      <?php $snipRow('form', 'Join Form', 'Lets fans join this listing.', 'badge-info2', [
+          '<?php',
+          "\$luster_fanlisting_id = {$_snipId};",
+          "require LUSTER_EMBED . '/join.php';",
+      ]); ?>
+
+      <?php $snipRow('form', 'Update Form', 'Lets existing members update their details or delete their membership.', 'badge-info2', [
+          '<?php',
+          "\$luster_fanlisting_id = {$_snipId};",
+          "require LUSTER_EMBED . '/update.php';",
+      ]); ?>
+
+      <?php $snipRow('form', 'Password Reset Form', 'Two-step password reset for members.', 'badge-info2', [
+          '<?php',
+          "\$luster_fanlisting_id = {$_snipId};",
+          "require LUSTER_EMBED . '/reset.php';",
+      ]); ?>
+
+      <?php $snipRow('sparkles', 'Listing Statistics', 'Shows this listing\'s stats.', 'badge-info3', [
+          '<?php',
+          "\$luster_fanlisting_id = {$_snipId};",
+          "require LUSTER_EMBED . '/stats.php';",
+      ]); ?>
+
+      <?php $snipRow('image', 'Codes Display', 'Shows approved fan codes for this listing.', 'badge-info', [
+          '<?php',
+          "\$luster_fanlisting_id = {$_snipId};",
+          "require LUSTER_EMBED . '/codes.php';",
+      ]); ?>
+
+      <?php $snipRow('image', 'Codes Donation Form', 'Lets fans submit codes for review.', 'badge-info2', [
+          '<?php',
+          "\$luster_fanlisting_id = {$_snipId};",
+          "require LUSTER_EMBED . '/codes-submit.php';",
+      ]); ?>
+
+      <?php $snipRow('link', 'Affiliates Section', 'Shows this listing\'s affiliates.', 'badge-info', [
+          '<?php',
+          "\$luster_fanlisting_id = {$_snipId};",
+          "require LUSTER_EMBED . '/affiliates.php';",
+      ]); ?>
+
       <?php if ($affiliate_apply_enabled ?? false): ?>
-        <?php $snip('Affiliate Application Form', 'affiliate-apply.php') ?>
+        <?php $snipRow('link', 'Affiliate Application Form', 'Lets visitors apply to affiliate with this listing.', 'badge-info2', [
+            '<?php',
+            "\$luster_fanlisting_id = {$_snipId};",
+            "require LUSTER_EMBED . '/affiliate-apply.php';",
+        ]); ?>
       <?php endif; ?>
+
       <?php if ($contact_enabled ?? false): ?>
-        <?php $snip('Contact Form', 'contact.php') ?>
+        <?php $snipRow('email', 'Contact Form', 'A contact form for this listing.', 'badge-info2', [
+            '<?php',
+            "\$luster_fanlisting_id = {$_snipId};",
+            "require LUSTER_EMBED . '/contact.php';",
+        ]); ?>
       <?php endif; ?>
+
       <?php if (in_array('Newsfeed', $nav_installed_addons ?? [], true)): ?>
-        <?php $snip('News Feed', 'newsfeed.php') ?>
+        <?php $snipRow('updates', 'News Feed', 'Displays this listing\'s news feed. Requires the News Feed add-on.', 'badge-info', [
+            '<?php',
+            "\$luster_fanlisting_id = {$_snipId};",
+            "require LUSTER_EMBED . '/newsfeed.php';",
+        ]); ?>
       <?php endif; ?>
+    </ul>
 
-
-    <?php else: ?>
-      <p class="form-hint">
-        Set the <strong>Installation Path</strong> in <code>config/app.php</code> (<code>install_path</code> key)
-        to show ready-to-use snippets here.
-      </p>
-    <?php endif; ?>
   </div>
 </div>
 
