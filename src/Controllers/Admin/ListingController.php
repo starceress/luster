@@ -2981,11 +2981,47 @@ final class ListingController extends AdminController
         $siteRepo  = new SiteSettingsRepo($db);
         $globals   = $siteRepo->getGlobalTemplates();
 
+        $tplBuiltIns = [
+            'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
+            'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
+            'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+            'newsfeed_template'              => ListingSettingsRepo::defaultNewsfeedTemplate(),
+            'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
+            'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+            'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+            'contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
+            'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
+            'update_form_template'          => ListingSettingsRepo::defaultUpdateFormTemplate(),
+            'reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
+        ];
+        $tplGlobalKeyMap = [
+            'stats_template'                => 'listing_default_stats_template',
+            'members_template'              => 'listing_default_members_template',
+            'affiliates_section_template'   => 'listing_default_affiliates_section_template',
+            'newsfeed_template'              => 'listing_default_newsfeed_template',
+            'join_form_template'            => 'listing_default_join_form_template',
+            'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
+            'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
+            'contact_form_template'         => 'listing_default_contact_form_template',
+            'codes_template'                => 'listing_default_codes_template',
+            'update_form_template'          => 'listing_default_update_form_template',
+            'reset_form_template'           => 'listing_default_reset_form_template',
+        ];
+        $templateSources = [];
+        foreach ($tplBuiltIns as $tplKey => $builtIn) {
+            $globalKey = $tplGlobalKeyMap[$tplKey];
+            $resolved  = ListingTemplateResolver::resolve(null, $globals[$globalKey] ?? null, $builtIn);
+            // From this page's perspective, a set global value simply is the
+            // custom override -- there's no further per-listing tier above it.
+            $templateSources[$tplKey] = $resolved['source'] === 'built_in' ? 'built_in' : 'custom';
+        }
+
         $rawGlobalMpp = $siteRepo->get('listing_default_members_per_page');
         return $this->adminLayout('admin/listings/global-templates.php', 'Global Templates', 'listings', [
             'success'                    => $success,
             'error'                      => $error,
             'globals'                    => $globals,
+            'template_sources'           => $templateSources,
             'stat_newmembers_limit'      => $siteRepo->get('stat_newmembers_limit'),
             'global_members_per_page'    => $rawGlobalMpp !== null ? (int) $rawGlobalMpp : null,
             'affiliate_apply_style'          => $siteRepo->get('global_affiliate_apply_style') ?? 'link',

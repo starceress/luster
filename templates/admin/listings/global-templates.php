@@ -128,6 +128,15 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
     . ' data-token="'     . View::e($token) . '">'
     . '<td class="token-cell" data-desc="' . View::e($desc) . '"><code>' . View::e($label) . '</code></td>'
     . '</tr>' . "\n";
+
+// Source badge helper — Custom when this global default has been edited away
+// from Luster's built-in default, Built-in otherwise.
+$tplSrc   = $template_sources ?? [];
+$srcBadge = static function (string $key) use ($tplSrc): string {
+    return ($tplSrc[$key] ?? 'built_in') === 'custom'
+        ? '<span class="badge badge-current badge-inline-sm">Custom</span>'
+        : '<span class="badge badge-inactive badge-inline-sm">Built-in</span>';
+};
 ?>
 
 <div class="toolbar">
@@ -229,7 +238,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       <div class="card-body">
 
         <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
-          <div class="section-label">Members List</div>
+          <div class="section-label">Members List <?= $srcBadge('members_template') ?></div>
           <p class="form-hint form-hint--spaced">Default for all listings. Wrap your row design in <code>{each_member}&hellip;{/each_member}</code>.</p>
           <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="gl-members-per-page">Members Per Page</label>
@@ -258,7 +267,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="join-form" <?= $_grp('join-form') ?>>
-          <div class="section-label">Join Form</div>
+          <div class="section-label">Join Form <?= $srcBadge('join_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_join_form_template" id="listing_default_join_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_join_form_template')) ?></textarea>
@@ -270,7 +279,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-          <div class="section-label">Update Membership Form</div>
+          <div class="section-label">Update Membership Form <?= $srcBadge('update_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the update (edit membership) form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
           <div class="field-group">
             <textarea name="listing_default_update_form_template" id="listing_default_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_update_form_template')) ?></textarea>
@@ -282,7 +291,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
-          <div class="section-label">Lost Password Form</div>
+          <div class="section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the password reset form. Use <code>{if_step_email}&hellip;{/if_step_email}</code> for the email-entry step and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> for the new-password step.</p>
           <div class="field-group">
             <textarea name="listing_default_reset_form_template" id="listing_default_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_reset_form_template')) ?></textarea>
@@ -294,7 +303,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
-          <div class="section-label">Statistics</div>
+          <div class="section-label">Statistics <?= $srcBadge('stats_template') ?></div>
 
           <?php $_glNml = ($stat_newmembers_limit ?? null) !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : null; ?>
           <div class="field-row field-row--top" style="margin-bottom: 1em">
@@ -320,7 +329,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
-          <div class="section-label">Codes Display</div>
+          <div class="section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the codes/buttons gallery. Use <code>{each_size_group}</code> for grouped mode or <code>{each_code}</code> for flat mode.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
@@ -356,7 +365,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-          <div class="section-label">Codes Donation Form</div>
+          <div class="section-label">Codes Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the Codes Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_codes_submit_form_template" id="listing_default_codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_submit_form_template')) ?></textarea>
@@ -368,7 +377,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-          <div class="section-label">Affiliates Display</div>
+          <div class="section-label">Affiliates Display <?= $srcBadge('affiliates_section_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
@@ -404,7 +413,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-          <div class="section-label">Affiliate Application Form</div>
+          <div class="section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
@@ -416,7 +425,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
-          <div class="section-label">Contact Form</div>
+          <div class="section-label">Contact Form <?= $srcBadge('contact_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the contact form (name, email, subject, message). Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_contact_form_template" id="listing_default_contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_contact_form_template')) ?></textarea>
@@ -428,7 +437,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
-          <div class="section-label">News Feed</div>
+          <div class="section-label">News Feed <?= $srcBadge('newsfeed_template') ?></div>
           <p class="form-hint form-hint--spaced">Default for listings with the News Feed add-on. Wrap each entry in <code>{each_newsfeed_entry}&hellip;{/each_newsfeed_entry}</code>.</p>
           <div class="field-group">
             <textarea name="listing_default_newsfeed_template" id="listing_default_newsfeed_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_newsfeed_template')) ?></textarea>
