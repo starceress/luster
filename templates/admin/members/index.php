@@ -186,12 +186,7 @@ $pendingNewCnt = count($pendingNew);
       ?>
       <span class="card-head-sub">Showing <?= $_plFrom ?>&ndash;<?= $_plTo ?> of <?= number_format((int) $total) ?> member<?= (int) $total !== 1 ? 's' : '' ?></span>
       <div class="actions-row actions-row--right actions-row--wrap">
-        <form method="POST" action="<?= $b ?>/admin/members/<?= $lid ?>/approve-all-pending"
-              class="action-form-inline"
-              data-confirm="Approve all <?= $pendingNewCnt ?> pending member(s)? This will send approval emails.">
-          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-          <button type="submit" class="btn btn-success btn-sm">Approve All Pending</button>
-        </form>
+        <button type="button" class="btn btn-success btn-sm" data-submit-form="approve-all-pending-form">Approve All Pending</button>
       </div>
     </div>
     <div class="bulk">
@@ -254,6 +249,12 @@ $pendingNewCnt = count($pendingNew);
   </div>
 </form>
 
+<form id="approve-all-pending-form" method="POST" action="<?= $b ?>/admin/members/<?= $lid ?>/approve-all-pending"
+      class="action-form-inline"
+      data-confirm="Approve all <?= $pendingNewCnt ?> pending member(s)? This will send approval emails.">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+</form>
+
 <?php foreach ($pendingNew as $m): ?>
   <form id="approve-member-<?= md5($m->email) ?>" method="POST" action="<?= $b ?>/admin/members/<?= $lid ?>/approve" class="action-form-inline">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -289,13 +290,7 @@ $pendingNewCnt = count($pendingNew);
       ?>
       <span class="card-head-sub">Showing <?= $_puFrom ?>&ndash;<?= $_puTo ?> of <?= number_format($pendingPUTotal) ?> update<?= $pendingPUTotal !== 1 ? 's' : '' ?></span>
       <div class="actions-row actions-row--right actions-row--wrap">
-        <form method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
-              class="action-form-inline"
-              data-confirm="Approve all <?= $pendingPUTotal ?> pending update(s)? Changes will be applied immediately.">
-          <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
-          <input type="hidden" name="_listing_id" value="<?= $lid ?>">
-          <button type="submit" class="btn btn-success btn-sm">Approve All Updates</button>
-        </form>
+        <button type="button" class="btn btn-success btn-sm" data-submit-form="approve-all-updates-form">Approve All Updates</button>
       </div>
     </div>
     <div class="bulk">
@@ -368,18 +363,9 @@ $pendingNewCnt = count($pendingNew);
             </td>
             <td class="actions-col" data-label="">
               <div class="actions-row">
-                <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve" class="action-form-inline">
-                  <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="_listing_id" value="<?= $lid ?>">
-                  <button type="submit" class="btn btn-success btn-xs">Approve</button>
-                </form>
+                <button type="submit" form="approve-update-<?= (int) $pu->id ?>" class="btn btn-success btn-xs">Approve</button>
                 <a href="<?= $b ?>/admin/members/<?= $lid ?>/edit?email=<?= urlencode($pu->member_email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
-                <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
-                      data-del-modal data-del-entity="pending_update_reject" data-del-name="<?= View::e($pu->member_email) ?>">
-                  <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="_listing_id" value="<?= $lid ?>">
-                  <button type="submit" class="btn btn-danger btn-xs">Reject</button>
-                </form>
+                <button type="submit" form="reject-update-<?= (int) $pu->id ?>" class="btn btn-danger btn-xs">Reject</button>
               </div>
             </td>
           </tr>
@@ -389,6 +375,26 @@ $pendingNewCnt = count($pendingNew);
     </div>
   </div>
 </form>
+
+<form id="approve-all-updates-form" method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
+      class="action-form-inline"
+      data-confirm="Approve all <?= $pendingPUTotal ?> pending update(s)? Changes will be applied immediately.">
+  <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="_listing_id" value="<?= $lid ?>">
+</form>
+
+<?php foreach ($pendingPUs as $pu): ?>
+  <form id="approve-update-<?= (int) $pu->id ?>" method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve" class="action-form-inline">
+    <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="_listing_id" value="<?= $lid ?>">
+  </form>
+  <form id="reject-update-<?= (int) $pu->id ?>" method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
+        data-del-modal data-del-entity="pending_update_reject" data-del-name="<?= View::e($pu->member_email) ?>">
+    <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="_listing_id" value="<?= $lid ?>">
+  </form>
+<?php endforeach; ?>
+
 <?php
 if ($pendingPUPages > 1):
     $pg_current = $puPage;
@@ -460,6 +466,7 @@ endif;
             <th><a href="<?= View::e($sortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('email')) ?>" class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">Email <?= View::sortIcon('email', $sort, $dir) ?></a></th>
             <th><a href="<?= View::e($sortUrl('country')) ?>" class="sort-th<?= $sort === 'country' ? ' sort-active' : '' ?>">Country <?= View::sortIcon('country', $sort, $dir) ?></a></th>
+            <th>Date Joined</th>
             <?php foreach ($fields as $field): ?>
               <th><?= View::e($field->label) ?></th>
             <?php endforeach; ?>
@@ -483,6 +490,7 @@ endif;
             </td>
             <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
             <td class="text-muted" data-label="Country"><?= View::e($m->country) ?></td>
+            <td class="text-muted cell-meta-nowrap" data-label="Date Joined"><?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?></td>
             <?php foreach ($fields as $field): ?>
               <td class="text-muted" data-label="<?= View::e($field->label) ?>"><?= View::e($m->additionalFields[$field->name] ?? '') ?></td>
             <?php endforeach; ?>
@@ -678,12 +686,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
   <div class="card"><div class="card-head"><?= View::icon('pending') ?> Pending New Members</span>
       <span class="card-head-sub">Showing <?= $_newFrom ?>&ndash;<?= $_newTo ?> of <?= number_format($_totalNew) ?> member<?= $_totalNew !== 1 ? 's' : '' ?></span>
       <div class="actions-row actions-row--right actions-row--wrap">
-        <form method="POST" action="<?= $b ?>/admin/members/approve-all-overview"
-              class="action-form-inline"
-              data-confirm="Approve all pending items across all listings? This will send approval emails.">
-          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-          <button type="submit" class="btn btn-success btn-sm">Approve All Pending</button>
-        </form>
+        <button type="button" class="btn btn-success btn-sm" data-submit-form="approve-all-overview-form">Approve All Pending</button>
       </div>
     </div>
     <div class="bulk">
@@ -743,29 +746,13 @@ $_newTo         = min($_totalNew, $page * $per_page);
             <td data-label="Country"><?= View::e($m->country) ?></td>
             <td class="actions-col" data-label="">
               <div class="actions-row">
-                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
-                  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
-                  <input type="hidden" name="_from_global" value="1">
-                  <button type="submit" class="btn btn-success btn-xs">Approve</button>
-                </form>
-                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/reject" class="action-form-inline">
-                  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
-                  <input type="hidden" name="_from_global" value="1">
-                  <button type="submit" class="btn btn-warning btn-xs">Reject</button>
-                </form>
+                <button type="submit" form="global-approve-<?= $flId ?>-<?= md5($m->email) ?>" class="btn btn-success btn-xs">Approve</button>
+                <button type="submit" form="global-reject-<?= $flId ?>-<?= md5($m->email) ?>" class="btn btn-warning btn-xs">Reject</button>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>"
                    class="btn btn-tertiary btn-xs">Edit</a>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
                    class="btn btn-secondary btn-xs">Email</a>
-                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/delete"
-                      data-del-modal data-del-entity="member" data-del-name="<?= View::e($m->name) ?>">
-                  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
-                  <input type="hidden" name="_from_global" value="1">
-                  <button type="submit" class="btn btn-danger btn-xs">Delete</button>
-                </form>
+                <button type="submit" form="global-delete-<?= $flId ?>-<?= md5($m->email) ?>" class="btn btn-danger btn-xs">Delete</button>
               </div>
             </td>
           </tr>
@@ -775,6 +762,35 @@ $_newTo         = min($_totalNew, $page * $per_page);
     </div>
   </div>
 </form>
+
+<form id="approve-all-overview-form" method="POST" action="<?= $b ?>/admin/members/approve-all-overview"
+      class="action-form-inline"
+      data-confirm="Approve all pending items across all listings? This will send approval emails.">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+</form>
+
+<?php foreach ($_allPendingNew as $row):
+  $fl   = $row['listing'];
+  $m    = $row['member'];
+  $flId = (int) $fl->id;
+?>
+  <form id="global-approve-<?= $flId ?>-<?= md5($m->email) ?>" method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
+    <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
+    <input type="hidden" name="_from_global" value="1">
+  </form>
+  <form id="global-reject-<?= $flId ?>-<?= md5($m->email) ?>" method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/reject" class="action-form-inline">
+    <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
+    <input type="hidden" name="_from_global" value="1">
+  </form>
+  <form id="global-delete-<?= $flId ?>-<?= md5($m->email) ?>" method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/delete"
+        data-del-modal data-del-entity="member" data-del-name="<?= View::e($m->name) ?>">
+    <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
+    <input type="hidden" name="_from_global" value="1">
+  </form>
+<?php endforeach; ?>
 <?php
 if (($pages ?? 1) > 1):
     $pg_current = $page;
@@ -798,13 +814,7 @@ endif;
       ?>
       <span class="card-head-sub">Showing <?= $_puFrom ?>&ndash;<?= $_puTo ?> of <?= number_format($_totalUpdates) ?> update<?= $_totalUpdates !== 1 ? 's' : '' ?></span>
       <div class="actions-row actions-row--right actions-row--wrap">
-        <form method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
-              class="action-form-inline"
-              data-confirm="Approve all <?= $_totalUpdates ?> pending update(s) across all listings? Changes will be applied immediately.">
-          <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
-          <input type="hidden" name="_listing_id" value="0">
-          <button type="submit" class="btn btn-success btn-sm">Approve All Updates</button>
-        </form>
+        <button type="button" class="btn btn-success btn-sm" data-submit-form="approve-all-updates-overview-form">Approve All Updates</button>
       </div>
     </div>
     <div class="bulk">
@@ -894,16 +904,9 @@ endif;
             <td data-label="Submitted" class="cell-meta-nowrap"><?= View::e($pu->submitted_at) ?></td>
             <td class="actions-col" data-label="">
               <div class="actions-row">
-                <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve" class="action-form-inline">
-                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                  <button type="submit" class="btn btn-success btn-xs">Approve</button>
-                </form>
+                <button type="submit" form="approve-update-overview-<?= (int) $pu->id ?>" class="btn btn-success btn-xs">Approve</button>
                 <a href="<?= $b ?>/admin/members/<?= $puFlId ?>/edit?email=<?= urlencode($pu->member_email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
-                <form method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
-                      data-del-modal data-del-entity="pending_update_reject" data-del-name="<?= View::e($pu->member_email) ?>">
-                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                  <button type="submit" class="btn btn-danger btn-xs">Reject</button>
-                </form>
+                <button type="submit" form="reject-update-overview-<?= (int) $pu->id ?>" class="btn btn-danger btn-xs">Reject</button>
               </div>
             </td>
           </tr>
@@ -913,6 +916,23 @@ endif;
     </div>
   </div>
 </form>
+
+<form id="approve-all-updates-overview-form" method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
+      class="action-form-inline"
+      data-confirm="Approve all <?= $_totalUpdates ?> pending update(s) across all listings? Changes will be applied immediately.">
+  <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="_listing_id" value="0">
+</form>
+
+<?php foreach ($_puSlice as $pu): ?>
+  <form id="approve-update-overview-<?= (int) $pu->id ?>" method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve" class="action-form-inline">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  </form>
+  <form id="reject-update-overview-<?= (int) $pu->id ?>" method="POST" action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
+        data-del-modal data-del-entity="pending_update_reject" data-del-name="<?= View::e($pu->member_email) ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  </form>
+<?php endforeach; ?>
 <?php
 if ($_puPages > 1):
     $pg_current = $puPage;
