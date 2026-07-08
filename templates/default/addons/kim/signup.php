@@ -42,8 +42,7 @@ if (isset($form_html) && $form_html !== null) {
 <div class="fl-embed fl-embed--kim-signup"><div class="fl-kim">
     <h2 class="fl-kim-heading">KIM List &mdash; Sign Up</h2>
     <p class="fl-kim-intro">
-      KIM (Keep In Mind) is an adoption interest registry. If a fanlisting owner might
-      someday give up their listing, you can sign up here to express interest in adopting it.
+      Want to be kept in mind if a listing becomes available for adoption? Sign up below.
     </p>
 
     <?php if ($errors !== ''): ?>

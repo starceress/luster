@@ -24,8 +24,6 @@ $_linkListBase = isset($link_list_base) && $link_list_base !== '' ? $link_list_b
 <div class="fl-embed fl-embed--kim-list"><div class="fl-kim">
   <h2 class="fl-kim-heading">KIM List</h2>
   <p class="fl-kim-intro">
-    KIM (Keep In Mind) is an adoption interest registry. The numbers below show how many
-    people have expressed interest in adopting each fanlisting if it ever becomes available.
     <?php if ($_linkSignup !== null): ?><a href="<?= View::e($_linkSignup) ?>">Sign up</a> to add your name to a fanlisting's list.<?php endif; ?>
   </p>
 
