@@ -452,7 +452,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                      value="<?= View::e($aurl) ?>"
                      placeholder="https://thefanlistings.org/tfl/all/..."
                      style="flex:1">
-              <button type="button" id="fl-tfl-lookup-btn" class="btn btn-ghost"
+              <button type="button" id="fl-tfl-lookup-btn" class="btn btn-quaternary"
                       data-listing-id="<?= (int) ($listing->id ?? 0) ?>"
                       data-endpoint="<?= $b ?>/admin/tfl-lookup">Look up</button>
             </div>

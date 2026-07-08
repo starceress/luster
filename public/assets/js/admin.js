@@ -7638,13 +7638,13 @@ document.addEventListener('click', function (e) {
 
           if (data.url) {
             html += '<p class="form-hint"><strong>Exact match found:</strong> '
-              + '<a href="' + esc(data.url) + '" target="_blank" rel="noopener noreferrer">' + esc(data.url) + '</a> '
-              + '&mdash; <button type="button" class="link" data-use-url="' + esc(data.url) + '">Use this URL</button></p>';
+              + '<a href="' + esc(data.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(data.url) + '</a> '
+              + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(data.url) + '">Use this URL</button></p>';
           } else if (data.candidates && data.candidates.length > 0) {
             html += '<p class="form-hint"><strong>No exact match. Possible matches:</strong></p><ul style="margin:.25rem 0 0 1rem;font-size:.85rem">';
             data.candidates.forEach(function (c) {
-              html += '<li><a href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer">' + esc(c.text) + '</a> '
-                + '&mdash; <button type="button" class="link" data-use-url="' + esc(c.url) + '">Use</button></li>';
+              html += '<li><a href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(c.text) + '</a> '
+                + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(c.url) + '">Use</button></li>';
             });
             html += '</ul>';
           } else {
