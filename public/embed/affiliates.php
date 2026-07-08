@@ -40,6 +40,10 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
+// Started here (not just implicitly via the nested affiliate-apply.php require
+// below) so the pending-feedback peek below reads a populated $_SESSION rather
+// than an empty one from before session_start() has run.
+$_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
 // 2. Resolve parameters
