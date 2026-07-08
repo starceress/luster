@@ -2486,8 +2486,16 @@ final class ListingController extends AdminController
             $tpl, [], [], [], $uploadsUrl, [], [], $listing->title ?? '',
         );
 
+        // The Empty State pass reuses the same {codes_submit_toggle}/{codes_submit_form}
+        // content as the main pass above, but with the wrap div's id (and the toggle's
+        // matching data-fl-toggle/aria-controls) remapped to a distinct value — both
+        // sections can render on the same preview page, and without this they'd share
+        // one DOM id, breaking the toggle's JS wiring for whichever one isn't first.
+        $csToggleEmpty = str_replace('fl-codes-submit-form-preview', 'fl-codes-submit-form-preview-empty', $csResult['toggle']);
+        $csFormEmpty   = str_replace('fl-codes-submit-form-preview', 'fl-codes-submit-form-preview-empty', $csResult['form']);
+
         $html  = str_replace([$csTogglePlaceholder, $csFormPlaceholder], [$csResult['toggle'], $csResult['form']], (string) $html);
-        $empty = str_replace([$csTogglePlaceholder, $csFormPlaceholder], ['', ''], (string) $empty);
+        $empty = str_replace([$csTogglePlaceholder, $csFormPlaceholder], [$csToggleEmpty, $csFormEmpty], (string) $empty);
 
         return $this->previewSectionLabel(empty($codes) ? 'Empty State' : 'Active Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>')
             . (empty($codes) ? '' : $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>'));
@@ -3632,8 +3640,14 @@ final class ListingController extends AdminController
             $tpl, [], [], [], $uploadsUrl, [], [], SampleTemplateData::LISTING_TITLE,
         );
 
+        // See the matching comment in ltplPreviewCodes() -- the Empty State pass reuses
+        // the same toggle/form content but with the id remapped so both sections can
+        // coexist on the preview page without a duplicate-DOM-id JS wiring conflict.
+        $csToggleEmpty = str_replace('fl-codes-submit-form-gpreview', 'fl-codes-submit-form-gpreview-empty', $csToggle);
+        $csFormEmpty   = str_replace('fl-codes-submit-form-gpreview', 'fl-codes-submit-form-gpreview-empty', $csFormTokenHtml);
+
         $html  = str_replace([$csTogglePlaceholder, $csFormPlaceholder], [$csToggle, $csFormTokenHtml], (string) $html);
-        $empty = str_replace([$csTogglePlaceholder, $csFormPlaceholder], ['', ''], (string) $empty);
+        $empty = str_replace([$csTogglePlaceholder, $csFormPlaceholder], [$csToggleEmpty, $csFormEmpty], (string) $empty);
 
         return $this->previewSectionLabel(empty($codes) ? 'Empty State' : 'Sample Data') . ($html ?: '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>')
             . (empty($codes) ? '' : $this->previewSectionLabel('Empty State') . ($empty ?: '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>'));
