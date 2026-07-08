@@ -4,10 +4,14 @@
  Copyright (c) 2026 Star (https://dreamesque.net)
 
  Searches TFL and TAFL for the approval-page URL of a fanlisting, given its
- subject. Fetches the network's approved-listings index page via the existing
- DNS-pinned, TLS-verified LinkChecker transport and caches the parsed link map
- in lstr_site_settings for 24 hours. Returns up to 10 candidate matches for
- the admin to review; the admin must explicitly save any URL they want to keep.
+ subject and the listing's assigned network category. Both networks require
+ browsing into a specific category before any individual fanlisting entries
+ are visible — there is no site-wide index or search endpoint on either
+ network — so the listing's category (matched against a hardcoded name→slug
+ table verified against each network's live site) picks which page(s) get
+ crawled. Results are cached per (network, slug) pair in lstr_site_settings
+ for 24 hours. Returns up to 10 candidate matches for the admin to review;
+ the admin must explicitly save any URL they want to keep.
 */
 
 declare(strict_types=1);
@@ -19,84 +23,160 @@ use Luster\Repositories\SiteSettingsRepo;
 /**
  * TFL/TAFL approval URL lookup helper.
  *
- * Fetches and caches the approved-listings index page for TFL or TAFL, parses
- * all hyperlinks, and searches for text matching the given fanlisting subject.
- * Results are candidates only — the admin confirms before saving.
+ * TFL ("thefanlistings.org"): each top-level category page
+ * (`browse.php?show={slug}`) either lists entries directly or links out to
+ * further subcategory pages (`browse.php?show={slug}&start=N`). Individual
+ * fanlisting entries are rendered as `<span class="two"><a>...</a></span>`.
+ * We crawl the category page plus every subcategory page it links to.
+ *
+ * TAFL ("animefanlistings.com"): each category has a dedicated
+ * `browse/{slug}/all` view that lists every entry in that category in one
+ * page, rendered as plain `<a href="..." target="_blank">Title</a>` links to
+ * external sites (as opposed to TAFL's own internal navigation links).
+ *
+ * Both networks require picking a category before any fanlisting names are
+ * visible at all — there's no site-wide index page or public search endpoint
+ * that lists them — so a match is only possible when the listing has a
+ * recognised TFL/TAFL category assigned.
  */
 final class TflLookupService
 {
-    private const TFL_INDEX_URL  = 'https://thefanlistings.org/approved.php';
-    private const TAFL_INDEX_URL = 'https://www.animefanlistings.com/approved.php';
-
     private const CACHE_TTL = 86400; // 24 hours in seconds
 
-    private const CACHE_KEYS = [
-        'tfl'  => ['links' => 'tfl_link_map_json',  'at' => 'tfl_link_map_fetched_at'],
-        'tafl' => ['links' => 'tafl_link_map_json', 'at' => 'tafl_link_map_fetched_at'],
+    /**
+     * Luster category name (as seeded by CategorySeedCatalog::tfl()) → TFL's
+     * real `browse.php?show=` slug. Verified directly against TFL's live
+     * category index; categories with no matching entry there (e.g.
+     * "Anime/Manga", "Magazines/Newspapers", "Radio") are intentionally
+     * omitted rather than guessed.
+     */
+    private const TFL_CATEGORY_SLUGS = [
+        'Academia'                          => 'academia',
+        'Actors'                            => 'actors',
+        'Actresses'                         => 'actresses',
+        'Adult'                             => 'adult',
+        'Advertising/TV Channels'           => 'advertisingtvchannels',
+        'Albums'                            => 'albums',
+        'Animals'                           => 'animals',
+        'Animation'                         => 'animation',
+        'Arts and Design'                   => 'artsdesign',
+        'Authors/Writers'                   => 'authorswriters',
+        'Calendar Events'                   => 'calendarevents',
+        'Characters: Book/Movie'            => 'charactersbookmovie',
+        'Characters: TV'                    => 'characterstv',
+        'Comics'                            => 'comics',
+        'Companies'                         => 'companies',
+        'Computer Miscellany and Internet'  => 'computermiscellanyinternet',
+        'Directors/Producers'               => 'directorsproducers',
+        'Episodes'                          => 'episodes',
+        'Fan Works'                         => 'fanworks',
+        'Fashion/Beauty'                    => 'fashionbeauty',
+        'Food/Drinks'                       => 'fooddrinks',
+        'Games'                             => 'games',
+        'History/Royalty'                   => 'historyroyalty',
+        'Hobbies and Recreation'            => 'hobbiesandrecreation',
+        'Literature'                        => 'literature',
+        'Miscellaneous'                     => 'miscellaneous',
+        'Models'                            => 'models',
+        'Movies'                            => 'movies',
+        'Music Miscellany'                  => 'musicmiscellany',
+        'Musicians: Bands/Groups'           => 'musiciansbandsgroups',
+        'Musicians: Female'                 => 'musiciansfemale',
+        'Musicians: Male'                   => 'musiciansmale',
+        'Mythology/Religion'                => 'mythologyreligion',
+        'Nature'                            => 'nature',
+        'Objects'                           => 'objects',
+        'People Miscellany'                 => 'peoplemiscellany',
+        'Personalities'                     => 'personalities',
+        'Places'                            => 'places',
+        'Politics and Organisations'        => 'politicsorganisations',
+        'Relationships: Book/Movie'         => 'relationshipsbookmovie',
+        'Relationships: Real Life'          => 'relationshipsreallife',
+        'Relationships: TV'                 => 'relationshipstv',
+        'Songs: Bands/Groups 0-M'           => 'songsbandsgroups0m',
+        'Songs: Bands/Groups N-Z'           => 'songsbandsgroupsnz',
+        'Songs: Female Solo'                => 'songsfemalesolo',
+        'Songs: Male Solo'                  => 'songsmalesolo',
+        'Songs: Various'                    => 'songsvarious',
+        'Sports'                            => 'sports',
+        'Sports Entertainment'              => 'sportsentertainment',
+        'Stage/Theatre'                     => 'stagetheatre',
+        'Toys/Collectibles'                 => 'toyscollectibles',
+        'Transportation'                    => 'transportation',
+        'TV Shows'                          => 'tvshows',
+        'TV/Movie/Book Miscellany'          => 'tvmoviebookmiscellany',
+        'Webmasters'                        => 'webmasters',
+        'Websites'                          => 'websites',
+    ];
+
+    /**
+     * Luster category name (as seeded by CategorySeedCatalog::tafl()) →
+     * TAFL's real `browse/{slug}` path segment. TAFL was rebuilt on a
+     * different platform than TFL and only these categories were verified
+     * against its live site; others fall back to a "not supported yet"
+     * message rather than guessing a URL.
+     */
+    private const TAFL_CATEGORY_SLUGS = [
+        'Anime/Manga: Characters 0-M'      => 'characters_0m',
+        'Anime/Manga: Characters N-Z'      => 'characters_nz',
+        'Anime/Manga: Episodes'            => 'episodes',
+        'Anime/Manga: General'             => 'general',
+        'Anime/Manga: Items/Locations'     => 'items',
+        'Anime/Manga: Manga-ka & Directors' => 'mangaka',
+        'Anime/Manga: Movies/OVAs'         => 'movies',
+        'Anime/Manga: Music & Songs'       => 'musicandsongs',
+        'Anime/Manga: Relationships'       => 'relationships',
+        'Anime/Manga: Rivalries'           => 'rivalries',
+        'Anime/Manga: Series'              => 'series',
+        'Anime/Manga: Seiyuu'              => 'seiyuu',
     ];
 
     /**
      * Searches TFL or TAFL for a fanlisting's approval URL by subject.
      *
-     * Fetches (or reads from cache) the network's approved-listings index page,
-     * then searches all hyperlinks for text matching $subject. Returns:
-     *   url        — the exact-match URL when one is found, else null
-     *   candidates — up to 10 partial/fuzzy matches for the admin to choose from
-     *   error      — human-readable message when the page could not be fetched
+     * The listing's own category name (matching CategorySeedCatalog::tfl()
+     * or ::tafl()) must be supplied — neither network exposes a page listing
+     * every approved fanlisting, so there's nothing to search without one.
      *
-     * @return array{url: ?string, candidates: list<array{text: string, url: string}>, error: ?string}
+     * @return array{url: ?string, candidates: list<array{text: string, url: string}>, error: ?string, cache_age: ?int}
      */
-    public static function lookup(string $subject, string $network, SiteSettingsRepo $siteRepo): array
+    public static function lookup(string $subject, string $network, SiteSettingsRepo $siteRepo, ?string $categoryName = null): array
     {
         if (!in_array($network, ['tfl', 'tafl'], true)) {
-            return ['url' => null, 'candidates' => [], 'error' => 'Unknown network.'];
+            return ['url' => null, 'candidates' => [], 'error' => 'Unknown network.', 'cache_age' => null];
         }
 
-        [$links, $fetchError] = self::getCachedLinks($network, $siteRepo);
+        $label = $network === 'tfl' ? 'TFL' : 'TAFL';
+
+        $categoryName = trim((string) $categoryName);
+        if ($categoryName === '') {
+            return [
+                'url'        => null,
+                'candidates' => [],
+                'error'      => "This listing has no {$label} category assigned. Assign one under Categories, then try Look Up again, or enter the URL manually.",
+                'cache_age'  => null,
+            ];
+        }
+
+        $slugMap = $network === 'tfl' ? self::TFL_CATEGORY_SLUGS : self::TAFL_CATEGORY_SLUGS;
+        $slug    = $slugMap[$categoryName] ?? null;
+
+        if ($slug === null || !preg_match('/^[a-z0-9_]+$/', $slug)) {
+            return [
+                'url'        => null,
+                'candidates' => [],
+                'error'      => "Automatic {$label} lookup isn't available yet for the \"{$categoryName}\" category. Enter the URL manually.",
+                'cache_age'  => null,
+            ];
+        }
+
+        [$links, $fetchError, $cacheAge] = self::getCachedLinksForSlug($network, $slug, $siteRepo);
 
         if ($links === null) {
-            return ['url' => null, 'candidates' => [], 'error' => $fetchError ?? 'Could not fetch the network index page.'];
+            return ['url' => null, 'candidates' => [], 'error' => $fetchError ?? 'Could not fetch the network page.', 'cache_age' => null];
         }
 
-        return self::searchLinks($links, $subject) + ['error' => null];
-    }
-
-    /**
-     * Returns the cache age in seconds for the given network, or null if not cached.
-     */
-    public static function cacheAge(string $network, SiteSettingsRepo $siteRepo): ?int
-    {
-        $keyAt = self::CACHE_KEYS[$network]['at'] ?? null;
-        if ($keyAt === null) {
-            return null;
-        }
-        $at = $siteRepo->get($keyAt);
-        if ($at === null || $at === '') {
-            return null;
-        }
-        return max(0, time() - (int) $at);
-    }
-
-    /**
-     * Forces a fresh fetch of the network index page and updates the cache.
-     * Returns true on success, false if the fetch failed.
-     */
-    public static function refreshCache(string $network, SiteSettingsRepo $siteRepo): bool
-    {
-        if (!in_array($network, ['tfl', 'tafl'], true)) {
-            return false;
-        }
-
-        $url  = $network === 'tfl' ? self::TFL_INDEX_URL : self::TAFL_INDEX_URL;
-        $html = LinkChecker::safeGet($url);
-
-        if ($html === null || $html === '') {
-            return false;
-        }
-
-        $links = self::parseLinks($html);
-        self::storeCache($network, $links, $siteRepo);
-        return true;
+        return self::searchLinks($links, $subject) + ['error' => null, 'cache_age' => $cacheAge];
     }
 
     // -----------------------------------------------------------------------
@@ -104,60 +184,87 @@ final class TflLookupService
     // -----------------------------------------------------------------------
 
     /**
-     * @return array{list<array{text: string, url: string}>|null, ?string}
-     *   [links or null, error message or null]
+     * @return array{0: list<array{text: string, url: string}>|null, 1: ?string, 2: ?int}
+     *   [links or null, error message or null, cache age in seconds or null]
      */
-    private static function getCachedLinks(string $network, SiteSettingsRepo $siteRepo): array
+    private static function getCachedLinksForSlug(string $network, string $slug, SiteSettingsRepo $siteRepo): array
     {
-        $keys      = self::CACHE_KEYS[$network];
-        $fetchedAt = $siteRepo->get($keys['at']);
-        $cached    = $siteRepo->get($keys['links']);
+        $keyLinks = "{$network}_link_map_{$slug}_json";
+        $keyAt    = "{$network}_link_map_{$slug}_fetched_at";
+
+        $fetchedAt = $siteRepo->get($keyAt);
+        $cached    = $siteRepo->get($keyLinks);
 
         if ($fetchedAt !== null && $cached !== null && (time() - (int) $fetchedAt) < self::CACHE_TTL) {
             $links = json_decode($cached, true);
             if (is_array($links)) {
-                return [$links, null];
+                return [$links, null, max(0, time() - (int) $fetchedAt)];
             }
         }
 
-        // Cache expired or invalid — fetch fresh
-        $url  = $network === 'tfl' ? self::TFL_INDEX_URL : self::TAFL_INDEX_URL;
-        $html = LinkChecker::safeGet($url);
+        $links = $network === 'tfl' ? self::fetchTflLinks($slug) : self::fetchTaflLinks($slug);
 
-        if ($html === null) {
-            return [null, 'Could not connect to the network index page. The site may be down or temporarily unreachable.'];
+        if ($links === null) {
+            return [null, 'Could not connect to the network. The site may be down or temporarily unreachable.', null];
         }
 
-        if ($html === '') {
-            return [null, 'The network index page returned an empty response.'];
-        }
-
-        $links = self::parseLinks($html);
-        self::storeCache($network, $links, $siteRepo);
-        return [$links, null];
+        self::storeCache($keyLinks, $keyAt, $links, $siteRepo);
+        return [$links, null, 0];
     }
 
     /**
-     * Extracts all [text, url] pairs from the HTML body.
+     * Fetches a TFL category page and every subcategory page it links to
+     * (`browse.php?show={slug}&start=N`), aggregating every fanlisting entry
+     * found across all of them.
+     *
+     * @return list<array{text: string, url: string}>|null
+     */
+    private static function fetchTflLinks(string $slug): ?array
+    {
+        $baseUrl = 'https://thefanlistings.org/browse.php?show=' . $slug;
+        $html    = LinkChecker::safeGet($baseUrl);
+
+        if ($html === null) {
+            return null;
+        }
+
+        $links = self::parseTflEntries($html);
+
+        $starts = [];
+        if (preg_match_all('/browse\.php\?show=' . preg_quote($slug, '/') . '(?:&amp;|&)start=(\d+)/', $html, $m)) {
+            $starts = array_unique(array_map('intval', $m[1]));
+        }
+
+        foreach ($starts as $start) {
+            $subHtml = LinkChecker::safeGet($baseUrl . '&start=' . $start);
+            if ($subHtml !== null) {
+                $links = array_merge($links, self::parseTflEntries($subHtml));
+            }
+        }
+
+        return $links;
+    }
+
+    /**
+     * Extracts fanlisting entries from a TFL browse page. Real entries are
+     * rendered as `<span class="two"><a href="...">Title</a></span>`, which
+     * distinguishes them from ordinary navigation/subcategory links elsewhere
+     * on the same page.
      *
      * @return list<array{text: string, url: string}>
      */
-    private static function parseLinks(string $html): array
+    private static function parseTflEntries(string $html): array
     {
         $links = [];
 
-        if (!preg_match_all('/<a\b[^>]*\bhref=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/is', $html, $matches, PREG_SET_ORDER)) {
+        if (!preg_match_all('/<span class="two"><a\s+href="([^"]+)"[^>]*>(.*?)<\/a><\/span>/is', $html, $matches, PREG_SET_ORDER)) {
             return $links;
         }
 
         foreach ($matches as $m) {
-            $href = trim((string) $m[1]);
-            $text = trim(strip_tags((string) $m[2]));
+            $href = html_entity_decode(trim($m[1]), ENT_QUOTES | ENT_HTML5);
+            $text = trim(strip_tags(html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5)));
             if ($href === '' || $text === '') {
-                continue;
-            }
-            // Skip navigation/utility links (empty or very short text, anchor-only hrefs)
-            if (strlen($text) < 2 || $href[0] === '#') {
                 continue;
             }
             $links[] = ['text' => $text, 'url' => $href];
@@ -167,17 +274,76 @@ final class TflLookupService
     }
 
     /**
-     * Stores the parsed link list in lstr_site_settings as compact JSON.
+     * Fetches TAFL's "view all" page for a category, which lists every
+     * fanlisting entry in that category on one page.
+     *
+     * @return list<array{text: string, url: string}>|null
+     */
+    private static function fetchTaflLinks(string $slug): ?array
+    {
+        $html = LinkChecker::safeGet('https://www.animefanlistings.com/browse/' . $slug . '/all');
+
+        if ($html === null) {
+            return null;
+        }
+
+        return self::parseTaflEntries($html);
+    }
+
+    /**
+     * Extracts fanlisting entries from a TAFL "view all" page. Real entries
+     * are plain `<a href="..." target="_blank">Title</a>` links to external
+     * sites; TAFL's own internal navigation links also use target="_blank"
+     * in a few spots (social links in the header), so those are excluded by
+     * filtering out any href pointing back at animefanlistings.com.
+     *
+     * @return list<array{text: string, url: string}>
+     */
+    private static function parseTaflEntries(string $html): array
+    {
+        $links = [];
+
+        if (!preg_match_all('/<a\s+href="([^"]+)"[^>]*target="_blank"[^>]*>([^<]+)<\/a>/i', $html, $matches, PREG_SET_ORDER)) {
+            return $links;
+        }
+
+        foreach ($matches as $m) {
+            $href = html_entity_decode(trim($m[1]), ENT_QUOTES | ENT_HTML5);
+            $text = trim(html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5));
+            if ($href === '' || $text === '' || self::isTaflChromeLink($href)) {
+                continue;
+            }
+            $links[] = ['text' => $text, 'url' => $href];
+        }
+
+        return $links;
+    }
+
+    /**
+     * True when $href points at TAFL's own site or one of its fixed header/footer
+     * social links rather than a member's fanlisting — these also render as
+     * target="_blank" anchors alongside the real listing entries.
+     */
+    private static function isTaflChromeLink(string $href): bool
+    {
+        foreach (['animefanlistings.com', 'twitter.com', 'livejournal.com', 'w3.org'] as $chromeDomain) {
+            if (str_contains($href, $chromeDomain)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Stores a parsed link list in lstr_site_settings as compact JSON.
      *
      * @param list<array{text: string, url: string}> $links
      */
-    private static function storeCache(string $network, array $links, SiteSettingsRepo $siteRepo): void
+    private static function storeCache(string $keyLinks, string $keyAt, array $links, SiteSettingsRepo $siteRepo): void
     {
-        $keys = self::CACHE_KEYS[$network];
         $json = (string) json_encode($links, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         // TEXT column limit is 65 535 bytes; truncate the JSON array at a safe boundary
         if (strlen($json) > 60000) {
-            // Re-encode a truncated slice — keep as many entries as fit
             for ($n = count($links); $n > 0; $n--) {
                 $j = (string) json_encode(array_slice($links, 0, $n), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 if (strlen($j) <= 60000) {
@@ -186,8 +352,8 @@ final class TflLookupService
                 }
             }
         }
-        $siteRepo->set($keys['links'], $json);
-        $siteRepo->set($keys['at'], (string) time());
+        $siteRepo->set($keyLinks, $json);
+        $siteRepo->set($keyAt, (string) time());
     }
 
     /**

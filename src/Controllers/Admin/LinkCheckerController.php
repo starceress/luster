@@ -686,14 +686,13 @@ final class LinkCheckerController extends AdminController
         }
 
         $siteRepo = new SiteSettingsRepo($db);
-        $cacheAge = TflLookupService::cacheAge($network, $siteRepo);
-        $result   = TflLookupService::lookup($joined->name, $network, $siteRepo);
+        $result   = TflLookupService::lookup($joined->name, $network, $siteRepo, $joined->category);
 
         return Response::json([
             'url'        => $result['url'],
             'candidates' => $result['candidates'],
             'error'      => $result['error'],
-            'cache_age'  => $cacheAge,
+            'cache_age'  => $result['cache_age'],
         ]);
     }
 

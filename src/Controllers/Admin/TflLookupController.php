@@ -17,6 +17,7 @@ use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\TflLookupService;
+use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
@@ -69,16 +70,26 @@ final class TflLookupController
             return Response::json(['error' => 'Listing not found.', 'url' => null, 'candidates' => [], 'cache_age' => null]);
         }
 
-        $subject      = $listing->subject;
-        $siteRepo     = new SiteSettingsRepo($db);
-        $cacheAge     = TflLookupService::cacheAge($network, $siteRepo);
-        $result       = TflLookupService::lookup($subject, $network, $siteRepo);
+        $subject     = $listing->subject;
+        $siteRepo    = new SiteSettingsRepo($db);
+        $categoryRepo = new CategoryRepo($db);
+        $categoryName = null;
+
+        foreach ($listingRepo->getCategoryIdsForListing($listingId) as $categoryId) {
+            $category = $categoryRepo->getById($categoryId);
+            if ($category !== null && $category->source === $network) {
+                $categoryName = $category->name;
+                break;
+            }
+        }
+
+        $result = TflLookupService::lookup($subject, $network, $siteRepo, $categoryName);
 
         return Response::json([
             'url'        => $result['url'],
             'candidates' => $result['candidates'],
             'error'      => $result['error'],
-            'cache_age'  => $cacheAge,
+            'cache_age'  => $result['cache_age'],
         ]);
     }
 }
