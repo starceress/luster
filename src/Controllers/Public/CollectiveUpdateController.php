@@ -265,6 +265,12 @@ final class CollectiveUpdateController
         // Hash once; applied immediately to every selected listing (never queued)
         $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
 
+        // Tracks the address the confirmation email should go to. Starts as the
+        // verified (old) address; switches to the new one the moment an
+        // immediate (non-queued) email change is actually applied, since by
+        // that point the old address may no longer reach the member.
+        $confirmationEmail = $email;
+
         foreach ($selectedIds as $listingId) {
             $entry   = $validMap[$listingId];
             $listing = $entry['listing'];
@@ -324,11 +330,14 @@ final class CollectiveUpdateController
                 $memberRepo->update($listing->dbprefix, $email, $updateData);
                 self::rekeyOnEmailChange($this->app->getDatabase(), $this->app->getConfig(), $listingId, $email, $updateData);
                 $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                if (isset($updateData['email'])) {
+                    $confirmationEmail = $updateData['email'];
+                }
             }
         }
 
         if ($results['updated'] !== []) {
-            self::sendUpdateConfirmationEmail($this->app, $email, $results['updated']);
+            self::sendUpdateConfirmationEmail($this->app, $confirmationEmail, $results['updated']);
         }
 
         $sections = [];
