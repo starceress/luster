@@ -2131,14 +2131,19 @@ final class ListingController extends AdminController
 
         // Also show what the {if_sort_date}/{fan_added} join-date block looks like
         // when a fan actually sorts by Date Joined, since the main preview above
-        // (matching the embed's real default sort) never renders it.
+        // (matching the embed's real default sort) never renders it. Fetches its
+        // own slice via paginate(..., 'added') — paginateByStatus() above doesn't
+        // support date ordering, so reusing $members would show these rows in
+        // whatever order the default sort left them in, not actually by join date.
+        $dateSortedPage = $memberRepo->paginate($prefix, 1, 10, true, 'added');
+
         $dateSorted = MembersTemplateRenderer::render(
             $tpl,
-            $members,
+            $dateSortedPage['members'],
             $fields,
             (string) ($listing->url ?? '#'),
-            $total,
-            $total . ' member(s)',
+            $dateSortedPage['total'],
+            $dateSortedPage['total'] . ' member(s)',
             '<strong aria-current="page" class="fl-member-sort-link">Date Joined</strong>',
             '<a class="fl-member-sort-link" href="#">Name</a>',
             '<a class="fl-member-sort-link" href="#">Country</a>',
@@ -3240,14 +3245,19 @@ final class ListingController extends AdminController
 
         // Also show what the {if_sort_date}/{fan_added} join-date block looks like
         // when a fan actually sorts by Date Joined, since the main sample above
-        // (matching the embed's real default sort) never renders it.
+        // (matching the embed's real default sort) never renders it. Sorts its
+        // own copy by added so this stays correct even if SampleTemplateData's
+        // row order changes later — $members itself is left in its original order.
+        $membersByDate = $members;
+        usort($membersByDate, static fn($a, $b) => strcmp($a->added ?? '', $b->added ?? ''));
+
         $dateSorted = MembersTemplateRenderer::render(
             $tpl,
-            $members,
+            $membersByDate,
             $fields,
             '#',
-            count($members),
-            count($members) . ' member(s)',
+            count($membersByDate),
+            count($membersByDate) . ' member(s)',
             '<strong aria-current="page" class="fl-member-sort-link">Date Joined</strong>',
             '<a class="fl-member-sort-link" href="#">Name</a>',
             '<a class="fl-member-sort-link" href="#">Country</a>',
