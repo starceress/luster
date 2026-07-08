@@ -1546,8 +1546,8 @@ final class SettingsController extends AdminController
             . $f2['new_password'] . $f2['new_password_confirm']
             . '</fieldset>';
         $step2Html = '<div class="fl-collective-update">'
-            . '<p class="fl-form-intro"><strong>Updating memberships for:</strong> ' . $_e('fan@example.com') . '</p>'
-            . '<p class="fl-form-intro">Select the listings to apply changes to below, fill in any fields you want to change, and click <strong>Update Memberships</strong>. Leave a field blank to keep your current value.</p>'
+            . '<p class="fl-form-intro">Updating memberships for: ' . $_e('fan@example.com') . '</p>'
+            . '<p class="fl-form-intro">Select the listings to apply changes to below, fill in any fields you want to change, and click "Update Memberships." Leave a field blank to keep your current value.</p>'
             . $listingsHtml
             . $deleteMembershipHtml
             . $changesHtml

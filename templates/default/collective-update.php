@@ -35,8 +35,8 @@ use Luster\Support\DateFormatter;
   <input type="hidden" name="_luster_embed_form" value="collective_update">
   <input type="hidden" name="_cu_token" value="<?= View::e($raw_token) ?>">
   <div style="display:none" aria-hidden="true"><input type="text" name="website_confirm" tabindex="-1" autocomplete="off"></div>
-  <p class="fl-form-intro"><strong>Updating memberships for:</strong> <strong><?= $token_email ?></strong></p>
-  <p class="fl-form-intro">Select the fanlistings to apply changes to below, fill in any fields you want to change, and click <strong>Update Memberships</strong>. Leave a field blank to keep your current value.</p>
+  <p class="fl-form-intro">Updating memberships for: <strong><?= $token_email ?></strong></p>
+  <p class="fl-form-intro">Select the fanlistings to apply changes to below, fill in any fields you want to change, and click "Update Memberships." Leave a field blank to keep your current value.</p>
 
   <div class="fl-collective-update-table-wrap">
     <table class="fl-collective-update-table">
@@ -117,3 +117,4 @@ use Luster\Support\DateFormatter;
   </div>
 </form>
 <?php endif; ?>
+</div>
