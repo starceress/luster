@@ -1112,8 +1112,7 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{each_wishlist_item}&hellip;{/each_wishlist_item}</code></td><td>Repeat box for one wishlist item.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{item_subject}</code></td><td>The thing you want, love, or have been granted.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{item_url}</code></td><td>Link for the item, when saved.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{item_type}</code></td><td>Saved type word: <code>top</code>, <code>wanted</code>, or <code>granted</code>.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{item_type_label}</code></td><td>Friendly type label, such as Top, Wanted, or Granted.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{item_type}</code></td><td>The type label: Wanted, Top Wanted, or Granted.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{item_category}</code></td><td>Wishlist category, when saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{item_description}</code></td><td>Extra description text, when saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{item_image_url}</code></td><td>Direct link to the wishlist image, when one is uploaded.</td></tr>

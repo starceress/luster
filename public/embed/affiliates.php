@@ -51,7 +51,11 @@ $_lusterApp->getSession()->start();
 
 $_lusterListingId = (int) ($luster_fanlisting_id ?? 0);
 $_lusterPerPage      = max(1, (int) ($luster_per_page ?? 50));
-$_lusterPage         = max(1, (int) ($luster_page ?? ($_GET['page'] ?? 1)));
+// $luster_page sets which page shows first on a fresh visit (no ?page= yet).
+// $_GET['page'] always takes priority once present, so the pagination links
+// this file renders (via Pagination::render()) keep working after a click
+// instead of being permanently overridden back to $luster_page.
+$_lusterPage         = max(1, (int) ($_GET['page'] ?? ($luster_page ?? 1)));
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
@@ -140,10 +144,45 @@ $_lusterPagination = Pagination::render(
 // 5. Render fragment
 // ---------------------------------------------------------------------------
 
-// Apply page-level section template when set
+// {affiliate_apply_toggle} / {affiliate_apply_form} — trigger button + a
+// separately-placed form, shown/hidden via fl-embed.js. Built unconditionally
+// (not just when a section template references the tokens) so the hardcoded
+// PHP fallback fragment (templates/default/affiliates.php, used when nothing
+// is customized at any tier) can show the same apply CTA as a templated one.
+$e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$_lusterToggleHtml    = '';
+$_lusterFormTokenHtml = '';
+$_lusterApplyEnabled = false;
+$_lusterApplyStyle   = 'button';
+$_lusterApplyLabel   = 'Apply to become an affiliate?';
+if ($_lusterListingId > 0) {
+    $_lusterAffApplySettings = $_lusterSettingsRepo->getAffiliateApplySettings($_lusterListingId);
+    $_lusterApplyEnabled     = (bool) ($_lusterAffApplySettings['enabled'] ?? false);
+    $_lusterSiteRepoFallback = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterApp->getDatabase());
+    $_lusterApplyStyle       = $_lusterSettingsRepo->getAffiliateApplyStyle($_lusterListingId)
+        ?? $_lusterSiteRepoFallback->get('global_affiliate_apply_style')
+        ?? 'button';
+    $_lusterApplyLabel       = $_lusterSettingsRepo->getAffiliateApplyToggleLabel($_lusterListingId)
+        ?? $_lusterSiteRepoFallback->get('global_affiliate_apply_toggle_label')
+        ?? 'Apply to become an affiliate?';
+} else {
+    $_lusterSiteRepoToggle  = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterApp->getDatabase());
+    $_lusterApplyEnabled    = ($_lusterSiteRepoToggle->get('collective_affiliate_apply_enabled') ?? '1') === '1';
+    $_lusterApplyStyle      = (string) ($_lusterSiteRepoToggle->get('collective_affiliate_apply_style') ?? 'button');
+    if (!in_array($_lusterApplyStyle, ['link', 'button'], true)) {
+        $_lusterApplyStyle = 'button';
+    }
+    $_lusterApplyLabel = (string) ($_lusterSiteRepoToggle->get('collective_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
+}
+
+// Apply page-level section template when set — resolve the {each_affiliate}
+// loop and {if_affiliates}/{if_no_affiliates} conditionals FIRST, so the
+// apply-form decision below reflects the actually-active branch rather than
+// just whether the raw template mentions the tokens anywhere (which could be
+// inside a branch that isn't even active, e.g. {if_no_affiliates} while the
+// listing currently has affiliates).
 $_lusterSectionHtml = null;
 if ($_lusterSectionTemplate !== null) {
-    $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterTpl = $_lusterSectionTemplate;
 
     // {each_affiliate}...{/each_affiliate} — inline per-row loop block.
@@ -162,7 +201,49 @@ if ($_lusterSectionTemplate !== null) {
         $_lusterSectionHtml = preg_replace('/\{if_affiliates\}.*?\{\/if_affiliates\}/s', '', $_lusterTpl) ?? $_lusterTpl;
         $_lusterSectionHtml = str_replace(['{if_no_affiliates}', '{/if_no_affiliates}'], '', $_lusterSectionHtml);
     }
+}
 
+// Only build the nested apply form when it will actually be used: either
+// there's no custom/global section template at all (the PHP fallback
+// fragment always renders the CTA), or the resolved (post-conditional)
+// output still references the tokens. Otherwise a custom display template
+// that only puts the tokens inside a branch that isn't currently active
+// would still pull in affiliate-apply.php, which consumes/clears its own
+// scoped flash success/error keys — silently swallowing the feedback meant
+// for a genuinely separate affiliate-apply.php embed placed elsewhere on
+// the same page.
+$_lusterWillUseInlineApplyForm = $_lusterSectionTemplate === null
+    || ($_lusterSectionHtml !== null
+        && (str_contains($_lusterSectionHtml, '{affiliate_apply_toggle}') || str_contains($_lusterSectionHtml, '{affiliate_apply_form}')));
+
+if ($_lusterApplyEnabled && $_lusterWillUseInlineApplyForm) {
+    $_lusterAffApplyMarker = 'affiliate_apply:' . $_lusterListingId;
+    $_lusterAffHasFeedback = $_lusterApp->getSession()->get('lstr_flash_success_html:' . $_lusterAffApplyMarker) !== null
+                          || $_lusterApp->getSession()->get('lstr_flash_error:' . $_lusterAffApplyMarker) !== null;
+
+    $_lusterReturnOrig = $luster_return ?? false;
+    $luster_return     = true;
+    $_lusterApplyFormHtml = (string) require __DIR__ . '/affiliate-apply.php';
+    $luster_return     = $_lusterReturnOrig;
+
+    $_lusterAffFormId = 'fl-affiliate-apply-form-' . $_lusterListingId;
+    $_lusterAffTag    = $_lusterApplyStyle === 'link' ? 'a' : 'button';
+    $_lusterAffAttrs  = $_lusterApplyStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
+
+    $_lusterToggleHtml = '<' . $_lusterAffTag . ' class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($_lusterApplyStyle) . '"'
+        . $_lusterAffAttrs
+        . ' data-fl-toggle="' . $e($_lusterAffFormId) . '" aria-expanded="' . ($_lusterAffHasFeedback ? 'true' : 'false') . '" aria-controls="' . $e($_lusterAffFormId) . '">'
+        . $e($_lusterApplyLabel)
+        . '</' . $_lusterAffTag . '>';
+
+    $_lusterFormTokenHtml = '<div class="fl-affiliate-apply-form-wrap" id="' . $e($_lusterAffFormId) . '"' . ($_lusterAffHasFeedback ? '' : ' hidden') . '>'
+        . $_lusterApplyFormHtml
+        . '</div>';
+}
+
+// Substitute the remaining page-level tokens now that the toggle/form html
+// (if any) has been built.
+if ($_lusterSectionTemplate !== null) {
     if ($_lusterListingId > 0) {
         $_lusterAffApplySettings = $_lusterSettingsRepo->getAffiliateApplySettings($_lusterListingId);
         $_lusterAffApplyUrl      = \Luster\Support\ListingFormUrlResolver::resolve(
@@ -180,72 +261,15 @@ if ($_lusterSectionTemplate !== null) {
         );
     }
 
-    // {affiliate_apply_toggle} / {affiliate_apply_form} — trigger button + a
-    // separately-placed form, shown/hidden via fl-embed.js. Kept as two
-    // tokens (rather than one self-contained blob) so a template can put the
-    // trigger inline with other text without the form disrupting that flow.
-    $_lusterToggleHtml = '';
-    $_lusterFormTokenHtml = '';
-    if (str_contains($_lusterSectionHtml, '{affiliate_apply_toggle}') || str_contains($_lusterSectionHtml, '{affiliate_apply_form}')) {
-        $_lusterApplyEnabled = false;
-        $_lusterApplyStyle   = 'button';
-
-        $_lusterApplyLabel = 'Apply to become an affiliate?';
-        if ($_lusterListingId > 0) {
-            $_lusterAffApplySettings = $_lusterSettingsRepo->getAffiliateApplySettings($_lusterListingId);
-            $_lusterApplyEnabled     = (bool) ($_lusterAffApplySettings['enabled'] ?? false);
-            $_lusterSiteRepoFallback = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterApp->getDatabase());
-            $_lusterApplyStyle       = $_lusterSettingsRepo->getAffiliateApplyStyle($_lusterListingId)
-                ?? $_lusterSiteRepoFallback->get('global_affiliate_apply_style')
-                ?? 'button';
-            $_lusterApplyLabel       = $_lusterSettingsRepo->getAffiliateApplyToggleLabel($_lusterListingId)
-                ?? $_lusterSiteRepoFallback->get('global_affiliate_apply_toggle_label')
-                ?? 'Apply to become an affiliate?';
-        } else {
-            $_lusterSiteRepoToggle  = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterApp->getDatabase());
-            $_lusterApplyEnabled    = ($_lusterSiteRepoToggle->get('collective_affiliate_apply_enabled') ?? '1') === '1';
-            $_lusterApplyStyle      = (string) ($_lusterSiteRepoToggle->get('collective_affiliate_apply_style') ?? 'button');
-            if (!in_array($_lusterApplyStyle, ['link', 'button'], true)) {
-                $_lusterApplyStyle = 'button';
-            }
-            $_lusterApplyLabel = (string) ($_lusterSiteRepoToggle->get('collective_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?');
-        }
-
-        if ($_lusterApplyEnabled) {
-            $_lusterAffApplyMarker = 'affiliate_apply:' . $_lusterListingId;
-            $_lusterAffHasFeedback = $_lusterApp->getSession()->get('lstr_flash_success_html:' . $_lusterAffApplyMarker) !== null
-                                  || $_lusterApp->getSession()->get('lstr_flash_error:' . $_lusterAffApplyMarker) !== null;
-
-            $_lusterReturnOrig = $luster_return ?? false;
-            $luster_return     = true;
-            $_lusterApplyFormHtml = (string) require __DIR__ . '/affiliate-apply.php';
-            $luster_return     = $_lusterReturnOrig;
-
-            $_lusterAffFormId = 'fl-affiliate-apply-form-' . $_lusterListingId;
-            $_lusterAffTag    = $_lusterApplyStyle === 'link' ? 'a' : 'button';
-            $_lusterAffAttrs  = $_lusterApplyStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
-
-            $_lusterToggleHtml = '<' . $_lusterAffTag . ' class="fl-affiliate-apply-toggle fl-affiliate-apply-toggle--' . $e($_lusterApplyStyle) . '"'
-                . $_lusterAffAttrs
-                . ' data-fl-toggle="' . $e($_lusterAffFormId) . '" aria-expanded="' . ($_lusterAffHasFeedback ? 'true' : 'false') . '" aria-controls="' . $e($_lusterAffFormId) . '">'
-                . $e($_lusterApplyLabel)
-                . '</' . $_lusterAffTag . '>';
-
-            $_lusterFormTokenHtml = '<div class="fl-affiliate-apply-form-wrap" id="' . $e($_lusterAffFormId) . '"' . ($_lusterAffHasFeedback ? '' : ' hidden') . '>'
-                . $_lusterApplyFormHtml
-                . '</div>';
-        }
-
-        $_lusterSectionHtml = str_replace(
-            ['{affiliate_apply_toggle}', '{affiliate_apply_form}'],
-            [$_lusterToggleHtml, $_lusterFormTokenHtml],
-            $_lusterSectionHtml,
-        );
-    }
+    $_lusterSectionHtml = str_replace(
+        ['{affiliate_apply_toggle}', '{affiliate_apply_form}'],
+        [$_lusterToggleHtml, $_lusterFormTokenHtml],
+        $_lusterSectionHtml,
+    );
 
     $_lusterSectionHtml = str_replace(
         ['{site_name}', '{affiliates_count}', '{affiliate_apply_url}'],
-        [htmlspecialchars($_lusterTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), (string) $total, htmlspecialchars($_lusterAffApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
+        [htmlspecialchars($_lusterTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), (string) $_lusterResult['total'], htmlspecialchars($_lusterAffApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
         $_lusterSectionHtml,
     );
 }
@@ -264,6 +288,8 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
     'uploads_url'     => $_lusterUploadsUrl,
     'base_url'        => $_lusterApp->getBaseUrl(),
     'theme_path'      => $_lusterApp->getBaseUrl() . '/assets/default/',
+    'affiliate_apply_toggle' => $_lusterToggleHtml,
+    'affiliate_apply_form'   => $_lusterFormTokenHtml,
 ]);
 
 

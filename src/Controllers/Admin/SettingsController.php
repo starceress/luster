@@ -465,7 +465,7 @@ final class SettingsController extends AdminController
                 'collective_kim_list_subject'        => $this->coltplPreviewKimListSubject($tpl, $config),
                 'kim_update_form'                    => $this->coltplPreviewKimUpdateForm($tpl, $config),
                 'kim_reset_form'                     => $this->coltplPreviewKimResetForm($tpl, $config),
-                'wishlist'                            => $this->coltplPreviewWishlist($tpl, $db, $uploadsBase . '/wishlist'),
+                'wishlist'                            => $this->coltplPreviewWishlist($tpl, $db, $uploadsBase . '/wishlist', $appUrl . '/assets/images'),
                 'collective_newsfeed'                  => $this->coltplPreviewCollectiveUpdates($tpl, $db, $config),
                 'collective_codes'                   => $this->coltplPreviewCodes($tpl, $db, $uploadsBase . '/codes', $request),
                 'collective_codes_submit_form'        => $this->coltplPreviewCodesSubmitForm($tpl, $config),
@@ -1121,24 +1121,26 @@ final class SettingsController extends AdminController
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
     }
 
-    private function coltplPreviewWishlist(string $rawTpl, Database $db, string $uploadsUrl): string
+    private function coltplPreviewWishlist(string $rawTpl, Database $db, string $uploadsUrl, string $sampleImagesUrl): string
     {
         if (!$this->tableExists($db, 'lstr_wishlist')) {
             return '<p style="font-style:italic;color:#888">The Wishlist add-on is not installed.</p>';
         }
 
-        $entries = (new WishlistRepo($db))->getAll(null, true);
+        $liveEntries   = (new WishlistRepo($db))->getAll(null, true);
+        $usingSample   = empty($liveEntries);
+        $sampleEntries = $usingSample ? SampleTemplateData::wishlist() : $liveEntries;
+        $imageBaseUrl  = $usingSample ? $sampleImagesUrl : $uploadsUrl;
 
-        $rowFn = static function (string $inner, $entry) use ($uploadsUrl): string {
-            $imageUrl = ($entry->image !== null && $entry->image !== '') ? $uploadsUrl . '/' . $entry->image : '';
+        $rowFn = static function (string $inner, $entry) use ($imageBaseUrl): string {
+            $imageUrl = ($entry->image !== null && $entry->image !== '') ? $imageBaseUrl . '/' . $entry->image : '';
 
             return TemplateEngine::render(
                 $inner,
                 escaped: [
                     'item_subject'     => $entry->subject,
                     'item_url'         => $entry->url,
-                    'item_type'        => $entry->type,
-                    'item_type_label'  => $entry->typeLabel(),
+                    'item_type'        => $entry->typeLabel(),
                     'item_category'    => $entry->category,
                     'item_description' => $entry->description ?? '',
                     'item_image_url'   => $imageUrl,
@@ -1177,14 +1179,17 @@ final class SettingsController extends AdminController
             return $tpl;
         };
 
-        $activeHtml = $renderWishlist($rawTpl, $entries);
+        $activeHtml = $renderWishlist($rawTpl, $sampleEntries);
         $emptyHtml  = $renderWishlist($rawTpl, []);
 
         $emptyFallback = '<p style="font-style:italic;color:#888">The template does not include any content when the wishlist is empty. Add an always-visible block outside the <code>{if_has_*}</code> sections if you want an empty-state message.</p>';
 
-        return self::previewSectionLabel(empty($entries) ? 'Empty State' : 'Active Data')
+        $label = $usingSample ? 'Sample Data' : 'Active Data';
+
+        return self::previewSectionLabel($label)
             . ($activeHtml !== '' ? $activeHtml : '<p style="font-style:italic;color:#888">No active wishlist entries to preview with.</p>')
-            . (empty($entries) ? '' : self::previewSectionLabel('Empty State') . (trim($emptyHtml) !== '' ? $emptyHtml : $emptyFallback));
+            . self::previewSectionLabel('Empty State')
+            . (trim($emptyHtml) !== '' ? $emptyHtml : $emptyFallback);
     }
 
     private function coltplPreviewCollectiveUpdates(string $tpl, Database $db, Config $config): string

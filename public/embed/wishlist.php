@@ -89,8 +89,7 @@ if ($_wishlistTemplate !== null && trim($_wishlistTemplate) !== '') {
             [
                 'item_subject'     => $entry->subject,
                 'item_url'         => $entry->url,
-                'item_type'        => $entry->type,
-                'item_type_label'  => $entry->typeLabel(),
+                'item_type'        => $entry->typeLabel(),
                 'item_category'    => $entry->category ?? '',
                 'item_description' => $entry->description ?? '',
                 'item_image_url'   => $imageUrl,

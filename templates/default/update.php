@@ -33,15 +33,18 @@ if (isset($form_html)) {
 
 <?php if (!$signed_in): ?>
 
-  <p>If you are an existing member and would like to <b>update</b> your information or <b>remove</b> your membership entirely, log in with your current email address and password below.</p>
+  <h2 class="fl-heading">Update or Remove Information</h2>
+  <p>If you are an existing member and would like to update your information or remove your membership entirely, log in with your current email address and password below.</p>
 
   <!-- ── Step 1: Sign in ──────────────────────────────────────────────── -->
   <form class="fl-form fl-form-signin" method="POST" action="<?= View::e($sign_in_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
-    <?= $f['email'] ?>
-    <?= $f['password'] ?>
+    <div class="fl-form-fields">
+      <?= $f['email'] ?>
+      <?= $f['password'] ?>
+    </div>
 
     <!-- Honeypot -->
     <div style="display:none" aria-hidden="true">
@@ -50,6 +53,7 @@ if (isset($form_html)) {
 
     <div class="fl-form-actions">
       <button type="submit" class="fl-submit">Sign In</button>
+      <button type="reset" class="fl-btn-secondary">Clear</button>
     </div>
   </form>
 

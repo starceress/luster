@@ -36,6 +36,10 @@ $_showHeadings  = count($grouped) > 1;
 <div class="fl-embed fl-embed--codes">
 <?php if (empty($codes)): ?>
 <p class="fl-empty">No codes available yet.</p>
+<?php if (($codes_submit_toggle ?? '') !== '' || ($codes_submit_form ?? '') !== ''): ?>
+  <?= $codes_submit_toggle ?? '' ?>
+  <?= $codes_submit_form ?? '' ?>
+<?php endif; ?>
 <?php else: ?>
 <div class="fl-codes">
 <?php foreach ($grouped as $_group): ?>
@@ -106,6 +110,11 @@ $_showHeadings  = count($grouped) > 1;
 
 <?php if (($pagination ?? '') !== ''): ?>
   <div class="fl-pagination-wrap"><?= $pagination ?></div>
+<?php endif; ?>
+
+<?php if (($codes_submit_toggle ?? '') !== '' || ($codes_submit_form ?? '') !== ''): ?>
+  <?= $codes_submit_toggle ?? '' ?>
+  <?= $codes_submit_form ?? '' ?>
 <?php endif; ?>
 
 <?php endif; ?>

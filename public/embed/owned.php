@@ -60,11 +60,16 @@ $_lusterShowClosedPseudo    = (bool) ($luster_show_closed         ?? true);
 $_lusterShowAdoptedOutPseudo = (bool) ($luster_show_adopted_out   ?? true);
 
 // Category ID resolution order:
-//   1. $luster_category_id (explicit integer) — bypasses URL params entirely
-//   2. $_GET['cat'] sentinel values __pending__ / __upcoming__ — pseudo-views (current only)
-//   3. $_GET['cat'] with 'slug:' prefix — dropdown-posted slug value
-//   4. $_GET['cat'] with 'all' value — browse-show-all mode
-//   5. $_GET['cat'] numeric — legacy ID-based link
+//   1. $_GET['cat'], once present at all, always wins — the category/browse
+//      links this file renders (via PublicCategoryPresenter) must keep
+//      working after a click, not be permanently overridden back to
+//      $luster_category_id.
+//   2. $luster_category_id (explicit integer) — only used as the starting
+//      category on a fresh visit, before any ?cat= link has been clicked.
+//   3. $_GET['cat'] sentinel values __pending__ / __upcoming__ — pseudo-views (current only)
+//   4. $_GET['cat'] with 'slug:' prefix — dropdown-posted slug value
+//   5. $_GET['cat'] with 'all' value — browse-show-all mode
+//   6. $_GET['cat'] numeric — legacy ID-based link
 $_lusterBrowseShowAll = false;
 $_lusterPseudoView    = '';   // '' | 'pending' | 'upcoming' | 'closed' | 'adopted_out'
 
@@ -75,7 +80,7 @@ $_lusterPseudoSentinels = [
     '__adopted_out__' => 'adopted_out',
 ];
 
-if (isset($luster_category_id) && (int) $luster_category_id > 0) {
+if (!isset($_GET['cat']) && isset($luster_category_id) && (int) $luster_category_id > 0) {
     $_lusterCatId = (int) $luster_category_id;
 } else {
     $_lusterRawCat = (string) ($_GET['cat'] ?? '');

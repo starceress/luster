@@ -77,7 +77,7 @@ $srcBadge = static function (string $key) use ($ct): string {
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="filter-panel is-open">
+<div class="filter-panel is-open" id="tpl-filter-panel">
   <div class="filter-row" id="tpl-filter-row">
     <label for="tpl-group-select" class="tpl-filter-label">Select Template:</label>
     <div class="select-wrap">
@@ -1040,8 +1040,7 @@ $srcBadge = static function (string $key) use ($ct): string {
             <?= $tok('wishlist_template', '{each_wishlist_item}{/each_wishlist_item}', '{each_wishlist_item}...{/each_wishlist_item}', 'Repeats the HTML inside it once for each active wishlist entry.') ?>
             <?= $tok('wishlist_template', '{item_subject}',     '{item_subject}',     'The wishlist item title.') ?>
             <?= $tok('wishlist_template', '{item_url}',         '{item_url}',         'The link for this item. Empty when none is set.') ?>
-            <?= $tok('wishlist_template', '{item_type}',        '{item_type}',        'The raw item type: wanted, top, or granted.') ?>
-            <?= $tok('wishlist_template', '{item_type_label}',  '{item_type_label}',  'The human-readable type label: Wanted, Top Wanted, or Granted.') ?>
+            <?= $tok('wishlist_template', '{item_type}',        '{item_type}',        'The type label: Wanted, Top Wanted, or Granted.') ?>
             <?= $tok('wishlist_template', '{item_category}',    '{item_category}',    'The category for this item. Empty when none is set.') ?>
             <?= $tok('wishlist_template', '{item_description}', '{item_description}','The description for this item. Empty when none is set.') ?>
             <?= $tok('wishlist_template', '{item_image_url}',   '{item_image_url}',   'The image URL for this item. Empty when there is no image.') ?>

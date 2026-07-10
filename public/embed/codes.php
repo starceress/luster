@@ -215,67 +215,97 @@ if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
 }
 
 // {codes_submit_toggle} / {codes_submit_form} — trigger button + a
-// separately-placed code donation form, shown/hidden via fl-embed.js.
+// separately-placed code donation form, shown/hidden via fl-embed.js. Built
+// unconditionally (not just when a codes template references the tokens) so
+// the hardcoded PHP fallback fragment (templates/default/codes.php, used when
+// nothing is customized at any tier) can show the same donation CTA as a
+// templated one.
+$_lusterCsToggleHtml    = '';
+$_lusterCsFormTokenHtml = '';
+$_lusterCsEnabled       = false;
+
+$_lusterCsToggleStyle = 'button';
+$_lusterCsToggleLabel = 'Donate a code?';
+$_lusterCsSiteRepo    = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterDb);
+if (!$_lusterIsCollective && $_lusterListingId !== null) {
+    $_lusterCsSettingsRepo = new ListingSettingsRepo($_lusterDb);
+    $_lusterCsEmbedCfg     = $_lusterCsSettingsRepo->getResolvedEmbedSettings($_lusterListingId);
+    $_lusterCsEnabled      = (bool) ($_lusterCsEmbedCfg['codes_submit_enabled'] ?? true);
+    $_lusterCsToggleStyle  = $_lusterCsSettingsRepo->getCodesSubmitToggleStyle($_lusterListingId)
+        ?? $_lusterCsSiteRepo->get('global_codes_submit_toggle_style')
+        ?? 'button';
+    $_lusterCsToggleLabel  = $_lusterCsSettingsRepo->getCodesSubmitToggleLabel($_lusterListingId)
+        ?? $_lusterCsSiteRepo->get('global_codes_submit_toggle_label')
+        ?? 'Donate a code?';
+} else {
+    $_lusterCsEnabled     = ($_lusterCsSiteRepo->get('collective_codes_submit_enabled') ?? '1') === '1';
+    $_lusterCsToggleStyle = (string) ($_lusterCsSiteRepo->get('collective_codes_submit_style') ?? 'button');
+    if (!in_array($_lusterCsToggleStyle, ['link', 'button'], true)) { $_lusterCsToggleStyle = 'button'; }
+    $_lusterCsToggleLabel = (string) ($_lusterCsSiteRepo->get('collective_codes_submit_toggle_label') ?? 'Donate a code?');
+}
+
+// Only build the nested donation form when it will actually be used: either
+// there's no custom/global codes template at all (the PHP fallback fragment
+// always renders the CTA), or the resolved (post-loop/conditional) rendered
+// output still references the tokens. Checking the RENDERED output (not just
+// the raw template) matters because the tokens might only live inside a
+// {if_codes}/{if_no_codes} branch that isn't actually active for this
+// listing right now — in that case building the form anyway would still
+// pull in codes-submit.php, which consumes/clears its own scoped flash
+// success/error keys, silently swallowing the feedback meant for a genuinely
+// separate codes-submit.php embed placed elsewhere on the same page.
+$_lusterWillUseInlineCsForm = $_lusterCodesTemplateHtml === null
+    || str_contains($_lusterCodesTemplateHtml, $_lusterCsTogglePlaceholder)
+    || str_contains($_lusterCodesTemplateHtml, $_lusterCsFormPlaceholder);
+
+if ($_lusterCsEnabled && $_lusterWillUseInlineCsForm) {
+    $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $_lusterCsSubmitMarker = 'codes_submit:' . $_lusterRawListingId;
+    $_lusterCsHasFeedback = $_lusterApp->getSession()->get('lstr_flash_success_html:' . $_lusterCsSubmitMarker) !== null
+                         || $_lusterApp->getSession()->get('lstr_flash_error:' . $_lusterCsSubmitMarker) !== null;
+    $_lusterReturnOrig = $luster_return ?? false;
+    $luster_return     = true;
+    $_lusterCsFormHtml = (string) require __DIR__ . '/codes-submit.php';
+    $luster_return     = $_lusterReturnOrig;
+
+    if ($_lusterCsFormHtml !== '') {
+        $_lusterCsFormId = 'fl-codes-submit-form-' . ($_lusterListingId ?? 0);
+        $_lusterCsTag    = $_lusterCsToggleStyle === 'link' ? 'a' : 'button';
+        $_lusterCsAttrs  = $_lusterCsToggleStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
+
+        $_lusterCsToggleHtml = '<' . $_lusterCsTag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($_lusterCsToggleStyle) . '"'
+            . $_lusterCsAttrs
+            . ' data-fl-toggle="' . $e($_lusterCsFormId) . '" aria-expanded="' . ($_lusterCsHasFeedback ? 'true' : 'false') . '" aria-controls="' . $e($_lusterCsFormId) . '">'
+            . $e($_lusterCsToggleLabel)
+            . '</' . $_lusterCsTag . '>';
+
+        $_lusterCsFormTokenHtml = '<div class="fl-codes-submit-form-wrap" id="' . $e($_lusterCsFormId) . '"' . ($_lusterCsHasFeedback ? '' : ' hidden') . '>'
+            . $_lusterCsFormHtml
+            . '</div>';
+    }
+}
+
+// The toggle/form is actually shown inline either when the active template
+// references the tokens (substituted below) or when there's no active
+// template at all (the fallback fragment always renders it) — used to avoid
+// double-rendering via the $luster_append_submit mechanism further down.
+$_lusterCsShownInline = false;
+
 if ($_lusterCodesTemplateHtml !== null
     && (str_contains($_lusterCodesTemplateHtml, $_lusterCsTogglePlaceholder) || str_contains($_lusterCodesTemplateHtml, $_lusterCsFormPlaceholder))
 ) {
-    $_lusterCsToggleHtml = '';
-    $_lusterCsFormTokenHtml = '';
-    $_lusterCsEnabled    = false;
-
-    $_lusterCsToggleStyle = 'button';
-    $_lusterCsToggleLabel = 'Donate a code?';
-    $_lusterCsSiteRepo    = $_lusterSiteRepo ?? new SiteSettingsRepo($_lusterDb);
-    if (!$_lusterIsCollective && $_lusterListingId !== null) {
-        $_lusterCsSettingsRepo = new ListingSettingsRepo($_lusterDb);
-        $_lusterCsEmbedCfg     = $_lusterCsSettingsRepo->getResolvedEmbedSettings($_lusterListingId);
-        $_lusterCsEnabled      = (bool) ($_lusterCsEmbedCfg['codes_submit_enabled'] ?? true);
-        $_lusterCsToggleStyle  = $_lusterCsSettingsRepo->getCodesSubmitToggleStyle($_lusterListingId)
-            ?? $_lusterCsSiteRepo->get('global_codes_submit_toggle_style')
-            ?? 'button';
-        $_lusterCsToggleLabel  = $_lusterCsSettingsRepo->getCodesSubmitToggleLabel($_lusterListingId)
-            ?? $_lusterCsSiteRepo->get('global_codes_submit_toggle_label')
-            ?? 'Donate a code?';
-    } else {
-        $_lusterCsEnabled     = ($_lusterCsSiteRepo->get('collective_codes_submit_enabled') ?? '1') === '1';
-        $_lusterCsToggleStyle = (string) ($_lusterCsSiteRepo->get('collective_codes_submit_style') ?? 'button');
-        if (!in_array($_lusterCsToggleStyle, ['link', 'button'], true)) { $_lusterCsToggleStyle = 'button'; }
-        $_lusterCsToggleLabel = (string) ($_lusterCsSiteRepo->get('collective_codes_submit_toggle_label') ?? 'Donate a code?');
-    }
-
-    if ($_lusterCsEnabled) {
-        $e = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $_lusterCsSubmitMarker = 'codes_submit:' . $_lusterRawListingId;
-        $_lusterCsHasFeedback = $_lusterApp->getSession()->get('lstr_flash_success_html:' . $_lusterCsSubmitMarker) !== null
-                             || $_lusterApp->getSession()->get('lstr_flash_error:' . $_lusterCsSubmitMarker) !== null;
-        $_lusterReturnOrig = $luster_return ?? false;
-        $luster_return     = true;
-        $_lusterCsFormHtml = (string) require __DIR__ . '/codes-submit.php';
-        $luster_return     = $_lusterReturnOrig;
-
-        if ($_lusterCsFormHtml !== '') {
-            $_lusterCsToggleRendered = true;
-            $_lusterCsFormId = 'fl-codes-submit-form-' . ($_lusterListingId ?? 0);
-            $_lusterCsTag    = $_lusterCsToggleStyle === 'link' ? 'a' : 'button';
-            $_lusterCsAttrs  = $_lusterCsToggleStyle === 'link' ? ' role="button" tabindex="0"' : ' type="button"';
-
-            $_lusterCsToggleHtml = '<' . $_lusterCsTag . ' class="fl-codes-submit-toggle fl-codes-submit-toggle--' . $e($_lusterCsToggleStyle) . '"'
-                . $_lusterCsAttrs
-                . ' data-fl-toggle="' . $e($_lusterCsFormId) . '" aria-expanded="' . ($_lusterCsHasFeedback ? 'true' : 'false') . '" aria-controls="' . $e($_lusterCsFormId) . '">'
-                . $e($_lusterCsToggleLabel)
-                . '</' . $_lusterCsTag . '>';
-
-            $_lusterCsFormTokenHtml = '<div class="fl-codes-submit-form-wrap" id="' . $e($_lusterCsFormId) . '"' . ($_lusterCsHasFeedback ? '' : ' hidden') . '>'
-                . $_lusterCsFormHtml
-                . '</div>';
-        }
-    }
-
     $_lusterCodesTemplateHtml = str_replace(
         [$_lusterCsTogglePlaceholder, $_lusterCsFormPlaceholder],
         [$_lusterCsToggleHtml, $_lusterCsFormTokenHtml],
         $_lusterCodesTemplateHtml,
     );
+    $_lusterCsShownInline = $_lusterCsFormTokenHtml !== '';
+} elseif ($_lusterCodesTemplateHtml === null) {
+    $_lusterCsShownInline = $_lusterCsFormTokenHtml !== '';
+}
+
+if ($_lusterCsShownInline) {
+    $_lusterCsToggleRendered = true;
 }
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
@@ -296,6 +326,8 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'theme_path'          => $_lusterBaseUrl . '/assets/default/',
     'codes_template_html' => $_lusterCodesTemplateHtml,
     'pagination'          => $_lusterPagHtml,
+    'codes_submit_toggle' => $_lusterCsToggleHtml,
+    'codes_submit_form'   => $_lusterCsFormTokenHtml,
 ]);
 
 // Pagination is now rendered inside the template (before attribution).

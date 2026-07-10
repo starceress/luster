@@ -93,10 +93,15 @@ $_lusterPerPageOverride = (isset($luster_per_page) && (int) $luster_per_page > 0
 
 $_lusterPage    = max(1, (int) ($_GET['page'] ?? 1));
 
-// $luster_sort_by — force a default sort, ignoring $_GET['sort'] when set
-$_lusterRawSort = (isset($luster_sort_by) && in_array($luster_sort_by, ['name', 'country', 'added'], true))
-    ? (string) $luster_sort_by
-    : (string) ($_GET['sort'] ?? 'country');
+// $luster_sort_by — sets the starting sort on a fresh visit (no ?sort= yet).
+// $_GET['sort'] always takes priority once present, so the Sort by: Name /
+// Country / Date Joined links this file renders keep working after a click
+// instead of being permanently overridden back to $luster_sort_by.
+$_lusterRawSort = isset($_GET['sort'])
+    ? (string) $_GET['sort']
+    : ((isset($luster_sort_by) && in_array($luster_sort_by, ['name', 'country', 'added'], true))
+        ? (string) $luster_sort_by
+        : 'country');
 $_lusterSort    = in_array($_lusterRawSort, ['name', 'country', 'added'], true) ? $_lusterRawSort : 'country';
 $_lusterCountry = trim((string) ($_GET['country'] ?? ''));
 

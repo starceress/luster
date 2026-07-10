@@ -29,35 +29,30 @@ if (isset($newsfeed_template_html) && $newsfeed_template_html !== null) {
 ?>
 <div class="fl-embed fl-embed--newsfeed">
 <?php if (empty($updates)): ?>
-<p class="fl-empty">No entries posted yet.</p>
+<p class="fl-empty">No entries yet.</p>
 <?php else: ?>
 
-<div class="fl-newsfeed">
+<div class="fl-newsfeed-list">
 <?php foreach ($updates as $u): ?>
 <div class="fl-newsfeed-item">
-  <div class="fl-newsfeed-header">
-    <h2 class="fl-newsfeed-title"><?= View::e($u->title) ?></h2>
-    <p class="fl-newsfeed-date">
-      <time datetime="<?= View::e(substr($u->postedAt, 0, 10)) ?>"><?= View::e(date('F j, Y', strtotime($u->postedAt))) ?></time>
-      <?php if ($owner_name !== ''): ?>
-        &mdash; <?= View::e($owner_name) ?>
-      <?php endif; ?>
-    </p>
-  </div>
-  <?php if ($show_cats && !empty($u->categories())): ?>
-    <p class="fl-newsfeed-meta">
-      <span class="fl-newsfeed-categories">Category:
+  <h3 class="fl-newsfeed-title"><?= View::e($u->title) ?></h3>
+  <div class="fl-newsfeed-meta">
+    <span class="fl-newsfeed-date"><b>Date Posted:</b> <time datetime="<?= View::e(substr($u->postedAt, 0, 10)) ?>"><?= View::e(date('F j, Y', strtotime($u->postedAt))) ?></time></span>
+    <?php if ($owner_name !== ''): ?> by <span class="fl-newsfeed-author"><?= View::e($owner_name) ?></span><?php endif; ?><br>
+    <?php if ($show_cats && !empty($u->categories())): ?>
+      <b>Categories:</b> <span class="fl-newsfeed-categories">
         <?php foreach ($u->categories() as $_ci => $_cat): ?>
           <?php if ($_ci > 0): ?>, <?php endif; ?>
           <a class="fl-newsfeed-category-tag" href="<?= htmlspecialchars($feed_url . '?cat=' . rawurlencode($_cat), ENT_QUOTES, 'UTF-8') ?>"><?= View::e($_cat) ?></a>
         <?php endforeach; ?>
       </span>
-    </p>
-  <?php endif; ?>
+    <?php endif; ?>
+  </div>
+
   <div class="fl-newsfeed-body"><?= nl2br(View::e($u->body)) ?></div>
 </div>
 <?php endforeach; ?>
-</div><!-- /.fl-newsfeed -->
+</div><!-- /.fl-newsfeed-list -->
 
 <?php if (($pagination ?? '') !== ''): ?>
   <div class="fl-pagination-wrap"><?= $pagination ?></div>

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Luster\Support;
 
 use Luster\Addons\Newsfeed\NewsfeedEntry;
+use Luster\Addons\Wishlist\Wishlist;
 use Luster\Models\AdditionalField;
 use Luster\Models\Affiliate;
 use Luster\Models\Member;
@@ -115,6 +116,69 @@ final class SampleTemplateData
             pending: false,
             applicationMessage: null,
         );
+    }
+
+    /**
+     * Sample entries for the Wishlist add-on — a wishlist of *fanlistings*
+     * the site owner wants to adopt/affiliate with or is watching for, not
+     * a merchandise wishlist. Mirrors what a real Wishlist admin entry looks
+     * like: a fanlisting's subject, its URL, and the category it's listed
+     * under (the same TFL/TAFL-style categories used elsewhere in Luster).
+     *
+     * @return Wishlist[]
+     */
+    public static function wishlist(): array
+    {
+        return [
+            new Wishlist(
+                id: 1,
+                subject: 'Sailor Mercury',
+                url: 'https://example.com/sailor-mercury',
+                image: 'affiliate-placeholder.svg',
+                category: 'Anime & Manga',
+                type: 'top',
+                description: 'Ami is one of my favorite Sailor Scouts — really hoping an active fanlisting for her opens up again.',
+                addedAt: '2026-01-10',
+                sortOrder: 1,
+                active: true,
+            ),
+            new Wishlist(
+                id: 2,
+                subject: 'Crystal Tokyo',
+                url: 'https://example.com/crystal-tokyo',
+                image: null,
+                category: 'Anime & Manga',
+                type: 'wanted',
+                description: null,
+                addedAt: '2026-02-14',
+                sortOrder: 2,
+                active: true,
+            ),
+            new Wishlist(
+                id: 3,
+                subject: 'Moonlight Densetsu',
+                url: '',
+                image: 'affiliate-placeholder.svg',
+                category: 'Music',
+                type: 'wanted',
+                description: 'Still searching for an active fanlisting for the Sailor Moon theme song.',
+                addedAt: '2026-03-02',
+                sortOrder: 3,
+                active: true,
+            ),
+            new Wishlist(
+                id: 4,
+                subject: 'Sailor Jupiter',
+                url: 'https://example.com/sailor-jupiter',
+                image: null,
+                category: 'Anime & Manga',
+                type: 'granted',
+                description: 'Adopted this one from a previous owner — thank you!',
+                addedAt: '2026-04-18',
+                sortOrder: 4,
+                active: true,
+            ),
+        ];
     }
 
     /**

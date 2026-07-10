@@ -79,10 +79,15 @@ final class PublicCategoryPresenter
             return ['html' => $html, 'show_listings' => false];
         }
 
-        // Browse mode with a category, show-all, or pseudo-view — back link
+        // Browse mode with a category, show-all, or pseudo-view — back link.
+        // Explicit ?cat= (not a bare URL) so isset($_GET['cat']) is true on
+        // the resulting request — otherwise the embed's $luster_category_id
+        // starting-category override (when set) would re-apply on "fresh
+        // visit" semantics and the Back link would silently return to the
+        // same category instead of the browse index.
         if ($browseMode && ($currentId !== 0 || $browseShowAll || $view !== '')) {
             $html  = '<div class="fl-category-nav">';
-            $html .= '<a class="fl-category-back" href="' . $e($formAction) . '">&larr; Back</a>';
+            $html .= '<a class="fl-category-back" href="' . $e($formAction . '?cat=') . '">&larr; Back</a>';
             $html .= '</div>';
             return ['html' => $html, 'show_listings' => true];
         }
@@ -404,10 +409,15 @@ final class PublicCategoryPresenter
             return ['html' => $html, 'show_listings' => false];
         }
 
-        // Browse mode with a category or pseudo-view selected — back link
+        // Browse mode with a category or pseudo-view selected — back link.
+        // Explicit ?cat= (not a bare URL) so isset($_GET['cat']) is true on
+        // the resulting request — otherwise the embed's $luster_category
+        // starting-category override (when set) would re-apply on "fresh
+        // visit" semantics and the Back link would silently return to the
+        // same category instead of the browse index.
         if ($browseMode && ($currentCategory !== '' || $view !== '')) {
             $html  = '<div class="fl-category-nav">';
-            $html .= '<a class="fl-category-back" href="' . $e($formAction) . '">&larr; Back</a>';
+            $html .= '<a class="fl-category-back" href="' . $e($formAction . '?cat=') . '">&larr; Back</a>';
             $html .= '</div>';
             return ['html' => $html, 'show_listings' => true];
         }

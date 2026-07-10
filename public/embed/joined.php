@@ -47,12 +47,16 @@ $_lusterShowAllDefault    = (bool) ($luster_show_all_by_default   ?? false);
 $_lusterBrowseByCat       = (bool) ($luster_browse_by_category    ?? false);
 $_lusterShowPendingPseudo = (bool) ($luster_show_pending          ?? true);
 
-// Category: prefer explicit $luster_category; fall back to $_GET['cat']
-// Sentinel value __pending__ activates the pending pseudo-view.
+// Category: $luster_category sets the starting category on a fresh visit
+// (no ?cat= yet). $_GET['cat'] always takes priority once present, so the
+// category/browse links this file renders (via PublicCategoryPresenter)
+// keep working after a click instead of being permanently overridden back
+// to $luster_category. Sentinel value __pending__ activates the pending
+// pseudo-view.
 $_lusterPseudoView   = '';
-$_lusterCategoryRaw  = isset($luster_category) && (string) $luster_category !== ''
-                     ? (string) $luster_category
-                     : (string) ($_GET['cat'] ?? '');
+$_lusterCategoryRaw  = isset($_GET['cat'])
+                     ? (string) $_GET['cat']
+                     : (isset($luster_category) && (string) $luster_category !== '' ? (string) $luster_category : '');
 
 if ($_lusterCategoryRaw === '__pending__') {
     $_lusterPseudoView = 'pending';

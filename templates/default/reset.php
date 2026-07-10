@@ -28,15 +28,18 @@ if (isset($form_html)) {
   <div class="fl-errors"><?= $errors ?></div>
 <?php endif; ?>
 
+<h2 class="fl-heading">Reset Password</h2>
 <p class="fl-hint">
-  If you have lost or forgotten your password, enter the email address you joined with below and a reset link will be sent to you. For your security, reset links expire after 1 hour.
+  Forgot your password? Enter your email address and a link will be sent to reset your password.
 </p>
 
 <form class="fl-form fl-form-reset" method="POST" action="<?= View::e($form_action) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
   <?php if (!empty($form_marker ?? '')): ?><input type="hidden" name="_luster_embed_form" value="<?= View::e($form_marker) ?>"><?php endif; ?>
 
-  <?= $f['email'] ?>
+  <div class="fl-form-fields">
+    <?= $f['email'] ?>
+  </div>
 
   <!-- Honeypot -->
   <div style="display:none" aria-hidden="true">
@@ -45,6 +48,7 @@ if (isset($form_html)) {
 
   <div class="fl-form-actions">
     <button type="submit" class="fl-submit">Send Reset Link</button>
+    <button type="reset" class="fl-btn-secondary">Clear</button>
   </div>
 </form>
 </div>

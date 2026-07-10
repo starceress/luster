@@ -995,7 +995,8 @@
    News feed for per-listing and collective newsfeed entries.
 ------------------------------------------------------------------------ */
 
-.fl-newsfeed {
+.fl-newsfeed,
+.fl-newsfeed-list {
   --fl: ; /* Outer container */
 }
 

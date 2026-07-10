@@ -22,6 +22,10 @@ use Luster\Core\View;
   <?php endif; ?>
 <?php elseif (empty($affiliates)): ?>
   <p class="fl-empty">No affiliates to display yet.</p>
+  <?php if (($affiliate_apply_toggle ?? '') !== '' || ($affiliate_apply_form ?? '') !== ''): ?>
+    <?= $affiliate_apply_toggle ?? '' ?>
+    <?= $affiliate_apply_form ?? '' ?>
+  <?php endif; ?>
 <?php else: ?>
   <p class="fl-hint">
     <?= (int) $total ?> affiliate<?= $total !== 1 ? 's' : '' ?>
@@ -46,6 +50,10 @@ use Luster\Core\View;
 
   <?php if ($pagination !== ''): ?>
     <div class="fl-pagination-wrap"><?= $pagination ?></div>
+  <?php endif; ?>
+  <?php if (($affiliate_apply_toggle ?? '') !== '' || ($affiliate_apply_form ?? '') !== ''): ?>
+    <?= $affiliate_apply_toggle ?? '' ?>
+    <?= $affiliate_apply_form ?? '' ?>
   <?php endif; ?>
 <?php endif; ?>
 </div>

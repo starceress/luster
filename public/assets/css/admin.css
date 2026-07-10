@@ -1508,9 +1508,19 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .tpl-filter-label { font-weight: 600; white-space: nowrap; }
 
+#tpl-filter-panel { position: sticky; top: calc(100px + 1rem); z-index: 40; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: var(--shadow); }
+
 .composer-side { display: flex; flex-direction: column; gap: .25rem; order: 2; }
 
 .composer-side--sticky { position: sticky; top: calc(100px + 1.5rem); max-height: calc(100vh - 100px - 3rem); overflow-y: auto; }
+
+/* Pages with a sticky #tpl-filter-panel above the composer grid need the sidebar
+   to stick below it instead of overlapping — the filter panel's own sticky top
+   plus its rendered height plus a small gap. */
+#tpl-filter-panel + form .composer-side--sticky {
+    top: calc(100px + 6.5rem);
+    max-height: calc(100vh - 100px - 6.5rem - 1.5rem);
+}
 
 .composer-block { border-bottom: 1px solid var(--border); }
 
