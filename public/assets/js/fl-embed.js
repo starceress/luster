@@ -29,6 +29,13 @@
         var willShow = target.hidden;
         target.hidden = !willShow;
         btn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+        // The form this toggle reveals (e.g. affiliate apply, code donation)
+        // may sit well below the toggle itself on the host page, so bring it
+        // into view instead of leaving the visitor to notice and scroll on
+        // their own.
+        if (willShow) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       };
       btn.addEventListener('click', activate);
       // Link-style toggles are <a> with no href (so there's no real navigation
