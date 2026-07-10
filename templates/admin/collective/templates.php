@@ -84,7 +84,7 @@ $srcBadge = static function (string $key) use ($ct): string {
       <select id="tpl-group-select" class="form">
         <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
         <option value="adoption"<?= $activeGroup === 'adoption' ? ' selected' : '' ?>>Adoption Form</option>
-        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Form</option>
+        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
         <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates</option>
         <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes</option>
@@ -347,9 +347,9 @@ $srcBadge = static function (string $key) use ($ct): string {
           </div>
         </div>
 
-        <!-- ── Affiliate Form ── -->
+        <!-- ── Affiliate Application ── -->
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-          <div class="section-label">Affiliate Form <?= $srcBadge('collective_affiliate_apply_form_template') ?></div>
+          <div class="section-label">Affiliate Application <?= $srcBadge('collective_affiliate_apply_form_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the layout of the collective affiliate application form. Use the tokens on the right to arrange fields. This template is used by the affiliate-apply embed in collective mode.</p>
           <div class="field-group">
             <textarea name="collective_affiliate_apply_form_template" id="collective_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($affApplyFormVal) ?></textarea>
@@ -843,9 +843,9 @@ $srcBadge = static function (string $key) use ($ct): string {
         </div>
       </details>
 
-      <!-- ── Affiliate Form ──── -->
+      <!-- ── Affiliate Application ──── -->
       <details class="card chevron" data-token-card data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-        <summary class="chevron-head">Affiliate  Form Tokens</summary>
+        <summary class="chevron-head">Affiliate Application Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Controls the layout of the collective affiliate application form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
           <table class="et-token-table et-token-table--compact"><tbody>

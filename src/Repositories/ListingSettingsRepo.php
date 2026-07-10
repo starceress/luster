@@ -450,7 +450,7 @@ final class ListingSettingsRepo
      */
     public static function defaultContactFormTemplate(): string
     {
-        return '<h2>Contact Form</h2>' . "\n"
+        return '<h2 class="fl-heading">Contact Form</h2>' . "\n"
              . '<div class="fl-form-fields">' . "\n"
              . '{field_name}' . "\n"
              . '{field_email}' . "\n"
@@ -459,6 +459,7 @@ final class ListingSettingsRepo
              . '{field_message}' . "\n"
              . '{captcha_block}' . "\n"
              . '</div>' . "\n"
+             . "\n"
              . '<div class="fl-form-actions">' . "\n"
              . '{submit_button}' . "\n"
              . '{clear_button}' . "\n"
@@ -568,16 +569,17 @@ final class ListingSettingsRepo
      */
     public static function defaultUpdateFormTemplate(): string
     {
-        return '<h2>Update Your Information for {listing_subject}</h2>' . "\n"
-            . '<p>Enter your email address and password to continue.</p>' . "\n"
+        return '<h2 class="fl-heading">Update or Remove Information</h2>' . "\n"
+            . '<p>If you are an existing member and would like to update your information or remove your membership entirely, log in with your current email address and password below.</p>' . "\n"
             . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_signin_email}' . "\n"
             . '{field_signin_password}' . "\n"
             . '</div>' . "\n"
-            . '<p><a href="{lost_password_url}" class="fl-link">Forgot your password?</a></p>' . "\n"
+            . '<p class="fl-lost-password"><a href="{lost_password_url}" class="fl-link">Forgot your password?</a></p>' . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
             . '</div>';
     }
 
@@ -593,8 +595,8 @@ final class ListingSettingsRepo
      */
     public static function defaultResetFormTemplate(): string
     {
-        return '<h2>Reset Password for {listing_subject}</h2>' . "\n"
-            . '<p>Enter your email address and a link will be sent to reset your password. The link expires in 1 hour.</p>' . "\n"
+        return '<h2 class="fl-heading">Reset Password</h2>' . "\n"
+            . '<p>Forgot your password? Enter your email address and a link will be sent to reset your password.</p>' . "\n"
             . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_email}' . "\n"
@@ -602,6 +604,7 @@ final class ListingSettingsRepo
             . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
             . '</div>';
     }
 
@@ -662,8 +665,7 @@ final class ListingSettingsRepo
      */
     public static function defaultStatsTemplate(): string
     {
-        return '<h2>{listing_subject} Statistics</h2>' . "\n"
-            . '<div class="fl-stats">' . "\n"
+        return '<div class="fl-stats">' . "\n"
             . '<div class="fl-stats-grid">' . "\n"
             . '<span class="fl-stats-label">Members:</span><span class="fl-stats-value">{stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending}</span>' . "\n"
             . '<span class="fl-stats-label">Countries:</span><span class="fl-stats-value">{stat_countries}</span>' . "\n"
@@ -693,17 +695,19 @@ final class ListingSettingsRepo
             . "\n"
             . '<p class="fl-member-stats">{stats_line}</p>' . "\n"
             . "\n"
+            . '{if_no_members}' . "\n"
+            . '<p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>' . "\n"
+            . '{/if_no_members}' . "\n"
+            . "\n"
             . '{if_members}' . "\n"
             . '<ul class="fl-member-list">' . "\n"
+            . "\n"
             . '{each_member}' . "\n"
             . '<li class="fl-member-item">{if_fan_url}<a class="fl-member-name" href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url}{if_fan_country} &mdash; <span class="fl-member-country">{fan_country}</span>{/if_fan_country}{if_sort_date}, Joined <span class="fl-member-added">{fan_added}</span>{/if_sort_date}{if_fan_additional_fields}, {fan_additional_fields}{/if_fan_additional_fields}</li>' . "\n"
             . '{/each_member}' . "\n"
-            . '</ul>' . "\n"
-            . '{/if_members}' . "\n"
             . "\n"
-            . '{if_no_members}' . "\n"
-            . '<p class="fl-empty">No members to display yet.</p>' . "\n"
-            . '{/if_no_members}';
+            . '</ul>' . "\n"
+            . '{/if_members}';
     }
 
     /**
@@ -819,9 +823,67 @@ final class ListingSettingsRepo
         // that exactly matches it (e.g. from a "no-op" Save Global Defaults click
         // while List was still current) is treated the same as any other superseded
         // built-in default here, not as a genuine customisation — otherwise existing
-        // installs would silently stay on the old default forever. Now lives on as
-        // the "List" display-style preset (defaultMembersListTemplate()).
-        if (trim($v) === trim(self::defaultMembersListTemplate())) {
+        // installs would silently stay on the old default forever. Superseded by the
+        // doc-canonicalization pass below when this was still the "List" preset's
+        // content.
+        $preDocCanonicalizationListDefault = '{if_show_search}'
+            . "\n" . '<div class="fl-member-controls">'
+            . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p>'
+            . "\n" . '</div>'
+            . "\n" . '{/if_show_search}'
+            . "\n"
+            . "\n" . '<p class="fl-member-stats">{stats_line}</p>'
+            . "\n"
+            . "\n" . '{if_members}'
+            . "\n" . '<ul class="fl-member-list">'
+            . "\n" . '{each_member}'
+            . "\n" . '<li class="fl-member-item">{if_fan_url}<a class="fl-member-name" href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url}{if_fan_country} &mdash; <span class="fl-member-country">{fan_country}</span>{/if_fan_country}{if_sort_date}, Joined <span class="fl-member-added">{fan_added}</span>{/if_sort_date}{if_fan_additional_fields}, {fan_additional_fields}{/if_fan_additional_fields}</li>'
+            . "\n" . '{/each_member}'
+            . "\n" . '</ul>'
+            . "\n" . '{/if_members}'
+            . "\n"
+            . "\n" . '{if_no_members}'
+            . "\n" . '<p class="fl-empty">No members to display yet.</p>'
+            . "\n" . '{/if_no_members}';
+        if (trim($v) === trim($preDocCanonicalizationListDefault)) {
+            return true;
+        }
+
+        // The <h1>Member List</h1> table shape that was the real built-in default
+        // (the "Table" style) before the docs/TEMPLATES_global-and-listing.md
+        // canonicalization pass replaced it with the {if_show_search}/{stats_line}
+        // shape shared with the List style. Same reasoning as above — a stored
+        // value exactly matching the old shape is an old built-in default, not a
+        // genuine customisation.
+        $preDocCanonicalizationTableDefault = '<h1>Member List</h1>'
+            . "\n" . '<p>Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>'
+            . "\n"
+            . "\n" . '{if_members}'
+            . "\n" . '<div class="fl-member-table">'
+            . "\n" . '{if_no_country_sort}'
+            . "\n" . '<div class="fl-member-table-head">'
+            . "\n" . '<span class="fl-member-table-th">Name</span>'
+            . "\n" . '<span class="fl-member-table-th">Country</span>'
+            . "\n" . '{if_sort_date}<span class="fl-member-table-th">Joined</span>{/if_sort_date}'
+            . "\n" . '{additional_field_headers}'
+            . "\n" . '</div>'
+            . "\n" . '{/if_no_country_sort}'
+            . "\n"
+            . "\n" . '{each_member}'
+            . "\n" . '<div class="fl-member-table-row">'
+            . "\n" . '<span class="fl-member-table-cell">{if_fan_url}<a href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}{fan_name}{/if_no_fan_url}</span>'
+            . "\n" . '<span class="fl-member-table-cell">{if_fan_country}{fan_country}{/if_fan_country}{if_no_fan_country}&ndash;{/if_no_fan_country}</span>'
+            . "\n" . '{if_sort_date}<span class="fl-member-table-cell">{fan_added}</span>{/if_sort_date}'
+            . "\n" . '{fan_additional_field_cells}'
+            . "\n" . '</div>'
+            . "\n" . '{/each_member}'
+            . "\n" . '</div>'
+            . "\n" . '{/if_members}'
+            . "\n"
+            . "\n" . '{if_no_members}'
+            . "\n" . '<p>No members yet. <a href="{join_url}">Want to join?</a></p>'
+            . "\n" . '{/if_no_members}';
+        if (trim($v) === trim($preDocCanonicalizationTableDefault)) {
             return true;
         }
 
@@ -839,8 +901,17 @@ final class ListingSettingsRepo
      */
     public static function defaultMembersTemplate(): string
     {
-        return '<h1>Member List</h1>' . "\n"
-            . '<p>Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p><br>' . "\n"
+        return '{if_show_search}' . "\n"
+            . '<div class="fl-member-controls">' . "\n"
+            . '<p class="fl-member-sort">Sort by: {sort_link_date} | {sort_link_name} | {sort_link_country}</p>' . "\n"
+            . '</div>' . "\n"
+            . '{/if_show_search}' . "\n"
+            . "\n"
+            . '<p class="fl-member-stats">{stats_line}</p>' . "\n"
+            . "\n"
+            . '{if_no_members}' . "\n"
+            . '<p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>' . "\n"
+            . '{/if_no_members}' . "\n"
             . "\n"
             . '{if_members}' . "\n"
             . '<div class="fl-member-table">' . "\n"
@@ -856,17 +927,15 @@ final class ListingSettingsRepo
             . '{each_member}' . "\n"
             . '<div class="fl-member-table-row">' . "\n"
             . '<span class="fl-member-table-cell">{if_fan_url}<a href="{fan_url}">{fan_name}</a>{/if_fan_url}{if_no_fan_url}{fan_name}{/if_no_fan_url}</span>' . "\n"
+            . "\n"
             . '<span class="fl-member-table-cell">{if_fan_country}{fan_country}{/if_fan_country}{if_no_fan_country}&ndash;{/if_no_fan_country}</span>' . "\n"
             . '{if_sort_date}<span class="fl-member-table-cell">{fan_added}</span>{/if_sort_date}' . "\n"
             . '{fan_additional_field_cells}' . "\n"
             . '</div>' . "\n"
             . '{/each_member}' . "\n"
-            . '</div>' . "\n"
-            . '{/if_members}' . "\n"
             . "\n"
-            . '{if_no_members}' . "\n"
-            . '<p>No members yet. <a href="{join_url}">Want to join?</a></p>' . "\n"
-            . '{/if_no_members}';
+            . '</div>' . "\n"
+            . '{/if_members}';
     }
 
     /**
@@ -877,21 +946,22 @@ final class ListingSettingsRepo
      */
     public static function defaultAffiliatesSectionTemplate(): string
     {
-        return '<h2>Affiliates</h2>' . "\n"
+        return '<h2 class="fl-heading">Affiliates</h2>' . "\n"
             . '<div class="fl-affiliates-section">' . "\n"
+            . '{if_no_affiliates}<p class="fl-empty">No affiliates yet.</p>{/if_no_affiliates}' . "\n"
+            . "\n"
             . '{if_affiliates}' . "\n"
+            . "\n"
             . '{each_affiliate}' . "\n"
-            . '{if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}' . "\n"
+            . '{if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" title="{aff_name}" alt="{aff_name}"></a>{/if_aff_image}' . "\n"
             . '{if_no_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank">{aff_name}</a>{/if_no_aff_image}' . "\n"
+            . '{/each_affiliate}' . "\n"
             . "\n"
-            . '{/each_affiliate}{/if_affiliates}' . "\n"
+            . '{/if_affiliates}' . "\n"
+            . '</div>' . "\n"
             . "\n"
-            . '{if_no_affiliates}' . "\n"
-            . 'No affiliates yet.' . "\n"
-            . '{/if_no_affiliates}' . "\n"
-            . '<div style="text-align:center">{affiliate_apply_toggle}</div>' . "\n"
-            . '{affiliate_apply_form}' . "\n"
-            . '</div>';
+            . '{affiliate_apply_toggle}' . "\n"
+            . '{affiliate_apply_form}';
     }
 
     /**
@@ -903,12 +973,13 @@ final class ListingSettingsRepo
      */
     public static function defaultNewsfeedTemplate(): string
     {
-        return '<h2>{listing_subject} News Feed</h2>' . "\n"
+        return '<h2 class="fl-heading">News Feed</h2>' . "\n"
             . '<div class="fl-newsfeed-list">' . "\n"
-            . '{if_no_newsfeed}<p>No entries yet.</p>{/if_no_newsfeed}' . "\n"
-            . '{if_newsfeed}' . "\n"
-            . '{each_newsfeed_entry}' . "\n"
+            . '{if_no_newsfeed}<p class="fl-empty">No entries yet.</p>{/if_no_newsfeed}' . "\n"
             . "\n"
+            . '{if_newsfeed}' . "\n"
+            . "\n"
+            . '{each_newsfeed_entry}' . "\n"
             . '<div class="fl-newsfeed-item">' . "\n"
             . '<h3 class="fl-newsfeed-title">{newsfeed_title}</h3>' . "\n"
             . '<div class="fl-newsfeed-meta">' . "\n"
@@ -918,8 +989,8 @@ final class ListingSettingsRepo
             . "\n"
             . '<div class="fl-newsfeed-body">{newsfeed_body_html}</div>' . "\n"
             . '</div>' . "\n"
-            . "\n"
             . '{/each_newsfeed_entry}' . "\n"
+            . "\n"
             . '{/if_newsfeed}' . "\n"
             . '</div>';
     }
@@ -933,10 +1004,10 @@ final class ListingSettingsRepo
      */
     public static function defaultCodesTemplate(): string
     {
-        return '<h2>Codes</h2>' . "\n"
-            . '{if_no_codes}<p>No codes available yet.</p>{/if_no_codes}' . "\n"
-            . '{if_codes}' . "\n"
+        return '<h2 class="fl-heading">Codes</h2>' . "\n"
+            . '{if_no_codes}<p class="fl-empty">No codes yet.</p>{/if_no_codes}' . "\n"
             . "\n"
+            . '{if_codes}' . "\n"
             . '<div class="fl-codes">' . "\n"
             . '{each_size_group}' . "\n"
             . "\n"
@@ -947,7 +1018,7 @@ final class ListingSettingsRepo
             . '{each_code}' . "\n"
             . "\n"
             . '<li class="fl-code-item">' . "\n"
-            . '<img src="{code_url}" alt="{code_size}" class="fl-code-image">' . "\n"
+            . '<img src="{code_url}" title="{code_size}" alt="{code_size}" class="fl-code-image">' . "\n"
             . '{if_donor}<span class="fl-code-caption">by {if_donor_url}<a href="{code_donor_url}" target="_blank">{code_donor_name}</a>{/if_donor_url}{if_no_donor_url}{code_donor_name}{/if_no_donor_url}</span>{/if_donor}' . "\n"
             . '{if_code_name}<span class="fl-code-caption">{code_name}</span>{/if_code_name}' . "\n"
             . '</li>' . "\n"
@@ -960,7 +1031,8 @@ final class ListingSettingsRepo
             . '</div>' . "\n"
             . "\n"
             . '{/if_codes}' . "\n"
-            . '<div style="text-align:center">{codes_submit_toggle}</div>' . "\n"
+            . "\n"
+            . '{codes_submit_toggle}' . "\n"
             . '{codes_submit_form}';
     }
 
@@ -973,7 +1045,7 @@ final class ListingSettingsRepo
      */
     public static function defaultJoinFormTemplate(): string
     {
-        return '<h2>Join {listing_subject}</h2>' . "\n"
+        return '<h2>Join Form</h2>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_name}' . "\n"
             . '{field_email}' . "\n"
@@ -984,6 +1056,7 @@ final class ListingSettingsRepo
             . '{field_password_confirm}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
+            . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"
@@ -995,7 +1068,7 @@ final class ListingSettingsRepo
      */
     public static function defaultAffiliateApplyFormTemplate(): string
     {
-        return '<h2>Affiliate Application for {listing_subject}</h2>' . "\n"
+        return '<h2 class="fl-heading">Affiliate Application</h2>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_name}' . "\n"
             . '{field_email}' . "\n"
@@ -1016,7 +1089,7 @@ final class ListingSettingsRepo
      */
     public static function defaultCodesSubmitFormTemplate(): string
     {
-        return '<h2>Donate Codes to {listing_subject}</h2>' . "\n"
+        return '<h2 class="fl-heading">Code Donation Form</h2>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_submitter_name}' . "\n"
             . '{field_submitter_email}' . "\n"

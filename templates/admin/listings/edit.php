@@ -668,17 +668,17 @@ $_tplCsrf = View::e($csrf_token ?? '');
     <div class="select-wrap">
       <select id="tpl-group-select" class="form">
         <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
-        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application Form</option>
-        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
-        <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
-        <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Codes Donation Form</option>
+        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
+        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates</option>
+        <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes</option>
+        <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
         <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
         <option value="join-form"<?= $activeGroup === 'join-form' ? ' selected' : '' ?>>Join Form</option>
-        <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Lost Password Form</option>
+        <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Password Reset Form</option>
         <option value="members"<?= $activeGroup === 'members' ? ' selected' : '' ?>>Members List</option>
         <option value="newsfeed"<?= $activeGroup === 'newsfeed' ? ' selected' : '' ?>>News Feed</option>
         <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Statistics</option>
-        <option value="update-form"<?= $activeGroup === 'update-form' ? ' selected' : '' ?>>Update Membership Form</option>
+        <option value="update-form"<?= $activeGroup === 'update-form' ? ' selected' : '' ?>>Update Form</option>
       </select>
     </div>
     <div class="search-field-wrap">
@@ -779,7 +779,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-          <div class="section-label">Update Membership Form <?= $srcBadge('update_form_template') ?></div>
+          <div class="section-label">Update Form <?= $srcBadge('update_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls only the sign-in step. The step where a member actually edits or deletes their membership is fixed and cannot be customized.</p>
           <div class="field-group">
             <textarea id="update_form_template" name="update_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdateFormVal) ?></textarea>
@@ -791,7 +791,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
-          <div class="section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
+          <div class="section-label">Password Reset Form <?= $srcBadge('reset_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls only the email-entry step. The step where a member actually sets their new password is fixed and cannot be customized.</p>
           <div class="field-group">
             <textarea id="reset_form_template" name="reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplResetFormVal) ?></textarea>
@@ -830,7 +830,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
 
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
-          <div class="section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
+          <div class="section-label">Codes <?= $srcBadge('codes_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
 
           <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
@@ -870,8 +870,8 @@ $_tplCsrf = View::e($csrf_token ?? '');
 
         <?php if ($hasCodesSubmit): ?>
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-          <div class="section-label">Codes Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
-          <p class="form-hint form-hint--spaced">Controls the full layout of the Codes Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <div class="section-label">Code Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
+          <p class="form-hint form-hint--spaced">Controls the full layout of the Code Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="codes_submit_form_template" name="codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesFormVal) ?></textarea>
           </div>
@@ -885,7 +885,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
         <?php endif; ?>
 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-          <div class="section-label">Affiliates Display <?= $srcBadge('affiliates_section_template') ?></div>
+          <div class="section-label">Affiliates <?= $srcBadge('affiliates_section_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
 
           <?php if ($affiliate_apply_enabled ?? false): ?>
@@ -925,7 +925,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
 
         <?php if ($affiliate_apply_enabled ?? false): ?>
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-          <div class="section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
+          <div class="section-label">Affiliate Application <?= $srcBadge('affiliate_apply_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls the full layout of the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea id="affiliate_apply_form_template" name="affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffApplyFormVal) ?></textarea>
@@ -1068,9 +1068,9 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
       </details>
 
-      <!-- Update Membership Form -->
+      <!-- Update Form -->
       <details class="card chevron" data-token-card data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-        <summary class="chevron-head">Update Membership Form Tokens</summary>
+        <summary class="chevron-head">Update Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Controls only the sign-in step (email + password). The step where a member actually edits or deletes their membership is fixed and cannot be customized, so a mistake here can never lock anyone out of updating their info.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -1086,9 +1086,9 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
       </details>
 
-      <!-- Lost Password Form -->
+      <!-- Password Reset Form -->
       <details class="card chevron" data-token-card data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
-        <summary class="chevron-head">Lost Password Form Tokens</summary>
+        <summary class="chevron-head">Password Reset Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Controls only the email-entry step. The step where a member actually sets their new password is fixed and cannot be customized, so a mistake here can never lock anyone out of resetting their password.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -1132,9 +1132,9 @@ $_tplCsrf = View::e($csrf_token ?? '');
         </div>
       </details>
 
-      <!-- Codes Display -->
+      <!-- Codes -->
       <details class="card chevron" data-token-card data-tpl-group="codes" <?= $_grp('codes') ?>>
-        <summary class="chevron-head">Codes Display Tokens</summary>
+        <summary class="chevron-head">Codes Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -1167,11 +1167,11 @@ $_tplCsrf = View::e($csrf_token ?? '');
       </details>
 
       <?php if ($hasCodesSubmit): ?>
-      <!-- Codes Donation Form -->
+      <!-- Code Donation Form -->
       <details class="card chevron" data-token-card data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-        <summary class="chevron-head">Codes Donation Form Tokens</summary>
+        <summary class="chevron-head">Code Donation Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the Codes Donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the Code Donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('codes_submit_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('codes_submit_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -1194,9 +1194,9 @@ $_tplCsrf = View::e($csrf_token ?? '');
       </details>
       <?php endif; ?>
 
-      <!-- Affiliates Display -->
+      <!-- Affiliates -->
       <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-        <summary class="chevron-head">Affiliates Display Tokens</summary>
+        <summary class="chevron-head">Affiliates Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -1219,9 +1219,9 @@ $_tplCsrf = View::e($csrf_token ?? '');
       </details>
 
       <?php if ($affiliate_apply_enabled ?? false): ?>
-      <!-- Affiliate Application Form -->
+      <!-- Affiliate Application -->
       <details class="card chevron" data-token-card data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-        <summary class="chevron-head">Affiliate Application Form Tokens</summary>
+        <summary class="chevron-head">Affiliate Application Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the affiliate application form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -1789,7 +1789,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       </div>
 
       <div class="field-row">
-        <label class="field-label" for="fl-form-reset">Lost Password Form</label>
+        <label class="field-label" for="fl-form-reset">Password Reset Form</label>
         <div>
           <input id="fl-form-reset" type="text" name="form_url_reset" class="form"
                  maxlength="200"
@@ -1801,7 +1801,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
       <div class="field-row" id="fl-codes-submit-embed-row"
            <?= ($embedSettings['codes_submit_enabled'] ?? true) ? '' : 'style="display:none"' ?>>
-        <label class="field-label" for="fl-form-codes-submit">Codes Donation Form</label>
+        <label class="field-label" for="fl-form-codes-submit">Code Donation Form</label>
         <div>
           <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form"
                  maxlength="200"
@@ -1977,26 +1977,26 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           "require LUSTER_EMBED . '/stats.php';",
       ]); ?>
 
-      <?php $snipRow('image', 'Codes Display', 'Shows approved fan codes for this listing.', 'badge-info', [
+      <?php $snipRow('image', 'Codes', 'Shows approved fan codes for this listing.', 'badge-info', [
           '<?php',
           "\$luster_fanlisting_id = {$_snipId};",
           "require LUSTER_EMBED . '/codes.php';",
       ]); ?>
 
-      <?php $snipRow('image', 'Codes Donation Form', 'Lets fans submit codes for review.', 'badge-info2', [
+      <?php $snipRow('image', 'Code Donation Form', 'Lets fans submit codes for review.', 'badge-info2', [
           '<?php',
           "\$luster_fanlisting_id = {$_snipId};",
           "require LUSTER_EMBED . '/codes-submit.php';",
       ]); ?>
 
-      <?php $snipRow('link', 'Affiliates Section', 'Shows this listing\'s affiliates.', 'badge-info', [
+      <?php $snipRow('link', 'Affiliates', 'Shows this listing\'s affiliates.', 'badge-info', [
           '<?php',
           "\$luster_fanlisting_id = {$_snipId};",
           "require LUSTER_EMBED . '/affiliates.php';",
       ]); ?>
 
       <?php if ($affiliate_apply_enabled ?? false): ?>
-        <?php $snipRow('link', 'Affiliate Application Form', 'Lets visitors apply to affiliate with this listing.', 'badge-info2', [
+        <?php $snipRow('link', 'Affiliate Application', 'Lets visitors apply to affiliate with this listing.', 'badge-info2', [
             '<?php',
             "\$luster_fanlisting_id = {$_snipId};",
             "require LUSTER_EMBED . '/affiliate-apply.php';",

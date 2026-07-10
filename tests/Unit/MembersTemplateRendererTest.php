@@ -179,7 +179,7 @@ final class MembersTemplateRendererTest extends TestCase
         $member = $this->makeMember(name: 'Star', country: 'Canada');
 
         $html = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersListTemplate(),
+            ListingSettingsRepo::defaultMembersTemplate(),
             [$member],
             [],
             'https://example.com/join',
@@ -195,9 +195,10 @@ final class MembersTemplateRendererTest extends TestCase
         self::assertStringContainsString('<p class="fl-member-sort">Sort by:', $html);
         // Stats line — matches members.php's <p class="fl-member-stats">
         self::assertStringContainsString('<p class="fl-member-stats">1 member(s)</p>', $html);
-        // The class belongs on the <ul> itself, not a wrapping <div> — matches members.php
-        self::assertStringContainsString('<ul class="fl-member-list">', $html);
-        self::assertStringNotContainsString('<div class="fl-member-list">', $html);
+        // Table layout is the actual built-in default — matches members.php's fallback
+        self::assertStringContainsString('<div class="fl-member-table">', $html);
+        self::assertStringContainsString('<span class="fl-member-table-th">Name</span>', $html);
+        self::assertStringNotContainsString('<ul class="fl-member-list">', $html);
         // No standalone <h1> heading — members.php has none
         self::assertStringNotContainsString('<h1>', $html);
     }
@@ -205,15 +206,15 @@ final class MembersTemplateRendererTest extends TestCase
     public function testDefaultMembersTemplateEmptyStateMatchesThePhpFallbackFragment(): void
     {
         $html = MembersTemplateRenderer::render(
-            ListingSettingsRepo::defaultMembersListTemplate(),
+            ListingSettingsRepo::defaultMembersTemplate(),
             [],
             [],
             'https://example.com/join',
             0,
         );
 
-        // Matches members.php's <p class="fl-empty">No members to display yet.</p> exactly
-        self::assertStringContainsString('<p class="fl-empty">No members to display yet.</p>', $html);
+        // Matches members.php's <p class="fl-empty">No members yet. <a href="...">Want to join?</a></p> exactly
+        self::assertStringContainsString('<p class="fl-empty">No members yet. <a href="https://example.com/join">Want to join?</a></p>', $html);
     }
 
     // -----------------------------------------------------------------------

@@ -37,11 +37,6 @@ SQL;
     // defaultCodesSubmitFormTemplate()
     // -----------------------------------------------------------------------
 
-    public function testDefaultTemplateContainsListingTitleToken(): void
-    {
-        self::assertStringContainsString('{listing_subject}', ListingSettingsRepo::defaultCodesSubmitFormTemplate());
-    }
-
     public function testDefaultTemplateContainsRequiredFieldTokens(): void
     {
         $tpl = ListingSettingsRepo::defaultCodesSubmitFormTemplate();

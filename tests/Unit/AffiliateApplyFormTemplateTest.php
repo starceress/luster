@@ -35,11 +35,6 @@ SQL;
     // defaultAffiliateApplyFormTemplate()
     // -----------------------------------------------------------------------
 
-    public function testDefaultTemplateContainsListingTitleToken(): void
-    {
-        self::assertStringContainsString('{listing_subject}', ListingSettingsRepo::defaultAffiliateApplyFormTemplate());
-    }
-
     public function testDefaultTemplateContainsRequiredFieldTokens(): void
     {
         $tpl = ListingSettingsRepo::defaultAffiliateApplyFormTemplate();

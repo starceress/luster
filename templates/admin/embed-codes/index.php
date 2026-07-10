@@ -106,19 +106,19 @@ $items = [
         'desc'  => 'Displays the listing\'s affiliates. Edit the template in Edit Listing → Templates.',
     ],
     'aff-apply' => [
-        'label' => 'Affiliate Form',
+        'label' => 'Affiliate Application',
         'badge' => 'Form',
         'file'  => 'affiliate-apply.php',
         'desc'  => 'Must be enabled for the listing under Edit Listing → Affiliates. A form where fans can submit affiliate applications. Applications are queued as pending and appear on the site after admin approval.',
     ],
     'update' => [
-        'label' => 'Update Membership Form',
+        'label' => 'Update Form',
         'badge' => 'Form',
         'file'  => 'update.php',
         'desc'  => 'Lets existing members update their name, URL, and other details. Fields are the same as the join form, so extra fields appear here too. Members can also check a box to permanently delete their membership instead — this takes effect immediately and emails the member a farewell message.',
     ],
     'reset' => [
-        'label' => 'Password Reset',
+        'label' => 'Password Reset Form',
         'badge' => 'Form',
         'file'  => 'reset.php',
         'desc'  => 'Two-step password reset — members enter their email, then receive a link to set a new password.',
@@ -130,7 +130,7 @@ $items = [
         'desc'  => 'Displays graphic codes for the listing, grouped by size. Donated codes appear in a separate section with donor credit. Edit the template\'s format in Edit Listing → Templates.',
     ],
     'codes-submit' => [
-        'label' => 'Codes Donation Form',
+        'label' => 'Code Donation Form',
         'badge' => 'Form',
         'file'  => 'codes-submit.php',
         'desc'  => 'A form for fans to submit graphic codes. Submitted codes are queued as pending and appear on the site after admin approval. Edit the template\'s format in Edit Listing → Templates.',
@@ -184,7 +184,7 @@ $items = [
         'desc'  => 'Displays your site-wide collective affiliates, not tied to any single listing. Edit the template in Admin → Collective.',
     ],
     'col-aff-apply' => [
-        'label' => 'Affiliate Form',
+        'label' => 'Affiliate Application',
         'badge' => 'Form',
         'file'  => 'affiliate-apply.php',
         'desc'  => 'A site-wide affiliate application form. Submitted applications are queued as collective affiliate applications and reviewed in Admin → Affiliates → Pending.',
@@ -244,7 +244,7 @@ $items = [
         'desc'  => 'Displays collective-wide fan codes (not tied to a specific listing).',
     ],
     'col-codes-submit' => [
-        'label' => 'Codes Donation Form',
+        'label' => 'Code Donation Form',
         'badge' => 'Form',
         'file'  => 'collective-codes-submit.php',
         'desc'  => 'Form for fans to submit collective codes. Submissions are reviewed in Admin → Codes.',

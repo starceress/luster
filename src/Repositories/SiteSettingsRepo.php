@@ -168,19 +168,20 @@ class SiteSettingsRepo
                                          . '</div>' . "\n"
                                          . '</div>',
             'collective_affiliates_section_template' => '<div class="fl-affiliates-section">' . "\n"
+                                                    . '{if_no_affiliates}<p class="fl-empty">No affiliates yet.</p>{/if_no_affiliates}' . "\n"
+                                                    . "\n"
                                                     . '{if_affiliates}' . "\n"
+                                                    . "\n"
                                                     . '{each_affiliate}' . "\n"
-                                                    . '{if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}' . "\n"
+                                                    . '{if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" title="{aff_name}" alt="{aff_name}"></a>{/if_aff_image}' . "\n"
                                                     . '{if_no_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank">{aff_name}</a>{/if_no_aff_image}' . "\n"
                                                     . '{/each_affiliate}' . "\n"
-                                                    . '{/if_affiliates}' . "\n"
                                                     . "\n"
-                                                    . '{if_no_affiliates}' . "\n"
-                                                    . 'No affiliates yet.' . "\n"
-                                                    . '{/if_no_affiliates}' . "\n"
-                                                    . '<div style="text-align:center">{affiliate_apply_toggle}</div>' . "\n"
-                                                    . '{affiliate_apply_form}' . "\n"
-                                                    . '</div>',
+                                                    . '{/if_affiliates}' . "\n"
+                                                    . '</div>' . "\n"
+                                                    . "\n"
+                                                    . '{affiliate_apply_toggle}' . "\n"
+                                                    . '{affiliate_apply_form}',
             // Single-listing embeds — each has its own separate template so site
             // owners can style them independently from the full owned-listings list.
             'random_listing_template' => '<div class="fl-random-listing">' . "\n"
@@ -373,13 +374,13 @@ HTML;
     public static function defaultCollectiveNewsfeedTemplate(): string
     {
         return '<div class="fl-newsfeed-list">' . "\n"
-            . '{if_no_newsfeed}<p>No entries posted yet.</p>{/if_no_newsfeed}' . "\n"
-            . '{if_newsfeed}' . "\n"
-            . '{each_newsfeed_entry}' . "\n"
+            . '{if_no_newsfeed}<p class="fl-empty">No entries yet.</p>{/if_no_newsfeed}' . "\n"
             . "\n"
+            . '{if_newsfeed}' . "\n"
+            . "\n"
+            . '{each_newsfeed_entry}' . "\n"
             . '<div class="fl-newsfeed-item">' . "\n"
             . '<h3 class="fl-newsfeed-title">{newsfeed_title}</h3>' . "\n"
-            . "\n"
             . '<div class="fl-newsfeed-meta">' . "\n"
             . '<span class="fl-newsfeed-date"><b>Date Posted:</b> {newsfeed_date}</span>'
             . '{if_author} by <span class="fl-newsfeed-author">{newsfeed_author}</span>{/if_author}<br>' . "\n"
@@ -387,8 +388,8 @@ HTML;
             . "\n"
             . '<div class="fl-newsfeed-body">{newsfeed_body_html}</div>' . "\n"
             . '</div>' . "\n"
-            . "\n"
             . '{/each_newsfeed_entry}' . "\n"
+            . "\n"
             . '{/if_newsfeed}' . "\n"
             . '</div>';
     }
@@ -401,9 +402,9 @@ HTML;
      */
     public static function defaultCollectiveCodesTemplate(): string
     {
-        return '{if_no_codes}<p>No codes available yet.</p>{/if_no_codes}' . "\n"
-            . '{if_codes}' . "\n"
+        return '{if_no_codes}<p class="fl-empty">No codes yet.</p>{/if_no_codes}' . "\n"
             . "\n"
+            . '{if_codes}' . "\n"
             . '<div class="fl-codes">' . "\n"
             . '{each_size_group}' . "\n"
             . "\n"
@@ -414,7 +415,7 @@ HTML;
             . '{each_code}' . "\n"
             . "\n"
             . '<li class="fl-code-item">' . "\n"
-            . '<img src="{code_url}" alt="{code_size}" class="fl-code-image">' . "\n"
+            . '<img src="{code_url}" title="{code_size}" alt="{code_size}" class="fl-code-image">' . "\n"
             . '{if_donor}<span class="fl-code-caption">by {if_donor_url}<a href="{code_donor_url}" target="_blank">{code_donor_name}</a>{/if_donor_url}{if_no_donor_url}{code_donor_name}{/if_no_donor_url}</span>{/if_donor}' . "\n"
             . '{if_code_name}<span class="fl-code-caption">{code_name}</span>{/if_code_name}' . "\n"
             . '</li>' . "\n"
@@ -427,7 +428,8 @@ HTML;
             . '</div>' . "\n"
             . "\n"
             . '{/if_codes}' . "\n"
-            . '<div style="text-align:center">{codes_submit_toggle}</div>' . "\n"
+            . "\n"
+            . '{codes_submit_toggle}' . "\n"
             . '{codes_submit_form}';
     }
 
@@ -572,6 +574,7 @@ HTML;
             . '{field_message}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
+            . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"

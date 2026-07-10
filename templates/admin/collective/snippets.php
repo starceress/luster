@@ -114,7 +114,7 @@ $snip = static function(array $lines): string {
         <div class="es-item-row">
           <span class="es-item-icon"><?= View::icon('link', ['width' => 15, 'height' => 15]) ?></span>
           <div class="es-item-meta">
-            <span class="es-item-label">Affiliate Application Form</span>
+            <span class="es-item-label">Affiliate Application</span>
             <span class="es-item-desc">Lets visitors apply as collective affiliates.</span>
           </div>
           <span class="badge badge-info2">Form</span> ✦
@@ -133,7 +133,7 @@ $snip = static function(array $lines): string {
         <div class="es-item-row">
           <span class="es-item-icon"><?= View::icon('link', ['width' => 15, 'height' => 15]) ?></span>
           <div class="es-item-meta">
-            <span class="es-item-label">Affiliates Display</span>
+            <span class="es-item-label">Affiliates</span>
             <span class="es-item-desc">Shows only collective affiliates.</span>
           </div>
           <span class="badge badge-info">Data</span> ✦
@@ -152,7 +152,7 @@ $snip = static function(array $lines): string {
         <div class="es-item-row">
           <span class="es-item-icon"><?= View::icon('image', ['width' => 15, 'height' => 15]) ?></span>
           <div class="es-item-meta">
-            <span class="es-item-label">Codes Display</span>
+            <span class="es-item-label">Codes</span>
             <span class="es-item-desc">Shows collective-wide fan codes.</span>
           </div>
           <span class="badge badge-info">Data</span> ✦
@@ -171,7 +171,7 @@ $snip = static function(array $lines): string {
         <div class="es-item-row">
           <span class="es-item-icon"><?= View::icon('image', ['width' => 15, 'height' => 15]) ?></span>
           <div class="es-item-meta">
-            <span class="es-item-label">Codes Donation Form</span>
+            <span class="es-item-label">Code Donation Form</span>
             <span class="es-item-desc">Lets visitors submit fan codes for review.</span>
           </div>
           <span class="badge badge-info2">Form</span> ✦

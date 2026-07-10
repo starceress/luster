@@ -59,53 +59,55 @@ use Luster\Support\DateFormatter;
 
   <?php elseif (!empty($members)): ?>
     <!-- Member list view -->
-    <ul class="fl-member-list">
+    <div class="fl-member-table">
+      <div class="fl-member-table-head">
+        <span class="fl-member-table-th">Name</span>
+        <span class="fl-member-table-th">Country</span>
+        <?php if (($sort ?? '') === 'added'): ?><span class="fl-member-table-th">Joined</span><?php endif; ?>
+        <?php foreach ($fields as $field): ?>
+          <span class="fl-member-table-th"><?= View::e($field->label) ?></span>
+        <?php endforeach; ?>
+      </div>
+
       <?php foreach ($members as $member): ?>
-        <li class="fl-member-item">
-          <?php if ($member->showurl && $member->url !== ''): ?>
-            <a class="fl-member-name" href="<?= View::e($member->url) ?>"><?= View::e($member->name) ?></a>
-          <?php else: ?>
-            <span class="fl-member-name"><?= View::e($member->name) ?></span>
+        <div class="fl-member-table-row">
+          <span class="fl-member-table-cell">
+            <?php if ($member->showurl && $member->url !== ''): ?>
+              <a href="<?= View::e($member->url) ?>"><?= View::e($member->name) ?></a>
+            <?php else: ?>
+              <?= View::e($member->name) ?>
+            <?php endif; ?>
+          </span>
+
+          <span class="fl-member-table-cell"><?= $member->country !== '' ? View::e($member->country) : '&ndash;' ?></span>
+          <?php if (($sort ?? '') === 'added'): ?>
+          <span class="fl-member-table-cell">
+            <?php
+              // No explicit format ("Automatic") falls back to the ordinal style,
+              // matching MembersTemplateRenderer's {fan_added} default so the
+              // custom-template and no-custom-template paths render dates the same way.
+              $_addedFormat = $date_format ?? '';
+              $_addedText   = $_addedFormat === ''
+                  ? DateFormatter::format($member->added)
+                  : DateFormatter::formatWith($member->added, $_addedFormat);
+            ?>
+            <?= View::e($_addedText) ?>
+          </span>
           <?php endif; ?>
-          <?php if ($member->country !== ''): ?>&mdash; <span class="fl-member-country"><?= View::e($member->country) ?></span><?php endif; ?>
-          <?php if (($sort ?? '') === 'added'): ?>,
-          <?php
-            // No explicit format ("Automatic") falls back to the ordinal style,
-            // matching MembersTemplateRenderer's {fan_added} default so the
-            // custom-template and no-custom-template paths render dates the same way.
-            $_addedFormat = $date_format ?? '';
-            $_addedText   = $_addedFormat === ''
-                ? DateFormatter::format($member->added)
-                : DateFormatter::formatWith($member->added, $_addedFormat);
-          ?>
-          Joined <span class="fl-member-added"><?= View::e($_addedText) ?></span>
-          <?php endif; ?>
-          <?php
-            $hasAnyFieldValue = false;
-            foreach ($fields as $field) {
-                if (($member->additionalFields[$field->name] ?? '') !== '') {
-                    $hasAnyFieldValue = true;
-                    break;
-                }
-            }
-          ?>
-          <?php if ($hasAnyFieldValue): ?>,<?php endif; ?>
           <?php foreach ($fields as $field): ?>
             <?php $val = $member->additionalFields[$field->name] ?? ''; ?>
-            <?php if ($val !== ''): ?>
-              <span class="fl-member-field"><span class="fl-member-field-label"><?= View::e($field->label) ?>:</span> <span class="fl-member-field-value"><?= View::e($val) ?></span></span>
-            <?php endif; ?>
+            <span class="fl-member-table-cell"><?= $val !== '' ? View::e($val) : '&ndash;' ?></span>
           <?php endforeach; ?>
-        </li>
+        </div>
       <?php endforeach; ?>
-    </ul>
+    </div>
 
     <?php if ($pagination !== ''): ?>
       <div class="fl-pagination-wrap"><?= $pagination ?></div>
     <?php endif; ?>
 
   <?php else: ?>
-    <p class="fl-empty">No members to display yet.</p>
+    <p class="fl-empty">No members yet. <a href="<?= View::e($join_url) ?>">Want to join?</a></p>
   <?php endif; ?>
 <?php endif; ?>
 </div>

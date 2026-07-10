@@ -55,7 +55,7 @@ SQL;
         self::assertStringContainsString('{/if_codes}', $tpl);
         self::assertStringContainsString('{if_no_codes}', $tpl);
         self::assertStringContainsString('{/if_no_codes}', $tpl);
-        self::assertStringContainsString('No codes available yet.', $tpl);
+        self::assertStringContainsString('No codes yet.', $tpl);
     }
 
     public function testDefaultCodesTemplateContainsPerCodeTokens(): void

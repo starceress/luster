@@ -307,7 +307,7 @@ final class CodesTemplateRendererTest extends TestCase
         );
 
         self::assertNotNull($html);
-        self::assertStringContainsString('No codes available yet.', $html);
+        self::assertStringContainsString('No codes yet.', $html);
         self::assertStringNotContainsString('fl-code-group', $html);
     }
 
@@ -336,6 +336,6 @@ final class CodesTemplateRendererTest extends TestCase
         self::assertStringContainsString('<span class="fl-code-caption">Classic</span>', $html);
         self::assertStringContainsString('by <a href="https://riley.example/" target="_blank">Riley</a>', $html);
         self::assertStringContainsString('by <a href="https://jamie.example/" target="_blank">Jamie</a>', $html);
-        self::assertStringNotContainsString('No codes available yet.', $html);
+        self::assertStringNotContainsString('No codes yet.', $html);
     }
 }

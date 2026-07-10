@@ -88,17 +88,17 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
     <div class="select-wrap">
       <select id="tpl-group-select" class="form">
         <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
-        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application Form</option>
-        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
-        <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
-        <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Codes Donation Form</option>
+        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
+        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates</option>
+        <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes</option>
+        <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
         <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
         <option value="join-form"<?= $activeGroup === 'join-form' ? ' selected' : '' ?>>Join Form</option>
-        <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Lost Password Form</option>
+        <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Password Reset Form</option>
         <option value="members"<?= $activeGroup === 'members' ? ' selected' : '' ?>>Members List</option>
         <option value="newsfeed"<?= $activeGroup === 'newsfeed' ? ' selected' : '' ?>>News Feed</option>
         <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Statistics</option>
-        <option value="update-form"<?= $activeGroup === 'update-form' ? ' selected' : '' ?>>Update Membership Form</option>
+        <option value="update-form"<?= $activeGroup === 'update-form' ? ' selected' : '' ?>>Update Form</option>
       </select>
     </div>
     <div class="search-field-wrap">
@@ -202,7 +202,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-          <div class="section-label">Update Membership Form <?= $srcBadge('update_form_template') ?></div>
+          <div class="section-label">Update Form <?= $srcBadge('update_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the sign-in step only. The step where a member actually edits or deletes their membership is fixed and cannot be customized.</p>
           <div class="field-group">
             <textarea name="listing_default_update_form_template" id="listing_default_update_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_update_form_template')) ?></textarea>
@@ -214,7 +214,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
-          <div class="section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
+          <div class="section-label">Password Reset Form <?= $srcBadge('reset_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the email-entry step only. The step where a member actually sets their new password is fixed and cannot be customized.</p>
           <div class="field-group">
             <textarea name="listing_default_reset_form_template" id="listing_default_reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_reset_form_template')) ?></textarea>
@@ -252,7 +252,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
-          <div class="section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
+          <div class="section-label">Codes <?= $srcBadge('codes_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the codes/buttons gallery. Use <code>{each_size_group}</code> for grouped mode or <code>{each_code}</code> for flat mode.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
@@ -288,8 +288,8 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-          <div class="section-label">Codes Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
-          <p class="form-hint form-hint--spaced">Default layout for the Codes Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <div class="section-label">Code Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
+          <p class="form-hint form-hint--spaced">Default layout for the Code Donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_codes_submit_form_template" id="listing_default_codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_codes_submit_form_template')) ?></textarea>
           </div>
@@ -300,7 +300,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-          <div class="section-label">Affiliates Display <?= $srcBadge('affiliates_section_template') ?></div>
+          <div class="section-label">Affiliates <?= $srcBadge('affiliates_section_template') ?></div>
           <p class="form-hint form-hint--spaced">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
@@ -336,7 +336,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-          <div class="section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
+          <div class="section-label">Affiliate Application <?= $srcBadge('affiliate_apply_form_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
           <div class="field-group">
             <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
@@ -474,9 +474,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
-      <!-- Update Membership Form -->
+      <!-- Update Form -->
       <details class="card chevron" data-token-card data-tpl-group="update-form" <?= $_grp('update-form') ?>>
-        <summary class="chevron-head">Update Membership Form Tokens</summary>
+        <summary class="chevron-head">Update Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Controls only the sign-in step (email + password). The step where a member actually edits or deletes their membership is fixed and cannot be customized, so a mistake here can never lock anyone out of updating their info.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -492,9 +492,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
-      <!-- Lost Password Form -->
+      <!-- Password Reset Form -->
       <details class="card chevron" data-token-card data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
-        <summary class="chevron-head">Lost Password Form Tokens</summary>
+        <summary class="chevron-head">Password Reset Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Controls only the email-entry step. The step where a member actually sets their new password is fixed and cannot be customized, so a mistake here can never lock anyone out of resetting their password.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -537,9 +537,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
-      <!-- Codes Display -->
+      <!-- Codes -->
       <details class="card chevron" data-token-card data-tpl-group="codes" <?= $_grp('codes') ?>>
-        <summary class="chevron-head">Codes Display Tokens</summary>
+        <summary class="chevron-head">Codes Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -571,9 +571,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
       <!-- Code Donation Form -->
       <details class="card chevron" data-token-card data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
-        <summary class="chevron-head">Codes Donation Form Tokens</summary>
+        <summary class="chevron-head">Code Donation Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the Codes Donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the Code Donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_codes_submit_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_codes_submit_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
@@ -595,9 +595,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
-      <!-- Affiliates Display -->
+      <!-- Affiliates -->
       <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-        <summary class="chevron-head">Affiliates Display Tokens</summary>
+        <summary class="chevron-head">Affiliates Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
@@ -617,9 +617,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
-      <!-- Affiliate Application Form -->
+      <!-- Affiliate Application -->
       <details class="card chevron" data-token-card data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-        <summary class="chevron-head">Affiliate Application Form Tokens</summary>
+        <summary class="chevron-head">Affiliate Application Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint form-hint--spaced" data-token-search-help>Arrange and label every field of the affiliate application form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
