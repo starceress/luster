@@ -56,15 +56,26 @@ final class ListingRowRenderer
         $approvalUrl  = (string) ($settings['approval_url'] ?? '');
         $description  = (string) ($settings['description'] ?? '');
 
-        $network     = strtoupper($approvedBy);
-        $networkName = match ($approvedBy) {
-            'tfl'   => 'The Fanlistings Network',
-            'tafl'  => 'The Anime Fanlistings Network',
-            default => '',
-        };
+        $network = strtoupper($approvedBy);
+
+        // {if_tfl} / {if_tafl} / {network_name}: independent of {if_approved_by} /
+        // {approved_by} — derived from whether the listing has ANY category
+        // assigned from that network (Network & Category on the edit form),
+        // not from "Approved By". Callers batch-fetch these via the same
+        // category junction query used for {listing_category} and merge them
+        // into $settings as 'has_tfl_category' / 'has_tafl_category'.
+        $hasTflCategory  = (bool) ($settings['has_tfl_category']  ?? false);
+        $hasTaflCategory = (bool) ($settings['has_tafl_category'] ?? false);
+
+        $networkNames = [];
+        if ($hasTflCategory)  { $networkNames[] = 'The Fanlistings Network'; }
+        if ($hasTaflCategory) { $networkNames[] = 'The Anime Fanlistings Network'; }
+        $networkName = implode(' & ', $networkNames);
 
         // {tfl_url} / {tafl_url}: use the per-listing approval URL when set,
-        // otherwise fall back to the network's home page.
+        // otherwise fall back to the network's home page. Still tied to
+        // "Approved By" (not the category flags above) since approval_url is
+        // only ever saved for the network a listing is actually approved by.
         $tflUrl  = ($approvedBy === 'tfl'  && $approvalUrl !== '') ? $approvalUrl : 'https://thefanlistings.org/';
         $taflUrl = ($approvedBy === 'tafl' && $approvalUrl !== '') ? $approvalUrl : 'https://www.animefanlistings.com/';
 
@@ -113,8 +124,8 @@ final class ListingRowRenderer
                 'status_pending'     => $status === 'pending',
                 'status_closed'      => $status === 'closed',
                 'status_adopted_out' => $status === 'adopted_out',
-                'tfl'                => $approvedBy === 'tfl',
-                'tafl'               => $approvedBy === 'tafl',
+                'tfl'                => $hasTflCategory,
+                'tafl'               => $hasTaflCategory,
                 'approved_by'        => $approvedBy !== '',
                 'date_updated'       => DateFormatter::mostRecent((string) ($memberStats['newest_date'] ?? ''), (string) ($settings['last_updated'] ?? '')) !== null,
                 'description'        => $description !== '',

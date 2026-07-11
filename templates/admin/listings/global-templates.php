@@ -526,13 +526,13 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $tok('listing_default_stats_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
             <?= $tok('listing_default_stats_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $tok('listing_default_stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
-            <?= $tok('listing_default_stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
-            <?= $tok('listing_default_stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
-            <?= $tok('listing_default_stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
-            <?= $tok('listing_default_stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
-            <?= $tok('listing_default_stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing is TFL-approved.') ?>
-            <?= $tok('listing_default_stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing is TAFL-approved.') ?>
+            <?= $tok('listing_default_stats_template', '{approved_by}',       '{approved_by}',       'Network acronym from the &ldquo;Approved By&rdquo; dropdown only: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
+            <?= $tok('listing_default_stats_template', '{network_name}',      '{network_name}',      'Full name of every network the listing has a category assigned under (Network &amp; Category on the edit form) &mdash; not the &ldquo;Approved By&rdquo; dropdown. Shows both joined with &ldquo;&amp;&rdquo; when categorized under TFL and TAFL.') ?>
+            <?= $tok('listing_default_stats_template', '{tfl_url}',           '{tfl_url}',           'TFL approval page URL when &ldquo;Approved By&rdquo; is TFL and one is saved, otherwise <code>https://thefanlistings.org/</code>') ?>
+            <?= $tok('listing_default_stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL approval page URL when &ldquo;Approved By&rdquo; is TAFL and one is saved, otherwise <code>https://www.animefanlistings.com/</code>') ?>
+            <?= $tok('listing_default_stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when the &ldquo;Approved By&rdquo; dropdown is set to a network.') ?>
+            <?= $tok('listing_default_stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing has a TFL category assigned (Network &amp; Category) &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
+            <?= $tok('listing_default_stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing has a TAFL category assigned (Network &amp; Category) &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
           </tbody></table>
         </div>
       </details>

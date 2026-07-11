@@ -12,6 +12,7 @@
 
 declare(strict_types=1);
 
+use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
@@ -198,11 +199,32 @@ if ($_lusterListing->joined !== null) {
 $_lusterApprovedBy   = $_lusterSettingsRepo->getApprovedBy($_lusterListingId);
 $_lusterApprovalUrl  = $_lusterSettingsRepo->getApprovalUrl($_lusterListingId) ?? '';
 $_lusterNetwork      = strtoupper($_lusterApprovedBy);
-$_lusterNetworkName  = match ($_lusterApprovedBy) {
-    'tfl'   => 'The Fanlistings Network',
-    'tafl'  => 'The Anime Fanlistings Network',
-    default => '',
-};
+
+// {if_tfl} / {if_tafl} / {network_name}: independent of {if_approved_by} /
+// {approved_by} — derived from ANY category assigned from that network
+// (Network & Category on the edit form), not from "Approved By". A listing
+// can be filed under a TFL category without yet being marked officially
+// approved, and (unlike "Approved By", a single dropdown) can carry
+// categories from both networks at once — e.g. TFL Animation + TFL Movies
+// still counts as TFL once, and TFL Animation + TAFL Series counts as both.
+// Nest {if_tfl}/{if_tafl} inside {if_approved_by} to require both.
+$_lusterCategoryRepo    = new CategoryRepo($_lusterApp->getDatabase());
+$_lusterHasTflCategory  = false;
+$_lusterHasTaflCategory = false;
+foreach ($_lusterListingRepo->getCategoryIdsForListing($_lusterListingId) as $_lusterCatId) {
+    $_lusterCat = $_lusterCategoryRepo->getById($_lusterCatId);
+    if ($_lusterCat === null) {
+        continue;
+    }
+    if ($_lusterCat->source === 'tfl')  { $_lusterHasTflCategory  = true; }
+    if ($_lusterCat->source === 'tafl') { $_lusterHasTaflCategory = true; }
+}
+
+$_lusterNetworkNames = [];
+if ($_lusterHasTflCategory)  { $_lusterNetworkNames[] = 'The Fanlistings Network'; }
+if ($_lusterHasTaflCategory) { $_lusterNetworkNames[] = 'The Anime Fanlistings Network'; }
+$_lusterNetworkName = implode(' & ', $_lusterNetworkNames);
+
 // {tfl_url} / {tafl_url}: use the per-listing approval URL when set,
 // otherwise fall back to the network's home page.
 $_lusterTflUrl  = ($_lusterApprovedBy === 'tfl'  && $_lusterApprovalUrl !== '') ? $_lusterApprovalUrl : 'https://thefanlistings.org/';
@@ -216,12 +238,12 @@ $_lusterTemplate = (string) preg_replace(
 );
 $_lusterTemplate = (string) preg_replace(
     '/\{if_tfl\}(.*?)\{\/if_tfl\}/s',
-    $_lusterApprovedBy === 'tfl' ? '$1' : '',
+    $_lusterHasTflCategory ? '$1' : '',
     $_lusterTemplate,
 );
 $_lusterTemplate = (string) preg_replace(
     '/\{if_tafl\}(.*?)\{\/if_tafl\}/s',
-    $_lusterApprovedBy === 'tafl' ? '$1' : '',
+    $_lusterHasTaflCategory ? '$1' : '',
     $_lusterTemplate,
 );
 $_lusterTemplate = (string) preg_replace(

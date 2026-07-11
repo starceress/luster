@@ -542,7 +542,7 @@ final class SettingsController extends AdminController
         $categoryMap = [];
         try {
             $stmt = $db->prepare(
-                "SELECT lc.fanlisting_id, c.name
+                "SELECT lc.fanlisting_id, c.name, c.source
                  FROM lstr_listing_categories lc
                  JOIN lstr_categories c ON c.id = lc.category_id
                  WHERE lc.fanlisting_id IN ({$phs})
@@ -551,7 +551,12 @@ final class SettingsController extends AdminController
             $stmt->execute(array_values($ids));
             $raw = [];
             foreach ($stmt->fetchAll() as $row) {
-                $raw[(int) $row['fanlisting_id']][] = (string) $row['name'];
+                $rowListingId = (int) $row['fanlisting_id'];
+                $raw[$rowListingId][] = (string) $row['name'];
+                // {if_tfl}/{if_tafl}/{network_name} are category-derived, independent
+                // of "Approved By" — see ListingRowRenderer::render().
+                if ($row['source'] === 'tfl')  { $settingsMap[$rowListingId]['has_tfl_category']  = true; }
+                if ($row['source'] === 'tafl') { $settingsMap[$rowListingId]['has_tafl_category'] = true; }
             }
             foreach ($raw as $id => $names) {
                 $categoryMap[$id] = implode(', ', $names);

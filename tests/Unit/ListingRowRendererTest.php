@@ -410,20 +410,26 @@ final class ListingRowRendererTest extends TestCase
         self::assertSame('', $none);
     }
 
-    public function testNetworkConditionalsMatchApprovedBy(): void
+    public function testNetworkConditionalsAreCategoryDerivedIndependentOfApprovedBy(): void
     {
         $template = '{if_tfl}TFL{/if_tfl}{if_tafl}TAFL{/if_tafl}{if_approved_by}APPROVED{/if_approved_by}';
 
         $tfl = ListingRowRenderer::render(
             $this->makeListing(),
             $template,
-            ['approved_by' => 'tfl'],
+            ['has_tfl_category' => true],
             'https://example.com/uploads/listings',
         );
         $tafl = ListingRowRenderer::render(
             $this->makeListing(),
             $template,
-            ['approved_by' => 'tafl'],
+            ['has_tafl_category' => true],
+            'https://example.com/uploads/listings',
+        );
+        $both = ListingRowRenderer::render(
+            $this->makeListing(),
+            $template,
+            ['has_tfl_category' => true, 'has_tafl_category' => true],
             'https://example.com/uploads/listings',
         );
         $none = ListingRowRenderer::render(
@@ -433,37 +439,93 @@ final class ListingRowRendererTest extends TestCase
             'https://example.com/uploads/listings',
         );
 
-        self::assertSame('TFLAPPROVED', $tfl);
-        self::assertSame('TAFLAPPROVED', $tafl);
+        self::assertSame('TFL', $tfl);
+        self::assertSame('TAFL', $tafl);
+        self::assertSame('TFLTAFL', $both);
         self::assertSame('', $none);
     }
 
-    public function testNetworkNameAndUrlTokens(): void
+    public function testIfTflShowsWithCategoryFlagEvenWithoutApprovedBy(): void
     {
-        $template = '{network_name}|{tfl_url}|{tafl_url}';
+        // {if_tfl} is category-derived — it must show even when the listing
+        // has no "Approved By" set at all, unlike the old approved_by-based gate.
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{if_tfl}has tfl category{/if_tfl}',
+            ['has_tfl_category' => true, 'approved_by' => ''],
+            'https://example.com/uploads/listings',
+        );
+
+        self::assertSame('has tfl category', $html);
+    }
+
+    public function testNetworkNameDerivedFromCategoryFlagsNotApprovedBy(): void
+    {
+        $tfl = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{network_name}',
+            ['has_tfl_category' => true],
+            'https://example.com/uploads/listings',
+        );
+        $tafl = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{network_name}',
+            ['has_tafl_category' => true],
+            'https://example.com/uploads/listings',
+        );
+        $both = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{network_name}',
+            ['has_tfl_category' => true, 'has_tafl_category' => true],
+            'https://example.com/uploads/listings',
+        );
+        $none = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{network_name}',
+            [],
+            'https://example.com/uploads/listings',
+        );
+        // Approved By alone, with no matching category, still yields no network name.
+        $approvedByOnly = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{network_name}',
+            ['approved_by' => 'tfl'],
+            'https://example.com/uploads/listings',
+        );
+
+        self::assertSame('The Fanlistings Network', $tfl);
+        self::assertSame('The Anime Fanlistings Network', $tafl);
+        // network_name goes through the same escaped-token bucket as every
+        // other scalar token, so the literal "&" comes out HTML-entity-encoded
+        // (renders correctly as "&" in a browser).
+        self::assertSame('The Fanlistings Network &amp; The Anime Fanlistings Network', $both);
+        self::assertSame('', $none);
+        self::assertSame('', $approvedByOnly);
+    }
+
+    public function testTflAndTaflUrlTokensStayTiedToApprovedByNotCategoryFlags(): void
+    {
+        // {tfl_url}/{tafl_url} are unchanged by this — they still reflect
+        // "Approved By" + the saved approval_url, since that's the only
+        // place a listing-specific approval page URL is ever stored.
+        $template = '{tfl_url}|{tafl_url}';
 
         $tfl = ListingRowRenderer::render(
             $this->makeListing(),
             $template,
-            ['approved_by' => 'tfl'],
+            ['approved_by' => 'tfl', 'approval_url' => 'https://thefanlistings.org/tfl/all/123'],
             'https://example.com/uploads/listings',
         );
-        $tafl = ListingRowRenderer::render(
+        // Category flag alone (no Approved By) does not unlock the saved approval_url.
+        $categoryOnly = ListingRowRenderer::render(
             $this->makeListing(),
             $template,
-            ['approved_by' => 'tafl'],
-            'https://example.com/uploads/listings',
-        );
-        $none = ListingRowRenderer::render(
-            $this->makeListing(),
-            $template,
-            [],
+            ['has_tfl_category' => true, 'approval_url' => 'https://thefanlistings.org/tfl/all/123'],
             'https://example.com/uploads/listings',
         );
 
-        self::assertSame('The Fanlistings Network|https://thefanlistings.org/|https://www.animefanlistings.com/', $tfl);
-        self::assertSame('The Anime Fanlistings Network|https://thefanlistings.org/|https://www.animefanlistings.com/', $tafl);
-        self::assertSame('|https://thefanlistings.org/|https://www.animefanlistings.com/', $none);
+        self::assertSame('https://thefanlistings.org/tfl/all/123|https://www.animefanlistings.com/', $tfl);
+        self::assertSame('https://thefanlistings.org/|https://www.animefanlistings.com/', $categoryOnly);
     }
 
     // -----------------------------------------------------------------------

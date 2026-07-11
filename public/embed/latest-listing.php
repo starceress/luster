@@ -75,19 +75,26 @@ $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';
 // Fetch per-listing settings (image, last_updated)
 $_lusterSettings = (new ListingSettingsRepo($_lusterApp->getDatabase()))->getRenderSettings($_lusterListing->id);
 
-// Fetch all assigned category names via junction table (falls back to primary categoryId)
+// Fetch all assigned category names (+ network source, for {if_tfl}/{if_tafl}/
+// {network_name} — independent of "Approved By") via junction table (falls back
+// to primary categoryId)
 $_lusterCategoryName = '';
 try {
     $_st = $_lusterApp->getDatabase()->prepare(
-        "SELECT c.name
+        "SELECT c.name, c.source
          FROM lstr_listing_categories lc
          JOIN lstr_categories c ON c.id = lc.category_id
          WHERE lc.fanlisting_id = :id
          ORDER BY c.name"
     );
     $_st->execute(['id' => $_lusterListing->id]);
-    $_lcNames = $_st->fetchAll(\PDO::FETCH_COLUMN);
+    $_lcRows  = $_st->fetchAll();
+    $_lcNames = array_map(static fn($r) => (string) $r['name'], $_lcRows);
     $_lusterCategoryName = implode(', ', $_lcNames);
+    foreach ($_lcRows as $_lcRow) {
+        if ($_lcRow['source'] === 'tfl')  { $_lusterSettings['has_tfl_category']  = true; }
+        if ($_lcRow['source'] === 'tafl') { $_lusterSettings['has_tafl_category'] = true; }
+    }
 } catch (\Exception) {
     // Junction table absent: fall back to primary categoryId
     if ($_lusterListing->categoryId !== null && $_lusterListing->categoryId > 0) {

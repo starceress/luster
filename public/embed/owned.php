@@ -234,12 +234,13 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
             }
         }
 
-        // Batch-fetch category names via junction table
+        // Batch-fetch category names (+ network source, for {if_tfl}/{if_tafl}/
+        // {network_name} — independent of the "Approved By" field) via junction table
         try {
             $_db  = $_db ?? $_lusterApp->getDatabase();
             $_phs = implode(',', array_fill(0, count($_lusterListingIds), '?'));
             $_st  = $_db->prepare(
-                "SELECT lc.fanlisting_id, c.name
+                "SELECT lc.fanlisting_id, c.name, c.source
                  FROM lstr_listing_categories lc
                  JOIN lstr_categories c ON c.id = lc.category_id
                  WHERE lc.fanlisting_id IN ({$_phs})
@@ -248,7 +249,14 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
             $_st->execute(array_values($_lusterListingIds));
             $_lcRaw = [];
             foreach ($_st->fetchAll() as $_row) {
-                $_lcRaw[(int) $_row['fanlisting_id']][] = (string) $_row['name'];
+                $_lcListingId = (int) $_row['fanlisting_id'];
+                $_lcRaw[$_lcListingId][] = (string) $_row['name'];
+                if ($_row['source'] === 'tfl') {
+                    $_lusterSettingsMap[$_lcListingId]['has_tfl_category'] = true;
+                }
+                if ($_row['source'] === 'tafl') {
+                    $_lusterSettingsMap[$_lcListingId]['has_tafl_category'] = true;
+                }
             }
             foreach ($_lcRaw as $_lcId => $_lcNames) {
                 $_lusterListingCategoryMap[$_lcId] = implode(', ', $_lcNames);
