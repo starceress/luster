@@ -51,6 +51,7 @@ SQL;
         $result = TflLookupService::lookup('Some Subject', 'bogus', $this->siteRepo(), 'Animation');
 
         self::assertNull($result['url']);
+        self::assertNull($result['network_url']);
         self::assertSame([], $result['candidates']);
         self::assertSame('Unknown network.', $result['error']);
         self::assertNull($result['cache_age']);
@@ -61,6 +62,7 @@ SQL;
         $result = TflLookupService::lookup('HUNTR/X', 'tfl', $this->siteRepo(), null);
 
         self::assertNull($result['url']);
+        self::assertNull($result['network_url']);
         self::assertStringContainsString('no TFL category assigned', $result['error']);
     }
 
@@ -87,6 +89,27 @@ SQL;
 
         self::assertNull($result['url']);
         self::assertStringContainsString('isn\'t available yet', $result['error']);
+    }
+
+    // -----------------------------------------------------------------------
+    // networkPageUrl() — the URL saved as network_url, deliberately the
+    // "view everything in this category" page rather than a per-letter or
+    // per-subcategory guess (TFL's start= parameter isn't alphabetical for
+    // every category — see the method's own docblock).
+    // -----------------------------------------------------------------------
+
+    public function testNetworkPageUrlForTfl(): void
+    {
+        $url = $this->invokePrivate('networkPageUrl', ['tfl', 'animation']);
+
+        self::assertSame('https://thefanlistings.org/browse.php?show=animation&start=*', $url);
+    }
+
+    public function testNetworkPageUrlForTafl(): void
+    {
+        $url = $this->invokePrivate('networkPageUrl', ['tafl', 'characters_0m']);
+
+        self::assertSame('https://www.animefanlistings.com/browse/characters_0m/all', $url);
     }
 
     // -----------------------------------------------------------------------
@@ -179,8 +202,8 @@ SQL;
 
     public function testParseTflEntriesExtractsListingSpans(): void
     {
-        $html = '<span class="two"><a href="http://noonvale.net/anita/" target="_blank">101 Dalmatians: Radcliffe, Anita</a></span>'
-            . '<span class="two"><a href="https://fan.nebuluna.com/huntrix/" target="_blank">KPop Demon Hunters: [+] HUNTR/X</a></span>';
+        $html = '<div class="thelistings"><span class="two"><a href="http://noonvale.net/anita/" target="_blank">101 Dalmatians: Radcliffe, Anita</a></span></div>'
+            . '<div class="thelistings"><span class="two"><a href="https://fan.nebuluna.com/huntrix/" target="_blank">KPop Demon Hunters: [+] HUNTR/X</a></span></div>';
 
         $links = $this->invokePrivate('parseTflEntries', [$html]);
 
@@ -192,12 +215,44 @@ SQL;
     public function testParseTflEntriesIgnoresNonListingLinks(): void
     {
         $html = '<a href="browse.php?show=animation&amp;start=3">Characters</a>'
-            . '<span class="two"><a href="http://example.test/" target="_blank">Some Fanlisting</a></span>';
+            . '<div class="thelistings"><span class="two"><a href="http://example.test/" target="_blank">Some Fanlisting</a></span></div>';
 
         $links = $this->invokePrivate('parseTflEntries', [$html]);
 
         self::assertCount(1, $links);
         self::assertSame('Some Fanlisting', $links[0]['text']);
+    }
+
+    public function testParseTflEntriesCapturesAlternatingRowsWithoutClassTwo(): void
+    {
+        // TFL zebra-stripes rows: every other <div class="thelistings"> wraps
+        // a bare <span> with no class at all. A regex requiring class="two"
+        // literally silently drops every one of these — confirmed live
+        // against a real category page where entries alternated bare/two/
+        // bare/two with zero exceptions across 644 consecutive entries.
+        $html = '<div class="thelistings"><span><a href="http://a.test/" target="_blank">First Fanlisting</a></span></div>'
+            . '<div class="thelistings"><span class="two"><a href="http://b.test/" target="_blank">Second Fanlisting</a></span></div>'
+            . '<div class="thelistings"><span><a href="http://c.test/" target="_blank">Third Fanlisting</a></span></div>';
+
+        $links = $this->invokePrivate('parseTflEntries', [$html]);
+
+        self::assertCount(3, $links);
+        self::assertSame('First Fanlisting', $links[0]['text']);
+        self::assertSame('Second Fanlisting', $links[1]['text']);
+        self::assertSame('Third Fanlisting', $links[2]['text']);
+    }
+
+    public function testParseTflEntriesSkipsEntriesWithNoLink(): void
+    {
+        // A handful of real entries are plain text with no href at all
+        // (dead/pending listings) — nothing to extract, correctly skipped.
+        $html = '<div class="thelistings"><span class="two">Some Dead Listing</span></div>'
+            . '<div class="thelistings"><span><a href="http://real.test/" target="_blank">Real Fanlisting</a></span></div>';
+
+        $links = $this->invokePrivate('parseTflEntries', [$html]);
+
+        self::assertCount(1, $links);
+        self::assertSame('Real Fanlisting', $links[0]['text']);
     }
 
     // -----------------------------------------------------------------------

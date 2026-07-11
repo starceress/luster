@@ -78,10 +78,11 @@ final class TflLookupController
         $result = TflLookupService::lookup($subject, $network, $siteRepo, $categoryName);
 
         return Response::json([
-            'url'        => $result['url'],
-            'candidates' => $result['candidates'],
-            'error'      => $result['error'],
-            'cache_age'  => $result['cache_age'],
+            'url'         => $result['url'],
+            'network_url' => $result['network_url'],
+            'candidates'  => $result['candidates'],
+            'error'       => $result['error'],
+            'cache_age'   => $result['cache_age'],
         ]);
     }
 

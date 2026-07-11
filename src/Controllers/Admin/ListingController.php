@@ -2240,6 +2240,23 @@ final class ListingController extends AdminController
     {
         $settingsRepo = new ListingSettingsRepo($db);
         $approvedBy   = (string) ($settingsRepo->getApprovedBy((int) $listing->id) ?? '');
+        $approvalUrl  = (string) ($settingsRepo->getApprovalUrl((int) $listing->id) ?? '');
+
+        // {if_tfl} / {if_tafl} / {network_name} are category-derived — same
+        // rule as the live embed (public/embed/stats.php) — independent of
+        // "Approved By". A listing can carry categories from both networks.
+        $listingRepoForCats = new ListingRepo($db, $config);
+        $categoryRepo       = new CategoryRepo($db);
+        $hasTflCategory      = false;
+        $hasTaflCategory     = false;
+        foreach ($listingRepoForCats->getCategoryIdsForListing((int) $listing->id) as $catId) {
+            $cat = $categoryRepo->getById($catId);
+            if ($cat === null) {
+                continue;
+            }
+            if ($cat->source === 'tfl')  { $hasTflCategory  = true; }
+            if ($cat->source === 'tafl') { $hasTaflCategory = true; }
+        }
 
         // null = key absent (not live preview); '' = "Use global default"; '0'/'5' = explicit choice
         $limitRaw = $request ? $request->post('stat_newmembers_limit', null) : null;
@@ -2284,29 +2301,42 @@ final class ListingController extends AdminController
         ];
         $conditions = [
             'approved_by'  => $approvedBy !== '',
-            'tfl'          => $approvedBy === 'tfl',
-            'tafl'         => $approvedBy === 'tafl',
+            'tfl'          => $hasTflCategory,
+            'tafl'         => $hasTaflCategory,
             'stat_pending' => $pending > 0,
         ];
-        return self::renderStatsTemplate($tpl, $values, $conditions, $approvedBy);
+        return self::renderStatsTemplate($tpl, $values, $conditions, $approvedBy, $hasTflCategory, $hasTaflCategory, $approvalUrl);
     }
 
     /**
-     * Renders the stats_template against a set of token values, conditions, and
-     * the raw approved-by key. Shared by ltplPreviewStats() (real listing data)
-     * and gtplPreviewStats() (sample/empty data, listing-independent).
+     * Renders the stats_template against a set of token values, conditions, the
+     * raw approved-by key, category-derived network membership, and the saved
+     * Approval Page URL. Shared by ltplPreviewStats() (real listing data) and
+     * gtplPreviewStats() (sample/empty data, listing-independent).
+     *
+     * {approved_by} still reflects $approvedBy (the "Approved By" dropdown).
+     * {network_name} reflects $hasTflCategory/$hasTaflCategory instead — same
+     * split as the live embed (public/embed/stats.php) — since a listing can be
+     * categorized under a network without (yet) being marked approved by it.
+     * {approval_url}/{tfl_url}/{tafl_url} match the live embed's own fallback
+     * rule exactly: {approval_url} is the raw saved value (or empty); {tfl_url}/
+     * {tafl_url} use it only when $approvedBy matches that network, otherwise
+     * falling back to the network's homepage.
      *
      * @param array<string, string> $values
      * @param array<string, bool>   $conditions
      */
-    private static function renderStatsTemplate(string $tpl, array $values, array $conditions, string $approvedBy): string
+    private static function renderStatsTemplate(string $tpl, array $values, array $conditions, string $approvedBy, bool $hasTflCategory = false, bool $hasTaflCategory = false, string $approvalUrl = ''): string
     {
-        $network     = strtoupper($approvedBy);
-        $networkName = match ($approvedBy) {
-            'tfl'   => 'The Fanlistings Network',
-            'tafl'  => 'The Anime Fanlistings Network',
-            default => '',
-        };
+        $network = strtoupper($approvedBy);
+
+        $networkNames = [];
+        if ($hasTflCategory)  { $networkNames[] = 'The Fanlistings Network'; }
+        if ($hasTaflCategory) { $networkNames[] = 'The Anime Fanlistings Network'; }
+        $networkName = implode(' & ', $networkNames);
+
+        $tflUrl  = ($approvedBy === 'tfl'  && $approvalUrl !== '') ? $approvalUrl : 'https://thefanlistings.org/';
+        $taflUrl = ($approvedBy === 'tafl' && $approvalUrl !== '') ? $approvalUrl : 'https://www.animefanlistings.com/';
 
         $rawValues = [];
         if (isset($values['stat_newmembers'])) {
@@ -2316,8 +2346,14 @@ final class ListingController extends AdminController
 
         $rendered = TemplateEngine::render($tpl, escaped: $values, raw: $rawValues, conditions: $conditions);
         return str_replace(
-            ['{approved_by}', '{network_name}', '{tfl_url}', '{tafl_url}'],
-            [$network, $networkName, 'https://thefanlistings.org/', 'https://www.animefanlistings.com/'],
+            ['{approved_by}', '{network_name}', '{tfl_url}', '{tafl_url}', '{approval_url}'],
+            [
+                $network,
+                $networkName,
+                htmlspecialchars($tflUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                htmlspecialchars($taflUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                htmlspecialchars($approvalUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            ],
             $rendered,
         );
     }
@@ -3376,8 +3412,8 @@ final class ListingController extends AdminController
             'stat_pending' => false,
         ];
 
-        $sample = self::renderStatsTemplate($tpl, $sampleValues, $sampleConditions, 'tfl');
-        $empty  = self::renderStatsTemplate($tpl, $emptyValues, $emptyConditions, '');
+        $sample = self::renderStatsTemplate($tpl, $sampleValues, $sampleConditions, 'tfl', hasTflCategory: true, hasTaflCategory: false);
+        $empty  = self::renderStatsTemplate($tpl, $emptyValues, $emptyConditions, '', hasTflCategory: false, hasTaflCategory: false);
 
         return $this->previewSectionLabel('Sample Data') . $sample
             . $this->previewSectionLabel('Empty State') . $empty;

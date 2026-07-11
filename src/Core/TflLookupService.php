@@ -137,23 +137,32 @@ final class TflLookupService
      * or ::tafl()) must be supplied — neither network exposes a page listing
      * every approved fanlisting, so there's nothing to search without one.
      *
-     * @return array{url: ?string, candidates: list<array{text: string, url: string}>, error: ?string, cache_age: ?int}
+     * @return array{url: ?string, network_url: ?string, candidates: list<array{text: string, url: string}>, error: ?string, cache_age: ?int}
      */
     public static function lookup(string $subject, string $network, SiteSettingsRepo $siteRepo, ?string $categoryName = null): array
     {
         ['slug' => $slug, 'error' => $error] = self::resolveSlug($network, $categoryName);
 
         if ($slug === null) {
-            return ['url' => null, 'candidates' => [], 'error' => $error, 'cache_age' => null];
+            return ['url' => null, 'network_url' => null, 'candidates' => [], 'error' => $error, 'cache_age' => null];
         }
 
         [$links, $fetchError, $cacheAge] = self::getCachedLinksForSlug($network, $slug, $siteRepo);
 
         if ($links === null) {
-            return ['url' => null, 'candidates' => [], 'error' => $fetchError ?? 'Could not fetch the network page.', 'cache_age' => null];
+            return ['url' => null, 'network_url' => null, 'candidates' => [], 'error' => $fetchError ?? 'Could not fetch the network page.', 'cache_age' => null];
         }
 
-        return self::searchLinks($links, $subject) + ['error' => null, 'cache_age' => $cacheAge];
+        // The page a fanlisting's entry was actually found on — used as what
+        // gets saved as the Approval Page URL. Deliberately NOT the matched
+        // entry's own href (that points at the fanlisting's own site, not at
+        // the network — a circular link when {tfl_url}/{tafl_url} render on
+        // that same fanlisting's own stats page). Every entry in a category
+        // is found on this same page, so it's one value for the whole result,
+        // not per-candidate.
+        $networkUrl = self::networkPageUrl($network, $slug);
+
+        return self::searchLinks($links, $subject) + ['network_url' => $networkUrl, 'error' => null, 'cache_age' => $cacheAge];
     }
 
     /**
@@ -264,7 +273,7 @@ final class TflLookupService
      */
     private static function fetchTflLinks(string $slug): ?array
     {
-        $html = LinkChecker::safeGet('https://thefanlistings.org/browse.php?show=' . $slug . '&start=*');
+        $html = LinkChecker::safeGet(self::networkPageUrl('tfl', $slug));
 
         if ($html === null) {
             return null;
@@ -274,10 +283,18 @@ final class TflLookupService
     }
 
     /**
-     * Extracts fanlisting entries from a TFL browse page. Real entries are
-     * rendered as `<span class="two"><a href="...">Title</a></span>`, which
-     * distinguishes them from ordinary navigation/subcategory links elsewhere
-     * on the same page.
+     * Extracts fanlisting entries from a TFL browse page. Real entries sit
+     * inside `<div class="thelistings">...</div>` wrappers, rendered as
+     * `<span><a href="...">Title</a></span>` — TFL alternates plain `<span>`
+     * and `<span class="two">` per row (classic zebra-striping), so matching
+     * `class="two"` alone silently drops every other real entry. Confirmed
+     * directly against a live category page: entries alternated bare/`two`/
+     * bare/`two`/... with zero exceptions across 644 consecutive entries.
+     * Scoping to the `thelistings` wrapper (rather than accepting any `<span>`
+     * anywhere) avoids picking up unrelated `<span>` usage elsewhere on the
+     * page. A handful of entries have no href at all (dead/pending listings
+     * with plain text, no link) — those are correctly skipped since there's
+     * nothing to extract.
      *
      * @return list<array{text: string, url: string}>
      */
@@ -285,7 +302,7 @@ final class TflLookupService
     {
         $links = [];
 
-        if (!preg_match_all('/<span class="two"><a\s+href="([^"]+)"[^>]*>(.*?)<\/a><\/span>/is', $html, $matches, PREG_SET_ORDER)) {
+        if (!preg_match_all('/<div class="thelistings">\s*<span[^>]*><a\s+href="([^"]+)"[^>]*>(.*?)<\/a><\/span>/is', $html, $matches, PREG_SET_ORDER)) {
             return $links;
         }
 
@@ -309,13 +326,32 @@ final class TflLookupService
      */
     private static function fetchTaflLinks(string $slug): ?array
     {
-        $html = LinkChecker::safeGet('https://www.animefanlistings.com/browse/' . $slug . '/all');
+        $html = LinkChecker::safeGet(self::networkPageUrl('tafl', $slug));
 
         if ($html === null) {
             return null;
         }
 
         return self::parseTaflEntries($html);
+    }
+
+    /**
+     * The category page a network's fanlisting entries are actually found
+     * on — shared between the crawl fetchers above and lookup()'s network_url
+     * result. Deliberately the "view everything in this category" page for
+     * both networks (TFL's `&start=*`, TAFL's `/all`) rather than trying to
+     * derive a more specific per-letter/per-subcategory URL: TFL's `start=`
+     * parameter is NOT alphabetical for every category — some categories
+     * (e.g. Music Miscellany) subdivide by named subcategory instead of by
+     * letter, so a guessed `&start={letter}` can silently land on the wrong
+     * subcategory page for those. The view-all page is the only URL
+     * confirmed to actually contain every matched entry, for every category.
+     */
+    private static function networkPageUrl(string $network, string $slug): string
+    {
+        return $network === 'tfl'
+            ? 'https://thefanlistings.org/browse.php?show=' . $slug . '&start=*'
+            : 'https://www.animefanlistings.com/browse/' . $slug . '/all';
     }
 
     /**

@@ -714,15 +714,15 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{stat_growth_rate}</code></td><td>Numeric growth rate only (e.g. &ldquo;0.15&rdquo;). Use to build your own formatting.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{approved_by}</code></td><td>Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{network_name}</code></td><td>Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL website URL: <code>https://thefanlistings.org/</code></td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL website URL: <code>https://www.animefanlistings.com/</code></td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{approved_by}</code></td><td>Network acronym from the &ldquo;Approved By&rdquo; dropdown only: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{network_name}</code></td><td>Full name of every network the listing has a category assigned under &mdash; not the &ldquo;Approved By&rdquo; dropdown. &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, both joined with &ldquo;&amp;&rdquo; when categorized under TFL and TAFL, or empty if neither.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL approval page URL when &ldquo;Approved By&rdquo; is TFL and one is saved; otherwise <code>https://thefanlistings.org/</code></td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL approval page URL when &ldquo;Approved By&rdquo; is TAFL and one is saved; otherwise <code>https://www.animefanlistings.com/</code></td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_subject}</code></td><td>What the listing is about &mdash; the character, show, game, or topic.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{approval_url}</code></td><td>URL of the listing&rsquo;s approval page on TFL or TAFL. Falls back to the network homepage. Empty when no network is saved.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{approval_url}</code></td><td>The raw Approval Page URL exactly as saved, or empty when none is set. Does not fall back to the network homepage &mdash; use <code>{tfl_url}</code> / <code>{tafl_url}</code> if you want that fallback behavior.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_stat_pending}&hellip;{/if_stat_pending}</code></td><td>Shows the text inside only when there are pending members.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the listing has an approved-by network saved.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{if_tfl}&hellip;{/if_tfl}</code>, <code class="ec-tk">{if_tafl}&hellip;{/if_tafl}</code></td><td>Shows the text inside only when the listing is registered with that specific network.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the &ldquo;Approved By&rdquo; dropdown is set to a network.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_tfl}&hellip;{/if_tfl}</code>, <code class="ec-tk">{if_tafl}&hellip;{/if_tafl}</code></td><td>Shows the text inside only when the listing has a category assigned from that network &mdash; independent of &ldquo;Approved By&rdquo;.</td></tr>
               </tbody>
             </table>
             </div>
@@ -772,7 +772,7 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{listing_subject}</code></td><td>What the listing is about. For example, the character, show, game, ship, or topic.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_status}</code></td><td>The listing&rsquo;s status word: <code>current</code>, <code>upcoming</code>, <code>pending</code>, <code>closed</code>, or <code>adopted_out</code>.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_description}</code></td><td>The description you saved for the listing in Luster. Empty when none is saved.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{approval_url}</code></td><td>URL of the listing&rsquo;s approval page on TFL or TAFL. Falls back to the network homepage. Empty when no network is saved.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{approval_url}</code></td><td>The raw Approval Page URL exactly as saved, or empty when none is set. Does not fall back to the network homepage &mdash; use <code>{tfl_url}</code> / <code>{tafl_url}</code> if you want that fallback behavior.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{adopted_to_name}</code>, <code class="ec-tk">{adopted_to_url}</code></td><td>Name and link of the person or site the listing was adopted out to. Empty for non-adopted listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{archive_note}</code>, <code class="ec-tk">{archived_at}</code></td><td>Optional admin note and date recorded when the listing was closed or adopted out. Both empty for active listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_email}</code></td><td>Contact email for the listing.</td></tr>
@@ -784,10 +784,10 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{member_count}</code></td><td>Number of approved members.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{member_pending_count}</code></td><td>Number of members waiting for approval on this listing.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{country_count}</code></td><td>Number of different countries represented by approved members.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{approved_by}</code></td><td>Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{network_name}</code></td><td>Full network name, or empty.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL website URL.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL website URL.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{approved_by}</code></td><td>Network acronym from the &ldquo;Approved By&rdquo; dropdown only: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{network_name}</code></td><td>Full name of every network the listing has a category assigned under &mdash; not the &ldquo;Approved By&rdquo; dropdown. Both joined with &ldquo;&amp;&rdquo; when categorized under TFL and TAFL, or empty if neither.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL approval page URL when &ldquo;Approved By&rdquo; is TFL and one is saved; otherwise the TFL homepage.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL approval page URL when &ldquo;Approved By&rdquo; is TAFL and one is saved; otherwise the TAFL homepage.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code>, <code class="ec-tk">{if_no_listing_image}&hellip;{/if_no_listing_image}</code></td><td>Shows the text inside only when the listing has (or does not have) an image.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_listing_url}&hellip;{/if_listing_url}</code>, <code class="ec-tk">{if_no_listing_url}&hellip;{/if_no_listing_url}</code></td><td>Shows link or no-link markup depending on whether the listing has a URL. Closed listings may have no URL set.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_description}&hellip;{/if_description}</code></td><td>Shows the text inside only when a listing description is saved.</td></tr>
@@ -795,8 +795,8 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{if_pending}&hellip;{/if_pending}</code></td><td>Shows the text inside only when this listing has members waiting for approval.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_status_current}&hellip;{/if_status_current}</code>, <code class="ec-tk">{if_status_upcoming}&hellip;{/if_status_upcoming}</code>, <code class="ec-tk">{if_status_pending}&hellip;{/if_status_pending}</code></td><td>Shows the text inside only when the listing&rsquo;s status matches.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_status_closed}&hellip;{/if_status_closed}</code>, <code class="ec-tk">{if_status_adopted_out}&hellip;{/if_status_adopted_out}</code></td><td>Shows the text inside only when the listing is closed or adopted out. Use inside the row to show special messaging for archived listings.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{if_tfl}&hellip;{/if_tfl}</code>, <code class="ec-tk">{if_tafl}&hellip;{/if_tafl}</code></td><td>Shows the text inside only when the listing is registered with that network.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the listing is registered with either network.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_tfl}&hellip;{/if_tfl}</code>, <code class="ec-tk">{if_tafl}&hellip;{/if_tafl}</code></td><td>Shows the text inside only when the listing has a category assigned from that network &mdash; independent of &ldquo;Approved By&rdquo;.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the &ldquo;Approved By&rdquo; dropdown is set to a network.</td></tr>
               </tbody>
             </table>
             </div>

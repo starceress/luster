@@ -7387,7 +7387,10 @@ document.addEventListener('click', function (e) {
     html += '<table class="data-table" style="width:100%;font-size:.85rem"><thead><tr><th>Template</th><th>Status</th><th style="width:1px">Copy</th></tr></thead><tbody>';
     changes.forEach(function (c) {
       var statusText = c.changed ? '<span class="badge badge-current badge-inline-sm">Different</span>' : '<span class="badge badge-inactive badge-inline-sm">Same</span>';
-      html += '<tr><td>' + esc(c.label) + '</td><td>' + statusText + '</td><td><input type="checkbox" class="tpack-key-check" data-key="' + esc(c.key) + '" checked></td></tr>';
+      var noteHtml = c.linked_note
+        ? '<br><span class="form-hint" style="font-size:.75rem">Also copies: ' + esc(c.linked_note) + '</span>'
+        : '';
+      html += '<tr><td>' + esc(c.label) + noteHtml + '</td><td>' + statusText + '</td><td><input type="checkbox" class="tpack-key-check" data-key="' + esc(c.key) + '" checked></td></tr>';
     });
     html += '</tbody></table>';
     return html;
@@ -7634,16 +7637,24 @@ document.addEventListener('click', function (e) {
         }
 
         var html = '';
+        // The clickable link shown per match is always the fanlisting's own
+        // URL, exactly as it appears on the network — so the admin can click
+        // through and visually confirm this is really their own site before
+        // trusting the match. The "Use" button writes data.network_url
+        // instead (the network's own category page): {tfl_url}/{tafl_url}
+        // render on this fanlisting's own stats page, so the saved Approval
+        // Page URL needs to point AT the network, not back at this same site.
+        var useLabel = 'Use ' + network.toUpperCase() + ' Page URL';
 
         if (data.url) {
-          html += '<p class="form-hint"><strong>Exact match found:</strong> '
+          html += '<p class="form-hint"><strong>Exact match found</strong> &mdash; listed at '
             + '<a href="' + esc(data.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(data.url) + '</a> '
-            + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(data.url) + '">Use this URL</button></p>';
+            + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(data.network_url || '') + '">' + esc(useLabel) + '</button></p>';
         } else if (data.candidates && data.candidates.length > 0) {
           html += '<p class="form-hint"><strong>No exact match. Possible matches:</strong></p><ul style="margin:.25rem 0 0 1rem;font-size:.85rem">';
           data.candidates.forEach(function (c) {
             html += '<li><a href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(c.text) + '</a> '
-              + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(c.url) + '">Use</button></li>';
+              + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(data.network_url || '') + '">' + esc(useLabel) + '</button></li>';
           });
           html += '</ul>';
         } else {
