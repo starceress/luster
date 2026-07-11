@@ -55,6 +55,20 @@ final class TemplatePackController
     ];
 
     /**
+     * Human-readable description of the settings copyLinkedSettings() bundles
+     * with each template key. Shown in the Copy From preview so an admin knows
+     * these come along even when the row is checked and looks otherwise
+     * unremarkable, and used to force 'changed' => true when only a linked
+     * setting (not the template text itself) differs between listings.
+     */
+    private const LINKED_SETTING_LABELS = [
+        'members_template'            => 'Members Per Page',
+        'stats_template'               => 'Newest Member Names limit',
+        'codes_template'               => 'Code Donation toggle style + label',
+        'affiliates_section_template' => 'Affiliate Application toggle style + label',
+    ];
+
+    /**
      * Maps pack logical key → lstr_site_settings storage key for global templates.
      * The pack uses the same logical keys as per-listing so packs are cross-context portable.
      */
@@ -424,16 +438,30 @@ final class TemplatePackController
         $changes = [];
         foreach (self::TEMPLATE_KEYS as $key) {
             $incomingValue = $templates[$key] ?? null;
-            if ($incomingValue === null) {
+            // A row must not read "Same" when its template text matches but a
+            // linked setting (Members Per Page, toggle style/label, etc.) would
+            // still change on apply — copyApply() copies those unconditionally
+            // whenever this key is checked, regardless of the template text.
+            $linkedChanged = $this->linkedSettingsDiffer($settingsRepo, $sourceId, $id, $key);
+            if ($incomingValue === null && !$linkedChanged) {
+                // Source has no override (uses global/built-in default) and no
+                // linked setting differs either — nothing this key controls
+                // would actually change, so there's nothing to show a row for.
                 continue;
             }
-            $changed = ($this->norm($incomingValue) !== $this->norm($current[$key] ?? null));
+            // copyApply() only overwrites the template text when the source has
+            // a non-null override (a null source leaves the target's own template
+            // untouched) — so a null incoming value never counts as a template
+            // change on its own, even if the target happens to have its own text.
+            $templateChanged = $incomingValue !== null
+                && ($this->norm($incomingValue) !== $this->norm($current[$key] ?? null));
             $changes[] = [
-                'key'      => $key,
-                'label'    => self::TEMPLATE_LABELS[$key] ?? $key,
-                'current'  => $current[$key] ?? null,
-                'incoming' => $incomingValue,
-                'changed'  => $changed,
+                'key'         => $key,
+                'label'       => self::TEMPLATE_LABELS[$key] ?? $key,
+                'current'     => $current[$key] ?? null,
+                'incoming'    => $incomingValue,
+                'changed'     => $templateChanged || $linkedChanged,
+                'linked_note' => self::LINKED_SETTING_LABELS[$key] ?? null,
             ];
         }
 
@@ -501,8 +529,62 @@ final class TemplatePackController
 
         $revisionRepo->recordChanged($id, $currentValues, $incoming, $adminId);
         $this->applyTemplates($settingsRepo, $id, $incoming, $currentValues);
+        $this->copyLinkedSettings($settingsRepo, $sourceId, $id, $validKeys);
 
         return Response::json(['ok' => true, 'saved' => count($validKeys)]);
+    }
+
+    /**
+     * Copies the small per-section settings that live alongside a template
+     * in the edit UI but aren't part of self::TEMPLATE_KEYS (they're not
+     * template HTML) — carried along whenever their section's template key
+     * is among the ones the admin selected to copy:
+     *   - members_template            -> Members Per Page
+     *   - stats_template               -> Newest Member Names limit
+     *   - codes_template               -> Code Donation toggle style + label
+     *   - affiliates_section_template -> Affiliate Application toggle style + label
+     *
+     * "Display style" (List/Table) needs no separate handling — it's a preset
+     * button that writes directly into members_template's own saved HTML, so
+     * copying that template key already carries it along.
+     *
+     * @param string[] $keys Confirmed template keys from the copy request
+     */
+    private function copyLinkedSettings(ListingSettingsRepo $settingsRepo, int $sourceId, int $targetId, array $keys): void
+    {
+        if (in_array('members_template', $keys, true)) {
+            $settingsRepo->saveMembersPerPage($targetId, $settingsRepo->getMembersPerPageOrNull($sourceId));
+        }
+        if (in_array('stats_template', $keys, true)) {
+            $settingsRepo->setStatNewmembersLimit($targetId, $settingsRepo->getStatNewmembersLimit($sourceId));
+        }
+        if (in_array('codes_template', $keys, true)) {
+            $settingsRepo->setCodesSubmitToggleStyle($targetId, $settingsRepo->getCodesSubmitToggleStyle($sourceId));
+            $settingsRepo->setCodesSubmitToggleLabel($targetId, $settingsRepo->getCodesSubmitToggleLabel($sourceId));
+        }
+        if (in_array('affiliates_section_template', $keys, true)) {
+            $settingsRepo->setAffiliateApplyStyle($targetId, $settingsRepo->getAffiliateApplyStyle($sourceId));
+            $settingsRepo->setAffiliateApplyToggleLabel($targetId, $settingsRepo->getAffiliateApplyToggleLabel($sourceId));
+        }
+    }
+
+    /**
+     * True when any setting copyLinkedSettings() would bundle with $key differs
+     * between the source and target listing. Used by copySource() so a row
+     * isn't shown as "Same" (and left silently checked) when its template text
+     * matches but a linked setting would still change on apply.
+     */
+    private function linkedSettingsDiffer(ListingSettingsRepo $settingsRepo, int $sourceId, int $targetId, string $key): bool
+    {
+        return match ($key) {
+            'members_template' => $settingsRepo->getMembersPerPageOrNull($sourceId) !== $settingsRepo->getMembersPerPageOrNull($targetId),
+            'stats_template' => $settingsRepo->getStatNewmembersLimit($sourceId) !== $settingsRepo->getStatNewmembersLimit($targetId),
+            'codes_template' => $settingsRepo->getCodesSubmitToggleStyle($sourceId) !== $settingsRepo->getCodesSubmitToggleStyle($targetId)
+                || $settingsRepo->getCodesSubmitToggleLabel($sourceId) !== $settingsRepo->getCodesSubmitToggleLabel($targetId),
+            'affiliates_section_template' => $settingsRepo->getAffiliateApplyStyle($sourceId) !== $settingsRepo->getAffiliateApplyStyle($targetId)
+                || $settingsRepo->getAffiliateApplyToggleLabel($sourceId) !== $settingsRepo->getAffiliateApplyToggleLabel($targetId),
+            default => false,
+        };
     }
 
     // -------------------------------------------------------------------------
