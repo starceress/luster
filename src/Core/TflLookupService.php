@@ -8,8 +8,8 @@
  browsing into a specific category before any individual fanlisting entries
  are visible — there is no site-wide index or search endpoint on either
  network — so the listing's category (matched against a hardcoded name→slug
- table verified against each network's live site) picks which page(s) get
- crawled. Results are cached per (network, slug) pair in lstr_site_settings
+ table verified against each network's live site) picks which page gets
+ fetched. Results are cached per (network, slug) pair in lstr_site_settings
  for 24 hours. Returns up to 10 candidate matches for the admin to review;
  the admin must explicitly save any URL they want to keep.
 */
@@ -23,11 +23,10 @@ use Luster\Repositories\SiteSettingsRepo;
 /**
  * TFL/TAFL approval URL lookup helper.
  *
- * TFL ("thefanlistings.org"): each top-level category page
- * (`browse.php?show={slug}`) either lists entries directly or links out to
- * further subcategory pages (`browse.php?show={slug}&start=N`). Individual
- * fanlisting entries are rendered as `<span class="two"><a>...</a></span>`.
- * We crawl the category page plus every subcategory page it links to.
+ * TFL ("thefanlistings.org"): each category has a "View All Fanlistings"
+ * page (`browse.php?show={slug}&start=*`) that lists every entry in the
+ * category in one page. Individual fanlisting entries are rendered as
+ * `<span class="two"><a>...</a></span>`.
  *
  * TAFL ("animefanlistings.com"): each category has a dedicated
  * `browse/{slug}/all` view that lists every entry in that category in one
@@ -142,32 +141,10 @@ final class TflLookupService
      */
     public static function lookup(string $subject, string $network, SiteSettingsRepo $siteRepo, ?string $categoryName = null): array
     {
-        if (!in_array($network, ['tfl', 'tafl'], true)) {
-            return ['url' => null, 'candidates' => [], 'error' => 'Unknown network.', 'cache_age' => null];
-        }
+        ['slug' => $slug, 'error' => $error] = self::resolveSlug($network, $categoryName);
 
-        $label = $network === 'tfl' ? 'TFL' : 'TAFL';
-
-        $categoryName = trim((string) $categoryName);
-        if ($categoryName === '') {
-            return [
-                'url'        => null,
-                'candidates' => [],
-                'error'      => "This listing has no {$label} category assigned. Assign one under Categories, then try Look Up again, or enter the URL manually.",
-                'cache_age'  => null,
-            ];
-        }
-
-        $slugMap = $network === 'tfl' ? self::TFL_CATEGORY_SLUGS : self::TAFL_CATEGORY_SLUGS;
-        $slug    = $slugMap[$categoryName] ?? null;
-
-        if ($slug === null || !preg_match('/^[a-z0-9_]+$/', $slug)) {
-            return [
-                'url'        => null,
-                'candidates' => [],
-                'error'      => "Automatic {$label} lookup isn't available yet for the \"{$categoryName}\" category. Enter the URL manually.",
-                'cache_age'  => null,
-            ];
+        if ($slug === null) {
+            return ['url' => null, 'candidates' => [], 'error' => $error, 'cache_age' => null];
         }
 
         [$links, $fetchError, $cacheAge] = self::getCachedLinksForSlug($network, $slug, $siteRepo);
@@ -179,9 +156,68 @@ final class TflLookupService
         return self::searchLinks($links, $subject) + ['error' => null, 'cache_age' => $cacheAge];
     }
 
+    /**
+     * Clears the cached link-map for a listing's assigned category so the
+     * next lookup() call re-fetches live data instead of reusing a cached
+     * result for up to 24 hours. Useful when a category's approved-listings
+     * page has changed since the last fetch, or when a fetch is suspected to
+     * have been incomplete.
+     *
+     * Returns true when the network/category resolved to a real cache key
+     * (whether or not anything was actually cached yet), false when it
+     * couldn't be resolved at all (unknown network, no category assigned,
+     * or an unmapped category) — the same cases lookup() itself would
+     * report as an error rather than run a fetch for.
+     */
+    public static function clearCache(string $network, ?string $categoryName, SiteSettingsRepo $siteRepo): bool
+    {
+        ['slug' => $slug] = self::resolveSlug($network, $categoryName);
+
+        if ($slug === null) {
+            return false;
+        }
+
+        $siteRepo->set("{$network}_link_map_{$slug}_json", null);
+        $siteRepo->set("{$network}_link_map_{$slug}_fetched_at", null);
+
+        return true;
+    }
+
     // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
+
+    /**
+     * Resolves a network + category name into TFL/TAFL's real URL slug, or an
+     * error message when the network is unknown, no category is assigned, or
+     * the category has no known mapping yet. Shared by lookup() and
+     * clearCache() so both apply the exact same "is this category
+     * searchable" rule.
+     *
+     * @return array{slug: ?string, error: ?string}
+     */
+    private static function resolveSlug(string $network, ?string $categoryName): array
+    {
+        if (!in_array($network, ['tfl', 'tafl'], true)) {
+            return ['slug' => null, 'error' => 'Unknown network.'];
+        }
+
+        $label = $network === 'tfl' ? 'TFL' : 'TAFL';
+
+        $categoryName = trim((string) $categoryName);
+        if ($categoryName === '') {
+            return ['slug' => null, 'error' => "This listing has no {$label} category assigned. Assign one under Categories, then try Look Up again, or enter the URL manually."];
+        }
+
+        $slugMap = $network === 'tfl' ? self::TFL_CATEGORY_SLUGS : self::TAFL_CATEGORY_SLUGS;
+        $slug    = $slugMap[$categoryName] ?? null;
+
+        if ($slug === null || !preg_match('/^[a-z0-9_]+$/', $slug)) {
+            return ['slug' => null, 'error' => "Automatic {$label} lookup isn't available yet for the \"{$categoryName}\" category. Enter the URL manually."];
+        }
+
+        return ['slug' => $slug, 'error' => null];
+    }
 
     /**
      * @return array{0: list<array{text: string, url: string}>|null, 1: ?string, 2: ?int}
@@ -213,36 +249,28 @@ final class TflLookupService
     }
 
     /**
-     * Fetches a TFL category page and every subcategory page it links to
-     * (`browse.php?show={slug}&start=N`), aggregating every fanlisting entry
-     * found across all of them.
+     * Fetches TFL's "View All Fanlistings" page for a category
+     * (`browse.php?show={slug}&start=*`), which lists every entry in the
+     * category in one page.
+     *
+     * A previous version of this crawled every numbered subcategory page
+     * individually instead (`&start=N`), skipping the `start=*` link because
+     * its regex only matched digits. That approach was both slower (a dozen-plus
+     * requests per lookup instead of one) and observed to silently miss entries
+     * that the single `start=*` view includes — so it was replaced outright
+     * rather than kept as a fallback.
      *
      * @return list<array{text: string, url: string}>|null
      */
     private static function fetchTflLinks(string $slug): ?array
     {
-        $baseUrl = 'https://thefanlistings.org/browse.php?show=' . $slug;
-        $html    = LinkChecker::safeGet($baseUrl);
+        $html = LinkChecker::safeGet('https://thefanlistings.org/browse.php?show=' . $slug . '&start=*');
 
         if ($html === null) {
             return null;
         }
 
-        $links = self::parseTflEntries($html);
-
-        $starts = [];
-        if (preg_match_all('/browse\.php\?show=' . preg_quote($slug, '/') . '(?:&amp;|&)start=(\d+)/', $html, $m)) {
-            $starts = array_unique(array_map('intval', $m[1]));
-        }
-
-        foreach ($starts as $start) {
-            $subHtml = LinkChecker::safeGet($baseUrl . '&start=' . $start);
-            if ($subHtml !== null) {
-                $links = array_merge($links, self::parseTflEntries($subHtml));
-            }
-        }
-
-        return $links;
+        return self::parseTflEntries($html);
     }
 
     /**

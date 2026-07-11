@@ -455,9 +455,13 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <button type="button" id="fl-tfl-lookup-btn" class="btn btn-quaternary"
                       data-listing-id="<?= (int) ($listing->id ?? 0) ?>"
                       data-endpoint="<?= $b ?>/admin/tfl-lookup">Look up</button>
+              <button type="button" id="fl-tfl-clear-cache-btn" class="btn btn-ghost"
+                      data-listing-id="<?= (int) ($listing->id ?? 0) ?>"
+                      data-endpoint="<?= $b ?>/admin/tfl-lookup/clear-cache"
+                      title="Force a fresh fetch instead of reusing cached results for up to 24 hours">Clear cache</button>
             </div>
             <p class="form-hint" id="fl-tfl-lookup-hint">
-              The specific TFL or TAFL page where this fanlisting is listed. Used for the <code>{tfl_url}</code> / <code>{tafl_url}</code> stats token. Click &ldquo;Look up&rdquo; to search the network by this listing&rsquo;s subject, then save to confirm.
+              The specific TFL or TAFL page where this fanlisting is listed. Used for the <code>{tfl_url}</code> / <code>{tafl_url}</code> stats token. Click &ldquo;Look up&rdquo; to search the network by this listing&rsquo;s subject, then save to confirm. If results seem out of date, click &ldquo;Clear cache&rdquo; to force a fresh fetch.
             </p>
             <div id="fl-tfl-lookup-result" style="display:none;margin-top:.5rem"></div>
           </div>
@@ -1120,14 +1124,14 @@ $_tplCsrf = View::e($csrf_token ?? '');
             <?= $ltok('stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
             <?= $ltok('stats_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
             <?= $ltok('stats_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
-            <?= $ltok('stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
-            <?= $ltok('stats_template', '{tfl_url}',           '{tfl_url}',           'TFL approval page URL (from &ldquo;Approval Page URL&rdquo; field above when set, otherwise <code>https://thefanlistings.org/</code>). Use inside <code>{if_tfl}...{/if_tfl}</code>.') ?>
-            <?= $ltok('stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL approval page URL (from &ldquo;Approval Page URL&rdquo; field above when set, otherwise <code>https://www.animefanlistings.com/</code>). Use inside <code>{if_tafl}...{/if_tafl}</code>.') ?>
+            <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'Network acronym from the &ldquo;Approved By&rdquo; dropdown only: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
+            <?= $ltok('stats_template', '{network_name}',      '{network_name}',      'Full name of every network this listing has a category assigned under (Network &amp; Category above) &mdash; not the &ldquo;Approved By&rdquo; dropdown. Shows both joined with &ldquo;&amp;&rdquo; when categorized under TFL and TAFL; repeat categories from the same network still count once.') ?>
+            <?= $ltok('stats_template', '{tfl_url}',           '{tfl_url}',           'TFL approval page URL (from &ldquo;Approval Page URL&rdquo; field above when &ldquo;Approved By&rdquo; is TFL and a URL is set, otherwise <code>https://thefanlistings.org/</code>). Use inside <code>{if_tfl}...{/if_tfl}</code>.') ?>
+            <?= $ltok('stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL approval page URL (from &ldquo;Approval Page URL&rdquo; field above when &ldquo;Approved By&rdquo; is TAFL and a URL is set, otherwise <code>https://www.animefanlistings.com/</code>). Use inside <code>{if_tafl}...{/if_tafl}</code>.') ?>
             <?= $ltok('stats_template', '{approval_url}',      '{approval_url}',      'The raw approval page URL as saved, or empty when not set. Use this if you want to build a custom link with your own text.') ?>
-            <?= $ltok('stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
-            <?= $ltok('stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing is TFL-approved.') ?>
-            <?= $ltok('stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing is TAFL-approved.') ?>
+            <?= $ltok('stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when the &ldquo;Approved By&rdquo; dropdown is set to a network.') ?>
+            <?= $ltok('stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing has a TFL category assigned (Network &amp; Category above) &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
+            <?= $ltok('stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing has a TAFL category assigned (Network &amp; Category above) &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
           </tbody></table>
         </div>
       </details>

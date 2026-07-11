@@ -26,7 +26,7 @@ final class TflLookupServiceTest extends TestCase
     private const SITE_SETTINGS_DDL = <<<SQL
 CREATE TABLE lstr_site_settings (
     setting_key   TEXT NOT NULL PRIMARY KEY,
-    setting_value TEXT NOT NULL DEFAULT ''
+    setting_value TEXT NULL
 )
 SQL;
 
@@ -87,6 +87,47 @@ SQL;
 
         self::assertNull($result['url']);
         self::assertStringContainsString('isn\'t available yet', $result['error']);
+    }
+
+    // -----------------------------------------------------------------------
+    // clearCache()
+    // -----------------------------------------------------------------------
+
+    public function testClearCacheReturnsFalseForUnknownNetwork(): void
+    {
+        self::assertFalse(TflLookupService::clearCache('bogus', 'Animation', $this->siteRepo()));
+    }
+
+    public function testClearCacheReturnsFalseWhenNoCategoryAssigned(): void
+    {
+        self::assertFalse(TflLookupService::clearCache('tfl', null, $this->siteRepo()));
+        self::assertFalse(TflLookupService::clearCache('tfl', '', $this->siteRepo()));
+    }
+
+    public function testClearCacheReturnsFalseForUnmappedCategory(): void
+    {
+        self::assertFalse(TflLookupService::clearCache('tfl', 'Anime/Manga', $this->siteRepo()));
+    }
+
+    public function testClearCacheClearsStoredCacheEntries(): void
+    {
+        $siteRepo = $this->siteRepo();
+        $siteRepo->set('tfl_link_map_animation_json', '[{"text":"Stale Entry","url":"http://example.test/"}]');
+        $siteRepo->set('tfl_link_map_animation_fetched_at', (string) time());
+
+        $cleared = TflLookupService::clearCache('tfl', 'Animation', $siteRepo);
+
+        self::assertTrue($cleared);
+        self::assertNull($siteRepo->get('tfl_link_map_animation_json'));
+        self::assertNull($siteRepo->get('tfl_link_map_animation_fetched_at'));
+    }
+
+    public function testClearCacheReturnsTrueEvenWhenNothingWasCachedYet(): void
+    {
+        // A valid, mapped category always resolves to a real cache key —
+        // clearCache() reports success whether or not anything was cached
+        // yet, distinct from the "can't even resolve a key" false cases above.
+        self::assertTrue(TflLookupService::clearCache('tafl', 'Anime/Manga: Episodes', $this->siteRepo()));
     }
 
     // -----------------------------------------------------------------------

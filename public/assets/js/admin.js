@@ -7576,6 +7576,7 @@ document.addEventListener('click', function (e) {
   var approvalUrlRow = document.getElementById('fl-approval-url-row');
   var approvalUrlInput = document.getElementById('fl-approval-url');
   var lookupBtn = document.getElementById('fl-tfl-lookup-btn');
+  var clearCacheBtn = document.getElementById('fl-tfl-clear-cache-btn');
   var lookupResult = document.getElementById('fl-tfl-lookup-result');
 
   if (!approvedBySel) return;
@@ -7599,9 +7600,88 @@ document.addEventListener('click', function (e) {
     }
   });
 
+  function performLookup() {
+    var network = approvedBySel.value;
+    if (network !== 'tfl' && network !== 'tafl') {
+      lookupResult.style.display = '';
+      lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">Select TFL or TAFL first.</p>';
+      return;
+    }
+
+    var listingId = lookupBtn.dataset.listingId || '0';
+    lookupBtn.disabled = true;
+    lookupBtn.textContent = 'Searching…';
+    lookupResult.style.display = '';
+    lookupResult.innerHTML = '<p class="form-hint">Searching ' + network.toUpperCase() + '…</p>';
+
+    var csrf = (document.querySelector('input[name="_csrf"]') || {}).value || '';
+    var params = new URLSearchParams({ _csrf: csrf, listing_id: listingId, network: network });
+    var endpoint = lookupBtn.dataset.endpoint || '';
+
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        lookupBtn.disabled = false;
+        lookupBtn.textContent = 'Look up';
+
+        if (data.error) {
+          lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">' + esc(data.error) + '</p>';
+          return;
+        }
+
+        var html = '';
+
+        if (data.url) {
+          html += '<p class="form-hint"><strong>Exact match found:</strong> '
+            + '<a href="' + esc(data.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(data.url) + '</a> '
+            + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(data.url) + '">Use this URL</button></p>';
+        } else if (data.candidates && data.candidates.length > 0) {
+          html += '<p class="form-hint"><strong>No exact match. Possible matches:</strong></p><ul style="margin:.25rem 0 0 1rem;font-size:.85rem">';
+          data.candidates.forEach(function (c) {
+            html += '<li><a href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(c.text) + '</a> '
+              + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(c.url) + '">Use</button></li>';
+          });
+          html += '</ul>';
+        } else {
+          html += '<p class="form-hint">No match found. Try entering the URL manually.</p>';
+        }
+
+        if (data.cache_age !== null && data.cache_age !== undefined) {
+          var ageMin = Math.round(data.cache_age / 60);
+          html += '<p class="form-hint" style="color:var(--color-muted);font-size:.8rem">Index cache: '
+            + (ageMin < 1 ? 'just fetched' : ageMin + ' min old') + '</p>';
+        }
+
+        lookupResult.innerHTML = html;
+      })
+      .catch(function () {
+        lookupBtn.disabled = false;
+        lookupBtn.textContent = 'Look up';
+        lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">Request failed. Please try again.</p>';
+      });
+  }
+
   // Lookup button
   if (lookupBtn && lookupResult && approvalUrlInput) {
-    lookupBtn.addEventListener('click', function () {
+    lookupBtn.addEventListener('click', performLookup);
+
+    // "Use this URL" button delegation
+    lookupResult.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-use-url]');
+      if (!btn) return;
+      approvalUrlInput.value = btn.dataset.useUrl;
+    });
+  }
+
+  // Clear cache button — forces the next lookup to re-fetch from the network
+  // instead of reusing a cached result for up to 24 hours, then immediately
+  // re-runs the lookup so fresh results show right away.
+  if (clearCacheBtn && lookupResult) {
+    clearCacheBtn.addEventListener('click', function () {
       var network = approvedBySel.value;
       if (network !== 'tfl' && network !== 'tafl') {
         lookupResult.style.display = '';
@@ -7609,15 +7689,13 @@ document.addEventListener('click', function (e) {
         return;
       }
 
-      var listingId = lookupBtn.dataset.listingId || '0';
-      lookupBtn.disabled = true;
-      lookupBtn.textContent = 'Searching…';
-      lookupResult.style.display = '';
-      lookupResult.innerHTML = '<p class="form-hint">Searching ' + network.toUpperCase() + '…</p>';
+      var listingId = clearCacheBtn.dataset.listingId || '0';
+      clearCacheBtn.disabled = true;
+      clearCacheBtn.textContent = 'Clearing…';
 
       var csrf = (document.querySelector('input[name="_csrf"]') || {}).value || '';
       var params = new URLSearchParams({ _csrf: csrf, listing_id: listingId, network: network });
-      var endpoint = lookupBtn.dataset.endpoint || '';
+      var endpoint = clearCacheBtn.dataset.endpoint || '';
 
       fetch(endpoint, {
         method: 'POST',
@@ -7626,51 +7704,23 @@ document.addEventListener('click', function (e) {
       })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          lookupBtn.disabled = false;
-          lookupBtn.textContent = 'Look up';
+          clearCacheBtn.disabled = false;
+          clearCacheBtn.textContent = 'Clear cache';
 
-          if (data.error) {
-            lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">' + esc(data.error) + '</p>';
+          if (!data.ok) {
+            lookupResult.style.display = '';
+            lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">' + esc(data.error || 'Could not clear cache.') + '</p>';
             return;
           }
 
-          var html = '';
-
-          if (data.url) {
-            html += '<p class="form-hint"><strong>Exact match found:</strong> '
-              + '<a href="' + esc(data.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(data.url) + '</a> '
-              + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(data.url) + '">Use this URL</button></p>';
-          } else if (data.candidates && data.candidates.length > 0) {
-            html += '<p class="form-hint"><strong>No exact match. Possible matches:</strong></p><ul style="margin:.25rem 0 0 1rem;font-size:.85rem">';
-            data.candidates.forEach(function (c) {
-              html += '<li><a href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(c.text) + '</a> '
-                + '&mdash; <button type="button" class="btn btn-tertiary" data-use-url="' + esc(c.url) + '">Use</button></li>';
-            });
-            html += '</ul>';
-          } else {
-            html += '<p class="form-hint">No match found. Try entering the URL manually.</p>';
-          }
-
-          if (data.cache_age !== null && data.cache_age !== undefined) {
-            var ageMin = Math.round(data.cache_age / 60);
-            html += '<p class="form-hint" style="color:var(--color-muted);font-size:.8rem">Index cache: '
-              + (ageMin < 1 ? 'just fetched' : ageMin + ' min old') + '</p>';
-          }
-
-          lookupResult.innerHTML = html;
+          performLookup();
         })
         .catch(function () {
-          lookupBtn.disabled = false;
-          lookupBtn.textContent = 'Look up';
+          clearCacheBtn.disabled = false;
+          clearCacheBtn.textContent = 'Clear cache';
+          lookupResult.style.display = '';
           lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">Request failed. Please try again.</p>';
         });
-    });
-
-    // "Use this URL" button delegation
-    lookupResult.addEventListener('click', function (e) {
-      var btn = e.target.closest('[data-use-url]');
-      if (!btn) return;
-      approvalUrlInput.value = btn.dataset.useUrl;
     });
   }
 

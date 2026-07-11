@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Luster\Controllers\Admin;
 
 use Luster\Core\Application;
+use Luster\Core\Database;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\TflLookupService;
@@ -70,18 +71,9 @@ final class TflLookupController
             return Response::json(['error' => 'Listing not found.', 'url' => null, 'candidates' => [], 'cache_age' => null]);
         }
 
-        $subject     = $listing->subject;
-        $siteRepo    = new SiteSettingsRepo($db);
-        $categoryRepo = new CategoryRepo($db);
-        $categoryName = null;
-
-        foreach ($listingRepo->getCategoryIdsForListing($listingId) as $categoryId) {
-            $category = $categoryRepo->getById($categoryId);
-            if ($category !== null && $category->source === $network) {
-                $categoryName = $category->name;
-                break;
-            }
-        }
+        $subject      = $listing->subject;
+        $siteRepo     = new SiteSettingsRepo($db);
+        $categoryName = $this->resolveCategoryName($listingRepo, $db, $listingId, $network);
 
         $result = TflLookupService::lookup($subject, $network, $siteRepo, $categoryName);
 
@@ -91,5 +83,77 @@ final class TflLookupController
             'error'      => $result['error'],
             'cache_age'  => $result['cache_age'],
         ]);
+    }
+
+    /**
+     * POST /admin/tfl-lookup/clear-cache
+     *
+     * Forces the next lookup for this listing's network category to
+     * re-fetch from TFL/TAFL instead of reusing a cached result for up to
+     * 24 hours — useful when the network's page has changed, or a fetch is
+     * suspected to have been incomplete.
+     *
+     * Expected POST fields:
+     *   listing_id  (int)          — the listing whose category to clear
+     *   network     (tfl|tafl)     — which network's cache to clear
+     *
+     * JSON response: { ok: bool, error: ?string }
+     */
+    public function clearCache(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+
+        if (!$session->get('lstr_admin_id')) {
+            return Response::json(['ok' => false, 'error' => 'Unauthorized.'], 401);
+        }
+
+        $listingId = (int) $request->post('listing_id', 0);
+        $network   = (string) $request->post('network', '');
+
+        if ($listingId <= 0) {
+            return Response::json(['ok' => false, 'error' => 'Missing listing ID.']);
+        }
+
+        if (!in_array($network, ['tfl', 'tafl'], true)) {
+            return Response::json(['ok' => false, 'error' => 'Network must be "tfl" or "tafl".']);
+        }
+
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($listingId);
+
+        if ($listing === null) {
+            return Response::json(['ok' => false, 'error' => 'Listing not found.']);
+        }
+
+        $siteRepo     = new SiteSettingsRepo($db);
+        $categoryName = $this->resolveCategoryName($listingRepo, $db, $listingId, $network);
+        $cleared      = TflLookupService::clearCache($network, $categoryName, $siteRepo);
+
+        return Response::json([
+            'ok'    => $cleared,
+            'error' => $cleared ? null : 'No cached lookup to clear for this category.',
+        ]);
+    }
+
+    /**
+     * Returns the name of the listing's category matching $network's source
+     * (e.g. the one TFL/TAFL category assigned, if any), or null if none is
+     * assigned. Shared by lookup() and clearCache() since both need the same
+     * "which category does this network search under" resolution.
+     */
+    private function resolveCategoryName(ListingRepo $listingRepo, Database $db, int $listingId, string $network): ?string
+    {
+        $categoryRepo = new CategoryRepo($db);
+
+        foreach ($listingRepo->getCategoryIdsForListing($listingId) as $categoryId) {
+            $category = $categoryRepo->getById($categoryId);
+            if ($category !== null && $category->source === $network) {
+                return $category->name;
+            }
+        }
+
+        return null;
     }
 }

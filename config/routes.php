@@ -499,6 +499,7 @@ return [
 
         // --- TFL/TAFL approval URL lookup
         $router->post('/admin/tfl-lookup', TflLookupController::class, 'lookup');
+        $router->post('/admin/tfl-lookup/clear-cache', TflLookupController::class, 'clearCache');
 
         // --- Template packs (export/import/copy/revisions) — per-listing
         $router->post('/admin/listings/{id}/template-pack/export',
