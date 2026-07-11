@@ -768,10 +768,9 @@ final class ListingController extends AdminController
         }
 
         if ($action === 'delete' && !empty($selected)) {
-            $listingRepo = new ListingRepo($db, $config);
-            $settingsRepo   = new ListingSettingsRepo($db);
-            $activityRepo   = new ActivityRepo($db);
-            $deleted        = 0;
+            $listingRepo  = new ListingRepo($db, $config);
+            $activityRepo = new ActivityRepo($db);
+            $deleted      = 0;
 
             foreach ($selected as $id) {
                 $listing = $listingRepo->getById($id);
@@ -779,65 +778,7 @@ final class ListingController extends AdminController
                     continue;
                 }
 
-                $prefix = $listing->dbprefix;
-
-                if ($prefix !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
-                    $db->prepare("DROP TABLE IF EXISTS `{$prefix}`")->execute();
-                }
-
-                $db->prepare('DELETE FROM lstr_fanlisting_settings WHERE fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-                $db->prepare('DELETE FROM lstr_listing_lifecycle WHERE fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-                $db->prepare('DELETE FROM lstr_affiliates WHERE fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-                $db->prepare('DELETE FROM lstr_pending_updates WHERE fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-                $db->prepare('DELETE FROM lstr_email_templates WHERE fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-                try {
-                    $db->prepare('DELETE FROM lstr_listing_categories WHERE fanlisting_id = :id')
-                       ->execute(['id' => $id]);
-                } catch (\Throwable) {}
-
-                // Codes cascade: map → codes → categories/sizes/donors
-                $db->prepare('DELETE lstr_code_category_map FROM lstr_code_category_map
-                              INNER JOIN lstr_codes ON lstr_code_category_map.code_id = lstr_codes.id
-                              WHERE lstr_codes.fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-                $db->prepare('DELETE FROM lstr_codes WHERE fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-                $db->prepare('DELETE FROM lstr_code_categories WHERE fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-                $db->prepare('DELETE FROM lstr_code_sizes WHERE fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-                $db->prepare('DELETE FROM lstr_code_donors WHERE fanlisting_id = :id')
-                   ->execute(['id' => $id]);
-
-                // News Feed addon — silent if not installed
-                try {
-                    $db->prepare('DELETE FROM lstr_newsfeed WHERE fanlisting_id = :id')
-                       ->execute(['id' => $id]);
-                } catch (\Throwable) {}
-
-                // KIM addon — silent if not installed
-                try {
-                    $db->prepare('DELETE FROM lstr_kim_password_resets WHERE kim_member_id IN (SELECT id FROM lstr_kim_members WHERE fanlisting_id = :id)')
-                       ->execute(['id' => $id]);
-                    $db->prepare('DELETE FROM lstr_kim_members WHERE fanlisting_id = :id')
-                       ->execute(['id' => $id]);
-                } catch (\Throwable) {}
-
-                // Template revisions — silent if not installed
-                (new \Luster\Repositories\TemplateRevisionRepo($db))->deleteForListing($id);
-
-                $imageFilename = $settingsRepo->getImage($id);
-                if ($imageFilename !== null) {
-                    $imagePath = $this->ensureUploadDirectory() . '/' . $imageFilename;
-                    if (is_file($imagePath)) {
-                        unlink($imagePath);
-                    }
-                }
+                $this->purgeListingData($id, $listing->dbprefix);
 
                 $listingRepo->delete($id);
 
@@ -1500,9 +1441,8 @@ final class ListingController extends AdminController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $listingRepo = new ListingRepo($db, $config);
-        $settingsRepo   = new ListingSettingsRepo($db);
-        $activityRepo   = new ActivityRepo($db);
+        $listingRepo  = new ListingRepo($db, $config);
+        $activityRepo = new ActivityRepo($db);
 
         $listing = $listingRepo->getById($id);
 
@@ -1515,12 +1455,49 @@ final class ListingController extends AdminController
         $baseUrl = $this->app->getBaseUrl();
         $name    = $listing->title;
 
-        // 1. Drop the member table (only if a table name exists and is safe)
+        $this->purgeListingData($id, $prefix);
+
+        // Delete the listing registry row
+        $listingRepo->delete($id);
+
+        // Log (fanlisting row is gone but session identity is intact)
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'listing.delete',
+            "Deleted listing #{$id} ({$name})",
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', "Listing \"{$name}\" deleted successfully.");
+        return Response::redirect($baseUrl . '/admin/listings');
+    }
+
+    /**
+     * Deletes every Luster-owned row and uploaded file that references a listing:
+     * member table, settings/lifecycle/affiliates/pending-updates/email-templates,
+     * listing-category links, codes (with category map), external import refs,
+     * add-on data (News Feed, KIM, Adoption applications, template revisions), and
+     * the listing's cover image. Does not delete the listing registry row itself —
+     * callers do that afterward via ListingRepo::delete(). Shared by delete() and
+     * the bulk-delete branch of bulkAction() so both stay in sync.
+     *
+     * The image filename is fetched before lstr_fanlisting_settings is deleted —
+     * ListingSettingsRepo::getImage() reads from that row, so deleting it first
+     * would make every image lookup return null and leave the file on disk forever.
+     */
+    private function purgeListingData(int $id, string $prefix): void
+    {
+        $db           = $this->app->getDatabase();
+        $settingsRepo = new ListingSettingsRepo($db);
+
+        // Drop the member table (only if a table name exists and is safe)
         if ($prefix !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
             $db->prepare("DROP TABLE IF EXISTS `{$prefix}`")->execute();
         }
 
-        // 2. Delete Luster rows that reference this listing
+        $imageFilename = $settingsRepo->getImage($id);
+
+        // Delete Luster rows that reference this listing
         $db->prepare('DELETE FROM lstr_fanlisting_settings WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);
         $db->prepare('DELETE FROM lstr_listing_lifecycle WHERE fanlisting_id = :id')
@@ -1530,6 +1507,8 @@ final class ListingController extends AdminController
         $db->prepare('DELETE FROM lstr_pending_updates WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);
         $db->prepare('DELETE FROM lstr_email_templates WHERE fanlisting_id = :id')
+           ->execute(['id' => $id]);
+        $db->prepare('DELETE FROM lstr_listing_external_refs WHERE listing_id = :id')
            ->execute(['id' => $id]);
         try {
             $db->prepare('DELETE FROM lstr_listing_categories WHERE fanlisting_id = :id')
@@ -1564,31 +1543,22 @@ final class ListingController extends AdminController
                ->execute(['id' => $id]);
         } catch (\Throwable) {}
 
+        // Adoption addon — silent if not installed
+        try {
+            $db->prepare('DELETE FROM lstr_adoption_applications WHERE fanlisting_id = :id')
+               ->execute(['id' => $id]);
+        } catch (\Throwable) {}
+
         // Template revisions — silent if not installed
         (new \Luster\Repositories\TemplateRevisionRepo($db))->deleteForListing($id);
 
-        // 3. Delete the image file if one exists
-        $imageFilename = $settingsRepo->getImage($id);
+        // Delete the image file if one exists
         if ($imageFilename !== null) {
             $imagePath = $this->ensureUploadDirectory() . '/' . $imageFilename;
             if (is_file($imagePath)) {
                 unlink($imagePath);
             }
         }
-
-        // 4. Delete the listing registry row
-        $listingRepo->delete($id);
-
-        // 5. Log (fanlisting row is gone but session identity is intact)
-        $activityRepo->log(
-            (int) $session->get('lstr_admin_id'),
-            'listing.delete',
-            "Deleted listing #{$id} ({$name})",
-            $request->ip(),
-        );
-
-        $session->set('lstr_flash_success', "Listing \"{$name}\" deleted successfully.");
-        return Response::redirect($baseUrl . '/admin/listings');
     }
 
     // -----------------------------------------------------------------------
