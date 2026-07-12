@@ -1786,7 +1786,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $subject    = trim(self::decodeEnth((string) ($row['subject'] ?? '')));
                 $email      = trim((string) ($row['email'] ?? ''));
                 $catid      = trim((string) ($row['catid'] ?? ''));
-                $additional = $this->parseAdditionalInfo((string) ($row['additional_info'] ?? ''));
+                // Serialize full field definitions (name/label/type/required) rather than
+                // bare names — owned.additional supports the same format FieldRepo::saveFields()
+                // writes, so this preserves e.g. a dropdown field instead of importing it as text.
+                $additionalDefs = $this->parseAdditionalFieldDefinitions((string) ($row['additional_info'] ?? ''));
+                $additional     = $additionalDefs !== [] ? serialize($additionalDefs) : '';
                 $trouble    = (int) ($row['trouble']  ?? 0);
                 $upcoming   = (int) ($row['upcoming'] ?? 0);
                 $status     = $trouble ? 0 : ($upcoming ? 1 : 2);
@@ -2304,6 +2308,73 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         return implode(',', $names);
+    }
+
+    /**
+     * Parses an enth_fanlistings.additional_info value into full field
+     * definitions — name, label, type, and required — instead of collapsing
+     * to bare names like parseAdditionalInfo() does.
+     *
+     * Used only for the runOwnedListings() write path: `owned.additional`
+     * supports the same PHP-serialized-array format FieldRepo::saveFields()
+     * writes (FieldRepo::getFieldsForListing() already detects and parses it
+     * via unserialize() before falling back to bare-name parsing), so there's
+     * no reason to discard field type on import — a field configured as a
+     * dropdown on the source Enthusiast install would otherwise silently
+     * import as a plain text field, since FieldRepo defaults untyped bare
+     * names to 'text'.
+     *
+     * @return array<int, array{name: string, label: string, type: string, required: bool}>
+     */
+    private function parseAdditionalFieldDefinitions(string $raw): array
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return [];
+        }
+
+        $fields = [];
+
+        // PHP-serialized format (legacy Enthusiast)
+        if (str_starts_with($raw, 'a:') || str_starts_with($raw, 's:')) {
+            $data = @unserialize($raw, ['allowed_classes' => false]);
+            if (is_array($data)) {
+                foreach ($data as $item) {
+                    if (is_array($item)) {
+                        $name     = trim((string) ($item['name']  ?? $item[0] ?? ''));
+                        $label    = trim((string) ($item['label'] ?? $item[1] ?? ''));
+                        $type     = trim((string) ($item['type']  ?? $item[2] ?? 'text'));
+                        $required = (bool) (int) ($item['required'] ?? $item[3] ?? 0);
+                    } else {
+                        $name     = trim((string) $item);
+                        $label    = '';
+                        $type     = 'text';
+                        $required = false;
+                    }
+                    if ($name !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+                        $fields[] = ['name' => $name, 'label' => $label, 'type' => $type ?: 'text', 'required' => $required];
+                    }
+                }
+                return $fields;
+            }
+        }
+
+        // Pipe-delimited: name,Label,type,required|name2,...
+        foreach (explode('|', $raw) as $fieldStr) {
+            $parts = explode(',', trim($fieldStr), 4);
+            $name  = trim($parts[0] ?? '');
+            if ($name === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+                continue;
+            }
+            $fields[] = [
+                'name'     => $name,
+                'label'    => trim($parts[1] ?? ''),
+                'type'     => trim($parts[2] ?? '') ?: 'text',
+                'required' => (bool) (int) trim($parts[3] ?? '0'),
+            ];
+        }
+
+        return $fields;
     }
 
     // -----------------------------------------------------------------------
