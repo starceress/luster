@@ -751,13 +751,15 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 if ($options->conflictStrategy === 'skip') {
                     $listingIdMap[$srcId] = $existingId;
                     $this->upsertListingSettings($target, $existingId, $approvedBy, $lst['last_updated'] ?? null, $globalSettings, (int) ($lst['for_adoption'] ?? 0), $description);
-                    // Backfill opened date only if target row currently has none
+                    // Backfill opened date only if target row currently has none.
+                    // CAST(opened AS CHAR) avoids MySQL strict mode rejecting the ''
+                    // literal as an invalid date when comparing a DATE column.
                     if ($openedDate !== '') {
                         $idCol = $isOwned ? 'listingid' : 'id';
                         $tbl   = $isOwned ? '`owned`' : '`enth_fanlistings`';
                         try {
                             $target->prepare(
-                                "UPDATE {$tbl} SET opened=:opened WHERE {$idCol}=:id AND (opened IS NULL OR opened='')"
+                                "UPDATE {$tbl} SET opened=:opened WHERE {$idCol}=:id AND (opened IS NULL OR CAST(opened AS CHAR)='')"
                             )->execute(['opened' => $openedDate, 'id' => $existingId]);
                         } catch (\Throwable) {}
                     }

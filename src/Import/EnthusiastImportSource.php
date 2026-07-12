@@ -1852,9 +1852,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         $listingIdMap[$srcId] = $targetId;
                     }
                     // Backfill opened date only when source has one and target is still blank.
+                    // CAST(opened AS CHAR) avoids MySQL strict mode rejecting the '' /
+                    // '0000-00-00' literals as invalid dates when comparing a DATE column.
                     if ($hasOpened && $opened !== null) {
                         $target->prepare(
-                            "UPDATE owned SET opened = :opened WHERE url = :url AND (opened IS NULL OR opened = '' OR opened = '0000-00-00')"
+                            "UPDATE owned SET opened = :opened WHERE url = :url AND (opened IS NULL OR CAST(opened AS CHAR) IN ('', '0000-00-00'))"
                         )->execute(['opened' => $opened, 'url' => $url]);
                     }
                     // Backfill catid / category_id / junction when the existing row has an
