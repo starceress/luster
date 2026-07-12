@@ -388,6 +388,25 @@ $snip = static function(array $lines): string {
 
       <?php $_s = $snip([
           '<?php',
+          "\$luster_status = 'past'; // combines Closed + Adopted Out",
+          "require LUSTER_EMBED . '/owned.php';",
+      ]); ?>
+      <li class="es-item">
+        <div class="es-item-row">
+          <span class="es-item-icon"><?= View::icon('timer', ['width' => 15, 'height' => 15]) ?></span>
+          <div class="es-item-meta">
+            <span class="es-item-label">Past Fanlistings</span>
+            <span class="es-item-desc">Shows closed and adopted-out listings together, in one merged list.</span>
+          </div>
+          <span class="badge badge-info">Data</span> ✦
+          <button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>
+          <button type="button" class="btn btn-primary btn-xs es-copy" data-snippet="<?= $_s ?>">Copy</button>
+        </div>
+        <div class="es-snippet" hidden><pre class="es-snippet-pre"><?= $_s ?></pre></div>
+      </li>
+
+      <?php $_s = $snip([
+          '<?php',
           "// Renders one active, approved joined listing at random.",
           "require LUSTER_EMBED . '/random-joined-listing.php';",
       ]); ?>

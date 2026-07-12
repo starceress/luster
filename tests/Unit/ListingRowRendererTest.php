@@ -1018,4 +1018,56 @@ final class ListingRowRendererTest extends TestCase
         self::assertStringContainsString('HAS_CLOSED', $html);
         self::assertStringContainsString('HAS_ADOPTED', $html);
     }
+
+    public function testRenderTemplateEachPastCombinesClosedAndAdoptedOutInOneLoop(): void
+    {
+        $current    = $this->makeListing(name: 'Current FL');
+        $closed     = $this->makeListing(name: 'Closed FL', lifecycle: 'closed');
+        $adoptedOut = $this->makeListing(name: 'Adopted FL', lifecycle: 'adopted_out');
+
+        // A single {each_past} loop, not separate {each_closed}/{each_adopted_out} —
+        // row-level status still resolves inside it via {if_status_closed}/{if_status_adopted_out}.
+        $tpl = '{each_current}C:{listing_title}{/each_current}'
+             . '{each_past}P:{listing_title}'
+             . '{if_status_closed}(closed){/if_status_closed}'
+             . '{if_status_adopted_out}(adopted){/if_status_adopted_out}'
+             . '{/each_past}';
+
+        $html = ListingRowRenderer::renderTemplate($tpl, [$current, $closed, $adoptedOut], '', [], []);
+
+        self::assertStringContainsString('C:Current FL', $html);
+        self::assertStringContainsString('P:Closed FL(closed)', $html);
+        self::assertStringContainsString('P:Adopted FL(adopted)', $html);
+    }
+
+    public function testRenderTemplatePastCountAndConditional(): void
+    {
+        $current    = $this->makeListing(name: 'Current FL');
+        $closed     = $this->makeListing(lifecycle: 'closed');
+        $adoptedOut = $this->makeListing(lifecycle: 'adopted_out');
+
+        $tpl = '{past_owned_count}'
+             . '{if_past_listings}HAS_PAST{/if_past_listings}'
+             . '{each_past}{/each_past}';
+
+        $withPast = ListingRowRenderer::renderTemplate($tpl, [$current, $closed, $adoptedOut], '', [], []);
+        self::assertStringContainsString('2', $withPast);
+        self::assertStringContainsString('HAS_PAST', $withPast);
+
+        $withoutPast = ListingRowRenderer::renderTemplate($tpl, [$current], '', [], []);
+        self::assertStringContainsString('0', $withoutPast);
+        self::assertStringNotContainsString('HAS_PAST', $withoutPast);
+    }
+
+    public function testRenderTemplatePastDoesNotActivateSectionedModeOnItsOwn(): void
+    {
+        // A flat template with no {each_*} tokens at all must stay flat —
+        // adding {each_past} support must not accidentally widen $isSectioned
+        // detection to trigger on unrelated templates.
+        $closed = $this->makeListing(name: 'Closed FL', lifecycle: 'closed');
+
+        $html = ListingRowRenderer::renderTemplate('{each_listing}{listing_title}{/each_listing}', [$closed], '', [], []);
+
+        self::assertSame('Closed FL', $html);
+    }
 }

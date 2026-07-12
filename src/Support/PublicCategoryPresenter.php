@@ -65,12 +65,15 @@ final class PublicCategoryPresenter
         bool   $showClosed      = true,
         int    $adoptedOutCount = 0,
         bool   $showAdoptedOut  = true,
+        int    $pastCount       = 0,
+        bool   $showPast        = true,
     ): array {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         $pseudoEntries = self::ownedPseudoEntries(
             $view, $pendingCount, $showPending, $upcomingCount, $showUpcoming,
             $closedCount, $showClosed, $adoptedOutCount, $showAdoptedOut,
+            $pastCount, $showPast,
         );
 
         // Browse-by-category: index view only when no category AND no pseudo-view selected
@@ -126,6 +129,8 @@ final class PublicCategoryPresenter
         bool   $showClosed      = true,
         int    $adoptedOutCount = 0,
         bool   $showAdoptedOut  = true,
+        int    $pastCount       = 0,
+        bool   $showPast        = true,
     ): array {
         $entries = [];
         if ($showPending && $pendingCount > 0) {
@@ -158,6 +163,14 @@ final class PublicCategoryPresenter
                 'value'  => '__adopted_out__',
                 'count'  => $adoptedOutCount,
                 'active' => $view === 'adopted_out',
+            ];
+        }
+        if ($showPast && $pastCount > 0) {
+            $entries[] = [
+                'label'  => 'Past Fanlistings',
+                'value'  => '__past__',
+                'count'  => $pastCount,
+                'active' => $view === 'past',
             ];
         }
         return $entries;

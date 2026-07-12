@@ -157,6 +157,24 @@ SQL;
         self::assertSame(1, $list[0]['listing_count']);
     }
 
+    public function testPastStatusReturnsClosedAndAdoptedOutCategoriesCombined(): void
+    {
+        $catId      = $this->insertCategory('Music');
+        $closedId   = $this->insertListing(status: 0);
+        $adoptedId  = $this->insertListing(status: 0);
+        $pendingId  = $this->insertListing(status: 0);
+        $this->linkCategory($closedId, $catId);
+        $this->linkCategory($adoptedId, $catId);
+        $this->linkCategory($pendingId, $catId);
+        $this->archive($closedId, 'closed');
+        $this->archive($adoptedId, 'adopted_out');
+
+        $list = $this->repo->getCategoryList('past');
+
+        self::assertCount(1, $list);
+        self::assertSame(2, $list[0]['listing_count'], 'Past must count both closed and adopted-out, but not plain pending');
+    }
+
     public function testCurrentStatusUnaffectedByArchivedListings(): void
     {
         $catId    = $this->insertCategory('Music');

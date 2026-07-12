@@ -610,7 +610,7 @@ $epSafe = View::e($ep);
             <table class="data-table">
               <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="actions-col"><code>$luster_status</code></td><td>Choose which owned listings to show: current, upcoming, pending, or all. Leave this out to show current listings only.</td></tr>
+                <tr><td class="actions-col"><code>$luster_status</code></td><td>Choose which owned listings to show: <code>current</code>, <code>upcoming</code>, <code>pending</code>, <code>closed</code>, <code>adopted_out</code>, <code>past</code> (closed and adopted-out together), or <code>all</code>. Leave this out to show current listings only.</td></tr>
                 <tr><td class="actions-col"><code>$luster_category_id</code></td><td>Show only one category of owned listings. Most users can leave this out and let visitors choose a category on the page.</td></tr>
                 <tr><td class="actions-col"><code>$luster_hide_dropdown</code></td><td>Set this to <code>true</code> if you do not want the category dropdown to appear.</td></tr>
                 <tr><td class="actions-col"><code>$luster_browse_by_category</code></td><td>Set this to <code>true</code> if you want visitors to choose a category first, then see the listings in that category.</td></tr>
@@ -766,7 +766,8 @@ $epSafe = View::e($ep);
               <tbody>
                 <tr><td class="actions-col"><code class="ec-tk">{each_listing}&hellip;{/each_listing}</code></td><td>The normal repeat box. Put one listing row inside it, and Luster repeats that row once for each listing. This is what the built-in default uses.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{each_current}&hellip;{/each_current}</code>, <code class="ec-tk">{each_upcoming}&hellip;{/each_upcoming}</code>, <code class="ec-tk">{each_pending}&hellip;{/each_pending}</code></td><td>Optional separate repeat boxes for Current, Upcoming, and Pending sections. Use these instead of <code>{each_listing}</code> when you want headings like &ldquo;Current&rdquo; and &ldquo;Upcoming&rdquo;. This same owned-listings template is reused by owned, latest, and random listing embeds, so a sectioned layout will show everywhere that template is used.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{each_closed}&hellip;{/each_closed}</code>, <code class="ec-tk">{each_adopted_out}&hellip;{/each_adopted_out}</code></td><td>Optional repeat boxes for Closed and Adopted Out sections. Only shows entries when <code>$luster_show_closed</code> or <code>$luster_show_adopted_out</code> is <code>true</code> (the default).</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{each_closed}&hellip;{/each_closed}</code>, <code class="ec-tk">{each_adopted_out}&hellip;{/each_adopted_out}</code></td><td>Optional repeat boxes for Closed and Adopted Out sections. These populate whenever closed/adopted-out listings are part of the current result set (for example <code>$luster_status</code> set to <code>closed</code>, <code>adopted_out</code>, <code>past</code>, or <code>all</code>). <code>$luster_show_closed</code>/<code>$luster_show_adopted_out</code> control something different &mdash; whether the &ldquo;Closed&rdquo;/&ldquo;Adopted Out&rdquo; links appear in the category nav while browsing current listings, not whether these loops render.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{each_past}&hellip;{/each_past}</code></td><td>A single repeat box combining Closed and Adopted Out listings together, sorted as one merged list &mdash; use this instead of separate <code>{each_closed}</code>/<code>{each_adopted_out}</code> boxes when you want one &ldquo;Past Fanlistings&rdquo; section. Rows still know their own status, so <code>{if_status_closed}</code>/<code>{if_status_adopted_out}</code> work inside it.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_title}</code></td><td>The listing&rsquo;s display name.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing. Empty when no URL is saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{listing_subject}</code></td><td>What the listing is about. For example, the character, show, game, ship, or topic.</td></tr>
@@ -812,12 +813,14 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{pending_owned_count}</code></td><td>Number of pending listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{closed_owned_count}</code></td><td>Number of closed listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{adopted_out_owned_count}</code></td><td>Number of adopted out listings.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{past_owned_count}</code></td><td>Number of closed + adopted-out listings combined.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{total_count}</code></td><td>Total listings shown.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Shows the text inside only when there are current listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_upcoming_listings}&hellip;{/if_upcoming_listings}</code></td><td>Shows the text inside only when there are upcoming listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_pending_listings}&hellip;{/if_pending_listings}</code></td><td>Shows the text inside only when there are pending listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_closed_listings}&hellip;{/if_closed_listings}</code></td><td>Shows the text inside only when there are closed listings.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_adopted_out_listings}&hellip;{/if_adopted_out_listings}</code></td><td>Shows the text inside only when there are adopted out listings.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{if_past_listings}&hellip;{/if_past_listings}</code></td><td>Shows the text inside only when there are any closed or adopted-out listings.</td></tr>
               </tbody>
             </table>
             </div>

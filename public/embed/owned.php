@@ -44,7 +44,7 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 // 2. Resolve parameters
 // ---------------------------------------------------------------------------
 
-$_lusterValidStatuses = ['current', 'upcoming', 'pending', 'closed', 'adopted_out', 'all'];
+$_lusterValidStatuses = ['current', 'upcoming', 'pending', 'closed', 'adopted_out', 'past', 'all'];
 $_lusterStatus        = in_array($luster_status ?? 'current', $_lusterValidStatuses, true)
                       ? (string) ($luster_status ?? 'current')
                       : 'current';
@@ -58,6 +58,7 @@ $_lusterShowPendingPseudo   = (bool) ($luster_show_pending        ?? true);
 $_lusterShowUpcomingPseudo  = (bool) ($luster_show_upcoming       ?? true);
 $_lusterShowClosedPseudo    = (bool) ($luster_show_closed         ?? true);
 $_lusterShowAdoptedOutPseudo = (bool) ($luster_show_adopted_out   ?? true);
+$_lusterShowPastPseudo      = (bool) ($luster_show_past           ?? true);
 
 // Category ID resolution order:
 //   1. $_GET['cat'], once present at all, always wins — the category/browse
@@ -78,6 +79,7 @@ $_lusterPseudoSentinels = [
     '__upcoming__'    => 'upcoming',
     '__closed__'      => 'closed',
     '__adopted_out__' => 'adopted_out',
+    '__past__'        => 'past',
 ];
 
 if (!isset($_GET['cat']) && isset($luster_category_id) && (int) $luster_category_id > 0) {
@@ -131,10 +133,12 @@ $_lusterPendingCount    = 0;
 $_lusterUpcomingCount   = 0;
 $_lusterClosedCount     = 0;
 $_lusterAdoptedOutCount = 0;
+$_lusterPastCount       = 0;
 if ($_lusterStatus === 'current') {
     $_lusterLifecycleCounts = $_lusterListingRepo->getLifecycleCounts();
     $_lusterClosedCount     = (int) ($_lusterLifecycleCounts['closed']      ?? 0);
     $_lusterAdoptedOutCount = (int) ($_lusterLifecycleCounts['adopted_out'] ?? 0);
+    $_lusterPastCount       = $_lusterClosedCount + $_lusterAdoptedOutCount;
     // getStats()'s 'trouble' count already includes archived listings (legacy inactive
     // representation) — subtract them so "All Pending" reflects truly-pending listings only.
     $_lusterPendingCount    = max(0, (int) ($_lusterStats['trouble'] ?? 0) - $_lusterClosedCount - $_lusterAdoptedOutCount);
@@ -184,6 +188,8 @@ $_lusterPresenterResult = PublicCategoryPresenter::renderOwned(
     $_lusterShowClosedPseudo,
     $_lusterAdoptedOutCount,
     $_lusterShowAdoptedOutPseudo,
+    $_lusterPastCount,
+    $_lusterShowPastPseudo,
 );
 
 $_lusterCategoryHtml  = $_lusterPresenterResult['html'];
@@ -219,7 +225,7 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
         // Merge lifecycle metadata (adopted_to_name/url, archive_note, archived_at) for
         // any archived listing so the row template's {adopted_to_*}/{archive_note} tokens
         // resolve — only relevant when this view actually includes closed/adopted_out rows.
-        if ($_lusterContentStatus === 'closed' || $_lusterContentStatus === 'adopted_out' || $_lusterContentStatus === 'all') {
+        if ($_lusterContentStatus === 'closed' || $_lusterContentStatus === 'adopted_out' || $_lusterContentStatus === 'past' || $_lusterContentStatus === 'all') {
             $_lusterLifecycleRepo = new \Luster\Repositories\ListingLifecycleRepo($_db);
             foreach ($_lusterListingIds as $_lcListingId) {
                 $_lcRow = $_lusterLifecycleRepo->getByListingId($_lcListingId);

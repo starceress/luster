@@ -221,7 +221,8 @@ final class ListingRowRenderer
                     || str_contains($template, '{each_upcoming}')
                     || str_contains($template, '{each_pending}')
                     || str_contains($template, '{each_closed}')
-                    || str_contains($template, '{each_adopted_out}');
+                    || str_contains($template, '{each_adopted_out}')
+                    || str_contains($template, '{each_past}');
 
         if (!$isSectioned) {
             return self::renderGroup('listing', $template, $listings, $uploadsUrl, $settingsMap, $statsMap, $categoryMap, $dateFormat);
@@ -232,11 +233,17 @@ final class ListingRowRenderer
         $pending     = [];
         $closed      = [];
         $adoptedOut  = [];
+        // "Past" is not a separate lifecycle value — it's closed + adopted_out shown
+        // together, so a listing lands in both its own bucket AND $past. A template
+        // only ever uses one loop name or the other, so this never double-renders.
+        $past        = [];
         foreach ($listings as $listing) {
             if ($listing->lifecycle === 'closed') {
                 $closed[] = $listing;
+                $past[]   = $listing;
             } elseif ($listing->lifecycle === 'adopted_out') {
                 $adoptedOut[] = $listing;
+                $past[]       = $listing;
             } elseif ($listing->trouble) {
                 $pending[] = $listing;
             } elseif ($listing->upcoming) {
@@ -254,6 +261,7 @@ final class ListingRowRenderer
                 'pending_owned_count'     => count($pending),
                 'closed_owned_count'      => count($closed),
                 'adopted_out_owned_count' => count($adoptedOut),
+                'past_owned_count'        => count($past),
                 'total_count'             => count($listings),
             ],
             conditions: [
@@ -262,6 +270,7 @@ final class ListingRowRenderer
                 'pending_listings'      => $pending !== [],
                 'closed_listings'       => $closed !== [],
                 'adopted_out_listings'  => $adoptedOut !== [],
+                'past_listings'         => $past !== [],
             ],
         );
 
@@ -271,6 +280,7 @@ final class ListingRowRenderer
             'pending'     => $pending,
             'closed'      => $closed,
             'adopted_out' => $adoptedOut,
+            'past'        => $past,
         ];
         foreach ($groups as $name => $group) {
             $html = self::renderGroup($name, $html, $group, $uploadsUrl, $settingsMap, $statsMap, $categoryMap, $dateFormat);

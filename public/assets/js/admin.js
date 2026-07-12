@@ -2130,7 +2130,7 @@ document.addEventListener('drop', function (e) {
     owned: {
       fields: [
         { id: 'display_mode', label: 'How should visitors browse?', type: 'select', opts: [['browse','List view'],['','Dropdown view'],['none','No categories']], hint: 'List view: visitors click a category name to see its listings. Dropdown view: a dropdown menu lets visitors filter by category. No categories: just show all listings.' },
-        { id: 'status',             label: 'Listings shown',        type: 'select', opts: [['','Current only'],['upcoming','Upcoming only'],['pending','Pending only'],['all','All statuses']], hint: '' },
+        { id: 'status',             label: 'Listings shown',        type: 'select', opts: [['','Current only'],['upcoming','Upcoming only'],['pending','Pending only'],['past','Past fanlistings'],['all','All statuses']], hint: '' },
         { id: 'exclude_pending',    label: 'Pending listings',        type: 'select', opts: [['','Hide when showing all'],['false','Show when showing all']], hint: 'Only matters when "Listings shown" is All statuses.' },
         { id: 'date_format', label: 'Date format', type: 'select',
           opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
@@ -2670,6 +2670,7 @@ document.addEventListener('drop', function (e) {
           '':        [['Silver Crystal', ''],         ['Jedi Order', ''],       ['Pallet Town', '']],
           'upcoming':[['Hyrule Castle', 'Upcoming'],  ['Mako Reactor', 'Upcoming']],
           'pending': [['Destiny Islands', 'Pending'], ['Traverse Town', 'Pending']],
+          'past':    [['Moonlit Ruins', 'Closed'],    ['Starlight Vale', 'Adopted Out']],
           'all':     [['Silver Crystal', 'Current'],  ['Hyrule Castle', 'Upcoming'], ['Destiny Islands', 'Pending']]
         };
         var samplesO = allSamplesO[statusVal] || allSamplesO[''];

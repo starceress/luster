@@ -566,6 +566,15 @@ final class ListingRepo
                 WHERE ll.fanlisting_id = {$t}.{$pk} AND ll.lifecycle_status = :lifecycle_status
             )";
             $params['lifecycle_status'] = $status;
+        } elseif ($status === 'past') {
+            // "Past Fanlistings" — a virtual view combining closed + adopted_out in one
+            // query (not two separate fetches concatenated together), so results come
+            // back already merged and sorted. Each row still carries its own real
+            // lifecycle value below via the same per-row map the 'all' branch uses.
+            $statusWhere = "EXISTS (
+                SELECT 1 FROM lstr_listing_lifecycle ll
+                WHERE ll.fanlisting_id = {$t}.{$pk} AND ll.lifecycle_status IN ('closed', 'adopted_out')
+            )";
         } else {
             // These fragments are built from a controlled match on internal values — safe to interpolate
             $statusWhere = match (true) {
@@ -611,7 +620,7 @@ final class ListingRepo
             );
         }
 
-        if ($status === 'all') {
+        if ($status === 'all' || $status === 'past') {
             $ids          = array_map(static fn(array $row) => (int) ($row['listingid'] ?? $row['id'] ?? 0), $rows);
             $lifecycleMap = (new ListingLifecycleRepo($this->db))->getMapForListings($ids);
 
@@ -834,6 +843,7 @@ final class ListingRepo
             $status === 'pending'               => "{$legacyPending} AND {$notArchived}",
             $status === 'closed'               => "{$legacyPending} AND EXISTS (SELECT 1 FROM lstr_listing_lifecycle l WHERE l.fanlisting_id = lc.fanlisting_id AND l.lifecycle_status = 'closed')",
             $status === 'adopted_out'          => "{$legacyPending} AND EXISTS (SELECT 1 FROM lstr_listing_lifecycle l WHERE l.fanlisting_id = lc.fanlisting_id AND l.lifecycle_status = 'adopted_out')",
+            $status === 'past'                 => "{$legacyPending} AND EXISTS (SELECT 1 FROM lstr_listing_lifecycle l WHERE l.fanlisting_id = lc.fanlisting_id AND l.lifecycle_status IN ('closed', 'adopted_out'))",
             $status === 'all' && $excludePending => $this->isOwnedSchema ? 'f.status != 0' : 'f.trouble = 0',
             default                             => '1 = 1',
         };

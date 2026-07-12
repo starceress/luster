@@ -316,6 +316,54 @@ final class PublicCategoryPresenterTest extends TestCase
         self::assertStringNotContainsString('<a aria-current="page" href="/listings">All</a>', $result['html']);
     }
 
+    public function testListModeShowsPastPseudoEntryWhenCountNonZero(): void
+    {
+        $result = PublicCategoryPresenter::renderOwned(
+            [$this->cat(1, 'Anime', 'anime')],
+            0, '/listings', hideDropdown: false, showList: true,
+            browseMode: false, browseShowAll: false,
+            totalCount: 5, showCatSwitcher: true,
+            view: '', pendingCount: 0, showPending: true, upcomingCount: 0, showUpcoming: true,
+            closedCount: 0, showClosed: true, adoptedOutCount: 0, showAdoptedOut: true,
+            pastCount: 4, showPast: true,
+        );
+
+        self::assertStringContainsString('Past Fanlistings', $result['html']);
+        self::assertStringContainsString('__past__', $result['html']);
+        self::assertStringContainsString('(4)', $result['html']);
+    }
+
+    public function testListModeOmitsPastWhenToggleOff(): void
+    {
+        $result = PublicCategoryPresenter::renderOwned(
+            [$this->cat(1, 'Anime', 'anime')],
+            0, '/listings', hideDropdown: false, showList: true,
+            browseMode: false, browseShowAll: false,
+            totalCount: 5, showCatSwitcher: true,
+            view: '', pendingCount: 0, showPending: true, upcomingCount: 0, showUpcoming: true,
+            closedCount: 0, showClosed: true, adoptedOutCount: 0, showAdoptedOut: true,
+            pastCount: 4, showPast: false,
+        );
+
+        self::assertStringNotContainsString('Past Fanlistings', $result['html']);
+    }
+
+    public function testPastViewActivatesAriaCurrent(): void
+    {
+        $result = PublicCategoryPresenter::renderOwned(
+            [$this->cat(1, 'Anime', 'anime')],
+            0, '/listings', hideDropdown: false, showList: true,
+            browseMode: false, browseShowAll: false,
+            totalCount: 5, showCatSwitcher: true,
+            view: 'past', pendingCount: 0, showPending: true, upcomingCount: 0, showUpcoming: true,
+            closedCount: 0, showClosed: true, adoptedOutCount: 0, showAdoptedOut: true,
+            pastCount: 4, showPast: true,
+        );
+
+        self::assertStringContainsString('aria-current="page"', $result['html']);
+        self::assertStringNotContainsString('<a aria-current="page" href="/listings">All</a>', $result['html']);
+    }
+
     // -----------------------------------------------------------------------
     // renderJoined — "All Listings" entry and pseudo-entries
     // -----------------------------------------------------------------------

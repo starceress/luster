@@ -112,6 +112,40 @@ SQL;
         self::assertSame('adopted_out', $results[0]->lifecycle);
     }
 
+    public function testPastStatusReturnsClosedAndAdoptedOutTogether(): void
+    {
+        $closedId  = $this->insertListing('Closed FL', status: 0);
+        $adoptedId = $this->insertListing('Adopted FL', status: 0);
+        $pendingId = $this->insertListing('Pending FL', status: 0);
+        $this->archive($closedId, 'closed');
+        $this->archive($adoptedId, 'adopted_out');
+
+        $results = $this->repo->getFiltered('past');
+        $byId    = [];
+        foreach ($results as $r) {
+            $byId[$r->id] = $r;
+        }
+
+        // One merged, sorted query — not two separate fetches concatenated together.
+        self::assertCount(2, $results);
+        self::assertArrayNotHasKey($pendingId, $byId);
+        self::assertSame('closed', $byId[$closedId]->lifecycle);
+        self::assertSame('adopted_out', $byId[$adoptedId]->lifecycle);
+    }
+
+    public function testPastStatusExcludesCurrentAndPendingListings(): void
+    {
+        $this->insertListing('Current FL', status: 2);
+        $this->insertListing('Pending FL', status: 0);
+        $closedId = $this->insertListing('Closed FL', status: 0);
+        $this->archive($closedId, 'closed');
+
+        $results = $this->repo->getFiltered('past');
+
+        self::assertCount(1, $results);
+        self::assertSame($closedId, $results[0]->id);
+    }
+
     public function testPendingExcludesArchivedListings(): void
     {
         $truePending = $this->insertListing('Truly Pending', status: 0);
