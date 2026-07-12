@@ -33,6 +33,7 @@ use Luster\Import\SqlDumpLoader;
 use Luster\Import\ZipTemplateReader;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
+use Luster\Repositories\ErrorLogRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
@@ -835,6 +836,17 @@ final class ImportController extends AdminController
             $this->cleanupBbTempFiles();
         } catch (\Throwable $e) {
             $error = $e->getMessage();
+
+            error_log('[Luster] Import failed: ' . $e::class . ': ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            try {
+                (new ErrorLogRepo($this->app->getDatabase()))->log(
+                    'Import failed (' . $source . '): ' . $e::class . ': ' . $e->getMessage(),
+                    'error',
+                    $e->getFile() . ':' . $e->getLine(),
+                );
+            } catch (\Throwable) {
+                // Non-fatal: a logging failure must not mask the original import error.
+            }
         } finally {
             if ($dumpPrefix !== null) {
                 $this->cleanupDumpTables();
