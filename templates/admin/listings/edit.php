@@ -1536,7 +1536,9 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
         <p>Upload the old join-form include file this listing used before migrating (e.g. Enthusiast's <code>addform.inc.php</code>). Luster scans it for dropdown, radio, and checkbox markup so you can quickly re-type an existing field instead of configuring it by hand. The file is never run — only scanned as text.</p>
         <label class="file-drop-zone" for="fl-scan-file">
           <input type="file" id="fl-scan-file">
-          <span class="file-drop-zone__label">Choose file or drag and drop</span>
+          <span class="file-drop-icon"><?= View::icon('import') ?></span>
+          <strong>Drag &amp; drop or click to browse</strong>
+          <span class="form-hint">Any legacy include file &mdash; PHP, HTML, or plain text, max 256 KB</span>
         </label>
         <p id="fl-scan-error" style="color:var(--color-danger);display:none"></p>
       </div>
