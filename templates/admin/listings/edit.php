@@ -666,7 +666,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
      data-tpl-base="<?= View::e($_tplBaseEndpoint) ?>"
      data-tpl-csrf="<?= $_tplCsrf ?>">
 
-<div class="filter-panel is-open">
+<div class="filter-panel is-open" id="tpl-filter-panel">
   <div class="filter-row" id="tpl-filter-row">
     <label for="tpl-group-select" class="tpl-filter-label">Select Template:</label>
     <div class="select-wrap">

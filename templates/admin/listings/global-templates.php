@@ -82,7 +82,7 @@ if (!in_array($activeGroup, $_validGroups, true)) { $activeGroup = 'all'; }
 $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) ? 'hidden' : '';
 ?>
 
-<div class="filter-panel is-open">
+<div class="filter-panel is-open" id="tpl-filter-panel">
   <div class="filter-row" id="tpl-filter-row">
     <label for="tpl-group-select" class="tpl-filter-label">Select Template:</label>
     <div class="select-wrap">
