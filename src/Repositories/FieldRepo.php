@@ -88,7 +88,21 @@ final class FieldRepo
             return [];
         }
 
-        $raw = trim((string) $row['field_info']);
+        return $this->parseFieldInfo((string) $row['field_info']);
+    }
+
+    /**
+     * Shared parsing entry point for a single listing's raw field-info column value.
+     * Tries the serialized-array format first (written by saveFields(), and by any
+     * import source that preserves type/label/options), falling back to legacy
+     * Enthusiast string-format parsing (bare comma-separated names or pipe-delimited
+     * definitions) only when the value isn't actually a serialized array.
+     *
+     * @return AdditionalField[]
+     */
+    private function parseFieldInfo(string $rawInfo): array
+    {
+        $raw = trim($rawInfo);
 
         if ($raw === '') {
             return [];
@@ -122,9 +136,8 @@ final class FieldRepo
         $result = [];
 
         foreach ($stmt->fetchAll() as $row) {
-            $id          = (int) $row['listing_id'];
-            $raw         = (string) ($row['field_info'] ?? '');
-            $result[$id] = $raw !== '' ? $this->parseAdditionalInfo($raw) : [];
+            $id           = (int) $row['listing_id'];
+            $result[$id]  = $this->parseFieldInfo((string) ($row['field_info'] ?? ''));
         }
 
         return $result;

@@ -998,17 +998,23 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 // enth_ schema: MemberRepo resolves table as {dbprefix}members, so the
                 // actual table name is $dbtable . 'members'. Column names use additional_ prefix.
                 $memberTable = $isOwned ? $dbtable : $dbtable . 'members';
+                $fieldDefs = array_values(array_filter(
+                    $customFieldsMap[$srcListingId] ?? [],
+                    fn($f) => $this->sanitizeFieldName((string) ($f['name'] ?? '')) !== '',
+                ));
                 $fields = array_map(
                     fn($f) => $this->sanitizeFieldName((string) ($f['name'] ?? '')),
-                    $customFieldsMap[$srcListingId] ?? []
+                    $fieldDefs
                 );
-                $fields = array_values(array_filter($fields, fn($f) => $f !== ''));
                 $this->createMemberTable($target, $memberTable, $fields, $isOwned);
 
                 // Persist field definitions to the listing registry so admin forms
                 // know the imported columns exist (once per listing per run).
-                if (!empty($fields) && !isset($registeredFields[$newListingId])) {
-                    $this->persistCustomFieldDefinitions($target, $newListingId, $isOwned, $fields);
+                // Passing the full definitions (not just bare names) preserves
+                // Fanatically's own label/options/required metadata instead of
+                // collapsing every field to an untyped text input.
+                if (!empty($fieldDefs) && !isset($registeredFields[$newListingId])) {
+                    $this->persistCustomFieldDefinitions($target, $newListingId, $isOwned, $fieldDefs);
                     $registeredFields[$newListingId] = true;
                 }
 
@@ -2876,83 +2882,101 @@ final class FanaticallyImportSource implements ImportSourceInterface
      *
      * @param string[] $fieldNames  Sanitized bare field names
      */
-    private function persistCustomFieldDefinitions(PDO $target, int $listingId, bool $isOwned, array $fieldNames): void
+    /**
+     * Persists field definitions to the listing registry's additional-fields
+     * column, merging with whatever is already there. Existing entries (by
+     * name) are never overwritten, so this is safe to call on every import
+     * pass without clobbering a field an admin has since re-typed via the
+     * Fields UI — it only ever adds genuinely new names.
+     *
+     * Preserves label/required/options from Fanatically's own custom_fields
+     * JSON when available (Fanatically has no explicit "type" concept — a
+     * field is a dropdown purely by having a non-empty options list, same
+     * convention its own join-form renderer uses) rather than collapsing
+     * every imported field to a bare untyped name.
+     *
+     * @param array<int, array{name:string, label?:string, required?:bool, options?:array<int,string>}> $fieldDefs
+     */
+    private function persistCustomFieldDefinitions(PDO $target, int $listingId, bool $isOwned, array $fieldDefs): void
     {
-        if (empty($fieldNames)) {
+        if (empty($fieldDefs)) {
             return;
         }
 
-        if ($isOwned) {
-            try {
-                $st = $target->prepare('SELECT additional FROM `owned` WHERE listingid=:id');
-                $st->execute(['id' => $listingId]);
-                $current = (string) ($st->fetchColumn() ?: '');
+        $table   = $isOwned ? 'owned'      : 'enth_fanlistings';
+        $idCol   = $isOwned ? 'listingid'  : 'id';
+        $infoCol = $isOwned ? 'additional' : 'additional_info';
 
-                $existingNames = $current !== ''
-                    ? array_filter(array_map('trim', explode(',', $current)))
-                    : [];
-                $merged = array_values(array_unique(array_merge($existingNames, $fieldNames)));
+        try {
+            $st = $target->prepare("SELECT {$infoCol} FROM `{$table}` WHERE {$idCol}=:id");
+            $st->execute(['id' => $listingId]);
+            $raw = (string) ($st->fetchColumn() ?: '');
 
-                $target->prepare('UPDATE `owned` SET additional=:additional WHERE listingid=:id')
-                    ->execute(['additional' => implode(',', $merged), 'id' => $listingId]);
-            } catch (\Throwable) {}
-        } else {
-            try {
-                $st = $target->prepare('SELECT additional_info FROM `enth_fanlistings` WHERE id=:id');
-                $st->execute(['id' => $listingId]);
-                $raw = (string) ($st->fetchColumn() ?: '');
-
-                // Parse existing entries into a name-keyed map
-                $existing = [];
-                if ($raw !== '') {
-                    $decoded = @unserialize($raw, ['allowed_classes' => false]);
-                    if (is_array($decoded)) {
-                        foreach ($decoded as $item) {
-                            $n = (string) ($item['name'] ?? $item[0] ?? '');
-                            if ($n !== '') {
-                                $existing[$n] = $item;
-                            }
+            // Parse existing entries into a name-keyed map. owned.additional
+            // supports the same serialized-array format additional_info does
+            // (both are read through FieldRepo::getFieldsForListing(), which
+            // tries unserialize() first regardless of schema) — so a listing
+            // that already has rich field metadata (from a prior Enthusiast
+            // import, or a manual admin edit) keeps it here rather than being
+            // downgraded back to bare names on every re-import.
+            $existing = [];
+            if ($raw !== '') {
+                $decoded = @unserialize($raw, ['allowed_classes' => false]);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $item) {
+                        $n = (string) ($item['name'] ?? $item[0] ?? '');
+                        if ($n !== '') {
+                            $existing[$n] = $item;
                         }
-                    } else {
-                        // pipe-delimited: name,Label,type,required|...
-                        foreach (explode('|', $raw) as $piece) {
-                            $piece = trim($piece);
-                            if ($piece === '') {
-                                continue;
-                            }
-                            $parts = explode(',', $piece, 4);
-                            $n = trim($parts[0]);
-                            if ($n !== '') {
-                                $existing[$n] = [
-                                    'name'     => $n,
-                                    'label'    => trim($parts[1] ?? ucwords(str_replace('_', ' ', $n))),
-                                    'type'     => trim($parts[2] ?? 'text'),
-                                    'required' => (bool) (int) trim($parts[3] ?? '0'),
-                                ];
-                            }
+                    }
+                } elseif ($isOwned) {
+                    // Legacy owned schema: bare comma-separated names, no metadata.
+                    foreach (array_filter(array_map('trim', explode(',', $raw))) as $n) {
+                        $existing[$n] = ['name' => $n, 'label' => ucwords(str_replace('_', ' ', $n)), 'type' => 'text', 'required' => false];
+                    }
+                } else {
+                    // Legacy enth_ schema: pipe-delimited name,Label,type,required.
+                    foreach (explode('|', $raw) as $piece) {
+                        $piece = trim($piece);
+                        if ($piece === '') {
+                            continue;
+                        }
+                        $parts = explode(',', $piece, 4);
+                        $n = trim($parts[0]);
+                        if ($n !== '') {
+                            $existing[$n] = [
+                                'name'     => $n,
+                                'label'    => trim($parts[1] ?? ucwords(str_replace('_', ' ', $n))),
+                                'type'     => trim($parts[2] ?? 'text'),
+                                'required' => (bool) (int) trim($parts[3] ?? '0'),
+                            ];
                         }
                     }
                 }
+            }
 
-                $added = false;
-                foreach ($fieldNames as $name) {
-                    if (!isset($existing[$name])) {
-                        $existing[$name] = [
-                            'name'     => $name,
-                            'label'    => ucwords(str_replace('_', ' ', $name)),
-                            'type'     => 'text',
-                            'required' => false,
-                        ];
-                        $added = true;
-                    }
+            $added = false;
+            foreach ($fieldDefs as $def) {
+                $name = $this->sanitizeFieldName((string) ($def['name'] ?? ''));
+                if ($name === '' || isset($existing[$name])) {
+                    continue;
                 }
+                $options = array_values(array_filter(array_map('trim', (array) ($def['options'] ?? []))));
+                $existing[$name] = [
+                    'name'     => $name,
+                    'label'    => trim((string) ($def['label'] ?? '')) ?: ucwords(str_replace('_', ' ', $name)),
+                    'type'     => $options !== [] ? 'dropdown' : 'text',
+                    'required' => (bool) ($def['required'] ?? false),
+                    'options'  => implode('|', $options),
+                ];
+                $added = true;
+            }
 
-                if ($added || ($raw === '' && !empty($existing))) {
-                    $target->prepare('UPDATE `enth_fanlistings` SET additional_info=:info WHERE id=:id')
-                        ->execute(['info' => serialize(array_values($existing)), 'id' => $listingId]);
-                }
-            } catch (\Throwable) {}
-        }
+            if ($added || ($raw === '' && !empty($existing))) {
+                $target->prepare("UPDATE `{$table}` SET {$infoCol}=:info WHERE {$idCol}=:id")
+                    ->execute(['info' => serialize(array_values($existing)), 'id' => $listingId]);
+            }
+        } catch (\Throwable) {}
     }
 
     // -----------------------------------------------------------------------

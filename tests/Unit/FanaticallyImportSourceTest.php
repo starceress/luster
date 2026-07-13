@@ -1481,6 +1481,67 @@ final class FanaticallyImportSourceTest extends TestCase
             'owned.additional should contain the imported custom field name');
     }
 
+    /**
+     * Fanatically's own custom_fields schema has no explicit "type" — a field is
+     * a dropdown purely by having a non-empty options list (same convention its
+     * own join-form renderer uses). The importer used to collapse every field to
+     * a bare name, discarding label/options/required entirely — every imported
+     * field silently became an untyped text input even when the source had a
+     * real, admin-configured dropdown with real choices.
+     */
+    public function testCustomFieldWithOptionsPersistedAsDropdownNotText(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $src->exec('ALTER TABLE listings ADD COLUMN custom_fields TEXT NULL');
+        $customFields = json_encode([[
+            'name'     => 'favorite_movie',
+            'label'    => 'Favorite Movie',
+            'required' => true,
+            'options'  => ['John Wick', 'John Wick: Chapter 2', 'All of them'],
+        ]]);
+        $src->exec(
+            "INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption, custom_fields)
+             VALUES (1, 'FL', 'Subj', 'https://example.com/fl', 'current', '', 0, '{$customFields}')"
+        );
+
+        $src->exec(
+            'CREATE TABLE IF NOT EXISTS members (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                listing_id          INTEGER NOT NULL,
+                name                TEXT    NOT NULL DEFAULT \'\',
+                email               TEXT    NOT NULL DEFAULT \'\',
+                url                 TEXT    NOT NULL DEFAULT \'\',
+                country             TEXT    NOT NULL DEFAULT \'\',
+                password_hash       TEXT    NOT NULL DEFAULT \'\',
+                custom_field_values TEXT    NULL,
+                is_approved         INTEGER NOT NULL DEFAULT 1,
+                joined_at           TEXT    NULL
+            )'
+        );
+        $src->exec(
+            "INSERT INTO members (listing_id, name, email, is_approved)
+             VALUES (1, 'Fan', 'fan@example.com', 1)"
+        );
+
+        $opts = $this->makeOptions(['import_listings' => '1', 'import_members' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $row = $tgt->query('SELECT additional FROM owned LIMIT 1')->fetch();
+        self::assertNotNull($row, 'owned row should exist');
+
+        $decoded = @unserialize((string) $row['additional'], ['allowed_classes' => false]);
+        self::assertIsArray($decoded, 'owned.additional should hold a serialized array, not a bare name string.');
+        self::assertSame('favorite_movie', $decoded[0]['name']);
+        self::assertSame('Favorite Movie', $decoded[0]['label']);
+        self::assertSame('dropdown', $decoded[0]['type'], 'A field with real options must import as a dropdown, not text.');
+        self::assertTrue($decoded[0]['required']);
+        self::assertSame('John Wick|John Wick: Chapter 2|All of them', $decoded[0]['options']);
+    }
+
     // -----------------------------------------------------------------------
     // Affiliate link/reciprocal status mapping
     // -----------------------------------------------------------------------
@@ -1858,6 +1919,58 @@ final class FanaticallyImportSourceTest extends TestCase
         $names = array_column($decoded, 'name');
         self::assertContains('fave_song', $names,
             'additional_info should contain the imported custom field name');
+    }
+
+    public function testEnthSchemaCustomFieldWithOptionsPersistedAsDropdown(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedEnthTarget($tgt);
+
+        $src->exec('ALTER TABLE listings ADD COLUMN custom_fields TEXT NULL');
+        $customFields = json_encode([[
+            'name'     => 'favorite_movie',
+            'label'    => 'Favorite Movie',
+            'required' => true,
+            'options'  => ['John Wick', 'John Wick: Chapter 2', 'All of them'],
+        ]]);
+        $src->exec(
+            "INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption, custom_fields)
+             VALUES (1, 'FL', 'Subj', 'https://example.com/fl/', 'current', '', 0, '{$customFields}')"
+        );
+
+        $src->exec(
+            'CREATE TABLE IF NOT EXISTS members (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                listing_id          INTEGER NOT NULL,
+                name                TEXT    NOT NULL DEFAULT \'\',
+                email               TEXT    NOT NULL DEFAULT \'\',
+                url                 TEXT    NOT NULL DEFAULT \'\',
+                country             TEXT    NOT NULL DEFAULT \'\',
+                password_hash       TEXT    NOT NULL DEFAULT \'\',
+                custom_field_values TEXT    NULL,
+                is_approved         INTEGER NOT NULL DEFAULT 1,
+                joined_at           TEXT    NULL
+            )'
+        );
+        $src->exec(
+            "INSERT INTO members (listing_id, name, email, is_approved)
+             VALUES (1, 'Fan', 'fan@example.com', 1)"
+        );
+
+        $opts = $this->makeOptions(['import_listings' => '1', 'import_members' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        $row = $tgt->query('SELECT additional_info FROM enth_fanlistings LIMIT 1')->fetch();
+        self::assertNotNull($row, 'enth_fanlistings row should exist');
+        $decoded = unserialize((string) $row['additional_info']);
+        self::assertIsArray($decoded, 'additional_info should be a serialized PHP array');
+        self::assertSame('favorite_movie', $decoded[0]['name']);
+        self::assertSame('Favorite Movie', $decoded[0]['label']);
+        self::assertSame('dropdown', $decoded[0]['type'], 'A field with real options must import as a dropdown, not text.');
+        self::assertTrue($decoded[0]['required']);
+        self::assertSame('John Wick|John Wick: Chapter 2|All of them', $decoded[0]['options']);
     }
 
     public function testEnthSchemaMemberTableNamedWithMembersSuffix(): void
