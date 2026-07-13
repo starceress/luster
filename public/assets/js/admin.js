@@ -315,6 +315,23 @@ function showConfirmBar(anchorEl, message, onConfirm) {
       });
     });
   });
+
+  // Same nested-form problem as above, for the per-row Approve/Reject buttons
+  // inside each listing's bulk-action <form> on the global pending-codes view.
+  document.querySelectorAll('[data-code-row-url]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = btn.dataset.codeRowUrl;
+      form.style.display = 'none';
+      addInput(form, '_csrf',        btn.dataset.codeRowCsrf);
+      addInput(form, 'listing_id',   '0');
+      addInput(form, '_tab',         'pending');
+      addInput(form, '_from_global', '1');
+      document.body.appendChild(form);
+      form.submit();
+    });
+  });
 }());
 
 document.addEventListener('submit', function (e) {
@@ -1046,14 +1063,22 @@ document.addEventListener('drop', function (e) {
   input.dispatchEvent(new Event('change', { bubbles: true }));
 });
 
-// ── 24a-ii. Listing image: immediate delete with confirmation modal ───────────
+// ── 24a-ii. Image upload panel: immediate delete with confirmation modal ──────
+// Shared by the Listing/Affiliate/Joined/Wishlist edit forms' "Delete Image"
+// button — only one such form is ever on screen at a time, so reusing the
+// same #fl-delete-image-btn / #fl-img-current-card ids across those pages is
+// safe. data-image-entity/data-max-size-hint let each page customize the
+// confirm-modal wording and the reset hint text without duplicating this
+// handler; both default to the Listing page's original values.
 (function () {
   var deleteBtn = document.getElementById('fl-delete-image-btn');
   if (!deleteBtn) return;
 
   deleteBtn.addEventListener('click', function () {
-    var url  = deleteBtn.dataset.deleteUrl || '';
-    var csrf = deleteBtn.dataset.csrf || '';
+    var url      = deleteBtn.dataset.deleteUrl || '';
+    var csrf     = deleteBtn.dataset.csrf || '';
+    var entity   = deleteBtn.dataset.imageEntity || 'listing_image';
+    var sizeHint = deleteBtn.dataset.maxSizeHint || 'JPEG, PNG, GIF, WebP — max 2 MB';
     if (!url) return;
 
     window.lstrDelModal.trigger(function () {
@@ -1069,17 +1094,17 @@ document.addEventListener('drop', function (e) {
             if (panel) panel.closest('.img-upload-panel--two-col').outerHTML =
               '<div class="img-upload-panel">'
               + '<label class="file-drop-zone">'
-              + '<input type="file" id="thumbnail" name="image" accept="image/jpeg,image/png,image/gif,image/webp">'
+              + '<input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">'
               + '<span class="file-drop-icon"></span>'
               + '<strong>Drag &amp; drop or click to browse</strong>'
-              + '<span class="form-hint">JPEG, PNG, GIF, WebP — max 2 MB</span>'
+              + '<span class="form-hint">' + esc(sizeHint) + '</span>'
               + '</label></div>';
           } else {
             window.lstrToast('error', data.error || 'Could not delete image.');
           }
         })
         .catch(function () { window.lstrToast('error', 'Request failed.'); });
-    }, 'listing_image', '', '', '');
+    }, entity, '', '', '');
   });
 }());
 
@@ -4100,12 +4125,15 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     pending_update_reject: { title: 'Reject Update',           btn: 'Reject',      desc: 'You are about to reject the update for <strong>$$names$$</strong>.',                 warn: 'The pending update will be discarded. This action cannot be undone.' },
     merge_member:          { title: 'Delete Duplicate Member', btn: 'Delete',      desc: 'You are about to delete the duplicate account for <strong>$$names$$</strong>.',      warn: 'This permanently deletes the duplicate account. This action cannot be undone.' },
     rename_prefix:         { title: 'Rename Member Table',     btn: 'Rename Table', desc: 'You are about to rename the member table from <strong>$$names$$</strong> to <strong>$$context$$</strong>.', warn: 'This renames the table directly in your database. If anything goes wrong, member data may become unreachable. This action cannot be undone.' },
-    update:                { title: 'Delete Update',           btn: 'Delete',      desc: 'You are about to delete the update <strong>$$names$$</strong>.',                       warn: 'This action cannot be undone.' },
+    entry:                 { title: 'Delete Entry',            btn: 'Delete',      desc: 'You are about to delete the entry <strong>$$names$$</strong>.',                       warn: 'This action cannot be undone.' },
     rules:                 { title: 'Delete Rules',            btn: 'Delete',      desc: 'You are about to delete the join rules for <strong>$$names$$</strong>.',               warn: 'Deleting removes the rules text (and rules gate, if enabled) entirely for this listing. This action cannot be undone.' },
     wishlist_entry:        { title: 'Delete Wishlist Entries', btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong>.',                                   warn: 'This action cannot be undone.' },
     'reset-all-templates': { title: 'Reset All Templates',     btn: 'Reset All',   desc: 'You are about to reset <strong>$$names$$</strong>.',                                      warn: 'Every template for this listing will revert to the global default. Any per-listing customisations will be lost.' },
     adoption_application:  { title: 'Reject Application',      btn: 'Reject',      desc: 'You are about to reject the application from <strong>$$names$$</strong>.',               warn: 'The applicant will be marked as rejected. This action cannot be undone.' },
-    listing_image:         { title: 'Delete Image',            btn: 'Delete',      desc: 'You are about to delete the image for this listing.',                                    warn: 'This will permanently remove the image file. This action cannot be undone.' }
+    listing_image:         { title: 'Delete Image',            btn: 'Delete',      desc: 'You are about to delete the image for this listing.',                                    warn: 'This will permanently remove the image file. This action cannot be undone.' },
+    affiliate_image:       { title: 'Delete Image',            btn: 'Delete',      desc: 'You are about to delete the image for this affiliate.',                                  warn: 'This will permanently remove the image file. This action cannot be undone.' },
+    joined_image:          { title: 'Delete Image',            btn: 'Delete',      desc: 'You are about to delete the image for this joined listing.',                             warn: 'This will permanently remove the image file. This action cannot be undone.' },
+    wishlist_image:        { title: 'Delete Image',            btn: 'Delete',      desc: 'You are about to delete the image for this wishlist entry.',                             warn: 'This will permanently remove the image file. This action cannot be undone.' }
   };
 
   function show(cfg, names, context, warnOverride) {
@@ -4142,7 +4170,11 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   });
 
   confirmBtn.addEventListener('click', function () {
-    if (!pending) return;
+    // trigger()'s ad-hoc callback flow sets `pending` to a plain {_cb} marker
+    // object (not a form element) and handles confirmBtn's click itself via
+    // a temporary .onclick override below — this persistent listener must
+    // ignore that case, or it crashes trying to read .dataset off a plain object.
+    if (!pending || !(pending instanceof Element)) return;
     var f = pending;
     close();
     f.dataset.delConfirmed = '1';

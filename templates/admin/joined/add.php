@@ -115,17 +115,32 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
 
       <div class="field-row">
         <span class="field-label">Image</span>
-        <div>
-          <?php if ($isEdit && ($joined->image ?? '') !== ''): ?>
-            <div class="existing-upload-preview">
-              <img src="<?= View::e($b . '/uploads/joined/' . $joined->image) ?>" alt="Current image">
-              <label class="del-img-check">
-                <input type="checkbox" id="jf-delete-img" name="delete_image" value="1">
-                <span class="toggle-label">Delete current image</span>
-              </label>
+        <?php if ($isEdit && ($joined->image ?? '') !== ''): ?>
+        <div class="img-upload-panel img-upload-panel--two-col">
+          <div class="img-current-card" id="fl-img-current-card">
+            <div class="img-current-preview">
+              <img src="<?= View::e($b . '/uploads/joined/' . $joined->image) ?>" alt="<?= View::e($joined->image) ?>">
             </div>
-          <?php endif; ?>
-
+            <div class="img-current-footer">
+              <span class="img-current-name"><?= View::e($joined->image) ?></span>
+              <button type="button" class="btn btn-danger btn-sm img-delete-btn" id="fl-delete-image-btn"
+                      data-delete-url="<?= $b ?>/admin/joined/<?= (int) $joined->id ?>/delete-image"
+                      data-csrf="<?= View::e($csrf_token ?? '') ?>"
+                      data-image-entity="joined_image">Delete Image</button>
+            </div>
+          </div>
+          <div class="img-replace-col">
+            <div class="panel-label">Replace with a new image</div>
+            <label class="file-drop-zone file-drop-zone--sm">
+              <input id="jf-image" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+              <span class="file-drop-icon"><?= View::icon('image') ?></span>
+              <strong>Drag &amp; drop or click to browse</strong>
+              <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
+            </label>
+          </div>
+        </div>
+        <?php else: ?>
+        <div class="img-upload-panel">
           <label class="file-drop-zone">
             <input id="jf-image" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
             <span class="file-drop-icon"><?= View::icon('image') ?></span>
@@ -133,6 +148,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
               <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
           </label>
         </div>
+        <?php endif; ?>
       </div>
 
       <div class="field-row">

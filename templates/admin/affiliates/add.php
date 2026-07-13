@@ -214,24 +214,42 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <!-- Image -->
       <div class="field-row field-row--top">
         <span class="field-label">Image</span>
-        <div>
-          <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
-            <div class="existing-upload-preview">
+        <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
+        <div class="img-upload-panel img-upload-panel--two-col">
+          <div class="img-current-card" id="fl-img-current-card">
+            <div class="img-current-preview">
               <img src="<?= $b ?>/uploads/affiliates/<?= View::e($affiliate->image) ?>"
-                   alt="Current affiliate image">
-              <label class="del-img-check">
-                <input type="checkbox" name="delete_image" value="1">
-                <span class="toggle-label">Delete current image</span>
-              </label>
+                   alt="<?= View::e($affiliate->image) ?>">
             </div>
-          <?php endif; ?>
+            <div class="img-current-footer">
+              <span class="img-current-name"><?= View::e($affiliate->image) ?></span>
+              <button type="button" class="btn btn-danger btn-sm img-delete-btn" id="fl-delete-image-btn"
+                      data-delete-url="<?= $b ?>/admin/affiliates/<?= (int) $affiliate->id ?>/delete-image"
+                      data-csrf="<?= View::e($csrf_token ?? '') ?>"
+                      data-image-entity="affiliate_image"
+                      data-max-size-hint="JPEG, PNG, GIF, WebP &mdash; max 500 KB">Delete Image</button>
+            </div>
+          </div>
+          <div class="img-replace-col">
+            <div class="panel-label">Replace with a new image</div>
+            <label class="file-drop-zone file-drop-zone--sm">
+              <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+              <span class="file-drop-icon"><?= View::icon('image') ?></span>
+              <strong>Drag &amp; drop or click to browse</strong>
+              <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB</span>
+            </label>
+          </div>
+        </div>
+        <?php else: ?>
+        <div class="img-upload-panel">
           <label class="file-drop-zone">
             <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
             <span class="file-drop-icon"><?= View::icon('image') ?></span>
               <strong>Drag &amp; drop or click to browse</strong>
-              <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
+              <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB</span>
           </label>
         </div>
+        <?php endif; ?>
       </div>
 
     </div><!-- /.card-body -->

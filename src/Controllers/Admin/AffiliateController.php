@@ -526,6 +526,51 @@ final class AffiliateController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // POST /admin/affiliates/{id}/delete-image
+    // -----------------------------------------------------------------------
+
+    /**
+     * Immediately deletes the affiliate's image from disk and clears the DB
+     * reference. Returns JSON {ok:true} on success or {ok:false,error:...}.
+     */
+    public function deleteImage(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+
+        $db            = $this->app->getDatabase();
+        $session       = $this->app->getSession();
+        $affiliateRepo = new AffiliateRepo($db);
+        $activityRepo  = new ActivityRepo($db);
+
+        $affiliate = $affiliateRepo->getById($id);
+        if ($affiliate === null) {
+            return Response::json(['ok' => false, 'error' => 'Affiliate not found.']);
+        }
+
+        $filename = $affiliate->image ?? '';
+        if ($filename === '') {
+            return Response::json(['ok' => false, 'error' => 'No image to delete.']);
+        }
+
+        $dir  = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
+        $path = $dir . $filename;
+        if (is_file($path)) {
+            unlink($path);
+        }
+
+        $affiliateRepo->updateImage($id, null);
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'affiliate.image_delete',
+            "Deleted image for affiliate #{$id} ({$affiliate->name})",
+            $request->ip(),
+        );
+
+        return Response::json(['ok' => true]);
+    }
+
+    // -----------------------------------------------------------------------
     // POST /admin/affiliates/reorder  (AJAX)
     // -----------------------------------------------------------------------
 

@@ -403,6 +403,13 @@ final class AffiliateRepo
         return $stmt->execute($params);
     }
 
+    /** Updates only the image column, leaving every other field untouched. */
+    public function updateImage(int $id, ?string $image): void
+    {
+        $this->db->prepare('UPDATE lstr_affiliates SET image = :image WHERE id = :id')
+            ->execute(['image' => $image, 'id' => $id]);
+    }
+
     /**
      * Returns the next available sort_order for a given scope (1-based).
      * Returns 1 when no affiliates exist in that scope yet.

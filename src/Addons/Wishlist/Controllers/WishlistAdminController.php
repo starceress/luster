@@ -293,6 +293,48 @@ final class WishlistAdminController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // POST /admin/wishlist/{id}/delete-image
+    // -----------------------------------------------------------------------
+
+    /**
+     * Immediately deletes the wishlist entry's image from disk and clears the
+     * DB reference. Returns JSON {ok:true} on success or {ok:false,error:...}.
+     */
+    public function deleteImage(Request $request, array $params): Response
+    {
+        $id      = (int) ($params['id'] ?? 0);
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $repo    = new WishlistRepo($db);
+        $entry   = $repo->getById($id);
+
+        if ($entry === null) {
+            return Response::json(['ok' => false, 'error' => 'Wishlist entry not found.']);
+        }
+
+        $filename = $entry->image ?? '';
+        if ($filename === '') {
+            return Response::json(['ok' => false, 'error' => 'No image to delete.']);
+        }
+
+        $path = $this->ensureUploadDirectory() . '/' . $filename;
+        if (is_file($path)) {
+            unlink($path);
+        }
+
+        $repo->updateImage($id, null);
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'wishlist.image_delete',
+            "Deleted image for wishlist entry #{$id} ({$entry->subject})",
+            $request->ip(),
+        );
+
+        return Response::json(['ok' => true]);
+    }
+
+    // -----------------------------------------------------------------------
     // POST /admin/wishlist/{id}/delete
     // -----------------------------------------------------------------------
 

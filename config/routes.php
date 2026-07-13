@@ -340,6 +340,8 @@ return [
             AffiliateController::class, 'editAffiliate');
         $router->post('/admin/affiliates/{id}/toggle',
             AffiliateController::class, 'toggle');
+        $router->post('/admin/affiliates/{id}/delete-image',
+            AffiliateController::class, 'deleteImage');
         $router->post('/admin/affiliates/{id}/delete',
             AffiliateController::class, 'deleteAffiliate');
         $router->post('/admin/affiliates/{id}/approve',
@@ -416,6 +418,8 @@ return [
             JoinedController::class, 'edit');
         $router->post('/admin/joined/{id}/delete',
             JoinedController::class, 'delete');
+        $router->post('/admin/joined/{id}/delete-image',
+            JoinedController::class, 'deleteImage');
         $router->post('/admin/joined/{id}/toggle',
             JoinedController::class, 'toggle');
         $router->post('/admin/joined/bulk',

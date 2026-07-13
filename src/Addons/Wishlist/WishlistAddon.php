@@ -89,8 +89,9 @@ final class WishlistAddon implements AddonInterface
         $router->post('/admin/wishlist/bulk',            WishlistAdminController::class, 'bulk');
         $router->get('/admin/wishlist/{id}/edit',        WishlistAdminController::class, 'edit');
         $router->post('/admin/wishlist/{id}/edit',       WishlistAdminController::class, 'edit');
-        $router->post('/admin/wishlist/{id}/delete',     WishlistAdminController::class, 'delete');
-        $router->post('/admin/wishlist/{id}/toggle',     WishlistAdminController::class, 'toggle');
+        $router->post('/admin/wishlist/{id}/delete',       WishlistAdminController::class, 'delete');
+        $router->post('/admin/wishlist/{id}/delete-image', WishlistAdminController::class, 'deleteImage');
+        $router->post('/admin/wishlist/{id}/toggle',       WishlistAdminController::class, 'toggle');
         $router->post('/admin/wishlist/reorder',         WishlistAdminController::class, 'reorder');
     }
 }

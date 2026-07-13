@@ -309,6 +309,13 @@ final class WishlistRepo
         ]);
     }
 
+    /** Updates only the image column, leaving every other field untouched. */
+    public function updateImage(int $id, ?string $image): void
+    {
+        $this->db->prepare('UPDATE lstr_wishlist SET image = :image WHERE id = :id')
+            ->execute(['image' => $image, 'id' => $id]);
+    }
+
     /** Deletes a wishlist entry by primary key. */
     public function delete(int $id): void
     {

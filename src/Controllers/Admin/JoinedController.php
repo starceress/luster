@@ -17,6 +17,7 @@ namespace Luster\Controllers\Admin;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\JoinedListingRepo;
 
@@ -445,6 +446,48 @@ final class JoinedController extends AdminController
             $this->crumb('Joined Listings', $this->adminUrl('/admin/joined')),
             $this->crumb($joined->name),
         ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/joined/{id}/delete-image
+    // -----------------------------------------------------------------------
+
+    /**
+     * Immediately deletes the joined listing's image from disk and clears the
+     * DB reference. Returns JSON {ok:true} on success or {ok:false,error:...}.
+     */
+    public function deleteImage(Request $request, array $params): Response
+    {
+        $id   = (int) ($params['id'] ?? 0);
+        $repo = new JoinedListingRepo($this->app->getDatabase());
+
+        $joined = $repo->getById($id);
+        if ($joined === null) {
+            return Response::json(['ok' => false, 'error' => 'Joined listing not found.']);
+        }
+
+        $filename = $joined->image ?? '';
+        if ($filename === '') {
+            return Response::json(['ok' => false, 'error' => 'No image to delete.']);
+        }
+
+        $uploadDir = dirname(__DIR__, 3) . '/public/uploads/joined';
+        $path      = $uploadDir . '/' . $filename;
+        if (is_file($path)) {
+            unlink($path);
+        }
+
+        $repo->updateImage($id, null);
+
+        $session = $this->app->getSession();
+        (new ActivityRepo($this->app->getDatabase()))->log(
+            (int) $session->get('lstr_admin_id'),
+            'joined.image_delete',
+            "Deleted image for joined listing #{$id} ({$joined->name})",
+            $request->ip(),
+        );
+
+        return Response::json(['ok' => true]);
     }
 
     // -----------------------------------------------------------------------

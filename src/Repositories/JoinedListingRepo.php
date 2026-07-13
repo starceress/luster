@@ -649,6 +649,13 @@ final class JoinedListingRepo
         return $stmt->execute($params);
     }
 
+    /** Updates only the image column, leaving every other field untouched. */
+    public function updateImage(int $id, ?string $image): void
+    {
+        $this->db->prepare('UPDATE lstr_joined SET image = :image WHERE id = :id')
+            ->execute(['image' => $image, 'id' => $id]);
+    }
+
     /**
      * Deletes a joined listing by primary key.
      */
