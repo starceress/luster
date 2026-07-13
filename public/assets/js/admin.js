@@ -7337,7 +7337,7 @@ document.addEventListener('click', function (e) {
                 .then(function (r) { return r.json(); })
                 .then(function (d) {
                   if (!d.ok) { previewArea.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">' + esc(d.error || 'Error') + '</p>'; return; }
-                  previewArea.innerHTML = buildCopyChangesHtml(d.changes, d.listing_title);
+                  previewArea.innerHTML = buildCopyChangesHtml(d.changes, d.listing_subject);
                 });
             }
 
@@ -7377,14 +7377,14 @@ document.addEventListener('click', function (e) {
 
   function buildCopyPickerHtml(listings) {
     var html = '<div class="field-row"><label class="field-label" for="tpack-copy-listing-sel">Source Listing</label><div><div class="select-wrap"><select id="tpack-copy-listing-sel" class="form"><option value="">Select a listing&hellip;</option>';
-    listings.forEach(function (l) { html += '<option value="' + esc(l.id) + '">' + esc(l.title) + '</option>'; });
+    listings.forEach(function (l) { html += '<option value="' + esc(l.id) + '">' + esc(l.subject) + '</option>'; });
     html += '</select></div></div></div><div id="tpack-copy-preview" style="margin-top:1rem"></div>';
     html += '<div style="margin-top:1rem;display:flex;gap:.5rem"><button type="button" class="btn btn-primary tpack-modal-apply">Copy Selected</button><button type="button" class="btn btn-ghost tpack-modal-cancel">Cancel</button></div>';
     return html;
   }
 
-  function buildCopyChangesHtml(changes, fromTitle) {
-    var html = '<p class="form-hint">Templates from <strong>' + esc(fromTitle || '') + '</strong>:</p>';
+  function buildCopyChangesHtml(changes, fromSubject) {
+    var html = '<p class="form-hint">Templates from <strong>' + esc(fromSubject || '') + '</strong>:</p>';
     html += '<table class="data-table" style="width:100%;font-size:.85rem"><thead><tr><th>Template</th><th>Status</th><th style="width:1px">Copy</th></tr></thead><tbody>';
     changes.forEach(function (c) {
       var statusText = c.changed ? '<span class="badge badge-current badge-inline-sm">Different</span>' : '<span class="badge badge-inactive badge-inline-sm">Same</span>';

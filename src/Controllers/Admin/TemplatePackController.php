@@ -408,7 +408,7 @@ final class TemplatePackController
 
     /**
      * Returns the template values from another listing for copy-preview.
-     * JSON response: {ok, listing_title, templates: {key: value, ...}}
+     * JSON response: {ok, listing_subject, changes: [{key, label, current, incoming, changed}]}
      */
     public function copySource(Request $request, array $params): Response
     {
@@ -466,9 +466,9 @@ final class TemplatePackController
         }
 
         return Response::json([
-            'ok'            => true,
-            'listing_title' => $sourceListing->title,
-            'changes'       => $changes,
+            'ok'              => true,
+            'listing_subject' => $sourceListing->subject,
+            'changes'         => $changes,
         ]);
     }
 
@@ -946,7 +946,7 @@ final class TemplatePackController
 
     /**
      * Returns the effective template values from a listing for global copy-preview.
-     * JSON response: {ok, listing_title, changes: [{key, label, current, incoming, changed}]}
+     * JSON response: {ok, listing_subject, changes: [{key, label, current, incoming, changed}]}
      */
     public function globalCopySource(Request $request, array $params): Response
     {
@@ -981,9 +981,9 @@ final class TemplatePackController
         }
 
         return Response::json([
-            'ok'            => true,
-            'listing_title' => $sourceListing->title,
-            'changes'       => $changes,
+            'ok'              => true,
+            'listing_subject' => $sourceListing->subject,
+            'changes'         => $changes,
         ]);
     }
 
@@ -1089,7 +1089,7 @@ final class TemplatePackController
 
         $all = (new ListingRepo($db, $config))->getAll();
         $result = array_values(array_map(
-            static fn(\Luster\Models\Listing $l): array => ['id' => $l->id, 'title' => $l->title],
+            static fn(\Luster\Models\Listing $l): array => ['id' => $l->id, 'subject' => $l->subject],
             $all,
         ));
 
@@ -1527,9 +1527,9 @@ final class TemplatePackController
     // -------------------------------------------------------------------------
 
     /**
-     * Returns a lightweight listing-ID → title map for the copy-from modal.
+     * Returns a lightweight listing-ID → subject map for the copy-from modal.
      * Excludes the current listing.
-     * JSON response: {ok, listings: [{id, title}]}
+     * JSON response: {ok, listings: [{id, subject}]}
      */
     public function listingsForCopy(Request $request, array $params): Response
     {
@@ -1541,7 +1541,7 @@ final class TemplatePackController
         $all = (new ListingRepo($db, $config))->getAll();
 
         $result = array_values(array_map(
-            static fn(\Luster\Models\Listing $l): array => ['id' => $l->id, 'title' => $l->title],
+            static fn(\Luster\Models\Listing $l): array => ['id' => $l->id, 'subject' => $l->subject],
             array_filter($all, static fn(\Luster\Models\Listing $l): bool => $l->id !== $currentId),
         ));
 
