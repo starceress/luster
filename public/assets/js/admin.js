@@ -4112,6 +4112,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     member:                { title: 'Delete Member',           btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong> from <strong>$$context$$</strong>.', warn: 'This will permanently delete the member and all their data. This action cannot be undone.' },
     member_reject:         { title: 'Reject Member',           btn: 'Reject',      desc: 'You are about to reject <strong>$$names$$</strong>.',                                   warn: 'The member will be removed from the pending queue. This action cannot be undone.' },
     affiliate:             { title: 'Delete Affiliate',        btn: 'Delete',      desc: 'You are about to delete affiliate <strong>$$names$$</strong>.',                        warn: 'This action cannot be undone.' },
+    affiliate_application: { title: 'Reject Application',      btn: 'Reject',      desc: 'You are about to reject the affiliate application from <strong>$$names$$</strong>.',    warn: 'This action cannot be undone.' },
     category:              { title: 'Delete Category',         btn: 'Delete',      desc: 'You are about to delete category <strong>$$names$$</strong>.',                         warn: 'This action cannot be undone.' },
     joined:                { title: 'Delete Joined Listing',   btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong> from your joined listings.',        warn: 'This action cannot be undone.' },
     email_template:        { title: 'Delete Template',         btn: 'Delete',      desc: 'You are about to delete template <strong>$$names$$</strong>.',                        warn: 'This action cannot be undone.' },
@@ -4169,16 +4170,29 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     show(cfg, target.dataset.delName || '', target.dataset.delContext || '', target.dataset.delWarning || '');
   });
 
+  // Single source of truth for what a confirm click does: `pending` is either
+  // a form Element (data-del-modal flow) or a plain {_cb} marker object
+  // (trigger() flow) — never a temporary confirmBtn.onclick override. That
+  // override approach used to leak: cancelling a trigger()'d modal (Cancel,
+  // backdrop click, or Escape) only cleared `pending` and hid the modal, but
+  // never restored/cleared confirmBtn.onclick, so a *later, unrelated* modal's
+  // confirm click could still fire the stale callback — e.g. cancel an image
+  // delete, then confirm a totally different delete elsewhere, and the
+  // cancelled image got deleted anyway. Routing everything through this one
+  // listener means every close path (Cancel/backdrop/Escape/confirm) clears
+  // `pending` the same way, so there's nothing left to go stale.
   confirmBtn.addEventListener('click', function () {
-    // trigger()'s ad-hoc callback flow sets `pending` to a plain {_cb} marker
-    // object (not a form element) and handles confirmBtn's click itself via
-    // a temporary .onclick override below — this persistent listener must
-    // ignore that case, or it crashes trying to read .dataset off a plain object.
-    if (!pending || !(pending instanceof Element)) return;
-    var f = pending;
-    close();
-    f.dataset.delConfirmed = '1';
-    f.requestSubmit ? f.requestSubmit() : f.submit();
+    if (!pending) return;
+    if (pending instanceof Element) {
+      var f = pending;
+      close();
+      f.dataset.delConfirmed = '1';
+      f.requestSubmit ? f.requestSubmit() : f.submit();
+    } else if (typeof pending._cb === 'function') {
+      var cb = pending._cb;
+      close();
+      cb();
+    }
   });
   modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
   document.addEventListener('keydown', function (e) {
@@ -4193,12 +4207,6 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       if (!cfg) { onConfirm(); return; }
       pending = { _cb: onConfirm };
       show(cfg, names, context, warning || '');
-      var origClick = confirmBtn.onclick;
-      confirmBtn.onclick = function () {
-        close();
-        confirmBtn.onclick = origClick;
-        onConfirm();
-      };
     }
   };
 
