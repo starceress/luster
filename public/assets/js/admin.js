@@ -8004,3 +8004,179 @@ document.addEventListener('click', function (e) {
   var form = document.getElementById(btn.dataset.submitForm);
   if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
 });
+
+// ── 58. Additional Fields: "Detect Field Types" upload-and-scan modal ─────────
+//
+// Lets an admin upload a legacy per-listing template file (e.g. Enthusiast's
+// addform.inc.php) and have Luster scan it for dropdown/radio/checkbox
+// markup, then review and map each detected candidate onto an existing
+// additional field before applying. The file itself is only ever scanned as
+// text server-side — never executed — and nothing is saved here until the
+// admin explicitly confirms a mapping and clicks Apply.
+
+(function () {
+  var openBtn = document.getElementById('fl-scan-template-btn');
+  var modal   = document.getElementById('fl-scan-modal');
+  if (!openBtn || !modal) return;
+
+  var closeBtn  = document.getElementById('fl-scan-close');
+  var cancelBtn = document.getElementById('fl-scan-cancel');
+  var body      = document.getElementById('fl-scan-modal-body');
+  var errorEl   = document.getElementById('fl-scan-error');
+
+  var uploadStepHtml = body.innerHTML;
+
+  function showError(msg) {
+    if (!errorEl) return;
+    errorEl.textContent = msg;
+    errorEl.style.display = msg ? 'block' : 'none';
+  }
+
+  function closeModal() {
+    modal.classList.add('is-hidden');
+    body.innerHTML = uploadStepHtml;
+  }
+
+  openBtn.addEventListener('click', function () {
+    body.innerHTML = uploadStepHtml;
+    showError('');
+    modal.classList.remove('is-hidden');
+  });
+
+  if (closeBtn)  closeBtn.addEventListener('click', closeModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !modal.classList.contains('is-hidden')) closeModal();
+  });
+
+  function typeLabel(t) {
+    return { dropdown: 'Dropdown', radio: 'Radio Button', checkbox: 'Checkbox', text: 'Text Field' }[t] || t;
+  }
+
+  function buildReviewHtml(candidates, existingFields) {
+    var fieldOptionsHtml = '<option value="">&mdash; Skip &mdash;</option>';
+    existingFields.forEach(function (f) {
+      fieldOptionsHtml += '<option value="' + esc(f.name) + '">' + esc(f.label) + ' (' + esc(f.name) + ')</option>';
+    });
+
+    var html = '<p class="form-hint">Found ' + candidates.length + ' possible field' + (candidates.length === 1 ? '' : 's') + '. Review each one, then choose which existing field it corresponds to (or skip it).</p>';
+    html += '<div id="fl-scan-rows">';
+    candidates.forEach(function (c, i) {
+      html += '<div class="composer-block" style="padding:.75rem 0" data-scan-row data-type="' + esc(c.type) + '">';
+      html += '<div class="field-row"><label class="field-label">Detected Type</label><div><span class="badge badge-info">' + esc(typeLabel(c.type)) + '</span></div></div>';
+      html += '<div class="field-row"><label class="field-label" for="fl-scan-label-' + i + '">Label</label><div><input type="text" id="fl-scan-label-' + i + '" class="form" value="' + esc(c.label) + '"></div></div>';
+      if (c.type !== 'checkbox') {
+        html += '<div class="field-row"><label class="field-label" for="fl-scan-opts-' + i + '">Options</label><div><textarea id="fl-scan-opts-' + i + '" class="form" rows="2">' + esc(c.options.join(', ')) + '</textarea></div></div>';
+      }
+      html += '<div class="field-row"><label class="field-label" for="fl-scan-map-' + i + '">Apply to field</label><div><div class="select-wrap"><select id="fl-scan-map-' + i + '" class="form">' + fieldOptionsHtml + '</select></div></div></div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<div class="modal-footer" style="padding:1rem 0 0"><button type="button" class="btn btn-primary" id="fl-scan-apply-btn">Apply Selected</button></div>';
+    return html;
+  }
+
+  // Delegated on document.body (not bound directly to the button) because
+  // closeModal()/openBtn's click handler both reset body.innerHTML back to
+  // the upload step, which destroys and recreates #fl-scan-submit each time
+  // the modal reopens — a direct listener would only survive the first open.
+  document.getElementById('fl-scan-submit') && document.body.addEventListener('click', function (e) {
+    var submitBtn = e.target.closest ? e.target.closest('#fl-scan-submit') : null;
+    if (!submitBtn) return;
+
+    var fileInput = document.getElementById('fl-scan-file');
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+      showError('Please choose a file first.');
+      return;
+    }
+
+    var fd = new FormData();
+    fd.append('_csrf', openBtn.dataset.csrf || '');
+    fd.append('template_file', fileInput.files[0]);
+
+    showError('');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Scanning…';
+
+    fetch(openBtn.dataset.scanEndpoint || '', { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Scan File';
+        if (!data.ok) {
+          showError(data.error || 'Could not scan that file.');
+          return;
+        }
+        if (!data.candidates || !data.candidates.length) {
+          body.innerHTML = '<p class="form-hint">No dropdown, radio, or checkbox markup was found in that file.</p>';
+          return;
+        }
+        body.innerHTML = buildReviewHtml(data.candidates, data.existing_fields || []);
+
+        var applyBtn = document.getElementById('fl-scan-apply-btn');
+        if (applyBtn) {
+          applyBtn.addEventListener('click', function () {
+            var mappings = [];
+            document.querySelectorAll('#fl-scan-rows [data-scan-row]').forEach(function (row, i) {
+              var mapSel = document.getElementById('fl-scan-map-' + i);
+              var fieldName = mapSel ? mapSel.value : '';
+              if (!fieldName) return; // skipped
+
+              var labelInput = document.getElementById('fl-scan-label-' + i);
+              var optsInput  = document.getElementById('fl-scan-opts-' + i);
+              mappings.push({
+                field_name: fieldName,
+                type:       row.dataset.type,
+                label:      labelInput ? labelInput.value : '',
+                options:    optsInput ? optsInput.value : '',
+                required:   false,
+              });
+            });
+
+            if (!mappings.length) {
+              window.lstrToast('error', 'Choose at least one field to apply to.');
+              return;
+            }
+
+            applyBtn.disabled = true;
+            applyBtn.textContent = 'Applying…';
+
+            var applyFd = new URLSearchParams();
+            applyFd.append('_csrf', openBtn.dataset.csrf || '');
+            applyFd.append('mappings_json', JSON.stringify(mappings));
+
+            fetch(openBtn.dataset.applyEndpoint || '', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: applyFd.toString(),
+            })
+              .then(function (r) { return r.json(); })
+              .then(function (d) {
+                if (d.ok) {
+                  closeModal();
+                  window.lstrToast('success', 'Updated ' + d.updated + ' field(s). Reloading…');
+                  setTimeout(function () { window.location.reload(); }, 1000);
+                } else {
+                  applyBtn.disabled = false;
+                  applyBtn.textContent = 'Apply Selected';
+                  window.lstrToast('error', d.error || 'Could not apply changes.');
+                }
+              })
+              .catch(function () {
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'Apply Selected';
+                window.lstrToast('error', 'Request failed.');
+              });
+          });
+        }
+      })
+      .catch(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Scan File';
+        showError('Request failed. Please try again.');
+      });
+  });
+}());

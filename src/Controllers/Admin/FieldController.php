@@ -18,8 +18,10 @@ use InvalidArgumentException;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Models\AdditionalField;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\FieldRepo;
+use Luster\Support\LegacyFieldTemplateScanner;
 
 /**
  * Manages custom additional-field definitions for a single listing.
@@ -320,6 +322,156 @@ final class FieldController extends AdminController
         $fieldRepo->saveFields($listingId, $fieldsArray);
 
         return $this->redirectAfterFieldAction($listingId, $fromEdit, 'success', 'Field deleted successfully.');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/listings/{fid}/fields/scan-template
+    // -----------------------------------------------------------------------
+
+    /** Hard cap on the uploaded template file's size — a small hand-written snippet, not an asset bundle. */
+    private const MAX_TEMPLATE_UPLOAD_BYTES = 256 * 1024;
+
+    /**
+     * Scans an uploaded legacy template file (Enthusiast's addform.inc.php
+     * convention) for <select>/<option>, radio, and checkbox markup, and
+     * returns the detected candidates alongside this listing's existing
+     * field names for the review step's "apply to field" picker.
+     *
+     * The uploaded file is never included, required, or eval'd — only ever
+     * read as raw text and passed to LegacyFieldTemplateScanner, which strips
+     * any PHP tags before parsing the remaining static HTML. No DB writes
+     * happen in this action; it's a pure preview.
+     *
+     * JSON response: {ok, candidates: [{type,label,options,snippet}], existing_fields: [{name,label}]}
+     */
+    public function scanTemplate(Request $req, array $params): Response
+    {
+        $listingId = (int) ($params['fid'] ?? 0);
+
+        if (!$req->isPost()) {
+            return Response::json(['ok' => false, 'error' => 'Invalid request method.']);
+        }
+
+        [$listing, $fieldRepo] = $this->resolve($listingId);
+
+        if ($listing === null) {
+            return Response::json(['ok' => false, 'error' => 'Listing not found.']);
+        }
+
+        $file = $req->file('template_file');
+        if ($file === null || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return Response::json(['ok' => false, 'error' => 'Please choose a file to upload.']);
+        }
+
+        if ((int) ($file['size'] ?? 0) > self::MAX_TEMPLATE_UPLOAD_BYTES) {
+            return Response::json(['ok' => false, 'error' => 'File is too large (max 256 KB).']);
+        }
+
+        $raw = @file_get_contents((string) $file['tmp_name']);
+        if ($raw === false) {
+            return Response::json(['ok' => false, 'error' => 'Could not read the uploaded file.']);
+        }
+
+        $candidates = (new LegacyFieldTemplateScanner())->scan($raw);
+
+        if ($candidates === []) {
+            return Response::json([
+                'ok'              => true,
+                'candidates'      => [],
+                'existing_fields' => [],
+            ]);
+        }
+
+        $existingFields = array_map(
+            static fn(AdditionalField $f): array => ['name' => $f->name, 'label' => $f->label],
+            $fieldRepo->getFieldsForListing($listingId),
+        );
+
+        return Response::json([
+            'ok'              => true,
+            'candidates'      => $candidates,
+            'existing_fields' => $existingFields,
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/listings/{fid}/fields/apply-detected
+    // -----------------------------------------------------------------------
+
+    /**
+     * Applies admin-confirmed field-type mappings detected by scanTemplate().
+     * Every mapping must name a field that already exists on this listing —
+     * this only ever retypes an existing field, it never creates a new one or
+     * touches an arbitrary column name.
+     *
+     * POST body: mappings_json = JSON array of {field_name, type, label, required, options}
+     * JSON response: {ok, updated: <count>} or {ok: false, error}
+     */
+    public function applyDetected(Request $req, array $params): Response
+    {
+        $listingId = (int) ($params['fid'] ?? 0);
+
+        if (!$req->isPost()) {
+            return Response::json(['ok' => false, 'error' => 'Invalid request method.']);
+        }
+
+        [$listing, $fieldRepo] = $this->resolve($listingId);
+
+        if ($listing === null) {
+            return Response::json(['ok' => false, 'error' => 'Listing not found.']);
+        }
+
+        $mappings = json_decode((string) $req->post('mappings_json', '[]'), true);
+        if (!is_array($mappings) || $mappings === []) {
+            return Response::json(['ok' => false, 'error' => 'Nothing to apply.']);
+        }
+
+        $existingFields = $fieldRepo->getFieldsForListing($listingId);
+        $byName         = [];
+        foreach ($existingFields as $f) {
+            $byName[$f->name] = $f;
+        }
+
+        $updated = 0;
+        $fieldsArray = array_map(
+            static fn(AdditionalField $f): array => [
+                'name' => $f->name, 'label' => $f->label, 'type' => $f->type,
+                'required' => $f->required, 'options' => $f->options,
+            ],
+            $existingFields,
+        );
+
+        foreach ($mappings as $mapping) {
+            $name = trim((string) ($mapping['field_name'] ?? ''));
+            $type = trim((string) ($mapping['type'] ?? 'text'));
+
+            // Reject anything that isn't already a real field on this exact
+            // listing, and any type outside the whitelist add()/edit() already
+            // enforce — this tool retypes existing fields, nothing more.
+            if ($name === '' || !isset($byName[$name]) || !in_array($type, ['text', 'dropdown', 'checkbox', 'radio'], true)) {
+                continue;
+            }
+
+            foreach ($fieldsArray as &$entry) {
+                if ($entry['name'] === $name) {
+                    $entry['label']    = trim((string) ($mapping['label'] ?? '')) ?: $entry['label'];
+                    $entry['type']     = $type;
+                    $entry['required'] = (bool) ($mapping['required'] ?? false);
+                    $entry['options']  = trim((string) ($mapping['options'] ?? ''));
+                    $updated++;
+                    break;
+                }
+            }
+            unset($entry);
+        }
+
+        if ($updated === 0) {
+            return Response::json(['ok' => false, 'error' => 'No matching fields to update.']);
+        }
+
+        $fieldRepo->saveFields($listingId, $fieldsArray);
+
+        return Response::json(['ok' => true, 'updated' => $updated]);
     }
 
     // -----------------------------------------------------------------------

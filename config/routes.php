@@ -305,6 +305,10 @@ return [
             FieldController::class, 'edit');
         $router->post('/admin/listings/{fid}/fields/{name}/delete',
             FieldController::class, 'delete');
+        $router->post('/admin/listings/{fid}/fields/scan-template',
+            FieldController::class, 'scanTemplate');
+        $router->post('/admin/listings/{fid}/fields/apply-detected',
+            FieldController::class, 'applyDetected');
 
         // --- Per-listing affiliate add
         $router->get('/admin/listings/{fid}/affiliates/add',

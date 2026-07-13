@@ -1464,7 +1464,13 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
   </form>
 
   <div class="card">
-    <div class="card-head">Current Fields</div>
+    <div class="card-head">
+      Current Fields
+      <button type="button" class="btn btn-secondary btn-xs" id="fl-scan-template-btn" style="margin-left:auto"
+              data-scan-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/scan-template"
+              data-apply-endpoint="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/apply-detected"
+              data-csrf="<?= View::e($csrf_token ?? '') ?>">Detect Field Types&hellip;</button>
+    </div>
     <?php if (empty($fields)): ?>
       <div class="empty">
         <span class="empty-icon"><?= View::icon('form', ['width' => 32, 'height' => 32]) ?></span>
@@ -1517,6 +1523,28 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
         </table>
       </div>
     <?php endif; ?>
+  </div>
+
+  <!-- ──── DETECT FIELD TYPES MODAL ─────────────────────────────────── -->
+  <div class="modal-backdrop is-hidden" id="fl-scan-modal">
+    <div class="modal modal--wide">
+      <div class="modal-header">
+        <h3 class="modal-title">Detect Field Types</h3>
+        <button type="button" class="modal-close" id="fl-scan-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="fl-scan-modal-body">
+        <p>Upload the old join-form include file this listing used before migrating (e.g. Enthusiast's <code>addform.inc.php</code>). Luster scans it for dropdown, radio, and checkbox markup so you can quickly re-type an existing field instead of configuring it by hand. The file is never run — only scanned as text.</p>
+        <label class="file-drop-zone" for="fl-scan-file">
+          <input type="file" id="fl-scan-file">
+          <span class="file-drop-zone__label">Choose file or drag and drop</span>
+        </label>
+        <p id="fl-scan-error" style="color:var(--color-danger);display:none"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-quaternary" id="fl-scan-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="fl-scan-submit">Scan File</button>
+      </div>
+    </div>
   </div>
   </form>
   <?php endif; ?>
