@@ -1907,6 +1907,31 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   };
 ?>
 
+<p class="form-hint form-hint--spaced">Paste the setup snippet below once — ideally in your site's shared header file — then drop any of the ready-to-copy snippets underneath it into your pages. The <a href="<?= $b ?>/admin/embed-codes?listing=<?= $_snipId ?>" class="link">Full Embed Wizard</a> has more embeds and all customisation options.</p>
+
+<!-- ── One-Time Setup ─────────────────────────────────────────── -->
+<div class="card ec-wizard-card" style="margin-bottom:1em">
+  <div class="ec-setup-top">
+    <div class="ec-setup-head">
+      <strong class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></strong>
+      <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
+              data-setup-text="<?= htmlspecialchars($setupLine1 . "\n" . $setupLine2 . "\n" . $setupLine3 . "\n\n" . $setupLine4, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
+    </div>
+
+    <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>):</p>
+    <div class="ec-setup-snip">
+      <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine1) ?></code></div>
+      <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine2) ?></code></div>
+      <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine3) ?></code></div>
+    </div>
+
+    <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked:</p>
+    <div class="ec-setup-snip">
+      <div class="ec-setup-snip-line"><code>&lt;<span class="ec-hl-k">link</span> <span class="ec-hl-v">rel</span>=<span class="ec-hl-s">&quot;stylesheet&quot;</span> <span class="ec-hl-v">href</span>=<span class="ec-hl-s">&quot;?luster_css&quot;</span>&gt;</code></div>
+    </div>
+  </div>
+</div>
+
 <div class="card card--gradient">
   <div class="panel-header">
     <div class="panel-header-icon"><?= View::icon('embed') ?></div>
@@ -1916,31 +1941,6 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     </div>
   </div>
   <div class="card-body">
-
-    <p class="form-hint form-hint--spaced">Paste the setup snippet below once — ideally in your site's shared header file — then drop any of the ready-to-copy snippets underneath it into your pages. The <a href="<?= $b ?>/admin/embed-codes?listing=<?= $_snipId ?>" class="link">Full Embed Wizard</a> has more embeds and all customisation options.</p>
-
-    <!-- ── One-Time Setup ─────────────────────────────────────────── -->
-    <div class="card ec-wizard-card" style="margin-bottom:1em">
-      <div class="ec-setup-top">
-        <div class="ec-setup-head">
-          <strong class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></strong>
-          <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
-                  data-setup-text="<?= htmlspecialchars($setupLine1 . "\n" . $setupLine2 . "\n" . $setupLine3 . "\n\n" . $setupLine4, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
-        </div>
-
-        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>):</p>
-        <div class="ec-setup-snip">
-          <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine1) ?></code></div>
-          <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine2) ?></code></div>
-          <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine3) ?></code></div>
-        </div>
-
-        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked:</p>
-        <div class="ec-setup-snip">
-          <div class="ec-setup-snip-line"><code>&lt;<span class="ec-hl-k">link</span> <span class="ec-hl-v">rel</span>=<span class="ec-hl-s">&quot;stylesheet&quot;</span> <span class="ec-hl-v">href</span>=<span class="ec-hl-s">&quot;?luster_css&quot;</span>&gt;</code></div>
-        </div>
-      </div>
-    </div>
 
     <ul class="es-list" role="list">
       <?php $snipRow('members', 'Members List', 'Shows approved members for this listing.', 'badge-info', [
