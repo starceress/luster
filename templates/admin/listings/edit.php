@@ -427,7 +427,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 
       <div class="card-body">
-        <div class="section-label">Public Display Preferences</div>
+        <div class="section-label">Additional Preferences</div>
         <?php $ab = $approved_by ?? ''; ?>
         <div class="field-row field-row--top">
           <label class="field-label" for="fl-approved-by">Approved By</label>
