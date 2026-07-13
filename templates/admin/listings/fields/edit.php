@@ -18,8 +18,8 @@ $encName = urlencode($field->name);
 ?>
 
 <div class="toolbar">
-  <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="link">
-    &larr; <?= View::e($listing->title) ?> &mdash; Fields
+  <a href="<?= $b ?>/admin/listings/<?= $id ?>/edit?tab=fields" class="link">
+    &larr; <?= View::e($listing->subject) ?> &mdash; Fields
   </a>
 </div>
 
@@ -105,7 +105,7 @@ $encName = urlencode($field->name);
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Changes</button>
-      <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="btn btn-ghost">Cancel</a>
+      <a href="<?= $b ?>/admin/listings/<?= $id ?>/edit?tab=fields" class="btn btn-ghost">Cancel</a>
     </div>
   </div>
 </form>

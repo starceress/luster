@@ -168,7 +168,6 @@ final class FieldController extends AdminController
     public function edit(Request $req, array $params): Response
     {
         $listingId = (int) ($params['fid'] ?? 0);
-        $indexUrl     = $this->indexUrl($listingId);
 
         [$listing, $fieldRepo] = $this->resolve($listingId);
 
@@ -197,9 +196,7 @@ final class FieldController extends AdminController
             $v->field('required')->in(['0', '1']);
 
             if ($v->fails()) {
-                return Response::redirect(
-                    $indexUrl . '?error=' . urlencode(implode(' ', $v->allErrors()))
-                );
+                return $this->redirectAfterFieldAction($listingId, true, 'error', implode(' ', $v->allErrors()));
             }
 
             $updated     = false;
@@ -227,12 +224,12 @@ final class FieldController extends AdminController
             }
 
             if (!$updated) {
-                return Response::redirect($indexUrl . '?error=' . urlencode('Field not found.'));
+                return $this->redirectAfterFieldAction($listingId, true, 'error', 'Field not found.');
             }
 
             $fieldRepo->saveFields($listingId, $fieldsArray);
 
-            return Response::redirect($indexUrl . '?success=' . urlencode('Field updated successfully.'));
+            return $this->redirectAfterFieldAction($listingId, true, 'success', 'Field updated successfully.');
         }
 
         // ---- GET: show form ----
@@ -247,7 +244,7 @@ final class FieldController extends AdminController
         }
 
         if ($current === null) {
-            return Response::redirect($indexUrl . '?error=' . urlencode('Field not found.'));
+            return $this->redirectAfterFieldAction($listingId, true, 'error', 'Field not found.');
         }
 
         return $this->adminLayout('admin/listings/fields/edit.php', 'Edit Field', 'listings', [
@@ -257,7 +254,7 @@ final class FieldController extends AdminController
             'error'      => (string) $req->query('error', ''),
         ], '', [
             $this->crumb($listing->subject, $this->adminUrl('/admin/listings/' . $listing->id . '/edit')),
-            $this->crumb('Fields', $this->adminUrl('/admin/listings/' . $listing->id . '/fields')),
+            $this->crumb('Fields', $this->adminUrl('/admin/listings/' . $listing->id . '/edit?tab=fields')),
             $this->crumb($current->label),
         ]);
     }
