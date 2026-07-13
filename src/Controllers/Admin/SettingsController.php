@@ -2702,17 +2702,18 @@ final class SettingsController extends AdminController
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/compat-bridge — download Enthusiast compatibility bridge ZIP
+    // GET /admin/compat-bridge — download a compatibility bridge ZIP
     // -----------------------------------------------------------------------
 
     /**
      * Generates and streams a ZIP file containing the Enthusiast, Listing Admin,
-     * or CodeSort compatibility bridge shims for the requested legacy-script set.
+     * CodeSort, or Fanatically compatibility bridge shims for the requested
+     * legacy-script set.
      */
     public function compatBridgeDownload(Request $request, array $params): Response
     {
         $set = (string) ($params['set'] ?? '');
-        $allowed = ['enthusiast', 'listing-admin', 'codesort'];
+        $allowed = ['enthusiast', 'listing-admin', 'codesort', 'fanatically'];
 
         if (!in_array($set, $allowed, true)) {
             return Response::notFound('Unknown bridge type.');

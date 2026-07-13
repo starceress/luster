@@ -249,6 +249,10 @@ foreach (array_keys($quickActions) as $qaKey) {
           <span class="panel-header-icon"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">CodeSort Bridge</span>
         </a>
+        <a href="<?= $b ?>/admin/compat-bridge/fanatically" class="collective-action-tile">
+          <span class="panel-header-icon"><?= View::icon('bridge') ?></span>
+          <span class="collective-action-label">Fanatically Bridge</span>
+        </a>
       </div>
     </div>
   </div>
