@@ -2870,19 +2870,6 @@ final class FanaticallyImportSource implements ImportSourceInterface
     }
 
     /**
-     * Persists imported custom field names to the listing registry so admin
-     * join/update forms know those columns exist.
-     *
-     * Registers custom field names in the listing registry so admin forms and
-     * public templates know the imported columns exist.
-     *
-     * owned schema:  updates `owned.additional` (comma-separated bare names).
-     * enth_ schema:  updates `enth_fanlistings.additional_info` (PHP-serialized
-     *                array, the same format written by FieldRepo::saveFields()).
-     *
-     * @param string[] $fieldNames  Sanitized bare field names
-     */
-    /**
      * Persists field definitions to the listing registry's additional-fields
      * column, merging with whatever is already there. Existing entries (by
      * name) are never overwritten, so this is safe to call on every import
@@ -2967,7 +2954,10 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     'label'    => trim((string) ($def['label'] ?? '')) ?: ucwords(str_replace('_', ' ', $name)),
                     'type'     => $options !== [] ? 'dropdown' : 'text',
                     'required' => (bool) ($def['required'] ?? false),
-                    'options'  => implode('|', $options),
+                    // Comma-separated, matching FormFieldBuilder/FieldRenderer's
+                    // explode(',', ...) convention and the admin Fields UI's own
+                    // "Option A, Option B" placeholder — not pipe-delimited.
+                    'options'  => implode(', ', $options),
                 ];
                 $added = true;
             }

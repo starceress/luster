@@ -37,7 +37,10 @@ final class AdditionalField
      * @param string $label    Human-readable label shown in forms and admin views.
      * @param string $type     Field input type (e.g. "text", "select").
      * @param bool   $required Whether the field must be filled in on the join/update form.
-     * @param string $options  Pipe-delimited option list for select fields; empty for text fields.
+     * @param string $options  Comma-separated option list for select/radio fields (matches
+     *                         FormFieldBuilder/FieldRenderer's explode(',', ...) convention
+     *                         and the admin Fields UI's own "Option A, Option B" placeholder);
+     *                         empty for text fields.
      */
     public function __construct(
         public readonly string $name,

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Luster\Tests\Unit;
 
+use Luster\Core\FieldRenderer;
+use Luster\Core\FieldWrapper;
 use Luster\Import\FanaticallyImportSource;
 use Luster\Import\ImportOptions;
+use Luster\Models\AdditionalField;
+use Luster\Support\FormFieldBuilder;
 use PDO;
 use PHPUnit\Framework\TestCase;
 
@@ -1539,7 +1543,28 @@ final class FanaticallyImportSourceTest extends TestCase
         self::assertSame('Favorite Movie', $decoded[0]['label']);
         self::assertSame('dropdown', $decoded[0]['type'], 'A field with real options must import as a dropdown, not text.');
         self::assertTrue($decoded[0]['required']);
-        self::assertSame('John Wick|John Wick: Chapter 2|All of them', $decoded[0]['options']);
+        self::assertSame('John Wick, John Wick: Chapter 2, All of them', $decoded[0]['options']);
+
+        // Round-trip through the actual public-form rendering path — proves the
+        // three choices really render as three distinct <option>s, not one
+        // pipe-joined blob (FormFieldBuilder/FieldRenderer split options on
+        // commas, not pipes).
+        $field = new AdditionalField(
+            name:     $decoded[0]['name'],
+            label:    $decoded[0]['label'],
+            type:     $decoded[0]['type'],
+            required: $decoded[0]['required'],
+            options:  $decoded[0]['options'],
+        );
+        $fb = new FormFieldBuilder(new FieldRenderer(), new FieldWrapper());
+        $descriptors = $fb->descriptorsFromAdditionalFields([$field], []);
+        // Dropdown descriptors get an extra leading blank '' => '' placeholder
+        // option (the "choose one" row), so 3 real choices means 4 total entries.
+        self::assertCount(4, $descriptors[0]['options'] ?? [],
+            'Rendered dropdown must have the blank placeholder plus 3 distinct options, not one pipe-joined string.');
+        self::assertArrayHasKey('John Wick', $descriptors[0]['options']);
+        self::assertArrayHasKey('John Wick: Chapter 2', $descriptors[0]['options']);
+        self::assertArrayHasKey('All of them', $descriptors[0]['options']);
     }
 
     // -----------------------------------------------------------------------
@@ -1970,7 +1995,28 @@ final class FanaticallyImportSourceTest extends TestCase
         self::assertSame('Favorite Movie', $decoded[0]['label']);
         self::assertSame('dropdown', $decoded[0]['type'], 'A field with real options must import as a dropdown, not text.');
         self::assertTrue($decoded[0]['required']);
-        self::assertSame('John Wick|John Wick: Chapter 2|All of them', $decoded[0]['options']);
+        self::assertSame('John Wick, John Wick: Chapter 2, All of them', $decoded[0]['options']);
+
+        // Round-trip through the actual public-form rendering path — proves the
+        // three choices really render as three distinct <option>s, not one
+        // pipe-joined blob (FormFieldBuilder/FieldRenderer split options on
+        // commas, not pipes).
+        $field = new AdditionalField(
+            name:     $decoded[0]['name'],
+            label:    $decoded[0]['label'],
+            type:     $decoded[0]['type'],
+            required: $decoded[0]['required'],
+            options:  $decoded[0]['options'],
+        );
+        $fb = new FormFieldBuilder(new FieldRenderer(), new FieldWrapper());
+        $descriptors = $fb->descriptorsFromAdditionalFields([$field], []);
+        // Dropdown descriptors get an extra leading blank '' => '' placeholder
+        // option (the "choose one" row), so 3 real choices means 4 total entries.
+        self::assertCount(4, $descriptors[0]['options'] ?? [],
+            'Rendered dropdown must have the blank placeholder plus 3 distinct options, not one pipe-joined string.');
+        self::assertArrayHasKey('John Wick', $descriptors[0]['options']);
+        self::assertArrayHasKey('John Wick: Chapter 2', $descriptors[0]['options']);
+        self::assertArrayHasKey('All of them', $descriptors[0]['options']);
     }
 
     public function testEnthSchemaMemberTableNamedWithMembersSuffix(): void
