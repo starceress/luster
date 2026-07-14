@@ -69,7 +69,7 @@ of it for you.
 ## ✦ Requirements
 - **PHP 8.1 or newer**
 - **MySQL or MariaDB**
-- **PHP PDO, PDO MySQL, and cURL extension**
+- **PHP PDO & PDO MySQL extensions**
 
 
 

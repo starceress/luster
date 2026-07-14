@@ -1533,7 +1533,16 @@ function renderStep1(string $csrf): void
       Before we begin, Luster will make sure your server has the essentials needed to run the installer.
     </p>
     <ul class="install-req-list">
-      <?php foreach ($checks as $c):
+      <?php
+      // Hidden when passing — every modern host has these on by default, and
+      // showing them clutters the common case. Still gate requirementsPass()
+      // via the full unfiltered $checks array, and still shown here if failing,
+      // so a genuinely broken host still gets a clear, actionable warning.
+      $hiddenWhenOk = ['Multibyte String Extension', 'File Info Extension', 'Zip Extension', 'cURL Extension'];
+      foreach ($checks as $c):
+        if ($c['status'] === 'ok' && in_array($c['label'], $hiddenWhenOk, true)) {
+            continue;
+        }
         $iconClass  = match($c['status']) { 'ok' => 'results-icon-success', 'warn' => 'results-icon-warn', default => 'results-icon-err' };
         $iconSymbol = match($c['status']) { 'ok' => '&#10003;', 'warn' => '&#9675;', default => '&#10005;' };
         $ariaLabel  = match($c['status']) { 'ok' => 'Ready', 'warn' => 'Note', default => 'Needs attention' };
