@@ -138,4 +138,49 @@ final class FormTemplateRendererTest extends TestCase
 
         self::assertStringNotContainsString('onsubmit', $html);
     }
+
+    // -----------------------------------------------------------------------
+    // wrapForm() — formMarker-derived CSS class
+    // -----------------------------------------------------------------------
+
+    /**
+     * embed/affiliate-apply.php sets $_lusterMarker = 'affiliate_apply:' . $id for
+     * both the per-listing and collective forms — there is no separate
+     * 'affiliate_apply_collective' marker. Regression coverage for the bug where
+     * the classMap keyed on 'aff_apply'/'aff_apply_collective' instead, so custom
+     * affiliate-apply templates silently rendered with only the base fl-form class.
+     */
+    public function testWrapFormAddsAffiliateApplyClassForRealMarker(): void
+    {
+        $html = FormTemplateRenderer::wrapForm('<p>inner</p>', '/affiliate-apply/1', 'tok123', false, formMarker: 'affiliate_apply:1');
+
+        self::assertStringContainsString('<form class="fl-form fl-form-affiliate-apply"', $html);
+    }
+
+    public function testWrapFormAddsAffiliateApplyClassForCollectiveMarker(): void
+    {
+        $html = FormTemplateRenderer::wrapForm('<p>inner</p>', '/affiliate-apply/0', 'tok123', false, formMarker: 'affiliate_apply:0');
+
+        self::assertStringContainsString('<form class="fl-form fl-form-affiliate-apply"', $html);
+    }
+
+    public function testWrapFormAddsMarkerSpecificClassForKnownMarkers(): void
+    {
+        self::assertStringContainsString(
+            '<form class="fl-form fl-form-join"',
+            FormTemplateRenderer::wrapForm('<p>inner</p>', '/join/1', 'tok123', false, formMarker: 'join:1'),
+        );
+
+        self::assertStringContainsString(
+            '<form class="fl-form fl-form-kim-signup"',
+            FormTemplateRenderer::wrapForm('<p>inner</p>', '/kim-signup', 'tok123', false, formMarker: 'kim_signup:0'),
+        );
+    }
+
+    public function testWrapFormOmitsModifierClassForUnknownMarker(): void
+    {
+        $html = FormTemplateRenderer::wrapForm('<p>inner</p>', '/x', 'tok123', false, formMarker: 'totally_unknown:1');
+
+        self::assertStringContainsString('<form class="fl-form"', $html);
+    }
 }

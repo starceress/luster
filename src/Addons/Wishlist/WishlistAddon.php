@@ -43,7 +43,7 @@ final class WishlistAddon implements AddonInterface
     /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
-        return 'A wishlist of listings you would like to own some day. Supports three entry types (Wanted, Top Wanted, Granted). Adds a collective-side wishlist, a per-listing wishlist, and an admin panel for managing entries. Entries can be public or private.';
+        return 'Enables a wishlist for listings you would like to own some day. Adds a collective-side wishlist and an admin panel for managing entries. Entries can be public or private.';
     }
 
     /** Creates lstr_wishlist. */

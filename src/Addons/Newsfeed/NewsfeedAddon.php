@@ -40,7 +40,7 @@ final class NewsfeedAddon implements AddonInterface
     /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
-        return 'Blogging management system to post news & updates for your collective individual listings. Adds a collective-side newsfeed, a per-listing newsfeed, and an admin panel for managing entries.';
+        return 'Allows you to post categorized news and updates for your collective and individual listings. Adds a collective-side newsfeed, a per-listing newsfeed, and an admin panel for managing entries.';
     }
 
     /** Creates lstr_newsfeed. */

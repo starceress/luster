@@ -45,7 +45,7 @@ final class RulesAddon implements AddonInterface
     /** Returns the description shown on the add-on card in the admin panel. */
     public function getDescription(): string
     {
-        return 'Add per-listing rules that fans must read and agree to before joining. Adds a global rules editor, a per-listing rules editor, and an admin panel for managing and customizing rules.';
+        return 'Add per-listing rules for fans to read before joining. Adds a global rules editor, a per-listing rules editor, and an admin panel for managing and customizing rules.';
     }
 
     /**

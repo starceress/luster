@@ -998,9 +998,9 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 /* ── Redesigned image upload panel (listing edit) ──────── */
 
-.img-upload-panel { display: flex; flex-direction: column; gap: .75rem; max-width: 400px; }
+.img-upload-panel { display: flex; flex-direction: column; gap: .75rem; }
 
-.img-upload-panel--two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 640px; align-items: start; }
+.img-upload-panel--two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
 
 .img-current-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-subtle); transition: border-color .2s, opacity .2s; }
 

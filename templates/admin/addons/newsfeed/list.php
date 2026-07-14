@@ -215,15 +215,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
             <div class="actions-row">
               <a href="<?= $b ?>/admin/newsfeed/entry/<?= (int) $u->id ?>/edit"
                  class="btn btn-tertiary btn-xs">Edit</a>
-              <form method="POST"
-                    action="<?= $b ?>/admin/newsfeed/entry/<?= (int) $u->id ?>/delete"
-                    class="action-form-inline"
-                    data-del-modal
-                    data-del-entity="entry"
-                    data-del-name="<?= View::e($u->title) ?>">
-                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-                <button type="submit" class="btn btn-danger btn-xs">Delete</button>
-              </form>
+              <button type="submit" form="del-newsfeed-<?= (int) $u->id ?>" class="btn btn-danger btn-xs">Delete</button>
             </div>
           </div>
         <?php endforeach; ?>
@@ -234,5 +226,18 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
 
 <?php $pg_current = $page; $pg_total = $pages; $pg_url = $pageUrl;
 include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
+
+<!-- Out-of-flow: must stay outside the bulk-delete form above -- nested form
+     elements are invalid HTML and get silently dropped by the parser, so each
+     row's Delete button would submit the bulk form instead. -->
+<?php foreach ($updates as $u): ?>
+  <form id="del-newsfeed-<?= (int) $u->id ?>" method="POST"
+        action="<?= $b ?>/admin/newsfeed/entry/<?= (int) $u->id ?>/delete"
+        data-del-modal
+        data-del-entity="entry"
+        data-del-name="<?= View::e($u->title) ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  </form>
+<?php endforeach; ?>
 
 <?php endif; ?>

@@ -138,20 +138,25 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
 
         <?php if ($is_edit): ?>
           <div class="composer-footer-spacer"></div>
-          <form method="POST"
-                action="<?= $b ?>/admin/newsfeed/entry/<?= (int) $update->id ?>/delete"
-                class="action-form-inline"
-                data-del-modal
-                data-del-entity="entry"
-                data-del-name="<?= View::e($update->title) ?>">
-            <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-            <button type="submit" class="btn btn-danger">Delete</button>
-          </form>
+          <button type="submit" form="del-newsfeed-entry-form" class="btn btn-danger">Delete</button>
         <?php endif; ?>
       </div>
     </div>
 
 </form>
+
+<?php if ($is_edit): ?>
+<!-- Out-of-flow: must stay outside the entry form above -- nested form
+     elements are invalid HTML and the inner one gets silently dropped by the
+     parser, so the button would submit the entry form instead of deleting. -->
+<form id="del-newsfeed-entry-form" method="POST"
+      action="<?= $b ?>/admin/newsfeed/entry/<?= (int) $update->id ?>/delete"
+      data-del-modal
+      data-del-entity="entry"
+      data-del-name="<?= View::e($update->title) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+</form>
+<?php endif; ?>
 
 <!-- ──── PREVIEW ─────────────────────────────────────────────────────── -->
 <div class="modal-backdrop is-hidden" id="upd-preview-modal"

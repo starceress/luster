@@ -45,7 +45,7 @@ final class KimAddon implements AddonInterface
     /** Returns the description shown on the add-on card. */
     public function getDescription(): string
     {
-        return 'A KIM List helps manage a registry of individuals who are interested in adopting your fanlisting(s) if it were to become available for adoption some day. Adds a collective-side sign-up form, a per-listing interest list, and an admin panel for managing sign-ups.';
+        return 'A KIM List helps manage a registry of individuals who are interested in adopting your fanlisting(s). Adds a collective-side sign-up form and an admin panel for managing sign-ups.';
     }
 
     /** Creates lstr_kim_members and lstr_kim_password_resets (with CASCADE FK). */

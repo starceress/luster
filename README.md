@@ -2,9 +2,9 @@
 *Where fandoms can shine! ✦*
 
 Luster is a free, open-source management script for fanlistings, cliques,
-collectives, and other hobby listings. It is meant to feel familiar if you've
-used other fanlisting scripts, but built for today's expectations: more
-control, fortified security, and fine-tuned customization.
+collectives, and other hobby sites. It is meant to feel familiar if you've
+used other fanlisting scripts, but built for modern standards: more control,
+fortified security, and fine-tuned customization.
 
 Run one listing or a whole collective from the same dashboard: owned & joined
 listings, members, affiliates, codes, custom networks and categories, custom
@@ -21,54 +21,48 @@ Nearly everything in Luster is edited and configured directly from your admin
 panel. No need to create or upload additional files - the script takes care
 of it for you.
 
-- **One admin panel, multiple listings & types:** Run a single listing or a
-  whole collective all side by side.
+- **One admin panel, multiple listings:** Run a single listing or a whole
+  collective all side by side.
 - **Guided migration & wrappers:** The Import Data Wizard brings over your
   data from other scripts. Compatibility wrappers keep your previous script
   working while you transition to Luster.
 - **Dashboard to-do list:** See pending members, overdue listings, affiliate
-  applications, code donations, adoption requests, and KIM signups right away
-  when you sign in, with shortcuts to review or update each item directly
-  from the dashboard.
+  applications, code donations, adoption requests, and KIM signups right away,
+  with shortcuts to review or update each item directly from the dashboard.
 - **Multiple admin users:** Give co-owners their own separate accounts and
   logins instead of sharing one password.
 - **Admin panel customization:** Switch between light & dark mode and
   customize your admin panel's look with different skins.
-- **Custom networks & categories:** Use the built-in TFL/TAFL-style
-  categories or add your own custom networks and category groups to
-  accommodate other directories. A built-in lookup button finds a listing's
-  TFL or TAFL approval page URL automatically.
-- **Customizable public embeds & live previews:** Add the script to your
-  existing website with a small snippet of code, then customize each output
-  with clickable tokens, the Embed Wizard, targetable CSS classes, and
-  rendered previews.
+- **Custom networks & categories:** Use built-in TFL/TAFL categories or add
+  custom networks and groups to accomodate other directories, plus a one-click
+  lookup for a listing's TFL/TAFL approval page URL.
+- **Customizable public embeds & live previews:** Drop the script into your
+  site with code snippets, then shape each output with clickable tokens,
+  the Embed Wizard, targetable CSS classes, and live previews as you edit.
 - **Three-tier template system:** Set global defaults that apply to every
-  listing, override per listing when needed, or reset everything back with
-  one click.
-- **Template portability:** Export or import any set of templates, copy
-  templates between listings in one step, and roll back any template to a
-  previous version with built-in revision history.
-- **Drag-and-drop reordering:** Rearrange codes and affiliates with
+  listing, override per-listing when needed, or reset them with one click.
+- **Template portability & history:** Export or import any set of templates,
+  copy templates between listings in one step, and roll back any template to
+  a previous version with built-in revision history.
+- **Live drag-and-drop reordering:** Rearrange codes and affiliates with
   drag-and-drop and have your live site reflect the exact order you chose.
-- **Communication tools with live previews:** Send emails to all your
-  members at once, a hand-picked selection, or a single person — plus a
-  dedicated bulk composer for affiliates. Create and save reusable email
-  templates, preview rendered content before sending, and enable or disable
-  specific email types on a global or per-listing scale.
+- **Communication tools with live previews:** Send emails to a single
+  recipient, a selected few, or an entire group all at once with a dedicated
+  bulk composer. Create and save reusable email templates, preview rendered
+  content before sending, and enable or disable specific email types on a
+  global or per-listing scale.
 - **Extra features when you want them:** Optional add-ons include news
-  feeds, a wishlist, "keep in mind" lists, adoption applications, and join
-  rules, so you only turn on the pieces your site needs.
+  feeds, a wishlist, "keep in mind" lists, adoption applications, and global and
+  per-listing level join rules, so you only turn on the pieces your site needs.
 - **Link Checker & maintenance tools:** Check dead links and redirects
   across affiliates, joined listings, and member URLs; verify that
   affiliates are linking back to you; update a moved URL to its new address
   in one click; review admin activity with IP tracking; browse error logs.
-- **Security-first foundations:** Modern password handling (Argon2id), CSRF
-  protection, output escaping, prepared statements, safer upload/import
-  handling, concealed install paths, arithmetic CAPTCHA and per-IP rate
-  limiting on every public join form to block bots, and an automated test
-  suite of 1,650+ tests. Member update and delete forms stay secure even on
-  shared hosting where PHP sessions can drop mid-flow. Plus a one-click
-  database backup download.
+- **Security-first foundations:** Modern password protection, defenses against
+  common web attacks, safe file uploads, hidden install files, and bot-blocking
+  CAPTCHA plus rate limits on every join form — backed by 1,760+ automated
+  tests. Autoupdater with security checks, and backups are always available and 
+  one click away.
 
 
 
@@ -84,7 +78,7 @@ of it for you.
    `luster-x.y.z.zip`.
 2. Unzip it, then upload everything inside to a folder on your web host. Name
    the folder whatever you like, such as `luster`.
-3. In your browser, go to `http://yoursite.com/luster/`, swapping in the
+3. In your browser, go to `http://example.com/luster/`, swapping in the
    folder name you chose/your specific Luster path.
 4. Luster will take you to the setup wizard automatically. It checks your
    server, sets up your database tables, and creates your first admin
@@ -95,28 +89,26 @@ of it for you.
 
 
 ## ✦ Admin Panel
-To access your admin panel, go to `http://yoursite.com/luster/public/admin`
+To access your admin panel, go to `http://example.com/luster/public/admin`
 and log in with the username and password you set for Luster during
 installation.
 
 
 
 ## ✦ Migrating from Another Script
-Already running a fanlisting, collective, or clique with another script?
-Luster includes an Import Data Wizard to help you seamlessly migrate your
-data without rebuilding everything by hand.
-
 Once you're logged into Luster, click **Import Data** in the navigation
 sidebar. Choose your original source, enter your old database credentials or
 upload the supported files, pick what you want to bring over, and Luster
 will copy your listings, members, affiliates, categories, codes, images, and
 related history into place for you.
 
-Luster also includes compatibility wrappers for Enthusiast, Listing Admin,
-and CodeSort that allow your old include paths to keep working while you
-transition, so your existing pages don't break before you've had a chance to
-update them. These can be found within the **Collective** section in the
-admin panel.
+Luster also includes compatibility wrappers ("bridges") for Enthusiast,
+Listing Admin, CodeSort, and Fanatically that allow your old include paths to
+keep working while you transition, so your existing pages don't break before
+you've had a chance to update them. These can be found within the
+**Collective** section in the admin panel. Click the bridge for your script
+and Luster downloads a zip pre-configured with your install path; just
+extract and replace the old files.
 
 
 
@@ -136,8 +128,8 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 
 - **Do I need to edit any configuration files?**
   Nope! The installation wizard asks for your database details and site
-  info and writes the configuration file for you. You never touch a code
-  file directly.
+  info and writes the configuration file for you. You rarely touch a
+  configuration file directly.
 
 - **Can I run more than one listing with it?**
   Absolutely! That's what Luster is built around. Run a single fanlisting, a
@@ -145,25 +137,25 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
   the same login.
 
 - **Will it work alongside my existing site?**
-  Yup - Luster's public embeds are designed to be dropped into pages you
-  already have. The Embed Wizard generates ready-to-copy snippets,
-  compatibility wrappers keep your old include paths working, and every
-  element has targetable CSS classes so your site's look and feel can stay
-  exactly as it is.
+  Yup; Luster's public embeds are designed to be dropped into pages you
+  already have. The Embed Wizard generates ready-to-copy and customizable
+  snippets, compatibility wrappers keep your old include paths working, and
+  every element has targetable CSS classes so your site's look and feel can
+  stay exactly as it is.
 
 - **What if something doesn't go as expected during setup?**
   Most hiccups come down to database details or the web folder pointing
   somewhere other than `public/`. If you're still stuck,
   [contact me](#-need-help-found-a-bug-etc) and let me know what you tried
-  so I can help you figure it out!
+  so I can help you troubleshoot.
 
 - **How does Luster handle updates?**
-  Updates are published as GitHub Releases. Each release includes a ZIP and
-  a `SHA256SUMS` file. When you use Luster's built-in update checker, it
-  downloads the release metadata from GitHub, verifies the SHA-256 checksum
-  before applying anything, and will not proceed if the checksum does not
-  match. Your update path is not dependent on any personal site or
-  community server staying online.
+  Luster's built-in update checker looks for new versions for you
+  automatically. Before installing anything, it double-checks a security
+  code (called a checksum) to make sure the update file isn't corrupted; if
+  it doesn't match, the update won't proceed. Updates live on GitHub, a well
+  established, independent code-hosting platform, so your update path is not
+  dependent on any personal site or community server.
 
 - **Can you implement [insert fix]/[insert new feature]?**
   Your feedback means a lot and helps Luster grow! Please
@@ -181,7 +173,7 @@ For a more detailed FAQ and full guides, visit [luster.nu](https://luster.nu/).
 
 
 ## ✦ Credits
-[Luster](https://luster.nu/) © [Star](https://dreamesque.net/) 2026.
+[Luster](https://luster.nu/) © [Star](https://dreamesque.net/) 2026-present.
 Full credits are available on [luster.nu](https://luster.nu/credits/).
 
 
