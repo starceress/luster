@@ -813,8 +813,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
                         $newId = $existingId;
                     } else {
                         $target->prepare(
-                            "INSERT INTO `owned` (dbtable, title, subject, url, catid, status, opened)
-                             VALUES (:dbtable, :title, :subject, :url, :catid, :status, :opened)"
+                            "INSERT INTO `owned` (dbtable, title, subject, url, catid, status, opened, additional)
+                             VALUES (:dbtable, :title, :subject, :url, :catid, :status, :opened, '')"
                         )->execute([
                             'dbtable' => $dbtable, 'title' => $title, 'subject' => $subject,
                             'url' => $url, 'catid' => $primaryCatId,

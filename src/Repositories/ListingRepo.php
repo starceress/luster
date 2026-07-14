@@ -479,8 +479,8 @@ final class ListingRepo
     {
         $stmt = $this->db->prepare(
             "INSERT INTO {$this->table}
-             (title,subject,url,email,status,imagefile,category_id,opened,catid,dbtable,dbserver,dbuser,dbpassword,dbdatabase)
-             VALUES (:title,:subject,:url,:email,:status,:img,:cid,:opened,:catid,'','','','','')"
+             (title,subject,url,email,status,imagefile,category_id,opened,catid,additional,dbtable,dbserver,dbuser,dbpassword,dbdatabase)
+             VALUES (:title,:subject,:url,:email,:status,:img,:cid,:opened,:catid,'','','','','','')"
         );
         $stmt->execute([
             'title'   => $title,
@@ -504,6 +504,104 @@ final class ListingRepo
         }
 
         return $newId;
+    }
+
+    /**
+     * Generates a unique per-listing member table name from the subject,
+     * creates it (Enthusiast-compatible schema, same shape as
+     * ListingAdminImportSource::createMemberTable()), and points
+     * owned.dbtable at it.
+     *
+     * Only meaningful for the unprefixed schema — the standard enth_
+     * prefixed schema has no per-listing physical table, so this is a
+     * no-op there. Without this, a listing created via the admin "Add
+     * Listing" form has nowhere to store members and the join form fails.
+     */
+    public function provisionMemberTable(int $listingId, string $subject): void
+    {
+        if (!$this->isOwnedSchema) {
+            return;
+        }
+
+        $pdo  = $this->db->pdo();
+        $slug = $this->generateTableSlug($pdo, $subject, $listingId);
+
+        if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $pdo->exec(
+                "CREATE TABLE IF NOT EXISTS `{$slug}` (
+                  `email`     TEXT NOT NULL,
+                  `name`      TEXT NOT NULL DEFAULT '',
+                  `country`   TEXT NOT NULL DEFAULT '',
+                  `url`       TEXT NOT NULL DEFAULT '',
+                  `pending`   INTEGER NOT NULL DEFAULT 0,
+                  `password`  TEXT NOT NULL DEFAULT '',
+                  `showemail` INTEGER NOT NULL DEFAULT 1,
+                  `showurl`   INTEGER NOT NULL DEFAULT 1,
+                  `added`     TEXT NULL,
+                  PRIMARY KEY (`email`)
+                )"
+            );
+        } else {
+            $pdo->exec(
+                "CREATE TABLE IF NOT EXISTS `{$slug}` (
+                  `email`     VARCHAR(64)  NOT NULL,
+                  `name`      VARCHAR(128) NOT NULL DEFAULT '',
+                  `country`   VARCHAR(128) NOT NULL DEFAULT '',
+                  `url`       VARCHAR(255) NOT NULL DEFAULT '',
+                  `pending`   TINYINT(1)   NOT NULL DEFAULT 0,
+                  `password`  VARCHAR(255) NOT NULL DEFAULT '',
+                  `showemail` TINYINT(1)   NOT NULL DEFAULT 1,
+                  `showurl`   TINYINT(1)   NOT NULL DEFAULT 1,
+                  `added`     DATE         NULL,
+                  PRIMARY KEY (`email`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+            );
+        }
+
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET dbtable = :slug WHERE {$this->pkCol} = :id");
+        $stmt->execute(['slug' => $slug, 'id' => $listingId]);
+    }
+
+    /**
+     * Builds a safe, unique table name from a listing subject: lowercased,
+     * non [a-zA-Z0-9_] characters collapsed to underscores, capped at 40
+     * characters, with a numeric suffix appended on collision against any
+     * existing table. Falls back to 'listing' when the subject sanitizes
+     * to nothing (e.g. a subject with no Latin/digit characters at all).
+     */
+    private function generateTableSlug(\PDO $pdo, string $subject, int $listingId): string
+    {
+        $base = strtolower((string) preg_replace('/[^a-zA-Z0-9_]+/', '_', $subject));
+        $base = trim($base, '_');
+        $base = substr($base, 0, 40);
+        if ($base === '') {
+            $base = 'listing';
+        }
+
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $existing = [];
+        $rows = $driver === 'sqlite'
+            ? $pdo->query("SELECT name FROM sqlite_master WHERE type = 'table'")->fetchAll(\PDO::FETCH_COLUMN)
+            : $pdo->query('SHOW TABLES')->fetchAll(\PDO::FETCH_COLUMN);
+        foreach ($rows as $t) {
+            $existing[$t] = true;
+        }
+
+        $slug = $base;
+        $i = 2;
+        while (isset($existing[$slug])) {
+            $slug = $base . '_' . $i;
+            $i++;
+        }
+
+        // Final safety net — must match Database::validatePrefix()'s pattern
+        // exactly, since that's what every read/write against this table
+        // will be checked against later.
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $slug)) {
+            $slug = 'listing_' . $listingId;
+        }
+
+        return $slug;
     }
 
     /**

@@ -585,6 +585,11 @@ final class ListingController extends AdminController
 
         $newId = $listingRepo->insert($title, $subject, $url, $email, $statusInt, $image, !empty($catIds) ? $catIds[0] : null, $opened, $catidStr, $catIds);
 
+        // Unprefixed schema only: a fresh listing has nowhere to store members
+        // until it has its own physical member table (dbtable was left blank
+        // by insert() above) — provision one now, no-op on the enth_ schema.
+        $listingRepo->provisionMemberTable($newId, $subject);
+
         // Create embed settings row — leave form URLs blank so they inherit
         // from the global defaults in Owned Listings Settings.
         $settingsRepo = new ListingSettingsRepo($db);
