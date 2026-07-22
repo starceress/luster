@@ -197,6 +197,14 @@ final class CodesRepo
             'submitterEmail' => $r['submitter_email'] !== null ? (string) $r['submitter_email'] : null,
             'submitterUrl'   => $r['submitter_url']   !== null ? (string) $r['submitter_url']   : null,
             'createdAt'      => (string) $r['created_at'],
+            // snake_case aliases — see the matching note on getById(). Callers
+            // like GlobalCodesController::approveAll() pass these objects
+            // straight into maybeSendDonorEmail(), which reads
+            // ->fanlisting_id/->submitter_email, not the camelCase form.
+            'fanlisting_id'    => $r['fanlisting_id']      !== null ? (int) $r['fanlisting_id'] : null,
+            'submitter_name'   => $r['submitter_name']  !== null ? (string) $r['submitter_name']  : null,
+            'submitter_email'  => $r['submitter_email'] !== null ? (string) $r['submitter_email'] : null,
+            'submitter_url'    => $r['submitter_url']   !== null ? (string) $r['submitter_url']   : null,
         ], $stmt->fetchAll());
     }
 
@@ -231,6 +239,17 @@ final class CodesRepo
             'submitterEmail' => $row['submitter_email'] !== null ? (string) $row['submitter_email'] : null,
             'submitterUrl'   => $row['submitter_url']   !== null ? (string) $row['submitter_url']   : null,
             'createdAt'      => (string) $row['created_at'],
+            // snake_case aliases — GlobalCodesController and maybeSendDonorEmail()
+            // read this object interchangeably with getPendingAllPaginated()'s
+            // items, which are raw `(object) $dbRow` casts (snake_case DB
+            // columns, real nullability). Without these, ->fanlisting_id and
+            // ->submitter_* silently resolve to null on a getById() result
+            // (undefined property on stdClass warns, not fatals), breaking the
+            // collective/per-listing distinction and donor-email token data.
+            'fanlisting_id'    => $row['fanlisting_id']   !== null ? (int) $row['fanlisting_id'] : null,
+            'submitter_name'   => $row['submitter_name']  !== null ? (string) $row['submitter_name']  : null,
+            'submitter_email'  => $row['submitter_email'] !== null ? (string) $row['submitter_email'] : null,
+            'submitter_url'    => $row['submitter_url']   !== null ? (string) $row['submitter_url']   : null,
         ];
     }
 
@@ -408,10 +427,15 @@ final class CodesRepo
     }
 
     /**
-     * Approves all pending codes — optionally scoped to one listing.
-     * Returns the count of rows updated.
+     * Approves every pending code, optionally scoped to one listing or to
+     * collective-only codes. Three distinct scopes, not two — $listingId
+     * alone can't tell "collective bucket" (fanlisting_id IS NULL) apart
+     * from "no scope at all" (every listing), and the admin UI has a real
+     * button for each: a per-group "Approve All" on the collective bucket
+     * in the grouped pending view, and a page-level "Approve All Pending"
+     * that intentionally covers everything.
      */
-    public function approveAllPending(?int $listingId = null): int
+    public function approveAllPending(?int $listingId = null, bool $collectiveOnly = false): int
     {
         if ($listingId !== null) {
             $stmt = $this->db->prepare(
@@ -419,6 +443,12 @@ final class CodesRepo
                  WHERE status = 'pending' AND fanlisting_id = :fid"
             );
             $stmt->execute(['fid' => $listingId]);
+        } elseif ($collectiveOnly) {
+            $stmt = $this->db->prepare(
+                "UPDATE lstr_codes SET status = 'approved'
+                 WHERE status = 'pending' AND fanlisting_id IS NULL"
+            );
+            $stmt->execute();
         } else {
             $stmt = $this->db->prepare("UPDATE lstr_codes SET status = 'approved' WHERE status = 'pending'");
             $stmt->execute();
@@ -427,20 +457,31 @@ final class CodesRepo
     }
 
     /**
-     * Sets status on multiple codes by ID array.
+     * Sets status on multiple codes by ID array, scoped to a single listing
+     * (or to collective-only codes when $listingId is null). The scope is
+     * required rather than optional — every caller has a specific listing
+     * or the collective bucket in view, and without this filter a crafted
+     * or stale POST could approve/reject code IDs from a different listing
+     * (or a per-listing code via the collective bulk action) than the one
+     * actually being reviewed, since the $ids themselves aren't otherwise
+     * verified against the caller's context.
      *
      * @param int[]  $ids
      * @param string $status  'approved'|'pending'|'rejected'
      */
-    public function bulkStatus(array $ids, string $status): int
+    public function bulkStatus(array $ids, string $status, ?int $listingId): int
     {
         if (empty($ids) || !in_array($status, self::STATUSES, true)) {
             return 0;
         }
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $fidCond      = $listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = ?';
         $params       = array_merge([$status], array_map('intval', $ids));
+        if ($listingId !== null) {
+            $params[] = $listingId;
+        }
         $stmt = $this->db->prepare(
-            "UPDATE lstr_codes SET status = ? WHERE id IN ({$placeholders})"
+            "UPDATE lstr_codes SET status = ? WHERE id IN ({$placeholders}) AND {$fidCond}"
         );
         $stmt->execute($params);
         return (int) $stmt->rowCount();

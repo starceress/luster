@@ -114,7 +114,7 @@ class SiteSettingsRepo
      * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_newsfeed_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_contact_sent_template: string, collective_adoption_form_template: string, collective_kim_list_overview_template: string, collective_kim_list_subject_template: string, kim_update_form_template: string, kim_reset_form_template: string, collective_contact_form_template: string, collective_update_form_template: string}
+     * @return array{owned_template: string, past_owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_newsfeed_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_contact_sent_template: string, collective_adoption_form_template: string, collective_kim_list_overview_template: string, collective_kim_list_subject_template: string, kim_update_form_template: string, kim_reset_form_template: string, collective_contact_form_template: string, collective_update_form_template: string}
      */
     public static function collectiveDefaults(): array
     {
@@ -132,7 +132,8 @@ class SiteSettingsRepo
                              . '{if_listing_image}<div class="fl-listing-image-wrap"><img class="fl-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
                              . "\n"
                              . '<div class="fl-listing-body">' . "\n"
-                             . '<a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>' . "\n"
+                             . '{if_listing_url}<a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>{/if_listing_url}{if_no_listing_url}<span title="{listing_subject}">{listing_subject}</span>{/if_no_listing_url}' . "\n"
+                             . '{if_status_closed}<span class="fl-status-badge fl-status-badge--closed">Closed</span>{/if_status_closed}{if_status_adopted_out}<span class="fl-status-badge fl-status-badge--adopted">Adopted Out</span>{/if_status_adopted_out}' . "\n"
                              . "\n"
                              . '<span class="fl-listing-subject">{listing_title}</span>' . "\n"
                              . '<div class="fl-listing-meta">' . "\n"
@@ -148,6 +149,38 @@ class SiteSettingsRepo
                              . '</div>' . "\n"
                              . '{/each_listing}' . "\n"
                              . '</div>',
+            // Dedicated template for the Past Fanlistings view ($luster_status = 'past'
+            // / '__past__' pseudo-category) — independent from owned_template so a site
+            // owner can style/badge Past differently from the current/upcoming/pending
+            // list without affecting it. Flat ({each_past}) by design — a unified list,
+            // not pre-split Closed/Adopted Out sections — with an inline status badge
+            // per row. Deliberately does not include {archive_note}: its own admin-side
+            // placeholder text calls it an optional *internal* note, so it isn't shown
+            // publicly by default (still available as a token for owners who want to
+            // opt in). No self-contained empty-state block either — templates/default/
+            // owned.php already renders a generic "No listings to display." fallback at
+            // the fragment level whenever the listing set is empty, same as owned_template.
+            'past_owned_template' => '<div class="fl-listing-list fl-past-listing-list">' . "\n"
+                                   . '{each_past}' . "\n"
+                                   . "\n"
+                                   . '<div class="fl-listing-item">' . "\n"
+                                   . '{if_listing_image}<div class="fl-listing-image-wrap"><img class="fl-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
+                                   . "\n"
+                                   . '<div class="fl-listing-body">' . "\n"
+                                   . '{if_listing_url}<a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>{/if_listing_url}{if_no_listing_url}<span title="{listing_subject}">{listing_subject}</span>{/if_no_listing_url}' . "\n"
+                                   . '{if_status_closed}<span class="fl-status-badge fl-status-badge--closed">Closed</span>{/if_status_closed}{if_status_adopted_out}<span class="fl-status-badge fl-status-badge--adopted">Adopted Out</span>{/if_status_adopted_out}' . "\n"
+                                   . "\n"
+                                   . '<span class="fl-listing-subject">{listing_title}</span>' . "\n"
+                                   . '<div class="fl-listing-meta">' . "\n"
+                                   . '<b>Category:</b> {listing_category}<br>' . "\n"
+                                   . '<b>Opened:</b> {date_opened}<br>' . "\n"
+                                   . '{if_status_adopted_out}<b>Adopted by:</b> {adopted_to_name}<br>{/if_status_adopted_out}' . "\n"
+                                   . "\n"
+                                   . '</div>' . "\n"
+                                   . '</div>' . "\n"
+                                   . '</div>' . "\n"
+                                   . '{/each_past}' . "\n"
+                                   . '</div>',
             'joined_template' => '<div class="fl-joined-list">' . "\n"
                                . '{each_joined}' . "\n"
                                . "\n"

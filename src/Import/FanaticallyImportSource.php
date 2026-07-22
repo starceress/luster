@@ -2631,7 +2631,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
                `email`     VARCHAR(255) NOT NULL,
                `name`      VARCHAR(100) NOT NULL DEFAULT '',
                `country`   VARCHAR(100) NOT NULL DEFAULT '',
-               `url`       VARCHAR(255) NOT NULL DEFAULT '',
+               `url`       VARCHAR(500) NOT NULL DEFAULT '',
                `pending`   TINYINT(1)   NOT NULL DEFAULT 0,
                `password`  VARCHAR(255) NOT NULL DEFAULT '',
                `showemail` TINYINT(1)   NOT NULL DEFAULT 1,

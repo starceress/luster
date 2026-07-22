@@ -466,7 +466,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
 ?>
 <form method="POST" action="<?= $b ?>/admin/codes/bulk" style="margin-bottom:1.5rem">
   <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-  <input type="hidden" name="listing_id" value="0">
+  <input type="hidden" name="listing_id" value="<?= (int) $_flId ?>">
   <input type="hidden" name="_tab"       value="pending">
 
   <div class="card">
@@ -480,6 +480,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
       <div class="actions-row--right">
         <button type="button" class="btn btn-success btn-xs"
                 data-global-approve-listing="<?= $_flId ?>"
+                data-global-approve-collective="<?= $_flId === 0 ? '1' : '0' ?>"
                 data-global-approve-count="<?= $_flCount ?>"
                 data-global-approve-csrf="<?= View::e($csrf_token) ?>"
                 data-global-approve-url="<?= $b ?>/admin/codes/approve-all">

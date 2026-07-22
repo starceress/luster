@@ -18,6 +18,7 @@ $ct = $collective_templates ?? [];
 $d  = SiteSettingsRepo::collectiveDefaults();
 
 $ownedVal           = $ct['owned_template']                              ?: $d['owned_template'];
+$pastOwnedVal       = $ct['past_owned_template']                         ?: $d['past_owned_template'];
 $randomVal          = $ct['random_listing_template']                     ?: $d['random_listing_template'];
 $latestVal          = $ct['latest_listing_template']                     ?: $d['latest_listing_template'];
 $randomJoinedVal    = $ct['random_joined_listing_template']              ?: $d['random_joined_listing_template'];
@@ -100,6 +101,7 @@ $srcBadge = static function (string $key) use ($ct): string {
         <option value="latest-owned"<?= $activeGroup === 'latest-owned' ? ' selected' : '' ?>>Latest Owned</option>
         <option value="newsfeed"<?= $activeGroup === 'newsfeed' ? ' selected' : '' ?>>News Feed</option>
         <option value="owned"<?= $activeGroup === 'owned' ? ' selected' : '' ?>>Owned Listings</option>
+        <option value="past-owned"<?= $activeGroup === 'past-owned' ? ' selected' : '' ?>>Past Fanlistings</option>
         <option value="random-joined"<?= $activeGroup === 'random-joined' ? ' selected' : '' ?>>Random Joined</option>
         <option value="random-owned"<?= $activeGroup === 'random-owned' ? ' selected' : '' ?>>Random Owned</option>
         <option value="stats"<?= $activeGroup === 'stats' ? ' selected' : '' ?>>Statistics</option>
@@ -168,6 +170,19 @@ $srcBadge = static function (string $key) use ($ct): string {
           <div class="tpl-reset-row">
             <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="owned" data-textarea="owned_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="owned_template">Reset to Luster Default</button>
+          </div>
+        </div>
+
+        <!-- ── Past Fanlistings ── -->
+        <div class="tpl-group-section" data-tpl-group="past-owned" <?= $_grp('past-owned') ?>>
+          <div class="section-label">Past Fanlistings <?= $srcBadge('past_owned_template') ?></div>
+          <p class="form-hint" style="margin-bottom:.75rem">Used by the Past Fanlistings view (Closed + Adopted Out combined). Independent from the Owned Listings template above, so Past can look different from your current/upcoming/pending list.</p>
+          <div class="field-group">
+            <textarea name="past_owned_template" id="past_owned_template" class="form form-mono" spellcheck="false"><?= View::e($pastOwnedVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="past_owned" data-textarea="past_owned_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="past_owned_template">Reset to Luster Default</button>
           </div>
         </div>
 
@@ -541,6 +556,14 @@ $srcBadge = static function (string $key) use ($ct): string {
             <?= $tok('owned_template', '{listing_description}', '{listing_description}', 'The listing description, if set on the Edit Listing page.') ?>
             <?= $tok('owned_template', '{if_listing_image}{/if_listing_image}',       '{if_listing_image}...{/if_listing_image}',       'Shows only when the listing has an image.') ?>
             <?= $tok('owned_template', '{if_no_listing_image}{/if_no_listing_image}', '{if_no_listing_image}...{/if_no_listing_image}', 'Shows only when the listing has no image.') ?>
+            <?= $tok('owned_template', '{if_listing_url}{/if_listing_url}',           '{if_listing_url}...{/if_listing_url}',           'Shows only when the listing has a URL. Archived (Closed/Adopted Out) listings can have a blank URL.') ?>
+            <?= $tok('owned_template', '{if_no_listing_url}{/if_no_listing_url}',     '{if_no_listing_url}...{/if_no_listing_url}',     'Shows only when the listing has no URL.') ?>
+            <?= $tok('owned_template', '{adopted_to_name}',    '{adopted_to_name}',    'The new owner\'s name, for Adopted Out listings. Empty for Closed listings.') ?>
+            <?= $tok('owned_template', '{adopted_to_url}',     '{adopted_to_url}',     'The new owner\'s URL, for Adopted Out listings. Empty for Closed listings.') ?>
+            <?= $tok('owned_template', '{archive_note}',       '{archive_note}',       'The internal archive note, if one was set. Not shown by default in the built-in template since it\'s meant to be an internal note.') ?>
+            <?= $tok('owned_template', '{archived_at}',        '{archived_at}',        'The date this listing was closed or adopted out.') ?>
+            <?= $tok('owned_template', '{if_status_closed}{/if_status_closed}',       '{if_status_closed}...{/if_status_closed}',       'Shows only when the listing is Closed &mdash; use for a status badge.') ?>
+            <?= $tok('owned_template', '{if_status_adopted_out}{/if_status_adopted_out}', '{if_status_adopted_out}...{/if_status_adopted_out}', 'Shows only when the listing is Adopted Out &mdash; use for a status badge, or to show {adopted_to_name}.') ?>
             <?= $tok('owned_template', '{if_countries}{/if_countries}',               '{if_countries}...{/if_countries}',               'Shows only when this listing has at least one country.') ?>
             <?= $tok('owned_template', '{if_description}{/if_description}',          '{if_description}...{/if_description}',          'Shows only when this listing has a description set.') ?>
             <?= $tok('owned_template', '{if_pending}{/if_pending}',                   '{if_pending}...{/if_pending}',                   'Shows only when this listing has members waiting for approval.') ?>
@@ -558,6 +581,62 @@ $srcBadge = static function (string $key) use ($ct): string {
             <?= $tok('owned_template', '{if_current_listings}{/if_current_listings}',   '{if_current_listings}...{/if_current_listings}',   'Shows only when there is at least one current listing.') ?>
             <?= $tok('owned_template', '{if_upcoming_listings}{/if_upcoming_listings}', '{if_upcoming_listings}...{/if_upcoming_listings}', 'Shows only when there is at least one upcoming listing.') ?>
             <?= $tok('owned_template', '{if_pending_listings}{/if_pending_listings}',   '{if_pending_listings}...{/if_pending_listings}',   'Shows only when there is at least one pending listing.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <!-- ── Past Fanlistings ───────────────────────── -->
+      <details class="card chevron" data-token-card data-tpl-group="past-owned" <?= $_grp('past-owned') ?>>
+        <summary class="chevron-head">Past Fanlistings Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint" style="margin-bottom:.75rem" data-token-search-help>Use {each_past} for a single combined Closed + Adopted Out list (the default). Switch to {each_closed} and {each_adopted_out} for separate sections instead.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('past_owned_template', '{site_name}',                      '{site_name}',                      'The collective/site name.') ?>
+            <?= $tok('past_owned_template', '{each_past}{/each_past}',         '{each_past}...{/each_past}',         'Repeats the HTML inside it once for each Closed + Adopted Out listing, combined in one list. Rows still carry their own real status, so {if_status_closed}/{if_status_adopted_out} work inside it.') ?>
+            <?= $tok('past_owned_template', '{each_closed}{/each_closed}',     '{each_closed}...{/each_closed}',     'Repeats the HTML inside it once for each Closed listing. Use with {each_adopted_out} for separate sections instead of one combined {each_past} list.') ?>
+            <?= $tok('past_owned_template', '{each_adopted_out}{/each_adopted_out}', '{each_adopted_out}...{/each_adopted_out}', 'Repeats the HTML inside it once for each Adopted Out listing.') ?>
+            <?= $tok('past_owned_template', '{listing_title}',      '{listing_title}',      'The fanlisting display name.') ?>
+            <?= $tok('past_owned_template', '{listing_url}',        '{listing_url}',        'The link to the fanlisting. May be blank for archived listings.') ?>
+            <?= $tok('past_owned_template', '{listing_subject}',    '{listing_subject}',    'What the fanlisting is for.') ?>
+            <?= $tok('past_owned_template', '{listing_status}',     '{listing_status}',     'The listing status: closed or adopted_out.') ?>
+            <?= $tok('past_owned_template', '{date_opened}',        '{date_opened}',        'The date this listing opened.') ?>
+            <?= $tok('past_owned_template', '{date_updated}',       '{date_updated}',       'The date this listing was last updated.') ?>
+            <?= $tok('past_owned_template', '{listing_category}',   '{listing_category}',   'The listing category names, comma-separated.') ?>
+            <?= $tok('past_owned_template', '{listing_image_url}',  '{listing_image_url}',  'The image URL. Empty when there is no image.') ?>
+            <?= $tok('past_owned_template', '{listing_email}',      '{listing_email}',      'The contact email for this listing.') ?>
+            <?= $tok('past_owned_template', '{listing_type}',       '{listing_type}',       'The listing type value.') ?>
+            <?= $tok('past_owned_template', '{member_count}',          '{member_count}',          'How many approved members this listing has.') ?>
+            <?= $tok('past_owned_template', '{member_pending_count}',  '{member_pending_count}',  'How many members are waiting for approval on this listing.') ?>
+            <?= $tok('past_owned_template', '{country_count}',      '{country_count}',      'How many different countries are represented by approved members.') ?>
+            <?= $tok('past_owned_template', '{approved_by}',        '{approved_by}',        'Network acronym from the &ldquo;Approved By&rdquo; dropdown only: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text.') ?>
+            <?= $tok('past_owned_template', '{network_name}',      '{network_name}',      'Full name of every network this listing has a category assigned under &mdash; not the &ldquo;Approved By&rdquo; dropdown.') ?>
+            <?= $tok('past_owned_template', '{tfl_url}',            '{tfl_url}',            'TFL website URL.') ?>
+            <?= $tok('past_owned_template', '{tafl_url}',           '{tafl_url}',           'TAFL website URL.') ?>
+            <?= $tok('past_owned_template', '{listing_description}', '{listing_description}', 'The listing description, if set on the Edit Listing page.') ?>
+            <?= $tok('past_owned_template', '{adopted_to_name}',    '{adopted_to_name}',    'The new owner\'s name, for Adopted Out listings. Empty for Closed listings.') ?>
+            <?= $tok('past_owned_template', '{adopted_to_url}',     '{adopted_to_url}',     'The new owner\'s URL, for Adopted Out listings. Empty for Closed listings.') ?>
+            <?= $tok('past_owned_template', '{archive_note}',       '{archive_note}',       'The internal archive note, if one was set. Not shown by default in the built-in template since it\'s meant to be an internal note &mdash; add this token yourself if you want it public.') ?>
+            <?= $tok('past_owned_template', '{archived_at}',        '{archived_at}',        'The date this listing was archived.') ?>
+            <?= $tok('past_owned_template', '{if_listing_image}{/if_listing_image}',       '{if_listing_image}...{/if_listing_image}',       'Shows only when the listing has an image.') ?>
+            <?= $tok('past_owned_template', '{if_no_listing_image}{/if_no_listing_image}', '{if_no_listing_image}...{/if_no_listing_image}', 'Shows only when the listing has no image.') ?>
+            <?= $tok('past_owned_template', '{if_listing_url}{/if_listing_url}',           '{if_listing_url}...{/if_listing_url}',           'Shows only when the listing has a URL.') ?>
+            <?= $tok('past_owned_template', '{if_no_listing_url}{/if_no_listing_url}',     '{if_no_listing_url}...{/if_no_listing_url}',     'Shows only when the listing has no URL.') ?>
+            <?= $tok('past_owned_template', '{if_countries}{/if_countries}',               '{if_countries}...{/if_countries}',               'Shows only when this listing has at least one country.') ?>
+            <?= $tok('past_owned_template', '{if_description}{/if_description}',          '{if_description}...{/if_description}',          'Shows only when this listing has a description set.') ?>
+            <?= $tok('past_owned_template', '{if_pending}{/if_pending}',                   '{if_pending}...{/if_pending}',                   'Shows only when this listing has members waiting for approval.') ?>
+            <?= $tok('past_owned_template', '{if_status_closed}{/if_status_closed}',       '{if_status_closed}...{/if_status_closed}',       'Shows only when the listing is Closed &mdash; use for a status badge.') ?>
+            <?= $tok('past_owned_template', '{if_status_adopted_out}{/if_status_adopted_out}', '{if_status_adopted_out}...{/if_status_adopted_out}', 'Shows only when the listing is Adopted Out &mdash; use for a status badge, or to show {adopted_to_name}.') ?>
+            <?= $tok('past_owned_template', '{if_date_updated}{/if_date_updated}',         '{if_date_updated}...{/if_date_updated}',         'Shows only when the last-updated date is set.') ?>
+            <?= $tok('past_owned_template', '{if_tfl}{/if_tfl}',                           '{if_tfl}...{/if_tfl}',                           'Shows only when this listing has a TFL category assigned &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
+            <?= $tok('past_owned_template', '{if_tafl}{/if_tafl}',                         '{if_tafl}...{/if_tafl}',                         'Shows only when this listing has a TAFL category assigned &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
+            <?= $tok('past_owned_template', '{if_approved_by}{/if_approved_by}',           '{if_approved_by}...{/if_approved_by}',           'Shows only when the &ldquo;Approved By&rdquo; dropdown is set to a network.') ?>
+            <?= $tok('past_owned_template', '{past_owned_count}',        '{past_owned_count}',        'How many listings (Closed + Adopted Out combined) are in this grouped template.') ?>
+            <?= $tok('past_owned_template', '{closed_owned_count}',      '{closed_owned_count}',      'How many Closed listings are in this grouped template.') ?>
+            <?= $tok('past_owned_template', '{adopted_out_owned_count}', '{adopted_out_owned_count}', 'How many Adopted Out listings are in this grouped template.') ?>
+            <?= $tok('past_owned_template', '{total_count}',            '{total_count}',              'Total number of listings shown.') ?>
+            <?= $tok('past_owned_template', '{if_past_listings}{/if_past_listings}',             '{if_past_listings}...{/if_past_listings}',             'Shows only when there is at least one past listing.') ?>
+            <?= $tok('past_owned_template', '{if_closed_listings}{/if_closed_listings}',         '{if_closed_listings}...{/if_closed_listings}',         'Shows only when there is at least one Closed listing.') ?>
+            <?= $tok('past_owned_template', '{if_adopted_out_listings}{/if_adopted_out_listings}', '{if_adopted_out_listings}...{/if_adopted_out_listings}', 'Shows only when there is at least one Adopted Out listing.') ?>
           </tbody></table>
         </div>
       </details>

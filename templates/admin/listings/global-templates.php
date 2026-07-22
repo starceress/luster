@@ -533,6 +533,13 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when the &ldquo;Approved By&rdquo; dropdown is set to a network.') ?>
             <?= $tok('listing_default_stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing has a TFL category assigned (Network &amp; Category) &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
             <?= $tok('listing_default_stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing has a TAFL category assigned (Network &amp; Category) &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
+            <?= $tok('listing_default_stats_template', '{previous_owners}',      '{previous_owners}',      'Comma-separated list of previous owners (set on a listing\'s General tab), linked when a URL was given, plain text otherwise.') ?>
+            <?= $tok('listing_default_stats_template', '{previous_owners_count}', '{previous_owners_count}', 'How many previous owners are credited.') ?>
+            <?= $tok('listing_default_stats_template', '{if_previous_owners}{/if_previous_owners}', '{if_previous_owners}...{/if_previous_owners}', 'Shows only when at least one previous owner is credited.') ?>
+            <?= $tok('listing_default_stats_template', '{each_previous_owner}{/each_previous_owner}', '{each_previous_owner}...{/each_previous_owner}', 'Repeats the HTML inside it once per previous owner, for a custom layout instead of the flat {previous_owners} list.') ?>
+            <?= $tok('listing_default_stats_template', '{previous_owner_name}', '{previous_owner_name}', 'Use inside {each_previous_owner}. The owner\'s name, or their URL if no name was given.') ?>
+            <?= $tok('listing_default_stats_template', '{previous_owner_url}',  '{previous_owner_url}',  'Use inside {each_previous_owner}. The owner\'s URL, or empty if none was given.') ?>
+            <?= $tok('listing_default_stats_template', '{if_previous_owner_url}{/if_previous_owner_url}', '{if_previous_owner_url}...{/if_previous_owner_url}', 'Use inside {each_previous_owner}. Shows only when this owner has a URL.') ?>
           </tbody></table>
         </div>
       </details>

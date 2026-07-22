@@ -56,6 +56,14 @@ final class ListingRowRenderer
         $approvalUrl  = (string) ($settings['approval_url'] ?? '');
         $description  = (string) ($settings['description'] ?? '');
 
+        // archived_at is a DATETIME column — truncate to Y-m-d before formatting
+        // (DateFormatter::formatWith() returns its input completely unmodified
+        // when $dateFormat is blank, the common case, so a lingering time suffix
+        // would otherwise show up in the output; date_opened/date_updated have
+        // no time component to strip in the first place).
+        $archivedAtRaw = (string) ($settings['archived_at'] ?? '');
+        $archivedAt    = strlen($archivedAtRaw) >= 10 ? substr($archivedAtRaw, 0, 10) : $archivedAtRaw;
+
         $network = strtoupper($approvedBy);
 
         // {if_tfl} / {if_tafl} / {network_name}: independent of {if_approved_by} /
@@ -110,7 +118,7 @@ final class ListingRowRenderer
                 'adopted_to_name'      => (string) ($settings['adopted_to_name'] ?? ''),
                 'adopted_to_url'       => (string) ($settings['adopted_to_url']  ?? ''),
                 'archive_note'         => (string) ($settings['archive_note']    ?? ''),
-                'archived_at'          => (string) ($settings['archived_at']     ?? ''),
+                'archived_at'          => DateFormatter::formatWith($archivedAt, $dateFormat),
             ],
             conditions: [
                 'listing_image'      => $imageUrl !== '',

@@ -1311,10 +1311,16 @@ final class MemberController extends AdminController
             }
         }
 
+        $actionPastTense = match ($action) {
+            'approve' => 'Approved',
+            'reject'  => 'Rejected',
+            'delete'  => 'Deleted',
+        };
+
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             "member.{$action}",
-            ucfirst($action) . "d member {$email} in listing #{$listingId}",
+            "{$actionPastTense} member {$email} in listing #{$listingId}",
             $request->ip(),
         );
 

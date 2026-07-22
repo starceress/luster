@@ -160,19 +160,24 @@ final class ListingRepo
      */
     public function getLifecycleCounts(): array
     {
-        $stmt = $this->db->prepare(
-            "SELECT
-                SUM(lifecycle_status = 'closed')      AS closed,
-                SUM(lifecycle_status = 'adopted_out') AS adopted_out
-             FROM lstr_listing_lifecycle"
-        );
-        $stmt->execute();
-        $row = $stmt->fetch();
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT
+                    SUM(lifecycle_status = 'closed')      AS closed,
+                    SUM(lifecycle_status = 'adopted_out') AS adopted_out
+                 FROM lstr_listing_lifecycle"
+            );
+            $stmt->execute();
+            $row = $stmt->fetch();
 
-        return [
-            'closed'      => (int) ($row['closed']      ?? 0),
-            'adopted_out' => (int) ($row['adopted_out'] ?? 0),
-        ];
+            return [
+                'closed'      => (int) ($row['closed']      ?? 0),
+                'adopted_out' => (int) ($row['adopted_out'] ?? 0),
+            ];
+        } catch (\Throwable) {
+            // Table not migrated yet (Migration 93) — no archived listings exist.
+            return ['closed' => 0, 'adopted_out' => 0];
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -516,6 +521,13 @@ final class ListingRepo
      * prefixed schema has no per-listing physical table, so this is a
      * no-op there. Without this, a listing created via the admin "Add
      * Listing" form has nowhere to store members and the join form fails.
+     *
+     * email/url column widths (255/500) must match JoinController's own
+     * Validator maxLength() calls exactly — narrower columns here would
+     * let a form-valid submission pass validation and then fail the
+     * INSERT under strict MySQL. SQLite doesn't enforce VARCHAR(n) width
+     * at all, so this can't be caught by the SQLite-backed test suite;
+     * it has to be kept in sync by hand.
      */
     public function provisionMemberTable(int $listingId, string $subject): void
     {
@@ -544,10 +556,10 @@ final class ListingRepo
         } else {
             $pdo->exec(
                 "CREATE TABLE IF NOT EXISTS `{$slug}` (
-                  `email`     VARCHAR(64)  NOT NULL,
+                  `email`     VARCHAR(255) NOT NULL,
                   `name`      VARCHAR(128) NOT NULL DEFAULT '',
                   `country`   VARCHAR(128) NOT NULL DEFAULT '',
-                  `url`       VARCHAR(255) NOT NULL DEFAULT '',
+                  `url`       VARCHAR(500) NOT NULL DEFAULT '',
                   `pending`   TINYINT(1)   NOT NULL DEFAULT 0,
                   `password`  VARCHAR(255) NOT NULL DEFAULT '',
                   `showemail` TINYINT(1)   NOT NULL DEFAULT 1,
@@ -633,7 +645,7 @@ final class ListingRepo
      *   'pending'     — pending/inactive listings (status=0 or trouble=1) that are NOT archived
      *   'closed'      — archived as Closed (lstr_listing_lifecycle.lifecycle_status = 'closed')
      *   'adopted_out' — archived as Adopted Out (lifecycle_status = 'adopted_out')
-     *   'all'         — no status filter (combine with $excludePending to omit pending/archived listings)
+     *   'all'         — no status filter (combine with $excludePending to omit truly-pending listings)
      *
      * Closed/Adopted Out listings are layered on top of the legacy inactive
      * representation (status=0 / trouble=1) via lstr_listing_lifecycle — they
@@ -645,8 +657,13 @@ final class ListingRepo
      * ListingLifecycleRepo::getMapForListings() + Listing::withLifecycle().
      *
      * @param int|null $categoryId    Filter to a Luster category (lstr_categories.id), or null for all
-     * @param bool     $excludePending When true and $status is 'all', pending/inactive/archived
-     *                                 listings are silently omitted. Has no effect for other status values.
+     * @param bool     $excludePending When true and $status is 'all', listings that are
+     *                                 inactive AND have no lifecycle row (i.e. genuinely
+     *                                 pending, not archived) are omitted. Closed/Adopted Out
+     *                                 listings share the same legacy inactive flag as pending
+     *                                 but are archived, not pending, so they're kept — "All
+     *                                 Listings" should include them (with their status badge),
+     *                                 not silently drop them. Has no effect for other status values.
      * @return Listing[]
      */
     public function getFiltered(string $status = 'current', ?int $categoryId = null, bool $excludePending = false): array
@@ -654,7 +671,8 @@ final class ListingRepo
         $t  = $this->table;
         $pk = $this->pkCol;
 
-        $notArchived = "NOT EXISTS (SELECT 1 FROM lstr_listing_lifecycle ll WHERE ll.fanlisting_id = {$t}.{$pk})";
+        $notArchived   = "NOT EXISTS (SELECT 1 FROM lstr_listing_lifecycle ll WHERE ll.fanlisting_id = {$t}.{$pk})";
+        $legacyPending = $this->isOwnedSchema ? 'status = 0' : 'trouble = 1';
 
         $params = [];
 
@@ -678,8 +696,11 @@ final class ListingRepo
             $statusWhere = match (true) {
                 $status === 'current'                => $this->isOwnedSchema ? 'status = 2'  : 'upcoming = 0 AND trouble = 0',
                 $status === 'upcoming'               => $this->isOwnedSchema ? 'status = 1'  : 'upcoming = 1',
-                $status === 'pending'                => ($this->isOwnedSchema ? 'status = 0'  : 'trouble = 1') . " AND {$notArchived}",
-                $status === 'all' && $excludePending => $this->isOwnedSchema ? 'status != 0' : 'trouble = 0',
+                $status === 'pending'                => "{$legacyPending} AND {$notArchived}",
+                // Excludes genuinely-pending listings only — archived (closed/adopted_out)
+                // listings share the same legacy inactive flag but have a lifecycle row,
+                // so they're kept in "All Listings" rather than silently dropped.
+                $status === 'all' && $excludePending => "NOT ({$legacyPending} AND {$notArchived})",
                 default                              => '1 = 1',
             };
         }
@@ -703,13 +724,41 @@ final class ListingRepo
 
         $orderCol = $this->isOwnedSchema ? 'title' : 'name';
 
-        $stmt = $this->db->prepare(
-            "SELECT * FROM {$this->table}
-             WHERE {$statusWhere}{$catWhere}
-             ORDER BY {$orderCol} ASC"
-        );
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll();
+        // $statusWhere references lstr_listing_lifecycle for 'pending' (via
+        // $notArchived), 'closed', 'adopted_out', 'past', and now 'all' with
+        // $excludePending (also via $notArchived) — on an install that hasn't run
+        // Migration 93 yet, prepare() itself throws for any of those (Luster uses
+        // native/server-side prepares, so the missing-table error surfaces there,
+        // not just on execute()). 'closed'/'adopted_out'/'past' are entirely
+        // defined by that table, so an empty result is correct when it's missing.
+        // 'pending' and 'all'+excludePending are different — they're real legacy
+        // data independent of the lifecycle feature — so retry with the plain
+        // legacy predicate instead of hiding those listings. (A missing lifecycle
+        // table also means no listing can be archived yet, so falling back to the
+        // old plain-legacy exclusion for 'all' is correct, not just a compromise.)
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM {$this->table}
+                 WHERE {$statusWhere}{$catWhere}
+                 ORDER BY {$orderCol} ASC"
+            );
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll();
+        } catch (\Throwable) {
+            if ($status !== 'pending' && !($status === 'all' && $excludePending)) {
+                return [];
+            }
+            $fallbackWhere = $status === 'pending'
+                ? $legacyPending
+                : ($this->isOwnedSchema ? 'status != 0' : 'trouble = 0');
+            $stmt = $this->db->prepare(
+                "SELECT * FROM {$this->table}
+                 WHERE {$fallbackWhere}{$catWhere}
+                 ORDER BY {$orderCol} ASC"
+            );
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll();
+        }
 
         if ($status === 'closed' || $status === 'adopted_out') {
             return array_map(
@@ -923,7 +972,10 @@ final class ListingRepo
      * Each entry includes parent_id, parent_name, and listing_count (active only).
      *
      * @param string $status         Same values as getFiltered(): 'current','upcoming','pending','all'
-     * @param bool   $excludePending When status='all', exclude pending/trouble listings
+     * @param bool   $excludePending When status='all', exclude genuinely-pending listings only —
+     *                               Closed/Adopted Out listings share the same legacy inactive flag
+     *                               but have a lifecycle row, so they're kept (with their status
+     *                               badge) rather than silently dropped from category counts.
      * @return array<int, array{id: int, name: string, slug: string, source: string, parent_id: int|null, parent_name: string|null, listing_count: int}>
      */
     public function getCategoryList(string $status = 'current', bool $excludePending = false): array
@@ -942,7 +994,7 @@ final class ListingRepo
             $status === 'closed'               => "{$legacyPending} AND EXISTS (SELECT 1 FROM lstr_listing_lifecycle l WHERE l.fanlisting_id = lc.fanlisting_id AND l.lifecycle_status = 'closed')",
             $status === 'adopted_out'          => "{$legacyPending} AND EXISTS (SELECT 1 FROM lstr_listing_lifecycle l WHERE l.fanlisting_id = lc.fanlisting_id AND l.lifecycle_status = 'adopted_out')",
             $status === 'past'                 => "{$legacyPending} AND EXISTS (SELECT 1 FROM lstr_listing_lifecycle l WHERE l.fanlisting_id = lc.fanlisting_id AND l.lifecycle_status IN ('closed', 'adopted_out'))",
-            $status === 'all' && $excludePending => $this->isOwnedSchema ? 'f.status != 0' : 'f.trouble = 0',
+            $status === 'all' && $excludePending => "NOT ({$legacyPending} AND {$notArchived})",
             default                             => '1 = 1',
         };
         $hasParentId = $this->categoryColumnExists('parent_id');
@@ -953,36 +1005,37 @@ final class ListingRepo
         $slugSel   = $hasSlug ? 'c.slug,'  : "'' AS slug,";
         $slugGroup = $hasSlug ? ', c.slug' : '';
 
-        if ($hasParentId) {
-            // UNION ALL derived table: counts include parent's own listings PLUS listings
-            // assigned to any of the parent's direct children (max depth=1). This means
-            // a parent category appears in the nav even if it has no direct listings,
-            // and its count covers the full child set.
-            $sql = "SELECT c.id, c.name, {$slugSel} c.source, c.parent_id,
-                           p.name AS parent_name,
-                           COUNT(DISTINCT t.fid) AS listing_count
-                    FROM (
-                        SELECT lc.category_id AS id, lc.fanlisting_id AS fid
-                        FROM lstr_listing_categories lc
-                        JOIN {$tbl} f ON f.{$pk} = lc.fanlisting_id
-                        WHERE {$active}
+        // Builds the full query for a given $active clause — extracted so the
+        // missing-lifecycle-table fallback below can rebuild it with a different
+        // (legacy-only) clause for 'pending' without duplicating both branches.
+        $buildSql = function (string $active) use ($hasParentId, $slugSel, $slugGroup, $tbl, $pk): string {
+            if ($hasParentId) {
+                return "SELECT c.id, c.name, {$slugSel} c.source, c.parent_id,
+                               p.name AS parent_name,
+                               COUNT(DISTINCT t.fid) AS listing_count
+                        FROM (
+                            SELECT lc.category_id AS id, lc.fanlisting_id AS fid
+                            FROM lstr_listing_categories lc
+                            JOIN {$tbl} f ON f.{$pk} = lc.fanlisting_id
+                            WHERE {$active}
 
-                        UNION ALL
+                            UNION ALL
 
-                        SELECT par.id AS id, lc.fanlisting_id AS fid
-                        FROM lstr_categories par
-                        JOIN lstr_categories chi ON chi.parent_id = par.id
-                        JOIN lstr_listing_categories lc ON lc.category_id = chi.id
-                        JOIN {$tbl} f ON f.{$pk} = lc.fanlisting_id
-                        WHERE {$active}
-                    ) t
-                    JOIN lstr_categories c ON c.id = t.id
-                    LEFT JOIN lstr_categories p ON p.id = c.parent_id
-                    GROUP BY c.id, c.name{$slugGroup}, c.source, c.parent_id, p.name
-                    HAVING COUNT(DISTINCT t.fid) > 0
-                    ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC";
-        } else {
-            $sql = "SELECT c.id, c.name, {$slugSel} c.source,
+                            SELECT par.id AS id, lc.fanlisting_id AS fid
+                            FROM lstr_categories par
+                            JOIN lstr_categories chi ON chi.parent_id = par.id
+                            JOIN lstr_listing_categories lc ON lc.category_id = chi.id
+                            JOIN {$tbl} f ON f.{$pk} = lc.fanlisting_id
+                            WHERE {$active}
+                        ) t
+                        JOIN lstr_categories c ON c.id = t.id
+                        LEFT JOIN lstr_categories p ON p.id = c.parent_id
+                        GROUP BY c.id, c.name{$slugGroup}, c.source, c.parent_id, p.name
+                        HAVING COUNT(DISTINCT t.fid) > 0
+                        ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC";
+            }
+
+            return "SELECT c.id, c.name, {$slugSel} c.source,
                            NULL AS parent_id, NULL AS parent_name,
                            COUNT(DISTINCT f.{$pk}) AS listing_count
                     FROM lstr_listing_categories lc
@@ -990,10 +1043,35 @@ final class ListingRepo
                     JOIN lstr_categories c ON c.id = lc.category_id
                     GROUP BY c.id, c.name{$slugGroup}, c.source
                     ORDER BY c.name ASC";
-        }
+        };
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
+        // UNION ALL derived table (when $hasParentId): counts include parent's own
+        // listings PLUS listings assigned to any of the parent's direct children
+        // (max depth=1). This means a parent category appears in the nav even if
+        // it has no direct listings, and its count covers the full child set.
+        $sql = $buildSql($active);
+
+        // $active references lstr_listing_lifecycle for 'pending'/'closed'/
+        // 'adopted_out'/'past'/'all'+excludePending — on an install that hasn't run
+        // Migration 93 yet, prepare() itself throws (native/server-side prepares).
+        // 'closed'/'adopted_out'/'past' are entirely defined by that table, so an
+        // empty result is correct when it's missing. 'pending' and 'all'+excludePending
+        // are real legacy data independent of the lifecycle feature (and a missing
+        // table means nothing could be archived yet anyway), so rebuild and retry
+        // with just the legacy predicate instead of hiding those categories/counts.
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+        } catch (\Throwable) {
+            if ($status !== 'pending' && !($status === 'all' && $excludePending)) {
+                return [];
+            }
+            $fallbackActive = $status === 'pending'
+                ? $legacyPending
+                : ($this->isOwnedSchema ? 'f.status != 0' : 'f.trouble = 0');
+            $stmt = $this->db->prepare($buildSql($fallbackActive));
+            $stmt->execute();
+        }
 
         return array_map(
             static fn(array $r) => [

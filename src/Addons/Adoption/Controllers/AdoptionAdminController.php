@@ -258,7 +258,12 @@ final class AdoptionAdminController
             $request->ip()
         );
 
-        $session->set('lstr_flash_success', ucfirst($action) . 'd ' . $count . ' application' . ($count !== 1 ? 's' : '') . '.');
+        $actionPastTense = match ($action) {
+            'approve' => 'Approved',
+            'reject'  => 'Rejected',
+            'delete'  => 'Deleted',
+        };
+        $session->set('lstr_flash_success', $actionPastTense . ' ' . $count . ' application' . ($count !== 1 ? 's' : '') . '.');
         return Response::redirect($returnUrl);
     }
 

@@ -965,13 +965,34 @@ final class ListingRowRendererTest extends TestCase
             'adopted_to_name' => 'New Owner',
             'adopted_to_url'  => 'https://newowner.example.com',
             'archive_note'    => 'Handed off amicably.',
+            // DATETIME column value — {archived_at} truncates to Y-m-d before
+            // formatting (see testArchivedAtTruncatesTimeComponent below), so
+            // the time component here must NOT appear in the rendered output.
             'archived_at'     => '2026-06-01 12:00:00',
         ];
         $tpl = '{adopted_to_name}|{adopted_to_url}|{archive_note}|{archived_at}';
 
         self::assertSame(
-            'New Owner|https://newowner.example.com|Handed off amicably.|2026-06-01 12:00:00',
+            'New Owner|https://newowner.example.com|Handed off amicably.|2026-06-01',
             ListingRowRenderer::render($listing, $tpl, $settings, ''),
+        );
+    }
+
+    public function testArchivedAtTruncatesTimeComponentAndRespectsDateFormat(): void
+    {
+        $listing  = $this->makeListing(lifecycle: 'closed');
+        $settings = ['archived_at' => '2026-06-01 12:34:56'];
+        $tpl      = '{archived_at}';
+
+        // No $luster_date_format set (blank) — DateFormatter::formatWith()
+        // would otherwise return the raw string completely unmodified,
+        // exposing the time suffix.
+        self::assertSame('2026-06-01', ListingRowRenderer::render($listing, $tpl, $settings, ''));
+
+        // With a date format set, behaves the same way date_opened/date_updated do.
+        self::assertSame(
+            'June 1, 2026',
+            ListingRowRenderer::render($listing, $tpl, $settings, '', dateFormat: 'F j, Y'),
         );
     }
 

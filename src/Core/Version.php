@@ -28,5 +28,5 @@ final class Version
     public const SUPPORT_EMAIL    = 'support@luster.nu';
     public const SUPPORT_NAME     = 'Luster';
     /** Highest migration ID shipped with this version of Luster. */
-    public const LATEST_MIGRATION = 101;
+    public const LATEST_MIGRATION = 102;
 }

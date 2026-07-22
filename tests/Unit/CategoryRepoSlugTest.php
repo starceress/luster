@@ -20,7 +20,9 @@ final class CategoryRepoSlugTest extends TestCase
             slug       TEXT    NOT NULL DEFAULT '',
             parent_id  INTEGER NULL,
             source     TEXT    NOT NULL DEFAULT 'custom',
-            created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (source, name),
+            UNIQUE (source, slug)
         );
         CREATE TABLE lstr_joined (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,10 +62,11 @@ final class CategoryRepoSlugTest extends TestCase
     public function testAddGeneratesUniqueSlugOnCollision(): void
     {
         $repo = $this->repo();
-        $id1  = $repo->add('Anime', 'custom');
-        // Force a collision by inserting a row whose slug would also be 'anime'
-        // We do that by adding a second category with the same slug base.
-        $id2  = $repo->add('Anime', 'custom');  // findOrCreate blocks this via UNIQUE but let's check directly
+        // Different names that slugify to the same base ('anime') — exercises
+        // slug collision resolution without hitting the (source, name)
+        // uniqueness add() enforces (two categories can't share both).
+        $id1  = $repo->add('Anime!', 'custom');
+        $id2  = $repo->add('Anime?', 'custom');
 
         $cat1 = $repo->getById($id1);
         $cat2 = $repo->getById($id2);
@@ -72,6 +75,64 @@ final class CategoryRepoSlugTest extends TestCase
         $slugs = [(string) $cat1->slug, (string) $cat2->slug];
         sort($slugs);
         self::assertSame(['anime', 'anime-2'], $slugs);
+    }
+
+    public function testAddWithDuplicateNameAndSourceThrows(): void
+    {
+        $repo = $this->repo();
+        $repo->add('Anime', 'custom');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repo->add('Anime', 'custom');
+    }
+
+    public function testAddWithSameNameDifferentSourceSucceeds(): void
+    {
+        $repo = $this->repo();
+        $repo->add('Anime', 'tfl');
+        $id2  = $repo->add('Anime', 'custom');
+
+        self::assertNotNull($repo->getById($id2));
+    }
+
+    public function testUpdateWithDuplicateNameAndSourceThrows(): void
+    {
+        $repo = $this->repo();
+        $repo->add('Anime', 'custom');
+        $other = $repo->add('Books', 'custom');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repo->update($other, 'Anime', 'custom');
+    }
+
+    public function testUpdateKeepingOwnNameDoesNotThrow(): void
+    {
+        $repo = $this->repo();
+        $id   = $repo->add('Anime', 'custom');
+
+        $repo->update($id, 'Anime', 'custom', null, null);
+
+        self::assertSame('Anime', (string) $repo->getById($id)->name);
+    }
+
+    public function testUpdateMovingNetworkWithBlankSlugAutoResolvesCollision(): void
+    {
+        $repo = $this->repo();
+        // A category named "Books" already exists under 'tfl' with slug 'books'.
+        $repo->add('Books', 'tfl');
+        // A differently-named custom category happens to also have slug 'books'.
+        $moving = $repo->add('Books!', 'custom');
+        self::assertSame('books', (string) $repo->getById($moving)->slug);
+
+        // Move it into 'tfl' without touching the slug field (as the edit form
+        // does whenever the admin leaves Slug blank) — must not throw, and
+        // must land on a non-colliding slug rather than hitting the DB's
+        // UNIQUE(source, slug) constraint.
+        $repo->update($moving, 'Books!', 'tfl', null, null);
+
+        $moved = $repo->getById($moving);
+        self::assertSame('tfl', (string) $moved->source);
+        self::assertSame('books-2', (string) $moved->slug);
     }
 
     public function testFindOrCreateGeneratesSlug(): void

@@ -206,7 +206,8 @@ $id = (int) $listing->id;
     </p>
     <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/merge"
           data-del-modal data-del-entity="merge_member"
-          data-del-name="<?= View::e($member->email) ?>">
+          data-del-name-from="duplicate_email"
+          data-del-context="<?= View::e($member->email) ?>">
       <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
       <div class="field-row">

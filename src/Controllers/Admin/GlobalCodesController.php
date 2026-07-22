@@ -440,13 +440,21 @@ final class GlobalCodesController extends AdminController
 
         $codesRepo = new CodesRepo($db);
         $status    = $action === 'approve' ? 'approved' : 'rejected';
-        $count     = $codesRepo->bulkStatus($ids, $status);
+        // $listingId is 0 for the collective bucket in this grouped-by-listing
+        // view (fanlisting_id groups under (int) null = 0) — scope to
+        // collective-only in that case, otherwise to the specific listing.
+        $count     = $codesRepo->bulkStatus($ids, $status, $listingId > 0 ? $listingId : null);
 
-        // Send donor emails for approved codes
+        // Send donor emails for approved codes actually touched above (same scope
+        // bulkStatus() applied) — otherwise an out-of-scope ID mixed into the
+        // request would get an "approved" email despite being left untouched.
         if ($action === 'approve') {
             foreach ($ids as $codeId) {
                 $code = $codesRepo->getById($codeId);
-                if ($code !== null) {
+                $inScope = $code !== null && (
+                    $listingId > 0 ? $code->fanlisting_id === $listingId : $code->fanlisting_id === null
+                );
+                if ($inScope) {
                     $this->maybeSendDonorEmail($db, $code);
                 }
             }
@@ -455,11 +463,15 @@ final class GlobalCodesController extends AdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             "code.bulk_{$action}",
-            "Bulk {$action}: {$count} code(s)" . ($listingId ? " for listing #{$listingId}" : ' (global)'),
+            // listing_id=0 here always means the collective bucket (see the
+            // scoping comment above) — this endpoint has no separate
+            // "truly every listing" caller the way approveAll() does.
+            "Bulk {$action}: {$count} code(s)" . ($listingId > 0 ? " for listing #{$listingId}" : ' (collective)'),
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', ucfirst($action) . "d {$count} code(s).");
+        $actionPastTense = $action === 'approve' ? 'Approved' : 'Rejected';
+        $session->set('lstr_flash_success', "{$actionPastTense} {$count} code(s).");
         return $this->redirectBack($request, $baseUrl, $listingId);
     }
 
@@ -480,15 +492,26 @@ final class GlobalCodesController extends AdminController
         $baseUrl   = $this->app->getBaseUrl();
         $codesRepo = new CodesRepo($db);
 
-        $listingId = (int) $request->post('listing_id', 0);
-        $scope     = $listingId > 0 ? $listingId : null;
+        $listingId    = (int) $request->post('listing_id', 0);
+        $isCollective = (int) $request->post('collective', 0) === 1;
+        $scope        = $listingId > 0 ? $listingId : null;
 
-        // Fetch pending codes before approving (for emails)
-        $pending = $scope !== null
-            ? $codesRepo->getByListing($scope, 'pending')
-            : $codesRepo->getPendingAllPaginated(999, 1)['items'];
+        // Fetch pending codes before approving (for emails). listing_id=0 is
+        // ambiguous by itself — the per-group "Approve All" button on the
+        // grouped pending view's collective bucket posts it too (that bucket
+        // groups under (int) null = 0), so the explicit collective=1 flag is
+        // what actually distinguishes "collective only" from "every listing".
+        $pending = match (true) {
+            $listingId > 0 => $codesRepo->getByListing($listingId, 'pending'),
+            $isCollective  => $codesRepo->getByListing(null, 'pending'),
+            // Sized to the real total, not a fixed page size — a hardcoded
+            // per-page cap here would silently skip donor emails for any
+            // pending codes beyond it once approveAllPending() below approves
+            // literally everything with no such limit.
+            default        => $codesRepo->getPendingAllPaginated(max(1, $codesRepo->countPendingAll()), 1)['items'],
+        };
 
-        $count = $codesRepo->approveAllPending($scope);
+        $count = $codesRepo->approveAllPending($scope, $isCollective);
 
         foreach ($pending as $code) {
             $this->maybeSendDonorEmail($db, $code);
@@ -497,13 +520,16 @@ final class GlobalCodesController extends AdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             'code.approve_all',
-            "Approved all {$count} pending code(s)" . ($scope ? " for listing #{$scope}" : ' (global)'),
+            "Approved all {$count} pending code(s)" . ($scope !== null ? " for listing #{$scope}" : ($isCollective ? ' (collective)' : ' (global)')),
             $request->ip(),
         );
 
         $session->set('lstr_flash_success', "Approved {$count} pending code(s).");
         if ($listingId > 0) {
             return Response::redirect($baseUrl . '/admin/codes?listing_id=' . $listingId . '&tab=approved');
+        }
+        if ($isCollective) {
+            return Response::redirect($baseUrl . '/admin/codes?collective=1&tab=approved');
         }
         return Response::redirect($baseUrl . '/admin/codes');
     }
@@ -816,11 +842,14 @@ final class GlobalCodesController extends AdminController
             }
         } else {
             $status = $action === 'approve' ? 'approved' : 'rejected';
-            $count  = $codesRepo->bulkStatus($ids, $status);
+            $count  = $codesRepo->bulkStatus($ids, $status, null);
             if ($action === 'approve') {
                 foreach ($ids as $codeId) {
                     $c = $codesRepo->getById($codeId);
-                    if ($c !== null) {
+                    // Only email for codes actually touched above (collective-scoped) —
+                    // otherwise a non-collective ID mixed into the request would get an
+                    // "approved" email despite bulkStatus() correctly leaving it untouched.
+                    if ($c !== null && $c->fanlisting_id === null) {
                         $this->maybeSendDonorEmail($db, $c);
                     }
                 }
@@ -834,7 +863,12 @@ final class GlobalCodesController extends AdminController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', ucfirst($action) . "d {$count} collective code(s).");
+        $actionPastTense = match ($action) {
+            'approve' => 'Approved',
+            'reject'  => 'Rejected',
+            'delete'  => 'Deleted',
+        };
+        $session->set('lstr_flash_success', "{$actionPastTense} {$count} collective code(s).");
         return Response::redirect($baseUrl . '/admin/codes?collective=1&tab=' . urlencode($tab));
     }
 

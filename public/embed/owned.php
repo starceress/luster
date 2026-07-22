@@ -56,8 +56,8 @@ $_lusterShowCatSwitcher     = true;
 $_lusterBrowseByCat         = (bool) ($luster_browse_by_category  ?? false);
 $_lusterShowPendingPseudo   = (bool) ($luster_show_pending        ?? true);
 $_lusterShowUpcomingPseudo  = (bool) ($luster_show_upcoming       ?? true);
-$_lusterShowClosedPseudo    = (bool) ($luster_show_closed         ?? true);
-$_lusterShowAdoptedOutPseudo = (bool) ($luster_show_adopted_out   ?? true);
+$_lusterShowClosedPseudo    = (bool) ($luster_show_closed         ?? false);
+$_lusterShowAdoptedOutPseudo = (bool) ($luster_show_adopted_out   ?? false);
 $_lusterShowPastPseudo      = (bool) ($luster_show_past           ?? true);
 
 // Category ID resolution order:
@@ -145,8 +145,18 @@ if ($_lusterStatus === 'current') {
     $_lusterUpcomingCount   = (int) ($_lusterStats['upcoming'] ?? 0);
 }
 
-// When a pseudo-view is active, fetch that status group's listings instead
-$_lusterContentStatus = $_lusterPseudoView !== '' ? $_lusterPseudoView : $_lusterStatus;
+// When a pseudo-view is active, fetch that status group's listings instead.
+// When browsing "All Listings" (the ?cat=all browse-index link), show every
+// status instead of just $luster_status's subset — the "All Listings (N)"
+// count next to that link already reflects the true site-wide total
+// (getStats()'s COUNT(*)), so the listings actually shown there should match,
+// including Closed/Adopted Out (with their status badge), not silently
+// exclude them the way a plain $luster_status='current' page would.
+$_lusterContentStatus = match (true) {
+    $_lusterPseudoView !== ''  => $_lusterPseudoView,
+    $_lusterBrowseShowAll      => 'all',
+    default                    => $_lusterStatus,
+};
 
 $_lusterListings = $_lusterListingRepo->getFiltered(
     $_lusterContentStatus,
@@ -199,11 +209,16 @@ $_lusterShowListings  = $_lusterPresenterResult['show_listings'];
 // 3d. Load owned listing row template from DB (if set)
 // ---------------------------------------------------------------------------
 
+// The Past view gets its own dedicated template (past_owned_template), independent
+// from the shared owned_template every other status uses — set on the Collective
+// Templates page's "Past Fanlistings" section.
+$_lusterOwnedTemplateKey = $_lusterContentStatus === 'past' ? 'past_owned_template' : 'owned_template';
+
 $_lusterSiteRepo      = new SiteSettingsRepo($_lusterApp->getDatabase());
-$_lusterOwnedTemplate = $_lusterSiteRepo->get('owned_template')
-    ?? SiteSettingsRepo::collectiveDefaults()['owned_template'];
+$_lusterOwnedTemplate = $_lusterSiteRepo->get($_lusterOwnedTemplateKey)
+    ?? SiteSettingsRepo::collectiveDefaults()[$_lusterOwnedTemplateKey];
 if (trim($_lusterOwnedTemplate) === '') {
-    $_lusterOwnedTemplate = SiteSettingsRepo::collectiveDefaults()['owned_template'];
+    $_lusterOwnedTemplate = SiteSettingsRepo::collectiveDefaults()[$_lusterOwnedTemplateKey];
 }
 
 $_lusterOwnedTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterOwnedTemplate);

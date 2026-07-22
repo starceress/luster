@@ -51,6 +51,7 @@ use Luster\Support\CodesTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 use Luster\Repositories\ErrorLogRepo;
 use Luster\Repositories\JoinedListingRepo;
+use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
@@ -346,7 +347,7 @@ final class SettingsController extends AdminController
 
         $groupWhitelist = [
             'all',
-            'owned', 'latest-owned', 'random-owned',
+            'owned', 'past-owned', 'latest-owned', 'random-owned',
             'joined', 'latest-joined', 'random-joined',
             'stats',
             'codes', 'codes-form',
@@ -366,6 +367,7 @@ final class SettingsController extends AdminController
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
         $collectiveTemplates = $siteRepo->getMany([
             'owned_template',
+            'past_owned_template',
             'joined_template',
             'collective_stats_template',
             'collective_affiliates_section_template',
@@ -423,7 +425,7 @@ final class SettingsController extends AdminController
         $tpl  = (string) $request->post('template_html', '');
 
         $allowed = [
-            'owned', 'random', 'latest', 'joined',
+            'owned', 'past_owned', 'random', 'latest', 'joined',
             'random-joined', 'latest-joined',
             'collective_affiliates_section', 'collective_stats',
             'collective_affiliate_apply_form',
@@ -455,6 +457,7 @@ final class SettingsController extends AdminController
             $uploadsBase = $appUrl . '/uploads';
             $html = match ($type) {
                 'owned', 'random', 'latest'                => $this->coltplPreviewListings($type, $tpl, $db, $config, $uploadsBase . '/listings'),
+                'past_owned'                                => $this->coltplPreviewPastOwned($tpl, $db, $config, $uploadsBase . '/listings'),
                 'joined', 'random-joined', 'latest-joined' => $this->coltplPreviewJoined($type, $tpl, $db, $uploadsBase . '/joined', $config),
                 'collective_affiliates_section'      => $this->coltplPreviewAffiliates($tpl, $db, $uploadsBase . '/affiliates', $request),
                 'collective_stats'                   => $this->coltplPreviewStats($tpl, $db, $config),
@@ -578,6 +581,80 @@ final class SettingsController extends AdminController
         }
 
         return ListingRowRenderer::renderTemplate($tpl, $current, $uploadsUrl, $settingsMap, $statsMap, $categoryMap);
+    }
+
+    /**
+     * Preview for past_owned_template — mirrors coltplPreviewListings() but pulls
+     * Closed + Adopted Out listings via ListingRepo::getFiltered('past') instead of
+     * active ones, and merges lifecycle metadata (adopted_to_name/url, archive_note,
+     * archived_at) into the settings map the same way public/embed/owned.php does,
+     * so {if_status_closed}/{if_status_adopted_out}/{adopted_to_name} etc. actually
+     * populate in the preview instead of rendering blank.
+     */
+    private function coltplPreviewPastOwned(string $tpl, Database $db, Config $config, string $uploadsUrl): string
+    {
+        $listingRepo = new ListingRepo($db, $config);
+        $past        = $listingRepo->getFiltered('past');
+
+        if (empty($past)) {
+            return '<p style="font-style:italic;color:#888">No past fanlistings to preview with.</p>';
+        }
+
+        $ids = array_map(static fn($fl) => $fl->id, $past);
+        $phs = implode(',', array_fill(0, count($ids), '?'));
+
+        $settingsMap = (new ListingSettingsRepo($db))->getRenderSettingsBatch($ids);
+
+        $lifecycleRepo = new ListingLifecycleRepo($db);
+        foreach ($ids as $lcListingId) {
+            $lcRow = $lifecycleRepo->getByListingId($lcListingId);
+            if ($lcRow !== null) {
+                $settingsMap[$lcListingId] = array_merge($settingsMap[$lcListingId] ?? [], [
+                    'adopted_to_name' => $lcRow['adopted_to_name'] ?? '',
+                    'adopted_to_url'  => $lcRow['adopted_to_url']  ?? '',
+                    'archive_note'    => $lcRow['archive_note']    ?? '',
+                    'archived_at'     => $lcRow['archived_at']     ?? '',
+                ]);
+            }
+        }
+
+        $categoryMap = [];
+        try {
+            $stmt = $db->prepare(
+                "SELECT lc.fanlisting_id, c.name, c.source
+                 FROM lstr_listing_categories lc
+                 JOIN lstr_categories c ON c.id = lc.category_id
+                 WHERE lc.fanlisting_id IN ({$phs})
+                 ORDER BY lc.fanlisting_id, c.name"
+            );
+            $stmt->execute(array_values($ids));
+            $raw = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $rowListingId = (int) $row['fanlisting_id'];
+                $raw[$rowListingId][] = (string) $row['name'];
+                if ($row['source'] === 'tfl')  { $settingsMap[$rowListingId]['has_tfl_category']  = true; }
+                if ($row['source'] === 'tafl') { $settingsMap[$rowListingId]['has_tafl_category'] = true; }
+            }
+            foreach ($raw as $id => $names) {
+                $categoryMap[$id] = implode(', ', $names);
+            }
+        } catch (\Throwable) {}
+
+        $tpl = str_replace('{site_name}', htmlspecialchars((string) $config->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $tpl);
+
+        $statsMap = [];
+        $needsStats = str_contains($tpl, '{member_count}')
+                   || str_contains($tpl, '{member_pending_count}')
+                   || str_contains($tpl, '{pending_owned_count}')
+                   || str_contains($tpl, '{country_count}')
+                   || str_contains($tpl, '{countries_count}')
+                   || str_contains($tpl, '{if_countries}')
+                   || str_contains($tpl, '{if_pending}');
+        if ($needsStats) {
+            $statsMap = (new MemberStatsService($db, $config))->forListings($past);
+        }
+
+        return ListingRowRenderer::renderTemplate($tpl, $past, $uploadsUrl, $settingsMap, $statsMap, $categoryMap);
     }
 
     private function coltplPreviewJoined(string $type, string $tpl, Database $db, string $uploadsUrl, Config $config): string
@@ -2173,7 +2250,7 @@ final class SettingsController extends AdminController
 
         $groupWhitelist = [
             'all',
-            'owned', 'latest-owned', 'random-owned',
+            'owned', 'past-owned', 'latest-owned', 'random-owned',
             'joined', 'latest-joined', 'random-joined',
             'stats',
             'codes', 'codes-form',
@@ -2191,6 +2268,7 @@ final class SettingsController extends AdminController
         }
 
         $ownedTemplate                       = (string) $request->post('owned_template',                            '');
+        $pastOwnedTemplate                   = (string) $request->post('past_owned_template',                       '');
         $joinedTemplate                      = (string) $request->post('joined_template',                           '');
         $cStatsTemplate                      = (string) $request->post('collective_stats_template',                 '');
         $collectiveAffiliatesSectionTpl      = (string) $request->post('collective_affiliates_section_template',    '');
@@ -2220,6 +2298,7 @@ final class SettingsController extends AdminController
         $adminId     = (int) $session->get('lstr_admin_id');
         $incomingRev = [
             'owned_template'                          => $ownedTemplate                   !== '' ? $ownedTemplate                   : null,
+            'past_owned_template'                     => $pastOwnedTemplate               !== '' ? $pastOwnedTemplate               : null,
             'joined_template'                         => $joinedTemplate                  !== '' ? $joinedTemplate                  : null,
             'collective_stats_template'               => $cStatsTemplate                  !== '' ? $cStatsTemplate                  : null,
             'collective_affiliates_section_template'  => $collectiveAffiliatesSectionTpl  !== '' ? $collectiveAffiliatesSectionTpl  : null,
@@ -2244,6 +2323,7 @@ final class SettingsController extends AdminController
         (new TemplateRevisionRepo($db))->recordChanged(TemplateRevisionRepo::COLLECTIVE_ID, $oldValues, $incomingRev, $adminId);
 
         $siteRepo->set('owned_template',            $ownedTemplate  !== '' ? $ownedTemplate  : null);
+        $siteRepo->set('past_owned_template',       $pastOwnedTemplate !== '' ? $pastOwnedTemplate : null);
         $siteRepo->set('joined_template',           $joinedTemplate !== '' ? $joinedTemplate : null);
         $siteRepo->set('collective_stats_template', $cStatsTemplate !== '' ? $cStatsTemplate : null);
         // Affiliates section template: null = feature off (same as empty)
@@ -2307,7 +2387,7 @@ final class SettingsController extends AdminController
 
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
         $keys = [
-            'owned_template', 'joined_template',
+            'owned_template', 'past_owned_template', 'joined_template',
             'collective_stats_template', 'collective_affiliates_section_template',
             'random_listing_template', 'latest_listing_template',
             'random_joined_listing_template', 'latest_joined_listing_template',

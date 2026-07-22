@@ -5,8 +5,8 @@
  Public embed stylesheet (fl-* classes). Provides baseline layout,
  spacing, and structure for all public-facing embeds — join forms,
  member lists, stats blocks, etc. No hardcoded colors except
- success/error messages. Include once in your page's <head> before
- your own stylesheet.
+ success/error messages and the Closed/Adopted Out status badges.
+ Include once in your page's <head> before your own stylesheet.
 */
 
 
@@ -613,7 +613,9 @@
 }
 .fl-affiliate-apply-toggle--button,
 .fl-codes-submit-toggle--button {
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin: 0.5em auto 0;
   padding: 0.4em 1em;
   border: 1px solid currentColor;
   border-radius: var(--fl-radius, 3px);
@@ -676,6 +678,25 @@
 .fl-listing-subject {
   display: block;
   font-style: italic;
+}
+
+.fl-status-badge {
+  display: inline-block;
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 0.1em 0.5em;
+  border-radius: 1em;
+  margin-left: 0.4em;
+}
+
+.fl-status-badge--closed {
+  background: #fff0f0;
+  color: #c00;
+}
+
+.fl-status-badge--adopted {
+  background: #eaf1fd;
+  color: #2c5aa0;
 }
 
 .fl-listing-meta {

@@ -15,6 +15,58 @@ use Luster\Support\RulesBodyRenderer;
 $b  = rtrim(View::e($base_url), '/');
 $fe = $field_errors ?? [];
 
+// Defaults for a General-tab validation-failure re-render, which only
+// supplies the General-tab-relevant keys (see ListingController::edit()'s
+// POST failure branch) — every other tab's data (codes, affiliates, rules,
+// templates, embed settings, etc.) isn't recomputed on that path, since the
+// failure is about General-tab fields and the admin will see live data again
+// once they fix the error and the save actually succeeds. Without these, an
+// otherwise-unrelated General-tab validation error (e.g. a bad title, or an
+// invalid Closed/Adopted On date) would 500 instead of showing the error.
+$embed_path                   ??= '';
+$countries                    ??= 0;
+$newest_member                 ??= null;
+$top_countries                 ??= [];
+$last_updated                  ??= null;
+$fl_last_updated                ??= '';
+$global_templates               ??= [];
+$global_form_urls               ??= [];
+$template_sources                ??= [];
+$embed_settings                  ??= [];
+$approved_by                     ??= '';
+$approval_url                    ??= '';
+$adoption_addon_installed         ??= false;
+$newsfeed_addon_installed          ??= false;
+$rules_addon_installed             ??= false;
+$rules_enabled_for_listing          ??= false;
+$rules                               ??= null;
+$for_adoption                        ??= false;
+$adoption_count                      ??= 0;
+$affiliate_apply_enabled              ??= false;
+$affiliate_apply_style                ??= 'button';
+$codes_submit_style                    ??= 'button';
+$affiliate_apply_toggle_label           ??= null;
+$codes_submit_toggle_label               ??= null;
+$form_url_affiliate_apply                 ??= '';
+$redirect_url_affiliate_apply              ??= '';
+$stat_newmembers_limit                      ??= null;
+$code_approval_email                         ??= null;
+$form_url_contact                             ??= '';
+$codes                                        ??= [];
+$code_cats                                     ??= [];
+$code_donors                                    ??= [];
+$code_submitter_names                            ??= [];
+$code_grouped                                     ??= [];
+$code_category_ids                                 ??= [];
+$code_cat_map                                       ??= [];
+$code_donor_map                                      ??= [];
+$code_edit_cat_id                                     ??= null;
+$code_edit_donor_id                                    ??= null;
+$code_status_filter                                     ??= '';
+$code_status_counts                                      ??= [];
+$total_codes                                              ??= 0;
+$uploads_url                                               ??= rtrim($b, '/') . '/uploads/codes';
+
 $sizeMap   = ['small' => '50px', 'medium' => '100px', 'large' => '150px'];
 $sizeKey   = (string) ($cfg['image_preview_size'] ?? 'medium');
 $imgHeight = $sizeMap[$sizeKey] ?? '100px';
@@ -355,11 +407,68 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
+        <?php
+          $archivedAtOriginalVal = (string) ($archived_at_original ?? '');
+          $archivedAtVal         = (string) ($old['archived_at'] ?? $archivedAtOriginalVal);
+        ?>
+        <div class="field-row field-row--top" id="archived-at-row">
+          <label class="field-label" for="fl-archived-at" id="fl-archived-at-label">Closed On</label>
+          <div>
+            <div class="actions-row actions-row--wrap">
+              <input id="fl-archived-at" type="date" name="archived_at" class="form form--compact"
+                     value="<?= View::e($archivedAtVal) ?>" data-original-value="<?= View::e($archivedAtOriginalVal) ?>">
+              <button type="button" class="btn btn-tertiary btn-sm" id="set-archived-today-btn">Set Today's Date</button>
+              <button type="button" class="btn btn-quaternary btn-sm" id="reset-archived-date-btn">Reset</button>
+            </div>
+            <?php if (!empty($fe['archived_at'])): ?><p class="field-error"><?= View::e($fe['archived_at'][0]) ?></p><?php endif; ?>
+          </div>
+        </div>
+
+        <div class="section-label">Previous Owners</div>
+        <div class="field-row field-row--top">
+          <label class="field-label">Credited Owners</label>
+          <div>
+            <p class="form-hint">Credit anyone who owned this fanlisting before you. Shown via the <code>{previous_owners}</code> token on the Stats template.</p>
+            <?php if (!empty($fe['previous_owners'])): ?><p class="field-error"><?= View::e($fe['previous_owners'][0]) ?></p><?php endif; ?>
+            <?php if (($previous_owners ?? []) !== [] && empty($stats_template_has_previous_owners_token)): ?>
+              <p class="form-hint form-hint--warn">Saved, but not currently shown until a previous-owner token is added to the Stats template.</p>
+            <?php endif; ?>
+            <?php
+              $poOldName = $old['previous_owner_name'] ?? null;
+              $poOldUrl  = $old['previous_owner_url']  ?? null;
+              $poRows    = $poOldName !== null
+                  ? array_map(
+                      static fn($n, $u) => ['owner_name' => (string) $n, 'owner_url' => (string) ($u ?? '')],
+                      $poOldName,
+                      $poOldUrl ?? array_fill(0, count($poOldName), ''),
+                  )
+                  : ($previous_owners ?? []);
+            ?>
+            <div class="po-rows" id="previous-owners-rows" data-po-rows>
+              <?php foreach ($poRows as $po): ?>
+              <div class="po-row" data-po-row>
+                <input type="text" name="previous_owner_name[]" class="form" placeholder="Owner name" maxlength="255" value="<?= View::e($po['owner_name']) ?>">
+                <input type="url" name="previous_owner_url[]" class="form" placeholder="https:// (optional)" maxlength="500" value="<?= View::e($po['owner_url']) ?>">
+                <button type="button" class="btn btn-quaternary btn-sm po-remove-btn" data-po-remove><?= View::icon('delete') ?> Remove</button>
+              </div>
+              <?php endforeach; ?>
+            </div>
+            <template id="po-row-template">
+              <div class="po-row" data-po-row>
+                <input type="text" name="previous_owner_name[]" class="form" placeholder="Owner name" maxlength="255">
+                <input type="url" name="previous_owner_url[]" class="form" placeholder="https:// (optional)" maxlength="500">
+                <button type="button" class="btn btn-quaternary btn-sm po-remove-btn" data-po-remove><?= View::icon('delete') ?> Remove</button>
+              </div>
+            </template>
+            <button type="button" class="btn btn-tertiary btn-sm" data-po-add><?= View::icon('add') ?> Add Previous Owner</button>
+          </div>
+        </div>
+
         <div class="field-row" id="opened-row">
           <label class="field-label" for="fl-opened">Opened On</label>
           <div>
             <?php
-              $openedRaw = (string) ($listing->opened ?? '');
+              $openedRaw = (string) ($old['opened'] ?? $listing->opened ?? '');
               $openedDateVal = strlen($openedRaw) >= 10 ? substr($openedRaw, 0, 10) : '';
             ?>
             <input id="fl-opened" type="date" name="opened" class="form form--compact"
@@ -1132,6 +1241,13 @@ $_tplCsrf = View::e($csrf_token ?? '');
             <?= $ltok('stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when the &ldquo;Approved By&rdquo; dropdown is set to a network.') ?>
             <?= $ltok('stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing has a TFL category assigned (Network &amp; Category above) &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
             <?= $ltok('stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing has a TAFL category assigned (Network &amp; Category above) &mdash; independent of &ldquo;Approved By&rdquo;.') ?>
+            <?= $ltok('stats_template', '{previous_owners}',      '{previous_owners}',      'Comma-separated list of previous owners (set on this listing\'s General tab), linked when a URL was given, plain text otherwise.') ?>
+            <?= $ltok('stats_template', '{previous_owners_count}', '{previous_owners_count}', 'How many previous owners are credited.') ?>
+            <?= $ltok('stats_template', '{if_previous_owners}{/if_previous_owners}', '{if_previous_owners}...{/if_previous_owners}', 'Shows only when at least one previous owner is credited.') ?>
+            <?= $ltok('stats_template', '{each_previous_owner}{/each_previous_owner}', '{each_previous_owner}...{/each_previous_owner}', 'Repeats the HTML inside it once per previous owner, for a custom layout instead of the flat {previous_owners} list.') ?>
+            <?= $ltok('stats_template', '{previous_owner_name}', '{previous_owner_name}', 'Use inside {each_previous_owner}. The owner\'s name, or their URL if no name was given.') ?>
+            <?= $ltok('stats_template', '{previous_owner_url}',  '{previous_owner_url}',  'Use inside {each_previous_owner}. The owner\'s URL, or empty if none was given.') ?>
+            <?= $ltok('stats_template', '{if_previous_owner_url}{/if_previous_owner_url}', '{if_previous_owner_url}...{/if_previous_owner_url}', 'Use inside {each_previous_owner}. Shows only when this owner has a URL.') ?>
           </tbody></table>
         </div>
       </details>

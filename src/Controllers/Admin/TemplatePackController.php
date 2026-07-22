@@ -89,6 +89,7 @@ final class TemplatePackController
     /** Collective template keys — storage key names are the pack key names. */
     public const COLLECTIVE_TEMPLATE_KEYS = [
         'owned_template',
+        'past_owned_template',
         'joined_template',
         'collective_stats_template',
         'collective_affiliates_section_template',
@@ -114,6 +115,7 @@ final class TemplatePackController
     /** Human-readable labels for collective template keys. */
     private const COLLECTIVE_TEMPLATE_LABELS = [
         'owned_template'                           => 'Owned Listings',
+        'past_owned_template'                      => 'Past Fanlistings',
         'joined_template'                          => 'Joined Listings',
         'collective_stats_template'                => 'Collective Stats',
         'collective_affiliates_section_template'   => 'Affiliates Section',
@@ -190,7 +192,7 @@ final class TemplatePackController
             }
         }
 
-        $filename = 'luster-templates-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($listing->title)) . '.json';
+        $filename = 'luster-templates-' . $this->slugForFilename($listing->title) . '.json';
         $json = json_encode($pack, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
         return Response::download($json, $filename, 'application/json');
@@ -249,7 +251,7 @@ final class TemplatePackController
             return Response::json(['error' => 'Could not create ZIP archive.'], 500);
         }
 
-        $slug     = preg_replace('/[^a-z0-9]+/', '-', strtolower($listing->title));
+        $slug     = $this->slugForFilename($listing->title);
         $filename = 'luster-templates-' . $slug . '.zip';
 
         return Response::streamFile($tempPath, $filename, 'application/zip');
@@ -775,7 +777,7 @@ final class TemplatePackController
         ];
 
         $siteName = (string) ($siteRepo->get('site_name') ?? 'luster');
-        $filename = 'luster-global-templates-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName)) . '.json';
+        $filename = 'luster-global-templates-' . $this->slugForFilename($siteName) . '.json';
         $json = json_encode($pack, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
         return Response::download($json, $filename, 'application/json');
@@ -823,7 +825,7 @@ final class TemplatePackController
         }
 
         $siteName = (string) ($siteRepo->get('site_name') ?? 'luster');
-        $slug     = preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName));
+        $slug     = $this->slugForFilename($siteName);
         $filename = 'luster-global-templates-' . $slug . '.zip';
 
         return Response::streamFile($tempPath, $filename, 'application/zip');
@@ -1244,7 +1246,7 @@ final class TemplatePackController
         ];
 
         $siteName = (string) ($siteRepo->get('site_name') ?? 'luster');
-        $filename = 'luster-collective-templates-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName)) . '.json';
+        $filename = 'luster-collective-templates-' . $this->slugForFilename($siteName) . '.json';
         $json = json_encode($pack, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
         return Response::download($json, $filename, 'application/json');
@@ -1286,7 +1288,7 @@ final class TemplatePackController
         }
 
         $siteName = (string) ($siteRepo->get('site_name') ?? 'luster');
-        $slug     = preg_replace('/[^a-z0-9]+/', '-', strtolower($siteName));
+        $slug     = $this->slugForFilename($siteName);
         $filename = 'luster-collective-templates-' . $slug . '.zip';
 
         return Response::streamFile($tempPath, $filename, 'application/zip');
@@ -1593,6 +1595,18 @@ final class TemplatePackController
     private function norm(?string $v): string
     {
         return $v === null ? '' : trim(str_replace("\r\n", "\n", $v));
+    }
+
+    /**
+     * Slugifies a name for use in an exported filename — collapses runs of
+     * non-alphanumeric characters to a single hyphen and trims any leading
+     * or trailing hyphen left over from punctuation at the string's edges
+     * (e.g. a title ending in "(Edited)" would otherwise export as
+     * "...-edited-.json").
+     */
+    private function slugForFilename(string $name): string
+    {
+        return trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($name)), '-');
     }
 
     /**

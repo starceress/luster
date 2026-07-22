@@ -284,7 +284,7 @@ if (!$_lusterSignedIn) {
     // --- Step 2: update form (authenticated)
     $_lusterFieldRepo    = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
     $_lusterFields       = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
-    $_lusterCountrySel   = Countries::buildSelect((string) ($_lusterOld['country'] ?? ''));
+    $_lusterCountrySel   = Countries::buildSelect((string) (($_lusterOld['country'] ?? '') !== '' ? $_lusterOld['country'] : $_lusterMember->country));
     $_lusterFormAction2  = $_lusterRedirectTo;
     $_lusterSignOutUrl   = $_lusterRedirectTo
         . (str_contains($_lusterRedirectTo, '?') ? '&' : '?')

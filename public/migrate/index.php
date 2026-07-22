@@ -3287,6 +3287,34 @@ try {
     $errors[] = 'Migration 101 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 102: create lstr_listing_previous_owners table (Previous Owners feature).
+try {
+    $chkPrevOwners = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME   = 'lstr_listing_previous_owners'"
+    );
+    if ((int) $chkPrevOwners->fetchColumn() === 0) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_listing_previous_owners` (
+                `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+                `fanlisting_id` INT           NOT NULL,
+                `owner_name`    VARCHAR(255)  NOT NULL DEFAULT '',
+                `owner_url`     VARCHAR(500)  NOT NULL DEFAULT '',
+                `sort_order`    INT UNSIGNED  NOT NULL DEFAULT 0,
+                `created_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `idx_fanlisting_id` (`fanlisting_id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $done[] = 'Migration 102: created <code>lstr_listing_previous_owners</code> table';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (102)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 102 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

@@ -35,6 +35,7 @@ use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\PreviousOwnersRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\AffiliateRowRenderer;
 use Luster\Support\CodesTemplateRenderer;
@@ -43,6 +44,7 @@ use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
 use Luster\Support\MemberStatsService;
 use Luster\Support\MembersTemplateRenderer;
+use Luster\Support\PreviousOwnersRenderer;
 use Luster\Support\RulesBodyRenderer;
 use Luster\Support\SampleTemplateData;
 use Luster\Support\SuccessRenderer;
@@ -450,6 +452,8 @@ final class ListingController extends AdminController
         $adoptedToName = $status === 'adopted_out' ? trim((string) $request->post('adopted_to_name', '')) : null;
         $adoptedToUrl  = $status === 'adopted_out' ? self::httpsify(trim((string) $request->post('adopted_to_url', ''))) : null;
         $archiveNote   = $isArchiving ? trim((string) $request->post('archive_note', '')) : null;
+        $archivedAtInput = $isArchiving ? trim((string) $request->post('archived_at', '')) : null;
+        $archivedAtError = self::validateArchivedAt($archivedAtInput);
         $listingType   = (string) $request->post('listing_type', 'listing');
         if (!in_array($listingType, ['listing', 'clique', 'collective', 'shrine', 'webring', 'other'], true)) {
             $listingType = 'listing';
@@ -506,15 +510,22 @@ final class ListingController extends AdminController
         $v->field('adopted_to_name')->maxLength(255);
         $v->field('adopted_to_url')->httpUrl()->maxLength(500);
 
-        if ($v->fails()) {
+        if ($v->fails() || $archivedAtError !== '') {
+            $messages    = $v->allErrors();
+            $fieldErrors = $v->errors();
+            if ($archivedAtError !== '') {
+                $messages[] = $archivedAtError;
+                $fieldErrors['archived_at'] = [$archivedAtError];
+            }
+
             return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
                 'tfl_cats'        => $tflCats,
                 'tafl_cats'       => $taflCats,
                 'custom_networks' => $customNetworks,
                 'custom_cats'     => $customCats,
-                'old'             => $request->post(),
-                'error'           => implode(' ', $v->allErrors()),
-                'field_errors'    => $v->errors(),
+                'old'             => $request->postAll(),
+                'error'           => implode(' ', $messages),
+                'field_errors'    => $fieldErrors,
                 'default_date'    => date('Y-m-d'),
             ], '', [
                 $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
@@ -569,7 +580,7 @@ final class ListingController extends AdminController
                 'tafl_cats'       => $taflCats,
                 'custom_networks' => $customNetworks,
                 'custom_cats'     => $customCats,
-                'old'             => $request->post(),
+                'old'             => $request->postAll(),
                 'error'           => $imageErr,
                 'default_date'    => date('Y-m-d'),
             ], '', [
@@ -615,7 +626,7 @@ final class ListingController extends AdminController
 
         if ($isArchiving) {
             $lifecycleRepo = new ListingLifecycleRepo($db);
-            $lifecycleRepo->upsert($newId, $status, false, false, $adoptedToName, $adoptedToUrl, $archiveNote);
+            $lifecycleRepo->upsert($newId, $status, false, false, $adoptedToName, $adoptedToUrl, $archiveNote, $archivedAtInput);
             $session      = $this->app->getSession();
             $activityRepo = new ActivityRepo($db);
             $activityRepo->log(
@@ -821,16 +832,13 @@ final class ListingController extends AdminController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $listingRepo = new ListingRepo($db, $config);
-        $settingsRepo   = new ListingSettingsRepo($db);
-        $activityRepo   = new ActivityRepo($db);
-        $memberRepo     = new MemberRepo($db, $config);
-        $affiliateRepo  = new AffiliateRepo($db);
-        $categoryRepo   = new CategoryRepo($db);
-        $fieldRepo      = new FieldRepo($db, $config);
-        $codesRepo      = new CodesRepo($db);
-        $codeCatsRepo   = new CodeCategoriesRepo($db);
-        $codeDonorsRepo = new CodeDonorsRepo($db);
+        $listingRepo  = new ListingRepo($db, $config);
+        $settingsRepo = new ListingSettingsRepo($db);
+        $activityRepo = new ActivityRepo($db);
+        $categoryRepo = new CategoryRepo($db);
+        // Members/affiliates/fields/codes repos are no longer needed here directly —
+        // buildEditFormViewData() builds its own local copies of those, shared by
+        // both the GET render and the POST-validation-failure re-render.
 
         $listing = $listingRepo->getById($id);
 
@@ -841,6 +849,32 @@ final class ListingController extends AdminController
         $lifecycleRepo  = new ListingLifecycleRepo($db);
         $lifecycleRow   = $lifecycleRepo->getByListingId($id);
         $listing        = $listing->withLifecycle($lifecycleRow['lifecycle_status'] ?? null);
+        // The real last-saved date, truncated to Y-m-d for the date input — never
+        // sourced from $old, so the "Reset" button always restores the actual
+        // saved value even after a validation failure on some other field.
+        $archivedAtRaw          = (string) ($lifecycleRow['archived_at'] ?? '');
+        $archivedAtOriginalVal  = strlen($archivedAtRaw) >= 10 ? substr($archivedAtRaw, 0, 10) : '';
+
+        // Previous Owners — fetched once up front since both the GET render and
+        // the POST-validation-failure render need them (see edit.php's Previous
+        // Owners section). The discoverability hint checks the *resolved* Stats
+        // template (per-listing override -> global default -> built-in default,
+        // same resolution stats.php itself uses) for any of the four public
+        // token forms, not just the flat {previous_owners} token.
+        $previousOwnersRepo = new PreviousOwnersRepo($db);
+        $previousOwners     = $previousOwnersRepo->getForListing($id);
+
+        $siteSettingsRepo    = new SiteSettingsRepo($db);
+        $resolvedStatsTemplate = ListingTemplateResolver::resolve(
+            $settingsRepo->getTemplates($id)['stats_template'] ?? null,
+            $siteSettingsRepo->getGlobalTemplates()['listing_default_stats_template'] ?? null,
+            ListingSettingsRepo::defaultStatsTemplate(),
+        )['value'];
+        $statsTemplateHasPreviousOwnersToken =
+            str_contains($resolvedStatsTemplate, '{previous_owners}')
+            || str_contains($resolvedStatsTemplate, '{each_previous_owner}')
+            || str_contains($resolvedStatsTemplate, '{previous_owners_count}')
+            || str_contains($resolvedStatsTemplate, '{if_previous_owners}');
 
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
@@ -859,6 +893,8 @@ final class ListingController extends AdminController
             $adoptedToName = $status === 'adopted_out' ? trim((string) $request->post('adopted_to_name', '')) : null;
             $adoptedToUrl  = $status === 'adopted_out' ? self::httpsify(trim((string) $request->post('adopted_to_url', ''))) : null;
             $archiveNote   = $isArchiving ? trim((string) $request->post('archive_note', '')) : null;
+            $archivedAtInput = $isArchiving ? trim((string) $request->post('archived_at', '')) : null;
+            $archivedAtError = self::validateArchivedAt($archivedAtInput);
             $subject     = trim((string) $request->post('subject', ''));
             if ($title === '') {
                 $title = $subject;
@@ -931,6 +967,16 @@ final class ListingController extends AdminController
             $autoApproveJoins = $request->post('auto_approve_joins') === '1';
             $queueUpdates     = $request->post('queue_updates') === '1';
 
+            // Read early — purely so a validation failure can redraw the form with
+            // what was actually just typed instead of stale DB values. The
+            // authoritative versions of these are read again further down once the
+            // submission is confirmed valid, since a couple depend on data (e.g. the
+            // previous approved_by, for the "clear approval_url on network change"
+            // rule) that only matters once we know the save is going through.
+            $lastUpdatedInputRaw  = trim((string) $request->post('fl_last_updated', ''));
+            $approvalUrlInputRaw  = trim((string) $request->post('approval_url', ''));
+            $codeApprovalEmailRaw = $request->post('code_approval_email');
+
             // --- Image upload validation (before moving any file) ---
             $imageError  = '';
             $newFilename = null;
@@ -974,6 +1020,11 @@ final class ListingController extends AdminController
                 }
             }
 
+            // --- Previous Owners validation ---
+            $previousOwnerNamesRaw = (array) $request->post('previous_owner_name', []);
+            $previousOwnerUrlsRaw  = (array) $request->post('previous_owner_url', []);
+            [$previousOwnerRows, $previousOwnerError] = self::validatePreviousOwnerRows($previousOwnerNamesRaw, $previousOwnerUrlsRaw);
+
             // --- Field validation ---
             $v = new Validator([
                 'subject'         => $subject,
@@ -997,10 +1048,19 @@ final class ListingController extends AdminController
             $v->field('adopted_to_name')->maxLength(255);
             $v->field('adopted_to_url')->httpUrl()->maxLength(500);
 
-            if ($imageError !== '' || $v->fails()) {
+            if ($imageError !== '' || $previousOwnerError !== '' || $archivedAtError !== '' || $v->fails()) {
                 $messages = $v->fails() ? $v->allErrors() : [];
                 if ($imageError !== '') {
                     array_unshift($messages, $imageError);
+                }
+                $fieldErrors = $v->errors();
+                if ($previousOwnerError !== '') {
+                    $messages[] = $previousOwnerError;
+                    $fieldErrors['previous_owners'] = [$previousOwnerError];
+                }
+                if ($archivedAtError !== '') {
+                    $messages[] = $archivedAtError;
+                    $fieldErrors['archived_at'] = [$archivedAtError];
                 }
 
                 $tflCatsErr     = $categoryRepo->getBySource('tfl');
@@ -1011,46 +1071,64 @@ final class ListingController extends AdminController
                     $customCatsErr[$cn] = $categoryRepo->getBySource($cn);
                 }
 
-                return $this->adminLayout('admin/listings/edit.php', 'Edit Listing', 'listings', [
-                    'listing'          => $listing,
-                    'error'               => implode(' ', $messages),
-                    'field_errors'        => $v->errors(),
-                    'old'                 => [
-                        'subject'            => $subject,
-                        'title'              => $title,
-                        'url'                => $url,
-                        'email'              => $email,
-                        'status'             => $status,
-                        'adopted_to_name'    => $adoptedToName ?? '',
-                        'adopted_to_url'     => $adoptedToUrl  ?? '',
-                        'archive_note'       => $archiveNote   ?? '',
-                        'cat_network'        => (array) $request->post('cat_network', []),
-                        'cat_name'           => (array) $request->post('cat_name', []),
-                        'cat_network_other'  => (array) $request->post('cat_network_other', []),
+                $baseEditViewData = $this->buildEditFormViewData($id, $listing, $request);
+                $codeApprovalEmailOverride = $codeApprovalEmailRaw !== null
+                    ? ($codeApprovalEmailRaw === '' ? null : ($codeApprovalEmailRaw === '1'))
+                    : ($baseEditViewData['code_approval_email'] ?? null);
+
+                return $this->adminLayout('admin/listings/edit.php', 'Edit Listing', 'listings', array_merge(
+                    $baseEditViewData,
+                    [
+                        'listing'          => $listing,
+                        'success'             => '',
+                        'error'               => implode(' ', $messages),
+                        'field_errors'        => $fieldErrors,
+                        'previous_owners'     => $previousOwners,
+                        'stats_template_has_previous_owners_token' => $statsTemplateHasPreviousOwnersToken,
+                        'archived_at_original' => $archivedAtOriginalVal,
+                        'old'                 => [
+                            'subject'            => $subject,
+                            'title'              => $title,
+                            'url'                => $url,
+                            'email'              => $email,
+                            'status'             => $status,
+                            'opened'             => $openedRaw,
+                            'adopted_to_name'    => $adoptedToName ?? '',
+                            'adopted_to_url'     => $adoptedToUrl  ?? '',
+                            'archive_note'       => $archiveNote   ?? '',
+                            'archived_at'        => $archivedAtInput ?? '',
+                            'cat_network'        => (array) $request->post('cat_network', []),
+                            'cat_name'           => (array) $request->post('cat_name', []),
+                            'cat_network_other'  => (array) $request->post('cat_network_other', []),
+                            'previous_owner_name' => $previousOwnerNamesRaw,
+                            'previous_owner_url'  => $previousOwnerUrlsRaw,
+                        ],
+                        'lifecycle_meta'          => $lifecycleRow,
+                        // Overrides for the fields that were actually part of this
+                        // failed submission — show what was just typed, not stale
+                        // DB values buildEditFormViewData() would otherwise supply.
+                        'tfl_cats'                => $tflCatsErr,
+                        'tafl_cats'               => $taflCatsErr,
+                        'custom_networks'         => $customNetsErr,
+                        'custom_cats'             => $customCatsErr,
+                        'listing_type'            => $listingType,
+                        'contact_enabled'         => $contactEnabled,
+                        'contact_recipient'       => $contactRecipient,
+                        'auto_approve_joins'      => $autoApproveJoins,
+                        'queue_updates'           => $queueUpdates,
+                        'description'             => $description,
+                        'fl_last_updated'         => $lastUpdatedInputRaw,
+                        'approved_by'             => $approvedByInput,
+                        'approval_url'            => $approvalUrlInputRaw,
+                        'for_adoption'            => $forAdoptionInput,
+                        'affiliate_apply_enabled' => $affiliateApplyEnabled,
+                        'embed_settings'          => array_merge(
+                            $baseEditViewData['embed_settings'] ?? [],
+                            ['codes_submit_enabled' => $codesSubmitEnabledInput],
+                        ),
+                        'code_approval_email'     => $codeApprovalEmailOverride,
                     ],
-                    'lifecycle_meta'          => $lifecycleRow,
-                    'current_image'           => $settingsRepo->getImage($id),
-                    'cfg'                     => $config->all(),
-                    'approved'                => $memberRepo->countApproved($listing->dbprefix),
-                    'pending'                 => $memberRepo->countPending($listing->dbprefix),
-                    'affiliates'              => $affiliateRepo->getByListing($id)['items'],
-                    'fields'                  => $fieldRepo->getFieldsForListing($id),
-                    'templates'               => $settingsRepo->getTemplates($id),
-                    'categories'              => $categoryRepo->getAll(),
-                    'current_category_id'     => $listing->categoryId ?? null,
-                    'current_category_ids'    => $listingRepo->getCategoryIdsForListing($id),
-                    'tfl_cats'                => $tflCatsErr,
-                    'tafl_cats'               => $taflCatsErr,
-                    'custom_networks'         => $customNetsErr,
-                    'custom_cats'             => $customCatsErr,
-                    'listing_type'            => $listingType,
-                    'members_per_page'        => $settingsRepo->getMembersPerPageOrNull($id),
-                    'contact_enabled'         => $contactEnabled,
-                    'contact_recipient'       => $contactRecipient,
-                    'auto_approve_joins'      => $autoApproveJoins,
-                    'queue_updates'           => $queueUpdates,
-                    'description'             => $description,
-                ], '', [
+                ), '', [
                     $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
                     $this->crumb($listing->subject),
                 ]);
@@ -1070,7 +1148,7 @@ final class ListingController extends AdminController
                 // which would overwrite the true original state and break Reopen.
                 $snapshotUpcoming = $wasArchived ? (bool) ($lifecycleRow['legacy_upcoming'] ?? false) : $listing->upcoming;
                 $snapshotTrouble  = $wasArchived ? (bool) ($lifecycleRow['legacy_trouble']  ?? false) : $listing->trouble;
-                $lifecycleRepo->upsert($id, $status, $snapshotUpcoming, $snapshotTrouble, $adoptedToName, $adoptedToUrl, $archiveNote);
+                $lifecycleRepo->upsert($id, $status, $snapshotUpcoming, $snapshotTrouble, $adoptedToName, $adoptedToUrl, $archiveNote, $archivedAtInput);
                 $activityRepo->log(
                     (int) $session->get('lstr_admin_id'),
                     'listing.archive',
@@ -1115,13 +1193,18 @@ final class ListingController extends AdminController
                 $existingEmbed['db_user'],
                 $existingEmbed['db_pass'],
             );
-            // Read the current network before overwriting so we can detect changes.
+            // Read the current network + URL before overwriting so we can detect changes.
             $prevApprovedBy   = $settingsRepo->getApprovedBy($id);
+            $prevApprovalUrl  = (string) ($settingsRepo->getApprovalUrl($id) ?? '');
             $settingsRepo->saveApprovedBy($id, $approvedByInput);
-            // Clear approval URL when the network changes so a stale TFL URL is
-            // never shown next to a freshly selected TAFL badge (and vice versa).
             $approvalUrlInput = trim((string) $request->post('approval_url', ''));
-            if ($prevApprovedBy !== $approvedByInput) {
+            // Clear a leftover approval URL when the network changes, so a stale TFL
+            // URL is never shown next to a freshly selected TAFL badge — but only when
+            // the submitted URL still matches what was already stored, i.e. the admin
+            // didn't actually enter/look up a fresh one for the new network in this
+            // same submission. Otherwise a same-submission network change + new URL
+            // (e.g. via the lookup button) would silently discard the URL just typed.
+            if ($prevApprovedBy !== $approvedByInput && $approvalUrlInput === $prevApprovalUrl) {
                 $approvalUrlInput = '';
             }
             // Reject non-http(s) schemes to prevent javascript:/data: hrefs reaching public templates.
@@ -1179,6 +1262,8 @@ final class ListingController extends AdminController
                 }
             }
 
+            $previousOwnersRepo->replaceForListing($id, $previousOwnerRows);
+
             $activityRepo->log(
                 (int) $session->get('lstr_admin_id'),
                 'listing.edit',
@@ -1191,240 +1276,24 @@ final class ListingController extends AdminController
         }
 
         // ---- GET: show form ----
-        $currentImage       = $settingsRepo->getImage($id);
-        $listingType        = $settingsRepo->getListingType($id);
-        // Nullable, not getMembersPerPage()'s defaulted-to-25 value: the edit
-        // form needs to show blank (not a defaulted 25) when no per-listing
-        // override is actually stored, matching stat_newmembers_limit below.
-        $membersPerPage     = $settingsRepo->getMembersPerPageOrNull($id);
-        $flLastUpdated      = $settingsRepo->getLastUpdated($id);
-        $embedSettings      = $settingsRepo->getEmbedSettings($id);
-        $contactSettings    = $settingsRepo->getContactSettings($id);
-        $approvedBy         = $settingsRepo->getApprovedBy($id);
-        $approvalUrl        = $settingsRepo->getApprovalUrl($id);
-        $description        = $settingsRepo->getDescription($id);
-        $affiliateApplySettings = $settingsRepo->getAffiliateApplySettings($id);
-        $codeApprovalEmail  = $settingsRepo->getCodeApprovalEmail($id);
-        $joinSettings           = $settingsRepo->getJoinSettings($id);
-        $queueUpdates           = $settingsRepo->getQueueUpdates($id);
-        $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
-        $updatesAddonInstalled  = $this->app->isAddonInstalled('Newsfeed');
-        $rulesAddonInstalled    = $this->app->isAddonInstalled('Rules');
-        $rulesSet               = null;
-        if ($rulesAddonInstalled) {
-            try {
-                $rulesSet = (new \Luster\Addons\Rules\RulesRepo($db))->getForListing($id);
-            } catch (\Throwable) {
-                $rulesSet = null;
-            }
-        }
-        $rulesEnabledForListing = $rulesSet !== null && $rulesSet->enabled && trim($rulesSet->body) !== '';
-        $forAdoption            = $adoptionAddonInstalled && $settingsRepo->getForAdoption($id);
-        $adoptionCount          = $adoptionAddonInstalled
-            ? (new \Luster\Addons\Adoption\AdoptionRepo($db))->countForListing($id, 'all')
-            : 0;
-        $approved           = $listing->dbprefix !== '' ? $memberRepo->countApproved($listing->dbprefix) : 0;
-        $pending            = $listing->dbprefix !== '' ? $memberRepo->countPending($listing->dbprefix) : 0;
-        $countries          = $listing->dbprefix !== '' ? $memberRepo->countUniqueCountries($listing->dbprefix) : 0;
-        $lastUpdated        = $listing->dbprefix !== '' ? $memberRepo->getLastUpdated($listing->dbprefix) : null;
-
-        $newestMember = null;
-        if ($listing->dbprefix !== '' && $approved > 0) {
-            $newest = $memberRepo->getNewestMembers($listing->dbprefix, 1);
-            $newestMember = $newest[0] ?? null;
-        }
-
-        $topCountries = [];
-        if ($listing->dbprefix !== '' && $approved > 0) {
-            $countrySummary = $memberRepo->getCountrySummary($listing->dbprefix);
-            usort($countrySummary, static fn(array $a, array $b): int => $b['fan_count'] <=> $a['fan_count']);
-            $topCountries = array_slice($countrySummary, 0, 3);
-        }
-
-        $tflCats            = $categoryRepo->getBySource('tfl');
-        $taflCats           = $categoryRepo->getBySource('tafl');
-        $customNetworks     = $categoryRepo->getCustomSources();
-        $customCats         = [];
-        foreach ($customNetworks as $cn) {
-            $customCats[$cn] = $categoryRepo->getBySource($cn);
-        }
-        $affiliates           = $affiliateRepo->getByListing($id)['items'];
-        $fields               = $fieldRepo->getFieldsForListing($id);
-        $templates            = $settingsRepo->getTemplates($id);
-        $templates['codes_template'] = $settingsRepo->getCodesTemplate($id);
-        $siteSettingsRepo     = new SiteSettingsRepo($db);
-        $globalTemplates      = $siteSettingsRepo->getGlobalTemplates();
-        $globalFormUrls       = $siteSettingsRepo->getGlobalFormUrls();
-        $tplBuiltIns = [
-            'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
-            'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
-            'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
-            'newsfeed_template'              => ListingSettingsRepo::defaultNewsfeedTemplate(),
-            'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
-            'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
-            'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
-            'contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
-            'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
-            'update_form_template'          => ListingSettingsRepo::defaultUpdateFormTemplate(),
-            'reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
-        ];
-        $tplGlobalKeyMap = [
-            'stats_template'                => 'listing_default_stats_template',
-            'members_template'              => 'listing_default_members_template',
-            'affiliates_section_template'   => 'listing_default_affiliates_section_template',
-            'newsfeed_template'              => 'listing_default_newsfeed_template',
-            'join_form_template'            => 'listing_default_join_form_template',
-            'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
-            'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
-            'contact_form_template'         => 'listing_default_contact_form_template',
-            'codes_template'                => 'listing_default_codes_template',
-            'update_form_template'          => 'listing_default_update_form_template',
-            'reset_form_template'           => 'listing_default_reset_form_template',
-        ];
-        $templateSources = [];
-        foreach ($tplBuiltIns as $tplKey => $builtIn) {
-            $globalKey       = $tplGlobalKeyMap[$tplKey];
-            $perListingValue = $templates[$tplKey] ?? null;
-            // Mirrors $tplMembersVal's own check just below: a per-listing value
-            // that's really just an old built-in default counts as absent here
-            // too, so this badge can never disagree with what the textarea shows.
-            if ($tplKey === 'members_template' && ListingSettingsRepo::isLegacyMembersTemplate($perListingValue)) {
-                $perListingValue = null;
-            }
-            $resolved = ListingTemplateResolver::resolve(
-                $perListingValue,
-                $globalTemplates[$globalKey] ?? null,
-                $builtIn,
-            );
-            $templateSources[$tplKey] = $resolved['source'];
-        }
-        $categories           = $categoryRepo->getAll();
-        $currentCategoryId    = $listing->categoryId ?? null;
-        $currentCategoryIds   = $listingRepo->getCategoryIdsForListing($id);
-
-        // Codes tab data
-        $statusFilterRaw  = (string) $request->query('status_filter', '');
-        $codeStatusFilter = in_array($statusFilterRaw, CodesRepo::STATUSES, true) ? $statusFilterRaw : 'approved';
-        $codeEditCatId   = (int) $request->query('edit_cat',   '0');
-        $codeEditDonorId = (int) $request->query('edit_donor', '0');
-        $allCodes        = $codesRepo->getByListing($id);
-        $codeStatusCounts = ['approved' => 0, 'pending' => 0, 'rejected' => 0];
-        foreach ($allCodes as $c) {
-            $codeStatusCounts[$c->status] = ($codeStatusCounts[$c->status] ?? 0) + 1;
-        }
-        $codes       = $allCodes;
-        $codeCats         = $codeCatsRepo->getByListing($id);
-        $codeDonors       = $codeDonorsRepo->getByListing($id);
-        $codeSubmitterNames = $codesRepo->getSubmitterNamesForListing($id);
-        $codeCategoryIds = $codeCatsRepo->getCategoryMapForListing($id);
-        $codeCatMap  = [];
-        foreach ($codeCats as $cat) { $codeCatMap[$cat->id] = $cat; }
-        $codeDonorMap = [];
-        foreach ($codeDonors as $donor) { $codeDonorMap[$donor->id] = $donor; }
-        $codeGrouped = [];
-        foreach ($allCodes as $code) {
-            if ($code->width > 0 && $code->height > 0) {
-                $gKey   = (int) $code->width . 'x' . (int) $code->height;
-                $gLabel = (int) $code->width . '×' . (int) $code->height . 'px';
-            } else {
-                $gKey   = 'unknown';
-                $gLabel = 'Unknown dimensions';
-            }
-            if (!isset($codeGrouped[$gKey])) {
-                $codeGrouped[$gKey] = ['label' => $gLabel, 'codes' => []];
-            }
-            $codeGrouped[$gKey]['codes'][] = $code;
-        }
-        uksort($codeGrouped, function (string $a, string $b): int {
-            if ($a === 'unknown') return 1;
-            if ($b === 'unknown') return -1;
-            [$aw, $ah] = explode('x', $a);
-            [$bw, $bh] = explode('x', $b);
-            return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
-        });
-
         $success            = (string) $session->get('lstr_flash_success', '');
         $error              = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        $lusterBase = defined('LUSTER_BASE') ? \LUSTER_BASE : dirname(__DIR__, 3);
-        $resolvedEmbedPath = realpath($lusterBase . '/public/embed');
-        $embedPath = $resolvedEmbedPath !== false
-            ? rtrim(str_replace('\\', '/', $resolvedEmbedPath), '/')
-            : rtrim(str_replace('\\', '/', $lusterBase), '/') . '/public/embed';
-
-        return $this->adminLayout('admin/listings/edit.php', 'Edit Listing', 'listings', [
-            'listing'          => $listing,
-            'success'             => $success,
-            'error'               => $error,
-            'old'                 => [],
-            'lifecycle_meta'      => $lifecycleRow,
-            'current_image'       => $currentImage,
-            'cfg'                 => $config->all(),
-            'embed_path'          => $embedPath,
-            'approved'            => $approved,
-            'pending'             => $pending,
-            'countries'           => $countries,
-            'newest_member'       => $newestMember,
-            'top_countries'       => $topCountries,
-            'last_updated'        => $lastUpdated,
-            'fl_last_updated'     => $flLastUpdated,
-            'tfl_cats'            => $tflCats,
-            'tafl_cats'           => $taflCats,
-            'custom_networks'     => $customNetworks,
-            'custom_cats'         => $customCats,
-            'affiliates'          => $affiliates,
-            'fields'              => $fields,
-            'templates'           => $templates,
-            'global_templates'    => $globalTemplates,
-            'global_form_urls'    => $globalFormUrls,
-            'template_sources'    => $templateSources,
-            'categories'          => $categories,
-            'current_category_id'  => $currentCategoryId,
-            'current_category_ids' => $currentCategoryIds,
-            'listing_type'        => $listingType,
-            'members_per_page'    => $membersPerPage,
-            'embed_settings'      => $embedSettings,
-            'contact_enabled'     => $contactSettings['enabled'],
-            'contact_recipient'   => $contactSettings['recipient'] ?? '',
-            'form_url_contact'    => $contactSettings['form_url_contact'] ?? '',
-            'approved_by'         => $approvedBy,
-            'approval_url'        => $approvalUrl,
-            'description'         => $description,
-            'adoption_addon_installed'       => $adoptionAddonInstalled,
-            'newsfeed_addon_installed'        => $updatesAddonInstalled,
-            'rules_addon_installed'          => $rulesAddonInstalled,
-            'rules_enabled_for_listing'      => $rulesEnabledForListing,
-            'rules'                           => $rulesSet,
-            'for_adoption'                   => $forAdoption,
-            'adoption_count'                 => $adoptionCount,
-            'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
-            'affiliate_apply_style'          => $settingsRepo->getAffiliateApplyStyle($id),
-            'codes_submit_style'             => $settingsRepo->getCodesSubmitToggleStyle($id),
-            'affiliate_apply_toggle_label'   => $settingsRepo->getAffiliateApplyToggleLabel($id),
-            'codes_submit_toggle_label'      => $settingsRepo->getCodesSubmitToggleLabel($id),
-            'form_url_affiliate_apply'       => $affiliateApplySettings['form_url'],
-            'redirect_url_affiliate_apply'   => $affiliateApplySettings['redirect_url'],
-            'stat_newmembers_limit'          => $settingsRepo->getStatNewmembersLimit($id),
-            'code_approval_email'            => $codeApprovalEmail,
-            'auto_approve_joins'             => $joinSettings['auto_approve'],
-            'queue_updates'                  => $queueUpdates,
-            'codes'               => $codes,
-            'code_cats'           => $codeCats,
-            'code_donors'          => $codeDonors,
-            'code_submitter_names' => $codeSubmitterNames,
-            'code_grouped'        => $codeGrouped,
-            'code_category_ids'   => $codeCategoryIds,
-            'code_cat_map'        => $codeCatMap,
-            'code_donor_map'      => $codeDonorMap,
-            'code_edit_cat_id'    => $codeEditCatId,
-            'code_edit_donor_id'  => $codeEditDonorId,
-            'code_status_filter'  => $codeStatusFilter,
-            'code_status_counts'  => $codeStatusCounts,
-            'total_codes'         => count($allCodes),
-            'uploads_url'         => $this->app->getBaseUrl() . '/uploads/codes',
-        ], '', [
+        return $this->adminLayout('admin/listings/edit.php', 'Edit Listing', 'listings', array_merge(
+            $this->buildEditFormViewData($id, $listing, $request),
+            [
+                'listing'          => $listing,
+                'success'             => $success,
+                'error'               => $error,
+                'old'                 => [],
+                'previous_owners'     => $previousOwners,
+                'stats_template_has_previous_owners_token' => $statsTemplateHasPreviousOwnersToken,
+                'archived_at_original' => $archivedAtOriginalVal,
+                'lifecycle_meta'      => $lifecycleRow,
+            ],
+        ), '', [
             $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
             $this->crumb($listing->subject),
         ]);
@@ -1481,8 +1350,9 @@ final class ListingController extends AdminController
      * Deletes every Luster-owned row and uploaded file that references a listing:
      * member table, settings/lifecycle/affiliates/pending-updates/email-templates,
      * listing-category links, codes (with category map), external import refs,
-     * add-on data (News Feed, KIM, Adoption applications, template revisions), and
-     * the listing's cover image. Does not delete the listing registry row itself —
+     * add-on data (News Feed, KIM, Adoption applications, Join Rules, template
+     * revisions), and the listing's cover image. Does not delete the listing
+     * registry row itself —
      * callers do that afterward via ListingRepo::delete(). Shared by delete() and
      * the bulk-delete branch of bulkAction() so both stay in sync.
      *
@@ -1505,8 +1375,13 @@ final class ListingController extends AdminController
         // Delete Luster rows that reference this listing
         $db->prepare('DELETE FROM lstr_fanlisting_settings WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);
-        $db->prepare('DELETE FROM lstr_listing_lifecycle WHERE fanlisting_id = :id')
-           ->execute(['id' => $id]);
+        // Lifecycle table may not exist yet on an install that hasn't run
+        // Migration 93 — deleting a listing must not fail over this one
+        // optional cleanup table.
+        try {
+            $db->prepare('DELETE FROM lstr_listing_lifecycle WHERE fanlisting_id = :id')
+               ->execute(['id' => $id]);
+        } catch (\Throwable) {}
         $db->prepare('DELETE FROM lstr_affiliates WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);
         $db->prepare('DELETE FROM lstr_pending_updates WHERE fanlisting_id = :id')
@@ -1515,6 +1390,13 @@ final class ListingController extends AdminController
            ->execute(['id' => $id]);
         $db->prepare('DELETE FROM lstr_listing_external_refs WHERE listing_id = :id')
            ->execute(['id' => $id]);
+        // Previous Owners table may not exist yet on an install that hasn't run
+        // Migration 102 — same "silent if not present" treatment as the addon
+        // tables below, not a hard requirement for deletion to succeed.
+        try {
+            $db->prepare('DELETE FROM lstr_listing_previous_owners WHERE fanlisting_id = :id')
+               ->execute(['id' => $id]);
+        } catch (\Throwable) {}
         try {
             $db->prepare('DELETE FROM lstr_listing_categories WHERE fanlisting_id = :id')
                ->execute(['id' => $id]);
@@ -1551,6 +1433,12 @@ final class ListingController extends AdminController
         // Adoption addon — silent if not installed
         try {
             $db->prepare('DELETE FROM lstr_adoption_applications WHERE fanlisting_id = :id')
+               ->execute(['id' => $id]);
+        } catch (\Throwable) {}
+
+        // Join Rules addon — silent if not installed
+        try {
+            $db->prepare('DELETE FROM lstr_rules WHERE fanlisting_id = :id')
                ->execute(['id' => $id]);
         } catch (\Throwable) {}
 
@@ -2310,7 +2198,8 @@ final class ListingController extends AdminController
             'tafl'         => $hasTaflCategory,
             'stat_pending' => $pending > 0,
         ];
-        return self::renderStatsTemplate($tpl, $values, $conditions, $approvedBy, $hasTflCategory, $hasTaflCategory, $approvalUrl);
+        $previousOwners = (new PreviousOwnersRepo($db))->getForListing((int) $listing->id);
+        return self::renderStatsTemplate($tpl, $values, $conditions, $approvedBy, $hasTflCategory, $hasTaflCategory, $approvalUrl, $previousOwners);
     }
 
     /**
@@ -2331,7 +2220,10 @@ final class ListingController extends AdminController
      * @param array<string, string> $values
      * @param array<string, bool>   $conditions
      */
-    private static function renderStatsTemplate(string $tpl, array $values, array $conditions, string $approvedBy, bool $hasTflCategory = false, bool $hasTaflCategory = false, string $approvalUrl = ''): string
+    /**
+     * @param array<int, array{owner_name: string, owner_url: string}> $previousOwners
+     */
+    private static function renderStatsTemplate(string $tpl, array $values, array $conditions, string $approvedBy, bool $hasTflCategory = false, bool $hasTaflCategory = false, string $approvalUrl = '', array $previousOwners = []): string
     {
         $network = strtoupper($approvedBy);
 
@@ -2349,8 +2241,13 @@ final class ListingController extends AdminController
             unset($values['stat_newmembers']);
         }
 
+        // Previous Owners tokens must be shielded before TemplateEngine::render()
+        // runs and resolved only after every other substitution below has
+        // finished — see PreviousOwnersRenderer's docblock for why.
+        $tpl = PreviousOwnersRenderer::shield($tpl);
+
         $rendered = TemplateEngine::render($tpl, escaped: $values, raw: $rawValues, conditions: $conditions);
-        return str_replace(
+        $rendered = str_replace(
             ['{approved_by}', '{network_name}', '{tfl_url}', '{tafl_url}', '{approval_url}'],
             [
                 $network,
@@ -2361,6 +2258,353 @@ final class ListingController extends AdminController
             ],
             $rendered,
         );
+
+        return PreviousOwnersRenderer::resolve($rendered, $previousOwners);
+    }
+
+    /**
+     * Everything the Edit Listing view needs beyond the request-specific bits
+     * (success/error/old/field_errors, and the previous-owners/lifecycle data
+     * already shared between both edit() branches) — members/affiliates/fields/
+     * templates/codes/rules/adoption/embed-settings, all of it. Shared by both
+     * the GET render and the POST-validation-failure re-render so they can
+     * never drift out of sync with each other: a failure re-render used to
+     * supply only a hand-picked subset of these keys, which 500'd the moment
+     * a General-tab validation error (e.g. a bad title, or an invalid
+     * Closed/Adopted On date) was hit, since the template unconditionally
+     * uses many of them regardless of which tab is active.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildEditFormViewData(int $id, $listing, Request $request): array
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $listingRepo    = new ListingRepo($db, $config);
+        $settingsRepo   = new ListingSettingsRepo($db);
+        $memberRepo     = new MemberRepo($db, $config);
+        $affiliateRepo  = new AffiliateRepo($db);
+        $categoryRepo   = new CategoryRepo($db);
+        $fieldRepo      = new FieldRepo($db, $config);
+        $codesRepo      = new CodesRepo($db);
+        $codeCatsRepo   = new CodeCategoriesRepo($db);
+        $codeDonorsRepo = new CodeDonorsRepo($db);
+
+        $currentImage       = $settingsRepo->getImage($id);
+        $listingType        = $settingsRepo->getListingType($id);
+        // Nullable, not getMembersPerPage()'s defaulted-to-25 value: the edit
+        // form needs to show blank (not a defaulted 25) when no per-listing
+        // override is actually stored, matching stat_newmembers_limit below.
+        $membersPerPage     = $settingsRepo->getMembersPerPageOrNull($id);
+        $flLastUpdated      = $settingsRepo->getLastUpdated($id);
+        $embedSettings      = $settingsRepo->getEmbedSettings($id);
+        $contactSettings    = $settingsRepo->getContactSettings($id);
+        $approvedBy         = $settingsRepo->getApprovedBy($id);
+        $approvalUrl        = $settingsRepo->getApprovalUrl($id);
+        $description        = $settingsRepo->getDescription($id);
+        $affiliateApplySettings = $settingsRepo->getAffiliateApplySettings($id);
+        $codeApprovalEmail  = $settingsRepo->getCodeApprovalEmail($id);
+        $joinSettings           = $settingsRepo->getJoinSettings($id);
+        $queueUpdates           = $settingsRepo->getQueueUpdates($id);
+        $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
+        $updatesAddonInstalled  = $this->app->isAddonInstalled('Newsfeed');
+        $rulesAddonInstalled    = $this->app->isAddonInstalled('Rules');
+        $rulesSet               = null;
+        if ($rulesAddonInstalled) {
+            try {
+                $rulesSet = (new \Luster\Addons\Rules\RulesRepo($db))->getForListing($id);
+            } catch (\Throwable) {
+                $rulesSet = null;
+            }
+        }
+        $rulesEnabledForListing = $rulesSet !== null && $rulesSet->enabled && trim($rulesSet->body) !== '';
+        $forAdoption            = $adoptionAddonInstalled && $settingsRepo->getForAdoption($id);
+        $adoptionCount          = $adoptionAddonInstalled
+            ? (new \Luster\Addons\Adoption\AdoptionRepo($db))->countForListing($id, 'all')
+            : 0;
+        $approved           = $listing->dbprefix !== '' ? $memberRepo->countApproved($listing->dbprefix) : 0;
+        $pending            = $listing->dbprefix !== '' ? $memberRepo->countPending($listing->dbprefix) : 0;
+        $countries          = $listing->dbprefix !== '' ? $memberRepo->countUniqueCountries($listing->dbprefix) : 0;
+        $lastUpdated        = $listing->dbprefix !== '' ? $memberRepo->getLastUpdated($listing->dbprefix) : null;
+
+        $newestMember = null;
+        if ($listing->dbprefix !== '' && $approved > 0) {
+            $newest = $memberRepo->getNewestMembers($listing->dbprefix, 1);
+            $newestMember = $newest[0] ?? null;
+        }
+
+        $topCountries = [];
+        if ($listing->dbprefix !== '' && $approved > 0) {
+            $countrySummary = $memberRepo->getCountrySummary($listing->dbprefix);
+            usort($countrySummary, static fn(array $a, array $b): int => $b['fan_count'] <=> $a['fan_count']);
+            $topCountries = array_slice($countrySummary, 0, 3);
+        }
+
+        $tflCats            = $categoryRepo->getBySource('tfl');
+        $taflCats           = $categoryRepo->getBySource('tafl');
+        $customNetworks     = $categoryRepo->getCustomSources();
+        $customCats         = [];
+        foreach ($customNetworks as $cn) {
+            $customCats[$cn] = $categoryRepo->getBySource($cn);
+        }
+        $affiliates           = $affiliateRepo->getByListing($id)['items'];
+        $fields               = $fieldRepo->getFieldsForListing($id);
+        $templates            = $settingsRepo->getTemplates($id);
+        $templates['codes_template'] = $settingsRepo->getCodesTemplate($id);
+        $siteSettingsRepo     = new SiteSettingsRepo($db);
+        $globalTemplates      = $siteSettingsRepo->getGlobalTemplates();
+        $globalFormUrls       = $siteSettingsRepo->getGlobalFormUrls();
+        $tplBuiltIns = [
+            'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
+            'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
+            'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+            'newsfeed_template'              => ListingSettingsRepo::defaultNewsfeedTemplate(),
+            'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
+            'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+            'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+            'contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
+            'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
+            'update_form_template'          => ListingSettingsRepo::defaultUpdateFormTemplate(),
+            'reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
+        ];
+        $tplGlobalKeyMap = [
+            'stats_template'                => 'listing_default_stats_template',
+            'members_template'              => 'listing_default_members_template',
+            'affiliates_section_template'   => 'listing_default_affiliates_section_template',
+            'newsfeed_template'              => 'listing_default_newsfeed_template',
+            'join_form_template'            => 'listing_default_join_form_template',
+            'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
+            'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
+            'contact_form_template'         => 'listing_default_contact_form_template',
+            'codes_template'                => 'listing_default_codes_template',
+            'update_form_template'          => 'listing_default_update_form_template',
+            'reset_form_template'           => 'listing_default_reset_form_template',
+        ];
+        $templateSources = [];
+        foreach ($tplBuiltIns as $tplKey => $builtIn) {
+            $globalKey       = $tplGlobalKeyMap[$tplKey];
+            $perListingValue = $templates[$tplKey] ?? null;
+            // Mirrors $tplMembersVal's own check just below: a per-listing value
+            // that's really just an old built-in default counts as absent here
+            // too, so this badge can never disagree with what the textarea shows.
+            if ($tplKey === 'members_template' && ListingSettingsRepo::isLegacyMembersTemplate($perListingValue)) {
+                $perListingValue = null;
+            }
+            $resolved = ListingTemplateResolver::resolve(
+                $perListingValue,
+                $globalTemplates[$globalKey] ?? null,
+                $builtIn,
+            );
+            $templateSources[$tplKey] = $resolved['source'];
+        }
+        $categories           = $categoryRepo->getAll();
+        $currentCategoryId    = $listing->categoryId ?? null;
+        $currentCategoryIds   = $listingRepo->getCategoryIdsForListing($id);
+
+        // Codes tab data
+        $statusFilterRaw  = (string) $request->query('status_filter', '');
+        $codeStatusFilter = in_array($statusFilterRaw, CodesRepo::STATUSES, true) ? $statusFilterRaw : 'approved';
+        $codeEditCatId   = (int) $request->query('edit_cat',   '0');
+        $codeEditDonorId = (int) $request->query('edit_donor', '0');
+        $allCodes        = $codesRepo->getByListing($id);
+        $codeStatusCounts = ['approved' => 0, 'pending' => 0, 'rejected' => 0];
+        foreach ($allCodes as $c) {
+            $codeStatusCounts[$c->status] = ($codeStatusCounts[$c->status] ?? 0) + 1;
+        }
+        $codes       = $allCodes;
+        $codeCats         = $codeCatsRepo->getByListing($id);
+        $codeDonors       = $codeDonorsRepo->getByListing($id);
+        $codeSubmitterNames = $codesRepo->getSubmitterNamesForListing($id);
+        $codeCategoryIds = $codeCatsRepo->getCategoryMapForListing($id);
+        $codeCatMap  = [];
+        foreach ($codeCats as $cat) { $codeCatMap[$cat->id] = $cat; }
+        $codeDonorMap = [];
+        foreach ($codeDonors as $donor) { $codeDonorMap[$donor->id] = $donor; }
+        $codeGrouped = [];
+        foreach ($allCodes as $code) {
+            if ($code->width > 0 && $code->height > 0) {
+                $gKey   = (int) $code->width . 'x' . (int) $code->height;
+                $gLabel = (int) $code->width . '×' . (int) $code->height . 'px';
+            } else {
+                $gKey   = 'unknown';
+                $gLabel = 'Unknown dimensions';
+            }
+            if (!isset($codeGrouped[$gKey])) {
+                $codeGrouped[$gKey] = ['label' => $gLabel, 'codes' => []];
+            }
+            $codeGrouped[$gKey]['codes'][] = $code;
+        }
+        uksort($codeGrouped, function (string $a, string $b): int {
+            if ($a === 'unknown') return 1;
+            if ($b === 'unknown') return -1;
+            [$aw, $ah] = explode('x', $a);
+            [$bw, $bh] = explode('x', $b);
+            return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+        });
+
+        $lusterBase = defined('LUSTER_BASE') ? \LUSTER_BASE : dirname(__DIR__, 3);
+        $resolvedEmbedPath = realpath($lusterBase . '/public/embed');
+        $embedPath = $resolvedEmbedPath !== false
+            ? rtrim(str_replace('\\', '/', $resolvedEmbedPath), '/')
+            : rtrim(str_replace('\\', '/', $lusterBase), '/') . '/public/embed';
+
+        return [
+            'current_image'       => $currentImage,
+            'cfg'                 => $config->all(),
+            'embed_path'          => $embedPath,
+            'approved'            => $approved,
+            'pending'             => $pending,
+            'countries'           => $countries,
+            'newest_member'       => $newestMember,
+            'top_countries'       => $topCountries,
+            'last_updated'        => $lastUpdated,
+            'fl_last_updated'     => $flLastUpdated,
+            'tfl_cats'            => $tflCats,
+            'tafl_cats'           => $taflCats,
+            'custom_networks'     => $customNetworks,
+            'custom_cats'         => $customCats,
+            'affiliates'          => $affiliates,
+            'fields'              => $fields,
+            'templates'           => $templates,
+            'global_templates'    => $globalTemplates,
+            'global_form_urls'    => $globalFormUrls,
+            'template_sources'    => $templateSources,
+            'categories'          => $categories,
+            'current_category_id'  => $currentCategoryId,
+            'current_category_ids' => $currentCategoryIds,
+            'listing_type'        => $listingType,
+            'members_per_page'    => $membersPerPage,
+            'embed_settings'      => $embedSettings,
+            'contact_enabled'     => $contactSettings['enabled'],
+            'contact_recipient'   => $contactSettings['recipient'] ?? '',
+            'form_url_contact'    => $contactSettings['form_url_contact'] ?? '',
+            'approved_by'         => $approvedBy,
+            'approval_url'        => $approvalUrl,
+            'description'         => $description,
+            'adoption_addon_installed'       => $adoptionAddonInstalled,
+            'newsfeed_addon_installed'        => $updatesAddonInstalled,
+            'rules_addon_installed'          => $rulesAddonInstalled,
+            'rules_enabled_for_listing'      => $rulesEnabledForListing,
+            'rules'                           => $rulesSet,
+            'for_adoption'                   => $forAdoption,
+            'adoption_count'                 => $adoptionCount,
+            'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
+            'affiliate_apply_style'          => $settingsRepo->getAffiliateApplyStyle($id),
+            'codes_submit_style'             => $settingsRepo->getCodesSubmitToggleStyle($id),
+            'affiliate_apply_toggle_label'   => $settingsRepo->getAffiliateApplyToggleLabel($id),
+            'codes_submit_toggle_label'      => $settingsRepo->getCodesSubmitToggleLabel($id),
+            'form_url_affiliate_apply'       => $affiliateApplySettings['form_url'],
+            'redirect_url_affiliate_apply'   => $affiliateApplySettings['redirect_url'],
+            'stat_newmembers_limit'          => $settingsRepo->getStatNewmembersLimit($id),
+            'code_approval_email'            => $codeApprovalEmail,
+            'auto_approve_joins'             => $joinSettings['auto_approve'],
+            'queue_updates'                  => $queueUpdates,
+            'codes'               => $codes,
+            'code_cats'           => $codeCats,
+            'code_donors'          => $codeDonors,
+            'code_submitter_names' => $codeSubmitterNames,
+            'code_grouped'        => $codeGrouped,
+            'code_category_ids'   => $codeCategoryIds,
+            'code_cat_map'        => $codeCatMap,
+            'code_donor_map'      => $codeDonorMap,
+            'code_edit_cat_id'    => $codeEditCatId,
+            'code_edit_donor_id'  => $codeEditDonorId,
+            'code_status_filter'  => $codeStatusFilter,
+            'code_status_counts'  => $codeStatusCounts,
+            'total_codes'         => count($allCodes),
+            'uploads_url'         => $this->app->getBaseUrl() . '/uploads/codes',
+        ];
+    }
+
+    /**
+     * Validates the "Closed On"/"Adopted On" date field (archived_at). Blank
+     * is always valid — it means "preserve whatever's already stored, or
+     * default to today for a fresh archive," resolved at
+     * ListingLifecycleRepo::upsert() — but a non-blank value has to be a
+     * real calendar date: archived_at writes to a DATETIME NOT NULL column,
+     * so a bad value can't just be silently dropped the way fl_last_updated's
+     * looser regex-only check gets away with (that column is nullable).
+     * checkdate() alone still accepts years like 0001-0999, which MySQL's
+     * strict mode can also reject, so the year is bounds-checked explicitly
+     * too.
+     *
+     * @return string Empty when valid, an error message otherwise.
+     */
+    private static function validateArchivedAt(?string $archivedAtInput): string
+    {
+        if ($archivedAtInput === null || $archivedAtInput === '') {
+            return '';
+        }
+
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $archivedAtInput, $m)) {
+            return 'Please enter a valid date (YYYY-MM-DD).';
+        }
+
+        $y = (int) $m[1];
+        $mo = (int) $m[2];
+        $d = (int) $m[3];
+
+        if ($y < 1000 || $y > 9999 || !checkdate($mo, $d, $y)) {
+            return 'Please enter a valid date (YYYY-MM-DD).';
+        }
+
+        return '';
+    }
+
+    /**
+     * Validates and cleans a POSTed set of Previous Owners rows (parallel
+     * previous_owner_name[]/previous_owner_url[] arrays). A variable-length
+     * array of rows, so this is validated by hand (mirroring
+     * ValidatorField::httpUrl()'s own checks) rather than through the
+     * single-field Validator class. Length limits mirror the DB column widths
+     * (VARCHAR(255)/VARCHAR(500)) and are checked here server-side since the
+     * form's maxlength attributes only guard against normal browser
+     * submission, not a crafted POST. Rows where both fields are blank are
+     * dropped (PreviousOwnersRepo::replaceForListing() would drop them too,
+     * but skipping them here means they never reach a length/URL check).
+     *
+     * @param array<int, mixed> $namesRaw
+     * @param array<int, mixed> $urlsRaw
+     * @return array{0: array<int, array{owner_name: string, owner_url: string}>, 1: string} [rows, error]
+     */
+    private static function validatePreviousOwnerRows(array $namesRaw, array $urlsRaw): array
+    {
+        $rows  = [];
+        $error = '';
+
+        foreach ($namesRaw as $index => $rawName) {
+            $name = trim((string) $rawName);
+            $url  = trim((string) ($urlsRaw[$index] ?? ''));
+
+            if ($name === '' && $url === '') {
+                continue;
+            }
+
+            if (mb_strlen($name) > 255) {
+                $error = 'A previous owner name is too long (255 characters max).';
+                break;
+            }
+
+            if ($url !== '') {
+                $url = self::httpsify($url);
+
+                if (mb_strlen($url) > 500) {
+                    $error = 'A previous owner URL is too long (500 characters max).';
+                    break;
+                }
+
+                if (filter_var($url, FILTER_VALIDATE_URL) === false
+                    || !in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true)) {
+                    $error = 'Please enter a valid previous owner URL (e.g. https://example.com).';
+                    break;
+                }
+            }
+
+            $rows[] = ['owner_name' => $name, 'owner_url' => $url];
+        }
+
+        return [$rows, $error];
     }
 
     /**
@@ -3417,8 +3661,15 @@ final class ListingController extends AdminController
             'stat_pending' => false,
         ];
 
-        $sample = self::renderStatsTemplate($tpl, $sampleValues, $sampleConditions, 'tfl', hasTflCategory: true, hasTaflCategory: false);
-        $empty  = self::renderStatsTemplate($tpl, $emptyValues, $emptyConditions, '', hasTflCategory: false, hasTaflCategory: false);
+        // Two sample owners — one with a URL, one without — so the preview also
+        // demonstrates the name-only-row fallback in {previous_owners}.
+        $samplePreviousOwners = [
+            ['owner_name' => 'Alex Rivera', 'owner_url' => 'https://example.com/'],
+            ['owner_name' => 'Jordan Lee', 'owner_url' => ''],
+        ];
+
+        $sample = self::renderStatsTemplate($tpl, $sampleValues, $sampleConditions, 'tfl', hasTflCategory: true, hasTaflCategory: false, previousOwners: $samplePreviousOwners);
+        $empty  = self::renderStatsTemplate($tpl, $emptyValues, $emptyConditions, '', hasTflCategory: false, hasTaflCategory: false, previousOwners: []);
 
         return $this->previewSectionLabel('Sample Data') . $sample
             . $this->previewSectionLabel('Empty State') . $empty;

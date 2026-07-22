@@ -1085,6 +1085,18 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .cat-remove-btn { flex-shrink: 0; }
 
+/* ---- PREVIOUS OWNERS WIDGET ---------------------------- */
+
+.po-rows { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .625rem; }
+
+.po-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.po-row > input[name="previous_owner_name[]"] { flex: 1 1 220px; min-width: 0; }
+
+.po-row > input[name="previous_owner_url[]"] { flex: 2 1 280px; min-width: 0; }
+
+.po-remove-btn { flex-shrink: 0; }
+
 .cat-net-item { display: inline-flex; align-items: center; gap: 0.375rem; }
 
 .current-network-row { display: flex; gap: .5rem; align-items: center; margin-top: .5rem; }

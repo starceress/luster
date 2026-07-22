@@ -196,9 +196,14 @@ final class CategoryRepo
     }
 
     /**
-     * Updates a category's name and source. The slug is only updated when
-     * explicitly provided — it is never auto-derived from the new name on edit,
-     * so existing links continue to work after a rename.
+     * Updates a category's name and source. When $slug is omitted, the
+     * existing slug is kept as-is rather than re-derived from the new name
+     * (so existing links continue to work after a rename) — but it is still
+     * re-validated via uniqueSlug() against the (possibly new) $source, since
+     * a source change alone can collide with another category's existing
+     * slug under uq_cat_slug (source, slug). A collision is resolved with a
+     * numeric suffix (e.g. "books" → "books-2"), the same as when an
+     * explicit slug is passed in.
      *
      * To set a parent or change the slug, pass the optional parameters.
      * Max depth is 1: parentId must itself have parent_id = NULL.
@@ -211,18 +216,27 @@ final class CategoryRepo
             throw new \InvalidArgumentException('Parent category must be a top-level category (max depth 1).');
         }
 
-        if ($slug !== null) {
-            $slug = $this->uniqueSlug($this->slugify($slug), $source, $id);
-            $stmt = $this->db->pdo()->prepare(
-                'UPDATE lstr_categories SET name = :name, source = :source, slug = :slug, parent_id = :pid WHERE id = :id'
-            );
-            $stmt->execute(['name' => $name, 'source' => $source, 'slug' => $slug, 'pid' => $parentId, 'id' => $id]);
-        } else {
-            $stmt = $this->db->pdo()->prepare(
-                'UPDATE lstr_categories SET name = :name, source = :source, parent_id = :pid WHERE id = :id'
-            );
-            $stmt->execute(['name' => $name, 'source' => $source, 'pid' => $parentId, 'id' => $id]);
+        if ($this->nameExists($name, $source, $id)) {
+            throw new \InvalidArgumentException('A category named "' . $name . '" already exists for this network.');
         }
+
+        // Even when the caller isn't changing the slug, the slug must still be
+        // re-validated against uq_cat_slug (source, slug) — the source itself
+        // may be changing (e.g. moving a custom category into TFL), and the
+        // existing slug could already belong to a different category under
+        // the new source. Re-running it through uniqueSlug() (excluding this
+        // row) resolves that the same way an explicit slug change would,
+        // instead of letting the UNIQUE constraint throw a raw PDOException.
+        if ($slug === null) {
+            $current = $this->getById($id);
+            $slug    = (string) ($current?->slug ?? $this->slugify($name));
+        }
+        $slug = $this->uniqueSlug($this->slugify($slug), $source, $id);
+
+        $stmt = $this->db->pdo()->prepare(
+            'UPDATE lstr_categories SET name = :name, source = :source, slug = :slug, parent_id = :pid WHERE id = :id'
+        );
+        $stmt->execute(['name' => $name, 'source' => $source, 'slug' => $slug, 'pid' => $parentId, 'id' => $id]);
     }
 
     /**
@@ -373,6 +387,10 @@ final class CategoryRepo
             throw new \InvalidArgumentException('Parent category must be a top-level category (max depth 1).');
         }
 
+        if ($this->nameExists($name, $source)) {
+            throw new \InvalidArgumentException('A category named "' . $name . '" already exists for this network.');
+        }
+
         $slug = $this->uniqueSlug($this->slugify($name), $source);
 
         $stmt = $this->db->prepare(
@@ -381,6 +399,27 @@ final class CategoryRepo
         $stmt->execute(['name' => $name, 'slug' => $slug, 'source' => $source, 'pid' => $parentId]);
 
         return (int) $this->db->lastInsertId();
+    }
+
+    /**
+     * Checks whether a category with the given (source, name) pair already
+     * exists — the same pair `uq_categories_source_name` enforces at the DB
+     * level. Pre-checking lets add()/update() raise a friendly
+     * \InvalidArgumentException instead of letting a raw PDOException from
+     * the unique constraint reach the controller as a 500.
+     */
+    private function nameExists(string $name, string $source, ?int $excludeId = null): bool
+    {
+        $sql = 'SELECT 1 FROM lstr_categories WHERE source = :source AND name = :name';
+        $params = ['source' => $source, 'name' => $name];
+        if ($excludeId !== null) {
+            $sql .= ' AND id != :id';
+            $params['id'] = $excludeId;
+        }
+        $stmt = $this->db->prepare($sql . ' LIMIT 1');
+        $stmt->execute($params);
+
+        return $stmt->fetchColumn() !== false;
     }
 
     /**

@@ -309,6 +309,7 @@ function showConfirmBar(anchorEl, message, onConfirm) {
         form.style.display = 'none';
         addInput(form, '_csrf',       btn.dataset.globalApproveCsrf);
         addInput(form, 'listing_id',  btn.dataset.globalApproveListing);
+        addInput(form, 'collective',  btn.dataset.globalApproveCollective || '0');
         addInput(form, '_tab',        'pending');
         document.body.appendChild(form);
         form.submit();
@@ -1111,6 +1112,17 @@ document.addEventListener('drop', function (e) {
 // ── 24b. Listings edit: status pill toggle ────────────────────────────────────
 // Active state is handled by CSS :has(input:checked) on .status-pill--* classes.
 
+// Local (not UTC) today as YYYY-MM-DD. new Date().toISOString() is UTC, which
+// can silently roll over to tomorrow's date for anyone west of UTC in the
+// evening — used by both the Last Updated and Closed/Adopted On "Set Today's
+// Date" buttons below.
+function lstrTodayIso() {
+  var d = new Date();
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + mm + '-' + dd;
+}
+
 // ── 25. Listings edit: last-updated date set/clear buttons ────────────────────
 
 (function () {
@@ -1119,13 +1131,39 @@ document.addEventListener('drop', function (e) {
   if (setBtn) {
     setBtn.addEventListener('click', function () {
       var f = document.getElementById('fl-last-updated');
-      if (f) f.value = new Date().toISOString().slice(0, 10);
+      if (f) f.value = lstrTodayIso();
     });
   }
   if (clearBtn) {
     clearBtn.addEventListener('click', function () {
       var f = document.getElementById('fl-last-updated');
       if (f) f.value = '';
+    });
+  }
+}());
+
+// ── 25b. Listings edit/add: Closed/Adopted On date set-today/reset buttons ────
+//
+// "Reset" restores the field to its data-original-value (the real last-saved
+// date on Edit, or blank on Add — see edit.php/add.php) rather than blanking
+// it: blank-on-submit means "keep the current stored date" at the repo layer
+// (ListingLifecycleRepo::upsert()), so a button that visibly blanked the field
+// would misleadingly suggest the date gets cleared when saving would actually
+// silently restore the old value.
+
+(function () {
+  var setBtn   = document.getElementById('set-archived-today-btn');
+  var resetBtn = document.getElementById('reset-archived-date-btn');
+  if (setBtn) {
+    setBtn.addEventListener('click', function () {
+      var f = document.getElementById('fl-archived-at');
+      if (f) f.value = lstrTodayIso();
+    });
+  }
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      var f = document.getElementById('fl-archived-at');
+      if (f) f.value = f.dataset.originalValue || '';
     });
   }
 }());
@@ -2002,6 +2040,10 @@ document.addEventListener('drop', function (e) {
       if (vals.display_mode === 'none')       lines.push('$luster_hide_dropdown      = true;');
       if (vals.status)                        lines.push('$luster_status             = ' + phpStr(vals.status) + ';');
       if (vals.exclude_pending === 'false')   lines.push('$luster_exclude_pending    = false;');
+      if (vals.archived_categories === 'closed' || vals.archived_categories === 'both')
+        lines.push('$luster_show_closed        = true;');
+      if (vals.archived_categories === 'adopted_out' || vals.archived_categories === 'both')
+        lines.push('$luster_show_adopted_out   = true;');
     }
     if (type === 'joined') {
       if (vals.display_mode === 'browse')     lines.push('$luster_browse_by_category = true;');
@@ -2128,6 +2170,7 @@ document.addEventListener('drop', function (e) {
             { token: '{stat_growth}',       label: 'Growth rate with unit',         line: '<b>Growth:</b> {stat_growth}' },
             { token: '{stat_growth_rate}',  label: 'Growth rate (number only)',     line: '' },
             { token: '{approved_by}',       label: 'Approved-by network',           line: '{if_approved_by}<b>Approved By:</b> {approved_by}{/if_approved_by}' },
+            { token: '{previous_owners}',   label: 'Previous owners',               line: '{if_previous_owners}<b>Previously owned by:</b> {previous_owners}{/if_previous_owners}' },
           ],
         },
         { id: 'date_format', label: 'Date format', type: 'select',
@@ -2157,6 +2200,9 @@ document.addEventListener('drop', function (e) {
         { id: 'display_mode', label: 'How should visitors browse?', type: 'select', opts: [['browse','List view'],['','Dropdown view'],['none','No categories']], hint: 'List view: visitors click a category name to see its listings. Dropdown view: a dropdown menu lets visitors filter by category. No categories: just show all listings.' },
         { id: 'status',             label: 'Listings shown',        type: 'select', opts: [['','Current only'],['upcoming','Upcoming only'],['pending','Pending only'],['past','Past fanlistings'],['all','All statuses']], hint: '' },
         { id: 'exclude_pending',    label: 'Pending listings',        type: 'select', opts: [['','Hide when showing all'],['false','Show when showing all']], hint: 'Only matters when "Listings shown" is All statuses.' },
+        { id: 'archived_categories', label: 'Closed / Adopted Out categories', type: 'select',
+          opts: [['','Hide (default — Past Fanlistings only)'],['closed','Show Closed'],['adopted_out','Show Adopted Out'],['both','Show both']],
+          hint: 'Adds separate "Closed"/"Adopted Out" entries to the category nav, alongside the combined Past Fanlistings entry.' },
         { id: 'date_format', label: 'Date format', type: 'select',
           opts: [['','Automatic'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['Y-m-d','2026-11-15']],
           hint: 'How listing dates appear.' },
@@ -3389,8 +3435,11 @@ document.addEventListener('click', function (e) {
 
     if (updateUrl !== false && window.history && history.replaceState) {
       if (codesBaseUrl !== null) {
-        // Standalone codes page: update URL using base URL + tab param
-        var url = new URL(window.location.origin + codesBaseUrl);
+        // Standalone codes page: update URL using base URL + tab param.
+        // codesBaseUrl (data-codes-base-url) is already an absolute URL
+        // (built from the app's base_url) — do not prepend location.origin,
+        // or new URL() produces a mangled double-origin string.
+        var url = new URL(codesBaseUrl);
         url.searchParams.set('tab', activeFilter);
         history.replaceState(null, '', url.toString());
       } else {
@@ -4058,12 +4107,14 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 
   setTbaState(isTba(getStatusVal()));
 
-  // Archive note shows for Closed or Adopted Out; the "Adopted By" name/URL
-  // fields only make sense for Adopted Out specifically.
-  var archiveNoteRow = document.getElementById('archive-note-row');
-  var adoptedNameRow = document.getElementById('adopted-to-name-row');
-  var adoptedUrlRow  = document.getElementById('adopted-to-url-row');
-  var urlInput       = document.getElementById('fl-url');
+  // Archive note and the archived-date field show for Closed or Adopted Out;
+  // the "Adopted By" name/URL fields only make sense for Adopted Out specifically.
+  var archiveNoteRow  = document.getElementById('archive-note-row');
+  var adoptedNameRow  = document.getElementById('adopted-to-name-row');
+  var adoptedUrlRow   = document.getElementById('adopted-to-url-row');
+  var archivedAtRow   = document.getElementById('archived-at-row');
+  var archivedAtLabel = document.getElementById('fl-archived-at-label');
+  var urlInput        = document.getElementById('fl-url');
 
   function setArchiveRowsState(val) {
     var isArchived   = val === 'closed' || val === 'adopted_out';
@@ -4071,6 +4122,8 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     if (archiveNoteRow) { archiveNoteRow.style.display = isArchived   ? '' : 'none'; }
     if (adoptedNameRow) { adoptedNameRow.style.display = isAdoptedOut ? '' : 'none'; }
     if (adoptedUrlRow)  { adoptedUrlRow.style.display  = isAdoptedOut ? '' : 'none'; }
+    if (archivedAtRow)  { archivedAtRow.style.display  = isArchived   ? '' : 'none'; }
+    if (archivedAtLabel) { archivedAtLabel.textContent = isAdoptedOut ? 'Adopted On' : 'Closed On'; }
     if (urlInput) {
       if (isArchived) { urlInput.removeAttribute('required'); }
       else            { urlInput.setAttribute('required', ''); }
@@ -4087,8 +4140,12 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 // ── 39. Global delete / destructive-action confirmation modal ────────────────────
 //
 // Single-item forms: add data-del-modal to the <form>, plus:
-//   data-del-entity  -- key into the CFG map below
-//   data-del-name    -- display name of the item being deleted
+//   data-del-entity   -- key into the CFG map below
+//   data-del-name     -- display name of the item being deleted
+//   data-del-name-from -- (alternative to data-del-name) name of a field within
+//     this form whose live value is read at submit time instead — for forms
+//     where the thing being deleted is user-entered (e.g. member-merge's
+//     duplicate email), not known until the admin fills it in
 //   data-del-context -- (optional) secondary label (e.g. listing name for member)
 //   data-del-warning -- (optional) override the default warning text
 //
@@ -4124,7 +4181,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     code_donor:            { title: 'Delete Code Donor',       btn: 'Delete',      desc: 'You are about to delete donor <strong>$$names$$</strong>. Their codes will be unattributed.', warn: 'This action cannot be undone.' },
     kim_member:            { title: 'Delete KIM Entry',        btn: 'Delete',      desc: 'You are about to delete the KIM entry for <strong>$$names$$</strong>.',              warn: 'This action cannot be undone.' },
     pending_update_reject: { title: 'Reject Update',           btn: 'Reject',      desc: 'You are about to reject the update for <strong>$$names$$</strong>.',                 warn: 'The pending update will be discarded. This action cannot be undone.' },
-    merge_member:          { title: 'Delete Duplicate Member', btn: 'Delete',      desc: 'You are about to delete the duplicate account for <strong>$$names$$</strong>.',      warn: 'This permanently deletes the duplicate account. This action cannot be undone.' },
+    merge_member:          { title: 'Delete Duplicate Member', btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong> as a duplicate. <strong>$$context$$</strong> will be kept.', warn: 'This permanently deletes the duplicate account. This action cannot be undone.' },
     rename_prefix:         { title: 'Rename Member Table',     btn: 'Rename Table', desc: 'You are about to rename the member table from <strong>$$names$$</strong> to <strong>$$context$$</strong>.', warn: 'This renames the table directly in your database. If anything goes wrong, member data may become unreachable. This action cannot be undone.' },
     entry:                 { title: 'Delete Entry',            btn: 'Delete',      desc: 'You are about to delete the entry <strong>$$names$$</strong>.',                       warn: 'This action cannot be undone.' },
     rules:                 { title: 'Delete Rules',            btn: 'Delete',      desc: 'You are about to delete the join rules for <strong>$$names$$</strong>.',               warn: 'Deleting removes the rules text (and rules gate, if enabled) entirely for this listing. This action cannot be undone.' },
@@ -4222,7 +4279,13 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       pending = form;
       var ctxFrom = form.dataset.delContextFrom;
       var ctx = ctxFrom ? (form.querySelector('[name="' + ctxFrom + '"]') || {}).value || '' : form.dataset.delContext || '';
-      show(cfg, form.dataset.delName || '', ctx, form.dataset.delWarning || '');
+      // data-del-name-from reads the live value of a field at submit time —
+      // for forms like member-merge where the name of the item actually being
+      // deleted (the duplicate's email) is only known once the admin types it
+      // in, not at page-render time when data-del-name would have to be static.
+      var nameFrom = form.dataset.delNameFrom;
+      var name = nameFrom ? (form.querySelector('[name="' + nameFrom + '"]') || {}).value || '' : form.dataset.delName || '';
+      show(cfg, name, ctx, form.dataset.delWarning || '');
       return;
     }
 
@@ -4599,7 +4662,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   var coltplSpinner  = document.getElementById('coltpl-prev-spinner');
 
   var COLTPL_LABELS = {
-    owned: 'Owned Listings Preview', random: 'Random Listing Preview',
+    owned: 'Owned Listings Preview', past_owned: 'Past Fanlistings Preview', random: 'Random Listing Preview',
     latest: 'Latest Listing Preview', joined: 'Joined Listings Preview',
     'random-joined': 'Random Joined Listing Preview', 'latest-joined': 'Latest Joined Listing Preview',
     collective_affiliates_section: 'Affiliates Preview', collective_stats: 'Statistics Preview',
@@ -8043,6 +8106,25 @@ document.addEventListener('click', function (e) {
   if (!btn) return;
   var form = document.getElementById(btn.dataset.submitForm);
   if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
+});
+
+// [data-po-add]/[data-po-remove]: Previous Owners repeatable row editor on the
+// Edit Listing page (Previous Owners feature). Clones a hidden <template> row
+// instead of building HTML from strings, so field names/escaping stay in one
+// place (the server-rendered template markup) rather than being duplicated in JS.
+document.addEventListener('click', function (e) {
+  var addBtn = e.target.closest ? e.target.closest('[data-po-add]') : null;
+  if (addBtn) {
+    var tpl  = document.getElementById('po-row-template');
+    var rows = document.querySelector('[data-po-rows]');
+    if (tpl && rows) rows.appendChild(tpl.content.cloneNode(true));
+    return;
+  }
+  var rmBtn = e.target.closest ? e.target.closest('[data-po-remove]') : null;
+  if (rmBtn) {
+    var row = rmBtn.closest('[data-po-row]');
+    if (row) row.remove();
+  }
 });
 
 // ── 58. Additional Fields: "Detect Field Types" upload-and-scan modal ─────────

@@ -16,9 +16,11 @@ use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\PreviousOwnersRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\DateFormatter;
 use Luster\Support\ListingTemplateResolver;
+use Luster\Support\PreviousOwnersRenderer;
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable
@@ -134,6 +136,15 @@ $_lusterTemplate     = $_lusterStatResolved['value'];
 if (isset($luster_stats_template) && trim((string) $luster_stats_template) !== '') {
     $_lusterTemplate = (string) $luster_stats_template;
 }
+
+// Previous Owners — shield the previous-owner tokens before any stats
+// substitution runs, so block bodies (and any normal stats tokens a site
+// owner nested inside {if_previous_owners}/{each_previous_owner}) stay live
+// for the stats pass below. See PreviousOwnersRenderer's docblock for why
+// this can't be a single before-or-after pass. resolve() runs at the very
+// end of this file, after every other token substitution has completed.
+$_lusterPreviousOwners = (new PreviousOwnersRepo($_lusterApp->getDatabase()))->getForListing($_lusterListingId);
+$_lusterTemplate       = PreviousOwnersRenderer::shield($_lusterTemplate);
 
 // ---------------------------------------------------------------------------
 // 6. Format dates
@@ -292,6 +303,9 @@ $_lusterHtml = str_replace(
     $_lusterTemplate,
 );
 
+// Previous Owners — the true final step, after every other stats token
+// substitution above has completed. See the shield() call in section 5.
+$_lusterHtml = PreviousOwnersRenderer::resolve($_lusterHtml, $_lusterPreviousOwners);
 
 $_lusterHtml .= $luster_attribution;
 

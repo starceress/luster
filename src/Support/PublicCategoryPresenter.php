@@ -62,9 +62,9 @@ final class PublicCategoryPresenter
         int    $upcomingCount = 0,
         bool   $showUpcoming  = true,
         int    $closedCount     = 0,
-        bool   $showClosed      = true,
+        bool   $showClosed      = false,
         int    $adoptedOutCount = 0,
-        bool   $showAdoptedOut  = true,
+        bool   $showAdoptedOut  = false,
         int    $pastCount       = 0,
         bool   $showPast        = true,
     ): array {
@@ -126,9 +126,9 @@ final class PublicCategoryPresenter
         int    $upcomingCount,
         bool   $showUpcoming,
         int    $closedCount     = 0,
-        bool   $showClosed      = true,
+        bool   $showClosed      = false,
         int    $adoptedOutCount = 0,
-        bool   $showAdoptedOut  = true,
+        bool   $showAdoptedOut  = false,
         int    $pastCount       = 0,
         bool   $showPast        = true,
     ): array {

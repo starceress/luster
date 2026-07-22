@@ -19,11 +19,35 @@ $selStatus        = isset($old['status']) ? (string) $old['status'] : 'current';
 $oldAdoptedToName = (string) ($old['adopted_to_name'] ?? '');
 $oldAdoptedToUrl  = (string) ($old['adopted_to_url']  ?? '');
 $oldArchiveNote   = (string) ($old['archive_note']    ?? '');
+// A brand-new listing has no existing saved date to restore to — Reset just
+// clears back to blank here, unlike Edit where it restores the last-saved date.
+$archivedAtOriginalVal = '';
+$archivedAtVal         = $val('archived_at', $archivedAtOriginalVal);
 
 $dataTfl        = json_encode($tfl_cats       ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 $dataTafl       = json_encode($tafl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 $dataCustom     = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+
+// Pre-populate cat-widget from posted arrays on a validation-failure re-render
+// (a brand-new listing has no junction-table/catid data to fall back to).
+$existingCats = [];
+$oldNets  = $old['cat_network']       ?? null;
+$oldNames = $old['cat_name']          ?? null;
+$oldOther = $old['cat_network_other'] ?? [];
+if (is_array($oldNets) && is_array($oldNames)) {
+    foreach ($oldNets as $i => $net) {
+        $net = trim((string) $net);
+        $nm  = trim((string) ($oldNames[$i] ?? ''));
+        if ($net === 'other') {
+            $net = trim((string) ($oldOther[$i] ?? ''));
+        }
+        if ($net !== '' && $nm !== '') {
+            $existingCats[] = ['network' => $net, 'name' => $nm];
+        }
+    }
+}
+$dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
 <div class="toolbar">
@@ -69,7 +93,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
                data-tafl='<?= $dataTafl ?>'
                data-custom='<?= $dataCustom ?>'
                data-custom-cats='<?= $dataCustomCats ?>'
-               data-existing='[]'>
+               data-existing='<?= $dataExisting ?>'>
             <div id="cat-rows"></div>
             <a href="#" class="link" id="cat-add"><?= View::icon('add') ?> Add another category</a>
           </div>
@@ -187,6 +211,19 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
           <input id="fl-adopted-to-url" type="url" name="adopted_to_url" class="form"
                  value="<?= View::e($oldAdoptedToUrl) ?>" maxlength="500"
                  placeholder="https://">
+        </div>
+      </div>
+
+      <div class="field-row field-row--top" id="archived-at-row">
+        <label class="field-label" for="fl-archived-at" id="fl-archived-at-label">Closed On</label>
+        <div>
+          <div class="actions-row actions-row--wrap">
+            <input id="fl-archived-at" type="date" name="archived_at" class="form form--compact"
+                   value="<?= View::e($archivedAtVal) ?>" data-original-value="<?= View::e($archivedAtOriginalVal) ?>">
+            <button type="button" class="btn btn-tertiary btn-sm" id="set-archived-today-btn">Set Today's Date</button>
+            <button type="button" class="btn btn-quaternary btn-sm" id="reset-archived-date-btn">Reset</button>
+          </div>
+          <?php if (!empty($fe['archived_at'])): ?><p class="field-error"><?= View::e($fe['archived_at'][0]) ?></p><?php endif; ?>
         </div>
       </div>
 

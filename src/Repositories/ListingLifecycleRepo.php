@@ -31,14 +31,19 @@ final class ListingLifecycleRepo
      */
     public function getByListingId(int $listingId): ?array
     {
-        $stmt = $this->db->prepare(
-            'SELECT fanlisting_id, lifecycle_status, archived_at, legacy_upcoming, legacy_trouble,
-                    adopted_to_name, adopted_to_url, archive_note
-             FROM lstr_listing_lifecycle
-             WHERE fanlisting_id = :id'
-        );
-        $stmt->execute(['id' => $listingId]);
-        $row = $stmt->fetch();
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT fanlisting_id, lifecycle_status, archived_at, legacy_upcoming, legacy_trouble,
+                        adopted_to_name, adopted_to_url, archive_note
+                 FROM lstr_listing_lifecycle
+                 WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+        } catch (\Throwable) {
+            // Table not migrated yet (Migration 93) — no lifecycle data exists.
+            return null;
+        }
 
         if ($row === false) {
             return null;
@@ -60,23 +65,43 @@ final class ListingLifecycleRepo
             return [];
         }
 
-        $placeholders = implode(',', array_fill(0, count($listingIds), '?'));
-        $stmt = $this->db->prepare(
-            "SELECT fanlisting_id, lifecycle_status FROM lstr_listing_lifecycle
-             WHERE fanlisting_id IN ({$placeholders})"
-        );
-        $stmt->execute($listingIds);
+        try {
+            $placeholders = implode(',', array_fill(0, count($listingIds), '?'));
+            $stmt = $this->db->prepare(
+                "SELECT fanlisting_id, lifecycle_status FROM lstr_listing_lifecycle
+                 WHERE fanlisting_id IN ({$placeholders})"
+            );
+            $stmt->execute($listingIds);
 
-        $map = [];
-        foreach ($stmt->fetchAll() as $row) {
-            $map[(int) $row['fanlisting_id']] = (string) $row['lifecycle_status'];
+            $map = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $map[(int) $row['fanlisting_id']] = (string) $row['lifecycle_status'];
+            }
+
+            return $map;
+        } catch (\Throwable) {
+            // Table not migrated yet (Migration 93) — no lifecycle data exists.
+            return [];
         }
-
-        return $map;
     }
 
     /**
      * Creates or replaces the lifecycle row for $listingId.
+     *
+     * $archivedAt (Y-m-d or blank/null): when blank, preserves whatever was
+     * already stored for this listing (so re-saving an already-archived
+     * listing without touching the date field doesn't silently reset it to
+     * today every time), or defaults to today when this is a fresh archive
+     * with nothing stored yet. When non-blank, used exactly as given —
+     * this is the admin-editable "Closed On"/"Adopted On" date.
+     *
+     * Deliberately has no missing-table guard, unlike every read method on
+     * this class: this table is the source of truth for whether a listing
+     * is archived at all, and callers (ListingController) unconditionally
+     * flip the listing's registry status right after calling this. A
+     * silently-swallowed failure here would leave a listing flagged
+     * inactive with no lifecycle row and no archive metadata — a broken,
+     * confusing state that's worse than the save just visibly failing.
      */
     public function upsert(
         int     $listingId,
@@ -86,31 +111,45 @@ final class ListingLifecycleRepo
         ?string $adoptedToName = null,
         ?string $adoptedToUrl = null,
         ?string $archiveNote = null,
+        ?string $archivedAt = null,
     ): void {
+        if ($archivedAt === null || $archivedAt === '') {
+            $existing   = $this->getByListingId($listingId);
+            $archivedAt = ($existing !== null && $existing['archived_at'] !== '')
+                ? $existing['archived_at']
+                : date('Y-m-d');
+        }
+
         $stmt = $this->db->prepare(
             'REPLACE INTO lstr_listing_lifecycle
                 (fanlisting_id, lifecycle_status, archived_at, legacy_upcoming, legacy_trouble,
                  adopted_to_name, adopted_to_url, archive_note)
-             VALUES (:id, :status, NOW(), :up, :trouble, :name, :url, :note)'
+             VALUES (:id, :status, :archived_at, :up, :trouble, :name, :url, :note)'
         );
         $stmt->execute([
-            'id'      => $listingId,
-            'status'  => $lifecycleStatus,
-            'up'      => (int) $legacyUpcoming,
-            'trouble' => (int) $legacyTrouble,
-            'name'    => $adoptedToName,
-            'url'     => $adoptedToUrl,
-            'note'    => $archiveNote,
+            'id'          => $listingId,
+            'status'      => $lifecycleStatus,
+            'archived_at' => $archivedAt,
+            'up'          => (int) $legacyUpcoming,
+            'trouble'     => (int) $legacyTrouble,
+            'name'        => $adoptedToName,
+            'url'         => $adoptedToUrl,
+            'note'        => $archiveNote,
         ]);
     }
 
     /**
-     * Removes the lifecycle row for $listingId. No-op when none exists.
+     * Removes the lifecycle row for $listingId. No-op when none exists —
+     * including when the table itself doesn't exist yet (pre-Migration-93),
+     * since reopening a listing on such an install has nothing to clean up.
      */
     public function delete(int $listingId): void
     {
-        $this->db->prepare('DELETE FROM lstr_listing_lifecycle WHERE fanlisting_id = :id')
-            ->execute(['id' => $listingId]);
+        try {
+            $this->db->prepare('DELETE FROM lstr_listing_lifecycle WHERE fanlisting_id = :id')
+                ->execute(['id' => $listingId]);
+        } catch (\Throwable) {
+        }
     }
 
     /** @param array<string,mixed> $row */

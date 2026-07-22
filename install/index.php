@@ -1004,6 +1004,19 @@ function installTables(PDO $pdo): void
             KEY `idx_lc_category` (`category_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+        // Previous Owners — credits prior owners of a listing (M102).
+        "CREATE TABLE IF NOT EXISTS `lstr_listing_previous_owners` (
+            `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `fanlisting_id` INT           NOT NULL,
+            `owner_name`    VARCHAR(255)  NOT NULL DEFAULT '',
+            `owner_url`     VARCHAR(500)  NOT NULL DEFAULT '',
+            `sort_order`    INT UNSIGNED  NOT NULL DEFAULT 0,
+            `created_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `idx_fanlisting_id` (`fanlisting_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
         // Joined listings tracker — all columns from migrations 4, 7, 15, 38, 40.
         // ------------------------------------------------------------------
         // Enthusiast-compatible listing registry (unprefixed schema)
@@ -1137,7 +1150,7 @@ function installTables(PDO $pdo): void
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
          (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93),
-         (94),(95),(96),(97),(98),(99),(100),(101)'
+         (94),(95),(96),(97),(98),(99),(100),(101),(102)'
     );
 }
 

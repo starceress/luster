@@ -378,14 +378,16 @@ final class PendingUpdateController
             $count++;
         }
 
+        $actionPastTense = $action === 'approve' ? 'Approved' : 'Rejected';
+
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'pending_update.bulk_' . $action,
-            "Bulk {$action}d {$count} pending update(s)",
+            "Bulk {$actionPastTense} {$count} pending update(s)",
             $request->ip(),
         );
 
-        $msg = ucfirst($action) . "d {$count} pending update" . ($count !== 1 ? 's' : '') . '.';
+        $msg = "{$actionPastTense} {$count} pending update" . ($count !== 1 ? 's' : '') . '.';
         if ($skipped > 0) {
             $msg .= " Skipped {$skipped} because the requested email was already taken.";
         }

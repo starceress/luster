@@ -348,6 +348,28 @@ final class PublicCategoryPresenterTest extends TestCase
         self::assertStringNotContainsString('Past Fanlistings', $result['html']);
     }
 
+    public function testClosedAndAdoptedOutDefaultToHiddenWhenArgsOmitted(): void
+    {
+        // showClosed/showAdoptedOut intentionally omitted here — must default
+        // to false (Past Fanlistings alone covers the combined view by
+        // default; Closed/Adopted Out are opt-in extras via the Embed Wizard
+        // or $luster_show_closed/$luster_show_adopted_out).
+        $result = PublicCategoryPresenter::renderOwned(
+            [$this->cat(1, 'Anime', 'anime')],
+            0, '/listings', hideDropdown: false, showList: true,
+            browseMode: false, browseShowAll: false,
+            totalCount: 5, showCatSwitcher: true,
+            view: '', pendingCount: 0, showPending: true, upcomingCount: 0, showUpcoming: true,
+            closedCount: 3, adoptedOutCount: 2,
+            pastCount: 5, showPast: true,
+        );
+
+        self::assertStringNotContainsString('__closed__', $result['html']);
+        self::assertStringNotContainsString('__adopted_out__', $result['html']);
+        self::assertStringContainsString('Past Fanlistings', $result['html']);
+        self::assertStringContainsString('__past__', $result['html']);
+    }
+
     public function testPastViewActivatesAriaCurrent(): void
     {
         $result = PublicCategoryPresenter::renderOwned(

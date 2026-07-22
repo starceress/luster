@@ -245,7 +245,7 @@ final class AdoptPublicController
         $message   = trim((string) $request->post('message', ''));
 
         $v = new Validator(['listing_id' => (string) $listingId, 'name' => $name, 'email' => $email, 'url' => $url, 'message' => $message]);
-        $v->field('listing_id')->required()->integer()->min(1);
+        $v->field('listing_id')->required();
         $v->field('name')->required()->maxLength(100);
         $v->field('email')->required()->email()->maxLength(255);
         $v->field('url')->httpUrl()->maxLength(500);
