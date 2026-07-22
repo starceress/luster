@@ -198,18 +198,18 @@ $id = (int) $listing->id;
   <summary>
     <?= View::icon('merge') ?> Merge duplicate member
   </summary>
-  <div class="form-details-body">
-    <p class="form-details-desc">
-      If this member joined again under a different email, enter that email below to delete the
-      duplicate. <strong><?= View::e($member->email) ?></strong> will be kept; the duplicate will
-      be permanently removed.
-    </p>
-    <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/merge"
-          data-del-modal data-del-entity="merge_member"
-          data-del-name-from="duplicate_email"
-          data-del-context="<?= View::e($member->email) ?>">
-      <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
-      <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
+  <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/merge"
+        data-del-modal data-del-entity="merge_member"
+        data-del-name-from="duplicate_email"
+        data-del-context="<?= View::e($member->email) ?>">
+    <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
+    <div class="form-details-body">
+      <p class="form-details-desc">
+        If this member joined again under a different email, enter that email below to delete the
+        duplicate. <strong><?= View::e($member->email) ?></strong> will be kept; the duplicate will
+        be permanently removed.
+      </p>
       <div class="field-row">
         <label class="field-label" for="merge-dupe-email">Duplicate email to delete</label>
         <div>
@@ -217,9 +217,9 @@ $id = (int) $listing->id;
                  maxlength="255" placeholder="duplicate&#64;example.com" required>
         </div>
       </div>
-      <div class="composer-footer">
-        <button type="submit" class="btn btn-danger">Delete Duplicate</button>
-      </div>
-    </form>
-  </div>
+    </div>
+    <div class="composer-footer">
+      <button type="submit" class="btn btn-danger">Delete Duplicate</button>
+    </div>
+  </form>
 </details>

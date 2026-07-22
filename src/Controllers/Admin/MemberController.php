@@ -608,6 +608,13 @@ final class MemberController extends AdminController
             return Response::redirect($redirectEdit);
         }
 
+        // Carry over the earlier join date before deleting — otherwise a
+        // duplicate that actually joined first would silently lose its date
+        // the moment its row is discarded.
+        if ($duplicate->added !== '' && ($primary->added === '' || $duplicate->added < $primary->added)) {
+            $memberRepo->update($listing->dbprefix, $primaryEmail, ['added' => $duplicate->added]);
+        }
+
         // Delete the duplicate
         $memberRepo->deleteByEmail($listing->dbprefix, $dupeEmail);
 
