@@ -19,6 +19,11 @@
 
 require_once __DIR__ . '/luster-bridge.php';
 
+if (!is_file(LUSTER_PATH . '/bootstrap.php')) {
+    echo '<!-- Luster compat: LUSTER_PATH is not set correctly. -->';
+    return;
+}
+
 $luster_return         = false;
 $luster_append_submit  = true;
 require LUSTER_PATH . '/public/embed/codes.php';

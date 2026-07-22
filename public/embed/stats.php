@@ -13,6 +13,7 @@
 declare(strict_types=1);
 
 use Luster\Repositories\CategoryRepo;
+use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
@@ -65,7 +66,16 @@ $luster_attribution = \Luster\Core\View::attribution();
 $_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
 $_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
 
-if ($_lusterListing === null || $_lusterListing->upcoming || $_lusterListing->trouble) {
+// Archiving (Closed/Adopted Out) sets upcoming=false, trouble=true to reuse
+// the legacy Enthusiast "inactive" representation (see ListingLifecycleService).
+// This bail-out predates that reuse and would otherwise blank the Stats
+// embed — including the Previous Owners tokens, whose main use case IS a
+// Closed/Adopted Out listing — for every archived listing. Only bail on
+// "trouble" when the listing isn't lifecycle-archived; "upcoming" still
+// means what it always did (not open yet, no stats to show).
+$_lusterIsArchived = (new ListingLifecycleRepo($_lusterApp->getDatabase()))->getByListingId($_lusterListingId) !== null;
+
+if ($_lusterListing === null || $_lusterListing->upcoming || ($_lusterListing->trouble && !$_lusterIsArchived)) {
     $_lusterHtml = '<!-- Luster: stats not available for listing #' . $_lusterListingId . ' -->';
     if ($luster_return ?? false) {
         return $_lusterHtml;

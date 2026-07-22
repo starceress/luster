@@ -23,6 +23,11 @@
 
 require_once __DIR__ . '/luster-bridge.php';
 
+if (!is_file(LUSTER_PATH . '/bootstrap.php')) {
+    echo '<!-- Luster compat: LUSTER_PATH is not set correctly. -->';
+    return;
+}
+
 // No "listing not found" guard here on purpose: a $luster_fanlisting_id of 0
 // is a legitimate, intentional mode for this embed (collective/site-wide
 // affiliates), exactly matching Fanatically's own file — not an error state.

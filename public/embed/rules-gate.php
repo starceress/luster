@@ -55,14 +55,47 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
-// 3. Determine and store the return URL
-//    This is where the fan will be redirected after clicking "Agree".
+// 3. Determine the current URL (self-post target) and the return URL
+//    (where the fan is redirected after clicking "Agree"). These are two
+//    different things for this embed specifically: unlike join.php/update.php/
+//    contact.php (which normally self-post and redirect to the same page),
+//    the rules gate's whole purpose is to sit on one page (e.g. rules.php) and
+//    send the fan on to a *different* page (e.g. join.php) once they agree —
+//    exactly what samples/listing/rules.php demonstrates. The form must always
+//    self-post back to the gate's own current URL regardless of where
+//    $luster_redirect_url points, otherwise the agreement POST lands on the
+//    redirect target's embed file instead (which doesn't recognize this
+//    embed's rules_gate:{id} marker and silently discards it) and the
+//    agreement is never recorded.
 // ---------------------------------------------------------------------------
+
+$_lusterProto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$_lusterSelfUrl = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
-    $_lusterProto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
+    $_lusterRedirectTo = $_lusterSelfUrl;
+} elseif (!preg_match('#^https?://#i', $_lusterRedirectTo) && !str_starts_with($_lusterRedirectTo, '//')) {
+    // RulesPublicController::agree() requires a full scheme+host URL
+    // (isValidReturnUrl() rejects anything else, falling back to the
+    // listing's own registered URL instead) — so a bare relative override
+    // like the "join.php" shown in samples/listing/rules.php must be
+    // resolved to absolute here, the same way a browser would resolve a
+    // relative href/action against the gate's own current page.
+    //
+    // Deliberately NOT using PHP's dirname() here: it's a filesystem
+    // function that normalizes to DIRECTORY_SEPARATOR, and on Windows
+    // dirname('/rules.php') returns '\' (not '/' or ''), which would corrupt
+    // a root-level page's redirect into "http://host\/join.php". This does
+    // the same "directory of a URL path" trim using only '/', so it behaves
+    // the same on every OS Luster runs on.
+    $_lusterCurrentPath = (string) (parse_url($_lusterSelfUrl, PHP_URL_PATH) ?: '/');
+    $_lusterOrigin      = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+    $_lusterLastSlash   = strrpos($_lusterCurrentPath, '/');
+    $_lusterCurrentDir  = $_lusterLastSlash === false ? '' : substr($_lusterCurrentPath, 0, $_lusterLastSlash);
+    $_lusterRedirectTo  = str_starts_with($_lusterRedirectTo, '/')
+        ? $_lusterOrigin . $_lusterRedirectTo
+        : $_lusterOrigin . $_lusterCurrentDir . '/' . $_lusterRedirectTo;
 }
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
 $_lusterMarker = 'rules_gate:' . $_lusterListingId;
@@ -156,7 +189,7 @@ if ($_lusterStoredFp === $_lusterRuleSet->fingerprint()) {
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterFormAction = $_lusterRedirectTo;
+$_lusterFormAction = $_lusterSelfUrl;
 
 try {
     $_lusterListing = (new \Luster\Repositories\ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig()))

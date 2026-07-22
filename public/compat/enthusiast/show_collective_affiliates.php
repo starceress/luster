@@ -12,6 +12,11 @@
 
 require_once __DIR__ . '/luster-bridge.php';
 
+if (!is_file(LUSTER_PATH . '/bootstrap.php')) {
+    echo '<!-- Luster compat: LUSTER_PATH is not set correctly. -->';
+    return;
+}
+
 $luster_fanlisting_id = 0;
 $luster_return = false;
 require LUSTER_PATH . '/public/embed/affiliates.php';
