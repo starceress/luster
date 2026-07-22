@@ -67,7 +67,11 @@ if (trim($_lusterTemplate) === '') {
 
 $_lusterTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterTemplate);
 
-$_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
+// "?luster_img=joined" instead of a direct uploads URL — keeps the real
+// Luster install path out of every <img src>. Requires the host page to have
+// the serveUploadedImage() guard next to the existing serveCss() one (see
+// Luster\Core\View::serveUploadedImage() docblock).
+$_lusterUploadsUrl = '?luster_img=joined';
 
 $_lusterHtml = JoinedListingRowRenderer::renderTemplate($_lusterTemplate, [$_lusterListing], $_lusterUploadsUrl, (string) ($luster_date_format ?? ''));
 

@@ -53,7 +53,7 @@ if ($filter_type === 'all') {
         foreach ($groupEntries as $entry) {
             echo '<li class="fl-wishlist-item fl-wishlist-item--' . htmlspecialchars($entry->type, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
             if ($entry->image !== null && $entry->image !== '') {
-                echo '<img class="fl-wishlist-image" src="' . htmlspecialchars($base_url . '/uploads/wishlist/' . $entry->image, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+                echo '<img class="fl-wishlist-image" src="' . htmlspecialchars('?luster_img=wishlist/' . $entry->image, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
                    . ' alt="' . htmlspecialchars($entry->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
             }
             echo '<div class="fl-wishlist-info">';
@@ -81,7 +81,7 @@ if ($filter_type === 'all') {
     foreach ($entries as $entry) {
         echo '<li class="fl-wishlist-item fl-wishlist-item--' . htmlspecialchars($entry->type, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
         if ($entry->image !== null && $entry->image !== '') {
-            echo '<img class="fl-wishlist-image" src="' . htmlspecialchars($base_url . '/uploads/wishlist/' . $entry->image, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+            echo '<img class="fl-wishlist-image" src="' . htmlspecialchars('?luster_img=wishlist/' . $entry->image, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
                . ' alt="' . htmlspecialchars($entry->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
         }
         echo '<div class="fl-wishlist-info">';

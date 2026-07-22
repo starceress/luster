@@ -166,7 +166,11 @@ if ($_lusterPerPage > 0 && $_lusterTotalCodes > $_lusterPerPage) {
 // ---------------------------------------------------------------------------
 
 $_lusterBaseUrl    = rtrim($_lusterApp->getBaseUrl(), '/');
-$_lusterUploadsUrl = $_lusterBaseUrl . '/uploads/codes';
+// "?luster_img=codes" instead of a direct uploads URL — keeps the real
+// Luster install path out of every <img src>. Requires the host page to have
+// the serveUploadedImage() guard next to the existing serveCss() one (see
+// Luster\Core\View::serveUploadedImage() docblock).
+$_lusterUploadsUrl = '?luster_img=codes';
 
 // ---------------------------------------------------------------------------
 // 4a. Apply codes display template (if set) via CodesTemplateRenderer

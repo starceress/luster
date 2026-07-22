@@ -2002,10 +2002,8 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   $_snipId  = (int) $listing->id;
   $_ep      = rtrim(str_replace('\\', '/', (string) ($embed_path ?? '/path/to/luster/public/embed')), '/');
   $_escEp   = str_replace(["\\", "'"], ["\\\\", "\\'"], $_ep);
-  $setupLine1 = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . $_escEp . "'); ?>";
-  $setupLine2 = "<?php require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.php'; ?>";
-  $setupLine3 = "<?php if (isset(\$_GET['luster_css'])) { Luster\\Core\\View::serveCss(); exit; } ?>";
-  $setupLine4 = '<link rel="stylesheet" href="?luster_css">';
+  $setupLine1 = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . $_escEp . "'); require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.php'; Luster\\Core\\View::serveEmbedAsset(); ?>";
+  $setupLine5 = '<link rel="stylesheet" href="?luster_css">';
 
   // Same PHP syntax highlighter used by the Full Embed Wizard's setup snippet.
   $hlPhp = static function (string $code): string {
@@ -2061,14 +2059,12 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     <div class="ec-setup-head">
       <strong class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></strong>
       <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
-              data-setup-text="<?= htmlspecialchars($setupLine1 . "\n" . $setupLine2 . "\n" . $setupLine3 . "\n\n" . $setupLine4, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
+              data-setup-text="<?= htmlspecialchars($setupLine1 . "\n\n" . $setupLine5, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
     </div>
 
     <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>):</p>
     <div class="ec-setup-snip">
       <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine1) ?></code></div>
-      <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine2) ?></code></div>
-      <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine3) ?></code></div>
     </div>
 
     <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked:</p>

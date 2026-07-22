@@ -269,8 +269,9 @@ final class View
     /**
      * Serves the public embed stylesheet as a standalone CSS response.
      *
-     * Call at the very top of the host page (before any HTML output) behind
-     * a query-param guard:
+     * Most host pages should call serveEmbedAsset() instead — a single line
+     * that covers this and serveUploadedImage() together. Calling this one
+     * directly still works, behind a query-param guard:
      *
      *   if (isset($_GET['luster_css'])) { Luster\Core\View::serveCss(); exit; }
      *
@@ -300,6 +301,97 @@ final class View
         $css = (string) file_get_contents($path);
         $css = (string) preg_replace('#/\*.*?\*/#s', '', $css);
         echo $css;
+    }
+
+    /**
+     * Serves an uploaded listing/affiliate/joined/code/wishlist image as a
+     * standalone response — the same trick as serveCss(): keeps the real
+     * Luster install path out of every image URL in the page source.
+     *
+     * Most host pages should call serveEmbedAsset() instead — a single line
+     * that covers this and serveCss() together. Calling this one directly
+     * still works, behind a query-param guard:
+     *
+     *   if (isset($_GET['luster_img'])) { Luster\Core\View::serveUploadedImage((string) ($_GET['luster_img'] ?? '')); exit; }
+     *
+     * Image tokens ({listing_image}, {aff_image_url}, etc.) point at
+     * `?luster_img=<subfolder>/<filename>` instead of a direct uploads URL
+     * once this guard is in place — see ListingRowRenderer / AffiliateRowRenderer
+     * / JoinedListingRowRenderer / CodesTemplateRenderer for where those get built.
+     *
+     * @param string $relativePath e.g. "listings/fl_6a600773519ac3.png"
+     */
+    public static function serveUploadedImage(string $relativePath): void
+    {
+        $subdirs = ['listings', 'affiliates', 'joined', 'codes', 'wishlist'];
+
+        if (!preg_match('#^(' . implode('|', $subdirs) . ')/([A-Za-z0-9_.-]+)$#', $relativePath, $m)) {
+            http_response_code(404);
+            return;
+        }
+
+        $uploadsBase = dirname(__DIR__, 2) . '/public/uploads';
+        $path        = $uploadsBase . '/' . $m[1] . '/' . $m[2];
+
+        // Defense in depth: the pattern above already rules out ".." and any
+        // extra "/" in the filename part, but confirm the resolved path is
+        // still inside uploads/ before ever reading it.
+        $real     = realpath($path);
+        $realBase = realpath($uploadsBase);
+        if ($real === false || $realBase === false || !str_starts_with($real, $realBase) || !is_file($real)) {
+            http_response_code(404);
+            return;
+        }
+
+        // MIME by content, not extension — same rule as upload validation,
+        // so a renamed non-image file already on disk still can't be served as one.
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime  = $finfo !== false ? (string) finfo_file($finfo, $real) : '';
+        if ($finfo !== false) {
+            finfo_close($finfo);
+        }
+        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true)) {
+            http_response_code(404);
+            return;
+        }
+
+        $mtime = (int) filemtime($real);
+        $etag  = '"' . dechex($mtime) . '-' . dechex((int) filesize($real)) . '"';
+
+        header('Content-Type: ' . $mime);
+        header('Cache-Control: public, max-age=604800');
+        header('ETag: ' . $etag);
+
+        if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+            http_response_code(304);
+            return;
+        }
+
+        readfile($real);
+    }
+
+    /**
+     * Single guard line covering both serveCss() and serveUploadedImage(),
+     * so a host page only needs to paste one line instead of two. Safe to
+     * call unconditionally at the very top of the page (before any HTML
+     * output) — it no-ops and returns normally when neither query param is
+     * present, letting the rest of the page render as usual:
+     *
+     *   <?php Luster\Core\View::serveEmbedAsset(); ?>
+     *
+     * Exits the script itself whenever it actually serves something, the
+     * same as calling serveCss()/serveUploadedImage() directly would.
+     */
+    public static function serveEmbedAsset(): void
+    {
+        if (isset($_GET['luster_css'])) {
+            self::serveCss();
+            exit;
+        }
+        if (isset($_GET['luster_img'])) {
+            self::serveUploadedImage((string) ($_GET['luster_img'] ?? ''));
+            exit;
+        }
     }
 
     // -----------------------------------------------------------------------

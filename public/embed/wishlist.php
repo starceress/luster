@@ -77,7 +77,11 @@ $_wishlistTemplate     = $_siteSettings->get('wishlist_template');
 
 if ($_wishlistTemplate !== null && trim($_wishlistTemplate) !== '') {
     $_wishlistTemplate = str_replace('{site_name}', htmlspecialchars((string) $_app->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_wishlistTemplate);
-    $_uploadsUrl = rtrim($_app->getBaseUrl(), '/') . '/uploads/wishlist';
+    // "?luster_img=wishlist" instead of a direct uploads URL — keeps the real
+    // Luster install path out of every <img src>. Requires the host page to
+    // have the serveUploadedImage() guard next to the existing serveCss() one
+    // (see Luster\Core\View::serveUploadedImage() docblock).
+    $_uploadsUrl = '?luster_img=wishlist';
 
     $_wishlistRowFn = static function (string $inner, object $entry) use ($_uploadsUrl): string {
         $imageUrl = ($entry->image !== null && $entry->image !== '')

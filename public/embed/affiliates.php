@@ -59,7 +59,11 @@ $_lusterPage         = max(1, (int) ($_GET['page'] ?? ($luster_page ?? 1)));
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/affiliates';
+// "?luster_img=affiliates" instead of a direct uploads URL — keeps the real
+// Luster install path out of every <img src>. Requires the host page to have
+// the serveUploadedImage() guard next to the existing serveCss() one (see
+// Luster\Core\View::serveUploadedImage() docblock).
+$_lusterUploadsUrl = '?luster_img=affiliates';
 
 // ---------------------------------------------------------------------------
 // 3. Load affiliates

@@ -225,7 +225,11 @@ $_lusterOwnedTemplate = str_replace('{site_name}', htmlspecialchars((string) $_l
 
 $_lusterListingHtml = null;
 if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
-    $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';
+    // "?luster_img=listings" instead of a direct uploads URL — keeps the real
+    // Luster install path out of every <img src>. Requires the host page to
+    // have the serveUploadedImage() guard next to the existing serveCss() one
+    // (see Luster\Core\View::serveUploadedImage() docblock).
+    $_lusterUploadsUrl = '?luster_img=listings';
 
     // Batch-fetch settings (image, last_updated) for all listings
     $_lusterListingIds = array_map(static fn($fl) => $fl->id, $_lusterListings);
@@ -353,7 +357,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
     'total_all_count'     => $_lusterAllCount,
     'status'              => $_lusterStatus,
     'view'                => $_lusterPseudoView,
-    'uploads_url'         => $_lusterApp->getBaseUrl() . '/uploads',
+    'uploads_url'         => '?luster_img=listings',
     'base_url'            => $_lusterApp->getBaseUrl(),
     'form_action'         => $_lusterFormAction,
     'theme_path'          => $_lusterApp->getBaseUrl() . '/assets/default/',

@@ -70,7 +70,11 @@ if (trim($_lusterTemplate) === '') {
 
 $_lusterTemplate = str_replace('{site_name}', htmlspecialchars((string) $_lusterApp->getConfig()->get('site_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $_lusterTemplate);
 
-$_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';
+// "?luster_img=listings" instead of a direct uploads URL — keeps the real
+// Luster install path out of every <img src>. Requires the host page to have
+// the serveUploadedImage() guard next to the existing serveCss() one (see
+// Luster\Core\View::serveUploadedImage() docblock).
+$_lusterUploadsUrl = '?luster_img=listings';
 
 // Fetch per-listing settings (image, last_updated)
 $_lusterSettings = (new ListingSettingsRepo($_lusterApp->getDatabase()))->getRenderSettings($_lusterListing->id);

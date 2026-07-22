@@ -156,7 +156,11 @@ $_lusterJoinedTemplate = str_replace('{site_name}', htmlspecialchars((string) $_
 
 $_lusterListingHtml = null;
 if ($_lusterJoinedTemplate !== null) {
-    $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
+    // "?luster_img=joined" instead of a direct uploads URL — keeps the real
+    // Luster install path out of every <img src>. Requires the host page to
+    // have the serveUploadedImage() guard next to the existing serveCss() one
+    // (see Luster\Core\View::serveUploadedImage() docblock).
+    $_lusterUploadsUrl = '?luster_img=joined';
 
     // Flatten $_lusterGrouped (already category-sorted via ksort in $_lusterGroupByCategory)
     // into a single ordered list — the data ordering IS the "grouped by category" contract
@@ -205,7 +209,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
     'current_category'   => $_lusterCategory,
     'browse_by_category' => $_lusterBrowseByCat,
     'view'               => $_lusterPseudoView,
-    'uploads_url'        => $_lusterApp->getBaseUrl() . '/uploads/joined',
+    'uploads_url'        => '?luster_img=joined',
     'base_url'           => $_lusterApp->getBaseUrl(),
     'form_action'        => $_lusterFormAction,
     'theme_path'         => $_lusterApp->getBaseUrl() . '/assets/default/',
