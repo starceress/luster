@@ -60,7 +60,7 @@ of it for you.
   in one click; review admin activity with IP tracking; browse error logs.
 - **Security-first foundations:** Modern password protection, defenses against
   common web attacks, safe file uploads, hidden install files, and bot-blocking
-  CAPTCHA plus rate limits on every join form — backed by 1,760+ automated
+  CAPTCHA plus rate limits on every join form — backed by 1,845+ automated
   tests. Autoupdater with security checks, and backups are always available and 
   one click away.
 
