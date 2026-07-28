@@ -331,9 +331,9 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 [data-theme="light"] .btn-download:hover { background: linear-gradient(rgb(var(--ch-brand-primary)/0.07), rgb(var(--ch-brand-secondary)/0.04)) padding-box, linear-gradient(135deg, var(--gradient)) border-box; }
 
-.btn-download-fill { background: linear-gradient(135deg, var(--gradient)); border: 1.5px solid transparent; color: #fff; transition: background 0.28s ease, box-shadow 0.28s ease; }
+.btn-download-fill { background: linear-gradient(135deg, var(--gradient)); border: 1.5px solid transparent; color: #fff; font-weight: 700; text-shadow: 0 1px 3px rgb(0 0 0 / 0.45); transition: background 0.28s ease, box-shadow 0.28s ease; }
 
-.btn-download-fill:hover { background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box, linear-gradient(135deg, var(--gradient)) border-box; color: var(--text); }
+.btn-download-fill:hover { background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box, linear-gradient(135deg, var(--gradient)) border-box; color: var(--text); text-shadow: none; }
 
 [data-theme="dark"] .btn-download-fill { box-shadow: 0 0 20px rgb(var(--ch-brand-primary)/0.18), 0 0 40px rgb(var(--ch-brand-secondary)/0.08); }
 
@@ -468,10 +468,10 @@ a.badge.badge--active { outline: 2px solid currentColor; outline-offset: 2px; }
 
 .callout-info  { background: color-mix(in srgb, var(--brand-quaternary) 10%, transparent); border-color: color-mix(in srgb, var(--brand-quaternary) 30%, transparent); }
 
-.callout svg { height: 1.75rem; width: 1.75rem; flex-shrink: 0; }
-.callout-warn svg { color: var(--warn); }
-.callout-err  svg { color: var(--danger); }
-.callout-info  svg { color: var(--brand-quaternary); }
+.callout > svg { height: 1.75rem; width: 1.75rem; flex-shrink: 0; }
+.callout-warn > svg { color: var(--warn); }
+.callout-err  > svg { color: var(--danger); }
+.callout-info  > svg { color: var(--brand-quaternary); }
 
 .callout strong { color: var(--warn); }
 .callout-err strong { color: var(--danger); }
@@ -1899,6 +1899,8 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 .update-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }
 
 .update-action-card { display: grid; align-content: start; gap: .7rem; min-height: 10rem; padding: .85rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elevated); }
+
+.update-action-card > form { display: grid; gap: .7rem; }
 
 .update-action-card h3 { text-align: center; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--text); border-bottom: 1px solid var(--border); }
 

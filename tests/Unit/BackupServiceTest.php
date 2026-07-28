@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class BackupServiceTest extends TestCase
 {
-    private function shouldSkip(string $rel, bool $includeUploads): bool
+    private function shouldSkip(string $rel, bool $includeUploads, bool $includeVendor = false): bool
     {
         // Database is final — use SqliteDatabase helper to get a real instance.
         // shouldSkipPath() never touches the database, so an empty schema is fine.
@@ -25,43 +25,46 @@ final class BackupServiceTest extends TestCase
         $service = new BackupService($db, sys_get_temp_dir());
         $method  = new \ReflectionMethod($service, 'shouldSkipPath');
         $method->setAccessible(true);
-        return (bool) $method->invoke($service, $rel, $includeUploads);
+        return (bool) $method->invoke($service, $rel, $includeUploads, $includeVendor);
     }
 
-    // --- rollback profile ($includeUploads = false) -------------------------
+    // --- rollback profile ($includeUploads = false, $includeVendor = true) --
 
     public function testRollbackExcludesUploads(): void
     {
-        self::assertTrue($this->shouldSkip('files/public/uploads/foo.jpg', false));
-        self::assertTrue($this->shouldSkip('files/public/uploads/subdir/bar.png', false));
+        self::assertTrue($this->shouldSkip('files/public/uploads/foo.jpg', false, true));
+        self::assertTrue($this->shouldSkip('files/public/uploads/subdir/bar.png', false, true));
     }
 
-    public function testRollbackExcludesVendor(): void
+    public function testRollbackIncludesVendor(): void
     {
-        self::assertTrue($this->shouldSkip('files/vendor/autoload.php', false));
-        self::assertTrue($this->shouldSkip('files/vendor/phpmailer/phpmailer/src/PHPMailer.php', false));
+        // Rollback backups now include vendor/ - UpdateApplier deletes/rewrites
+        // it while applying an update, so a rollback snapshot has to be able to
+        // restore it without requiring Composer on the server.
+        self::assertFalse($this->shouldSkip('files/vendor/autoload.php', false, true));
+        self::assertFalse($this->shouldSkip('files/vendor/phpmailer/phpmailer/src/PHPMailer.php', false, true));
     }
 
     public function testRollbackExcludesStorage(): void
     {
-        self::assertTrue($this->shouldSkip('files/storage/logs/error.log', false));
-        self::assertTrue($this->shouldSkip('files/storage/cache/luster_backup_20260101.zip', false));
+        self::assertTrue($this->shouldSkip('files/storage/logs/error.log', false, true));
+        self::assertTrue($this->shouldSkip('files/storage/cache/luster_backup_20260101.zip', false, true));
     }
 
     public function testRollbackIncludesSrcAndTemplates(): void
     {
-        self::assertFalse($this->shouldSkip('files/src/Core/Application.php', false));
-        self::assertFalse($this->shouldSkip('files/templates/admin/layout.php', false));
+        self::assertFalse($this->shouldSkip('files/src/Core/Application.php', false, true));
+        self::assertFalse($this->shouldSkip('files/templates/admin/layout.php', false, true));
     }
 
     public function testRollbackIncludesPublicExceptUploads(): void
     {
-        self::assertFalse($this->shouldSkip('files/public/assets/css/admin.css', false));
-        self::assertFalse($this->shouldSkip('files/public/embed/join.php', false));
-        self::assertFalse($this->shouldSkip('files/public/.htaccess', false));
+        self::assertFalse($this->shouldSkip('files/public/assets/css/admin.css', false, true));
+        self::assertFalse($this->shouldSkip('files/public/embed/join.php', false, true));
+        self::assertFalse($this->shouldSkip('files/public/.htaccess', false, true));
     }
 
-    // --- complete profile ($includeUploads = true) --------------------------
+    // --- complete profile ($includeUploads = true, $includeVendor = false) --
 
     public function testCompleteIncludesUploads(): void
     {
@@ -91,6 +94,7 @@ final class BackupServiceTest extends TestCase
     {
         // Should behave the same whether the 'files/' prefix is present or not
         self::assertTrue($this->shouldSkip('vendor/autoload.php', false));
+        self::assertFalse($this->shouldSkip('vendor/autoload.php', false, true));
         self::assertTrue($this->shouldSkip('storage/cache/tmp.zip', false));
         self::assertTrue($this->shouldSkip('public/uploads/foo.png', false));
         self::assertFalse($this->shouldSkip('public/uploads/foo.png', true));

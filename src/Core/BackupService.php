@@ -5,8 +5,14 @@
 
  Builds a backup ZIP of Luster application files and a SQL dump of all lstr_*,
  listing-registry, and per-listing member tables. Supports two profiles:
-   'rollback' — excludes public/uploads/ (correct for update-rollback snapshots)
-   'complete'  — includes public/uploads/ (suitable for a full site backup)
+   'rollback' — excludes public/uploads/, includes vendor/ (correct for
+                update-rollback snapshots: UpdateApplier now deletes/rewrites
+                vendor/ as part of applying an update, so a rollback backup
+                has to be able to restore it without requiring Composer)
+   'complete'  — includes public/uploads/, excludes vendor/ (suitable for a
+                general full site backup/migration, where vendor/ is assumed
+                restorable via `composer install` against the included
+                composer.json/composer.lock instead)
  Extracted from UpdateApplier so both the updater and the on-demand backup action
  can call it independently.
 */
@@ -69,6 +75,7 @@ final class BackupService
         }
 
         $includeUploads = $profile === 'complete';
+        $includeVendor  = $profile === 'rollback';
 
         $registry = $this->enthTablePrefix === '' ? 'owned' : $this->enthTablePrefix . 'listings';
         $zip->addFromString(
@@ -77,6 +84,7 @@ final class BackupService
             . "Profile: {$profile}\n"
             . "This backup contains Luster application files, lstr_* database tables,\n"
             . "the listing registry ({$registry}), and all per-listing member tables.\n"
+            . ($includeVendor ? "vendor/ is included so this backup can restore a working install without requiring Composer.\n" : '')
         );
 
         foreach (self::BACKUP_PATHS as $rel) {
@@ -84,7 +92,14 @@ final class BackupService
             if (is_file($full)) {
                 $zip->addFile($full, 'files/' . $this->zipPath($rel));
             } elseif (is_dir($full)) {
-                $this->addDirectoryToZip($zip, $full, 'files/' . $this->zipPath($rel), $includeUploads);
+                $this->addDirectoryToZip($zip, $full, 'files/' . $this->zipPath($rel), $includeUploads, $includeVendor);
+            }
+        }
+
+        if ($includeVendor) {
+            $vendorFull = $this->path('vendor');
+            if (is_dir($vendorFull)) {
+                $this->addDirectoryToZip($zip, $vendorFull, 'files/vendor', $includeUploads, $includeVendor);
             }
         }
 
@@ -94,7 +109,7 @@ final class BackupService
         return ['path' => $path, 'filename' => $filename];
     }
 
-    private function addDirectoryToZip(ZipArchive $zip, string $dir, string $zipPrefix, bool $includeUploads): void
+    private function addDirectoryToZip(ZipArchive $zip, string $dir, string $zipPrefix, bool $includeUploads, bool $includeVendor): void
     {
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
@@ -106,7 +121,7 @@ final class BackupService
             $rel    = $this->normalizeRelative(substr($full, strlen($dir) + 1));
             $zipRel = $this->normalizeRelative($zipPrefix . '/' . $rel);
 
-            if ($this->shouldSkipPath($zipRel, $includeUploads)) {
+            if ($this->shouldSkipPath($zipRel, $includeUploads, $includeVendor)) {
                 continue;
             }
 
@@ -120,10 +135,13 @@ final class BackupService
     }
 
     /** Returns true when a path should be excluded from the ZIP. */
-    private function shouldSkipPath(string $rel, bool $includeUploads): bool
+    private function shouldSkipPath(string $rel, bool $includeUploads, bool $includeVendor = false): bool
     {
         $rel = $this->normalizeRelative(preg_replace('#^files/#', '', $rel) ?? $rel);
-        if (str_starts_with($rel, 'vendor/') || str_starts_with($rel, 'storage/')) {
+        if (str_starts_with($rel, 'storage/')) {
+            return true;
+        }
+        if (!$includeVendor && str_starts_with($rel, 'vendor/')) {
             return true;
         }
         return !$includeUploads && str_starts_with($rel, 'public/uploads/');

@@ -7,11 +7,16 @@ feature overview, see the [README](README.md).
 ## A Note on Updating
 
 Each release includes a packaged ZIP file and a matching checksum file.
-Luster's admin panel can check for these and apply updates automatically;
-it will never overwrite your `config/app.php`, `storage/`,
-`public/uploads/`, or `vendor/` folders. If a release is missing one of
-those files, the admin panel will let you know that a manual update is
-needed and link you to the release page.
+Luster's admin panel can check for these and apply updates automatically —
+it will never touch your `config/app.php` or `storage/` folder, and
+`public/uploads/` is always left alone too. It also cleans up old files that
+aren't part of the new release anymore, and keeps your `vendor/` folder (the
+bundled dependencies) up to date automatically. The one exception is
+`public/.htaccess`: if you've customized it, Luster leaves it alone and saves
+you a copy of the new default to look over instead of overwriting your
+changes. If a release is missing one of the files an update needs, the admin
+panel will let you know that a manual update is needed and link you to the
+release page.
 
 
 ### [1.0.0] — 2026-07-14

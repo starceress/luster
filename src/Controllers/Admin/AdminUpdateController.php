@@ -44,6 +44,8 @@ final class AdminUpdateController extends AdminController
     private const KEY_MANUAL_VERSION = 'lstr_update_manual_version';
     private const KEY_MANUAL_URL = 'lstr_update_manual_url';
     private const KEY_BACKUP_DOWNLOADED = 'lstr_update_backup_downloaded';
+    private const KEY_OBSOLETE_PREVIEW = 'lstr_update_obsolete_preview';
+    private const KEY_HTACCESS_PREVIEW = 'lstr_update_htaccess_preview';
 
     /**
      * Shows the update wizard page.
@@ -72,10 +74,18 @@ final class AdminUpdateController extends AdminController
         $stagingValid = $stagingDir !== '' && $applier->stagingIsValid($stagingDir);
 
         $preflight = $this->preflightFromSession();
+        $obsoletePreview = $this->obsoletePreviewFromSession();
+        $htaccessStatus = $this->htaccessPreviewFromSession();
         if ($stagingValid) {
             $zipSize = is_file($downloadPath) ? (int) filesize($downloadPath) : 0;
-            $preflight = $applier->runPreflight($zipSize);
+            $preflight = $applier->runPreflight($zipSize, $stagingDir);
             $session->set(self::KEY_PREFLIGHT, json_encode($preflight));
+
+            $obsoletePreview = $applier->planObsoleteFiles($stagingDir);
+            $session->set(self::KEY_OBSOLETE_PREVIEW, json_encode(array_slice($obsoletePreview, 0, 300)));
+
+            $htaccessStatus = $applier->htaccessStatus($stagingDir);
+            $session->set(self::KEY_HTACCESS_PREVIEW, $htaccessStatus);
         } elseif ($stagingDir !== '') {
             $error = $error !== ''
                 ? $error
@@ -84,6 +94,11 @@ final class AdminUpdateController extends AdminController
 
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
         $updateStatus = (new UpdateChecker($siteRepo))->getStatus();
+
+        $htaccessPreviewContent = null;
+        if ($htaccessStatus === 'kept_customized' || $htaccessStatus === 'kept_customized_reviewed') {
+            $htaccessPreviewContent = $applier->htaccessReviewContent($stagingDir !== '' ? $stagingDir : null);
+        }
 
         return $this->adminLayout('admin/update/index.php', 'Luster Update', 'settings', [
             'success' => $success,
@@ -101,6 +116,10 @@ final class AdminUpdateController extends AdminController
             'manual_version' => (string) $session->get(self::KEY_MANUAL_VERSION, ''),
             'manual_url' => (string) $session->get(self::KEY_MANUAL_URL, ''),
             'lock_exists' => $applier->lockExists(),
+            'obsolete_count' => count($obsoletePreview),
+            'obsolete_paths' => array_slice($obsoletePreview, 0, 300),
+            'htaccess_status' => $htaccessStatus,
+            'htaccess_preview_content' => $htaccessPreviewContent,
         ], '', [
             $this->crumb('Settings', $this->adminUrl('/admin/settings#panel-system')),
         ]);
@@ -117,6 +136,7 @@ final class AdminUpdateController extends AdminController
      *   check-failed       — GitHub check failed with an error
      *   never-checked      — no update check has ever been run
      *   staged-ok          — update prepared, all preflight checks pass
+     *   staged-ok-htaccess-customized — same, but public/.htaccess is customized
      *   staged-blocked     — update prepared, some preflight checks fail
      *   manual-required    — update cannot be auto-applied
      *   lock-exists        — stale update lock file present
@@ -149,6 +169,10 @@ final class AdminUpdateController extends AdminController
             'manual_version'    => '',
             'manual_url'        => '',
             'lock_exists'       => false,
+            'obsolete_count'    => 0,
+            'obsolete_paths'    => [],
+            'htaccess_status'   => '',
+            'htaccess_preview_content' => null,
         ];
 
         $passChecks = [
@@ -198,6 +222,33 @@ final class AdminUpdateController extends AdminController
                 'preflight'      => $passChecks,
                 'preflight_ok'   => true,
                 'backup_downloaded' => true,
+                'obsolete_count' => 6,
+                'obsolete_paths' => [
+                    'src/Addons/OldAddon/OldAddon.php',
+                    'src/Addons/OldAddon/OldAddonRepo.php',
+                    'templates/default/old-template.php',
+                    'vendor/some/removed-package/src/Old.php',
+                    'vendor/some/removed-package/composer.json',
+                    'public/embed/old-endpoint.php',
+                ],
+                'htaccess_status' => 'updated',
+            ],
+
+            'staged-ok-htaccess-customized' => [
+                'staging_valid'  => true,
+                'update_version' => $next,
+                'release_url'    => 'https://github.com/' . Version::GITHUB_REPO . '/releases/tag/v' . $next,
+                'release_title'  => 'Luster v' . $next . ' — Bug fixes and performance improvements',
+                'preflight'      => $passChecks,
+                'preflight_ok'   => true,
+                'backup_downloaded' => true,
+                'obsolete_count' => 2,
+                'obsolete_paths' => [
+                    'src/Addons/OldAddon/OldAddon.php',
+                    'templates/default/old-template.php',
+                ],
+                'htaccess_status' => 'kept_customized',
+                'htaccess_preview_content' => "# This is a preview of the release's new default public/.htaccess.\nOptions -Indexes -MultiViews\n…",
             ],
 
             'staged-blocked' => [
@@ -207,6 +258,16 @@ final class AdminUpdateController extends AdminController
                 'release_title'  => 'Luster v' . $next . ' — Bug fixes and performance improvements',
                 'preflight'      => $failChecks,
                 'preflight_ok'   => false,
+                'obsolete_count' => 6,
+                'obsolete_paths' => [
+                    'src/Addons/OldAddon/OldAddon.php',
+                    'src/Addons/OldAddon/OldAddonRepo.php',
+                    'templates/default/old-template.php',
+                    'vendor/some/removed-package/src/Old.php',
+                    'vendor/some/removed-package/composer.json',
+                    'public/embed/old-endpoint.php',
+                ],
+                'htaccess_status' => 'unchanged',
             ],
 
             'manual-required' => [
@@ -293,6 +354,7 @@ final class AdminUpdateController extends AdminController
             }
 
             $preflight = is_array($result['preflight'] ?? null) ? $result['preflight'] : [];
+            $preview = is_array($result['preview'] ?? null) ? $result['preview'] : [];
 
             $session->set(self::KEY_STAGING, (string) $result['staging_dir']);
             $session->set(self::KEY_VERSION, (string) $result['version']);
@@ -300,6 +362,8 @@ final class AdminUpdateController extends AdminController
             $session->set(self::KEY_DOWNLOAD, (string) $result['download_path']);
             $session->set(self::KEY_RELEASE_URL, (string) ($result['release_url'] ?? ''));
             $session->set(self::KEY_RELEASE_TITLE, (string) ($result['release_title'] ?? ''));
+            $session->set(self::KEY_OBSOLETE_PREVIEW, json_encode($preview['obsolete_paths'] ?? []));
+            $session->set(self::KEY_HTACCESS_PREVIEW, (string) ($preview['htaccess_status'] ?? ''));
             $session->remove(self::KEY_BACKUP_CONFIRMED);
             $session->remove(self::KEY_BACKUP_DOWNLOADED);
 
@@ -375,7 +439,7 @@ final class AdminUpdateController extends AdminController
         }
 
         $zipSize = is_file($downloadPath) ? (int) filesize($downloadPath) : 0;
-        $preflight = $applier->runPreflight($zipSize);
+        $preflight = $applier->runPreflight($zipSize, $stagingDir);
         $session->set(self::KEY_PREFLIGHT, json_encode($preflight));
 
         if (!$this->preflightOk($preflight)) {
@@ -393,10 +457,24 @@ final class AdminUpdateController extends AdminController
         try {
             $result = $applier->apply($stagingDir, $downloadPath !== '' ? $downloadPath : null);
             $this->clearUpdateSession();
-            $session->set(
-                'lstr_flash_success',
-                'Update files copied (' . (int) $result['copied'] . ' files). Run migrations to finish.',
-            );
+
+            $message = 'Update files copied (' . (int) $result['copied'] . ' files)';
+            $deleted = (int) ($result['deleted'] ?? 0);
+            if ($deleted > 0) {
+                $message .= ', ' . $deleted . ' obsolete file' . ($deleted === 1 ? '' : 's') . ' removed';
+            }
+            $message .= '.';
+
+            $htaccess = (string) ($result['htaccess'] ?? '');
+            if ($htaccess === 'kept_customized' || $htaccess === 'kept_customized_reviewed') {
+                $message .= ' Your customized public/.htaccess was left alone'
+                    . ($htaccess === 'kept_customized' ? ' — review the copy saved for you before your next update.' : '.');
+            } elseif ($htaccess === 'updated') {
+                $message .= ' public/.htaccess was updated to match this release.';
+            }
+
+            $message .= ' Run migrations to finish.';
+            $session->set('lstr_flash_success', $message);
 
             return Response::redirect($baseUrl . '/migrate/');
         } catch (\Throwable $e) {
@@ -433,6 +511,48 @@ final class AdminUpdateController extends AdminController
     }
 
     /**
+     * Streams the public/.htaccess review copy for download.
+     *
+     * Prefers the review copy a real apply() run wrote to
+     * storage/cache/public.htaccess.new; falls back to reading straight from
+     * the currently staged package when no apply has run yet (prepare-time
+     * preview). Redirects with a flash notice when neither is available.
+     */
+    public function htaccessNew(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $stagingDir = (string) $session->get(self::KEY_STAGING, '');
+        $content = $this->applier()->htaccessReviewContent($stagingDir !== '' ? $stagingDir : null);
+
+        if ($content === null) {
+            $session->set('lstr_flash_error', 'No public/.htaccess review copy is available right now.');
+            return Response::redirect($baseUrl . '/admin/update');
+        }
+
+        return Response::download($content, 'public.htaccess.new', 'text/plain');
+    }
+
+    /**
+     * Marks the current live public/.htaccess as reviewed - silences the
+     * "needs review" banner for this exact content without making it
+     * eligible for a future automatic overwrite (see
+     * UpdateApplier::acceptHtaccessCustomization()).
+     */
+    public function acceptHtaccess(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $stagingDir = (string) $session->get(self::KEY_STAGING, '');
+        $this->applier()->acceptHtaccessCustomization($stagingDir !== '' ? $stagingDir : null);
+
+        $session->set('lstr_flash_success', "Got it — we'll stop flagging your current public/.htaccess until it changes again.");
+        return Response::redirect($baseUrl . '/admin/update');
+    }
+
+    /**
      * Returns a configured UpdateApplier instance wired to this install's base path and database.
      */
     private function applier(): UpdateApplier
@@ -459,6 +579,26 @@ final class AdminUpdateController extends AdminController
         $decoded = json_decode($raw, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Reads the cached obsolete-files preview from session (relative paths,
+     * capped to 300 - the same cap applied when it was stored).
+     *
+     * @return array<int,string>
+     */
+    private function obsoletePreviewFromSession(): array
+    {
+        $raw = (string) $this->app->getSession()->get(self::KEY_OBSOLETE_PREVIEW, '[]');
+        $decoded = json_decode($raw, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /** Reads the cached public/.htaccess reconciliation status from session, or '' if never computed. */
+    private function htaccessPreviewFromSession(): string
+    {
+        return (string) $this->app->getSession()->get(self::KEY_HTACCESS_PREVIEW, '');
     }
 
     /**
@@ -500,6 +640,8 @@ final class AdminUpdateController extends AdminController
             self::KEY_RELEASE_URL,
             self::KEY_RELEASE_TITLE,
             self::KEY_BACKUP_DOWNLOADED,
+            self::KEY_OBSOLETE_PREVIEW,
+            self::KEY_HTACCESS_PREVIEW,
         ] as $key) {
             $session->remove($key);
         }

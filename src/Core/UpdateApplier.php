@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Luster\Core;
 
+use Luster\Repositories\SiteSettingsRepo;
 use RuntimeException;
 use ZipArchive;
 
@@ -43,18 +44,55 @@ final class UpdateApplier
         'templates',
         'public',
         'config',
+        'vendor',
     ];
+
+    /**
+     * Paths that are never candidates for obsolete-file deletion, regardless
+     * of whether they exist in the staged release. These are live-only,
+     * user-owned content the release never ships (or ships empty) - deleting
+     * them would destroy real data, not stale application files.
+     * public/.htaccess is excluded here too; it has its own dedicated
+     * reconciliation (reconcileHtaccess()) instead of being silently
+     * deleted or blindly overwritten.
+     *
+     * install/ is deliberately NOT here - see the $installExisted handling
+     * in apply() and shouldSkipApplyPath(). It's conditionally excluded
+     * (only when absent live before the run starts), not unconditionally.
+     */
+    private const DELETE_HARD_EXCLUDE = [
+        'public/uploads',
+        'public/assets/css/skins',
+        'storage',
+        'config/app.php',
+        'public/.htaccess',
+        '.git',
+    ];
+
+    /**
+     * Top-level paths a past release used to ship but no longer does. The
+     * top-level scoping rule in planObsoleteFiles() only ever recurses into
+     * entries the new release still ships, so a path fully retired from the
+     * package (not just emptied) needs a manual entry here to be cleaned up
+     * on existing installs. Expected to stay empty almost always - append to
+     * it only on the rare occasion a whole shipped top-level path is retired.
+     */
+    private const KNOWN_REMOVED_TOP_LEVEL_PATHS = [];
 
 /** @var callable(string): string|false */
     private $httpFetcher;
+
+    private readonly SiteSettingsRepo $settingsRepo;
 
     public function __construct(
         private readonly string $basePath,
         private readonly Database $db,
         ?callable $httpFetcher = null,
         private readonly string $enthTablePrefix = '',
+        ?SiteSettingsRepo $settingsRepo = null,
     ) {
         $this->httpFetcher = $httpFetcher ?? $this->defaultFetcher();
+        $this->settingsRepo = $settingsRepo ?? new SiteSettingsRepo($db);
     }
 
     /**
@@ -123,7 +161,8 @@ final class UpdateApplier
             $this->extractZipSafely($downloadPath, $stagingDir);
             $this->detectAppRoot($stagingDir);
 
-            $preflight = $this->runPreflight((int) filesize($downloadPath));
+            $preflight = $this->runPreflight((int) filesize($downloadPath), $stagingDir);
+            $preview = $this->buildPreview($stagingDir);
 
             return [
                 'ok' => true,
@@ -135,6 +174,7 @@ final class UpdateApplier
                 'download_path' => $downloadPath,
                 'staging_dir' => $stagingDir,
                 'preflight' => $preflight,
+                'preview' => $preview,
             ];
         } catch (\Throwable $e) {
             if ($stagingDir !== null && is_dir($stagingDir)) {
@@ -154,7 +194,7 @@ final class UpdateApplier
     /**
      * @return array<int,array{key:string,label:string,ok:bool,detail:string}>
      */
-    public function runPreflight(int $zipSize): array
+    public function runPreflight(int $zipSize, string $stagingDir): array
     {
         $cacheDir = $this->cacheDir();
         $results = [];
@@ -196,8 +236,48 @@ final class UpdateApplier
             ];
         }
 
+        $appRoot = null;
+        try {
+            $appRoot = $this->detectAppRoot($stagingDir);
+        } catch (\Throwable) {
+            $appRoot = null;
+        }
+
+        $packageComplete = $appRoot !== null && $this->packageIsComplete($appRoot);
+        $results[] = [
+            'key' => 'package_complete',
+            'label' => 'Package completeness',
+            'ok' => $packageComplete,
+            'detail' => $packageComplete
+                ? 'The staged package includes vendor/autoload.php and public/.htaccess.'
+                : 'The staged package is missing vendor/autoload.php or public/.htaccess and cannot be safely applied.',
+        ];
+
+        $deletableOk = true;
+        $undeletable = [];
+        if ($appRoot !== null) {
+            foreach ($this->planObsoleteFiles($stagingDir) as $rel) {
+                if (!$this->pathIsDeletable($rel)) {
+                    $deletableOk = false;
+                    $undeletable[] = $rel;
+                }
+            }
+        }
+        $results[] = [
+            'key' => 'deletable',
+            'label' => 'Obsolete files removable',
+            'ok' => $deletableOk,
+            'detail' => $deletableOk
+                ? 'Files no longer shipped by this release can be removed.'
+                : 'Not writable: ' . implode(', ', array_slice($undeletable, 0, 5))
+                    . (count($undeletable) > 5 ? ', and more.' : '.'),
+        ];
+
         $free = disk_free_space($this->basePath);
-        $needed = $zipSize * 2;
+        // Rollback backups now include vendor/ (see BackupService), so the
+        // transient space needed to build that backup ZIP server-side scales
+        // with vendor/'s own on-disk size, not just the downloaded update ZIP.
+        $needed = $zipSize * 2 + $this->directorySize($this->path('vendor'));
         $results[] = [
             'key' => 'disk',
             'label' => 'Disk space',
@@ -223,11 +303,26 @@ final class UpdateApplier
     /**
      * Applies staged files over the live app.
      *
-     * @return array{copied:int,skipped:int}
+     * Order matters: obsolete live files are deleted first (based on a diff
+     * against the staged package), then the copy loop overlays everything
+     * the new release ships, then public/.htaccess is reconciled separately
+     * since it's excluded from both the delete pass and the copy loop.
+     * install/'s live-existence is snapshotted once before any of this
+     * starts - see the class docblock on DELETE_HARD_EXCLUDE and
+     * shouldSkipApplyPath() for why a live re-check partway through would be
+     * unsafe.
+     *
+     * @return array{copied:int,skipped:int,deleted:int,htaccess:string}
      */
     public function apply(string $stagingDir, ?string $downloadPath = null): array
     {
         $appRoot = $this->detectAppRoot($stagingDir);
+        $this->assertPackageComplete($appRoot);
+
+        $installExisted = is_dir($this->path('install'));
+
+        $deleted = $this->deleteObsoleteFiles($this->planObsoleteFiles($stagingDir));
+
         $copied = 0;
         $skipped = 0;
 
@@ -240,7 +335,7 @@ final class UpdateApplier
             $source = $item->getPathname();
             $rel = $this->normalizeRelative(substr($source, strlen($appRoot) + 1));
 
-            if ($rel === '' || $this->shouldSkipApplyPath($rel)) {
+            if ($rel === '' || $this->shouldSkipApplyPath($rel, $installExisted)) {
                 $skipped++;
                 continue;
             }
@@ -276,9 +371,11 @@ final class UpdateApplier
             $copied++;
         }
 
+        $htaccess = $this->reconcileHtaccess($stagingDir);
+
         $this->discard($stagingDir, $downloadPath);
 
-        return ['copied' => $copied, 'skipped' => $skipped];
+        return ['copied' => $copied, 'skipped' => $skipped, 'deleted' => $deleted, 'htaccess' => $htaccess];
     }
 
     /**
@@ -309,6 +406,545 @@ final class UpdateApplier
         }
         if (is_file($real)) {
             @unlink($real);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Obsolete-file deletion
+    // -----------------------------------------------------------------------
+
+    /**
+     * Computes which live files are no longer part of the staged release and
+     * would be deleted by apply(). Returns paths relative to basePath. Never
+     * writes anything - safe to call for a prepare-time / index-page preview.
+     *
+     * Only recurses into top-level entries that exist in BOTH the live
+     * install and the staged package - a top-level name with no staging
+     * counterpart (e.g. .git/, tests/, docs/ in a dev checkout) is left
+     * completely alone. This is what makes the sweep safe to run against a
+     * git checkout of this very project as well as a real production
+     * install: nothing a release never ships is ever a deletion candidate.
+     *
+     * @return array<int,string>
+     */
+    public function planObsoleteFiles(string $stagingDir): array
+    {
+        $appRoot = $this->detectAppRoot($stagingDir);
+        $obsolete = [];
+
+        $liveEntries = @scandir($this->basePath);
+        if ($liveEntries !== false) {
+            foreach ($liveEntries as $name) {
+                if ($name === '.' || $name === '..') {
+                    continue;
+                }
+
+                $rel = $name;
+                if ($this->isHardExcludedFromDeletion($rel)) {
+                    continue;
+                }
+
+                $stagedPeer = $appRoot . DIRECTORY_SEPARATOR . $name;
+                if (!file_exists($stagedPeer)) {
+                    // Not part of this release package at all - leave alone.
+                    continue;
+                }
+
+                $this->diffObsolete($this->path($rel), $stagedPeer, $rel, $obsolete);
+            }
+        }
+
+        foreach (self::KNOWN_REMOVED_TOP_LEVEL_PATHS as $rel) {
+            if ($this->isHardExcludedFromDeletion($rel)) {
+                continue;
+            }
+            if (file_exists($this->path($rel))) {
+                $obsolete[] = $rel;
+            }
+        }
+
+        return $obsolete;
+    }
+
+    /** Returns true when $rel is, or is inside, a DELETE_HARD_EXCLUDE entry. */
+    private function isHardExcludedFromDeletion(string $rel): bool
+    {
+        $rel = $this->normalizeRelative($rel);
+        foreach (self::DELETE_HARD_EXCLUDE as $excluded) {
+            if ($rel === $excluded || str_starts_with($rel, $excluded . '/')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Recursively compares a live path against its staged counterpart,
+     * appending obsolete relative paths to $obsolete by reference.
+     *
+     * A live file is obsolete when staging has no file at that exact path
+     * (missing entirely, or a directory sits there instead). A live
+     * directory is obsolete as a whole only when staging has a plain file at
+     * that exact path instead (type-aware deletion - see the class-level
+     * notes). Otherwise a live directory is always recursed into, even when
+     * staging has nothing at all at that path - a wholly missing staged
+     * directory is treated the same as an empty one, so every live file
+     * underneath is still evaluated individually against
+     * isHardExcludedFromDeletion(). This deliberately never collapses an
+     * entirely-removed directory into a single obsolete entry: doing so
+     * would risk sweeping up hard-excluded content (e.g. a community skin
+     * file) nested arbitrarily deep inside it, without ever reaching the
+     * exact-path check that protects it.
+     *
+     * When both sides agree on type and both exist, content differences are
+     * left for the normal copy loop in apply() to overwrite - this method
+     * only ever decides what to delete, never what to copy.
+     *
+     * @param array<int,string> $obsolete
+     */
+    private function diffObsolete(string $livePath, string $stagedPath, string $rel, array &$obsolete): void
+    {
+        if ($this->isHardExcludedFromDeletion($rel)) {
+            return;
+        }
+
+        if (!is_dir($livePath)) {
+            if (!is_file($stagedPath)) {
+                $obsolete[] = $rel;
+            }
+            return;
+        }
+
+        if (file_exists($stagedPath) && !is_dir($stagedPath)) {
+            $obsolete[] = $rel;
+            return;
+        }
+
+        $entries = @scandir($livePath);
+        if ($entries === false) {
+            return;
+        }
+
+        foreach ($entries as $name) {
+            if ($name === '.' || $name === '..') {
+                continue;
+            }
+
+            $childRel = $rel . '/' . $name;
+            if ($this->isHardExcludedFromDeletion($childRel)) {
+                continue;
+            }
+
+            $this->diffObsolete(
+                $livePath . DIRECTORY_SEPARATOR . $name,
+                $stagedPath . DIRECTORY_SEPARATOR . $name,
+                $childRel,
+                $obsolete,
+            );
+        }
+    }
+
+    /**
+     * Deletes the given basePath-relative paths (files or whole directories),
+     * then prunes any parent directories left empty as a result. Refuses to
+     * touch anything that doesn't resolve inside basePath - a fresh guard
+     * distinct from removeDirectory(), which stays hardcoded to
+     * storage/cache and must never be reused for live-tree pruning.
+     *
+     * @param array<int,string> $relativePaths
+     */
+    private function deleteObsoleteFiles(array $relativePaths): int
+    {
+        $base = realpath($this->basePath);
+        if ($base === false) {
+            return 0;
+        }
+
+        $deleted = 0;
+        $touchedDirs = [];
+
+        foreach ($relativePaths as $rel) {
+            $target = $this->path($rel);
+            $real = realpath($target);
+            if ($real === false || !$this->isInside($real, $base) || $real === $base) {
+                continue;
+            }
+
+            if (is_dir($real) && !is_link($real)) {
+                $deleted += $this->deleteLiveDirectory($real, $base);
+            } elseif (is_file($real) || is_link($real)) {
+                if (@unlink($real)) {
+                    $deleted++;
+                }
+            }
+
+            $touchedDirs[] = dirname($real);
+        }
+
+        foreach (array_unique($touchedDirs) as $dir) {
+            $this->pruneEmptyAncestors($dir, $base);
+        }
+
+        return $deleted;
+    }
+
+    /** Recursively removes a live directory (guarded to inside $base). Returns the number of files deleted. */
+    private function deleteLiveDirectory(string $dir, string $base): int
+    {
+        $real = realpath($dir);
+        if ($real === false || !$this->isInside($real, $base) || $real === $base) {
+            return 0;
+        }
+
+        $count = 0;
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($real, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+
+        foreach ($iterator as $item) {
+            if ($item->isDir() && !$item->isLink()) {
+                @rmdir($item->getPathname());
+            } elseif (@unlink($item->getPathname())) {
+                $count++;
+            }
+        }
+        @rmdir($real);
+
+        return $count;
+    }
+
+    /** Walks upward from $dir removing each ancestor that is now empty, stopping at $base or the first non-empty directory. */
+    private function pruneEmptyAncestors(string $dir, string $base): void
+    {
+        $real = realpath($dir);
+        while ($real !== false && $this->isInside($real, $base) && $real !== $base) {
+            $entries = @scandir($real);
+            if ($entries === false || count($entries) > 2) {
+                break;
+            }
+            if (!@rmdir($real)) {
+                break;
+            }
+            $real = realpath(dirname($real));
+        }
+    }
+
+    /** Returns true when $rel (or, if a live directory, everything inside it) can be deleted. Used by the 'deletable' preflight check. */
+    private function pathIsDeletable(string $rel): bool
+    {
+        $target = $this->path($rel);
+
+        if (is_dir($target) && !is_link($target)) {
+            if (!is_writable(dirname($target))) {
+                return false;
+            }
+
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST,
+            );
+            foreach ($iterator as $item) {
+                if (!is_writable(dirname($item->getPathname()))) {
+                    return false;
+                }
+            }
+
+            return is_writable($target);
+        }
+
+        return is_writable(dirname($target));
+    }
+
+    /** Returns the total size in bytes of every file inside $dir, or 0 if it doesn't exist. */
+    private function directorySize(string $dir): int
+    {
+        if (!is_dir($dir)) {
+            return 0;
+        }
+
+        $size = 0;
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+        );
+        foreach ($iterator as $item) {
+            if ($item->isFile()) {
+                $size += $item->getSize();
+            }
+        }
+
+        return $size;
+    }
+
+    /**
+     * @return array{obsolete_count:int,obsolete_paths:array<int,string>,htaccess_status:string}
+     */
+    private function buildPreview(string $stagingDir): array
+    {
+        $obsolete = $this->planObsoleteFiles($stagingDir);
+
+        return [
+            'obsolete_count' => count($obsolete),
+            'obsolete_paths' => array_slice($obsolete, 0, 300),
+            'htaccess_status' => $this->htaccessStatus($stagingDir),
+        ];
+    }
+
+    /** Returns true when the staged package includes vendor/autoload.php and public/.htaccess. */
+    private function packageIsComplete(string $appRoot): bool
+    {
+        return is_file($appRoot . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php')
+            && is_file($appRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . '.htaccess');
+    }
+
+    /**
+     * Throws when the staged package is missing vendor/autoload.php or
+     * public/.htaccess. apply() is public and destructive - it must not
+     * rely solely on the controller having already run runPreflight()
+     * against the same staging dir, since vendor/ and .htaccess are now
+     * update-critical. This is the real gate; the 'package_complete'
+     * preflight check is the advisory version shown to the admin beforehand.
+     */
+    private function assertPackageComplete(string $appRoot): void
+    {
+        if (!$this->packageIsComplete($appRoot)) {
+            throw new RuntimeException(
+                'Update package is missing vendor/autoload.php or public/.htaccess and cannot be applied.'
+            );
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // public/.htaccess reconciliation
+    // -----------------------------------------------------------------------
+
+    /**
+     * Computes (without writing anything) what reconcileHtaccess() would do:
+     *
+     *   unchanged                - live already matches the staged content
+     *   updated                  - live matches the last content Luster
+     *                               itself wrote (update_htaccess_baseline_hash);
+     *                               safe to auto-overwrite
+     *   kept_customized          - live differs from both staged and the
+     *                               known baseline; never auto-overwritten
+     *   kept_customized_reviewed - same as above, but the admin has already
+     *                               explicitly accepted this EXACT pairing -
+     *                               this live content reviewed against this
+     *                               staged default (update_htaccess_reviewed_live_hash
+     *                               + update_htaccess_reviewed_staged_hash
+     *                               both matching) - same "never touch it"
+     *                               behaviour, quieter UI
+     *   missing_in_package       - the staged release has no public/.htaccess
+     *
+     * update_htaccess_baseline_hash is the ONLY signal that ever authorises
+     * an automatic overwrite. The two update_htaccess_reviewed_*_hash keys
+     * only silence the "needs review" nag - they must never feed into the
+     * overwrite decision. Keeping these separate from the baseline hash is
+     * deliberate: it makes it structurally impossible for accepting a
+     * customization to make that same file eligible for a silent overwrite
+     * on a later update.
+     *
+     * Both reviewed hashes must match (live content AND staged default)
+     * before the quiet status applies - matching only the live hash would
+     * mean accepting release A's diff silently stays quiet about release B's
+     * completely different diff later, even though the admin never saw it.
+     */
+    public function htaccessStatus(string $stagingDir): string
+    {
+        try {
+            $appRoot = $this->detectAppRoot($stagingDir);
+        } catch (\Throwable) {
+            return 'missing_in_package';
+        }
+
+        $liveFile = $this->path('public/.htaccess');
+        $stagedFile = $appRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . '.htaccess';
+
+        if (!is_file($stagedFile)) {
+            return 'missing_in_package';
+        }
+
+        $staged = hash_file('sha256', $stagedFile);
+        $live = is_file($liveFile) ? hash_file('sha256', $liveFile) : false;
+
+        if ($staged === false || $live === false) {
+            return 'missing_in_package';
+        }
+
+        if ($staged === $live) {
+            return 'unchanged';
+        }
+
+        $baseline = $this->settingsRepo->get('update_htaccess_baseline_hash');
+        if ($baseline !== null && $baseline === $live) {
+            return 'updated';
+        }
+
+        $reviewedLive = $this->settingsRepo->get('update_htaccess_reviewed_live_hash');
+        $reviewedStaged = $this->settingsRepo->get('update_htaccess_reviewed_staged_hash');
+        if ($reviewedLive !== null && $reviewedStaged !== null && $reviewedLive === $live && $reviewedStaged === $staged) {
+            return 'kept_customized_reviewed';
+        }
+
+        return 'kept_customized';
+    }
+
+    /**
+     * Applies the htaccessStatus() decision: overwrites public/.htaccess
+     * only in the 'updated' case, and only ever writes
+     * update_htaccess_baseline_hash there or in the 'unchanged' case (never
+     * from live content that hasn't been proven to be Luster's own).
+     * Otherwise leaves the live file untouched and (re)writes a reviewable
+     * copy to storage/cache/public.htaccess.new - never into public/, where
+     * a '.htaccess.new' name is not actually caught by the dotfile-block
+     * FilesMatch rule and could be web-readable.
+     */
+    public function reconcileHtaccess(string $stagingDir): string
+    {
+        $status = $this->htaccessStatus($stagingDir);
+        if ($status === 'missing_in_package') {
+            return $status;
+        }
+
+        $appRoot = $this->detectAppRoot($stagingDir);
+        $liveFile = $this->path('public/.htaccess');
+        $stagedFile = $appRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . '.htaccess';
+        $reviewPath = $this->htaccessReviewCopyPath();
+
+        switch ($status) {
+            case 'unchanged':
+                $hash = hash_file('sha256', $liveFile);
+                if ($hash !== false) {
+                    $this->settingsRepo->set('update_htaccess_baseline_hash', $hash);
+                }
+                $this->deleteFileAt($reviewPath);
+                break;
+
+            case 'updated':
+                $contents = file_get_contents($stagedFile);
+                if ($contents === false || file_put_contents($liveFile, $contents, LOCK_EX) === false) {
+                    throw new RuntimeException('Could not write public/.htaccess while applying update.');
+                }
+                $newHash = hash_file('sha256', $liveFile);
+                if ($newHash !== false) {
+                    $this->settingsRepo->set('update_htaccess_baseline_hash', $newHash);
+                }
+                // The old customization (if any) no longer describes what's
+                // live - clear it so a stale reviewed pairing can't coincide
+                // with some future customization by chance.
+                $this->settingsRepo->set('update_htaccess_reviewed_live_hash', null);
+                $this->settingsRepo->set('update_htaccess_reviewed_staged_hash', null);
+                $this->deleteFileAt($reviewPath);
+                break;
+
+            case 'kept_customized':
+            case 'kept_customized_reviewed':
+                $contents = file_get_contents($stagedFile);
+                if ($contents !== false) {
+                    $dir = dirname($reviewPath);
+                    if (!is_dir($dir)) {
+                        mkdir($dir, 0755, true);
+                    }
+                    file_put_contents($reviewPath, $contents, LOCK_EX);
+                }
+                break;
+        }
+
+        return $status;
+    }
+
+    /**
+     * Returns the content an admin should review for public/.htaccess.
+     *
+     * Prefers reading directly from $stagingDir's staged file whenever a
+     * valid staged update is currently prepared - that's always the release
+     * actually being reviewed right now. Only falls back to the review copy
+     * a previous reconcileHtaccess() run wrote to
+     * storage/cache/public.htaccess.new when there is no active staging dir
+     * (the normal post-apply case, once discard() has removed it).
+     *
+     * Getting this priority backwards is a real bug, not just a cosmetic
+     * one: acceptHtaccessCustomization() hashes whatever this method
+     * returns as the "staged" side of the reviewed pairing. If a stale
+     * leftover .new from an earlier applied release were preferred while a
+     * newer release is staged but not yet applied, the admin could be shown
+     * - and "accept" - the wrong release's diff entirely, silently failing
+     * to quiet the banner for the release actually in front of them.
+     *
+     * Returns null when neither source is available.
+     */
+    public function htaccessReviewContent(?string $stagingDir): ?string
+    {
+        if ($stagingDir !== null && $stagingDir !== '' && $this->stagingIsValid($stagingDir)) {
+            try {
+                $appRoot = $this->detectAppRoot($stagingDir);
+                $stagedFile = $appRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . '.htaccess';
+                if (is_file($stagedFile)) {
+                    $contents = file_get_contents($stagedFile);
+                    if ($contents !== false) {
+                        return $contents;
+                    }
+                }
+            } catch (\Throwable) {
+                // Fall through to the cached review copy below.
+            }
+        }
+
+        $reviewPath = $this->htaccessReviewCopyPath();
+        if (is_file($reviewPath)) {
+            $contents = file_get_contents($reviewPath);
+            return $contents !== false ? $contents : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Records that the admin has reviewed and manually merged the current
+     * live public/.htaccess against the staged default they were just shown
+     * (via htaccessReviewContent() - the same review copy / staged-file
+     * fallback the download link and inline preview use, so "accept" always
+     * pairs with whatever the admin actually looked at). Sets ONLY the two
+     * update_htaccess_reviewed_*_hash keys - never update_htaccess_baseline_hash
+     * - so accepting a customization can never make that file eligible for a
+     * future automatic overwrite; it only silences the "needs review" banner,
+     * and only for this exact (live content, staged default) pairing. A
+     * later release shipping a different default is a different pairing and
+     * will surface the banner again, even though the live file hasn't changed.
+     */
+    public function acceptHtaccessCustomization(?string $stagingDir): void
+    {
+        $liveFile = $this->path('public/.htaccess');
+        if (!is_file($liveFile)) {
+            return;
+        }
+
+        $stagedContent = $this->htaccessReviewContent($stagingDir);
+        if ($stagedContent === null) {
+            return;
+        }
+
+        $liveHash = hash_file('sha256', $liveFile);
+        if ($liveHash === false) {
+            return;
+        }
+
+        $this->settingsRepo->set('update_htaccess_reviewed_live_hash', $liveHash);
+        $this->settingsRepo->set('update_htaccess_reviewed_staged_hash', hash('sha256', $stagedContent));
+    }
+
+    /** Absolute path to the public/.htaccess review copy inside storage/cache. */
+    private function htaccessReviewCopyPath(): string
+    {
+        return $this->cacheDir() . DIRECTORY_SEPARATOR . 'public.htaccess.new';
+    }
+
+    /** Deletes $path if it exists as a file. Silent no-op otherwise. */
+    private function deleteFileAt(string $path): void
+    {
+        if (is_file($path)) {
+            @unlink($path);
         }
     }
 
@@ -691,16 +1327,33 @@ final class UpdateApplier
      * Returns true when a staged file should not be copied to the live install.
      *
      * Skipped paths: config/app.php (user credentials), public/.htaccess
-     * (user-customised routing), storage/, public/uploads/, vendor/, and .git/.
+     * (has its own reconciliation - see reconcileHtaccess()), storage/,
+     * public/uploads/, and .git/ (defensive - staging never actually
+     * contains .git/, since release packaging excludes it).
+     *
+     * vendor/ is deliberately NOT skipped here any more - it's now a fully
+     * managed release-owned directory, same as src/ or templates/.
+     *
+     * install/...  (and the bare top-level 'install' entry) is skipped only
+     * when $installExisted is false - i.e. the admin had already deleted it
+     * before this apply() run started. $installExisted must be a single
+     * snapshot taken once at the top of apply(), not a live is_dir() check
+     * repeated on every call - the copy loop itself creates install/ via
+     * mkdir() partway through, which would otherwise flip the answer
+     * mid-run.
      */
-    private function shouldSkipApplyPath(string $rel): bool
+    private function shouldSkipApplyPath(string $rel, bool $installExisted): bool
     {
         $rel = $this->normalizeRelative($rel);
+
+        if (!$installExisted && ($rel === 'install' || str_starts_with($rel, 'install/'))) {
+            return true;
+        }
+
         return $rel === 'config/app.php'
             || $rel === 'public/.htaccess'
             || str_starts_with($rel, 'storage/')
             || str_starts_with($rel, 'public/uploads/')
-            || str_starts_with($rel, 'vendor/')
             || str_starts_with($rel, '.git/');
     }
 

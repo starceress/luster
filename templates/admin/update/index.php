@@ -73,27 +73,121 @@ $current = Version::CURRENT;
       </div>
 
       <div class="card-body">
-        <div class="section-label">Pre-flight Checks</div>
-        <div class="update-check-list">
-          <?php foreach ($preflight as $check): ?>
-            <?php $ok = ($check['ok'] ?? false) === true; ?>
-            <div class="update-check-row<?= $ok ? ' is-ok' : ' is-blocked' ?>">
-              <span class="update-check-icon"><?= $ok ? View::icon('check') : View::icon('caution') ?></span>
-              <span class="update-check-main">
-                <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
-                <span><?= View::e((string) ($check['detail'] ?? '')) ?></span>
-              </span>
-              <span class="badge <?= $ok ? 'badge-current' : 'badge-error' ?>"><?= $ok ? 'Pass' : 'Fix' ?></span>
-            </div>
-          <?php endforeach; ?>
+        <div class="section-label">Changes In This Update</div>
+        <div class="callout callout-info">
+          <?= View::icon($obsolete_count > 0 ? 'delete' : 'check') ?>
+          <div>
+            <strong><?= $obsolete_count ?> file<?= $obsolete_count === 1 ? '' : 's' ?> will be removed</strong>
+            <?php if ($obsolete_count > 0): ?>
+              No longer part of this release — old add-on files, templates, or dependencies that were dropped.
+            <?php else: ?>
+              Nothing to remove — every file on this install is still part of this release.
+            <?php endif; ?>
 
-          
-        <?php if (!$preflight_ok): ?>
-          <p style="color: var(--warn); text-align: center; font-size: var(--fs-lg);" style="margin-top:1rem">
+            <?php if ($obsolete_count > 0): ?>
+              <details class="form-details" style="margin-top:.5rem">
+                <summary>View files to be removed</summary>
+                <div class="form-details-body">
+                  <textarea class="form form-mono" rows="8" readonly><?= View::e(implode("\n", $obsolete_paths)) ?><?php if ($obsolete_count > count($obsolete_paths)): ?>
+…and <?= $obsolete_count - count($obsolete_paths) ?> more.<?php endif; ?></textarea>
+                </div>
+              </details>
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <?php if ($htaccess_status === 'kept_customized' || $htaccess_status === 'kept_customized_reviewed'): ?>
+          <div class="callout <?= $htaccess_status === 'kept_customized' ? 'callout-warn' : 'callout-info' ?>" style="margin-top:1rem">
+            <?= View::icon('caution') ?>
+            <div>
+              <strong>public/.htaccess will be left alone.</strong>
+              <?php if ($htaccess_status === 'kept_customized'): ?>
+                This release ships a new default public/.htaccess, but your live file has been customized, so it won't be touched automatically. Review the copy below and merge anything you need by hand.
+              <?php else: ?>
+                This release ships a new default public/.htaccess. Your live file is customized and you've already told Luster you've reviewed it — still left alone, just no longer flagged below.
+              <?php endif; ?>
+              <details class="form-details" style="margin-top:.5rem">
+                <summary>Preview the new default public/.htaccess</summary>
+                <div class="form-details-body">
+                  <textarea class="form form-mono" rows="8" readonly><?= View::e((string) ($htaccess_preview_content ?? '')) ?></textarea>
+                </div>
+              </details>
+              <div style="margin-top:.5rem">
+                <a href="<?= $b ?>/admin/update/htaccess-new" class="btn btn-tertiary"><?= View::icon('download', ['width' => 20, 'height' => 20]) ?> Download public.htaccess.new</a>
+                <?php if ($htaccess_status === 'kept_customized'): ?>
+                  <form method="POST" action="<?= $b ?>/admin/update/htaccess/accept-current" class="action-form-inline" style="display:inline-block">
+                    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+                    <button type="submit" class="btn btn-quaternary">I've reviewed and merged this myself</button>
+                  </form>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
+        <?php elseif ($htaccess_status === 'updated'): ?>
+          <p class="form-hint" style="margin-top:.75rem">public/.htaccess will be updated automatically — it hasn't been customized since Luster last wrote it.</p>
+        <?php endif; ?>
+      </div>
+
+      <div class="card-body">
+        <div class="section-label">Pre-flight Checks</div>
+        <?php if ($preflight_ok): ?>
+          <details class="form-details">
+            <summary style="color: var(--success)">All checks passed</summary>
+            <div class="form-details-body">
+              <div class="update-check-list">
+                <?php foreach ($preflight as $check): ?>
+                  <div class="update-check-row is-ok">
+                    <span class="update-check-icon"><?= View::icon('check') ?></span>
+                    <span class="update-check-main">
+                      <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
+                      <span><?= View::e((string) ($check['detail'] ?? '')) ?></span>
+                    </span>
+                    <span class="badge badge-current">Pass</span>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          </details>
+        <?php else: ?>
+          <?php
+            $failingChecks = array_filter($preflight, static fn(array $c): bool => ($c['ok'] ?? false) !== true);
+            $passingChecks = array_filter($preflight, static fn(array $c): bool => ($c['ok'] ?? false) === true);
+          ?>
+          <div class="update-check-list">
+            <?php foreach ($failingChecks as $check): ?>
+              <div class="update-check-row is-blocked">
+                <span class="update-check-icon"><?= View::icon('caution') ?></span>
+                <span class="update-check-main">
+                  <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
+                  <span><?= View::e((string) ($check['detail'] ?? '')) ?></span>
+                </span>
+                <span class="badge badge-error">Fix</span>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <p style="color: var(--warn); text-align: center; font-size: var(--fs-lg); margin-top:1rem">
             Refresh this page after fixing the blocked checks. Luster will re-run pre-flight checks without re-downloading the package.
           </p>
+          <?php if ($passingChecks !== []): ?>
+            <details class="form-details" style="margin-top:.75rem">
+              <summary><?= count($passingChecks) ?> check<?= count($passingChecks) === 1 ? '' : 's' ?> already passing</summary>
+              <div class="form-details-body">
+                <div class="update-check-list">
+                  <?php foreach ($passingChecks as $check): ?>
+                    <div class="update-check-row is-ok">
+                      <span class="update-check-icon"><?= View::icon('check') ?></span>
+                      <span class="update-check-main">
+                        <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
+                        <span><?= View::e((string) ($check['detail'] ?? '')) ?></span>
+                      </span>
+                      <span class="badge badge-current">Pass</span>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            </details>
+          <?php endif; ?>
         <?php endif; ?>
-        </div>
       </div>
 
       <div class="card-body">
@@ -109,25 +203,24 @@ $current = Version::CURRENT;
             </button>
           </form>
 
-          <form method="POST" action="<?= $b ?>/admin/update/apply" class="update-action-card">
-            <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-            <h3>Apply Update <span class="badge badge-error">Required</span></h3>
-            <label class="toggle-wrap update-confirm">
-              <input type="checkbox" name="backup_confirmed" value="1" required<?= !$preflight_ok ? ' disabled' : '' ?>>
-              <span class="toggle-label">I have saved the backup file to my computer.</span>
-            </label>
-            <button type="submit" class="btn btn-download-fill"<?= !$preflight_ok ? ' disabled' : '' ?>>
-              Apply Update
-            </button>
-          </form>
+          <div class="update-action-card">
+            <form method="POST" action="<?= $b ?>/admin/update/apply">
+              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+              <h3>Apply Update <span class="badge badge-error">Required</span></h3>
+              <label class="toggle-wrap update-confirm">
+                <input type="checkbox" name="backup_confirmed" value="1" required<?= !$preflight_ok ? ' disabled' : '' ?>>
+                <span class="toggle-label">I have saved the backup file to my computer.</span>
+              </label>
+              <button type="submit" class="btn btn-download-fill btn-block-center"<?= !$preflight_ok ? ' disabled' : '' ?>>
+                Apply Update
+              </button>
+            </form>
+            <form method="POST" action="<?= $b ?>/admin/update/discard">
+              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+              <button type="submit" class="btn btn-quaternary btn-block-center">Nevermind, I'll Update Later</button>
+            </form>
+          </div>
         </div>
-      </div>
-
-      <div class="composer-footer">
-        <form method="POST" action="<?= $b ?>/admin/update/discard" class="action-form-inline">
-          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-          <button type="submit" class="btn btn-quaternary btn-block-center">Nevermind, I'll Update Later</button>
-        </form>
       </div>
     <?php else: ?>
       <div class="card-body update-version-section">
@@ -135,7 +228,13 @@ $current = Version::CURRENT;
           <p><strong>Installed Version:</strong> <?= View::e($current) ?></p>
 
           <p><strong>Latest Version:</strong>
-          <?php if (($update_status->latest ?? null) !== null): ?><?= View::e((string) $update_status->latest) ?>
+          <?php if (($update_status->latest ?? null) !== null): ?><?= View::e((string) $update_status->latest) ?><?php endif; ?>
+          <?php if ($update_status->updateAvailable): ?>
+            <span class="badge badge-pending">Update Available</span>
+          <?php elseif ($update_status->neverChecked): ?>
+            <span class="badge badge-inactive">Not Checked</span>
+          <?php elseif (!$update_status->checkFailed): ?>
+            <span class="badge badge-current">Up To Date</span>
           <?php endif; ?>
           </p>
         <?php if ($update_status->checkFailed): ?>
@@ -148,17 +247,14 @@ $current = Version::CURRENT;
           </div>
         <?php elseif ($update_status->updateAvailable): ?>
           <div class="update-ready">
-            <span class="badge badge-pending">Update Available</span>
             <span>Version <?= View::e((string) $update_status->latest) ?> can be prepared.</span>
           </div>
         <?php elseif ($update_status->neverChecked): ?>
           <div class="update-ready">
-            <span class="badge badge-inactive">Not Checked</span>
             <span>No update check has been run yet.</span>
           </div>
         <?php else: ?>
           <div class="update-ready">
-            <span class="badge badge-current">Up To Date</span>
             <span>You are running the latest known release.</span>
           </div>
         <?php endif; ?>

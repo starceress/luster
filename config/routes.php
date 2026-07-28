@@ -119,6 +119,10 @@ return [
             AdminUpdateController::class, 'apply');
         $router->post('/admin/update/discard',
             AdminUpdateController::class, 'discard');
+        $router->get('/admin/update/htaccess-new',
+            AdminUpdateController::class, 'htaccessNew');
+        $router->post('/admin/update/htaccess/accept-current',
+            AdminUpdateController::class, 'acceptHtaccess');
 
         // --- Listings
         $router->get('/admin/listings',
