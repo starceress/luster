@@ -2490,10 +2490,21 @@ final class ListingController extends AdminController
             'for_adoption'                   => $forAdoption,
             'adoption_count'                 => $adoptionCount,
             'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
-            'affiliate_apply_style'          => $settingsRepo->getAffiliateApplyStyle($id),
-            'codes_submit_style'             => $settingsRepo->getCodesSubmitToggleStyle($id),
-            'affiliate_apply_toggle_label'   => $settingsRepo->getAffiliateApplyToggleLabel($id),
-            'codes_submit_toggle_label'      => $settingsRepo->getCodesSubmitToggleLabel($id),
+            // '' (not null) is the "Use global default" sentinel the <select>
+            // in edit.php compares against - passing null here left it
+            // falling through to a hardcoded 'button' that ignored whatever
+            // was actually configured on the Global Templates page, and
+            // could get silently persisted as a real per-listing override
+            // the next time the tab was saved without touching this field.
+            'affiliate_apply_style'          => $settingsRepo->getAffiliateApplyStyle($id) ?? '',
+            'codes_submit_style'             => $settingsRepo->getCodesSubmitToggleStyle($id) ?? '',
+            'affiliate_apply_toggle_label'   => $settingsRepo->getAffiliateApplyToggleLabel($id) ?? '',
+            'codes_submit_toggle_label'      => $settingsRepo->getCodesSubmitToggleLabel($id) ?? '',
+            // Placeholders only (not the field value) - shows what will
+            // actually be used if the admin leaves the label blank, instead
+            // of a hardcoded string that ignores the configured global label.
+            'affiliate_apply_toggle_label_placeholder' => $siteSettingsRepo->get('global_affiliate_apply_toggle_label') ?? 'Apply to become an affiliate?',
+            'codes_submit_toggle_label_placeholder'    => $siteSettingsRepo->get('global_codes_submit_toggle_label') ?? 'Donate a code?',
             'form_url_affiliate_apply'       => $affiliateApplySettings['form_url'],
             'redirect_url_affiliate_apply'   => $affiliateApplySettings['redirect_url'],
             'stat_newmembers_limit'          => $settingsRepo->getStatNewmembersLimit($id),

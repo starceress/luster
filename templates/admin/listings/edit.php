@@ -43,10 +43,14 @@ $rules                               ??= null;
 $for_adoption                        ??= false;
 $adoption_count                      ??= 0;
 $affiliate_apply_enabled              ??= false;
-$affiliate_apply_style                ??= 'button';
-$codes_submit_style                    ??= 'button';
-$affiliate_apply_toggle_label           ??= null;
-$codes_submit_toggle_label               ??= null;
+// '' is the "Use global default" sentinel the toggle-style <select>s below
+// compare against - not a real style value.
+$affiliate_apply_style                ??= '';
+$codes_submit_style                    ??= '';
+$affiliate_apply_toggle_label           ??= '';
+$codes_submit_toggle_label               ??= '';
+$affiliate_apply_toggle_label_placeholder ??= 'Apply to become an affiliate?';
+$codes_submit_toggle_label_placeholder     ??= 'Donate a code?';
 $form_url_affiliate_apply                 ??= '';
 $redirect_url_affiliate_apply              ??= '';
 $stat_newmembers_limit                      ??= null;
@@ -966,7 +970,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
             <div>
               <input id="fl-cs-toggle-label" type="text" name="codes_submit_toggle_label" class="form" maxlength="200"
                      value="<?= View::e($codes_submit_toggle_label ?? '') ?>"
-                     placeholder="Donate a code?">
+                     placeholder="<?= View::e($codes_submit_toggle_label_placeholder) ?>">
               <p class="form-hint">The text shown on the toggle trigger. Leave blank for the default.</p>
             </div>
           </div>
@@ -1021,7 +1025,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
             <div>
               <input id="fl-aff-toggle-label" type="text" name="affiliate_apply_toggle_label" class="form" maxlength="200"
                      value="<?= View::e($affiliate_apply_toggle_label ?? '') ?>"
-                     placeholder="Apply to become an affiliate?">
+                     placeholder="<?= View::e($affiliate_apply_toggle_label_placeholder) ?>">
               <p class="form-hint">The text shown on the toggle trigger. Leave blank for the default.</p>
             </div>
           </div>
