@@ -101,7 +101,7 @@ final class LinkCheckerController extends AdminController
         $searchParam = trim((string) $request->query('search', ''));
 
         $enthPrefix     = (string) $config->get('enth_table_prefix', '');
-        $listingTable   = $enthPrefix === '' ? 'owned' : $enthPrefix . 'listings';
+        $listingTable   = $db->validatePrefix($enthPrefix === '' ? 'owned' : $enthPrefix . 'listings');
         $listingIdCol   = $enthPrefix === '' ? 'listingid' : 'id';
         $listingSubjCol = 'subject';
         $affListingSub  = "(SELECT {$listingSubjCol} FROM `{$listingTable}` WHERE `{$listingIdCol}` = lstr_affiliates.fanlisting_id)";

@@ -34,6 +34,22 @@ final class FanUpdateImportSource implements ImportSourceInterface
 {
     private const CHUNK = 500;
 
+    /**
+     * Guards every raw SQL interpolation of the admin-supplied blog table
+     * name (`fu_prefix`) against injection. Mirrors
+     * FanaticallyImportSource::assertValidPrefix().
+     *
+     * @throws \RuntimeException when the prefix contains illegal characters.
+     */
+    private static function assertValidPrefix(string $prefix): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+            throw new \RuntimeException(
+                "Invalid table prefix: '{$prefix}'. Only [a-zA-Z0-9_] allowed."
+            );
+        }
+    }
+
     // -----------------------------------------------------------------------
     // ImportSourceInterface
     // -----------------------------------------------------------------------
@@ -89,6 +105,9 @@ final class FanUpdateImportSource implements ImportSourceInterface
     {
         $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
         $prefix = $options->tablePrefix . $options->fanUpdatePrefix;
+        if ($prefix !== '') {
+            self::assertValidPrefix($prefix);
+        }
         $rows   = [];
 
         if ($options->importUpdates) {
@@ -109,6 +128,9 @@ final class FanUpdateImportSource implements ImportSourceInterface
 
         $start  = microtime(true);
         $prefix = $options->tablePrefix . $options->fanUpdatePrefix;
+        if ($prefix !== '') {
+            self::assertValidPrefix($prefix);
+        }
         $rows   = [];
 
         if ($options->importUpdates) {

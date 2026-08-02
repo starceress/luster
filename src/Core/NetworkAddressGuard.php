@@ -20,6 +20,12 @@ namespace Luster\Core;
  * Validates that a hostname resolves exclusively to public IP addresses before
  * any connection is attempted, blocking private RFC 1918 ranges, loopback,
  * link-local, and other reserved ranges. Used by LinkChecker and ImageMigrator.
+ *
+ * IPv4-mapped (::ffff:a.b.c.d) and NAT64 (64:ff9b::a.b.c.d) IPv6 addresses
+ * are unwrapped to the IPv4 address they carry before that address is
+ * checked — otherwise they bypass every IPv4 rule below outright, since
+ * PHP's own filter and this class's CIDR helpers only recognise plain
+ * dotted-decimal IPv4.
  */
 final class NetworkAddressGuard
 {
@@ -127,12 +133,137 @@ final class NetworkAddressGuard
         return filter_var($value, FILTER_VALIDATE_IP) !== false;
     }
 
+    /**
+     * IANA special-purpose IPv4 ranges that PHP's FILTER_FLAG_NO_RES_RANGE
+     * does not treat as reserved: shared address space used for carrier-grade
+     * NAT, IETF protocol assignments, benchmark testing, documentation
+     * (TEST-NET), and multicast. Each entry is [network, prefix length].
+     */
+    private const EXTRA_BLOCKED_IPV4_RANGES = [
+        ['100.64.0.0', 10],    // RFC 6598 — Shared Address Space (CGNAT)
+        ['192.0.0.0', 24],     // RFC 6890 — IETF Protocol Assignments
+        ['192.0.2.0', 24],     // RFC 5737 — TEST-NET-1 (documentation)
+        ['198.18.0.0', 15],    // RFC 2544 — Benchmark testing
+        ['198.51.100.0', 24],  // RFC 5737 — TEST-NET-2 (documentation)
+        ['203.0.113.0', 24],   // RFC 5737 — TEST-NET-3 (documentation)
+        ['224.0.0.0', 4],      // RFC 5771/1112 — Multicast
+    ];
+
+    /**
+     * IANA special-purpose IPv6 ranges that PHP's FILTER_FLAG_NO_RES_RANGE
+     * does not treat as reserved. Each entry is [network, prefix length].
+     */
+    private const EXTRA_BLOCKED_IPV6_RANGES = [
+        ['ff00::', 8], // RFC 4291 — Multicast
+    ];
+
+    /** 96-bit prefix of ::ffff:0:0/96 (RFC 4291 §2.5.5.2 — IPv4-mapped IPv6). */
+    private const IPV4_MAPPED_PREFIX = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff";
+
+    /** 96-bit prefix of 64:ff9b::/96 (RFC 6052 — NAT64 well-known prefix). */
+    private const NAT64_WELL_KNOWN_PREFIX = "\x00\x64\xff\x9b\x00\x00\x00\x00\x00\x00\x00\x00";
+
     private static function isPublicIpAddress(string $ip): bool
     {
-        return filter_var(
-            $ip,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        ) !== false;
+        // IPv4-mapped (::ffff:a.b.c.d) and NAT64 (64:ff9b::a.b.c.d) IPv6
+        // addresses carry a real IPv4 address inside an IPv6 literal. Left
+        // unhandled, every private/reserved IPv4 check below is bypassed
+        // outright — filter_var() and the CIDR helpers here only recognise
+        // plain dotted-decimal IPv4, so e.g. "::ffff:169.254.169.254" (a
+        // cloud metadata endpoint) would otherwise validate as public. Check
+        // the embedded address instead of the wrapper.
+        $embeddedIpv4 = self::extractEmbeddedIpv4($ip);
+        if ($embeddedIpv4 !== null) {
+            return self::isPublicIpAddress($embeddedIpv4);
+        }
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return false;
+        }
+
+        foreach (self::EXTRA_BLOCKED_IPV4_RANGES as [$network, $prefixLength]) {
+            if (self::ipv4InCidr($ip, $network, $prefixLength)) {
+                return false;
+            }
+        }
+
+        foreach (self::EXTRA_BLOCKED_IPV6_RANGES as [$network, $prefixLength]) {
+            if (self::ipv6InCidr($ip, $network, $prefixLength)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns the dotted-decimal IPv4 address embedded in an IPv4-mapped or
+     * NAT64 IPv6 literal, or null when $ip isn't one of those two forms.
+     * Compares against the packed (inet_pton()) form rather than the textual
+     * one, since the same address has multiple valid textual spellings
+     * (e.g. "::ffff:127.0.0.1" and "::ffff:7f00:1").
+     */
+    private static function extractEmbeddedIpv4(string $ip): ?string
+    {
+        $packed = @inet_pton($ip);
+        if ($packed === false || strlen($packed) !== 16) {
+            return null;
+        }
+
+        $prefix = substr($packed, 0, 12);
+        if ($prefix !== self::IPV4_MAPPED_PREFIX && $prefix !== self::NAT64_WELL_KNOWN_PREFIX) {
+            return null;
+        }
+
+        $embedded = inet_ntop(substr($packed, 12, 4));
+
+        return $embedded !== false ? $embedded : null;
+    }
+
+    /**
+     * Checks whether an IPv4 address falls within a CIDR range. Always false
+     * for IPv6 addresses (ip2long() rejects them) — none of the extra
+     * blocked ranges above are IPv6.
+     */
+    private static function ipv4InCidr(string $ip, string $network, int $prefixLength): bool
+    {
+        $ipLong      = ip2long($ip);
+        $networkLong = ip2long($network);
+        if ($ipLong === false || $networkLong === false) {
+            return false;
+        }
+
+        $mask = $prefixLength === 0 ? 0 : (~0 << (32 - $prefixLength)) & 0xFFFFFFFF;
+
+        return ($ipLong & $mask) === ($networkLong & $mask);
+    }
+
+    /**
+     * Checks whether an IPv6 address falls within a CIDR range, comparing
+     * packed (inet_pton()) bytes so textual formatting differences (leading
+     * zeros, "::" compression, casing) never affect the result.
+     */
+    private static function ipv6InCidr(string $ip, string $network, int $prefixLength): bool
+    {
+        $ipPacked  = @inet_pton($ip);
+        $netPacked = @inet_pton($network);
+        if ($ipPacked === false || $netPacked === false || strlen($ipPacked) !== 16 || strlen($netPacked) !== 16) {
+            return false;
+        }
+
+        $fullBytes     = intdiv($prefixLength, 8);
+        $remainingBits = $prefixLength % 8;
+
+        if ($fullBytes > 0 && substr($ipPacked, 0, $fullBytes) !== substr($netPacked, 0, $fullBytes)) {
+            return false;
+        }
+
+        if ($remainingBits === 0) {
+            return true;
+        }
+
+        $mask = (~0 << (8 - $remainingBits)) & 0xFF;
+
+        return (ord($ipPacked[$fullBytes]) & $mask) === (ord($netPacked[$fullBytes]) & $mask);
     }
 }

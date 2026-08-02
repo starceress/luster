@@ -214,4 +214,48 @@ final class FanUpdateImportSourceTest extends TestCase
 
         $this->assertSame([], $preview->rows);
     }
+
+    // -----------------------------------------------------------------------
+    // fu_prefix validation (SQL injection guard)
+    // -----------------------------------------------------------------------
+
+    public function testPreviewRejectsFuPrefixWithIllegalCharacters(): void
+    {
+        $source = $this->makePdo();
+        $target = $this->makePdo();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid table prefix');
+
+        $this->adapter()->preview($source, $target, $this->makeOptions([
+            'fu_prefix' => 'blog` UNION SELECT password_hash FROM lstr_admin_users-- ',
+        ]));
+    }
+
+    public function testRunRejectsFuPrefixWithIllegalCharacters(): void
+    {
+        $source = $this->makePdo();
+        $target = $this->makePdo();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid table prefix');
+
+        $this->adapter()->run($source, $target, $this->makeOptions([
+            'fu_prefix' => "blog`; DROP TABLE lstr_admin_users;--",
+        ]));
+    }
+
+    public function testPreviewAcceptsFuPrefixWithUnderscoresAndDigits(): void
+    {
+        $source = $this->makePdo();
+        $target = $this->makePdo();
+
+        // A valid, if unusual, prefix must not be rejected - proves the guard
+        // isn't overly strict.
+        $preview = $this->adapter()->preview($source, $target, $this->makeOptions([
+            'fu_prefix' => 'blog_2026_v2',
+        ]));
+
+        $this->assertSame(0, $preview->rows[0]['found']);
+    }
 }

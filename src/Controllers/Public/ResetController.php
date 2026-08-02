@@ -277,6 +277,16 @@ final class ResetController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $resetPageUrl);
         }
 
+        // Atomically claim the token right before applying the password
+        // change - closes the race where two concurrent requests with the
+        // same raw token both pass the findValidByToken() check above before
+        // either has consumed it.
+        $tokenRow = $resetRepo->verifyAndConsume(hash('sha256', $rawToken));
+        if ($tokenRow === null) {
+            $session->set('lstr_flash_error:' . $marker, 'This reset link has expired or is invalid. Please request a new one.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $resetPageUrl);
+        }
+
         // Update the member's password
         $memberRepo->update(
             $listing->dbprefix,
@@ -284,8 +294,6 @@ final class ResetController
             ['password' => password_hash($newPassword, PASSWORD_ARGON2ID)],
         );
 
-        // Consume the token — one-time use
-        $resetRepo->deleteByToken(hash('sha256', $rawToken));
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_RESET);
 
         $session->remove('lstr_embed_return_to');

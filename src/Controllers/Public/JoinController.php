@@ -123,6 +123,13 @@ final class JoinController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
+        // Count every real submission against the rate limit, not just invalid
+        // ones - one call here covers every branch below (rules gate, captcha,
+        // validation, blacklist, duplicate email, password checks, and
+        // success) instead of scattering per-branch hits that both missed
+        // some rejection paths and double-counted others.
+        $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
+
         // Rules gate enforcement — catches direct POSTs that bypass the embed gate.
         if ($this->app->isAddonInstalled('Rules') && !$this->rulesAgreed($listingId)) {
             $session->set('lstr_embed_return_to', $embedReturnTo !== '' ? $embedReturnTo : $formUrl);
@@ -131,7 +138,6 @@ final class JoinController
 
         // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'join')) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
             $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old:' . $marker, [
                 'name'      => trim((string) $request->post('name',    '')),
@@ -169,7 +175,6 @@ final class JoinController
         }
 
         if ($v->fails()) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
             $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old:' . $marker, [
                 'name'      => $name,
@@ -198,7 +203,6 @@ final class JoinController
 
         // Duplicate email check
         if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
             $session->set('lstr_flash_error:' . $marker, 'That email address is already registered for this listing.');
             $session->set('lstr_flash_old:' . $marker, [
                 'name'      => $name,
@@ -290,7 +294,6 @@ final class JoinController
         }
 
         $memberRepo->insert($listing->dbprefix, $insertData);
-        $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_JOIN);
         // Only reset the stale clock when the join is immediately approved.
         // Pending joins wait for admin approval, which will touch it via MemberController.
         if ($autoApprove) {

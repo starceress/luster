@@ -45,6 +45,22 @@ final class ListingAdminImportSource implements ImportSourceInterface
         'listings'   => 'images',
     ];
 
+    /**
+     * Guards every raw SQL interpolation of the admin-supplied table prefix
+     * (`la_table_prefix`) against injection. Mirrors
+     * FanaticallyImportSource::assertValidPrefix().
+     *
+     * @throws \RuntimeException when the prefix contains illegal characters.
+     */
+    private static function assertValidPrefix(string $prefix): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+            throw new \RuntimeException(
+                "Invalid table prefix: '{$prefix}'. Only [a-zA-Z0-9_] allowed."
+            );
+        }
+    }
+
     // -----------------------------------------------------------------------
     // ImportSourceInterface
     // -----------------------------------------------------------------------
@@ -143,6 +159,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
         $tp     = $options->tablePrefix;
         $laP    = $options->laTablePrefix;
+        if ($laP !== '') {
+            self::assertValidPrefix($laP);
+        }
         // Registry table: custom prefix strips trailing underscores (e.g. 'trex_' → 'trex').
         // Default (empty prefix) uses 'main'.
         $laReg  = $laP !== '' ? str_replace('_', '', $laP) : 'main';
@@ -206,6 +225,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
         $tp     = $options->tablePrefix;
         $laP    = $options->laTablePrefix;
+        if ($laP !== '') {
+            self::assertValidPrefix($laP);
+        }
         $laReg  = $laP !== '' ? str_replace('_', '', $laP) : 'main';
         $sp     = $tp . $laP;    // full source prefix for non-registry tables
         $sreg   = $tp . $laReg;  // full source registry table name

@@ -122,4 +122,59 @@ SQL;
 
         self::assertNull($repo->findValidByToken('hash123'));
     }
+
+    // --- verifyAndConsume (atomic one-time claim)
+
+    public function testVerifyAndConsumeReturnsRowAndConsumesToken(): void
+    {
+        $db   = SqliteDatabase::make(self::DDL);
+        $repo = new FanPasswordResetRepo($db);
+
+        $repo->create(1, 'a@test.com', 'hash123', $this->future());
+
+        $row = $repo->verifyAndConsume('hash123');
+
+        self::assertNotNull($row);
+        self::assertSame(1, (int) $row['fanlisting_id']);
+        self::assertSame('a@test.com', $row['email']);
+
+        // Consumed - no longer findable or re-consumable
+        self::assertNull($repo->findValidByToken('hash123'));
+        self::assertNull($repo->verifyAndConsume('hash123'));
+    }
+
+    public function testVerifyAndConsumeReturnsNullForUnknownToken(): void
+    {
+        $db   = SqliteDatabase::make(self::DDL);
+        $repo = new FanPasswordResetRepo($db);
+
+        self::assertNull($repo->verifyAndConsume('nope'));
+    }
+
+    public function testVerifyAndConsumeReturnsNullForExpiredToken(): void
+    {
+        $db   = SqliteDatabase::make(self::DDL);
+        $repo = new FanPasswordResetRepo($db);
+
+        $repo->create(1, 'a@test.com', 'hash123', $this->past());
+
+        self::assertNull($repo->verifyAndConsume('hash123'));
+    }
+
+    public function testVerifyAndConsumeOnlyOneOfTwoRacingCallsSucceeds(): void
+    {
+        // Simulates the TOCTOU scenario from LUSTER-SEC-06: two concurrent
+        // callers both hold the same raw token. Only one may claim it, even
+        // though both would have passed a plain SELECT-based check.
+        $db   = SqliteDatabase::make(self::DDL);
+        $repo = new FanPasswordResetRepo($db);
+
+        $repo->create(1, 'a@test.com', 'hash123', $this->future());
+
+        $first  = $repo->verifyAndConsume('hash123');
+        $second = $repo->verifyAndConsume('hash123');
+
+        self::assertNotNull($first);
+        self::assertNull($second, 'A second concurrent consumption of the same token must fail');
+    }
 }

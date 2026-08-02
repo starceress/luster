@@ -469,7 +469,10 @@ final class UpdateApplier
     /** Returns true when $rel is, or is inside, a DELETE_HARD_EXCLUDE entry. */
     private function isHardExcludedFromDeletion(string $rel): bool
     {
-        $rel = $this->normalizeRelative($rel);
+        // Case-insensitive for the same reason as shouldSkipApplyPath() -
+        // cheap on case-sensitive filesystems, and closes the same class of
+        // bypass on case-insensitive ones.
+        $rel = strtolower($this->normalizeRelative($rel));
         foreach (self::DELETE_HARD_EXCLUDE as $excluded) {
             if ($rel === $excluded || str_starts_with($rel, $excluded . '/')) {
                 return true;
@@ -1344,7 +1347,11 @@ final class UpdateApplier
      */
     private function shouldSkipApplyPath(string $rel, bool $installExisted): bool
     {
-        $rel = $this->normalizeRelative($rel);
+        // Compared case-insensitively (not just on Windows) since the
+        // underlying copy/delete calls resolve case-insensitively on both
+        // Windows and default macOS - a differently-cased staged entry must
+        // not be able to bypass this guard on those filesystems.
+        $rel = strtolower($this->normalizeRelative($rel));
 
         if (!$installExisted && ($rel === 'install' || str_starts_with($rel, 'install/'))) {
             return true;

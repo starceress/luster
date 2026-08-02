@@ -249,6 +249,16 @@ final class KimResetController
             return Response::redirect($confirmReturnUrl);
         }
 
+        // Atomically claim the token right before applying the password
+        // change - closes the race where two concurrent requests with the
+        // same raw token both pass the findValidByToken() check above before
+        // either has consumed it.
+        $tokenRow = $resetRepo->verifyAndConsume(hash('sha256', $rawToken));
+        if ($tokenRow === null) {
+            $session->set('lstr_flash_error:kim_reset', 'This reset link has expired or is invalid. Please request a new one.');
+            return Response::redirect($fallbackUrl);
+        }
+
         $kimMemberId = (int) $tokenRow['kim_member_id'];
         $kimRepo     = new KimMemberRepo($this->app->getDatabase());
 
@@ -256,7 +266,6 @@ final class KimResetController
             'password' => password_hash($newPassword, PASSWORD_ARGON2ID),
         ]);
 
-        $resetRepo->deleteByToken(hash('sha256', $rawToken));
         $rateLimit->clear($ip, 'kim_reset');
 
         $session->remove('lstr_embed_return_to');

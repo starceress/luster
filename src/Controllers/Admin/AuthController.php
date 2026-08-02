@@ -470,9 +470,18 @@ final class AuthController
             return Response::redirect($baseUrl . '/admin/reset/' . $rawToken);
         }
 
+        // Atomically claim the token right before applying the password
+        // change - closes the race where two concurrent requests with the
+        // same raw token both pass the findValidByToken() check above before
+        // either has consumed it.
+        $tokenRow = $resetRepo->verifyAndConsume($tokenHash);
+        if ($tokenRow === null) {
+            $session->set('lstr_flash_error', 'This reset link has expired or already been used. Please request a new one.');
+            return Response::redirect($baseUrl . '/admin/forgot');
+        }
+
         $hash = password_hash($newPassword, PASSWORD_ARGON2ID);
         (new AdminUserRepo($db))->updatePassword((int) $tokenRow['admin_user_id'], $hash);
-        $resetRepo->markUsed($tokenHash);
 
         // Invalidate any remember-me tokens for this user
         $db->prepare('DELETE FROM lstr_admin_remember_tokens WHERE admin_user_id = :uid')

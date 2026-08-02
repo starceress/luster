@@ -91,6 +91,43 @@ final class KimPasswordResetRepo
     }
 
     /**
+     * Atomically claims a valid token so it can be consumed exactly once, even
+     * under concurrent requests presenting the same raw token. There is no
+     * `used` flag on this table (consumption is a hard delete), so the row's
+     * data is read first and then the row is deleted by primary key gated on
+     * `expires_at > NOW()` - only the caller whose DELETE actually removes a
+     * row (rowCount() === 1) may treat the token as valid. A concurrent caller
+     * that also passed the initial SELECT will find the row already gone and
+     * get null here, even though its own read also "saw" the token.
+     *
+     * @return array{id: int, kim_member_id: int, expires_at: string}|null
+     */
+    public function verifyAndConsume(string $tokenHash): ?array
+    {
+        $this->deleteExpired();
+
+        $stmt = $this->db->prepare(
+            'SELECT id, kim_member_id, expires_at
+             FROM lstr_kim_password_resets
+             WHERE token_hash = :token_hash
+               AND expires_at > NOW()'
+        );
+        $stmt->execute(['token_hash' => $tokenHash]);
+        $row = $stmt->fetch();
+
+        if ($row === false) {
+            return null;
+        }
+
+        $del = $this->db->prepare(
+            'DELETE FROM lstr_kim_password_resets WHERE id = :id AND expires_at > NOW()'
+        );
+        $del->execute(['id' => $row['id']]);
+
+        return $del->rowCount() === 1 ? $row : null;
+    }
+
+    /**
      * Removes all expired tokens.
      */
     public function deleteExpired(): void

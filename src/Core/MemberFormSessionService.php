@@ -68,7 +68,9 @@ final class MemberFormSessionService
             return null;
         }
 
-        $row = $this->repo->findValidByTokenHash(hash('sha256', $rawToken));
+        $tokenHash = hash('sha256', $rawToken);
+
+        $row = $this->repo->findValidByTokenHash($tokenHash);
         if ($row === null) {
             return null;
         }
@@ -77,8 +79,13 @@ final class MemberFormSessionService
             return null;
         }
 
-        $this->repo->markUsed((int) $row['id']);
+        // Atomically claim the token - closes the race where two concurrent
+        // requests presenting the same raw token both pass the checks above
+        // before either has consumed it. A listing/action mismatch above
+        // leaves the token untouched (retry-able); only a genuine match
+        // reaches this consuming call.
+        $consumed = $this->repo->verifyAndConsume($tokenHash);
 
-        return (string) $row['member_email'];
+        return $consumed !== null ? (string) $consumed['member_email'] : null;
     }
 }

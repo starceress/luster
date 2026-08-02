@@ -91,6 +91,18 @@ final class CodesTemplateRenderer
             );
         };
 
+        // conditionals() runs BEFORE loop() - 'codes'/'no_codes' don't depend
+        // on loop output, and evaluating them first means the {if_codes}/
+        // {if_no_codes} regex never scans a string that already has
+        // attacker-controlled donor names spliced into it. Running it after
+        // the loop instead would let a crafted code_donor_name (from the
+        // public codes-submission form) contain literal {if_codes}/
+        // {/if_codes} text that hijacks the real block boundary.
+        $tpl = TemplateEngine::conditionals($tpl, [
+            'codes'    => count($codes) > 0,
+            'no_codes' => count($codes) === 0,
+        ]);
+
         if (str_contains($tpl, '{each_size_group}')) {
             $html = TemplateEngine::loop(
                 $tpl,
@@ -119,9 +131,6 @@ final class CodesTemplateRenderer
             );
         }
 
-        return TemplateEngine::conditionals($html, [
-            'codes'    => count($codes) > 0,
-            'no_codes' => count($codes) === 0,
-        ]);
+        return $html;
     }
 }

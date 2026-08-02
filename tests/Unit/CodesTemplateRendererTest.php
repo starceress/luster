@@ -292,6 +292,22 @@ final class CodesTemplateRendererTest extends TestCase
         self::assertSame('HAS', $html);
     }
 
+    public function testDonorNameCannotInjectConditionalBoundaryAcrossTheLoop(): void
+    {
+        // Regression test for a template-injection bug: conditionals() used
+        // to run AFTER loop() had already spliced in the (public,
+        // attacker-controlled) donor name, so a donor name containing
+        // literal {/if_codes}...{if_codes} text could hijack the real block
+        // boundary. conditionals() now runs before loop(), so the injected
+        // text can only ever land as inert output text.
+        $code = $this->makeCode(1, 50, 50, null, null, '{/if_codes}INJECTED{if_codes}');
+        $tpl  = '{if_codes}HAS[{each_code}{code_donor_name}{/each_code}]{/if_codes}{if_no_codes}NONE{/if_no_codes}';
+
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], '/uploads/codes');
+
+        self::assertSame('HAS[{/if_codes}INJECTED{if_codes}]', $html);
+    }
+
     // -----------------------------------------------------------------------
     // Built-in default template (ListingSettingsRepo::defaultCodesTemplate())
     // -----------------------------------------------------------------------

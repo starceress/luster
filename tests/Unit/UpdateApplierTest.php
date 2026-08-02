@@ -186,6 +186,39 @@ final class UpdateApplierTest extends TestCase
         self::assertFalse($method->invoke($applier, 'public/assets/.htaccess', true));
     }
 
+    public function testApplySkipListIsCaseInsensitive(): void
+    {
+        // A differently-cased staged entry must not be able to bypass the
+        // skip list - config/app.php, public/.htaccess, storage/, and
+        // public/uploads/ resolve case-insensitively on Windows/macOS
+        // filesystems, so the guard has to match on the same basis.
+        $applier = new UpdateApplier(sys_get_temp_dir(), SqliteDatabase::make(''));
+        $method  = new \ReflectionMethod(UpdateApplier::class, 'shouldSkipApplyPath');
+        $method->setAccessible(true);
+
+        self::assertTrue($method->invoke($applier, 'Config/App.php', true));
+        self::assertTrue($method->invoke($applier, 'CONFIG/APP.PHP', true));
+        self::assertTrue($method->invoke($applier, 'Public/.htaccess', true));
+        self::assertTrue($method->invoke($applier, 'Storage/Logs/error.log', true));
+        self::assertTrue($method->invoke($applier, 'Public/Uploads/codes/image.jpg', true));
+        self::assertTrue($method->invoke($applier, 'INSTALL/index.php', false));
+        self::assertFalse($method->invoke($applier, 'INSTALL/index.php', true));
+    }
+
+    public function testHardExcludeFromDeletionIsCaseInsensitive(): void
+    {
+        $applier = new UpdateApplier(sys_get_temp_dir(), SqliteDatabase::make(''));
+        $method  = new \ReflectionMethod(UpdateApplier::class, 'isHardExcludedFromDeletion');
+        $method->setAccessible(true);
+
+        self::assertTrue($method->invoke($applier, 'Storage/logs/error.log'));
+        self::assertTrue($method->invoke($applier, 'Public/Uploads/codes/image.jpg'));
+        self::assertTrue($method->invoke($applier, 'Public/Assets/CSS/Skins/mycustom.css'));
+        self::assertTrue($method->invoke($applier, 'CONFIG/APP.PHP'));
+        self::assertTrue($method->invoke($applier, 'Public/.htaccess'));
+        self::assertFalse($method->invoke($applier, 'Src/Core/View.php'));
+    }
+
     public function testChecksumParserMatchesNamedZipAsset(): void
     {
         $hash = str_repeat('a', 64);

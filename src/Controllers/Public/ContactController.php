@@ -105,9 +105,12 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
+        // Count every real submission against the rate limit, not just invalid
+        // ones - a rejected captcha/validation attempt is still an attempt.
+        $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
+
         // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_listing')) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -121,7 +124,6 @@ final class ContactController
 
         // Blacklist check on submitted email
         if ($email !== '' && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error:' . $marker, 'This email address cannot be used to send messages.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -134,14 +136,12 @@ final class ContactController
         $v->field('message')->required()->maxLength(5000);
 
         if ($url !== '' && (filter_var($url, FILTER_VALIDATE_URL) === false || !in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true))) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error:' . $marker, 'Website URL must be a valid http:// or https:// address.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($v->fails()) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -219,9 +219,12 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
+        // Count every real submission against the rate limit, not just invalid
+        // ones - a rejected captcha/validation attempt is still an attempt.
+        $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
+
         // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_collective')) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -235,7 +238,6 @@ final class ContactController
 
         // Blacklist check on submitted email
         if ($email !== '' && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error:' . $marker, 'This email address cannot be used to send messages.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -248,14 +250,12 @@ final class ContactController
         $v->field('message')->required()->maxLength(5000);
 
         if ($url !== '' && (filter_var($url, FILTER_VALIDATE_URL) === false || !in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true))) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error:' . $marker, 'Website URL must be a valid http:// or https:// address.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($v->fails()) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);

@@ -83,9 +83,15 @@ final class AdoptPublicController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
+        // Count every real submission against the rate limit, not just invalid
+        // ones - one call here covers every branch below (captcha,
+        // validation, blacklist, duplicate application, and success) instead
+        // of scattering per-branch hits that both missed some rejection
+        // paths and double-counted others.
+        $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
+
         // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'adopt')) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
             $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old:' . $marker, [
                 'name'    => trim((string) $request->post('name',    '')),
@@ -108,7 +114,6 @@ final class AdoptPublicController
         $v->field('message')->maxLength(2000);
 
         if ($v->fails()) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
             $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old:' . $marker, ['name' => $name, 'email' => $email, 'url' => $url, 'message' => $message]);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -137,8 +142,6 @@ final class AdoptPublicController
             'url'     => $url,
             'message' => $message !== '' ? $message : null,
         ]);
-
-        $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_ADOPT);
 
         // Admin notification email
         try {
@@ -224,9 +227,15 @@ final class AdoptPublicController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
+        // Count every real submission against the rate limit, not just invalid
+        // ones - one call here covers every branch below (captcha,
+        // validation, invalid listing, blacklist, duplicate application, and
+        // success) instead of scattering per-branch hits that both missed
+        // some rejection paths and double-counted others.
+        $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
+
         // Captcha
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'adopt')) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
             $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old:' . $marker, [
                 'listing_id' => trim((string) $request->post('listing_id', '')),
@@ -252,7 +261,6 @@ final class AdoptPublicController
         $v->field('message')->maxLength(2000);
 
         if ($v->fails()) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
             $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old:' . $marker, ['listing_id' => (string) $listingId, 'name' => $name, 'email' => $email, 'url' => $url, 'message' => $message]);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -293,8 +301,6 @@ final class AdoptPublicController
             'url'     => $url,
             'message' => $message !== '' ? $message : null,
         ]);
-
-        $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_ADOPT);
 
         // Admin notification email
         $listing = null;

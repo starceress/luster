@@ -86,6 +86,41 @@ final class MemberFormSessionRepo
     }
 
     /**
+     * Atomically marks a token as used and returns its row, gated on
+     * `used_at IS NULL AND expires_at > NOW()` in a single UPDATE. Only the
+     * caller whose UPDATE actually matches a row (rowCount() === 1) may treat
+     * the token as valid, so two concurrent requests presenting the same raw
+     * token can never both succeed.
+     *
+     * @return array{id:int, fanlisting_id:int, member_email:string, allowed_action:string}|null
+     */
+    public function verifyAndConsume(string $tokenHash): ?array
+    {
+        $this->deleteExpired();
+
+        $upd = $this->db->prepare(
+            'UPDATE lstr_member_form_sessions
+             SET used_at = NOW()
+             WHERE token_hash = :token_hash AND used_at IS NULL AND expires_at > NOW()'
+        );
+        $upd->execute(['token_hash' => $tokenHash]);
+
+        if ($upd->rowCount() !== 1) {
+            return null;
+        }
+
+        $sel = $this->db->prepare(
+            'SELECT id, fanlisting_id, member_email, allowed_action
+             FROM lstr_member_form_sessions
+             WHERE token_hash = :token_hash'
+        );
+        $sel->execute(['token_hash' => $tokenHash]);
+        $row = $sel->fetch();
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
      * Removes all expired rows across all listings.
      */
     public function deleteExpired(): void

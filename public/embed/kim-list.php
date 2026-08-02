@@ -155,10 +155,19 @@ if ($_lusterSubjectId > 0) {
     }
     $_lusterSubjectTemplateHtml = null;
     if ($_lusterSubjectTpl !== '') {
-        $_lusterHasMembers = count($_lusterMembers) > 0;
+        $_lusterHasMembers     = count($_lusterMembers) > 0;
+        $_lusterKimOverviewUrl = $_lusterListBase ?? '';
+        $_lusterKimSignupUrl   = $_lusterLinkSignup ?? '';
+
+        // All four conditions are evaluated in a single pass, before the
+        // loop splices in member names - member names come from the public
+        // KIM sign-up form and could contain literal {if_x}/{/if_x} text
+        // that would hijack a conditionals() pass run afterward.
         $_lusterTplOut = TemplateEngine::conditionals($_lusterSubjectTpl, [
-            'has_kim_members' => $_lusterHasMembers,
-            'no_kim_members'  => !$_lusterHasMembers,
+            'has_kim_members'  => $_lusterHasMembers,
+            'no_kim_members'   => !$_lusterHasMembers,
+            'kim_overview_url' => $_lusterKimOverviewUrl !== '',
+            'kim_signup_url'   => $_lusterKimSignupUrl !== '',
         ]);
         $_lusterTplOut = TemplateEngine::loop(
             $_lusterTplOut,
@@ -173,12 +182,6 @@ if ($_lusterSubjectId > 0) {
                 );
             },
         );
-        $_lusterKimOverviewUrl = $_lusterListBase ?? '';
-        $_lusterKimSignupUrl  = $_lusterLinkSignup ?? '';
-        $_lusterTplOut = TemplateEngine::conditionals($_lusterTplOut, [
-            'kim_overview_url' => $_lusterKimOverviewUrl !== '',
-            'kim_signup_url'   => $_lusterKimSignupUrl !== '',
-        ]);
         $_lusterSubjectTemplateHtml = TemplateEngine::tokens(
             $_lusterTplOut,
             [
