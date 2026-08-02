@@ -116,6 +116,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
           <textarea id="upd-body" name="body" class="form"
                     rows="9" required
                     placeholder="Write your entry here&hellip;"><?= $is_edit ? View::e($update->body) : '' ?></textarea>
+          <p class="form-hint">A small set of HTML tags is allowed: <code>&lt;b&gt;</code>, <code>&lt;i&gt;</code>, <code>&lt;u&gt;</code>, <code>&lt;s&gt;</code>, <code>&lt;a href="..."&gt;</code>, <code>&lt;img src="..."&gt;</code>, and a few others <span class="ec-setup-help" data-desc="Supported: &lt;b&gt;/&lt;strong&gt;, &lt;i&gt;/&lt;em&gt;, &lt;u&gt;, &lt;s&gt;, &lt;p&gt;, &lt;blockquote&gt;, &lt;br&gt;, &lt;a href=&quot;...&quot;&gt; (opens in a new tab automatically), and &lt;img src=&quot;...&quot;&gt;. All of these accept optional class and title attributes, except &lt;br&gt;, which never keeps any attribute. Attribute values must use double quotes.">?</span>. Use double quotes for attribute values. Anything else is shown as plain text.</p>
         </div>
       </div>
 

@@ -1155,7 +1155,7 @@ $srcBadge = static function (string $key) use ($ct): string {
             <?= $tok('collective_newsfeed_template', '{newsfeed_date}',       '{newsfeed_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
             <?= $tok('collective_newsfeed_template', '{newsfeed_author}',     '{newsfeed_author}',     'The author name. Empty when not set.') ?>
             <?= $tok('collective_newsfeed_template', '{newsfeed_categories}', '{newsfeed_categories}', 'Category names, comma-separated. Empty when not set.') ?>
-            <?= $tok('collective_newsfeed_template', '{newsfeed_body_html}',  '{newsfeed_body_html}',  'The entry body text, with line breaks converted to HTML.') ?>
+            <?= $tok('collective_newsfeed_template', '{newsfeed_body_html}',  '{newsfeed_body_html}',  'The entry body text. Line breaks become <br>, and a small set of formatting tags (bold, links, images, etc.) is allowed — anything else shows as plain text.') ?>
             <?= $tok('collective_newsfeed_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the entry has an author set.') ?>
             <?= $tok('collective_newsfeed_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the entry has categories set.') ?>
           </tbody></table>

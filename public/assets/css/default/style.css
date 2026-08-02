@@ -1054,6 +1054,11 @@
   line-height: 1.6;
 }
 
+.fl-newsfeed-img {
+  max-width: 100%;
+  height: auto;
+}
+
 .fl-newsfeed-meta {
   font-size: 0.85em;
   margin-top: 0.4em;

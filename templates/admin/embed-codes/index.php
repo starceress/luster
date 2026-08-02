@@ -1092,7 +1092,7 @@ $epSafe = View::e($ep);
                 <tr><td class="actions-col"><code class="ec-tk">{each_newsfeed_entry}&hellip;{/each_newsfeed_entry}</code></td><td>Repeat box for one update post.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{newsfeed_title}</code></td><td>Update title.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{newsfeed_date}</code></td><td>Friendly date, such as January 15, 2026.</td></tr>
-                <tr><td class="actions-col"><code class="ec-tk">{newsfeed_body_html}</code></td><td>The update body with line breaks converted to <code>&lt;br&gt;</code>. Luster escapes the text first, so visitor-supplied HTML is not allowed through.</td></tr>
+                <tr><td class="actions-col"><code class="ec-tk">{newsfeed_body_html}</code></td><td>The update body with line breaks converted to <code>&lt;br&gt;</code>. A small set of formatting tags (bold, links, images, etc.) is allowed through &mdash; anything else is shown as plain text.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{newsfeed_author}</code></td><td>Update author, when saved.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{newsfeed_categories}</code></td><td>Update category names, separated by commas.</td></tr>
                 <tr><td class="actions-col"><code class="ec-tk">{if_author}&hellip;{/if_author}</code>, <code class="ec-tk">{if_categories}&hellip;{/if_categories}</code></td><td>Shows author or category markup only when that information exists.</td></tr>

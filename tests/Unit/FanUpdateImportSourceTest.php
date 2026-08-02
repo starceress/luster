@@ -258,4 +258,18 @@ final class FanUpdateImportSourceTest extends TestCase
 
         $this->assertSame(0, $preview->rows[0]['found']);
     }
+
+    // -----------------------------------------------------------------------
+    // Newsfeed HTML formatting (src/Support/NewsfeedBodySanitizer.php)
+    // -----------------------------------------------------------------------
+
+    // No run()-level regression test here: this adapter's Updates insert path
+    // (run(), ~line 255) unconditionally prepares a duplicate-check statement
+    // using MySQL's null-safe `<=>` operator, which SQLite's PDO driver
+    // rejects at prepare() time regardless of conflict_strategy - a
+    // pre-existing test-double limitation unrelated to this feature, and not
+    // one to fix as a side effect of it. NewsfeedBodySanitizer runs at read
+    // time only; confirmed directly by reading the insert path (~line 292:
+    // `$body = (string) $row['body']`, no sanitizer call, stored as-is) that
+    // this importer's write path is unaffected either way.
 }

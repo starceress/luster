@@ -1554,6 +1554,13 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .body-area { white-space:pre-wrap; color: var(--text); padding: .875rem 1.25rem; position: relative; }
 
+/* News Feed entry preview renders real <a> tags (NewsfeedBodySanitizer) - style
+   them like the admin's own .link class instead of leaving default browser
+   link styling, since .body-area is shared with plain-text email previews
+   that never contain real links. */
+#upd-preview-body a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted transparent; transition: color .15s, border-color .15s; }
+#upd-preview-body a:hover { color: var(--link-hover-color); border-bottom-color: var(--link-hover-color); }
+
 .composer-footer { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .875rem 1.25rem; border-top: 1px solid var(--border); background: rgba(255,255,255,.015); }
 
 [data-theme="light"] .composer-footer { background: rgba(0,0,0,.015); }

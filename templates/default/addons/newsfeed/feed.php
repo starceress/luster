@@ -14,6 +14,7 @@
 declare(strict_types=1);
 
 use Luster\Core\View;
+use Luster\Support\NewsfeedBodySanitizer;
 
 $_activeCat   = $active_cat ?? '';
 
@@ -49,7 +50,7 @@ if (isset($newsfeed_template_html) && $newsfeed_template_html !== null) {
     <?php endif; ?>
   </div>
 
-  <div class="fl-newsfeed-body"><?= nl2br(View::e($u->body)) ?></div>
+  <div class="fl-newsfeed-body"><?= NewsfeedBodySanitizer::toDisplayHtml($u->body) ?></div>
 </div>
 <?php endforeach; ?>
 </div><!-- /.fl-newsfeed-list -->

@@ -5,7 +5,9 @@
 
  Sends security response headers (CSP, X-Frame-Options, X-Content-Type-Options,
  etc.) via PHP as a fallback for non-Apache deployments. On Apache, the same
- headers are set by .htaccess via mod_headers, so running both is idempotent.
+ headers are also set by .htaccess via mod_headers — see the class docblock
+ for why route-scoped .htaccess overrides need more than a plain "Header set"
+ to actually replace this class's header rather than sit alongside it.
  Called once per request from Application::boot().
 */
 
@@ -20,9 +22,19 @@ namespace Luster\Core;
  * This class sends the same policy via PHP header() so deployments on
  * Nginx, Caddy, or PHP-FPM standalone are not left without protection.
  *
- * On Apache with mod_headers, the "Header always set" directives in
- * .htaccess will overwrite any PHP-set header of the same name — so
- * running both is idempotent and produces no duplicates.
+ * A plain "Header always set" in .htaccess does NOT reliably replace a
+ * header this class already sent — verified empirically (curl against a
+ * live request): both ended up on the response as two separate
+ * Content-Security-Policy headers, not one. Per the CSP spec, browsers
+ * enforce the intersection of every delivered policy, so two different
+ * img-src values silently collapse to the stricter one with no visible
+ * error — any route-scoped .htaccess override of a header this class also
+ * sends needs "Header unset" *and* "Header always unset" before the
+ * "Header always set", in that order (see the working example in
+ * public/.htaccess for the News Feed composer's img-src relaxation). Plain,
+ * unconditional headers where both layers always agree (X-Frame-Options,
+ * the default CSP, etc.) are unaffected by this — the duplication is
+ * harmless when both values are identical.
  *
  * Called once per request from Application::boot() before Response::send().
  */
@@ -54,7 +66,7 @@ final class SecurityHeaders
             "Content-Security-Policy: default-src 'self'; "
             . "script-src 'self'; "
             . "style-src 'self' 'unsafe-inline'; "
-            . "img-src 'self' data:; "
+            . self::imgSrcDirective() . "; "
             . "font-src 'self' data:; "
             . "connect-src 'self'; "
             . "frame-ancestors 'none'; "
@@ -62,5 +74,34 @@ final class SecurityHeaders
             . "form-action 'self'"
         );
         header_remove('X-Powered-By');
+    }
+
+    /**
+     * img-src is 'self' data: everywhere except the News Feed composer's live
+     * preview, which needs to load whatever http(s):// image URL the admin
+     * just typed (NewsfeedBodySanitizer accepts both http and https for src -
+     * ValidatorField::httpUrl()'s existing rule - so the CSP here allows both
+     * too, or a valid http:// image would render for real once saved but
+     * silently fail to load in this preview only). This only affects whether
+     * the admin's own browser is allowed to fetch it while previewing, not
+     * what gets saved or rendered on the live public site, which is never
+     * under this admin-only CSP at all. Mirrors the equivalent <If> block in
+     * public/.htaccess — keep both in sync.
+     *
+     * The (?=[?\s]|$) lookahead after the alternation is required - without
+     * it, "\d+/add" and "entry/\d+/edit" match as a *prefix* of a longer path
+     * segment (confirmed matching /admin/newsfeed/1/additional,
+     * /admin/newsfeed/entry/1/edit-old, and
+     * /admin/newsfeed/collective/additional, none of which are real routes).
+     */
+    private static function imgSrcDirective(): string
+    {
+        $uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+
+        if (preg_match('#/admin/newsfeed/(collective/add|entry/\d+/edit|\d+/add)(?=[?\s]|$)#', $uri) === 1) {
+            return "img-src 'self' data: http: https:";
+        }
+
+        return "img-src 'self' data:";
     }
 }

@@ -5417,6 +5417,206 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
     return fmt.replace(/[djmMnFYyHGhgisAa]/g, function (c) { return map[c] !== undefined ? map[c] : c; });
   }
 
+  // Client-side mirror of NewsfeedBodySanitizer (src/Support/NewsfeedBodySanitizer.php).
+  // Approximation only, for preview responsiveness — the PHP sanitizer run at
+  // render/save time is always the source of truth. Kept structurally identical
+  // to the PHP version (same escape-first, atomic-pair, allowlist approach) so
+  // the two are easy to keep in sync by eye when either one changes.
+  var NEWSFEED_TAG_SPECS = {
+    'b':          { required: [],       optional: ['class', 'title'] },
+    'strong':     { required: [],       optional: ['class', 'title'] },
+    'i':          { required: [],       optional: ['class', 'title'] },
+    'em':         { required: [],       optional: ['class', 'title'] },
+    'u':          { required: [],       optional: ['class', 'title'] },
+    's':          { required: [],       optional: ['class', 'title'] },
+    'p':          { required: [],       optional: ['class', 'title'] },
+    'blockquote': { required: [],       optional: ['class', 'title'] },
+    'a':          { required: ['href'], optional: ['class', 'title'] },
+  };
+  var NEWSFEED_CLASS_TOKEN_PATTERN = /^(fl-newsfeed-|nf-)[a-zA-Z0-9-]+$/;
+
+  function newsfeedEscapeHtml(raw) {
+    return String(raw)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function newsfeedFindTagEnd(escaped, pos) {
+    var len = escaped.length, inQuote = false;
+    while (pos < len) {
+      if (!inQuote && escaped.substr(pos, 4) === '&gt;') return pos;
+      if (escaped.substr(pos, 6) === '&quot;') { inQuote = !inQuote; pos += 6; continue; }
+      pos++;
+    }
+    return null;
+  }
+
+  function newsfeedIsValidHttpUrl(url) {
+    var m = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(url);
+    if (!m) return false;
+    var scheme = m[1].toLowerCase();
+    if (scheme !== 'http' && scheme !== 'https') return false;
+    try { new URL(url); return true; } catch (e) { return false; }
+  }
+
+  function newsfeedFilterClassTokens(value) {
+    var tokens = value.trim().split(/\s+/).filter(Boolean);
+    return tokens.filter(function (t) { return NEWSFEED_CLASS_TOKEN_PATTERN.test(t); }).join(' ');
+  }
+
+  function newsfeedExtractAttrs(blob) {
+    var re = /([a-zA-Z][a-zA-Z0-9:_-]*)\s*=\s*&quot;((?:(?!&quot;).){0,2000})&quot;/g;
+    var attrs = {}, m;
+    while ((m = re.exec(blob)) !== null) { attrs[m[1].toLowerCase()] = m[2]; }
+    return attrs;
+  }
+
+  function newsfeedRebuildOpeningTag(tag, spec, blob) {
+    var attrs = newsfeedExtractAttrs(blob);
+    for (var i = 0; i < spec.required.length; i++) {
+      var reqName = spec.required[i];
+      if (attrs[reqName] === undefined || !newsfeedIsValidHttpUrl(newsfeedEntityDecode(attrs[reqName]))) return null;
+    }
+    var out = '<' + tag;
+    spec.required.forEach(function (reqName) { out += ' ' + reqName + '="' + attrs[reqName] + '"'; });
+    if (tag === 'a') out += ' target="_blank" rel="noopener noreferrer"';
+    if (attrs['class'] !== undefined) {
+      var filtered = newsfeedFilterClassTokens(attrs['class']);
+      if (filtered !== '') out += ' class="' + filtered + '"';
+    }
+    if (attrs['title'] !== undefined) out += ' title="' + attrs['title'] + '"';
+    return out + '>';
+  }
+
+  function newsfeedEntityDecode(s) {
+    var el = document.createElement('textarea');
+    el.innerHTML = s;
+    return el.value;
+  }
+
+  function newsfeedConvertPairedTag(escaped, tag, spec) {
+    var namePattern = new RegExp('&lt;' + tag + '(?=&gt;|\\s|/)', 'i');
+    var closingPattern = new RegExp('&lt;/' + tag + '(?=&gt;)&gt;', 'i');
+    var result = '', cursor = 0;
+
+    while (true) {
+      var rem = escaped.slice(cursor);
+      var m = namePattern.exec(rem);
+      if (!m) break;
+      var matchStart = cursor + m.index;
+      var afterName  = matchStart + m[0].length;
+      result += escaped.slice(cursor, matchStart);
+
+      var openEnd = newsfeedFindTagEnd(escaped, afterName);
+      if (openEnd === null) {
+        result += escaped.slice(matchStart, afterName);
+        cursor = afterName;
+        continue;
+      }
+
+      var blob = escaped.slice(afterName, openEnd);
+      var rest = escaped.slice(openEnd + 4);
+      var cm = closingPattern.exec(rest);
+      if (!cm) {
+        result += escaped.slice(matchStart, openEnd + 4);
+        cursor = openEnd + 4;
+        continue;
+      }
+
+      var innerContent = rest.slice(0, cm.index);
+      var afterClosing = openEnd + 4 + cm.index + cm[0].length;
+      var rebuilt = newsfeedRebuildOpeningTag(tag, spec, blob);
+      result += rebuilt !== null
+        ? rebuilt + innerContent + '</' + tag + '>'
+        : escaped.slice(matchStart, afterClosing);
+      cursor = afterClosing;
+    }
+
+    result += escaped.slice(cursor);
+    return result;
+  }
+
+  function newsfeedConvertImg(escaped) {
+    var namePattern = /&lt;img(?=&gt;|\s|\/)/i;
+    var result = '', cursor = 0;
+
+    while (true) {
+      var rem = escaped.slice(cursor);
+      var m = namePattern.exec(rem);
+      if (!m) break;
+      var matchStart = cursor + m.index;
+      var afterName  = matchStart + m[0].length;
+      result += escaped.slice(cursor, matchStart);
+
+      var end = newsfeedFindTagEnd(escaped, afterName);
+      if (end === null) {
+        result += escaped.slice(matchStart, afterName);
+        cursor = afterName;
+        continue;
+      }
+
+      var blob = escaped.slice(afterName, end);
+      var attrs = newsfeedExtractAttrs(blob);
+      var rebuilt = null;
+      if (attrs['src'] !== undefined && newsfeedIsValidHttpUrl(newsfeedEntityDecode(attrs['src']))) {
+        var classTokens = 'fl-newsfeed-img';
+        if (attrs['class'] !== undefined) {
+          var filtered = newsfeedFilterClassTokens(attrs['class']);
+          if (filtered !== '') classTokens += ' ' + filtered;
+        }
+        rebuilt = '<img src="' + attrs['src'] + '" class="' + classTokens + '"';
+        if (attrs['alt'] !== undefined) rebuilt += ' alt="' + attrs['alt'] + '"';
+        if (attrs['title'] !== undefined) rebuilt += ' title="' + attrs['title'] + '"';
+        rebuilt += '>';
+      }
+      result += rebuilt !== null ? rebuilt : escaped.slice(matchStart, end + 4);
+      cursor = end + 4;
+    }
+
+    result += escaped.slice(cursor);
+    return result;
+  }
+
+  function newsfeedConvertBr(escaped) {
+    var namePattern = /&lt;br(?=&gt;|\s|\/)/i;
+    var result = '', cursor = 0;
+
+    while (true) {
+      var rem = escaped.slice(cursor);
+      var m = namePattern.exec(rem);
+      if (!m) break;
+      var matchStart = cursor + m.index;
+      var afterName  = matchStart + m[0].length;
+      result += escaped.slice(cursor, matchStart);
+
+      var end = newsfeedFindTagEnd(escaped, afterName);
+      if (end === null) {
+        result += escaped.slice(matchStart, afterName);
+        cursor = afterName;
+        continue;
+      }
+
+      result += '<br>';
+      cursor = end + 4;
+    }
+
+    result += escaped.slice(cursor);
+    return result;
+  }
+
+  function newsfeedSanitizePreview(raw) {
+    var escaped = newsfeedEscapeHtml(raw);
+    Object.keys(NEWSFEED_TAG_SPECS).forEach(function (tag) {
+      escaped = newsfeedConvertPairedTag(escaped, tag, NEWSFEED_TAG_SPECS[tag]);
+    });
+    escaped = newsfeedConvertImg(escaped);
+    escaped = newsfeedConvertBr(escaped);
+    return escaped.replace(/\n/g, '<br>\n');
+  }
+
   function openPreview() {
     var titleEl    = document.getElementById('upd-title');
     var bodyEl     = document.getElementById('upd-body');
@@ -5457,7 +5657,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
       if (pvCatRow) pvCatRow.style.display = cats.length ? '' : 'none';
     }
 
-    if (pvBody) pvBody.textContent = bodyEl ? bodyEl.value : '';
+    if (pvBody) pvBody.innerHTML = newsfeedSanitizePreview(bodyEl ? bodyEl.value : '');
 
     modal.style.display = 'flex';
   }

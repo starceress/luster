@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Luster\Tests\Unit;
 
 use Luster\Core\TemplateEngine;
+use Luster\Support\NewsfeedBodySanitizer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -115,10 +116,10 @@ final class ContentRowTemplatesTest extends TestCase
 
     public function testUpdatesTemplateBodyIsEscapedBeforeRawInsertion(): void
     {
-        // The embed pre-escapes the body via nl2br(htmlspecialchars(...)) and
-        // passes it as a "raw" value.  Verify the XSS payload is neutralised.
+        // The embed sanitizes the body via NewsfeedBodySanitizer::toDisplayHtml()
+        // and passes it as a "raw" value. Verify the XSS payload is neutralised.
         $body    = '<script>alert("xss")</script>';
-        $escaped = nl2br(htmlspecialchars($body, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+        $escaped = NewsfeedBodySanitizer::toDisplayHtml($body);
 
         $tpl = '{each_newsfeed_entry}{newsfeed_body_html}{/each_newsfeed_entry}';
 
@@ -130,11 +131,7 @@ final class ContentRowTemplatesTest extends TestCase
                 return TemplateEngine::render(
                     $inner,
                     [],
-                    ['newsfeed_body_html' => nl2br(htmlspecialchars(
-                        $update['body'],
-                        ENT_QUOTES | ENT_SUBSTITUTE,
-                        'UTF-8',
-                    ))],
+                    ['newsfeed_body_html' => NewsfeedBodySanitizer::toDisplayHtml($update['body'])],
                 );
             },
         );

@@ -90,4 +90,65 @@ final class ListingAdminImportSourceTest extends TestCase
 
         $this->assertSame([], $preview->rows);
     }
+
+    /**
+     * NewsfeedBodySanitizer (src/Support/NewsfeedBodySanitizer.php) runs at
+     * read time only - this importer's Updates insert path must keep storing
+     * the raw source text exactly as before, tag-shaped or not.
+     */
+    public function testImportedUpdateBodyIsStoredRawUntouchedByHtmlSanitizer(): void
+    {
+        $source = $this->makePdo();
+        $target = $this->makePdo();
+
+        $target->exec(
+            'CREATE TABLE lstr_newsfeed (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                fanlisting_id INTEGER,
+                title         TEXT    NOT NULL,
+                body          TEXT    NOT NULL,
+                category      TEXT    NOT NULL DEFAULT \'\',
+                author        TEXT    NOT NULL DEFAULT \'\',
+                posted_at     TEXT    NOT NULL,
+                created_at    TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )'
+        );
+
+        $source->exec(
+            'CREATE TABLE updates (
+                uID     INTEGER PRIMARY KEY,
+                fNiq    INTEGER,
+                uTitle  TEXT,
+                uEntry  TEXT,
+                uAdded  TEXT
+            )'
+        );
+
+        $rawBody = 'Update: <b>thrilled</b> to announce <script>alert(1)</script> a relaunch!';
+
+        $source->prepare(
+            'INSERT INTO updates (fNiq, uTitle, uEntry, uAdded) VALUES (:fniq, :title, :body, :added)'
+        )->execute([
+            'fniq'  => 0,
+            'title' => 'Entry 1',
+            'body'  => $rawBody,
+            'added' => '2026-01-01 12:00:00',
+        ]);
+
+        $result = $this->adapter()->run($source, $target, $this->makeOptions([
+            'import_updates' => '1',
+        ]));
+
+        $updatesRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Updates') {
+                $updatesRow = $row;
+            }
+        }
+        $this->assertNotNull($updatesRow, 'Updates step should have run');
+        $this->assertSame(1, $updatesRow['imported']);
+
+        $stored = $target->query('SELECT body FROM lstr_newsfeed')->fetchColumn();
+        $this->assertSame($rawBody, $stored);
+    }
 }

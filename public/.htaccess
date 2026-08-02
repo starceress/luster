@@ -28,6 +28,46 @@ Options -Indexes -MultiViews
         Header always set X-Frame-Options "SAMEORIGIN"
         Header always set Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
     </If>
+    # Allow the News Feed composer's live preview to load whatever http(s)://
+    # image URL the admin just typed. NewsfeedBodySanitizer accepts both http
+    # and https for src (ValidatorField::httpUrl()'s existing rule) - the CSP
+    # here must allow both too, or a valid http:// image would render for
+    # real once saved but silently fail to load in this preview only. This
+    # only affects whether the admin's own browser can fetch it while
+    # previewing, not what gets saved or rendered on the live public site
+    # (never under this admin-only CSP at all). Mirrors
+    # SecurityHeaders::imgSrcDirective() - keep both in sync.
+    #
+    # Uses %{THE_REQUEST} (the original raw request line), not %{REQUEST_URI} -
+    # by the time this <If> evaluates, REQUEST_URI has already been rewritten
+    # by the RewriteRule below to the internal target (admin.php), so matching
+    # against it here never fires. THE_REQUEST still holds the original path.
+    #
+    # The (?=[?\s]|$) lookahead after the alternation is required - without
+    # it, "\d+/add" and "entry/\d+/edit" match as a *prefix* of a longer path
+    # segment (confirmed matching /admin/newsfeed/1/additional,
+    # /admin/newsfeed/entry/1/edit-old, and /admin/newsfeed/collective/additional,
+    # none of which are real routes), since nothing anchors the alternatives
+    # to the end of that path segment. The lookahead requires whatever
+    # follows to be a literal "?" (query string), whitespace (THE_REQUEST's
+    # trailing " HTTP/1.1"), or end of string (REQUEST_URI with no query
+    # string) - i.e. the path segment must actually end there.
+    #
+    # Both "Header unset" and "Header always unset" are required, in this
+    # order, before the final "Header always set" - verified empirically
+    # (curl against a live request) that PHP's own Content-Security-Policy
+    # header (SecurityHeaders::apply(), sent for non-Apache deployments) is
+    # NOT replaced by a single "Header always set" the way the doc comment
+    # in SecurityHeaders.php used to claim; it lands as a second, separate
+    # header. Per the CSP spec, browsers enforce the intersection of every
+    # delivered policy, so two different img-src values silently collapse to
+    # the stricter one - the relaxation would have no real effect without
+    # both unset lines clearing every prior instance first.
+    <If "%{THE_REQUEST} =~ m#/admin/newsfeed/(collective/add|entry/\d+/edit|\d+/add)(?=[?\s]|$)#">
+        Header unset Content-Security-Policy
+        Header always unset Content-Security-Policy
+        Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    </If>
     # Remove server fingerprinting
     Header unset X-Powered-By
     Header always unset X-Powered-By

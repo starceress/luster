@@ -696,7 +696,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_newsfeed_template', '{newsfeed_date}',       '{newsfeed_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
             <?= $tok('listing_default_newsfeed_template', '{newsfeed_author}',     '{newsfeed_author}',     'The author name. Empty when not set.') ?>
             <?= $tok('listing_default_newsfeed_template', '{newsfeed_categories}', '{newsfeed_categories}', 'Category names, comma-separated. Empty when not set.') ?>
-            <?= $tok('listing_default_newsfeed_template', '{newsfeed_body_html}',  '{newsfeed_body_html}',  'The entry body text, with line breaks converted to HTML.') ?>
+            <?= $tok('listing_default_newsfeed_template', '{newsfeed_body_html}',  '{newsfeed_body_html}',  'The entry body text. Line breaks become <br>, and a small set of formatting tags (bold, links, images, etc.) is allowed — anything else shows as plain text.') ?>
             <?= $tok('listing_default_newsfeed_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the entry has an author set.') ?>
             <?= $tok('listing_default_newsfeed_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the entry has categories set.') ?>
           </tbody></table>

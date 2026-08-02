@@ -194,4 +194,79 @@ final class NewsfeedTemplateRenderTest extends TestCase
         self::assertStringNotContainsString('{/if_', $result);
         self::assertStringNotContainsString('{each_', $result);
     }
+
+    // -----------------------------------------------------------------------
+    // Allowed inline HTML formatting (NewsfeedBodySanitizer integration)
+    // -----------------------------------------------------------------------
+
+    public function testAllowedTagsRenderThroughBodyHtmlToken(): void
+    {
+        $entries = [new NewsfeedEntry(
+            1,
+            null,
+            'Formatting test',
+            'We are <b>thrilled</b> to announce a <a href="https://example.com">new affiliate</a>!',
+            '',
+            'Admin',
+            '2026-01-01',
+            '2026-01-01 00:00:00',
+        )];
+
+        $result = self::render($entries, '{each_newsfeed_entry}{newsfeed_body_html}{/each_newsfeed_entry}');
+
+        self::assertStringContainsString('<b>thrilled</b>', $result);
+        self::assertStringContainsString(
+            '<a href="https://example.com" target="_blank" rel="noopener noreferrer">new affiliate</a>',
+            $result,
+        );
+    }
+
+    public function testTemplateTokenImmunityThroughFullRendererPipeline(): void
+    {
+        // A body containing literal template-syntax-shaped text must render
+        // as inert literal text, never as a live substitution/conditional -
+        // conditionals() runs before loop() in NewsfeedTemplateRenderer, so
+        // the entry body can never influence the surrounding template's own
+        // {if_x}/{each_x} syntax.
+        $entries = [new NewsfeedEntry(
+            1,
+            null,
+            'Injection attempt',
+            'Contains literal {newsfeed_title} and {if_author}text{/if_author} as plain text.',
+            '',
+            '',
+            '2026-01-01',
+            '2026-01-01 00:00:00',
+        )];
+
+        $result = self::render(
+            $entries,
+            '{each_newsfeed_entry}{if_author}SHOULD_NOT_APPEAR{/if_author}{newsfeed_body_html}{/each_newsfeed_entry}',
+        );
+
+        self::assertStringNotContainsString('SHOULD_NOT_APPEAR', $result);
+        self::assertStringContainsString('{newsfeed_title}', $result);
+        self::assertStringContainsString('{if_author}text{/if_author}', $result);
+    }
+
+    public function testLegacyContentWithRawScriptBodyIsNeutralized(): void
+    {
+        // Simulates a row that existed before this feature shipped, or was
+        // written by one of the importers that bypass the admin controller -
+        // both cases pass raw, never-sanitized text straight into NewsfeedEntry.
+        $entries = [new NewsfeedEntry(
+            1,
+            null,
+            'Legacy row',
+            '<script>alert(document.cookie)</script>',
+            '',
+            '',
+            '2026-01-01',
+            '2026-01-01 00:00:00',
+        )];
+
+        $result = self::render($entries, '{each_newsfeed_entry}{newsfeed_body_html}{/each_newsfeed_entry}');
+
+        self::assertStringNotContainsString('<script>', $result);
+    }
 }

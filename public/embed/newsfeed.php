@@ -14,11 +14,11 @@ declare(strict_types=1);
 use Luster\Addons\Newsfeed\NewsfeedRepo;
 use Luster\Core\Pagination;
 use Luster\Core\TemplateEngine;
-use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingTemplateResolver;
+use Luster\Support\NewsfeedBodySanitizer;
 
 // ---------------------------------------------------------------------------
 // 1. Bootstrap Luster
@@ -169,7 +169,7 @@ if ($_lusterNewsfeedTemplate !== null) {
                     'newsfeed_categories' => implode(', ', $entry->categories()),
                 ],
                 [
-                    'newsfeed_body_html' => nl2br(View::e($entry->body)),
+                    'newsfeed_body_html' => NewsfeedBodySanitizer::toDisplayHtml($entry->body),
                 ],
                 [
                     'author'     => ($entry->author ?? '') !== '',

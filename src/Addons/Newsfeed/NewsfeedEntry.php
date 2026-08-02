@@ -22,6 +22,7 @@ final class NewsfeedEntry
         public readonly int     $id,
         public readonly ?int    $fanlistingId,
         public readonly string  $title,
+        /** Raw, unsanitized text — always pass through NewsfeedBodySanitizer::toDisplayHtml() before output, never echoed directly. */
         public readonly string  $body,
         public readonly string  $category,
         public readonly string  $author,
