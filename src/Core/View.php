@@ -281,6 +281,8 @@ final class View
      */
     public static function serveCss(): void
     {
+        self::discardBufferedOutput();
+
         $path = dirname(__DIR__, 2) . '/public/assets/css/default/style.css';
         if (!is_file($path)) {
             http_response_code(404);
@@ -323,6 +325,8 @@ final class View
      */
     public static function serveUploadedImage(string $relativePath): void
     {
+        self::discardBufferedOutput();
+
         $subdirs = ['listings', 'affiliates', 'joined', 'codes', 'wishlist'];
 
         if (!preg_match('#^(' . implode('|', $subdirs) . ')/([A-Za-z0-9_.-]+)$#', $relativePath, $m)) {
@@ -397,6 +401,27 @@ final class View
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    /**
+     * Discards any output already buffered on the host page before this
+     * point, at every buffering level. The embed-setup guard snippet is
+     * documented to be the very first thing in the host page's shared
+     * header file, but in practice site owners often put a comment block,
+     * a doctype, or stray whitespace above it — any of which gets flushed
+     * ahead of the CSS/image bytes serveCss()/serveUploadedImage() are
+     * about to emit, corrupting the response (a valid PNG/CSS file with
+     * unrelated bytes prepended to it fails to render, even though the
+     * Content-Type header below is otherwise correct). Clearing the buffer
+     * here means a stray header comment above the guard line degrades to a
+     * harmless no-op instead of silently breaking every embed image and
+     * the embed stylesheet.
+     */
+    private static function discardBufferedOutput(): void
+    {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+    }
 
     /**
      * Output-buffers a PHP template file after extract()ing $data (merged with shared vars).
