@@ -42,8 +42,12 @@ $flTabUrl = static function (string $t) use ($b, $search, $filter_network, $filt
 };
 
 $sizeMap   = ['small' => '50px', 'medium' => '100px', 'large' => '150px'];
-$sizeKey   = (string) ($cfg['image_preview_size'] ?? 'medium');
-$imgHeight = $sizeMap[$sizeKey] ?? '100px';
+// Missing key (fresh installs, or any install predating this setting) must fall
+// back to 'small' - the size these thumbnails were hardcoded to before this
+// setting existed. Defaulting to 'medium' here would silently grow existing
+// installs' thumbnails the moment they upgrade, before anyone touches the setting.
+$sizeKey   = (string) ($cfg['image_preview_size'] ?? 'small');
+$imgHeight = $sizeMap[$sizeKey] ?? '50px';
 
 $dataTfl    = json_encode($tfl_cats    ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 $dataTafl   = json_encode($tafl_cats   ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
@@ -344,7 +348,7 @@ $_flTabCounts = $tab_counts ?? [];
             <?php $flImg = $images[$fl->id] ?? ''; ?>
             <?php if ($flImg !== ''): ?>
               <img src="<?= $b ?>/uploads/listings/<?= View::e($flImg) ?>"
-                   alt="" style="max-width:50px;max-height:50px;display:block">
+                   alt="" style="max-width:<?= $imgHeight ?>;max-height:<?= $imgHeight ?>;display:block">
             <?php endif; ?>
           </td>
 

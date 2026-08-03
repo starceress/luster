@@ -877,7 +877,9 @@ final class GlobalCodesController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * Saves a new sort order for collective codes from a comma-separated ID list.
+     * Saves a new sort order for collective codes. ordered_ids is a JSON-encoded
+     * array of code IDs in the desired order, matching CodesController::reorder() -
+     * both share the same drag-and-drop JS in admin.js.
      */
     public function reorderCollective(Request $request, array $params): Response
     {
@@ -885,9 +887,16 @@ final class GlobalCodesController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $raw        = trim((string) $request->post('ordered_ids', ''));
-        $orderedIds = $raw !== '' ? array_map('intval', explode(',', $raw)) : [];
-        $orderedIds = array_values(array_filter($orderedIds, fn(int $i) => $i > 0));
+        $raw        = (string) $request->post('ordered_ids', '');
+        $orderedIds = [];
+        if ($raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $orderedIds = array_map('intval', $decoded);
+                $orderedIds = array_filter($orderedIds, fn($id) => $id > 0);
+                $orderedIds = array_values($orderedIds);
+            }
+        }
 
         if (!empty($orderedIds)) {
             (new CodesRepo($db))->reorderCollective($orderedIds);

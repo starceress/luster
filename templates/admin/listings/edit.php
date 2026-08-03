@@ -72,8 +72,11 @@ $total_codes                                              ??= 0;
 $uploads_url                                               ??= rtrim($b, '/') . '/uploads/codes';
 
 $sizeMap   = ['small' => '50px', 'medium' => '100px', 'large' => '150px'];
-$sizeKey   = (string) ($cfg['image_preview_size'] ?? 'medium');
-$imgHeight = $sizeMap[$sizeKey] ?? '100px';
+// See templates/admin/listings/index.php for why the missing-key fallback is
+// 'small', not 'medium' - keeps both preview surfaces consistent for installs
+// that have never touched this setting.
+$sizeKey   = (string) ($cfg['image_preview_size'] ?? 'small');
+$imgHeight = $sizeMap[$sizeKey] ?? '50px';
 
 // Resolve display values: prefer $old (re-populates on validation fail) then model
 $oldTitle  = $old['title']  ?? $listing->title;
@@ -506,7 +509,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <div class="img-current-card" id="fl-img-current-card">
               <div class="img-current-preview">
                 <img src="<?= $b ?>/uploads/listings/<?= View::e($current_image) ?>"
-                     alt="<?= View::e($current_image) ?>">
+                     alt="<?= View::e($current_image) ?>" style="max-height:<?= $imgHeight ?>">
               </div>
               <div class="img-current-footer">
                 <span class="img-current-name"><?= View::e($current_image) ?></span>

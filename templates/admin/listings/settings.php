@@ -48,11 +48,25 @@ $_urlFields   = [
     </div>
 
     <div class="card-body">
-      <div class="field-row">
+      <div class="field-row field-row--top">
         <label class="field-label" for="fl-per-page">Listings per page</label>
         <div>
           <input type="number" id="fl-per-page" name="owned_per_page" class="form form--compact" min="5" max="50" value="<?= (int) ($cfg['owned_per_page'] ?? 10) ?>">
           <p class="form-hint">How many listings to show on each admin page. Choose 5&ndash;50.</p>
+        </div>
+      </div>
+      <?php $_previewSize = (string) ($cfg['image_preview_size'] ?? 'small'); ?>
+      <div class="field-row">
+        <label class="field-label" for="fl-image-preview-size">Image preview size</label>
+        <div>
+          <div class="select-wrap select-auto">
+            <select id="fl-image-preview-size" name="image_preview_size">
+              <option value="small"  <?= $_previewSize === 'small'  ? 'selected' : '' ?>>Small</option>
+              <option value="medium" <?= $_previewSize === 'medium' ? 'selected' : '' ?>>Medium</option>
+              <option value="large"  <?= $_previewSize === 'large'  ? 'selected' : '' ?>>Large</option>
+            </select>
+          </div>
+          <p class="form-hint">How tall listing image thumbnails appear on the Owned Listings and Edit Listing pages.</p>
         </div>
       </div>
     </div>

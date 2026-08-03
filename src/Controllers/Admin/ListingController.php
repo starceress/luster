@@ -4026,12 +4026,17 @@ final class ListingController extends AdminController
 
         $perPage = max(5, min(200, (int) $request->post('owned_per_page', 10)));
 
+        $previewSize = (string) $request->post('image_preview_size', 'small');
+        if (!in_array($previewSize, ['small', 'medium', 'large'], true)) {
+            $previewSize = 'small';
+        }
+
         // $updated starts as a copy of the full current config, so any key with
-        // no corresponding field on this form (e.g. image_preview_size, which
-        // has no UI anywhere) is preserved as-is rather than silently reset to
-        // some hardcoded default on every save.
-        $updated                   = $this->app->getConfig()->all();
-        $updated['owned_per_page'] = $perPage;
+        // no corresponding field on this form is preserved as-is rather than
+        // silently reset to some hardcoded default on every save.
+        $updated                       = $this->app->getConfig()->all();
+        $updated['owned_per_page']     = $perPage;
+        $updated['image_preview_size'] = $previewSize;
 
         try {
             $this->writeConfig($updated);

@@ -3549,7 +3549,7 @@ document.addEventListener('click', function (e) {
     var allHandles = Array.from(document.querySelectorAll('.code-drag-handle'));
 
     if (allCards.length > 1) {
-      saveOrdBtn.style.display = '';
+      saveOrdBtn.classList.remove('is-hidden');
 
       var dragSrc = null;
 
