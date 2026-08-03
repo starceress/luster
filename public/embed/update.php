@@ -62,8 +62,13 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
-    $_lusterProto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
+    // Relative, not scheme://host/path - deliberately never trusts the
+    // client-supplied Host header. A relative Location: header and a
+    // relative <form action> both resolve against whatever page the
+    // browser is actually on, so this works identically for every
+    // legitimate embed on any domain without needing to know/validate
+    // the host at all.
+    $_lusterRedirectTo = (string) ($_SERVER['REQUEST_URI'] ?? '/');
 }
 // Strip sign-out param so lstr_embed_return_to is always the clean host page URL
 $_lusterRedirectTo = str_replace(

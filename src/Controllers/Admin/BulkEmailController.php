@@ -39,6 +39,17 @@ use Luster\Repositories\SavedEmailRepo;
  */
 final class BulkEmailController extends AdminController
 {
+    /**
+     * Upper bound on recipients for a single send() call. Mailer::send()
+     * opens a fresh PHPMailer/SMTP connection per recipient (no connection
+     * reuse), so an unbounded loop both risks tripping SMTP-provider rate
+     * limits/reputation controls and can realistically exceed send()'s own
+     * 5-minute set_time_limit() on a slow provider. 500 comfortably fits
+     * within that window even in a worst-case-latency scenario while still
+     * covering realistic collective sizes; send() rejects anything larger
+     * rather than silently truncating the audience or partially sending.
+     */
+    private const MAX_RECIPIENTS = 500;
 
     // -----------------------------------------------------------------------
     // POST /admin/emails/preview
@@ -77,12 +88,14 @@ final class BulkEmailController extends AdminController
         $sample = array_slice(array_keys($recipients), 0, 5, true);
 
         return $this->adminLayout('admin/emails/preview.php', 'Emails', 'emails', [
-            'listing_id'   => $listingId,
+            'listing_id'    => $listingId,
             'listing_title' => $listingName,
-            'subject'      => $subject,
-            'body'         => $body,
-            'total'        => count($recipients),
-            'sample'       => $sample,
+            'subject'       => $subject,
+            'body'          => $body,
+            'total'         => count($recipients),
+            'sample'        => $sample,
+            'over_limit'    => count($recipients) > self::MAX_RECIPIENTS,
+            'max_recipients' => self::MAX_RECIPIENTS,
         ], '', [
             $this->crumb('Emails', $this->adminUrl('/admin/emails')),
             $this->crumb('Bulk Email'),
@@ -114,6 +127,25 @@ final class BulkEmailController extends AdminController
         }
 
         [$recipients, $listingName] = $this->collectRecipients($listingId);
+
+        if (count($recipients) > self::MAX_RECIPIENTS) {
+            $session = $this->app->getSession();
+            $session->set(
+                'lstr_flash_error',
+                sprintf(
+                    'This audience has %d recipients, which is over the %d-recipient limit for a single send. ' .
+                    'Narrow the audience (e.g. pick a specific listing instead of all listings) and try again.',
+                    count($recipients),
+                    self::MAX_RECIPIENTS,
+                ),
+            );
+            $session->set('lstr_flash_old', [
+                'listing_id' => $listingId,
+                'subject'    => $subject,
+                'body'       => $body,
+            ]);
+            return Response::redirect($this->app->getBaseUrl() . '/admin/emails?tab=bulk');
+        }
 
         $config     = $this->app->getConfig();
         $siteName   = (string) $config->get('site_name',    'Luster');

@@ -69,34 +69,50 @@ $_lusterApp->getSession()->start();
 //    agreement is never recorded.
 // ---------------------------------------------------------------------------
 
-$_lusterProto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$_lusterSelfUrl = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
+// Relative, not scheme://host/path - deliberately never trusts the
+// client-supplied Host header. A relative Location: header and a relative
+// <form action> both resolve against whatever page the browser is actually
+// on, so this works identically for every legitimate embed on any domain
+// without needing to know/validate the host at all.
+$_lusterSelfUrl = (string) ($_SERVER['REQUEST_URI'] ?? '/');
 
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
     $_lusterRedirectTo = $_lusterSelfUrl;
-} elseif (!preg_match('#^https?://#i', $_lusterRedirectTo) && !str_starts_with($_lusterRedirectTo, '//')) {
-    // RulesPublicController::agree() requires a full scheme+host URL
-    // (isValidReturnUrl() rejects anything else, falling back to the
-    // listing's own registered URL instead) — so a bare relative override
-    // like the "join.php" shown in samples/listing/rules.php must be
-    // resolved to absolute here, the same way a browser would resolve a
-    // relative href/action against the gate's own current page.
+} elseif (
+    !preg_match('#^https?://#i', $_lusterRedirectTo)
+    && !str_starts_with($_lusterRedirectTo, '//')
+    && !str_starts_with($_lusterRedirectTo, '/')
+) {
+    // Resolve a bare relative override (e.g. the "join.php" shown in
+    // samples/listing/rules.php) against the gate's own current directory -
+    // pure path arithmetic, no host/domain involved, so this never needs
+    // $_SERVER['HTTP_HOST'] at all. An earlier version of this file resolved
+    // the override to a full scheme://host/... URL using the Host header,
+    // reasoning that RulesPublicController::agree()'s isValidReturnUrl()
+    // would reject anything not matching a "real" host and fall back safely
+    // — that reasoning was wrong: isValidReturnUrl() only checks for *a*
+    // non-empty host, not a *legitimate* one (it has to stay that permissive
+    // for its other job of validating a listing's own external URL, which
+    // can legitimately be any domain), so a spoofed Host header passed
+    // straight through. Staying relative here removes the host from the
+    // picture entirely — isValidReturnUrl() now also accepts a root-relative
+    // path directly (see that method), and the browser resolves the final
+    // Location: header against whatever origin it's actually on, exactly
+    // like every other embed in this codebase.
     //
     // Deliberately NOT using PHP's dirname() here: it's a filesystem
     // function that normalizes to DIRECTORY_SEPARATOR, and on Windows
     // dirname('/rules.php') returns '\' (not '/' or ''), which would corrupt
-    // a root-level page's redirect into "http://host\/join.php". This does
-    // the same "directory of a URL path" trim using only '/', so it behaves
-    // the same on every OS Luster runs on.
+    // a root-level page's redirect into "\join.php". This does the same
+    // "directory of a URL path" trim using only '/', so it behaves the same
+    // on every OS Luster runs on.
     $_lusterCurrentPath = (string) (parse_url($_lusterSelfUrl, PHP_URL_PATH) ?: '/');
-    $_lusterOrigin      = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '');
     $_lusterLastSlash   = strrpos($_lusterCurrentPath, '/');
     $_lusterCurrentDir  = $_lusterLastSlash === false ? '' : substr($_lusterCurrentPath, 0, $_lusterLastSlash);
-    $_lusterRedirectTo  = str_starts_with($_lusterRedirectTo, '/')
-        ? $_lusterOrigin . $_lusterRedirectTo
-        : $_lusterOrigin . $_lusterCurrentDir . '/' . $_lusterRedirectTo;
+    $_lusterRedirectTo  = $_lusterCurrentDir . '/' . $_lusterRedirectTo;
 }
+// else: already absolute, protocol-relative, or root-relative - used as-is.
 $_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
 $_lusterMarker = 'rules_gate:' . $_lusterListingId;
 

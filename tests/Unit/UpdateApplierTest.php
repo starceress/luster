@@ -741,4 +741,56 @@ final class UpdateApplierTest extends TestCase
 
         self::assertFalse(is_dir($this->liveDir . '/install'));
     }
+
+    // -----------------------------------------------------------------------
+    // cleanupStale()
+    // -----------------------------------------------------------------------
+
+    public function testCleanupStaleRemovesOldDownloadsAndStagingDirsButKeepsFreshOnes(): void
+    {
+        $cacheDir = $this->liveDir . '/storage/cache';
+        mkdir($cacheDir, 0777, true);
+
+        $staleZip = $cacheDir . '/luster_dl_deadbeef.zip';
+        $freshZip = $cacheDir . '/luster_dl_cafebabe.zip';
+        file_put_contents($staleZip, 'x');
+        file_put_contents($freshZip, 'x');
+        touch($staleZip, time() - 90000);
+        touch($freshZip, time() - 60);
+
+        $staleStaging = $cacheDir . '/luster_update_deadbeef';
+        $freshStaging = $cacheDir . '/luster_update_cafebabe';
+        mkdir($staleStaging, 0777, true);
+        mkdir($freshStaging, 0777, true);
+        file_put_contents($staleStaging . '/marker.txt', 'x');
+        touch($staleStaging, time() - 90000);
+        touch($freshStaging, time() - 60);
+
+        $applier = new UpdateApplier($this->liveDir, SqliteDatabase::make(''));
+        $applier->cleanupStale();
+
+        self::assertFileDoesNotExist($staleZip);
+        self::assertFileExists($freshZip);
+        self::assertDirectoryDoesNotExist($staleStaging);
+        self::assertDirectoryExists($freshStaging);
+    }
+
+    public function testCleanupStaleAlsoSweepsStaleRollbackBackups(): void
+    {
+        // cleanupStale() delegates to BackupService::cleanupStale() too, since
+        // createBackupZip() (rollback backups) writes into the same cache dir
+        // but AdminUpdateController's page load is the only natural sweep
+        // point for update-wizard-created artifacts.
+        $cacheDir = $this->liveDir . '/storage/cache';
+        mkdir($cacheDir, 0777, true);
+
+        $staleBackup = $cacheDir . '/luster_backup_20260101_000000_deadbeef.zip';
+        file_put_contents($staleBackup, 'x');
+        touch($staleBackup, time() - 90000);
+
+        $applier = new UpdateApplier($this->liveDir, SqliteDatabase::make(''));
+        $applier->cleanupStale();
+
+        self::assertFileDoesNotExist($staleBackup);
+    }
 }

@@ -42,6 +42,34 @@ final class ImageMigratorTest extends TestCase
         self::assertNull($migrator->fetchFromUrl('http://192.168.1.20/test.png', 'codes', 'cs_'));
     }
 
+    /**
+     * ensureDir() used to write its own, separate, weaker .htaccess (bare
+     * "\.php$", Apache 2.2-only Deny-from-all syntax) instead of delegating
+     * to UploadDirectoryGuard like the admin upload controllers do — since
+     * neither ever overwrites an existing file, an import that ran first
+     * could permanently shadow the stronger version a later admin upload
+     * would otherwise have written to the same directory. Confirms it now
+     * produces byte-identical content to the top-level public/uploads/.htaccess.
+     */
+    public function testEnsureDirWritesTheSharedStrongHtaccessNotAWeakerCopy(): void
+    {
+        $migrator = new ImageMigrator($this->publicDir);
+        $m = new \ReflectionMethod($migrator, 'ensureDir');
+        $m->setAccessible(true);
+
+        $dir = $m->invoke($migrator, 'codes');
+
+        self::assertDirectoryExists($dir);
+        self::assertFileExists($dir . '/.htaccess');
+
+        $generated = str_replace("\r\n", "\n", (string) file_get_contents($dir . '/.htaccess'));
+        $topLevel  = str_replace("\r\n", "\n", (string) file_get_contents(
+            dirname(__DIR__, 2) . '/public/uploads/.htaccess'
+        ));
+
+        self::assertSame($topLevel, $generated);
+    }
+
     private function deleteDir(string $path): void
     {
         if (!is_dir($path)) {

@@ -23,9 +23,22 @@ Options -Indexes -MultiViews
     # attribute is silently blocked by this policy rather than raising an error,
     # so it's easy to miss in testing. Wire new behavior through admin.js instead.
     Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
-    # Allow the embed preview endpoint to be framed by this same-origin admin panel
-    <If "%{REQUEST_URI} =~ m#/admin/embed-codes/preview#">
+    # Allow the embed preview endpoint to be framed by this same-origin admin
+    # panel. Uses %{THE_REQUEST} (not %{REQUEST_URI}, which is already
+    # rewritten to admin.php by the time this <If> evaluates - see the News
+    # Feed block below for the full explanation) and both "Header unset" +
+    # "Header always unset" before each "Header always set" (see the same
+    # block for why a plain "Header always set" alone doesn't reliably
+    # replace a header SecurityHeaders.php already sent). This block
+    # previously used %{REQUEST_URI} with neither unset form and never
+    # actually took effect - confirmed via curl against a live request
+    # (X-Frame-Options still came back DENY on this route) before this fix.
+    <If "%{THE_REQUEST} =~ m#/admin/embed-codes/preview(?=[?\s]|$)#">
+        Header unset X-Frame-Options
+        Header always unset X-Frame-Options
         Header always set X-Frame-Options "SAMEORIGIN"
+        Header unset Content-Security-Policy
+        Header always unset Content-Security-Policy
         Header always set Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
     </If>
     # Allow the News Feed composer's live preview to load whatever http(s)://

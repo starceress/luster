@@ -314,31 +314,20 @@ final class ImageMigrator
 
     /**
      * Ensures the target upload subdirectory exists with correct permissions
-     * and a protective .htaccess, then returns its absolute path.
+     * and a protective .htaccess, then returns its absolute path. Delegates
+     * to UploadDirectoryGuard, the single shared source of truth also used
+     * by the admin upload controllers (ListingController, JoinedController,
+     * WishlistAdminController) — this method used to write its own,
+     * separate, weaker .htaccess (bare "\.php$", Apache 2.2-only
+     * Deny-from-all syntax, no PHP-engine-off directives), which — since the
+     * admin helper only ever fills a gap and never overwrites an existing
+     * file — could get created here first by an import and then permanently
+     * shadow the stronger version an admin upload would otherwise have
+     * written to the same directory.
      */
     private function ensureDir(string $subDir): string
     {
-        $dir = $this->uploadsBase . '/' . $subDir;
-
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-
-        $htaccess = $dir . '/.htaccess';
-        if (!file_exists($htaccess)) {
-            file_put_contents(
-                $htaccess,
-                "Options -Indexes\n" .
-                "<FilesMatch \"\\.php$\">\n" .
-                "  Deny from all\n" .
-                "</FilesMatch>\n" .
-                "<FilesMatch \"\\.(jpg|jpeg|png|gif|webp)$\">\n" .
-                "  Allow from all\n" .
-                "</FilesMatch>\n"
-            );
-        }
-
-        return $dir;
+        return \Luster\Core\UploadDirectoryGuard::ensure($this->uploadsBase . '/' . $subDir);
     }
 
     /**

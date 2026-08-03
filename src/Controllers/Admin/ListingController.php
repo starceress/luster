@@ -1624,23 +1624,7 @@ final class ListingController extends AdminController
 
     private function ensureUploadDirectory(): string
     {
-        $uploadDir = dirname(__DIR__, 3) . '/public/uploads/listings';
-
-        if (!is_dir($uploadDir)) {
-            if (!mkdir($uploadDir, 0755, true)) {
-                throw new \RuntimeException("Failed to create upload directory: {$uploadDir}");
-            }
-        }
-
-        $htaccess = $uploadDir . '/.htaccess';
-        if (!is_file($htaccess)) {
-            $content = "<FilesMatch \"\\.ph(p[0-9]?|tml)\$\">\n    Deny from all\n</FilesMatch>\n";
-            if (file_put_contents($htaccess, $content) === false) {
-                throw new \RuntimeException("Failed to write .htaccess in {$uploadDir}");
-            }
-        }
-
-        return $uploadDir;
+        return $this->ensureUploadSubdirectory('listings');
     }
 
     // -----------------------------------------------------------------------

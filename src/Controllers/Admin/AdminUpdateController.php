@@ -69,6 +69,7 @@ final class AdminUpdateController extends AdminController
         $session->remove('lstr_flash_error');
 
         $applier = $this->applier();
+        $applier->cleanupStale();
         $stagingDir = (string) $session->get(self::KEY_STAGING, '');
         $downloadPath = (string) $session->get(self::KEY_DOWNLOAD, '');
         $stagingValid = $stagingDir !== '' && $applier->stagingIsValid($stagingDir);

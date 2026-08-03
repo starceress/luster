@@ -257,6 +257,29 @@ final class BackupService
         return $dir;
     }
 
+    /**
+     * Removes backup ZIPs older than 24h left behind in storage/cache/ - e.g.
+     * the admin's browser aborted the download before Response::streamFile()
+     * reached its cleanup unlink(). storage/ is outside the web root and not
+     * reachable over HTTP, but the ZIP includes config/app.php and a full SQL
+     * dump (including lstr_admin_users password hashes), so it shouldn't sit
+     * there indefinitely on shared hosting with other local accounts.
+     */
+    public function cleanupStale(): void
+    {
+        $dir = $this->path('storage/cache');
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $cutoff = time() - 86400;
+        foreach (glob($dir . '/luster_backup_*.zip') ?: [] as $file) {
+            if (filemtime($file) < $cutoff) {
+                @unlink($file);
+            }
+        }
+    }
+
     private function path(string $rel): string
     {
         return rtrim($this->basePath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim($rel, '/\\'));

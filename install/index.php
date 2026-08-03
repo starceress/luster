@@ -23,10 +23,9 @@ define('SENTINEL_PATH', LUSTER_BASE . '/storage/.installed');
 // a Secure cookie is rejected by the browser, silently breaking session state.
 // Mirrors Request::detectHttps() (src/Core/Request.php) — this file is
 // standalone (no autoloader), so the check is duplicated, not reused.
-$_lstr_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
+$_lstr_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
             || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
-            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
-                && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
 
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_secure',   $_lstr_https ? '1' : '0');
@@ -486,13 +485,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     installTables($pdo);
                     installAddons($pdo);
-                    installAdminUser(
-                        $pdo,
-                        (string) ($site['admin_username'] ?? ''),
-                        (string) ($site['admin_email']    ?? ''),
-                        $hash,
-                        (string) ($site['owner_name']     ?? '')
-                    );
+
+                    // Re-check the guard atomically, immediately before the insert,
+                    // to close the TOCTOU window between the earlier guard check
+                    // (necessarily before installTables() — the table may not exist
+                    // yet on a fresh DB) and this insert. A plain transaction with
+                    // SELECT ... FOR UPDATE does NOT work here — verified empirically
+                    // (two real concurrent connections) that InnoDB has nothing to
+                    // lock on a zero-row table, so a second connection's identical
+                    // locked read proceeds immediately instead of blocking, which is
+                    // exactly the case that matters most (the very first admin, before
+                    // either request has inserted). A named advisory lock has no such
+                    // gap: GET_LOCK() blocks a concurrent connection regardless of
+                    // table contents (confirmed the same way — a second connection
+                    // genuinely waits for the first to RELEASE_LOCK()), so only one
+                    // step-4 submission can ever be inside the check-then-insert
+                    // section at a time.
+                    $gotLock = (int) $pdo->query("SELECT GET_LOCK('lstr_install_admin', 10)")->fetchColumn();
+                    if ($gotLock !== 1) {
+                        throw new \RuntimeException(
+                            'Could not acquire the installation lock. Another installation attempt may be ' .
+                            'in progress — please wait a moment and try again.'
+                        );
+                    }
+                    try {
+                        $existingAdmin = $pdo->query('SELECT COUNT(*) FROM lstr_admin_users')->fetchColumn();
+                        if ((int) $existingAdmin > 0) {
+                            throw new \RuntimeException(
+                                'Installation blocked: this database already contains admin accounts. ' .
+                                'Drop the lstr_* tables first, or restore the missing installation files.'
+                            );
+                        }
+                        installAdminUser(
+                            $pdo,
+                            (string) ($site['admin_username'] ?? ''),
+                            (string) ($site['admin_email']    ?? ''),
+                            $hash,
+                            (string) ($site['owner_name']     ?? '')
+                        );
+                    } finally {
+                        $pdo->query("SELECT RELEASE_LOCK('lstr_install_admin')");
+                    }
                     writeConfig(
                         $db,
                         (string) ($site['site_name']   ?? ''),
@@ -1743,10 +1776,9 @@ function renderStep3(string $csrf, array $stored): void
     // correctly (e.g. http://localhost/luster/public, not just http://localhost).
     // Use the same HTTPS check as the session cookie fix above so reverse-proxy
     // and non-standard-port installs get https:// URLs too.
-    $_protocol  = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
+    $_protocol  = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
                 || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
-                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
-                    && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'))
+                || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https')
                 ? 'https' : 'http';
     $_host      = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $_uriPath   = strtok($_SERVER['REQUEST_URI'] ?? '/install/', '?');

@@ -99,4 +99,46 @@ final class BackupServiceTest extends TestCase
         self::assertTrue($this->shouldSkip('public/uploads/foo.png', false));
         self::assertFalse($this->shouldSkip('public/uploads/foo.png', true));
     }
+
+    // --- cleanupStale() -------------------------------------------------------
+
+    public function testCleanupStaleRemovesOldZipsButKeepsFreshOnes(): void
+    {
+        $base = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lstr_backup_cleanup_test_' . uniqid('', true);
+        $cacheDir = $base . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache';
+        mkdir($cacheDir, 0777, true);
+
+        $stale = $cacheDir . DIRECTORY_SEPARATOR . 'luster_backup_20260101_000000_deadbeef.zip';
+        $fresh = $cacheDir . DIRECTORY_SEPARATOR . 'luster_backup_20260102_000000_cafebabe.zip';
+        $unrelated = $cacheDir . DIRECTORY_SEPARATOR . 'luster_dl_deadbeef.zip';
+        file_put_contents($stale, 'x');
+        file_put_contents($fresh, 'x');
+        file_put_contents($unrelated, 'x');
+        touch($stale, time() - 90000); // > 24h old
+        touch($fresh, time() - 60);    // fresh
+
+        try {
+            (new BackupService(SqliteDatabase::make(''), $base))->cleanupStale();
+
+            self::assertFileDoesNotExist($stale);
+            self::assertFileExists($fresh);
+            self::assertFileExists($unrelated, 'cleanupStale() only targets luster_backup_*.zip');
+        } finally {
+            @unlink($fresh);
+            @unlink($unrelated);
+            @rmdir($cacheDir);
+            @rmdir($base . DIRECTORY_SEPARATOR . 'storage');
+            @rmdir($base);
+        }
+    }
+
+    public function testCleanupStaleIsNoOpWhenCacheDirMissing(): void
+    {
+        $base = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lstr_backup_cleanup_test_nodir_' . uniqid('', true);
+
+        // Must not throw / must not create storage/cache just by sweeping.
+        (new BackupService(SqliteDatabase::make(''), $base))->cleanupStale();
+
+        self::assertDirectoryDoesNotExist($base . DIRECTORY_SEPARATOR . 'storage');
+    }
 }

@@ -62,7 +62,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
 
     <!-- ── Connection method ──────────────────────────────────────── -->
     <div class="card-body">
-      <p>Luster can either log into the old database for this import, or read a SQL export file you upload. Login details and uploads are temporary and are cleared after the import finishes.</p>
+      <p>Luster can either log into the old database for this import, or read a SQL export file you upload. Login details and uploads are temporary — they're cleared once the import succeeds, or as soon as you come back to this page.</p>
 
       <div class="import-choice card-body">
         <label class="import-choice-item">

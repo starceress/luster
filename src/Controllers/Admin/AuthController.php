@@ -42,6 +42,17 @@ use Luster\Repositories\SiteSettingsRepo;
  */
 final class AuthController
 {
+    /**
+     * Fixed Argon2id hash with no corresponding real password, verified
+     * against on the "username not found" login path so it costs
+     * approximately the same CPU time as a real password_verify() call on
+     * the "found, wrong password" path — closes the timing side-channel an
+     * attacker could otherwise use to enumerate valid admin usernames
+     * (the error message is already identical for both cases; only the
+     * timing differed).
+     */
+    private const DUMMY_PASSWORD_HASH = '$argon2id$v=19$m=65536,t=4,p=1$VEV6R1pMWmRlNEI1djU5Vg$zGjkDtUJgrb8QVRA6FHV7pw53C6mkNRuK7RFBBuCWYk';
+
     public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
@@ -122,6 +133,9 @@ final class AuthController
         $user = $stmt->fetch();
 
         if ($user === false) {
+            // Dummy verify against a fixed hash, same cost as the real
+            // password_verify() below — see DUMMY_PASSWORD_HASH docblock.
+            password_verify($password, self::DUMMY_PASSWORD_HASH);
             $rateLimit->hitDefault($ip, RateLimit::ACTION_ADMIN_LOGIN);
             $session->set('lstr_flash_error', 'Invalid username or password.');
             $session->set('lstr_flash_username', $username);

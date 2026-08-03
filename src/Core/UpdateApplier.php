@@ -394,6 +394,35 @@ final class UpdateApplier
     }
 
     /**
+     * Removes downloaded update ZIPs, staging directories, and rollback
+     * backup ZIPs older than 24h left behind in storage/cache/ - e.g. the
+     * admin closed the tab mid-wizard after downloading a release but before
+     * applying or discarding it. storage/ is outside the web root and not
+     * reachable over HTTP, but a staged release directory (or a rollback
+     * backup created by createBackupZip(), which includes config/app.php and
+     * a full SQL dump) can otherwise sit there indefinitely.
+     */
+    public function cleanupStale(): void
+    {
+        $dir = $this->cacheDir();
+        $cutoff = time() - 86400;
+
+        foreach (glob($dir . '/luster_dl_*.zip') ?: [] as $file) {
+            if (filemtime($file) < $cutoff) {
+                @unlink($file);
+            }
+        }
+
+        foreach (glob($dir . '/luster_update_*', GLOB_ONLYDIR) ?: [] as $stagingDir) {
+            if (filemtime($stagingDir) < $cutoff) {
+                $this->removeDirectory($stagingDir);
+            }
+        }
+
+        (new BackupService($this->db, $this->basePath, $this->enthTablePrefix))->cleanupStale();
+    }
+
+    /**
      * Deletes a file, but only when it is inside the storage/cache directory.
      * Silently does nothing when the path resolves outside that boundary.
      */

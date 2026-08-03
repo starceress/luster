@@ -56,6 +56,26 @@ final class Request
      * session.cookie_secure during bootstrap, before the front controller
      * constructs a Request.
      *
+     * X-Forwarded-Proto is trusted unconditionally, with no configured
+     * trusted-proxy allowlist gating it. Evaluated and deliberately left
+     * this way: on a directly-internet-facing install (no reverse proxy), a
+     * client sending X-Forwarded-Proto: https on a plain-HTTP request flips
+     * this to true and Secure-flags *that request's own* session cookie —
+     * the browser then silently drops it (Secure cookies aren't set over
+     * plain HTTP), breaking only that one visitor's own session. This cannot
+     * be used to alter another visitor's cookie flags or downgrade someone
+     * else's session security. Gating it behind a trusted-proxy config would
+     * need threading a config value through every call site, including
+     * install/index.php and public/migrate/index.php — both standalone
+     * scripts with no Config/Application instance at all (install hasn't
+     * happened yet; migrate is a no-autoloader runner) — so either they'd
+     * need a second, separately-maintained implementation of the same check
+     * (the exact class of drift that bit install/index.php's HTTPS detection
+     * before it was synced back to match this method), or they'd stay
+     * ungated while every other call site became gated, inconsistent either
+     * way. Not worth that either-way cost for a self-referential-only edge
+     * case with no way to affect another visitor's session.
+     *
      * @param array<string, mixed>|null $server  Defaults to $_SERVER when omitted.
      */
     public static function detectHttps(?array $server = null): bool

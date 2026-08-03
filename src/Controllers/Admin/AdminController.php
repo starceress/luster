@@ -115,6 +115,20 @@ abstract class AdminController
     }
 
     /**
+     * Ensures a subdirectory of public/uploads/ exists with a hardening
+     * .htaccess guard that blocks PHP (and other script) execution.
+     * $subdir is a literal, hardcoded path segment under public/uploads/
+     * (e.g. 'listings', 'joined', 'wishlist') — callers own that value; it
+     * is never derived from request input. Delegates to UploadDirectoryGuard,
+     * the single shared source of truth also used by ImageMigrator (the
+     * import wizard's own image-writing path) — see that class.
+     */
+    protected function ensureUploadSubdirectory(string $subdir): string
+    {
+        return \Luster\Core\UploadDirectoryGuard::ensure(LUSTER_BASE . '/public/uploads/' . $subdir);
+    }
+
+    /**
      * Validates and normalises a raw breadcrumb array, dropping entries with
      * empty labels and trimming whitespace from all strings.
      *

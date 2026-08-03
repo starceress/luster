@@ -43,8 +43,13 @@ $luster_attribution = \Luster\Core\View::attribution();
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
-    $_lusterProto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
+    // Relative, not scheme://host/path - deliberately never trusts the
+    // client-supplied Host header. A relative Location: header and a
+    // relative <form action> both resolve against whatever page the
+    // browser is actually on, so this works identically for every
+    // legitimate embed on any domain without needing to know/validate
+    // the host at all.
+    $_lusterRedirectTo = (string) ($_SERVER['REQUEST_URI'] ?? '/');
 }
 // Strip ?kim_signout from the canonical redirect URL so it doesn't persist
 $_lusterRedirectTo = preg_replace('/([?&])kim_signout=1(&|$)/', '$1', $_lusterRedirectTo);

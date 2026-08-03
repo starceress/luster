@@ -8,8 +8,9 @@
  Fanatically) into Luster. Each step has its own GET/POST route pair: source
  selection, credential entry and connection testing, scope/options configuration,
  dry-run preview with counts and warnings, and the final execution run with a
- downloadable report. Credentials live in the session for the wizard's duration
- and are cleared after the import completes.
+ downloadable report. Credentials live in the session for the wizard's duration:
+ cleared on a successful run() or a fresh visit to the import index, deliberately
+ kept across a failed run() so the wizard can retry without re-entering them.
 */
 
 declare(strict_types=1);
@@ -46,7 +47,10 @@ use ZipArchive;
  * Steps: (1) source selection, (2) connect/upload, (3) scope/options, (4) dry-run
  * preview, (5) run + result. Supported sources: Enthusiast, Listing Admin, FanUpdate,
  * CodeSort, BellaBuffs, and Fanatically. Source credentials are kept only in the
- * session for the wizard's duration and cleared immediately after run() completes.
+ * session for the wizard's duration: cleared on a successful run(), deliberately kept
+ * across a failed run() so the wizard can retry without re-entering them, and cleared
+ * unconditionally by clearImportSession() on any fresh visit to the import index (see
+ * that method, and run()'s own docblock, for the full reasoning).
  * BellaBuffs is special — it has no SQL source; both source and target PDO point at
  * the Luster database, and uploaded flat-file temp copies live in storage/cache/.
  * SQL dump uploads create temporary prefixed tables in the Luster database that are
@@ -161,6 +165,7 @@ final class ImportController extends AdminController
     {
         $this->clearImportSession();
         $this->cleanupStaleZips();
+        $this->cleanupStaleDumpTables();
 
         $visibility = (new SiteSettingsRepo($this->app->getDatabase()))->getMany([
             'import_show_enthusiast',
@@ -754,9 +759,14 @@ final class ImportController extends AdminController
      *
      * Opens the source connection (or uses the Luster PDO for dump/BellaBuffs),
      * calls the adapter's run() method, stores the ImportResult in session, logs
-     * a summary to lstr_activity_log, then clears all import credentials and temp
-     * files. On failure, stores the error as a flash message and redirects back to
-     * the connect step. Dump temp tables are always dropped in the finally block.
+     * a summary to lstr_activity_log, then clears SESSION_CREDS/SESSION_SCOPE/
+     * SESSION_ZIP_PATH. On failure, stores the error as a flash message and
+     * redirects back to the connect step — SESSION_CREDS is deliberately left
+     * in place on failure so the wizard can retry without re-entering
+     * host/user/database/password (clearImportSession(), run on any fresh visit
+     * to the import index, clears it unconditionally; the wizard's own "← Back"
+     * link routes through there, so a deliberate cancel already clears it
+     * immediately). Dump temp tables are always dropped in the finally block.
      */
     public function run(Request $request, array $params): Response
     {
@@ -1303,6 +1313,48 @@ final class ImportController extends AdminController
                 if (filemtime($file) < $cutoff) {
                     @unlink($file);
                 }
+            }
+        }
+    }
+
+    /**
+     * Drops any lstr_tmp_* SQL-dump staging tables older than 24h that were
+     * never cleaned up by a completed/cancelled wizard run (e.g. the admin
+     * closed the tab mid-wizard after uploading a dump). These tables can
+     * contain legacy member emails and password hashes copied verbatim from
+     * the uploaded dump, so they shouldn't linger in the production schema
+     * indefinitely. Age is read from INFORMATION_SCHEMA rather than parsed
+     * out of the table name, since the name itself (lstr_tmp_<16 hex>_...)
+     * carries no timestamp.
+     */
+    private function cleanupStaleDumpTables(): void
+    {
+        $pdo = $this->app->getDatabase()->pdo();
+
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE()
+                 AND TABLE_NAME LIKE 'lstr\\_tmp\\_%'
+                 AND CREATE_TIME < (NOW() - INTERVAL 24 HOUR)"
+            );
+            $stmt->execute();
+            $tableNames = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        } catch (\Throwable) {
+            return;
+        }
+
+        foreach ($tableNames as $tableName) {
+            // Defense in depth: only drop names matching the exact format
+            // this feature ever generates, even though they came from
+            // INFORMATION_SCHEMA rather than user input.
+            if (!is_string($tableName) || !preg_match('/^lstr_tmp_[0-9a-f]{16}_[a-zA-Z0-9_]+$/', $tableName)) {
+                continue;
+            }
+            try {
+                $pdo->exec('DROP TABLE IF EXISTS `' . $tableName . '`');
+            } catch (\PDOException) {
+                // Non-fatal — leave it for the next sweep.
             }
         }
     }

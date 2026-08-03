@@ -57,13 +57,33 @@ final class SecurityHeaders
             return;
         }
 
+        $embedPreview = self::isEmbedCodesPreviewRoute();
+
         header('X-Content-Type-Options: nosniff');
-        header('X-Frame-Options: DENY');
+        header('X-Frame-Options: ' . ($embedPreview ? 'SAMEORIGIN' : 'DENY'));
         header('X-XSS-Protection: 1; mode=block');
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
-        header(
-            "Content-Security-Policy: default-src 'self'; "
+        // Mirrors public/.htaccess's <If "%{HTTPS} == 'on'"> HSTS block - only
+        // sent over HTTPS so HTTP installs (local dev, non-SSL hosting) are
+        // never affected. This class's whole purpose is covering non-Apache
+        // deployments (Nginx, Caddy, PHP-FPM standalone); without this, a
+        // non-Apache install running purely over HTTPS got no HSTS protection
+        // at all, since .htaccess never applies there.
+        if (Request::detectHttps()) {
+            header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+        }
+        header('Content-Security-Policy: ' . ($embedPreview ? self::embedCodesPreviewCsp() : self::defaultCsp()));
+        header_remove('X-Powered-By');
+    }
+
+    /**
+     * The normal, every-page CSP. img-src varies per imgSrcDirective() (News
+     * Feed composer relaxation); everything else is fixed.
+     */
+    private static function defaultCsp(): string
+    {
+        return "default-src 'self'; "
             . "script-src 'self'; "
             . "style-src 'self' 'unsafe-inline'; "
             . self::imgSrcDirective() . "; "
@@ -71,9 +91,43 @@ final class SecurityHeaders
             . "connect-src 'self'; "
             . "frame-ancestors 'none'; "
             . "base-uri 'self'; "
-            . "form-action 'self'"
-        );
-        header_remove('X-Powered-By');
+            . "form-action 'self'";
+    }
+
+    /**
+     * Relaxed CSP for the embed-codes preview page only, allowing same-origin
+     * framing so the admin panel can preview embed codes in an iframe.
+     * script-src/connect-src are omitted (not attacker-relaxed - they simply
+     * fall back to default-src 'self', identical in effect to stating them
+     * explicitly); frame-ancestors is 'self' instead of 'none'. Byte-for-byte
+     * mirrors the <If> block in public/.htaccess — keep both in sync.
+     */
+    private static function embedCodesPreviewCsp(): string
+    {
+        return "default-src 'self'; "
+            . "style-src 'self' 'unsafe-inline'; "
+            . "img-src 'self' data:; "
+            . "font-src 'self' data:; "
+            . "frame-ancestors 'self'; "
+            . "base-uri 'self'; "
+            . "form-action 'self'";
+    }
+
+    /**
+     * Whether this request is for the embed-codes preview page — the one
+     * route that needs same-origin framing (X-Frame-Options: SAMEORIGIN) and
+     * a relaxed frame-ancestors, instead of the default DENY/'none'. Mirrors
+     * the equivalent <If> block in public/.htaccess — keep both in sync. Only
+     * one real route currently exists at this path (no sibling route like
+     * /admin/embed-codes/preview-legacy to accidentally prefix-match), but
+     * the (?=[?\s]|$) boundary is included anyway for the same reason
+     * imgSrcDirective() needs one — see that method's docblock.
+     */
+    private static function isEmbedCodesPreviewRoute(): bool
+    {
+        $uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+
+        return preg_match('#/admin/embed-codes/preview(?=[?\s]|$)#', $uri) === 1;
     }
 
     /**

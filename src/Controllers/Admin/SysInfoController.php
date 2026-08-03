@@ -54,7 +54,9 @@ final class SysInfoController
 
         try {
             $enthPrefix = (string) $this->app->getConfig()->get('enth_table_prefix', '');
-            $backup     = (new BackupService($this->app->getDatabase(), LUSTER_BASE, $enthPrefix))->createZip('complete');
+            $service    = new BackupService($this->app->getDatabase(), LUSTER_BASE, $enthPrefix);
+            $service->cleanupStale();
+            $backup     = $service->createZip('complete');
             return Response::streamFile($backup['path'], $backup['filename'], 'application/zip');
         } catch (\Throwable $e) {
             $session->set('lstr_flash_error', 'Backup failed: ' . $e->getMessage());

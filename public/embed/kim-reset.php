@@ -39,8 +39,13 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
-    $_lusterProto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
+    // Relative, not scheme://host/path - deliberately never trusts the
+    // client-supplied Host header. A relative Location: header and a
+    // relative <form action> both resolve against whatever page the
+    // browser is actually on, so this works identically for every
+    // legitimate embed on any domain without needing to know/validate
+    // the host at all.
+    $_lusterRedirectTo = (string) ($_SERVER['REQUEST_URI'] ?? '/');
 }
 // Strip ?token= from the stored return-to URL so clicking a reset link doesn't
 // store the token-bearing URL as the post-confirm redirect target.

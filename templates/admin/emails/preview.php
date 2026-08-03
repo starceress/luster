@@ -59,6 +59,12 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     <div class="alert alert-error">
       No approved recipients found for this listing. Nothing will be sent.
     </div>
+  <?php elseif (!empty($over_limit)): ?>
+    <div class="alert alert-error">
+      This audience has <?= (int) $total ?> recipients, which is over the <?= (int) $max_recipients ?>-recipient
+      limit for a single send. Narrow the audience (e.g. pick a specific listing instead of all listings)
+      and try again.
+    </div>
   <?php endif; ?>
 
   <details class="summary-preview">
@@ -67,7 +73,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   </details>
 
   <div class="composer-footer">
-    <?php if ($total > 0): ?>
+    <?php if ($total > 0 && empty($over_limit)): ?>
     <form method="POST" action="<?= $b ?>/admin/emails/send" id="send-form">
       <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="listing_id"  value="<?= (int) $listing_id ?>">

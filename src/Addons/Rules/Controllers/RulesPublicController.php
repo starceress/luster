@@ -145,14 +145,33 @@ final class RulesPublicController
     }
 
     /**
-     * Returns true when the URL is a valid absolute HTTP or HTTPS address with a non-empty host.
-     * Used to validate post-agreement redirect targets before following them.
+     * Returns true when $url is either a valid absolute HTTP or HTTPS address
+     * with a non-empty host (needed for e.g. a listing's own registered URL,
+     * which can legitimately be any external domain — this check can't be
+     * tightened to a specific expected host without breaking that case), or
+     * a root-relative path (starts with exactly one "/", not "//" — which is
+     * protocol-relative and can point at a different host). Used to validate
+     * post-agreement redirect targets before following them.
+     *
+     * The root-relative case exists specifically for lstr_embed_return_to:
+     * rules-gate.php resolves a relative $luster_redirect_url override (e.g.
+     * "join.php" from samples/listing/rules.php) to a path only, never a full
+     * scheme+host URL, deliberately not trusting $_SERVER['HTTP_HOST'] to
+     * build one — see that file's own comment for why. Accepting a
+     * root-relative path here is what lets that value pass this check at
+     * all; without it, every relative-override redirect would fall through
+     * to the listing/base-URL fallback below instead.
      */
     private function isValidReturnUrl(string $url): bool
     {
         if ($url === '') {
             return false;
         }
+
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+            return true;
+        }
+
         $parsed = parse_url($url);
         if ($parsed === false) {
             return false;
