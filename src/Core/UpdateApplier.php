@@ -686,7 +686,24 @@ final class UpdateApplier
             return is_writable($target);
         }
 
-        return is_writable(dirname($target));
+        // A plain file's own removal only needs its immediate parent writable,
+        // but deleteObsoleteFiles() also prunes any ancestor directory left
+        // empty afterward (pruneEmptyAncestors()), which needs each of those
+        // ancestors writable too - otherwise a leftover empty directory can
+        // survive the update with no preflight warning beforehand.
+        $base = realpath($this->basePath);
+        $dir  = realpath(dirname($target));
+        if ($base === false || $dir === false) {
+            return is_writable(dirname($target));
+        }
+        while ($this->isInside($dir, $base) && $dir !== $base) {
+            if (!is_writable($dir)) {
+                return false;
+            }
+            $dir = dirname($dir);
+        }
+
+        return true;
     }
 
     /** Returns the total size in bytes of every file inside $dir, or 0 if it doesn't exist. */
