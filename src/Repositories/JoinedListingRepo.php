@@ -73,7 +73,7 @@ final class JoinedListingRepo
 
         $stmt = $this->db->prepare(
             "SELECT * FROM lstr_joined {$whereClause}
-             ORDER BY category ASC, name ASC
+             ORDER BY id DESC
              LIMIT :limit OFFSET :offset"
         );
         if ($filterCat !== '') {
@@ -192,7 +192,7 @@ final class JoinedListingRepo
                 "SELECT * FROM lstr_joined
                  WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4)
                    AND categories_json LIKE :net{$catClause}{$tabClause}
-                 ORDER BY name ASC
+                 ORDER BY id DESC
                  LIMIT :limit OFFSET :offset"
             );
             $stmt->bindValue(':q1',     $pattern,    \PDO::PARAM_STR);
@@ -225,7 +225,7 @@ final class JoinedListingRepo
             $stmt = $this->db->prepare(
                 "SELECT * FROM lstr_joined
                  WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4){$catClause}{$tabClause}
-                 ORDER BY name ASC
+                 ORDER BY id DESC
                  LIMIT :limit OFFSET :offset"
             );
             $stmt->bindValue(':q1',     $pattern, \PDO::PARAM_STR);

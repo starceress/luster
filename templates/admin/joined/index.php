@@ -258,7 +258,7 @@ $bulkOptions = match ($statusTab) {
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($joined as $loop => $jf): ?>
+        <?php foreach ($joined as $jf): ?>
         <tr>
           <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $jf->id ?>"
                data-name="<?= View::e($jf->name) ?>"></td>
@@ -270,7 +270,7 @@ $bulkOptions = match ($statusTab) {
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
           </td>
-          <td class="text-dim" data-label=""><?= $loop + 1 ?></td>
+          <td class="text-dim" data-label=""><?= (int) $jf->id ?></td>
           <td data-label="Subject">
             <a href="<?= View::e($jf->url) ?>" target="_blank" rel="noopener noreferrer"
                class="link"><b><?= View::e($jf->name) ?></b></a>
