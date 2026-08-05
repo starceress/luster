@@ -102,7 +102,7 @@ $rangeEnd   = min($total, $page * $per_page);
     <div class="select-wrap">
       <select name="scope" id="aff-scope-sel">
         <?php $_sc = $scope_counts ?? []; $_scTotal = array_sum($_sc); ?>
-        <option value="all" <?= $scope === 'all' ? 'selected' : '' ?>><?= $_scTotal > 0 ? 'All Types (' . $_scTotal . ')' : 'All Types' ?></option>
+        <option value="all" <?= $scope === 'all' ? 'selected' : '' ?>><?= $_scTotal > 0 ? 'All Listings (' . $_scTotal . ')' : 'All Listings' ?></option>
         <?php $_scColl = (int) ($_sc[0] ?? 0); ?>
         <?php $_scCollLabel = ($site_name ?? '') !== '' ? View::e($site_name) . ' (Collective)' : 'Collective'; ?>
         <option value="collective"<?= $scope === 'collective' ? ' selected' : '' ?>><?= $_scCollLabel ?><?= $_scColl > 0 ? ' (' . $_scColl . ')' : '' ?></option>

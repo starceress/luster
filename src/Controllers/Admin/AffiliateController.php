@@ -1037,6 +1037,11 @@ final class AffiliateController extends AdminController
      */
     private function redirectAfterStatusChange(Request $request, string $baseUrl, string $defaultTab): string
     {
+        $returnTo = trim((string) $request->post('_return', ''));
+        if ($returnTo !== '' && str_starts_with($returnTo, $baseUrl . '/admin/affiliates')) {
+            return $returnTo;
+        }
+
         $tab = (new AffiliateRepo($this->app->getDatabase()))->getPendingCount() > 0 ? 'pending' : 'all';
         return $baseUrl . '/admin/affiliates?tab=' . $tab;
     }
