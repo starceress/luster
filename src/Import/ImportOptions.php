@@ -141,9 +141,9 @@ final class ImportOptions
         $zipPath = (string) ($post['_zip_path'] ?? '');
         $enabled = (bool) ($post['import_images'] ?? false);
 
-        // Enthusiast, Listing Admin, and Fanatically always attempt auto migration — images
-        // come from the source DB's own settings/options table, so no user opt-in needed.
-        $alwaysAuto = in_array($source, ['enthusiast', 'listing-admin', 'fanatically'], true);
+        // Enthusiast, Listing Admin, Fanatically, and CodeSort always attempt auto migration —
+        // images come from the source DB's own settings/options table, so no user opt-in needed.
+        $alwaysAuto = in_array($source, ['enthusiast', 'listing-admin', 'fanatically', 'codesort'], true);
 
         // ZIP takes precedence (pre-uploaded); otherwise auto mode (path → URL fallback).
         if ($zipPath !== '') {
