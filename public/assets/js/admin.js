@@ -4832,6 +4832,20 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       }
     });
 
+    // Typing a category and clicking Save (or tabbing away) without pressing
+    // Enter/comma first left it sitting in the text field, never turned into
+    // a chip, and so never synced into the hidden field the form submits -
+    // it looked added but silently vanished. Flush it on blur and again just
+    // before the form submits, so nothing typed is ever lost.
+    function flushPending() {
+      var val = textInput.value.replace(/,+$/, '').trim();
+      if (val) { addChip(val); syncHidden(); }
+      textInput.value = '';
+    }
+    textInput.addEventListener('blur', flushPending);
+    var ownerForm = wrap.closest('form');
+    if (ownerForm) ownerForm.addEventListener('submit', flushPending);
+
     wrap.addEventListener('click', function () { textInput.focus(); });
   });
 }());
