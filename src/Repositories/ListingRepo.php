@@ -81,14 +81,14 @@ final class ListingRepo
     }
 
     /**
-     * Returns every listing ordered by listing number, newest first.
+     * Returns every listing ordered by subject/name.
      *
      * @return Listing[]
      */
     public function getAll(): array
     {
         $stmt = $this->db->prepare(
-            "SELECT * FROM {$this->table} ORDER BY {$this->pkCol} DESC"
+            "SELECT * FROM {$this->table} ORDER BY subject ASC"
         );
         $stmt->execute();
 
@@ -617,8 +617,7 @@ final class ListingRepo
     }
 
     /**
-     * Searches listings by subject or title, returning results ordered by
-     * listing number, newest first.
+     * Searches listings by subject or title, returning results ordered by subject.
      *
      * Used by the admin nav search to find listings by keyword across both name
      * fields regardless of which Enthusiast schema variant is active.
@@ -630,7 +629,7 @@ final class ListingRepo
         $stmt = $this->db->prepare(
             "SELECT * FROM {$this->table}
              WHERE subject LIKE :q OR title LIKE :q2
-             ORDER BY {$this->pkCol} DESC"
+             ORDER BY subject ASC"
         );
         $stmt->execute(['q' => '%' . $query . '%', 'q2' => '%' . $query . '%']);
 

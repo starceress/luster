@@ -279,8 +279,13 @@ final class ListingController extends AdminController
                 $cmp = $a->id <=> $b->id;
                 return $activeDir === 'desc' ? -$cmp : $cmp;
             });
+        } else {
+            // No column header clicked: default the index to newest-listing-first.
+            // This is an admin-index-only default, not a change to ListingRepo's
+            // shared getAll()/search() ordering (those stay subject-ASC for every
+            // other caller, including public embeds).
+            usort($listings, static fn($a, $b): int => $b->id <=> $a->id);
         }
-        // if $activeSort is empty, SQL already sorted by id/name
 
         // Count per status tab across all currently-filtered listings (before tab filter).
         $tabCounts = ['all' => count($listings), 'current' => 0, 'upcoming' => 0, 'pending' => 0, 'closed' => 0, 'adopted_out' => 0];

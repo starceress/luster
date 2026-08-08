@@ -71,10 +71,16 @@ final class JoinedController extends AdminController
         $networkCounts  = $repo->getNetworkCounts();
         $categoryCounts = $repo->getCategoryCountMap(false);
 
+        // No column header clicked: default the index to newest-joined-first at
+        // the SQL level (needed for correct pagination) — an admin-index-only
+        // override, not a change to the repo's own default order, which every
+        // other caller (including the public joined embed) keeps unchanged.
+        $newestFirst = $sort === '';
+
         if ($search !== '' || $filterNetwork !== '') {
-            $result = $repo->search($search, $filterNetwork, $perPage, $page, $filterCat, $statusTab);
+            $result = $repo->search($search, $filterNetwork, $perPage, $page, $filterCat, $statusTab, $newestFirst);
         } else {
-            $result = $repo->getAll($perPage, $page, $filterCat, $statusTab);
+            $result = $repo->getAll($perPage, $page, $filterCat, $statusTab, $newestFirst);
         }
 
         $joined     = $result['items'];

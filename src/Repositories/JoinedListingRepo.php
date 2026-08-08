@@ -39,14 +39,18 @@ final class JoinedListingRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns a paginated page of joined listings, sorted by category then name.
+     * Returns a paginated page of joined listings, sorted by category then name
+     * by default. $newestFirst is an admin-index-only override (sorts by id DESC
+     * instead) — public callers must leave it false so embeds keep their
+     * original category/name order.
      *
      * @return array{items: JoinedListing[], total: int, pages: int}
      */
-    public function getAll(int $perPage = 10, int $page = 1, string $filterCat = '', string $statusTab = 'all'): array
+    public function getAll(int $perPage = 10, int $page = 1, string $filterCat = '', string $statusTab = 'all', bool $newestFirst = false): array
     {
         $offset     = ($page - 1) * $perPage;
         $catPattern = '%"name":"' . $filterCat . '"%';
+        $orderBy    = $newestFirst ? 'id DESC' : 'category ASC, name ASC';
 
         $statusClause = match ($statusTab) {
             'approved'        => "status = 'approved'",
@@ -73,7 +77,7 @@ final class JoinedListingRepo
 
         $stmt = $this->db->prepare(
             "SELECT * FROM lstr_joined {$whereClause}
-             ORDER BY id DESC
+             ORDER BY {$orderBy}
              LIMIT :limit OFFSET :offset"
         );
         if ($filterCat !== '') {
@@ -150,16 +154,19 @@ final class JoinedListingRepo
 
     /**
      * Full-text search across name, url, category, and categories_json,
-     * optionally narrowed to a specific network name.
+     * optionally narrowed to a specific network name. $newestFirst is an
+     * admin-index-only override (sorts by id DESC instead of name ASC) —
+     * public callers must leave it false.
      *
      * @return array{items: JoinedListing[], total: int, pages: int}
      */
-    public function search(string $q, string $network, int $perPage = 10, int $page = 1, string $filterCat = '', string $statusTab = 'all'): array
+    public function search(string $q, string $network, int $perPage = 10, int $page = 1, string $filterCat = '', string $statusTab = 'all', bool $newestFirst = false): array
     {
         $offset     = ($page - 1) * $perPage;
         $pattern    = '%' . $q . '%';
         $catClause  = $filterCat !== '' ? ' AND (category = :cat OR categories_json LIKE :catj)' : '';
         $catPattern = '%"name":"' . $filterCat . '"%';
+        $orderBy    = $newestFirst ? 'id DESC' : 'name ASC';
 
         $tabClause = match ($statusTab) {
             'approved' => " AND status = 'approved'",
@@ -192,7 +199,7 @@ final class JoinedListingRepo
                 "SELECT * FROM lstr_joined
                  WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4)
                    AND categories_json LIKE :net{$catClause}{$tabClause}
-                 ORDER BY id DESC
+                 ORDER BY {$orderBy}
                  LIMIT :limit OFFSET :offset"
             );
             $stmt->bindValue(':q1',     $pattern,    \PDO::PARAM_STR);
@@ -225,7 +232,7 @@ final class JoinedListingRepo
             $stmt = $this->db->prepare(
                 "SELECT * FROM lstr_joined
                  WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4){$catClause}{$tabClause}
-                 ORDER BY id DESC
+                 ORDER BY {$orderBy}
                  LIMIT :limit OFFSET :offset"
             );
             $stmt->bindValue(':q1',     $pattern, \PDO::PARAM_STR);
