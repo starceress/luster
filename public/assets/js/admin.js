@@ -6570,14 +6570,12 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
     panels.forEach(function (panel) {
       if (slug === '') {
         panel.removeAttribute('data-skin');
-        panel.style.setProperty('--brand-primary',      '#ff7eb3');
-        panel.style.setProperty('--ch-brand-primary',  '255 126 179');
-        panel.style.setProperty('--gradient-bar', 'linear-gradient(90deg, #ff7eb3, #78e8d8, #ffd166)');
+        panel.style.setProperty('--brand-primary', '#ff7eb3');
+        panel.style.setProperty('--gradient', '#ff7eb3, #78e8d8, #ffd166');
       } else {
         panel.dataset.skin = slug;
         panel.style.removeProperty('--brand-primary');
-        panel.style.removeProperty('--ch-brand-primary');
-        panel.style.removeProperty('--gradient-bar');
+        panel.style.removeProperty('--gradient');
       }
     });
     var r = card.getBoundingClientRect();
@@ -7057,7 +7055,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
         if (result) {
           result.innerHTML = data.ok
             ? '<span style="color:var(--color-success,#4caf50)">' + esc(data.message) + ' Reloading&hellip;</span>'
-            : '<span style="color:var(--color-danger,#e05)">'     + esc(data.message) + '</span>';
+            : '<span style="color:var(--danger)">'     + esc(data.message) + '</span>';
         }
         if (data.ok) {
           setTimeout(function () { window.location.reload(); }, 800);
@@ -7067,7 +7065,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
       })
       .catch(function () {
         btn.disabled = false;
-        if (result) result.innerHTML = '<span style="color:var(--color-danger,#e05)">Check failed. Please try again.</span>';
+        if (result) result.innerHTML = '<span style="color:var(--danger)">Check failed. Please try again.</span>';
       });
   });
 }());
@@ -7100,12 +7098,12 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
         if (result) {
           result.innerHTML = data.ok
             ? '<span style="color:var(--color-success,#4caf50)">' + esc(data.message) + '</span>'
-            : '<span style="color:var(--color-danger,#e05)">'     + esc(data.message) + '</span>';
+            : '<span style="color:var(--danger)">'     + esc(data.message) + '</span>';
         }
       })
       .catch(function () {
         btn.disabled = false;
-        if (result) result.innerHTML = '<span style="color:var(--color-danger,#e05)">Test failed. Please try again.</span>';
+        if (result) result.innerHTML = '<span style="color:var(--danger)">Test failed. Please try again.</span>';
       });
   });
 }());
@@ -7653,7 +7651,7 @@ document.addEventListener('click', function (e) {
               fetch((copyBtn.dataset.sourceEndpoint || '') + '?from=' + encodeURIComponent(fromId))
                 .then(function (r) { return r.json(); })
                 .then(function (d) {
-                  if (!d.ok) { previewArea.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">' + esc(d.error || 'Error') + '</p>'; return; }
+                  if (!d.ok) { previewArea.innerHTML = '<p class="form-hint" style="color:var(--danger)">' + esc(d.error || 'Error') + '</p>'; return; }
                   previewArea.innerHTML = buildCopyChangesHtml(d.changes, d.listing_subject);
                 });
             }
@@ -7925,7 +7923,7 @@ document.addEventListener('click', function (e) {
     var network = approvedBySel.value;
     if (network !== 'tfl' && network !== 'tafl') {
       lookupResult.style.display = '';
-      lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">Select TFL or TAFL first.</p>';
+      lookupResult.innerHTML = '<p class="form-hint" style="color:var(--danger)">Select TFL or TAFL first.</p>';
       return;
     }
 
@@ -7950,7 +7948,7 @@ document.addEventListener('click', function (e) {
         lookupBtn.textContent = 'Look up';
 
         if (data.error) {
-          lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">' + esc(data.error) + '</p>';
+          lookupResult.innerHTML = '<p class="form-hint" style="color:var(--danger)">' + esc(data.error) + '</p>';
           return;
         }
 
@@ -7990,7 +7988,7 @@ document.addEventListener('click', function (e) {
       .catch(function () {
         lookupBtn.disabled = false;
         lookupBtn.textContent = 'Look up';
-        lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">Request failed. Please try again.</p>';
+        lookupResult.innerHTML = '<p class="form-hint" style="color:var(--danger)">Request failed. Please try again.</p>';
       });
   }
 
@@ -8014,7 +8012,7 @@ document.addEventListener('click', function (e) {
       var network = approvedBySel.value;
       if (network !== 'tfl' && network !== 'tafl') {
         lookupResult.style.display = '';
-        lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">Select TFL or TAFL first.</p>';
+        lookupResult.innerHTML = '<p class="form-hint" style="color:var(--danger)">Select TFL or TAFL first.</p>';
         return;
       }
 
@@ -8038,7 +8036,7 @@ document.addEventListener('click', function (e) {
 
           if (!data.ok) {
             lookupResult.style.display = '';
-            lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">' + esc(data.error || 'Could not clear cache.') + '</p>';
+            lookupResult.innerHTML = '<p class="form-hint" style="color:var(--danger)">' + esc(data.error || 'Could not clear cache.') + '</p>';
             return;
           }
 
@@ -8048,7 +8046,7 @@ document.addEventListener('click', function (e) {
           clearCacheBtn.disabled = false;
           clearCacheBtn.textContent = 'Clear cache';
           lookupResult.style.display = '';
-          lookupResult.innerHTML = '<p class="form-hint" style="color:var(--color-danger)">Request failed. Please try again.</p>';
+          lookupResult.innerHTML = '<p class="form-hint" style="color:var(--danger)">Request failed. Please try again.</p>';
         });
     });
   }
@@ -8099,7 +8097,7 @@ document.addEventListener('click', function (e) {
         btn.textContent = network.toUpperCase();
 
         if (data.error) {
-          resultInner.innerHTML = '<span style="color:var(--color-danger)">' + esc(data.error) + '</span>';
+          resultInner.innerHTML = '<span style="color:var(--danger)">' + esc(data.error) + '</span>';
           return;
         }
 
@@ -8140,7 +8138,7 @@ document.addEventListener('click', function (e) {
       .catch(function () {
         btn.disabled = false;
         btn.textContent = network.toUpperCase();
-        resultInner.innerHTML = '<span style="color:var(--color-danger)">Request failed. Please try again.</span>';
+        resultInner.innerHTML = '<span style="color:var(--danger)">Request failed. Please try again.</span>';
       });
   });
 

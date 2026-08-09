@@ -1076,7 +1076,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <span class="text-mono text-dim"><?= View::e($spd['path']) ?></span>
             </span>
             <?php if (!($spd['probeOk'] ?? true)): ?>
-              <p class="form-hint" style="color:var(--color-error)">
+              <p class="form-hint" style="color:var(--danger)">
                 Luster could not write to any session storage location. Logins will not
                 work until write permissions are fixed on the storage path above or on
                 your server&rsquo;s <code>session.save_path</code>. Contact your host.

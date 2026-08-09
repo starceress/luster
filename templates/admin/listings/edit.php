@@ -1663,7 +1663,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
           <strong>Drag &amp; drop or click to browse</strong>
           <span class="form-hint">Any legacy include file &mdash; PHP, HTML, or plain text, max 256 KB</span>
         </label>
-        <p id="fl-scan-error" style="color:var(--color-danger);display:none"></p>
+        <p id="fl-scan-error" style="color:var(--danger);display:none"></p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-quaternary" id="fl-scan-cancel">Cancel</button>
