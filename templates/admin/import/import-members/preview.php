@@ -34,15 +34,15 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
     <div class="section-label">Summary</div>
 
     <div class="stat-row">
-      <div class="stat-tile">
+      <div class="surface stat-tile">
         <span class="stat-label">Total rows</span>
         <div class="stat-value"><?= number_format($total) ?></div>
       </div>
-      <div class="stat-tile">
+      <div class="surface stat-tile">
         <span class="stat-label">Approved</span>
         <div class="stat-value"><?= number_format($approved) ?></div>
       </div>
-      <div class="stat-tile">
+      <div class="surface stat-tile">
         <span class="stat-label">Pending</span>
         <div class="stat-value"><?= number_format($pending) ?></div>
       </div>

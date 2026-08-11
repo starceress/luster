@@ -29,11 +29,11 @@ $listingName = (string) ($result['listing_title'] ?? '');
 
   <div class="card-body">
     <div class="stat-row">
-      <div class="stat-tile stat-tile--success">
+      <div class="surface stat-tile stat-tile--success">
         <span class="stat-label">Imported</span>
         <div class="stat-value"><?= number_format($imported) ?></div>
       </div>
-      <div class="stat-tile">
+      <div class="surface stat-tile">
         <span class="stat-label">Skipped</span>
         <div class="stat-value"><?= number_format($skipped) ?></div>
         <div class="stat-pills"><span class="badge badge-inactive">Already existed</span></div>

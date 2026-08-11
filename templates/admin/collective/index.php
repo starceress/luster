@@ -214,7 +214,7 @@ foreach (array_keys($quickActions) as $qaKey) {
       <div class="collective-action-grid" id="qa-grid" data-qa-reorder-url="<?= $b ?>/admin/collective/quick-actions/reorder" data-qa-csrf="<?= View::e($csrf_token) ?>">
         <?php foreach ($quickActionsOrder as $qaKey): ?>
           <?php $qa = $quickActions[$qaKey]; ?>
-          <a href="<?= View::e($qa['href']) ?>" class="collective-action-tile<?= !empty($qa['muted']) ? ' is-muted' : '' ?>" data-action-key="<?= View::e($qaKey) ?>" draggable="false">
+          <a href="<?= View::e($qa['href']) ?>" class="surface collective-action-tile<?= !empty($qa['muted']) ? ' is-muted' : '' ?>" data-action-key="<?= View::e($qaKey) ?>" draggable="false">
             <span class="qa-drag-handle" title="Drag to reorder"><?= View::icon('grip') ?></span>
             <span class="panel-header-icon"><?= View::icon($qa['icon']) ?></span>
             <span class="collective-action-label"><?= View::e($qa['label']) ?></span>
@@ -229,27 +229,27 @@ foreach (array_keys($quickActions) as $qaKey) {
     <div class="card" style="margin-top:1rem">
       <div class="card-head">Migration & Bridges</div>
       <div class="collective-action-grid">
-        <a href="<?= $b ?>/admin/import" class="collective-action-tile">
+        <a href="<?= $b ?>/admin/import" class="surface collective-action-tile">
           <span class="panel-header-icon"><?= View::icon('import') ?></span>
           <span class="collective-action-label">Import Data</span>
         </a>
-        <a href="<?= $b ?>/admin/import-members" class="collective-action-tile">
+        <a href="<?= $b ?>/admin/import-members" class="surface collective-action-tile">
           <span class="panel-header-icon"><?= View::icon('importmembers') ?></span>
           <span class="collective-action-label">Import Members</span>
         </a>
-        <a href="<?= $b ?>/admin/compat-bridge/enthusiast" class="collective-action-tile">
+        <a href="<?= $b ?>/admin/compat-bridge/enthusiast" class="surface collective-action-tile">
           <span class="panel-header-icon"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">Enthusiast Bridge</span>
         </a>
-        <a href="<?= $b ?>/admin/compat-bridge/listing-admin" class="collective-action-tile">
+        <a href="<?= $b ?>/admin/compat-bridge/listing-admin" class="surface collective-action-tile">
           <span class="panel-header-icon"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">Listing Admin Bridge</span>
         </a>
-        <a href="<?= $b ?>/admin/compat-bridge/codesort" class="collective-action-tile">
+        <a href="<?= $b ?>/admin/compat-bridge/codesort" class="surface collective-action-tile">
           <span class="panel-header-icon"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">CodeSort Bridge</span>
         </a>
-        <a href="<?= $b ?>/admin/compat-bridge/fanatically" class="collective-action-tile">
+        <a href="<?= $b ?>/admin/compat-bridge/fanatically" class="surface collective-action-tile">
           <span class="panel-header-icon"><?= View::icon('bridge') ?></span>
           <span class="collective-action-label">Fanatically Bridge</span>
         </a>
@@ -261,12 +261,12 @@ foreach (array_keys($quickActions) as $qaKey) {
     <div class="card-head">Manage Collective</div>
     <div class="collective-action-list">
 
-      <a href="<?= $b ?>/admin/collective/snippets" class="collective-action-item">
+      <a href="<?= $b ?>/admin/collective/snippets" class="surface collective-action-item">
         <span class="panel-header-icon"><?= View::icon('embed') ?></span>
         <span class="collective-action-label">Collective Embed Snippets</span>
       </a>
 
-      <a href="<?= $b ?>/admin/affiliates?tab=approved&amp;scope=collective" class="collective-action-item">
+      <a href="<?= $b ?>/admin/affiliates?tab=approved&amp;scope=collective" class="surface collective-action-item">
         <span class="panel-header-icon"><?= View::icon('link') ?></span>
         <span>
           <span class="collective-action-label">Manage Collective Affiliates</span>
@@ -275,7 +275,7 @@ foreach (array_keys($quickActions) as $qaKey) {
         </span>
       </a>
 
-      <a href="<?= $b ?>/admin/codes?collective=1" class="collective-action-item">
+      <a href="<?= $b ?>/admin/codes?collective=1" class="surface collective-action-item">
         <span class="panel-header-icon"><?= View::icon('image') ?></span>
         <span>
           <span class="collective-action-label">Manage Collective Codes</span>
@@ -288,7 +288,7 @@ foreach (array_keys($quickActions) as $qaKey) {
       </a>
 
       <?php if ($hasAdoption): ?>
-      <a href="<?= $b ?>/admin/adoptions" class="collective-action-item">
+      <a href="<?= $b ?>/admin/adoptions" class="surface collective-action-item">
         <span class="panel-header-icon"><?= View::icon('adoptions') ?></span>
         <span>
           <span class="collective-action-label">Adoptions Index</span>
@@ -301,14 +301,14 @@ foreach (array_keys($quickActions) as $qaKey) {
       <?php endif; ?>
 
       <?php if ($hasRules): ?>
-      <a href="<?= $b ?>/admin/rules" class="collective-action-item">
+      <a href="<?= $b ?>/admin/rules" class="surface collective-action-item">
         <span class="panel-header-icon"><?= View::icon('rules') ?></span>
         <span class="collective-action-label">Join Rules Index</span>
       </a>
       <?php endif; ?>
 
       <?php if ($hasKim): ?>
-      <a href="<?= $b ?>/admin/kim" class="collective-action-item">
+      <a href="<?= $b ?>/admin/kim" class="surface collective-action-item">
         <span class="panel-header-icon"><?= View::icon('kim') ?></span>
         <span>
           <span class="collective-action-label">Keep In Mind Index</span>
@@ -321,7 +321,7 @@ foreach (array_keys($quickActions) as $qaKey) {
       <?php endif; ?>
 
       <?php if ($hasNewsfeed): ?>
-      <a href="<?= $b ?>/admin/newsfeed/collective" class="collective-action-item">
+      <a href="<?= $b ?>/admin/newsfeed/collective" class="surface collective-action-item">
         <span class="panel-header-icon"><?= View::icon('updates') ?></span>
         <span>
           <span class="collective-action-label">News Feed</span>
@@ -334,7 +334,7 @@ foreach (array_keys($quickActions) as $qaKey) {
       <?php endif; ?>
 
       <?php if ($hasWishlist): ?>
-      <a href="<?= $b ?>/admin/wishlist" class="collective-action-item">
+      <a href="<?= $b ?>/admin/wishlist" class="surface collective-action-item">
         <span class="panel-header-icon"><?= View::icon('wishlist') ?></span>
         <span>
           <span class="collective-action-label">Wishlist Index</span>

@@ -2384,7 +2384,7 @@ function lstrTodayIso() {
               + '<label class="field-label">' + f.label + '</label>'
               + '<div><div class="ec-token-grid">';
         (f.tokens || []).forEach(function (t) {
-          html += '<label class="ec-token-item">'
+          html += '<label class="surface ec-token-item">'
                 + '<input type="checkbox" class="ec-tok-cb" data-tokfid="' + esc(f.id) + '"'
                 + ' data-tok="' + esc(t.token) + '" data-line="' + esc(t.line) + '"'
                 + (t.checked ? ' checked' : '') + '>'
@@ -2406,7 +2406,7 @@ function lstrTodayIso() {
               + '<label class="field-label">' + f.label + '</label>'
               + '<div><div class="ec-token-grid">';
         (f.vars || []).forEach(function (v) {
-          html += '<label class="ec-token-item">'
+          html += '<label class="surface ec-token-item">'
                 + '<input type="checkbox" class="ec-var-cb" data-varfid="' + esc(f.id) + '"'
                 + ' data-varname="' + esc(v.name) + '" data-varlabel="' + esc(v.label) + '"'
                 + (v.checked ? ' checked' : '') + '>'
@@ -6539,7 +6539,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
     '<div class="sp-body">' +
       '<div class="sp-bar"><div class="sp-bar-title"></div><div class="sp-bar-btn"></div></div>' +
       '<div class="sp-main">' +
-        '<div class="sp-card">' +
+        '<div class="surface sp-card">' +
           '<div class="sp-ch"></div>' +
           '<div class="sp-rows">' +
             '<div class="sp-row"></div>' +

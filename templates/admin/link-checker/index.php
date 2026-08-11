@@ -197,7 +197,7 @@ $sumCell = static function (?array $ms, string $key): string {
 
 <!-- ── FILTER PANEL ────────────────────────────────────────────────────────── -->
 <div class="filter-panel" id="lc-filter-panel">
-  <form method="GET" action="<?= $b ?>/admin/link-checker" id="lc-filter-form" class="filter-row">
+  <form method="GET" action="<?= $b ?>/admin/link-checker" id="lc-filter-form" class="filter-row filter-row--compact">
     <input type="hidden" name="tab" value="members" id="lc-filter-tab">
     <input type="hidden" name="listed_filter" value="<?= View::e($listed_filter) ?>" id="lc-filter-listed">
     <input type="hidden" name="aff_reciprocal_filter" value="<?= View::e($aff_reciprocal_filter) ?>" id="lc-filter-aff-reciprocal">

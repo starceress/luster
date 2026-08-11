@@ -61,14 +61,14 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
     <div class="card-body">
       <p>Luster only reads the BellaBuffs files. It does not edit or delete anything in the old install.</p>
       <div class="import-choice card-body">
-        <label class="import-choice-item">
+        <label class="surface import-choice-item">
           <input type="radio" name="bb_conn_mode" value="path" id="js-bb-mode-path"<?= $bbMode === 'path' ? ' checked' : '' ?>>
           <div>
             <strong>Server folder path</strong>
             <span class="form-hint" style="margin:2px 0 0">Use this when BellaBuffs is on the same server. This supports members, affiliates, fan codes, and button images.</span>
           </div>
         </label>
-        <label class="import-choice-item">
+        <label class="surface import-choice-item">
           <input type="radio" name="bb_conn_mode" value="upload" id="js-bb-mode-upload"<?= $bbMode === 'upload' ? ' checked' : '' ?>>
           <div>
             <strong>Upload files</strong>

@@ -29,7 +29,15 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
 <!-- ──── WELCOME BLOCK ───────────────────────────────────────────────── -->
 <div class="welcome-block">
-  <div>
+  <div class="actions-row welcome-actions">
+    <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">
+      <?= View::icon('add') ?> Add Owned Listing
+    </a>
+    <a href="<?= $b ?>/admin/joined/add" class="btn btn-secondary btn-sm">
+     <?= View::icon('add') ?> Add Joined Listing
+    </a>
+  </div>
+  <div class="welcome-text">
     <div class="welcome-sub" id="live-datetime"></div>
     <div class="welcome-title"><?= View::e($welcome_greeting) ?></div>
     <div class="welcome-sub">
@@ -73,14 +81,6 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       ?>
       <?= $_wSentence ?>
     </div>
-  </div>
-  <div class="actions-row" style="flex-shrink:0;position:relative;z-index:1">
-    <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">
-      <?= View::icon('add') ?> Add Owned Listing
-    </a>
-    <a href="<?= $b ?>/admin/joined/add" class="btn btn-secondary btn-sm">
-     <?= View::icon('add') ?> Add Joined Listing
-    </a>
   </div>
 </div>
 

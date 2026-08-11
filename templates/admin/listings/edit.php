@@ -506,7 +506,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <label class="field-label">Image</label>
           <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
           <div class="img-upload-panel img-upload-panel--two-col">
-            <div class="img-current-card" id="fl-img-current-card">
+            <div class="surface img-current-card" id="fl-img-current-card">
               <div class="img-current-preview">
                 <img src="<?= $b ?>/uploads/listings/<?= View::e($current_image) ?>"
                      alt="<?= View::e($current_image) ?>" style="max-height:<?= $imgHeight ?>">

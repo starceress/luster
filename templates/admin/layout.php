@@ -88,7 +88,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
 <aside class="sidebar">
   <div class="sidebar-dots" aria-hidden="true"></div>
 
-  <div class="sidebar-brand">
+  <div class="sidebar-luster">
     <a href="<?= $b ?>/admin" class="luster-glow">
       <img src="<?= $b ?>/assets/images/logo50.svg" alt="" class="luster-logo">
       <div class="luster-text">
@@ -103,7 +103,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
     <input type="search" id="nav-search-input" class="nav-search-input"
            placeholder="Search&hellip;" autocomplete="off" spellcheck="false" aria-label="Search navigation"
            data-base="<?= $b ?>">
-    <button type="button" class="nav-search-clear" id="nav-search-clear" aria-label="Clear search">&times;</button>
+    <button type="button" class="nav-search-clear" id="nav-search-clear" aria-label="Clear Search">&times;</button>
   </div>
 
   <nav class="sidebar-nav">

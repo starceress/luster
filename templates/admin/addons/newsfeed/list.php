@@ -86,7 +86,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
 
 <!-- ──── FILTER PANEL ────────────────────────────────────────────────── -->
 <div class="filter-panel" id="upd-filter-panel">
-  <form method="GET" action="<?= View::e($listBase) ?>" class="filter-row">
+  <form method="GET" action="<?= View::e($listBase) ?>" class="filter-row filter-row--compact">
 
     <?php if (!empty($known_categories)): ?>
     <div class="select-wrap">

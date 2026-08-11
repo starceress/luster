@@ -117,7 +117,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         <span class="field-label">Image</span>
         <?php if ($isEdit && ($joined->image ?? '') !== ''): ?>
         <div class="img-upload-panel img-upload-panel--two-col">
-          <div class="img-current-card" id="fl-img-current-card">
+          <div class="surface img-current-card" id="fl-img-current-card">
             <div class="img-current-preview">
               <img src="<?= View::e($b . '/uploads/joined/' . $joined->image) ?>" alt="<?= View::e($joined->image) ?>">
             </div>

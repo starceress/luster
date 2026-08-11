@@ -216,7 +216,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
         <span class="field-label">Image</span>
         <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
         <div class="img-upload-panel img-upload-panel--two-col">
-          <div class="img-current-card" id="fl-img-current-card">
+          <div class="surface img-current-card" id="fl-img-current-card">
             <div class="img-current-preview">
               <img src="<?= $b ?>/uploads/affiliates/<?= View::e($affiliate->image) ?>"
                    alt="<?= View::e($affiliate->image) ?>">

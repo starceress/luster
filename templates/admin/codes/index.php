@@ -366,7 +366,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
         <div class="code-grid" data-code-group-grid style="grid-template-columns:repeat(auto-fill,minmax(<?= $gridMin ?>,1fr))">
         <?php foreach ($group['codes'] as $code): ?>
         <?php $_isDonated = $code->submitterName !== null; ?>
-        <div class="code-tile code-card"
+        <div class="surface code-tile code-card"
              data-code-status="<?= View::e($code->status) ?>"
              data-code-id="<?= (int)$code->id ?>">
           <input type="checkbox" form="codes-bulk-form" name="selected[]" value="<?= (int)$code->id ?>" class="code-tile-cb code-check">

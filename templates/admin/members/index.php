@@ -250,8 +250,7 @@ $pendingNewCnt = count($pendingNew);
 </form>
 
 <form id="approve-all-pending-form" method="POST" action="<?= $b ?>/admin/members/<?= $lid ?>/approve-all-pending"
-      class="action-form-inline"
-      data-confirm="Approve all <?= $pendingNewCnt ?> pending member(s)? This will send approval emails.">
+      class="action-form-inline">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 </form>
 
@@ -377,8 +376,7 @@ $pendingNewCnt = count($pendingNew);
 </form>
 
 <form id="approve-all-updates-form" method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
-      class="action-form-inline"
-      data-confirm="Approve all <?= $pendingPUTotal ?> pending update(s)? Changes will be applied immediately.">
+      class="action-form-inline">
   <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="_listing_id" value="<?= $lid ?>">
 </form>
@@ -764,8 +762,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
 </form>
 
 <form id="approve-all-overview-form" method="POST" action="<?= $b ?>/admin/members/approve-all-overview"
-      class="action-form-inline"
-      data-confirm="Approve all pending items across all listings? This will send approval emails.">
+      class="action-form-inline">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 </form>
 
@@ -918,8 +915,7 @@ endif;
 </form>
 
 <form id="approve-all-updates-overview-form" method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
-      class="action-form-inline"
-      data-confirm="Approve all <?= $_totalUpdates ?> pending update(s) across all listings? Changes will be applied immediately.">
+      class="action-form-inline">
   <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="_listing_id" value="0">
 </form>

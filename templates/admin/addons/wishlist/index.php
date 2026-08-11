@@ -136,7 +136,7 @@ $showDragHint = isset($typeTabs[$filter_type])
 
 <!-- ──── FILTER PANEL ────────────────────────────────────────────────── -->
 <div class="filter-panel" id="wl-filter-panel">
-<form method="GET" action="<?= $b ?>/admin/wishlist" id="wl-filter-row" class="filter-row">
+<form method="GET" action="<?= $b ?>/admin/wishlist" id="wl-filter-row" class="filter-row filter-row--compact">
     <?php if ($filter_type !== 'all'): ?>
       <input type="hidden" name="type" value="<?= View::e($filter_type) ?>">
     <?php endif; ?>

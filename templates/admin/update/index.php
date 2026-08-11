@@ -22,8 +22,7 @@ $current = Version::CURRENT;
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="update-flow">
-  <div class="card card--gradient">
+<div class="card card--gradient">
     <div class="panel-header">
       <div class="panel-header-icon"><?= View::icon('updatesparkle') ?></div>
       <div class="panel-header-meta">
@@ -136,7 +135,7 @@ $current = Version::CURRENT;
             <div class="form-details-body">
               <div class="update-check-list">
                 <?php foreach ($preflight as $check): ?>
-                  <div class="update-check-row is-ok">
+                  <div class="surface update-check-row is-ok">
                     <span class="update-check-icon"><?= View::icon('check') ?></span>
                     <span class="update-check-main">
                       <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
@@ -155,7 +154,7 @@ $current = Version::CURRENT;
           ?>
           <div class="update-check-list">
             <?php foreach ($failingChecks as $check): ?>
-              <div class="update-check-row is-blocked">
+              <div class="surface update-check-row is-blocked">
                 <span class="update-check-icon"><?= View::icon('caution') ?></span>
                 <span class="update-check-main">
                   <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
@@ -174,7 +173,7 @@ $current = Version::CURRENT;
               <div class="form-details-body">
                 <div class="update-check-list">
                   <?php foreach ($passingChecks as $check): ?>
-                    <div class="update-check-row is-ok">
+                    <div class="surface update-check-row is-ok">
                       <span class="update-check-icon"><?= View::icon('check') ?></span>
                       <span class="update-check-main">
                         <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
@@ -193,7 +192,7 @@ $current = Version::CURRENT;
       <div class="card-body">
         <div class="section-label">Backup And Apply</div>
         <div class="update-action-grid">
-          <form method="POST" action="<?= $b ?>/admin/update/backup" class="update-action-card">
+          <form method="POST" action="<?= $b ?>/admin/update/backup" class="surface update-action-card">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
             <h3>Download Backup <span class="badge badge-info">Important!</span></h3>
             <span>Includes application files, Luster database tables, and all member tables.</span>
@@ -203,7 +202,7 @@ $current = Version::CURRENT;
             </button>
           </form>
 
-          <div class="update-action-card">
+          <div class="surface update-action-card">
             <form method="POST" action="<?= $b ?>/admin/update/apply">
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
               <h3>Apply Update <span class="badge badge-error">Required</span></h3>
@@ -291,4 +290,3 @@ $current = Version::CURRENT;
       </div>
     <?php endif; ?>
   </div>
-</div>

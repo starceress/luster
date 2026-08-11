@@ -129,7 +129,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <span class="field-label">Image</span>
         <?php if ($isEdit && ($entry->image ?? '') !== ''): ?>
         <div class="img-upload-panel img-upload-panel--two-col">
-          <div class="img-current-card" id="fl-img-current-card">
+          <div class="surface img-current-card" id="fl-img-current-card">
             <div class="img-current-preview">
               <img src="<?= View::e($b . '/uploads/wishlist/' . $entry->image) ?>" alt="<?= View::e($entry->image) ?>">
             </div>

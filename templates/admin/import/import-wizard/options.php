@@ -91,7 +91,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <div class="card-body">
       <div class="section-label">If a record already exists in Luster</div>
       <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
-        <label class="import-choice-item">
+        <label class="surface import-choice-item">
           <input type="radio" name="conflict_strategy" value="skip"
                  <?= $conflictMode === 'skip' ? 'checked' : '' ?>>
           <div>
@@ -99,7 +99,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
             <span class="form-hint" style="margin:2px 0 0">Keep values already in Luster and add records that are missing. Luster may still fill in a few blank linked details, such as a missing image or last-updated date.</span>
           </div>
         </label>
-        <label class="import-choice-item">
+        <label class="surface import-choice-item">
           <input type="radio" name="conflict_strategy" value="overwrite"
                  <?= $conflictMode === 'overwrite' ? 'checked' : '' ?>>
           <div>
@@ -347,7 +347,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
       <div class="field-group">
         <label class="field-label" for="fn_kim_status">KIM List Import Status</label>
         <div style="display:flex;flex-direction:column;gap:8px" style="margin-top:.375rem">
-          <label class="import-choice-item">
+          <label class="surface import-choice-item">
             <input type="radio" name="fn_kim_status" value="active"
                    <?= ($old['fn_kim_status'] ?? 'active') !== 'pending' ? 'checked' : '' ?>>
             <div>
@@ -355,7 +355,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
               <span class="form-hint" style="margin:2px 0 0">KIM entries are imported as active and visible on the public list. Preserves Fanatically&rsquo;s default behavior.</span>
             </div>
           </label>
-          <label class="import-choice-item">
+          <label class="surface import-choice-item">
             <input type="radio" name="fn_kim_status" value="pending"
                    <?= ($old['fn_kim_status'] ?? '') === 'pending' ? 'checked' : '' ?>>
             <div>

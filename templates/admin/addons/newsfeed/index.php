@@ -91,7 +91,7 @@ $collLastDate = $latest_coll !== null
 
 <!-- ──── FILTER PANEL ────────────────────────────────────────────────── -->
 <div class="filter-panel" id="upd-filter-panel">
-  <form method="GET" action="<?= $b ?>/admin/newsfeed" class="filter-row">
+  <form method="GET" action="<?= $b ?>/admin/newsfeed" class="filter-row filter-row--compact">
     <?php if ($sort !== 'id'): ?><input type="hidden" name="sort" value="<?= View::e($sort) ?>"><?php endif; ?>
     <?php if ($dir !== 'asc'): ?><input type="hidden" name="dir"  value="<?= View::e($dir)  ?>"><?php endif; ?>
     <div class="search-field-wrap">

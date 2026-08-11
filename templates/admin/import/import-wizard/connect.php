@@ -65,7 +65,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
       <p>Luster can either log into the old database for this import, or read a SQL export file you upload. Login details and uploads are temporary — they're cleared once the import succeeds, or as soon as you come back to this page.</p>
 
       <div class="import-choice card-body">
-        <label class="import-choice-item">
+        <label class="surface import-choice-item">
           <input type="radio" name="_conn_mode" value="live" id="js-mode-live" checked>
           <div>
             <strong>Live database connection</strong>
@@ -77,7 +77,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
             </span>
           </div>
         </label>
-        <label class="import-choice-item">
+        <label class="surface import-choice-item">
           <input type="radio" name="_conn_mode" value="dump" id="js-mode-dump"<?= $dump_active ? ' checked' : '' ?>>
           <div>
             <strong>Upload SQL dump</strong>

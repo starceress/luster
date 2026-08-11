@@ -305,7 +305,7 @@ $_tabRejected = $_codesBaseUrl !== null
             $_codeLabelForCode  = ($code->name !== null && $code->name !== '') ? $code->name : null;
             $_isDonated         = $_codeDonorForCode !== null || $code->submitterName !== null;
           ?>
-          <div class="code-tile code-card"
+          <div class="surface code-tile code-card"
                data-code-status="<?= View::e($code->status) ?>"
                data-code-id="<?= (int)$code->id ?>">
             <input type="checkbox" form="codes-bulk-form" name="selected[]" value="<?= (int)$code->id ?>" class="code-tile-cb code-check">
