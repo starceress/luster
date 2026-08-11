@@ -92,6 +92,8 @@
   --link-hover-color: #1ba6d8;
   --card-head-sub-color: #d83e8a;
   --section-divider-color: #a6b7e7;
+  --btn-primary-bg: var(--accent);
+  --btn-secondary-bg: var(--accent2);
   --btn-tertiary-bg: #bbc8ee;
   --btn-tertiary-color: #fff;
   --code-color: #1ba6d8;
@@ -153,6 +155,9 @@
   --brand-gradient: linear-gradient(120deg, #fbd30b 0%, #ffe89a 26%, #24cbf7 66%, #1f9fe0 100%);
   --btn-primary-bg: var(--accent);
   --btn-primary-hover-bg: color-mix(in srgb, #ee5e9e 78%, #fff);
+  --btn-secondary-bg: var(--accent2);
+  --btn-tertiary-bg: var(--text-dim);
+  --btn-tertiary-color: var(--bg);
   --sidebar-active-rail: linear-gradient(180deg, #ee5e9e 0%, #d63152 50%, #4a6dd6 100%);
   --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.75), 0 0 32px rgb(238 94 158 / 0.2), 0 0 48px rgb(74 109 214 / 0.12);
   --strong-color: var(--accent);
@@ -235,6 +240,7 @@
   --welcome-blush: radial-gradient(circle at top right, rgba(70, 90, 130, 0.1) 0%, rgba(180, 40, 20, 0.05) 50%, transparent 70%);
   --brand-gradient: linear-gradient(135deg, #ffcb05 0%, #ff6d00 33%, #22cc44 66%, #00a8cc 100%);
   --link-hover-color: #00a8cc;
+  --btn-primary-bg: var(--accent);
   --sidebar-label-color: #e6c900;
   --table-head-bg: #505050;
   --table-head-color: #ffcb05;
@@ -371,6 +377,7 @@
   --brand-gradient: linear-gradient(135deg, #f0f4fa 0%, #e3350d 55%, #4dad5b 100%);
   --btn-primary-bg: #3ea64d;
   --btn-primary-hover-bg: color-mix(in srgb, #3ea64d 80%, #000);
+  --btn-secondary-bg: var(--accent2);
   --btn-tertiary-bg: #2c3a4e;
   --btn-tertiary-color: #8faac6;
   --stat-hover-shadow: 0 16px 56px rgba(0, 0, 0, 0.7), 0 0 32px rgb(227 53 13 / 0.2), 0 0 48px rgb(49 108 217 / 0.1);
@@ -446,6 +453,8 @@
   --brand-gradient: linear-gradient(135deg, #e0a843 20%, #0066ff 50%, #00b368 100%);
   --card-head-sub-color: var(--text-muted);
   --ec-code-bg: #e6f4ea;
+  --btn-primary-bg: var(--accent);
+  --btn-secondary-bg: var(--accent2);
 }
 
 [data-skin="the-force"][data-theme="light"] .sidebar {
@@ -536,6 +545,9 @@
   --card-head-sub-color: #d6cfc1;
   --filter-input-bg: #414752;
   --filter-input-color: var(--text);
+  --btn-secondary-bg: var(--accent2);
+  --btn-tertiary-bg: var(--text-dim);
+  --btn-tertiary-color: var(--bg);
 }
 [data-skin="the-force"][data-theme="dark"] .badge-info2 {
   background:   rgb(196 32 32 / 0.15);
@@ -600,6 +612,7 @@
   --brand-gradient: linear-gradient(135deg, #4cb951 0%, #ff9abc 50%, #fca311 100%);
   --link-hover-color: #2e8b3a;
   --text-muted: #9060b8;
+  --btn-primary-bg: var(--accent);
   --btn-tertiary-bg: #ffbc7f;
   --btn-secondary-bg: #c48add;
   --strong-color: #d6478a;
@@ -694,6 +707,8 @@
   --btn-primary-bg: var(--accent);
   --btn-primary-color: #1a0d00;
   --btn-primary-hover-bg: color-mix(in srgb, #ffbc80 85%, #fff);
+  --btn-tertiary-bg: var(--text-dim);
+  --btn-tertiary-color: var(--bg);
   --stat-hover-shadow: 0 16px 56px rgba(3, 5, 18, 0.8), 0 0 32px rgb(255 188 128 / 0.2), 0 0 48px rgb(111 143 232 / 0.1);
 }
 /* btn-secondary keeps its original orchid pink even though --accent2 moved to amber for the lantern-glow accents */

@@ -48,9 +48,8 @@
   --brand-secondary: #78e8d8;
   --brand-tertiary: #ffd166;
   --brand-quaternary: #60a5fa;
-  --brand-quinary: #ad4cfb;
+  --brand-quinary: #8c2bda;
   --danger: #dc2626;
-  --pending: #f97316;
   --preview: #818cf8;
   --upcoming: #6366f1;
   --brand-muted: #ffaacc;
@@ -81,20 +80,21 @@
   --hairline: rgba(0,0,0,0.05);
   --text: #372c70;
   --text-muted: #64599b;
-  --text-dim: #8878b8;
+  --text-dim: #6a5a96;
   --text-sidebar: #b8b0d8;
-  --accent: #d4006a;
+  --accent: #c00261;
   --accent-glow: rgb(from var(--accent) r g b / 0.1);
-  --accent2: #27b1a5;
+  --accent2: #016f62;
   --accent3: var(--brand-quinary);
   --accent4: #a21caf;
-  --highlight: #0369a1;
-  --success: #27ae60;
+  --highlight: #00669e;
+  --pending: #b83d00;
+  --success: #007313;
   --success-bg: rgb(from var(--success) r g b / 0.08);
-  --danger: #dc2626;
+  --danger: #bb0214;
   --danger-bg: rgb(from var(--danger) r g b / 0.08);
-  --warn: #c9580a;
-  --warn-bg: rgba(201,88,10,0.08);
+  --warn: #b14d09;
+  --warn-bg: rgb(from var(--warn) r g b / 0.08);
   --shadow: 0 4px 24px rgba(0,0,0,0.1);
   --shadow-lg: 0 16px 56px rgba(0,0,0,0.13);
   --glow: 0 0 0 3px rgb(from var(--accent) r g b / 0.1);
@@ -112,9 +112,9 @@
   --welcome-border: var(--border);
   --welcome-blush: radial-gradient(circle at top right, rgb(from var(--brand-primary) r g b / 0.12) 0%, rgb(from var(--brand-secondary) r g b / 0.06) 50%, transparent 70%);
   --brand-gradient: linear-gradient(90deg, #fd4fb0, #19ded9, #e8ac10);
-  --btn-primary-bg: var(--accent);
+  --btn-primary-bg: #de2572;
   --btn-primary-color: #fff;
-  --btn-primary-hover-bg: color-mix(in srgb, var(--accent) 75%, #fff);
+  --btn-primary-hover-bg: color-mix(in srgb, var(--btn-primary-bg) 75%, #fff);
   --sidebar-active-rail: linear-gradient(180deg, var(--gradient));
   --stat-hover-shadow: var(--shadow-lg);
   --nav-hover-bg: rgb(from var(--brand-primary) r g b / 0.09);
@@ -125,10 +125,10 @@
   --link-hover-color: var(--accent3);
   --card-head-sub-color: var(--text-dim);
   --section-divider-color: var(--border);
-  --btn-secondary-bg: var(--accent2);
+  --btn-secondary-bg: #277676;
   --btn-secondary-color: #fff;
-  --btn-tertiary-bg: var(--text-sidebar);
-  --btn-tertiary-color: #fff;
+  --btn-tertiary-bg: #ffd166;
+  --btn-tertiary-color: var(--text);
   --badge-info-bg: rgb(from var(--brand-secondary) r g b / .12);
   --badge-info-color: var(--brand-secondary);
   --badge-info-border: rgb(from var(--brand-secondary) r g b / .25);
@@ -160,14 +160,15 @@
   --hairline: rgba(255,255,255,0.04);
   --text: #e7deff;
   --text-muted: #9587c4;
-  --text-dim: #675e8b;
+  --text-dim: #8c81b1;
   --text-sidebar: #b8b0d8;
   --accent: #8fdcff;
   --accent-glow: rgb(from var(--accent) r g b / 0.15);
-  --accent2: #b34774;
+  --accent2: #d66691;
   --accent3: var(--brand-tertiary);
   --accent4: #f0abfc;
   --highlight: #7dd3fc;
+  --pending: #f97316;
   --success: #2ecc71;
   --success-bg: rgb(from var(--success) r g b / 0.1);
   --danger: #f87171;
@@ -190,9 +191,9 @@
   --welcome-border: var(--border);
   --welcome-blush: radial-gradient(circle at top right, rgb(from var(--brand-primary) r g b / 0.12) 0%, rgb(from var(--brand-secondary) r g b / 0.06) 50%, transparent 70%);
   --brand-gradient: linear-gradient(90deg, var(--gradient));
-  --btn-primary-bg: #60a5fa;
+  --btn-primary-bg: #076de9;
   --btn-primary-color: #fff;
-  --btn-primary-hover-bg: color-mix(in srgb, #60a5fa 75%, #fff);
+  --btn-primary-hover-bg: color-mix(in srgb, var(--btn-primary-bg) 75%, #fff);
   --sidebar-active-rail: linear-gradient(180deg, var(--gradient));
   --stat-hover-shadow: var(--shadow-lg);
   --nav-hover-bg: rgb(from var(--brand-primary) r g b / 0.09);
@@ -203,10 +204,10 @@
   --link-hover-color: var(--accent3);
   --card-head-sub-color: var(--text-dim);
   --section-divider-color: var(--border);
-  --btn-secondary-bg: var(--accent2);
+  --btn-secondary-bg: #de2572;
   --btn-secondary-color: #fff;
-  --btn-tertiary-bg: var(--text-dim);
-  --btn-tertiary-color: #fff;
+  --btn-tertiary-bg: #ffd166;
+  --btn-tertiary-color: var(--bg);
   --badge-info-bg: rgb(from var(--brand-secondary) r g b / .12);
   --badge-info-color: var(--brand-secondary);
   --badge-info-border: rgb(from var(--brand-secondary) r g b / .25);
@@ -223,4 +224,11 @@
   --scrollbar-thumb: rgb(from var(--brand-primary) r g b / .2);
   --scrollbar-thumb-hover: rgb(from var(--brand-primary) r g b / .45);
   --scrollbar-arrow: rgb(from var(--brand-primary) r g b / .5);
+}
+
+/* The sidebar stays dark regardless of the active theme, so it needs the
+   original bright --pending even under [data-theme="light"], where the
+   main-content --pending is darkened for WCAG contrast on light backgrounds. */
+.sidebar {
+  --pending: #f97316;
 }
