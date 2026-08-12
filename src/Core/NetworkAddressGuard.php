@@ -39,6 +39,29 @@ final class NetworkAddressGuard
     }
 
     /**
+     * Builds a single CURLOPT_RESOLVE entry from all of a host's resolved IPs,
+     * IPv4 addresses first.
+     *
+     * Adding one array entry per IP for the same host:port (the naive approach)
+     * is wrong: curl's resolve cache is keyed by host:port, so a second entry
+     * for the same key silently overwrites the first rather than adding a
+     * fallback candidate — only the last IP added ever gets used. For a
+     * dual-stack host that pins the connection to whichever address family
+     * happened to be resolved last, which breaks outright on any network
+     * without working outbound IPv6 (common on shared hosting) even though
+     * the IPv4 address would have worked fine. A single comma-separated
+     * entry instead lets curl try every listed address in order.
+     *
+     * @param list<string> $ips
+     */
+    public static function buildCurlResolveEntry(string $host, int $port, array $ips): string
+    {
+        usort($ips, static fn(string $a, string $b): int => str_contains($a, ':') <=> str_contains($b, ':'));
+
+        return $host . ':' . $port . ':' . implode(',', $ips);
+    }
+
+    /**
      * Validates a host and returns the resolved public IPs.
      *
      * @return array{error: ?string, ips: list<string>}

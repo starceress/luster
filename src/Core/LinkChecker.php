@@ -34,6 +34,15 @@ final class LinkChecker
     /** Common sub-paths tried after a 'missing' reciprocal result (Step 4.2). */
     private const RECIPROCAL_SUB_PATHS = ['/fanlistings/', '/affiliates/', '/links/'];
 
+    /** Anchor-text keywords used to discover a reciprocal-link page when none
+     *  of RECIPROCAL_SUB_PATHS match the site's own naming convention. */
+    private const RECIPROCAL_LINK_KEYWORDS = [
+        'affiliate', 'fanlisting', 'fan listing', 'joined', 'linkback', 'link back', 'links',
+    ];
+
+    /** Anchor-text keywords used to discover a members-page link (Step 4.3). */
+    private const MEMBERS_LINK_KEYWORDS = ['member', 'fan list', 'fans', 'fan-list', 'join', 'listed'];
+
     /** Common member-list path candidates tried during owner-listed discovery (Step 4.3). */
     private const MEMBER_PATH_CANDIDATES = [
         '/members/', '/members.php', '/fans/', '/fans.php',
@@ -138,9 +147,13 @@ final class LinkChecker
 
     /**
      * Like checkReciprocal() but, on a 'missing' result, tries up to three
-     * common sub-paths on the same origin (/fanlistings/, /affiliates/, /links/)
-     * before giving up. Cross-origin redirect targets of $affiliateUrl are not
-     * tried for sub-paths (the sub-paths are always on the original host).
+     * common sub-paths on the same origin (/fanlistings/, /affiliates/, /links/),
+     * then — if still missing — discovers a reciprocal-link page from the
+     * homepage's own navigation by anchor-text keyword (RECIPROCAL_LINK_KEYWORDS),
+     * the same technique checkOwnerListed() uses for member pages. This covers
+     * sites whose own naming convention (e.g. "joined.php") doesn't match any
+     * of the fixed sub-paths. Cross-origin redirect targets of $affiliateUrl are
+     * not tried for sub-paths (the sub-paths are always on the original host).
      *
      * Returns 'found', 'missing', or 'unchecked' (same contract as checkReciprocal).
      */
@@ -170,6 +183,16 @@ final class LinkChecker
         foreach (self::RECIPROCAL_SUB_PATHS as $path) {
             $candidate = $scheme . '://' . $host . $path;
             if (self::checkReciprocal($candidate, $ownerUrl) === 'found') {
+                return 'found';
+            }
+        }
+
+        // Sub-paths exhausted; try discovering a fanlisting/affiliates/joined-style
+        // link from the homepage's own navigation instead of guessing more paths.
+        $homepageBody = self::safeGet($affiliateUrl);
+        if ($homepageBody !== null) {
+            $discovered = self::discoverLinkByKeywords($homepageBody, $affiliateUrl, self::RECIPROCAL_LINK_KEYWORDS);
+            if ($discovered !== null && self::checkReciprocal($discovered, $ownerUrl) === 'found') {
                 return 'found';
             }
         }
@@ -284,17 +307,32 @@ final class LinkChecker
     // -----------------------------------------------------------------------
 
     /**
-     * Scans $html (already fetched) for a hyperlink whose anchor text or href
-     * suggests it leads to a members / fans list page. Returns the absolute URL
-     * of the best candidate, or null if none found.
+     * Scans $html (already fetched) for a hyperlink whose anchor text suggests
+     * it leads to a members / fans list page. Returns the absolute URL of the
+     * best candidate, or null if none found.
      */
     private static function discoverMembersLink(string $html, string $baseUrl): ?string
+    {
+        return self::discoverLinkByKeywords($html, $baseUrl, self::MEMBERS_LINK_KEYWORDS);
+    }
+
+    /**
+     * Scans $html (already fetched) for a hyperlink whose anchor text matches
+     * one of $keywords (case-insensitive substring match) and resolves to the
+     * same host as $baseUrl. Returns the absolute URL of the first match, or
+     * null if none found. Shared by member-page discovery (checkOwnerListed)
+     * and reciprocal-link discovery (checkReciprocalDeep) — same technique,
+     * different keyword sets, since guessing a fixed list of common sub-paths
+     * doesn't cover every site's own naming convention (e.g. "joined.php").
+     *
+     * @param string[] $keywords
+     */
+    private static function discoverLinkByKeywords(string $html, string $baseUrl, array $keywords): ?string
     {
         // Matches <a href="..."> with anchor text like "members", "fans", "fan list", etc.
         $pattern = '/<a\s[^>]*href=["\']([^"\']+)["\'][^>]*>([^<]{1,60})<\/a>/i';
         preg_match_all($pattern, $html, $matches, PREG_SET_ORDER);
 
-        $keywords = ['member', 'fan list', 'fans', 'fan-list', 'join', 'listed'];
         foreach ($matches as $m) {
             $anchor = strtolower(trim($m[2]));
             foreach ($keywords as $kw) {
@@ -445,12 +483,8 @@ final class LinkChecker
             },
         ]);
 
-        $port    = parse_url($url, PHP_URL_PORT) ?: (parse_url($url, PHP_URL_SCHEME) === 'https' ? 443 : 80);
-        $resolve = [];
-        foreach ($result['ips'] as $ip) {
-            $resolve[] = $host . ':' . $port . ':' . $ip;
-        }
-        curl_setopt($ch, CURLOPT_RESOLVE, $resolve);
+        $port = (int) (parse_url($url, PHP_URL_PORT) ?: (parse_url($url, PHP_URL_SCHEME) === 'https' ? 443 : 80));
+        curl_setopt($ch, CURLOPT_RESOLVE, [NetworkAddressGuard::buildCurlResolveEntry($host, $port, $result['ips'])]);
 
         curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);

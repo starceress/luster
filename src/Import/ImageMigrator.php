@@ -152,12 +152,8 @@ final class ImageMigrator
             },
         ]);
 
-        $port    = ($parts['port'] ?? null) ?: ($scheme === 'https' ? 443 : 80);
-        $resolve = [];
-        foreach ($guardResult['ips'] as $ip) {
-            $resolve[] = $host . ':' . $port . ':' . $ip;
-        }
-        curl_setopt($ch, CURLOPT_RESOLVE, $resolve);
+        $port = (int) (($parts['port'] ?? null) ?: ($scheme === 'https' ? 443 : 80));
+        curl_setopt($ch, CURLOPT_RESOLVE, [NetworkAddressGuard::buildCurlResolveEntry($host, $port, $guardResult['ips'])]);
 
         curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
