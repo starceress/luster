@@ -540,7 +540,7 @@ dialog.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
 
 .toast-msg { font-size: var(--fs-base); line-height: 1.5; }
 
-.toast-close { flex-shrink: 0; background: none; border: none; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 .1rem; border-radius: 4px; opacity: .5; transition: opacity .15s; margin-top: -1px; }
+.toast-close { flex-shrink: 0; background: none; border: none; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 .1rem; border-radius: 4px; color: var(--toast-c2); opacity: .75; transition: opacity .15s; margin-top: -1px; }
 
 .toast-close:hover { opacity: 1; }
 
@@ -556,15 +556,15 @@ dialog.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
 
 .toast-error .toast-progress { background: linear-gradient(90deg, var(--danger), color-mix(in srgb, var(--danger) 60%, white)); }
 
-.toast-success { --toast-c: var(--success); --toast-c2: color-mix(in srgb, var(--success) 40%, white); background: var(--success-bg); border-color: rgb(from var(--success) r g b / .45); border-left-color: var(--success); box-shadow: 0 4px 24px rgb(from var(--success) r g b / .12), var(--shadow-lg); }
+.toast-success { --toast-c: var(--success); --toast-c2: color-mix(in srgb, var(--success) 40%, white); background: color-mix(in srgb, var(--success) 25%, var(--bg-card)); border-color: rgb(from var(--success) r g b / .45); border-left-color: var(--success); box-shadow: 0 4px 24px rgb(from var(--success) r g b / .12), var(--shadow-lg); }
 
 .toast-success .toast-title { color: color-mix(in srgb, var(--success) 60%, white); }
 
-.toast-warning { --toast-c: var(--warn); --toast-c2: color-mix(in srgb, var(--warn) 40%, white); background: var(--warn-bg); border-color: rgb(from var(--warn) r g b / .45); border-left-color: var(--warn); box-shadow: 0 4px 24px rgb(from var(--warn) r g b / .12), var(--shadow-lg); }
+.toast-warning { --toast-c: var(--warn); --toast-c2: color-mix(in srgb, var(--warn) 40%, white); background: color-mix(in srgb, var(--warn) 25%, var(--bg-card)); border-color: rgb(from var(--warn) r g b / .45); border-left-color: var(--warn); box-shadow: 0 4px 24px rgb(from var(--warn) r g b / .12), var(--shadow-lg); }
 
 .toast-warning .toast-title { color: color-mix(in srgb, var(--warn) 60%, white); }
 
-.toast-error { --toast-c: var(--danger); --toast-c2: color-mix(in srgb, var(--danger) 40%, white); background: var(--danger-bg); border-color: rgb(from var(--danger) r g b / .45); border-left-color: var(--danger); box-shadow: 0 4px 24px rgb(from var(--danger) r g b / .12), var(--shadow-lg); }
+.toast-error { --toast-c: var(--danger); --toast-c2: color-mix(in srgb, var(--danger) 40%, white); background: color-mix(in srgb, var(--danger) 25%, var(--bg-card)); border-color: rgb(from var(--danger) r g b / .45); border-left-color: var(--danger); box-shadow: 0 4px 24px rgb(from var(--danger) r g b / .12), var(--shadow-lg); }
 
 .toast-error .toast-title { color: color-mix(in srgb, var(--danger) 60%, white); }
 
@@ -574,15 +574,15 @@ dialog.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
 
 @keyframes toastDrain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
-[data-theme="light"] .toast-success { --toast-c2: color-mix(in srgb, var(--success) 70%, black); border-color: rgb(from var(--success) r g b / .35); box-shadow: 0 4px 20px rgb(from var(--success) r g b / .1), 0 1px 4px rgba(0,0,0,.06); }
+[data-theme="light"] .toast-success { --toast-c2: color-mix(in srgb, var(--success) 70%, black); background: color-mix(in srgb, var(--success) 14%, var(--bg-card)); border-color: rgb(from var(--success) r g b / .35); box-shadow: 0 4px 20px rgb(from var(--success) r g b / .1), 0 1px 4px rgba(0,0,0,.06); }
 
 [data-theme="light"] .toast-success .toast-title { color: color-mix(in srgb, var(--success) 55%, black); }
 
-[data-theme="light"] .toast-warning { --toast-c2: color-mix(in srgb, var(--warn) 70%, black); border-color: rgb(from var(--warn) r g b / .3); box-shadow: 0 4px 20px rgb(from var(--warn) r g b / .1), 0 1px 4px rgba(0,0,0,.06); }
+[data-theme="light"] .toast-warning { --toast-c2: color-mix(in srgb, var(--warn) 70%, black); background: color-mix(in srgb, var(--warn) 14%, var(--bg-card)); border-color: rgb(from var(--warn) r g b / .3); box-shadow: 0 4px 20px rgb(from var(--warn) r g b / .1), 0 1px 4px rgba(0,0,0,.06); }
 
 [data-theme="light"] .toast-warning .toast-title { color: color-mix(in srgb, var(--warn) 55%, black); }
 
-[data-theme="light"] .toast-error { --toast-c2: color-mix(in srgb, var(--danger) 70%, black); border-color: rgb(from var(--danger) r g b / .3); box-shadow: 0 4px 20px rgb(from var(--danger) r g b / .1), 0 1px 4px rgba(0,0,0,.06); }
+[data-theme="light"] .toast-error { --toast-c2: color-mix(in srgb, var(--danger) 70%, black); background: color-mix(in srgb, var(--danger) 14%, var(--bg-card)); border-color: rgb(from var(--danger) r g b / .3); box-shadow: 0 4px 20px rgb(from var(--danger) r g b / .1), 0 1px 4px rgba(0,0,0,.06); }
 
 [data-theme="light"] .toast-error .toast-title { color: color-mix(in srgb, var(--danger) 55%, black); }
 
