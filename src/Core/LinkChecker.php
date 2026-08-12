@@ -43,6 +43,24 @@ final class LinkChecker
     /** Anchor-text keywords used to discover a members-page link (Step 4.3). */
     private const MEMBERS_LINK_KEYWORDS = ['member', 'fan list', 'fans', 'fan-list', 'join', 'listed'];
 
+    /** Maximum extra pages fetched by the bounded crawl in checkReciprocalDeep()
+     *  (Step 4.2b) — real sites often need several hops of exploration (a hub
+     *  page linking to a more specific one, then a category picker splitting
+     *  content across query-string variants like joined.php?cat=N), and a
+     *  page can also have more than one keyword-matching link where only one
+     *  of them actually leads anywhere useful. Bounds the total cost. */
+    private const RECIPROCAL_CRAWL_MAX_REQUESTS = 30;
+
+    /** Wall-clock ceiling (seconds) for that crawl, independent of request
+     *  count — guards against a slow/unresponsive host burning the whole PHP
+     *  execution budget during a bulk link-check scan. No set_time_limit()
+     *  override exists around this call, so this stays well under a typical
+     *  30s default max_execution_time even stacked on top of the four
+     *  requests (base check + 3 fixed sub-paths) that run before the crawl
+     *  starts — a "found" result completes in ~15-17s against real sites
+     *  either way, since it returns as soon as a match turns up. */
+    private const RECIPROCAL_CRAWL_MAX_SECONDS = 18.0;
+
     /** Common member-list path candidates tried during owner-listed discovery (Step 4.3). */
     private const MEMBER_PATH_CANDIDATES = [
         '/members/', '/members.php', '/fans/', '/fans.php',
@@ -148,12 +166,24 @@ final class LinkChecker
     /**
      * Like checkReciprocal() but, on a 'missing' result, tries up to three
      * common sub-paths on the same origin (/fanlistings/, /affiliates/, /links/),
-     * then — if still missing — discovers a reciprocal-link page from the
-     * homepage's own navigation by anchor-text keyword (RECIPROCAL_LINK_KEYWORDS),
-     * the same technique checkOwnerListed() uses for member pages. This covers
-     * sites whose own naming convention (e.g. "joined.php") doesn't match any
-     * of the fixed sub-paths. Cross-origin redirect targets of $affiliateUrl are
-     * not tried for sub-paths (the sub-paths are always on the original host).
+     * then — if still missing — runs a small bounded crawl (breadth-first,
+     * same-host only) starting from the homepage to find a reciprocal-link
+     * page whose naming convention doesn't match any of the fixed sub-paths.
+     *
+     * Each page visited during the crawl contributes two kinds of further
+     * candidates: same-origin query-string variants of itself (a category
+     * picker like joined.php linking to joined.php?cat=1, joined.php?cat=2,
+     * ...), and anchor-text keyword matches (RECIPROCAL_LINK_KEYWORDS, the
+     * same technique checkOwnerListed() uses for member pages). A single
+     * page commonly has more than one keyword match where only one actually
+     * leads anywhere useful (e.g. a blog's own category-archive link can
+     * coincidentally match "fanlisting" too) — trying every candidate rather
+     * than committing to the first is what makes the crawl reliable here.
+     * The whole crawl is bounded by RECIPROCAL_CRAWL_MAX_REQUESTS/_SECONDS so
+     * a host with many candidates (or a slow host) can't stall a bulk scan.
+     *
+     * Cross-origin redirect targets of $affiliateUrl are not tried for
+     * sub-paths (the sub-paths are always on the original host).
      *
      * Returns 'found', 'missing', or 'unchecked' (same contract as checkReciprocal).
      */
@@ -187,13 +217,51 @@ final class LinkChecker
             }
         }
 
-        // Sub-paths exhausted; try discovering a fanlisting/affiliates/joined-style
-        // link from the homepage's own navigation instead of guessing more paths.
-        $homepageBody = self::safeGet($affiliateUrl);
-        if ($homepageBody !== null) {
-            $discovered = self::discoverLinkByKeywords($homepageBody, $affiliateUrl, self::RECIPROCAL_LINK_KEYWORDS);
-            if ($discovered !== null && self::checkReciprocal($discovered, $ownerUrl) === 'found') {
+        $needle = UrlNormalizer::normalizeUrlForSearch($ownerUrl);
+        if ($needle === '') {
+            return 'unchecked';
+        }
+
+        $visited  = [$affiliateUrl];
+        $queue    = [$affiliateUrl];
+        $deadline = microtime(true) + self::RECIPROCAL_CRAWL_MAX_SECONDS;
+        $budget   = self::RECIPROCAL_CRAWL_MAX_REQUESTS;
+
+        while ($queue !== [] && $budget > 0 && microtime(true) < $deadline) {
+            $current = array_shift($queue);
+            $budget--;
+
+            $body = self::safeGet($current);
+            if ($body === null) {
+                continue;
+            }
+
+            // The homepage itself was already covered by checkReciprocal() above.
+            if ($current !== $affiliateUrl && stripos($body, $needle) !== false) {
                 return 'found';
+            }
+
+            // Query-string variants first — a page that's already a category
+            // picker is a stronger signal than any further keyword match on
+            // the same page (which can easily lead somewhere unrelated), so
+            // its variants are enqueued ahead of this page's own further
+            // keyword matches below. Skipped on the homepage itself: a busy
+            // homepage's own same-path query links are usually unrelated
+            // noise (e.g. WordPress gallery/attachment links), not a
+            // category picker for the section being searched for.
+            if ($current !== $affiliateUrl) {
+                foreach (self::discoverSameOriginQueryVariants($body, $current) as $variant) {
+                    if (in_array($variant, $visited, true)) {
+                        continue;
+                    }
+                    $visited[] = $variant;
+                    $queue[]   = $variant;
+                }
+            }
+
+            foreach (self::discoverLinksByKeywords($body, $current, self::RECIPROCAL_LINK_KEYWORDS, $visited) as $next) {
+                $visited[] = $next;
+                $queue[]   = $next;
             }
         }
 
@@ -317,38 +385,121 @@ final class LinkChecker
     }
 
     /**
-     * Scans $html (already fetched) for a hyperlink whose anchor text matches
-     * one of $keywords (case-insensitive substring match) and resolves to the
-     * same host as $baseUrl. Returns the absolute URL of the first match, or
-     * null if none found. Shared by member-page discovery (checkOwnerListed)
-     * and reciprocal-link discovery (checkReciprocalDeep) — same technique,
-     * different keyword sets, since guessing a fixed list of common sub-paths
-     * doesn't cover every site's own naming convention (e.g. "joined.php").
+     * Convenience wrapper over discoverLinksByKeywords() for callers that only
+     * want the single best (first, document-order) match — checkOwnerListed()'s
+     * member-page discovery only ever needs one candidate and, unlike
+     * checkReciprocalDeep(), doesn't retry further candidates on a miss.
+     */
+    private static function discoverLinkByKeywords(string $html, string $baseUrl, array $keywords, array $exclude = []): ?string
+    {
+        return self::discoverLinksByKeywords($html, $baseUrl, $keywords, $exclude)[0] ?? null;
+    }
+
+    /**
+     * Scans $html (already fetched) for every hyperlink whose anchor text
+     * matches one of $keywords (case-insensitive) and resolves to the same
+     * host as $baseUrl. Returns all such matches (document order, deduped),
+     * excluding anything in $exclude. $exclude should always include
+     * $baseUrl itself -- a persistent site-wide nav bar (present on every
+     * page, including the one being scanned) very commonly has an entry that
+     * keyword-matches and points right back at the current page, which would
+     * otherwise "discover" a self-loop instead of real progress.
+     *
+     * Returning every match rather than just the first matters for
+     * checkReciprocalDeep()'s crawl: a single page commonly has more than one
+     * keyword match where only one actually leads anywhere useful (e.g. a
+     * blog's own category-archive link can coincidentally match "fanlisting"
+     * too), so committing to the first candidate found is unreliable.
+     *
+     * Shared by member-page discovery (checkOwnerListed) and reciprocal-link
+     * discovery (checkReciprocalDeep) — same technique, different keyword
+     * sets, since guessing a fixed list of common sub-paths doesn't cover
+     * every site's own naming convention (e.g. "joined.php").
      *
      * @param string[] $keywords
+     * @param string[] $exclude
+     * @return list<string>
      */
-    private static function discoverLinkByKeywords(string $html, string $baseUrl, array $keywords): ?string
+    private static function discoverLinksByKeywords(string $html, string $baseUrl, array $keywords, array $exclude = []): array
     {
+        $exclude[] = $baseUrl;
+
         // Matches <a href="..."> with anchor text like "members", "fans", "fan list", etc.
-        $pattern = '/<a\s[^>]*href=["\']([^"\']+)["\'][^>]*>([^<]{1,60})<\/a>/i';
+        // The inner content is captured with a small length cap rather than a
+        // strict "no nested tags" rule and run through strip_tags() below --
+        // real anchors often wrap their text in a <span> (badge counts, icons,
+        // etc.), and a plain [^<]* capture would never match those at all.
+        $pattern = '/<a\s[^>]*href=["\']([^"\']+)["\'][^>]*>(.{0,300}?)<\/a>/is';
         preg_match_all($pattern, $html, $matches, PREG_SET_ORDER);
 
+        // Plain substring matching, not word-boundary: nested tags are commonly
+        // stripped without a text separator (e.g. an icon <i> immediately
+        // followed by a <span> label), which can fuse two words together with
+        // no space between them either way -- "Exit" + "Links" becomes
+        // "ExitLinks" (an unrelated false positive), but the exact same
+        // pattern also produces "Fan" + "fanlistings" -> "Fanfanlistings" (a
+        // genuine match broken by requiring a boundary). The two are
+        // structurally indistinguishable from markup alone, so precision
+        // isn't attempted here -- returning every match and letting the
+        // crawl in checkReciprocalDeep() try each one is what actually
+        // handles a false positive like "Exit/Links" correctly: it just
+        // becomes one more candidate that doesn't pan out, not something
+        // that has to be filtered out up front.
+        $found = [];
         foreach ($matches as $m) {
-            $anchor = strtolower(trim($m[2]));
+            $anchor = strtolower(trim(strip_tags($m[2])));
             foreach ($keywords as $kw) {
-                if (str_contains($anchor, $kw)) {
-                    $resolved = UrlNormalizer::resolveLocation($baseUrl, $m[1]);
-                    $rHost    = parse_url($resolved, PHP_URL_HOST);
-                    $bHost    = parse_url($baseUrl, PHP_URL_HOST);
-                    // Only follow same-host links.
-                    if ($rHost === $bHost) {
-                        return $resolved;
-                    }
+                if (!str_contains($anchor, $kw)) {
+                    continue;
                 }
+
+                $resolved = UrlNormalizer::resolveLocation($baseUrl, $m[1]);
+                $rHost    = parse_url($resolved, PHP_URL_HOST);
+                $bHost    = parse_url($baseUrl, PHP_URL_HOST);
+                // Only follow same-host links, and never a link already visited.
+                if ($rHost === $bHost && !in_array($resolved, $exclude, true)) {
+                    $found[$resolved] = true; // dedupe by resolved URL, keep first-seen order
+                }
+                break; // one match per anchor is enough; move to the next <a>
             }
         }
 
-        return null;
+        return array_keys($found);
+    }
+
+    /**
+     * Extracts absolute URLs of same-host, same-path links on $html whose
+     * query string differs from $baseUrl's own -- the signature of a
+     * "category picker" page (e.g. joined.php linking to joined.php?cat=1,
+     * joined.php?cat=2, ...). Used as a last-resort fallback in
+     * checkReciprocalDeep() when a discovered reciprocal-link page turns out
+     * to be an index rather than the actual content.
+     *
+     * @return list<string>
+     */
+    private static function discoverSameOriginQueryVariants(string $html, string $baseUrl): array
+    {
+        preg_match_all('/<a\s[^>]*href=["\']([^"\']+)["\']/i', $html, $matches);
+
+        $baseHost  = parse_url($baseUrl, PHP_URL_HOST);
+        $basePath  = parse_url($baseUrl, PHP_URL_PATH) ?? '';
+        $baseQuery = parse_url($baseUrl, PHP_URL_QUERY) ?? '';
+
+        $variants = [];
+        foreach ($matches[1] as $href) {
+            $resolved = UrlNormalizer::resolveLocation($baseUrl, $href);
+            $rHost    = parse_url($resolved, PHP_URL_HOST);
+            $rPath    = parse_url($resolved, PHP_URL_PATH) ?? '';
+            $rQuery   = parse_url($resolved, PHP_URL_QUERY) ?? '';
+
+            if ($rHost !== $baseHost || $rPath !== $basePath || $rQuery === '' || $rQuery === $baseQuery) {
+                continue;
+            }
+
+            $variants[$resolved] = true; // dedupe by resolved URL
+        }
+
+        return array_keys($variants);
     }
 
     /**
