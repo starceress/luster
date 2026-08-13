@@ -901,7 +901,7 @@ input[type="checkbox"], input[type="radio"] { width: 15px; height: 15px; accent-
 
 .input-icon-btn:hover { color: var(--accent); }
 
-.form-hint { font-size: var(--fs-xs); color: var(--text-dim); margin: 0; padding-top: .5rem; }
+.form-hint { font-size: var(--fs-xs); color: var(--text-hint); margin: 0; padding-top: .5rem; }
 .form-hint--spaced { margin-bottom: .75rem; }
 
 .field-group.has-error input.form, .field-group.has-error select, .field-group.has-error textarea, .field-row.has-error input.form { border-color: var(--danger); box-shadow: 0 0 0 3px rgb(from var(--danger) r g b / .15); }
@@ -1996,7 +1996,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 .import-choice-item input[type="radio"] { margin-top: 2px; }
 
 .import-choice-item strong { display: block; margin-bottom: 4px; }
-.import-choice-item .form-hint { display: block; padding-top: 0; }
+.import-choice-item .form-hint { display: block; padding-top: 0; color: var(--text-dim); }
 
 .import-chk { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
 

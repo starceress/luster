@@ -81,6 +81,7 @@
   --text: #372c70;
   --text-muted: #64599b;
   --text-dim: #6a5a96;
+  --text-hint: #7767a4;
   --text-sidebar: #b8b0d8;
   --accent: #c00261;
   --accent-glow: rgb(from var(--accent) r g b / 0.1);
@@ -162,6 +163,7 @@
   --text: #e7deff;
   --text-muted: #9587c4;
   --text-dim: #8c81b1;
+  --text-hint: #897eaf;
   --text-sidebar: #b8b0d8;
   --accent: #8fdcff;
   --accent-glow: rgb(from var(--accent) r g b / 0.15);
