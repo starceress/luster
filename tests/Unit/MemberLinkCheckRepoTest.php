@@ -96,12 +96,25 @@ SQL;
 
     // --- syncFromListing (unprefixed schema)
 
-    public function testSyncFromListingReturnsZeroWhenNoMembersHaveUrl(): void
+    public function testSyncFromListingIncludesApprovedMembersWithoutUrl(): void
     {
         $db   = $this->makeDb(self::MEMBER_DDL);
         $repo = $this->makeRepo($db);
 
         $this->insertMember($db, 'a@test.com', 'Alice', '');
+
+        self::assertSame(1, $repo->syncFromListing(1, 'test_fl'));
+        $items = $repo->paginate(1, '', '', 'member_name', 'asc', 100, 1)['items'];
+        self::assertCount(1, $items);
+        self::assertSame('no_url', $items[0]->link_status);
+    }
+
+    public function testSyncFromListingReturnsZeroWhenNoApprovedMembers(): void
+    {
+        $db   = $this->makeDb(self::MEMBER_DDL);
+        $repo = $this->makeRepo($db);
+
+        $this->insertMember($db, 'a@test.com', 'Alice', 'https://alice.test', 1); // pending
 
         self::assertSame(0, $repo->syncFromListing(1, 'test_fl'));
     }
@@ -144,8 +157,8 @@ SQL;
         $repo->syncFromListing(1, 'test_fl');
         self::assertSame(1, $repo->paginate(1, '', '', 'member_name', 'asc', 100, 1)['total']);
 
-        // Remove Alice's URL, add Bob — second sync should give a fresh snapshot
-        $db->pdo()->exec("UPDATE test_fl SET url = '' WHERE email = 'a@test.com'");
+        // Remove Alice entirely, add Bob — second sync should give a fresh snapshot
+        $db->pdo()->exec("DELETE FROM test_fl WHERE email = 'a@test.com'");
         $this->insertMember($db, 'b@test.com', 'Bob', 'https://bob.test');
 
         $count = $repo->syncFromListing(1, 'test_fl');
@@ -293,7 +306,7 @@ SQL;
 
         $stats = $repo->getLinkStats(1);
 
-        self::assertSame(['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0], $stats);
+        self::assertSame(['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0, 'no_url' => 0], $stats);
     }
 
     public function testGetLinkStatsCountsByStatus(): void
@@ -313,6 +326,65 @@ SQL;
         self::assertSame(1, $stats['dead']);
         self::assertSame(1, $stats['redirect']);
         self::assertSame(1, $stats['unchecked']);
+    }
+
+    public function testGetLinkStatsCountsNoUrl(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice', '', 'no_url');
+        $this->insertCheck($db, 1, 'b@test.com', 'Bob',   'https://b.test', 'ok');
+
+        $stats = $repo->getLinkStats(1);
+
+        self::assertSame(1, $stats['no_url']);
+        self::assertSame(1, $stats['ok']);
+    }
+
+    // --- getLinkStatsAll
+
+    public function testGetLinkStatsAllCountsAcrossListings(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test', 'ok');
+        $this->insertCheck($db, 2, 'b@test.com', 'Bob',   '',               'no_url');
+        $this->insertCheck($db, 2, 'c@test.com', 'Carol', 'https://c.test', 'dead');
+
+        $stats = $repo->getLinkStatsAll();
+
+        self::assertSame(1, $stats['ok']);
+        self::assertSame(1, $stats['dead']);
+        self::assertSame(1, $stats['no_url']);
+    }
+
+    // --- getPerListingSummary
+
+    public function testGetPerListingSummaryCountsNoUrl(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice', '',               'no_url');
+        $this->insertCheck($db, 1, 'b@test.com', 'Bob',   'https://b.test', 'ok');
+
+        $summary = $repo->getPerListingSummary();
+
+        self::assertSame(2, $summary[1]['total']);
+        self::assertSame(1, $summary[1]['no_url']);
+        self::assertSame(1, $summary[1]['ok']);
+    }
+
+    public function testGetPerListingSummaryOmitsListingsWithNoRows(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $summary = $repo->getPerListingSummary();
+
+        self::assertArrayNotHasKey(1, $summary);
     }
 
     // --- getAllIds

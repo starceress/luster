@@ -142,6 +142,7 @@ $statusLabel = static function (string $s): string {
         'redirect'  => 'Redirect',
         'found'     => 'Backlinked',
         'missing'   => 'No Backlink',
+        'no_url'    => 'No URL',
         default     => 'Unchecked',
     };
 };
@@ -151,6 +152,7 @@ $statusBadgeClass = static function (string $s): string {
         'ok', 'found'      => 'badge-current',
         'dead', 'missing' => 'badge-error',
         'redirect'        => 'badge-redirect',
+        'no_url'          => 'badge-inactive',
         default           => 'badge-inactive',
     };
 };
@@ -345,6 +347,7 @@ $sumCell = static function (?array $ms, string $key): string {
           <span class="badge badge-error"><?= (int) ($mem_stats['dead']       ?? 0) ?> Dead</span>
           <span class="badge badge-redirect"><?= (int) ($mem_stats['redirect']   ?? 0) ?> Redirect</span>
           <span class="badge badge-inactive"><?= (int) ($mem_stats['unchecked']  ?? 0) ?> Unchecked</span>
+          <span class="badge badge-inactive"><?= (int) ($mem_stats['no_url']  ?? 0) ?> No URL</span>
         </div>
       </div>
       <?php if (empty($_allListings)): ?>
@@ -366,6 +369,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <th>Dead</th>
               <th>Redirect</th>
               <th>Unchecked</th>
+              <th>No URL</th>
               <th><a href="<?= View::e($lcMemSumSortUrl('last_checked')) ?>" class="sort-th<?= $_mss === 'last_checked' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('last_checked', $_mss, $_msd) ?></a></th>
               <th class="actions-col">Actions</th>
             </tr>
@@ -388,6 +392,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td data-label="Dead" class="lc-ms-dead"><?= $sumCell($_ms, 'dead') ?></td>
               <td data-label="Redirect" class="lc-ms-redirect"><?= $sumCell($_ms, 'redirect') ?></td>
               <td data-label="Unchecked" class="lc-ms-unchecked"><?= $sumCell($_ms, 'unchecked') ?></td>
+              <td data-label="No URL" class="lc-ms-no-url"><?= $sumCell($_ms, 'no_url') ?></td>
               <td data-label="Last Checked" class="text-muted lc-ms-checked">
                 <?= $_ms !== null && $_ms['last_checked'] !== null
                     ? View::e(date($admin_date_format, strtotime((string) $_ms['last_checked'])))
@@ -464,6 +469,7 @@ $sumCell = static function (?array $ms, string $key): string {
           <a href="<?= View::e($lcStatusUrl('dead', 'members')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['dead'] ?? 0) ?> Dead</a>
           <a href="<?= View::e($lcStatusUrl('redirect', 'members')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['redirect'] ?? 0) ?> Redirect</a>
           <a href="<?= View::e($lcStatusUrl('unchecked', 'members')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['unchecked'] ?? 0) ?> Unchecked</a>
+          <a href="<?= View::e($lcStatusUrl('no_url', 'members')) ?>" class="badge badge-inactive<?= $status === 'no_url' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['no_url'] ?? 0) ?> No URL</a>
           <span class="badge badge-current" data-lc-backlink-pill="found"><?= (int) ($backlink_stats['found'] ?? 0) ?> Backlinked</span>
           <span class="badge badge-error" data-lc-backlink-pill="missing"><?= (int) ($backlink_stats['missing'] ?? 0) ?> No Backlink</span>
         </div>

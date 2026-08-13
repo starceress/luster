@@ -3315,6 +3315,30 @@ try {
     $errors[] = 'Migration 102 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 103: add 'no_url' to lstr_member_link_checks.link_status enum.
+// Approved members without a URL are now synced too (previously silently
+// skipped), so they need a status distinct from 'dead' -- there's nothing to
+// check, not a broken link.
+try {
+    $chkNoUrl = $pdo->query(
+        "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME   = 'lstr_member_link_checks'
+            AND COLUMN_NAME  = 'link_status'"
+    );
+    $colType = (string) $chkNoUrl->fetchColumn();
+    if ($colType !== '' && !str_contains($colType, "'no_url'")) {
+        $pdo->exec(
+            "ALTER TABLE `lstr_member_link_checks`
+             MODIFY COLUMN `link_status` ENUM('unchecked','ok','redirect','dead','error','no_url') NOT NULL DEFAULT 'unchecked'"
+        );
+        $done[] = 'Migration 103: added <code>no_url</code> to <code>lstr_member_link_checks.link_status</code>';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (103)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 103 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

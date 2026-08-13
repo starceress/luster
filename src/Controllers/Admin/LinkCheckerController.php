@@ -88,7 +88,7 @@ final class LinkCheckerController extends AdminController
         if (!in_array($memSumSortParam, $memSumSortAllowed, true)) { $memSumSortParam = 'id'; }
         if (!in_array($memSumDirParam, ['asc', 'desc'], true)) { $memSumDirParam = 'asc'; }
 
-        $statusValues = ['ok', 'redirect', 'dead', 'unchecked'];
+        $statusValues = ['ok', 'redirect', 'dead', 'unchecked', 'no_url'];
         $statusParam  = trim((string) $request->query('status', ''));
         if (!in_array($statusParam, $statusValues, true)) { $statusParam = ''; }
 
@@ -147,7 +147,7 @@ final class LinkCheckerController extends AdminController
         $memRepo      = new MemberLinkCheckRepo($db, $config);
         $memItems        = [];
         $memTotal        = 0;
-        $memStats        = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
+        $memStats        = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0, 'no_url' => 0];
         $backlinkStats   = ['found' => 0, 'missing' => 0, 'unchecked' => 0];
         $movedMembers    = [];
         $deadMembers     = [];
@@ -945,6 +945,20 @@ final class LinkCheckerController extends AdminController
 
         if ($member === null) {
             return Response::json(['error' => 'Not found'], 404);
+        }
+
+        // No URL means nothing to check — LinkChecker::check('') would
+        // otherwise misreport this as a dead link. syncFromListing() already
+        // stamped these rows 'no_url' up front, so there's nothing to update.
+        if ($member->member_url === '') {
+            return Response::json([
+                'link_status'     => 'no_url',
+                'http_code'       => 0,
+                'redirect_url'    => null,
+                'content_flags'   => null,
+                'backlink_status' => (string) ($member->backlink_status ?? 'unchecked'),
+                'checked_at'      => $member->link_checked_at !== null ? date('Y-m-d H:i', strtotime((string) $member->link_checked_at)) : null,
+            ]);
         }
 
         $result = LinkChecker::check($member->member_url);

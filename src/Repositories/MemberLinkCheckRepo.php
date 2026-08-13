@@ -61,9 +61,13 @@ final class MemberLinkCheckRepo
     }
 
     /**
-     * Copies all approved members with URLs from the per-listing member table
-     * into lstr_member_link_checks. Clears any previous check records for the
-     * listing first so the snapshot is always fresh.
+     * Copies all approved members from the per-listing member table into
+     * lstr_member_link_checks -- including ones with no URL set, which get
+     * link_status='no_url' up front so they never get sent through a live
+     * check (an empty URL would otherwise misreport as a dead link) and
+     * read distinctly from a link that's actually broken. Clears any
+     * previous check records for the listing first so the snapshot is
+     * always fresh.
      *
      * Returns the number of rows inserted.
      */
@@ -74,7 +78,7 @@ final class MemberLinkCheckRepo
         $stmt = $this->db->pdo()->prepare(
             "SELECT email, name, url
                FROM `{$table}`
-              WHERE url <> '' AND ({$this->approvedWhere})
+              WHERE {$this->approvedWhere}
               ORDER BY name"
         );
         $stmt->execute();
@@ -88,17 +92,19 @@ final class MemberLinkCheckRepo
 
         $insert = $this->db->pdo()->prepare(
             "INSERT INTO `lstr_member_link_checks`
-                 (listing_id, member_email, member_name, member_url)
+                 (listing_id, member_email, member_name, member_url, link_status)
              VALUES
-                 (:listing_id, :email, :name, :url)"
+                 (:listing_id, :email, :name, :url, :link_status)"
         );
 
         foreach ($members as $m) {
+            $url = (string) ($m['url'] ?? '');
             $insert->execute([
-                'listing_id' => $listingId,
-                'email'      => (string) ($m['email'] ?? ''),
-                'name'       => (string) ($m['name']  ?? ''),
-                'url'        => (string) ($m['url']   ?? ''),
+                'listing_id'  => $listingId,
+                'email'       => (string) ($m['email'] ?? ''),
+                'name'        => (string) ($m['name']  ?? ''),
+                'url'         => $url,
+                'link_status' => $url === '' ? 'no_url' : 'unchecked',
             ]);
         }
 
@@ -201,6 +207,7 @@ final class MemberLinkCheckRepo
             'dead'      => (int) ($rows['dead']       ?? 0),
             'redirect'  => (int) ($rows['redirect']   ?? 0),
             'unchecked' => (int) ($rows['unchecked']  ?? 0),
+            'no_url'    => (int) ($rows['no_url']     ?? 0),
         ];
     }
 
@@ -431,7 +438,7 @@ final class MemberLinkCheckRepo
     /**
      * Returns link-status counts across every listing.
      *
-     * @return array{ok:int, dead:int, redirect:int, unchecked:int}
+     * @return array{ok:int, dead:int, redirect:int, unchecked:int, no_url:int}
      */
     public function getLinkStatsAll(): array
     {
@@ -447,6 +454,7 @@ final class MemberLinkCheckRepo
             'dead'      => (int) ($rows['dead']       ?? 0),
             'redirect'  => (int) ($rows['redirect']   ?? 0),
             'unchecked' => (int) ($rows['unchecked']  ?? 0),
+            'no_url'    => (int) ($rows['no_url']     ?? 0),
         ];
     }
 
@@ -466,7 +474,7 @@ final class MemberLinkCheckRepo
      * Returns one summary row per listing that has been synced into the check
      * table — used by the All Listings view to render the per-listing overview.
      *
-     * @return array<int, array{total:int, ok:int, dead:int, redirect:int, unchecked:int, last_checked:?string}>
+     * @return array<int, array{total:int, ok:int, dead:int, redirect:int, unchecked:int, no_url:int, last_checked:?string}>
      */
     public function getPerListingSummary(): array
     {
@@ -478,6 +486,7 @@ final class MemberLinkCheckRepo
                  SUM(link_status = 'dead')        AS cnt_dead,
                  SUM(link_status = 'redirect')    AS cnt_redirect,
                  SUM(link_status = 'unchecked')   AS cnt_unchecked,
+                 SUM(link_status = 'no_url')      AS cnt_no_url,
                  MAX(link_checked_at)             AS last_checked
                FROM `lstr_member_link_checks`
               GROUP BY listing_id
@@ -492,6 +501,7 @@ final class MemberLinkCheckRepo
                 'dead'         => (int)   ($row['cnt_dead']       ?? 0),
                 'redirect'     => (int)   ($row['cnt_redirect']   ?? 0),
                 'unchecked'    => (int)   ($row['cnt_unchecked']  ?? 0),
+                'no_url'       => (int)   ($row['cnt_no_url']     ?? 0),
                 'last_checked' => $row['last_checked'],
             ];
         }

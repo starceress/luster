@@ -5781,7 +5781,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
   // ── Shared batch check logic ──────────────────────────────────────────────
 
   function statusLabel(s) {
-    var map = { ok: 'Active', dead: 'Dead', redirect: 'Redirect', found: 'Found', missing: 'Missing', unchecked: 'Unchecked' };
+    var map = { ok: 'Active', dead: 'Dead', redirect: 'Redirect', found: 'Found', missing: 'Missing', unchecked: 'Unchecked', no_url: 'No URL' };
     return map[s] || s;
   }
 
@@ -5792,7 +5792,8 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
       dead: 'badge-error',
       missing: 'badge-error',
       redirect: 'badge-redirect',
-      unchecked: 'badge-inactive'
+      unchecked: 'badge-inactive',
+      no_url: 'badge-inactive'
     };
     return map[s] || 'badge-inactive';
   }
@@ -6307,6 +6308,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
           setCell('.lc-ms-dead',      fmtCell('dead', s.dead));
           setCell('.lc-ms-redirect',  fmtCell('redirect', s.redirect));
           setCell('.lc-ms-unchecked', fmtCell('unchecked', s.unchecked));
+          setCell('.lc-ms-no-url',    fmtCell('no_url', s.no_url));
         }
         btn.disabled    = false;
         btn.textContent = 'Scan';
