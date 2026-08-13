@@ -842,7 +842,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td data-label="Type"><span class="badge badge-info2">Affiliate</span></td>
               <td data-label="Name"><span class="text-strong"><?= View::e($aff->name) ?></span></td>
               <td data-label="Current URL">
-                <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer" class="link lc-old-url">
+                <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer" class="link text-muted">
                   <?= View::e($aff->url) ?>
                 </a>
               </td>
@@ -875,7 +875,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td data-label="Type"><span class="badge badge-info">Joined</span></td>
               <td data-label="Name"><span class="text-strong"><?= View::e($jl->name) ?></span></td>
               <td data-label="Current URL">
-                <a href="<?= View::e($jl->url) ?>" target="_blank" rel="noopener noreferrer" class="link lc-old-url">
+                <a href="<?= View::e($jl->url) ?>" target="_blank" rel="noopener noreferrer" class="link text-muted">
                   <?= View::e($jl->url) ?>
                 </a>
               </td>
@@ -925,7 +925,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td data-label="Type"><span class="badge badge-inactive">Member</span></td>
               <td data-label="Name"><span class="text-strong"><?= View::e((string) $mem->member_name) ?></span></td>
               <td data-label="Current URL">
-                <a href="<?= View::e((string) $mem->member_url) ?>" target="_blank" rel="noopener noreferrer" class="link lc-old-url">
+                <a href="<?= View::e((string) $mem->member_url) ?>" target="_blank" rel="noopener noreferrer" class="link text-muted">
                   <?= View::e((string) $mem->member_url) ?>
                 </a>
               </td>
@@ -993,7 +993,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td data-label="Type"><span class="badge badge-info2">Affiliate</span></td>
               <td data-label="Name"><span class="text-strong"><?= View::e($aff->name) ?></span></td>
               <td data-label="URL">
-                <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer" class="link lc-old-url">
+                <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer" class="link text-muted">
                   <?= View::e($aff->url) ?>
                 </a>
               </td>
@@ -1008,7 +1008,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td data-label="Type"><span class="badge badge-info">Joined</span></td>
               <td data-label="Name"><span class="text-strong"><?= View::e($jl->name) ?></span></td>
               <td data-label="URL">
-                <a href="<?= View::e($jl->url) ?>" target="_blank" rel="noopener noreferrer" class="link lc-old-url">
+                <a href="<?= View::e($jl->url) ?>" target="_blank" rel="noopener noreferrer" class="link text-muted">
                   <?= View::e($jl->url) ?>
                 </a>
               </td>
@@ -1042,7 +1042,7 @@ $sumCell = static function (?array $ms, string $key): string {
               <td data-label="Type"><span class="badge badge-inactive">Member</span></td>
               <td data-label="Name"><span class="text-strong"><?= View::e((string) $mem->member_name) ?></span></td>
               <td data-label="URL">
-                <a href="<?= View::e((string) $mem->member_url) ?>" target="_blank" rel="noopener noreferrer" class="link lc-old-url">
+                <a href="<?= View::e((string) $mem->member_url) ?>" target="_blank" rel="noopener noreferrer" class="link text-muted">
                   <?= View::e((string) $mem->member_url) ?>
                 </a>
               </td>

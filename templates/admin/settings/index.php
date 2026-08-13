@@ -670,7 +670,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               
             <button type="submit" form="settings-test-email-form" class="btn btn-secondary btn-sm">Send Test Email</button>
             <?php if (($cfg['owner_email'] ?? '') === ''): ?>
-              <p class="form-hint form-hint--warn" style="margin-top:.75rem">
+              <p class="form-hint text-warn" style="margin-top:.75rem">
                 Please set a Contact Email under the "General" tab before sending a test email.
               </p>
             <?php endif; ?>

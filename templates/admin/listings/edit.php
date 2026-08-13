@@ -438,7 +438,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <p class="form-hint">Credit anyone who owned this fanlisting before you. Shown via the <code>{previous_owners}</code> token on the Stats template.</p>
             <?php if (!empty($fe['previous_owners'])): ?><p class="field-error"><?= View::e($fe['previous_owners'][0]) ?></p><?php endif; ?>
             <?php if (($previous_owners ?? []) !== [] && empty($stats_template_has_previous_owners_token)): ?>
-              <p class="form-hint form-hint--warn">Saved, but not currently shown until a previous-owner token is added to the Stats template.</p>
+              <p class="form-hint text-warn">Saved, but not currently shown until a previous-owner token is added to the Stats template.</p>
             <?php endif; ?>
             <?php
               $poOldName = $old['previous_owner_name'] ?? null;

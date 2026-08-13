@@ -450,9 +450,9 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         <?php
           $pct = $fan_current > 0 ? ($listings_up_to_date / $fan_current) * 100 : 100;
           if ($pct >= 100) {
-              $utdClass = 'row-val--success'; $utdStyle = '';
+              $utdClass = 'text-success'; $utdStyle = '';
           } elseif ($pct > 50) {
-              $utdClass = 'row-val--warn';    $utdStyle = '';
+              $utdClass = 'text-warn';    $utdStyle = '';
           } else {
               $utdClass = '';                 $utdStyle = 'color:var(--danger)';
           }

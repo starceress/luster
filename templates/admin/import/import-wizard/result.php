@@ -173,7 +173,7 @@ $hasErr  = $result->hasErrors();
                 View <?= number_format($totalSkipped) ?> skipped item<?= $totalSkipped !== 1 ? 's' : '' ?> <span class="skip-toggle-arrow">&#9658;</span>
               </button>
             <?php elseif (empty($row['warnings']) && empty($row['errors'])): ?>
-              <span class="table-note-empty">&mdash;</span>
+              <span class="text-dim">&mdash;</span>
             <?php endif; ?>
           </td>
         </tr>
@@ -234,7 +234,7 @@ $hasErr  = $result->hasErrors();
               <span style="color:var(--danger);display:inline-flex;align-items:center;gap:.3rem"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
             <?php endforeach; ?>
             <?php if (empty($row['errors'])): ?>
-              <span class="table-note-empty">&mdash;</span>
+              <span class="text-dim">&mdash;</span>
             <?php endif; ?>
           </td>
         </tr>

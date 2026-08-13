@@ -310,8 +310,10 @@
 [data-skin="victory-road"][data-theme="light"] .collective-action-tile { background: #f3fcff; color: #005a78; border-color: #a0cce0; }
 [data-skin="victory-road"][data-theme="light"] .collective-action-item:hover,
 [data-skin="victory-road"][data-theme="light"] .collective-action-tile:hover { background: #bce4f4; border-color: #68b0cc; color: #003a58; }
-[data-skin="victory-road"][data-theme="light"] .badge-current  { background: #22a840; color: #ffffff; border-color: #1a8832; }
-[data-skin="victory-road"][data-theme="light"] .badge-error    { background: #d02010; color: #ffffff; border-color: #a81808; }
+[data-skin="victory-road"][data-theme="light"] .badge-current,
+[data-skin="victory-road"][data-theme="light"] .alert-success  { background: #22a840; color: #ffffff; border-color: #1a8832; }
+[data-skin="victory-road"][data-theme="light"] .badge-error,
+[data-skin="victory-road"][data-theme="light"] .alert-error    { background: #d02010; color: #ffffff; border-color: #a81808; }
 [data-skin="victory-road"][data-theme="light"] .badge-pending  { background: #ffcb05; color: #2b2b2b; border-color: #e4b600; }
 [data-skin="victory-road"][data-theme="light"] .badge-upcoming { background: #2851d8; color: #ffffff; border-color: #1a78b0; }
 [data-skin="victory-road"][data-theme="light"] .btn-success       { background: #22a840; color: #ffffff; border-color: #22a840; }
@@ -478,8 +480,10 @@
 [data-skin="the-force"][data-theme="light"] .badge-info    { background: #0055cc; color: #ffffff; border-color: #003d99; }
 [data-skin="the-force"][data-theme="light"] .badge-info2   { background: #1a8c3d; color: #ffffff; border-color: #0e6b2b; }
 [data-skin="the-force"][data-theme="light"] .badge-info3   { background: #b87800; color: #ffffff; border-color: #906000; }
-[data-skin="the-force"][data-theme="light"] .badge-current  { background: #228c39; color: #ffffff; border-color: #228c39; }
-[data-skin="the-force"][data-theme="light"] .badge-error    { background: #c43030; color: #ffffff; border-color: #c43030; }
+[data-skin="the-force"][data-theme="light"] .badge-current,
+[data-skin="the-force"][data-theme="light"] .alert-success  { background: #228c39; color: #ffffff; border-color: #228c39; }
+[data-skin="the-force"][data-theme="light"] .badge-error,
+[data-skin="the-force"][data-theme="light"] .alert-error    { background: #c43030; color: #ffffff; border-color: #c43030; }
 [data-skin="the-force"][data-theme="light"] .badge-pending  { background: #e0a843; color: #2b2521; border-color: #e0a843; }
 [data-skin="the-force"][data-theme="light"] .badge-upcoming { background: #6644cc; color: #ffffff; border-color: #4c30a8; }
 [data-skin="the-force"][data-theme="light"] .btn-success        { background: #228c39; color: #ffffff; border-color: #228c39; }
@@ -635,7 +639,8 @@
 [data-skin="floating-lights"][data-theme="light"] .badge-info2  { background: #ece0f8; color: #6a2a9e; border-color: #c4a0e0; }
 [data-skin="floating-lights"][data-theme="light"] .badge-info3  { background: #e0f5e4; color: #1e6b2b; border-color: #a8d9af; }
 
-[data-skin="floating-lights"][data-theme="light"] .badge-error {
+[data-skin="floating-lights"][data-theme="light"] .badge-error,
+[data-skin="floating-lights"][data-theme="light"] .alert-error {
   background:   rgb(196 48 48 / 0.22);
   border-color: rgb(196 48 48 / 0.42);
 }
