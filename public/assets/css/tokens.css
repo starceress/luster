@@ -124,7 +124,7 @@
   --nav-hover-icon-glow: drop-shadow(0 0 6px rgb(from var(--brand-primary) r g b / 0.45));
   --sidebar-label-color: rgb(from var(--brand-primary) r g b / 0.35);
   --link-hover-color: var(--accent3);
-  --card-head-sub-color: var(--text-dim);
+  --card-head-sub-color: #e0005a;
   --section-label-color: var(--accent);
   --section-divider-color: var(--border);
   --btn-secondary-bg: #277676;
@@ -205,7 +205,7 @@
   --nav-hover-icon-glow: drop-shadow(0 0 6px rgb(from var(--brand-primary) r g b / 0.45));
   --sidebar-label-color: rgb(from var(--brand-primary) r g b / 0.35);
   --link-hover-color: var(--accent3);
-  --card-head-sub-color: var(--text-dim);
+  --card-head-sub-color: rgb(from var(--brand-muted) r g b / 0.65);
   --section-label-color: var(--accent2);
   --section-divider-color: var(--border);
   --btn-secondary-bg: #de2572;
