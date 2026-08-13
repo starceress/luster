@@ -957,7 +957,7 @@ final class LinkCheckerController extends AdminController
                 'redirect_url'    => null,
                 'content_flags'   => null,
                 'backlink_status' => (string) ($member->backlink_status ?? 'unchecked'),
-                'checked_at'      => $member->link_checked_at !== null ? date('Y-m-d H:i', strtotime((string) $member->link_checked_at)) : null,
+                'checked_at'      => $member->link_checked_at !== null ? date($this->dateFormat(), strtotime((string) $member->link_checked_at)) : null,
             ]);
         }
 
@@ -981,7 +981,7 @@ final class LinkCheckerController extends AdminController
             'redirect_url'    => $result['redirect_url'],
             'content_flags'   => $result['content_flags'],
             'backlink_status' => $backlinkStatus,
-            'checked_at'      => date('Y-m-d H:i'),
+            'checked_at'      => date($this->dateFormat()),
         ]);
     }
 
@@ -1213,7 +1213,7 @@ final class LinkCheckerController extends AdminController
             $repo->updateBacklinkStatus($id, 'unchecked');
             return Response::json([
                 'backlink_status' => 'unchecked',
-                'checked_at'      => date('Y-m-d H:i'),
+                'checked_at'      => date($this->dateFormat()),
             ]);
         }
 
@@ -1222,7 +1222,7 @@ final class LinkCheckerController extends AdminController
 
         return Response::json([
             'backlink_status' => $status,
-            'checked_at'      => date('Y-m-d H:i'),
+            'checked_at'      => date($this->dateFormat()),
         ]);
     }
 
@@ -1265,7 +1265,7 @@ final class LinkCheckerController extends AdminController
             return Response::json([
                 'listed_status' => 'unchecked',
                 'members_url'   => null,
-                'checked_at'    => date('Y-m-d H:i'),
+                'checked_at'    => date($this->dateFormat()),
             ]);
         }
 
@@ -1276,7 +1276,7 @@ final class LinkCheckerController extends AdminController
             'listed_status' => $result['status'],
             'members_url'   => $result['members_url'],
             'heuristic'     => $result['heuristic'],
-            'checked_at'    => date('Y-m-d H:i'),
+            'checked_at'    => date($this->dateFormat()),
         ]);
     }
 
