@@ -105,13 +105,13 @@ $statusLabels = [
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="adopt-message">Message</label>
         <textarea id="adopt-message" name="message" class="form" rows="4"
                   maxlength="5000"><?= View::e((string) ($application['message'] ?? '')) ?></textarea>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="adopt-notes">Personal Notes</label>
         <div>
           <textarea id="adopt-notes" name="admin_notes" class="form" rows="3"
@@ -125,7 +125,7 @@ $statusLabels = [
     <div class="card-body">
       <div class="section-label">Status</div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">Status</label>
         <div>
           <?php foreach ($statusLabels as $value => $label): ?>

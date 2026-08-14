@@ -172,7 +172,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
               <p class="form-hint">Global default members per page. Leave blank to use the built-in default (25). Per-listing setting overrides this.</p>
             </div>
           </div>
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label">Display style</label>
             <div>
               <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template" data-layout-preset="listing_default_members_template__list">List</button>
@@ -229,7 +229,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <div class="section-label">Statistics <?= $srcBadge('stats_template') ?></div>
 
           <?php $_glNml = ($stat_newmembers_limit ?? null) !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : null; ?>
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="gl-newmembers-limit">Default newest members shown</label>
             <div>
               <div class="select-wrap select-auto">
@@ -255,7 +255,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <div class="section-label">Codes <?= $srcBadge('codes_template') ?></div>
           <p class="form-hint form-hint--spaced">Default layout for the codes/buttons gallery. Use <code>{each_size_group}</code> for grouped mode or <code>{each_code}</code> for flat mode.</p>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="gl-cs-toggle-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
@@ -268,7 +268,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             </div>
           </div>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="gl-cs-toggle-label">Toggle label</label>
             <div>
               <input id="gl-cs-toggle-label" type="text" name="codes_submit_toggle_label" class="form" maxlength="200"
@@ -303,7 +303,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <div class="section-label">Affiliates <?= $srcBadge('affiliates_section_template') ?></div>
           <p>Wrap each affiliate in <code>{each_affiliate}&hellip;{/each_affiliate}</code>. Make sure to include BOTH <code>{affiliate_apply_toggle}</code> and <code>{affiliate_apply_form}</code>.</p>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="gl-aff-apply-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
@@ -316,7 +316,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             </div>
           </div>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="gl-aff-toggle-label">Toggle label</label>
             <div>
               <input id="gl-aff-toggle-label" type="text" name="affiliate_apply_toggle_label" class="form" maxlength="200"

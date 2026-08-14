@@ -48,7 +48,7 @@ $_urlFields   = [
     </div>
 
     <div class="card-body">
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="fl-per-page">Listings per page</label>
         <div>
           <input type="number" id="fl-per-page" name="owned_per_page" class="form form--compact" min="5" max="50" value="<?= (int) ($cfg['owned_per_page'] ?? 10) ?>">
@@ -82,8 +82,8 @@ $_urlFields   = [
         default; a specific listing can still override it from that listing&rsquo;s <strong>Embed</strong> tab.
         <span class="ec-setup-help" data-desc="Luster checks three places, in this order: the page set on a specific listing&rsquo;s Embed tab, then the default you set here, then finally just the listing&rsquo;s own URL &mdash; whichever it finds first wins.">?</span>
       </p>
-      <?php $first = true; foreach ($_urlFields as $key => [$label, $hint]): ?>
-        <div class="field-row<?= $first ? ' field-row--top' : '' ?>">
+      <?php foreach ($_urlFields as $key => [$label, $hint]): ?>
+        <div class="field-row">
           <label class="field-label" for="<?= View::e($key) ?>"><?= View::e($label) ?></label>
           <div>
             <input id="<?= View::e($key) ?>" type="text" name="<?= View::e($key) ?>" class="form"
@@ -93,7 +93,7 @@ $_urlFields   = [
             <p class="form-hint"><?= View::e($hint) ?> Leave blank to use the built-in default (<code><?= View::e($_urlDefaults[$key]) ?></code>).</p>
           </div>
         </div>
-      <?php $first = false; endforeach; ?>
+      <?php endforeach; ?>
     </div>
 
     <div class="composer-footer">

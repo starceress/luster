@@ -163,7 +163,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="jf-description">Description</label>
         <div>
           <textarea id="jf-description" name="description" class="form" rows="3" maxlength="2000" placeholder="What this fanlisting is about, or why you joined it."><?= View::e($val('description', $joined, 'description')) ?></textarea>
@@ -171,7 +171,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="jf-comments">Admin Comments</label>
         <div>
           <textarea id="jf-comments" name="comments" class="form" rows="3" maxlength="2000" placeholder="Internal notes, reminders, or anything else worth tracking."><?= View::e($val('comments', $joined, 'comments')) ?></textarea>

@@ -62,10 +62,11 @@ $labelFor = static function(string $key): string {
     $hasListingKeys    = !empty(array_filter($importable, fn($t) => ($t['key_scope'] ?? 'listing') === 'listing'));
     $hasCollectiveKeys = !empty(array_filter($importable, fn($t) => ($t['key_scope'] ?? 'listing') === 'collective'));
   ?>
-  <div class="gradient-card listing-field-section">
+  <div class="card card--gradient">
+    <div class="card-body">
       <?php if ($hasListingKeys): ?>
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="listing_id">Target listing</label>
+      <div class="field-row">
+        <label class="field-label" for="listing_id">Target listing</label>
         <div>
           <div class="select-wrap">
             <select name="listing_id" id="listing_id" class="form">
@@ -80,19 +81,21 @@ $labelFor = static function(string $key): string {
       </div>
       <?php endif; ?>
       <?php if ($hasCollectiveKeys): ?>
-      <div class="listing-field-row">
-        <label class="listing-field-label">Collective templates</label>
+      <div class="field-row">
+        <label class="field-label">Collective templates</label>
         <div>
           <p class="form-hint">Collective templates (collective stats, owned listings, joined listings) are always applied to the collective regardless of the listing chosen above.</p>
         </div>
       </div>
       <?php endif; ?>
     </div>
+  </div>
   <?php endif; ?>
 
   <?php if ($hasImportable): ?>
   <h2 class="section-heading">Templates ready to import</h2>
-  <div class="gradient-card">
+  <div class="card card--gradient">
+    <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -112,32 +115,33 @@ $labelFor = static function(string $key): string {
             <?php if ($t['changed_from_default']): ?>
               <span class="badge badge-info" title="This template was customised (differs from Fanatically defaults)">customised</span>
             <?php else: ?>
-              <span class="badge badge-secondary" title="This template matches the Fanatically default">default</span>
+              <span class="badge badge-inactive" title="This template matches the Fanatically default">default</span>
             <?php endif; ?>
           </td>
           <td><code class="mono-sm"><?= View::e($labelFor($t['target_template_key'] ?? '')) ?></code></td>
           <td>
             <?php if (($t['key_scope'] ?? 'listing') === 'collective'): ?>
-              <span class="badge badge-secondary">Collective</span>
+              <span class="badge badge-info">Collective</span>
             <?php elseif (str_starts_with($t['target_template_key'] ?? '', 'email:')): ?>
-              <span class="badge badge-secondary">Listing email</span>
+              <span class="badge badge-info">Listing email</span>
             <?php else: ?>
-              <span class="badge badge-secondary">Listing</span>
+              <span class="badge badge-info">Listing</span>
             <?php endif; ?>
           </td>
           <td>
             <?php if (!empty($t['unmapped_tokens'])): ?>
-              <span class="badge badge-warning" title="Unmapped tokens: <?= View::e(implode(', ', $t['unmapped_tokens'])) ?>">
+              <span class="badge badge-redirect" title="Unmapped tokens: <?= View::e(implode(', ', $t['unmapped_tokens'])) ?>">
                 <?= count($t['unmapped_tokens']) ?> unmapped
               </span>
             <?php else: ?>
-              <span class="badge badge-success">Ready</span>
+              <span class="badge badge-current">Ready</span>
             <?php endif; ?>
           </td>
         </tr>
       <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   </div>
   <?php endif; ?>
 
@@ -152,8 +156,11 @@ $labelFor = static function(string $key): string {
 
 <?php if (!empty($previewOnly)): ?>
 <h2 class="section-heading">Preview-only (download for manual adaptation)</h2>
-<div class="gradient-card">
-  <p class="form-hint">These templates use structures that Luster cannot map automatically (pre-rendered blocks, PHP includes, or form wrappers). Download them as plain text to use as a starting point when writing your Luster templates manually.</p>
+<div class="card card--gradient">
+  <div class="card-body">
+    <p class="form-hint">These templates use structures that Luster cannot map automatically (pre-rendered blocks, PHP includes, or form wrappers). Download them as plain text to use as a starting point when writing your Luster templates manually.</p>
+  </div>
+  <div class="table-wrap">
   <table class="data-table">
     <thead>
       <tr>
@@ -170,14 +177,14 @@ $labelFor = static function(string $key): string {
           <?php if ($t['contains_php']): ?>
             <span class="badge badge-error">Contains PHP</span>
           <?php elseif ($t['unsupported_structure']): ?>
-            <span class="badge badge-secondary">Unsupported structure</span>
+            <span class="badge badge-inactive">Unsupported structure</span>
           <?php elseif ($t['target_template_key'] === null): ?>
-            <span class="badge badge-secondary">No matching Luster template</span>
+            <span class="badge badge-inactive">No matching Luster template</span>
           <?php else: ?>
-            <span class="badge badge-secondary">Preview only</span>
+            <span class="badge badge-inactive">Preview only</span>
           <?php endif; ?>
           <?php if (!empty($t['unmapped_tokens'])): ?>
-            &nbsp;<span class="badge badge-warning" title="<?= View::e(implode(', ', $t['unmapped_tokens'])) ?>"><?= count($t['unmapped_tokens']) ?> unmapped tokens</span>
+            &nbsp;<span class="badge badge-redirect" title="<?= View::e(implode(', ', $t['unmapped_tokens'])) ?>"><?= count($t['unmapped_tokens']) ?> unmapped tokens</span>
           <?php endif; ?>
         </td>
         <td>
@@ -187,13 +194,17 @@ $labelFor = static function(string $key): string {
     <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
 </div>
 <?php endif; ?>
 
 <?php if (!empty($rejected)): ?>
 <h2 class="section-heading">Skipped entries</h2>
-<div class="gradient-card">
-  <p class="form-hint">These files were skipped during extraction — they are either outside the expected template paths, exceeded size limits, or failed security checks.</p>
+<div class="card card--gradient">
+  <div class="card-body">
+    <p class="form-hint">These files were skipped during extraction — they are either outside the expected template paths, exceeded size limits, or failed security checks.</p>
+  </div>
+  <div class="table-wrap">
   <table class="data-table">
     <thead>
       <tr>
@@ -210,6 +221,7 @@ $labelFor = static function(string $key): string {
     <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
 </div>
 <?php endif; ?>
 

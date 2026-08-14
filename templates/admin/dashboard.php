@@ -404,120 +404,133 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
 <!-- ──── AT A GLANCE ─────────────────────────────────────────────────── -->
   <?php if ($total_listings > 0 || $total_joined > 0 || $total_members > 0 || $total_affiliates > 0): ?>
-  <div class="card<?= $hasTodo ? '' : ' dash-glance-full' ?>">
+  <div class="card dash-glance<?= $hasTodo ? '' : ' summary-span-full' ?>">
     <div class="card-head"><?= View::icon('sparkles') ?> At a Glance</div>
-    <div class="row-section">
-      <div class="composer-label">Listings</div>
-      <div class="row">
-        <span class="row-label">Newest Joined</span>
-        <?php if ($newest_joined_name !== null): ?>
-          <a href="<?= $b ?>/admin/joined" class="link"><?= View::e($newest_joined_name) ?></a>
-        <?php else: ?>
-          <span class="row-val">None yet</span>
-        <?php endif; ?>
-      </div>
-      <div class="row">
-        <span class="row-label">Newest Owned</span>
-        <?php if ($newest_owned_name !== null): ?>
-          <span class="row-val">
-            <a href="<?= $b ?>/admin/listings" class="link"><?= View::e($newest_owned_name) ?></a>
-            <?php if (!empty($newest_owned_opened)): ?> (Opened <?= View::e(date($admin_date_format, strtotime((string) $newest_owned_opened))) ?>)
-            <?php endif; ?>
-          </span>
-        <?php else: ?>
-          <span class="row-val">None yet</span>
-        <?php endif; ?>
-      </div>
-      <?php if ($most_active_listing_name !== null && $most_active_listing_count > 0): ?>
-      <div class="row">
-        <span class="row-label">Most Active Listing</span>
-        <span class="row-val">
-          <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $most_active_listing_id ?>&status=all" class="link"><?= View::e($most_active_listing_name) ?></a>
-          (<?= number_format($most_active_listing_count) ?> member<?= $most_active_listing_count !== 1 ? 's' : '' ?>)
-        </span>
-      </div>
-      <?php endif; ?>
+
+    <div class="card-body">
+      <div class="section-label">Listings</div>
+      <table class="data-table data-table--key-value">
+        <tbody>
+          <tr>
+            <td>Newest Joined</td>
+            <td>
+              <?php if ($newest_joined_name !== null): ?>
+                <a href="<?= $b ?>/admin/joined" class="link"><?= View::e($newest_joined_name) ?></a>
+              <?php else: ?>
+                None yet
+              <?php endif; ?>
+            </td>
+          </tr>
+          <tr>
+            <td>Newest Owned</td>
+            <td>
+              <?php if ($newest_owned_name !== null): ?>
+                <a href="<?= $b ?>/admin/listings" class="link"><?= View::e($newest_owned_name) ?></a>
+                <?php if (!empty($newest_owned_opened)): ?> <span class="cell-meta-nowrap">(Opened <?= View::e(date($admin_date_format, strtotime((string) $newest_owned_opened))) ?>)</span>
+                <?php endif; ?>
+              <?php else: ?>
+                None yet
+              <?php endif; ?>
+            </td>
+          </tr>
+          <?php if ($most_active_listing_name !== null && $most_active_listing_count > 0): ?>
+          <tr>
+            <td>Most Active Listing</td>
+            <td>
+              <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $most_active_listing_id ?>&status=all" class="link"><?= View::e($most_active_listing_name) ?></a>
+              (<?= number_format($most_active_listing_count) ?> member<?= $most_active_listing_count !== 1 ? 's' : '' ?>)
+            </td>
+          </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
     </div>
 
-    <div class="row-section">
-      <div class="composer-label">Collective</div>
-      <div class="row">
-        <span class="row-label">Total Active Listings</span>
-        <span class="row-val"><?= (int) $fan_current ?></span>
-      </div>
-      <div class="row">
-        <span class="row-label">Up to Date Listings</span>
-        <?php
-          $pct = $fan_current > 0 ? ($listings_up_to_date / $fan_current) * 100 : 100;
-          if ($pct >= 100) {
-              $utdClass = 'text-success'; $utdStyle = '';
-          } elseif ($pct > 50) {
-              $utdClass = 'text-warn';    $utdStyle = '';
-          } else {
-              $utdClass = '';                 $utdStyle = 'color:var(--danger)';
-          }
-        ?>
-        <span class="row-val <?= $utdClass ?>"<?= $utdStyle ? ' style="' . $utdStyle . '"' : '' ?>>
-          <?= (int) $listings_up_to_date ?> of <?= (int) $fan_current ?>
-        </span>
-      </div>
-      <?php if ($opened_this_year > 0): ?>
-      <div class="row">
-        <span class="row-label">Opened This Year</span>
-        <span class="row-val"><?= (int) $opened_this_year ?></span>
-      </div>
-      <?php endif; ?>
-      <?php if ($joined_this_year > 0): ?>
-      <div class="row">
-        <span class="row-label">Joined This Year</span>
-        <span class="row-val"><?= (int) $joined_this_year ?></span>
-      </div>
-      <?php endif; ?>
+    <div class="card-body">
+      <div class="section-label">Collective</div>
+      <table class="data-table data-table--key-value">
+        <tbody>
+          <tr>
+            <td>Total Active Listings</td>
+            <td><?= (int) $fan_current ?></td>
+          </tr>
+          <?php
+            $pct = $fan_current > 0 ? ($listings_up_to_date / $fan_current) * 100 : 100;
+            if ($pct >= 100) {
+                $utdClass = 'text-success';
+            } elseif ($pct > 50) {
+                $utdClass = 'text-warn';
+            } else {
+                $utdClass = 'text-danger';
+            }
+          ?>
+          <tr>
+            <td>Up to Date Listings</td>
+            <td class="<?= $utdClass ?>"><?= (int) $listings_up_to_date ?> of <?= (int) $fan_current ?></td>
+          </tr>
+          <?php if ($opened_this_year > 0): ?>
+          <tr>
+            <td>Opened This Year</td>
+            <td><?= (int) $opened_this_year ?></td>
+          </tr>
+          <?php endif; ?>
+          <?php if ($joined_this_year > 0): ?>
+          <tr>
+            <td>Joined This Year</td>
+            <td><?= (int) $joined_this_year ?></td>
+          </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
     </div>
 
-    <div class="row-section">
-      <div class="composer-label">Members</div>
-      <div class="row">
-        <span class="row-label">Total Members</span>
-        <span class="row-val"><?= number_format((int) $total_members) ?></span>
-      </div>
-      <div class="row">
-        <span class="row-label">New Members This Month</span>
-        <div class="inline-link-row">
-          <span class="row-val"><?= number_format((int) $growth_this_month) ?> member<?= $growth_this_month !== 1 ? 's' : '' ?></span>
-          <?php if ($growthDiff > 0): ?>
-          <span class="growth-pill growth-pill--up">
-            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 7l3-4 3 4"/></svg>
-            +<?= (int) $growthDiff ?> vs last month
-          </span>
+    <div class="card-body">
+      <div class="section-label">Members</div>
+      <table class="data-table data-table--key-value">
+        <tbody>
+          <tr>
+            <td>Total Members</td>
+            <td><?= number_format((int) $total_members) ?></td>
+          </tr>
+          <tr>
+            <td>New Members This Month</td>
+            <td>
+              <?= number_format((int) $growth_this_month) ?> member<?= $growth_this_month !== 1 ? 's' : '' ?>
+              <?php if ($growthDiff > 0): ?>
+                <span class="badge badge-current">+<?= (int) $growthDiff ?> vs last month</span>
+              <?php endif; ?>
+            </td>
+          </tr>
+          <?php if ($newestMember !== null): ?>
+          <tr>
+            <td>Newest Member</td>
+            <td>
+              <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $newestMember['listing_id'] ?>&status=all&search=<?= urlencode($newestMember['member']->email) ?>"
+                 class="link"><?= View::e($newestMember['member']->name) ?></a>
+              (<?= View::e($newestMember['listing_subject']) ?>)
+              <?php if (!empty($newestMember['member']->added)): ?>
+                &mdash; <?= dashTimeAgo((string) $newestMember['member']->added) ?>
+              <?php endif; ?>
+            </td>
+          </tr>
           <?php endif; ?>
-        </div>
-      </div>
-      <?php if ($newestMember !== null): ?>
-      <div class="row">
-        <span class="row-label">Newest Member</span>
-        <span class="row-val">
-          <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $newestMember['listing_id'] ?>&status=all&search=<?= urlencode($newestMember['member']->email) ?>"
-             class="link"><?= View::e($newestMember['member']->name) ?></a>
-          (<?= View::e($newestMember['listing_subject']) ?>)
-          <?php if (!empty($newestMember['member']->added)): ?>
-            &mdash; <?= dashTimeAgo((string) $newestMember['member']->added) ?>
-          <?php endif; ?>
-        </span>
-      </div>
-      <?php endif; ?>
+        </tbody>
+      </table>
     </div>
 
     <?php if (!empty($top_countries)): ?>
-    <div class="row-section">
-      <div class="composer-label">Top <?= count($top_countries) ?> Countries</div>
-      <?php $rank = 1; foreach ($top_countries as $country => $count): ?>
-      <div class="row-country">
-        <?= $rank++ ?>.
-        <span class="row-label"><?= View::e($country) ?></span>
-        <span class="row-val"><?= (int) $count ?><?php if ($total_members > 0): ?> <span class="row-val-subtle">(<?= round($count / $total_members * 100) ?>%)</span><?php endif; ?></span>
-      </div>
-      <?php endforeach; ?>
+    <div class="card-body">
+      <div class="section-label">Top <?= count($top_countries) ?> Countries</div>
+      <table class="data-table data-table--key-value">
+        <tbody>
+          <?php $rank = 1; foreach ($top_countries as $country => $count): ?>
+          <tr>
+            <td><?= $rank++ ?>. <?= View::e($country) ?></td>
+            <td><?= (int) $count ?><?php if ($total_members > 0): ?> <span class="cell-meta-nowrap">(<?= round($count / $total_members * 100) ?>%)</span><?php endif; ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
     </div>
     <?php endif; ?>
   </div>

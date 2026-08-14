@@ -41,7 +41,7 @@ require_once __DIR__ . '/../_css_assets.php';
 
     <div class="login-brand">
       <span class="login-wordmark"><?= \Luster\Core\View::e($site_name) ?></span>
-      <span class="login-luster-sub">Set New Password</span>
+      <span class="login-brand-sub">Set New Password</span>
     </div>
 
     <?php if ($error !== '') : ?>

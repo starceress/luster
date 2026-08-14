@@ -83,7 +83,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
                 }
             }
           ?>
-          <div class="field-row field-row--top">
+          <div class="field-row">
             <label class="field-label">Listing</label>
             <div>
               <p class="text-strong"><?= View::e($scopeLabel) ?></p>
@@ -92,7 +92,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
             </div>
           </div>
         <?php else: ?>
-          <div class="field-row field-row--top">
+          <div class="field-row">
             <label class="field-label" for="aff-listing">Listing</label>
             <div>
               <div class="select-wrap">
@@ -202,7 +202,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 
       <!-- Application message (read-only, edit mode only, when present) -->
       <?php if ($isEdit && ($affiliate->applicationMessage ?? '') !== ''): ?>
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">Application Message</label>
         <div>
           <textarea class="form" rows="4" readonly><?= View::e($affiliate->applicationMessage) ?></textarea>
@@ -212,7 +212,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <?php endif; ?>
 
       <!-- Image -->
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <span class="field-label">Image</span>
         <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
         <div class="img-upload-panel img-upload-panel--two-col">

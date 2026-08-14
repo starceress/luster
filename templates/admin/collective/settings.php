@@ -41,7 +41,7 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
     <div class="card-body">
       <div class="section-label">Contact Form</div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">Contact Form</label>
         <div>
           <label class="toggle-wrap">
@@ -79,7 +79,7 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
     <div class="card-body">
       <div class="section-label">Affiliate Applications</div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">Applications</label>
         <div>
           <label class="toggle-wrap">
@@ -111,7 +111,7 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
     <div class="card-body">
       <div class="section-label">Code Donations</div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">Code Donations</label>
         <div>
           <label class="toggle-wrap">
@@ -140,7 +140,7 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
     <?php if ($adoption_installed ?? false): ?>
     <div class="card-body" id="collective-adoption-urls">
       <div class="section-label">Adoptions</div>
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="s-form-url-adopt">Host page URL</label>
         <div>
           <input id="s-form-url-adopt" type="text" name="collective_form_url_adopt" class="form" maxlength="200"
@@ -156,7 +156,7 @@ $_affiliateOn = ($site_settings['collective_affiliate_apply_enabled'] ?? '1') ==
     <div class="card-body" id="collective-kim-urls">
       <div class="section-label">KIM Page URLs</div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="s-kim-url-signup">Sign Up page</label>
         <div>
           <input id="s-kim-url-signup" type="text" name="kim_url_signup" class="form" maxlength="500"

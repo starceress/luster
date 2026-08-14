@@ -2380,7 +2380,7 @@ function lstrTodayIso() {
       if (f.type === 'tokens') {
         custVals[f.id] = (f.tokens || []).filter(function (t) { return t.checked; })
           .map(function (t) { return { token: t.token, line: t.line }; });
-        html += '<div class="field-row field-row--top">'
+        html += '<div class="field-row">'
               + '<label class="field-label">' + f.label + '</label>'
               + '<div><div class="ec-token-grid">';
         (f.tokens || []).forEach(function (t) {
@@ -2402,7 +2402,7 @@ function lstrTodayIso() {
       if (f.type === 'cstatvars') {
         custVals[f.id] = (f.vars || []).filter(function (v) { return v.checked; })
           .map(function (v) { return { name: v.name, label: v.label }; });
-        html += '<div class="field-row field-row--top">'
+        html += '<div class="field-row">'
               + '<label class="field-label">' + f.label + '</label>'
               + '<div><div class="ec-token-grid">';
         (f.vars || []).forEach(function (v) {
@@ -2421,7 +2421,7 @@ function lstrTodayIso() {
         return;
       }
       // Standard option: label column + control column
-      html += '<div class="field-row field-row--top" id="ec-row-' + esc(f.id) + '">'
+      html += '<div class="field-row" id="ec-row-' + esc(f.id) + '">'
             + '<label class="field-label" for="ec-f-' + esc(f.id) + '">' + f.label + '</label>'
             + '<div>';
       if (f.type === 'listing' || f.type === 'listing_or_zero') {
@@ -6258,7 +6258,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
             if (v === undefined || v === null) return '<span class="text-dim">&mdash;</span>';
             v = parseInt(v, 10);
             if (v === 0) return '<span class="text-dim">0</span>';
-            if (key === 'dead')     return '<span class="badge badge-warning">' + v + '</span>';
+            if (key === 'dead')     return '<span class="badge badge-error">' + v + '</span>';
             if (key === 'redirect') return '<span class="badge badge-redirect">' + v + '</span>';
             return '' + v;
           }

@@ -407,10 +407,6 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 /* ---- BADGES ------------------------------------------- */
 
-.growth-pill { display: inline-flex; align-items: center; gap: .2rem; font-size: var(--fs-sm); font-weight: 600; padding: .1rem .4rem; border-radius: 5px; background: rgb(from var(--success) r g b / .1); color: var(--success); }
-
-.growth-pill svg { width: 9px; height: 9px; }
-
 .badge { font-size: var(--fs-xs); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.1875rem 0.5625rem; border-radius: 99px; border: 1px solid transparent; display: inline-block; white-space: nowrap; text-decoration: none; }
 .badge[hidden] { display: none; }
 
@@ -441,7 +437,7 @@ a.badge.badge--active { outline: 2px solid currentColor; outline-offset: 2px; }
 
 .badge-tafl { background: rgb(from var(--accent4) r g b / 0.12); color: var(--accent4); border-color: rgb(from var(--accent4) r g b / 0.2); }
 
-.badge-inline-sm { margin-left: .4rem; font-size: .7rem; }
+.badge-inline-sm, .badge-inline, .badge-inline-gap { margin-left: .4rem; font-size: .7rem; }
 
 /* ---- ALERTS AND CALLOUTS ------------------------------ */
 
@@ -704,6 +700,8 @@ html.fp-codes #codes-filter-panel { display: block; }
 
 /* ---- TEXT AND LAYOUT UTILITIES ------------------------ */
 
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+
 .text-dim { color: var(--text-dim); }
 
 .text-muted { color: var(--text-muted); }
@@ -711,6 +709,8 @@ html.fp-codes #codes-filter-panel { display: block; }
 .text-success { color: var(--success); }
 
 .text-warn { color: var(--pending); }
+
+.text-danger { color: var(--danger); }
 
 .text-mono { font-family: var(--font-mono, monospace); font-size: .875rem; }
 
@@ -733,8 +733,6 @@ html.fp-codes #codes-filter-panel { display: block; }
 .text-strong { color: var(--text); font-weight: 600; }
 
 .nowrap { white-space: nowrap; }
-
-.inline-link-row { display: inline-flex; align-items: center; gap: .4rem; }
 
 .result-count { font-size: var(--fs-base); color: var(--text-muted); margin-bottom: .5rem; }
 
@@ -770,6 +768,16 @@ html.fp-codes #codes-filter-panel { display: block; }
 .data-table tr.row-archived td { opacity: .6; }
 
 .data-table .table-num { text-align: right; font-variant-numeric: tabular-nums; width: 1px; white-space: nowrap; }
+
+.data-table--key-value td:first-child { width: 42%; color: var(--text-muted); }
+.data-table--key-value td:first-child::before { content: '\2726'; display: inline-block; margin-right: .625rem; color: var(--text); font-size: var(--fs-sm); }
+.data-table--key-value td:last-child { color: var(--text-dim); }
+/* :last-child ties .text-success/.text-warn/.text-danger on specificity and
+   would otherwise win by source order -- restate the severity colors here
+   so a value cell carrying one of those classes still shows it. */
+.data-table--key-value td.text-success { color: var(--success); }
+.data-table--key-value td.text-warn { color: var(--pending); }
+.data-table--key-value td.text-danger { color: var(--danger); }
 
 .sort-th { display: inline-flex; align-items: center; gap: .35rem; color: inherit; text-decoration: none; white-space: nowrap; }
 
@@ -1002,6 +1010,9 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 .field-row > div { min-width: 0; }
 
 .field-label { font-size: var(--fs-base); font-weight: 600; line-height: 1.4; align-self: start; padding-top: .45rem; }
+
+.value-action-row { display: flex; align-items: center; gap: .625rem; flex-wrap: wrap; }
+.value-action-row > input { flex: 1 1 240px; min-width: 0; }
 
 .status-pill-row { display: flex; gap: .5rem; flex-wrap: wrap; }
 
@@ -1257,39 +1268,24 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-general"], body:has(#panel-g
 
 .overview-section-divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
 
-.row-section { padding: .625rem 1.25rem; border-bottom: 1px solid var(--border); font-size: var(--fs-sm); color: var(--text-dim); font-weight: 400; margin-left: .2rem; }
-
-.row-section:last-child { border-bottom: none; }
-
-.row-section .composer-label { font-size: var(--fs-xs); margin-bottom: .5rem; opacity: .7; }
-
-.row { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; padding: .375rem 0; border-bottom: 1px solid rgba(255,255,255,.04); }
-
-.row::before { content: '✦'; font-size: var(--fs-sm); color: var(--text); flex-shrink: 0; }
-
-.row:last-child { border-bottom: none; }
-
 .star-list { list-style: none; padding-left: 2rem; margin: .5rem 0 0; display: flex; flex-direction: column; gap: .35rem; color: var(--text-muted); }
 
 .star-list li { position: relative; line-height: 1.5; }
 
 .star-list li::before { content: '✦'; font-size: var(--fs-sm); color: var(--accent3); position: absolute; left: -1.1rem; top: .05em; }
 
-.row-label { font-size: var(--fs-md); color: var(--text-muted); flex: 1; }
-
-.row-val { font-size: var(--fs-md); color: var(--text-dim); text-align: right; }
-
-.row-val-subtle { opacity: .65; }
-
-.row-country { display: flex; align-items: center; gap: .625rem; padding: .375rem 0; border-bottom: 1px solid rgba(255,255,255,.04); }
-
-.row-country:last-child { border-bottom: none; }
-
 .dash-main-grid, .collective-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1rem; align-items: start; }
 
 .dash-main-grid .card { margin-bottom: 0; }
 
-.dash-glance-full { grid-column: 1 / -1; }
+/* Collective at a Glance card: reuses .card-body / .section-label / .data-table
+   (padding scoped tighter below -- those defaults suit one table per panel, not
+   four stacked here) and drops .section-label's own star since every row already
+   carries one via .data-table--key-value, avoiding a double-star per group. */
+.dash-glance .card-body { padding: .75rem 1.25rem; }
+.dash-glance .data-table td { padding: .4rem .875rem; }
+.dash-glance .section-label { margin-bottom: .5rem; }
+.dash-glance .section-label::before { content: none; }
 
 .todo-section { border-top: 1px solid var(--border); }
 
@@ -2190,7 +2186,6 @@ body.sidebar-open { overflow: hidden; }
 .topbar { padding: 0 18px; }
 .page-content { padding: 20px 18px 40px; }
 .dash-main-grid, .collective-columns, .update-action-grid, .field-grid, .db-info-grid, .img-upload-panel--two-col, .sysinfo-ext-grid { grid-template-columns: 1fr; }
-.dash-glance-full { grid-column: auto; }
 .es-item-desc { display: none; }
 .stats-grid-row { grid-template-columns: repeat(2, 1fr) !important; }
 .stats-grid:not(.stats-grid-row) { grid-template-columns: repeat(2, 1fr) !important; }
@@ -2199,6 +2194,7 @@ body.sidebar-open { overflow: hidden; }
 #tab-templates > div { grid-template-columns: 1fr; }
 .card { overflow-x: auto; }
 .data-table { min-width: 520px; }
+.dash-glance .data-table { min-width: 0; }
 .mini-nav-layout { grid-template-columns: 1fr; gap: 1rem; }
 .topbar-page { font-size: var(--fs-lg); }
 .topbar-title-group::before { font-size: var(--fs-lg); }

@@ -19,16 +19,17 @@ $csrf = View::e($csrf_token);
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="gradient-card listing-field-section">
-    <div class="listing-field-row listing-field-row--top">
-      <label class="listing-field-label">About this tool</label>
+<div class="card card--gradient">
+  <div class="card-body">
+    <div class="field-row">
+      <label class="field-label">About this tool</label>
       <div>
         <p class="form-hint">Upload your Fanatically 1.x installation ZIP (or a ZIP of your templates folder) to extract and translate the template files into Luster's format. Templates that can be imported directly will be shown with an import option; others will be available to download for reference.</p>
         <p class="form-hint">Supported files: <code>templates/display/*.php</code>, <code>templates/email/*.txt</code>, and per-listing template overrides.</p>
       </div>
     </div>
-    <div class="listing-field-row">
-      <label class="listing-field-label">What gets translated</label>
+    <div class="field-row">
+      <label class="field-label">What gets translated</label>
       <div>
         <ul class="form-hint">
           <li><strong>Stats, collective stats, owned listings, joined listings</strong> — translated and importable.</li>
@@ -38,14 +39,15 @@ $csrf = View::e($csrf_token);
       </div>
     </div>
   </div>
+</div>
 
 <form method="POST" action="<?= $b ?>/admin/import/fanatically/templates" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= $csrf ?>">
 
-  <div class="gradient-card">
-    <div class="listing-field-section">
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="template_zip">Fanatically ZIP <span class="req">*</span></label>
+  <div class="card card--gradient">
+    <div class="card-body">
+      <div class="field-row">
+        <label class="field-label" for="template_zip">Fanatically ZIP <span class="req">*</span></label>
         <div>
           <label class="file-drop-zone" for="template_zip">
             <input type="file" id="template_zip" name="template_zip" accept=".zip,application/zip">

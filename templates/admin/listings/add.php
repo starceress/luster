@@ -140,7 +140,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label" for="fl-description">Description</label>
         <div>
           <textarea id="fl-description" name="description" class="form" rows="4" maxlength="65535"
@@ -188,7 +188,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="field-row field-row--top" id="archive-note-row">
+      <div class="field-row" id="archive-note-row">
         <label class="field-label" for="fl-archive-note">Archive Note</label>
         <div>
           <textarea id="fl-archive-note" name="archive_note" class="form" rows="2"
@@ -214,7 +214,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="field-row field-row--top" id="archived-at-row">
+      <div class="field-row" id="archived-at-row">
         <label class="field-label" for="fl-archived-at" id="fl-archived-at-label">Closed On</label>
         <div>
           <div class="actions-row actions-row--wrap">

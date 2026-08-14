@@ -296,7 +296,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label">Network &amp; Category</label>
           <div>
             <div class="cat-widget" id="cat-widget"
@@ -312,7 +312,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row<?= !empty($fe['subject']) ? ' has-error' : '' ?> field-row--top">
+        <div class="field-row<?= !empty($fe['subject']) ? ' has-error' : '' ?>">
           <label class="field-label" for="fl-subject">Subject <span class="req">*</span></label>
           <div>
             <input id="fl-subject" type="text" name="subject" class="form"
@@ -343,7 +343,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+        <div class="field-row<?= !empty($fe['email']) ? ' has-error' : '' ?>">
           <label class="field-label" for="fl-email">Email</label>
           <div>
             <input id="fl-email" type="email" name="email" class="form"
@@ -354,7 +354,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="fl-description">Description</label>
           <div>
             <textarea id="fl-description" name="description" class="form" rows="4"
@@ -388,7 +388,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row field-row--top" id="archive-note-row">
+        <div class="field-row" id="archive-note-row">
           <label class="field-label" for="fl-archive-note">Archive Note</label>
           <div>
             <textarea id="fl-archive-note" name="archive_note" class="form" rows="2"
@@ -418,7 +418,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           $archivedAtOriginalVal = (string) ($archived_at_original ?? '');
           $archivedAtVal         = (string) ($old['archived_at'] ?? $archivedAtOriginalVal);
         ?>
-        <div class="field-row field-row--top" id="archived-at-row">
+        <div class="field-row" id="archived-at-row">
           <label class="field-label" for="fl-archived-at" id="fl-archived-at-label">Closed On</label>
           <div>
             <div class="actions-row actions-row--wrap">
@@ -432,7 +432,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <div class="section-label">Previous Owners</div>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label">Credited Owners</label>
           <div>
             <p class="form-hint">Credit anyone who owned this fanlisting before you. Shown via the <code>{previous_owners}</code> token on the Stats template.</p>
@@ -485,7 +485,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="fl-last-updated">Last Updated</label>
           <div>
             <div class="actions-row actions-row--wrap">
@@ -502,7 +502,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       <div class="card-body">
         <div class="section-label">Listing Image</div>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label">Image</label>
           <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
           <div class="img-upload-panel img-upload-panel--two-col">
@@ -545,7 +545,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       <div class="card-body">
         <div class="section-label">Additional Preferences</div>
         <?php $ab = $approved_by ?? ''; ?>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="fl-approved-by">Approved By</label>
           <div>
             <div class="select-wrap select-auto">
@@ -560,7 +560,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <?php $aurl = $approval_url ?? ''; ?>
-        <div class="field-row field-row--top" id="fl-approval-url-row" <?= $ab === '' ? 'style="display:none"' : '' ?>>
+        <div class="field-row" id="fl-approval-url-row" <?= $ab === '' ? 'style="display:none"' : '' ?>>
           <label class="field-label" for="fl-approval-url">Approval Page URL</label>
           <div>
             <div style="display:flex;gap:.5rem;align-items:flex-start">
@@ -583,7 +583,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label">Allow Affiliate Applications</label>
           <div>
             <input type="hidden" name="affiliate_apply_enabled" value="0">
@@ -596,7 +596,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label">Allow Codes Donations</label>
           <div>
             <label class="toggle-wrap">
@@ -641,7 +641,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 
         <?php if ($adoption_addon_installed ?? false): ?>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label">Put Up For Adoption</label>
           <div>
             <label class="toggle-wrap">
@@ -656,7 +656,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
         <?php endif; ?>
 
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label">Auto Approve Joins</label>
           <div>
             <label class="toggle-wrap">
@@ -869,7 +869,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
               <p class="form-hint">Leave blank to use the global default (25 unless changed in Collective &rarr; Templates). Choose 10&ndash;100 to override for this listing only.</p>
             </div>
           </div>
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label">Display style</label>
             <div>
               <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template" data-layout-preset="members_template__list">List</button>
@@ -926,7 +926,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
           <div class="section-label">Statistics <?= $srcBadge('stats_template') ?></div>
 
           <?php $_nmlVal = ($stat_newmembers_limit ?? null) !== null && ($stat_newmembers_limit ?? '') !== '' ? (int) $stat_newmembers_limit : null; ?>
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="fl-newmembers-limit">Newest member names</label>
             <div>
               <div class="select-wrap select-auto">
@@ -954,7 +954,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
           <p class="form-hint form-hint--spaced">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
 
           <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="fl-cs-toggle-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
@@ -968,7 +968,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
             </div>
           </div>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="fl-cs-toggle-label">Toggle label</label>
             <div>
               <input id="fl-cs-toggle-label" type="text" name="codes_submit_toggle_label" class="form" maxlength="200"
@@ -1009,7 +1009,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
           <p class="form-hint form-hint--spaced">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
 
           <?php if ($affiliate_apply_enabled ?? false): ?>
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="fl-aff-apply-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
@@ -1023,7 +1023,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
             </div>
           </div>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="fl-aff-toggle-label">Toggle label</label>
             <div>
               <input id="fl-aff-toggle-label" type="text" name="affiliate_apply_toggle_label" class="form" maxlength="200"
@@ -1523,7 +1523,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
         </div>
       </div>
       <div class="card-body">
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="af-name">Field Name <span class="req">*</span></label>
           <div>
             <input type="text" class="form" id="af-name" name="name"
@@ -1533,7 +1533,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
             <p class="form-hint">Use letters, numbers, and underscores only. <strong>No spaces - use underscores instead</strong> (e.g. "fave movie" becomes <code>fav_movie</code>). Each additional field <em>for this listing</em> must have a unique field name. Members will not see this.</p>
           </div>
         </div>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="af-label">Label <span class="req">*</span></label>
           <div>
             <input type="text" class="form" id="af-label" name="label"
@@ -1541,7 +1541,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
             <p class="form-hint">The label members will see on your join form and members pages.</p>
           </div>
         </div>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="af-type">Type</label>
           <div>
             <div class="select-wrap">
@@ -1554,7 +1554,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
             </div>
           </div>
         </div>
-        <div id="af-options-row" class="field-row field-row--top is-hidden">
+        <div id="af-options-row" class="field-row is-hidden">
           <label class="field-label" for="af-options">Options</label>
           <div>
             <textarea class="form" id="af-options" name="options" rows="2"
@@ -1562,7 +1562,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
             <p class="form-hint">For dropdown, checkbox, and radio fields, write the choices separated by commas.</p>
           </div>
         </div>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <span class="field-label">Required?</span>
           <div>
             <div class="flex-row">
@@ -2195,7 +2195,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       <div class="card-head-sub">The internal name Luster uses for this listing's member records. Most users never need to change this.</div>
     </summary>
     <div class="card-body">
-      <div class="listining-field-row">
+      <div class="value-action-row">
         <input type="text" class="form mono" value="<?= View::e($listing->dbprefix) ?>"
                readonly>
         <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix"
@@ -2216,7 +2216,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       $advEmbedSettings = $embed_settings ?? [];
       ?>
       <div class="card-body">
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="adv-db-host">DB Host</label>
           <div>
             <input id="adv-db-host" type="text" name="db_host" class="form"
@@ -2225,7 +2225,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <p class="form-hint">The database server name, usually <code>localhost</code>.</p>
           </div>
         </div>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="adv-db-name">DB Name</label>
           <div>
             <input id="adv-db-name" type="text" name="db_name" class="form"
@@ -2234,7 +2234,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <p class="form-hint">The database name that contains this listing's member records.</p>
           </div>
         </div>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="adv-db-user">DB User</label>
           <div>
             <input id="adv-db-user" type="text" name="db_user" class="form"
@@ -2243,7 +2243,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <p class="form-hint">The username Luster should use for that separate database.</p>
           </div>
         </div>
-        <div class="field-row field-row--top">
+        <div class="field-row">
           <label class="field-label" for="adv-db-pass">DB Password</label>
           <div>
             <div class="input-icon-wrap">

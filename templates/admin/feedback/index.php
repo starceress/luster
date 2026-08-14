@@ -112,7 +112,7 @@ use Luster\Core\View;
       </div>
 
       <!-- Description -->
-      <div class="field-row field-row--top<?= isset($field_errors['message']) ? ' has-error' : '' ?>">
+      <div class="field-row<?= isset($field_errors['message']) ? ' has-error' : '' ?>">
         <label class="field-label" for="f-message">Description <span class="req">*</span></label>
         <div>
           <textarea id="f-message" name="message" class="form" rows="9" placeholder="Please describe your issue, question, or suggestion in as much detail as possible."><?= View::e($old['message'] ?? '') ?></textarea>
@@ -123,7 +123,7 @@ use Luster\Core\View;
       </div>
 
       <!-- System info -->
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">System Info</label>
         <div>
           <label class="form-check">
@@ -143,7 +143,7 @@ use Luster\Core\View;
 
       <!-- Error log (only shown when there are entries) -->
       <?php if (!$errorlog_empty): ?>
-      <div class="field-row field-row--top">
+      <div class="field-row">
         <label class="field-label">Error Log</label>
         <div>
           <label class="form-check">
@@ -174,7 +174,7 @@ use Luster\Core\View;
 <?php if ($send_failed && $composed_body !== ''): ?>
 <div class="card card--gradient" style="margin-top:1.5rem">
   <div class="card-body">
-    <div class="field-row field-row--top">
+    <div class="field-row">
       <label class="field-label">Copy report</label>
       <div>
         <textarea id="lstr-composed-body" class="form form-mono" rows="20" readonly><?= View::e($composed_body) ?></textarea>

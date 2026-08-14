@@ -280,7 +280,7 @@ $srcBadge = static function (string $key) use ($ct): string {
           <div class="section-label">Codes <?= $srcBadge('collective_codes_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls how collective-wide fan codes (codes with no fanlisting assigned) are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="ct-cs-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
@@ -293,7 +293,7 @@ $srcBadge = static function (string $key) use ($ct): string {
             </div>
           </div>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="ct-cs-toggle-label">Toggle label</label>
             <div>
               <input id="ct-cs-toggle-label" type="text" name="collective_codes_submit_toggle_label" class="form" maxlength="200"
@@ -330,7 +330,7 @@ $srcBadge = static function (string $key) use ($ct): string {
           <div class="section-label">Affiliates <?= $srcBadge('collective_affiliates_section_template') ?></div>
           <p class="form-hint" style="margin-bottom:.75rem">Controls the full affiliates section on <code>/affiliates</code> and the collective affiliates embed. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row yourself.</p>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="ct-aff-style">Toggle style</label>
             <div>
               <div class="select-wrap select-auto">
@@ -343,7 +343,7 @@ $srcBadge = static function (string $key) use ($ct): string {
             </div>
           </div>
 
-          <div class="field-row field-row--top" style="margin-bottom: 1em">
+          <div class="field-row" style="margin-bottom: 1em">
             <label class="field-label" for="ct-aff-toggle-label">Toggle label</label>
             <div>
               <input id="ct-aff-toggle-label" type="text" name="collective_affiliate_apply_toggle_label" class="form" maxlength="200"
