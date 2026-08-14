@@ -239,7 +239,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
 
         <div class="table-wrap">
-          <table class="data-table">
+          <table class="data-table mem-table">
             <thead>
               <tr>
                 <th>Username</th>

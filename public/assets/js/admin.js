@@ -5733,47 +5733,6 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
   });
 }());
 
-// ── 46. Generic active toggle -- .lstr-toggle-form ─────────────────────────────
-//
-// Any <form class="lstr-toggle-form"> whose submit button has class .toggle-pill
-// will be intercepted: the form POSTs via fetch, the JSON {ok, active} response
-// flips the pill label/class and dims/undims the enclosing <tr>.
-
-(function () {
-  document.querySelectorAll('.lstr-toggle-form').forEach(function (form) {
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var pill = form.querySelector('.toggle-pill');
-      if (pill && pill.disabled) return;
-      if (pill) { pill.disabled = true; }
-
-      var params = new URLSearchParams(new FormData(form));
-      fetch(form.action, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body:    params.toString(),
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (!data.ok) { throw new Error(data.error || 'Failed'); }
-          var active = !!data.active;
-          if (pill) {
-            pill.disabled = false;
-            pill.textContent = active ? 'Yes' : 'No';
-            pill.classList.toggle('toggle-pill--on', active);
-            pill.title = active ? 'Click to hide' : 'Click to show';
-          }
-          var row = form.closest('tr');
-          if (row) { row.classList.toggle('row-inactive', !active); }
-        })
-        .catch(function () {
-          if (pill) { pill.disabled = false; }
-        });
-    });
-  });
-}());
-
-
 // ── 48. Link Checker ──────────────────────────────────────────────────────────
 
 (function () {
@@ -6734,29 +6693,6 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
     });
   }
 
-  document.querySelectorAll('.wl-toggle').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      if (btn.disabled) return;
-      btn.disabled = true;
-      fetch(btn.dataset.url, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body:    '_csrf=' + encodeURIComponent(btn.dataset.csrf),
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (!data.ok) throw new Error(data.error || 'Failed');
-          btn.disabled = false;
-          var active = !!data.active;
-          btn.textContent = active ? 'Yes' : 'No';
-          btn.classList.toggle('toggle-pill--on', active);
-          btn.title = active ? 'Click to hide' : 'Click to show';
-          var row = btn.closest('tr');
-          if (row) row.classList.toggle('row-inactive', !active);
-        })
-        .catch(function () { btn.disabled = false; });
-    });
-  });
 }());
 
 // ── 50. Live search -- debounced AJAX fetch, results-only swap ─────────────────
@@ -8514,5 +8450,47 @@ document.addEventListener('click', function (e) {
         submitBtn.textContent = 'Scan File';
         showError('Request failed. Please try again.');
       });
+  });
+}());
+
+// ── 59. "?" setup-help tooltips: fixed-position popover (escapes .card's overflow:hidden) ──
+(function () {
+  var triggers = document.querySelectorAll('.ec-setup-help[data-desc]');
+  if (!triggers.length) return;
+
+  var pop = document.createElement('div');
+  pop.className = 'ec-help-pop';
+  pop.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(pop);
+
+  var GAP = 6;
+  var hideTimer = null;
+
+  function show(trigger) {
+    clearTimeout(hideTimer);
+    pop.textContent = trigger.dataset.desc || '';
+    // Position off-screen first so getBoundingClientRect() reflects this
+    // tooltip's actual wrapped size (text length varies per trigger).
+    pop.style.left = '-9999px';
+    pop.style.top  = '0px';
+    pop.classList.add('ec-help-pop--visible');
+    var r   = trigger.getBoundingClientRect();
+    var pr  = pop.getBoundingClientRect();
+    var x   = Math.max(8, Math.min(r.left + r.width / 2 - pr.width / 2, window.innerWidth - pr.width - 8));
+    var y   = r.bottom + GAP;
+    if (y + pr.height > window.innerHeight - 8) y = r.top - pr.height - GAP;
+    pop.style.left = x + 'px';
+    pop.style.top  = y + 'px';
+  }
+
+  function hide() {
+    hideTimer = setTimeout(function () { pop.classList.remove('ec-help-pop--visible'); }, 60);
+  }
+
+  triggers.forEach(function (trigger) {
+    trigger.addEventListener('mouseenter', function () { show(trigger); });
+    trigger.addEventListener('mouseleave', hide);
+    trigger.addEventListener('focus',      function () { show(trigger); });
+    trigger.addEventListener('blur',       hide);
   });
 }());
