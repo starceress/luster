@@ -81,23 +81,25 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .sidebar-luster { min-height: 100px; padding: 0 1.375rem; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid rgb(from var(--brand-primary) r g b / 0.08); position: relative; z-index: 1; }
 
-.nav-search-wrap { position: relative; display: flex; align-items: center; margin: 0.75rem 0.875rem 0.75rem; z-index: 1; }
+.search-field-wrap.nav-search-wrap { align-items: center; flex: none; margin: 0.75rem 0.875rem 0.75rem; z-index: 1; }
 
-.nav-search-icon { position: absolute; left: 0.625rem; width: 14px; height: 14px; color: var(--text-dim); pointer-events: none; flex-shrink: 0; }
-
-.nav-search-input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 0.5rem 1.75rem 0.5rem 2.5rem; font-size: var(--fs-sm); color: var(--text-sidebar); outline: none; transition: border-color 0.2s, background 0.2s; font-family: inherit; }
+.nav-search-input { width: 100%; background: var(--nav-search-bg); border: 1px solid var(--nav-search-border); border-radius: 10px; padding: 0.5rem 1.75rem 0.5rem 2.5rem; font-size: var(--fs-sm); color: var(--text-sidebar); outline: none; transition: border-color 0.2s, background 0.2s; font-family: inherit; }
 
 .nav-search-input::placeholder { color: var(--text-dim); }
 
-.nav-search-input:focus { border-color: rgb(from var(--brand-primary) r g b / 0.4); background: rgba(255,255,255,0.07); }
+.nav-search-input:focus { border-color: var(--nav-search-border-focus); background: var(--nav-search-bg-focus); }
 
 .nav-search-input::-webkit-search-cancel-button { display: none; }
 
-.nav-search-clear { position: absolute; right: 0.375rem; display: none; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; border: none; background: rgba(255,255,255,0.1); color: var(--text-dim); font-size: 15px; line-height: 1; cursor: pointer; padding: 0; transition: background 0.15s, color 0.15s; flex-shrink: 0; }
+.search-clear-btn { position: absolute; top: 50%; transform: translateY(-50%); display: none; align-items: center; justify-content: center; border-radius: 50%; border: none; padding: 0; cursor: pointer; flex-shrink: 0; transition: background 0.15s, color 0.15s; }
 
-.nav-search-clear:hover { background: rgba(255,255,255,0.2); color: var(--text-sidebar); }
+.search-clear-btn.is-visible { display: flex; }
 
-.nav-search-clear.is-visible { display: flex; }
+.search-clear-btn--nav { right: 0.375rem; width: 18px; height: 18px; background: var(--nav-search-clear-bg); color: var(--text-dim); }
+
+.search-clear-btn--nav svg { width: 11px; height: 11px; }
+
+.search-clear-btn--nav:hover { background: var(--nav-search-clear-bg-hover); color: var(--text-sidebar); }
 
 .nav-search-no-results { display: none; padding: 0.375rem 1.375rem 0; font-size: var(--fs-md); color: var(--text-dim); font-style: italic; }
 
@@ -966,14 +968,6 @@ code { display: inline; background: color-mix(in srgb, var(--accent3) 10%, trans
 
 .file-drop-zone .form-hint { color: var(--text-dim); white-space: normal; font-size: var(--fs-sm); margin: 0; }
 
-.del-img-check { display: inline-flex; align-items: center; gap: .4rem; font-size: var(--fs-base); cursor: pointer; margin-top: .3rem; }
-
-.existing-upload-preview { margin-bottom: .75rem; }
-
-.existing-upload-preview img { display: block; max-width: 200px; max-height: 80px; margin-bottom: .5rem; border: 1px solid var(--border); border-radius: 6px; }
-
-.existing-upload-preview .del-img-check { color: var(--danger); }
-
 /* ── Redesigned image upload panel (listing edit) ──────── */
 
 .img-upload-panel { display: flex; flex-direction: column; gap: .75rem; }
@@ -1688,13 +1682,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 /* ---- INLINE EMBED SNIPPETS ---------------------------- */
 
-.embed-snippet-wrap { position: relative; }
-
 .embed-snippet { margin-top: .35rem; font-size: .8rem; user-select: all; }
-
-.embed-copy-btn { position: absolute; top: .45rem; right: .5rem; opacity: .5; transition: opacity .2s; }
-
-.embed-snippet-wrap:hover .embed-copy-btn { opacity: 1; }
 
 /* ---- EMBED SNIPPETS REFERENCE ------------------------- */
 
@@ -1749,20 +1737,6 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 .ec-ref-panel { display: none; }
 
 .ec-ref-panel.act { display: block; }
-
-.ec-ref-advanced { margin-top: .875rem; border-radius: 0; text-transform: uppercase; letter-spacing: 0.08em; }
-
-.ec-ref-advanced > summary { list-style: none; display: flex; align-items: center; gap: .45rem; padding: .65rem .875rem; background: var(--bg-subtle); color: var(--text-muted); font-size: var(--fs-sm); font-weight: 700; cursor: pointer; user-select: none; }
-
-.ec-ref-advanced > summary::-webkit-details-marker { display: none; }
-
-.ec-ref-advanced > summary::before { content: '\25B6'; font-size: var(--fs-xs); color: var(--accent); transition: transform .14s; }
-
-.ec-ref-advanced[open] > summary { color: var(--text); border-bottom: 1px solid var(--border); }
-
-.ec-ref-advanced[open] > summary::before { transform: rotate(90deg); }
-
-.ec-ref-advanced-body .table-wrap { border: 0; text-transform: none; letter-spacing: normal; }
 
 .ec-tk { color: var(--accent3) !important; }
 
@@ -2066,9 +2040,7 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .skin-card-modes span { overflow-wrap: anywhere; }
 
-.skin-card-active-badge { display: inline-flex; align-items: center; gap: .25rem; margin-top: .25rem; font-size: var(--fs-xs); font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
-
-.skin-card-active-badge svg { width: 11px; height: 11px; }
+.skin-card .badge { align-self: center; margin-top: .25rem; }
 
 .skin-pop { position: fixed; width: 340px; height: 158px; border-radius: 10px; overflow: hidden; display: flex; pointer-events: none; z-index: 9999; box-shadow: 0 16px 48px rgba(0,0,0,.65), 0 4px 12px rgba(0,0,0,.3), 0 0 0 1px rgba(255,255,255,.08); opacity: 0; visibility: hidden; transform: translateY(5px); transition: opacity .18s ease, visibility .18s ease, transform .18s ease; }
 

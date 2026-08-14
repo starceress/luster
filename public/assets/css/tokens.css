@@ -8,7 +8,10 @@
  before admin.css — contains no layout or component styles.
 */
 
-/* -- SELF-HOSTED FONTS --------------------------------------- */
+
+/* ------------------------------------------------------------------------ 
+  SELF-HOSTED FONTS
+------------------------------------------------------------------------ */
 @font-face {
   font-family: 'Playfair Display';
   font-style: normal;
@@ -42,7 +45,9 @@
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* -- BASE TOKENS -------------------------------------------- */
+/* ------------------------------------------------------------------------ 
+  BASE TOKENS
+------------------------------------------------------------------------ */
 :root {
   --brand-primary: #ff7eb3;
   --brand-secondary: #78e8d8;
@@ -65,9 +70,61 @@
   --font-sans: 'DM Sans', sans-serif;
   --font-serif: 'Playfair Display', serif;
   --font-mono: 'DM Mono', monospace;
+
+/* ------------------------------------------------------------------------ 
+  SHARED THEME TOKENS
+------------------------------------------------------------------------ */
+  --text-sidebar: #b8b0d8;
+  --topbar-bg: var(--bg-card);
+  --card-head-bg: var(--bg-subtle);
+  --card-head-color: var(--text-muted);
+  --welcome-bg: var(--bg-card);
+  --welcome-border: var(--border);
+  --welcome-blush: radial-gradient(circle at top right, rgb(from var(--brand-primary) r g b / 0.12) 0%, rgb(from var(--brand-secondary) r g b / 0.06) 50%, transparent 70%);
+  --card-border-1: var(--brand-primary);
+  --card-border-2: var(--brand-secondary);
+  --card-border-3: var(--brand-quaternary);
+  --card-border-4: var(--brand-tertiary);
+  --btn-primary-color: #fff;
+  --btn-primary-hover-bg: color-mix(in srgb, var(--btn-primary-bg) 75%, #fff);
+  --sidebar-active-rail: linear-gradient(180deg, var(--gradient));
+  --stat-hover-shadow: var(--shadow-lg);
+  --nav-hover-bg: rgb(from var(--brand-primary) r g b / 0.09);
+  --nav-hover-color: var(--accent);
+  --nav-hover-icon-color: var(--accent);
+  --nav-hover-icon-glow: drop-shadow(0 0 6px rgb(from var(--brand-primary) r g b / 0.45));
+  --sidebar-label-color: rgb(from var(--brand-primary) r g b / 0.35);
+  --link-hover-color: var(--accent3);
+  --card-head-sub-color: var(--text-dim);
+  --section-divider-color: var(--border);
+  --btn-secondary-color: #fff;
+  --btn-tertiary-bg: #ffd166;
+  --badge-info-bg: rgb(from var(--brand-secondary) r g b / .12);
+  --badge-info-color: var(--brand-secondary);
+  --badge-info-border: rgb(from var(--brand-secondary) r g b / .25);
+  --table-head-bg: var(--bg-elevated);
+  --table-head-color: var(--text-muted);
+  --filter-input-color: inherit;
+  --bulk-bg: var(--bg-subtle);
+  --todo-toggle-bg: var(--bg-subtle);
+  --code-color: var(--accent2);
+  --code-bg: rgb(from var(--brand-secondary) r g b / 0.08);
+  --strong-color: var(--accent);
+  --brand-sub-color: rgb(from var(--brand-muted) r g b / 0.45);
+  --nav-search-bg: rgba(255,255,255,0.04);
+  --nav-search-bg-focus: rgba(255,255,255,0.07);
+  --nav-search-border: rgba(255,255,255,0.07);
+  --nav-search-border-focus: rgb(from var(--brand-primary) r g b / 0.4);
+  --nav-search-clear-bg: rgba(255,255,255,0.1);
+  --nav-search-clear-bg-hover: rgba(255,255,255,0.2);
+  --scrollbar-thumb: rgb(from var(--brand-primary) r g b / .35);
+  --scrollbar-thumb-hover: rgb(from var(--brand-primary) r g b / .6);
+  --scrollbar-arrow: rgb(from var(--brand-primary) r g b / .65);
 }
 
-/* -- LIGHT THEME -------------------------------------------- */
+/* ------------------------------------------------------------------------ 
+  LIGHT THEME OVERRIDES
+------------------------------------------------------------------------ */
 [data-theme="light"] {
   --bg: #f0edf8;
   --bg-card: #faf9ff;
@@ -82,7 +139,6 @@
   --text-muted: #64599b;
   --text-dim: #6a5a96;
   --text-hint: #7767a4;
-  --text-sidebar: #b8b0d8;
   --accent: #c00261;
   --accent-glow: rgb(from var(--accent) r g b / 0.1);
   --accent2: #016f62;
@@ -100,56 +156,19 @@
   --shadow-lg: 0 16px 56px rgba(0,0,0,0.13);
   --glow: 0 0 0 3px rgb(from var(--accent) r g b / 0.1);
   --blush: radial-gradient(ellipse at 110% -10%, rgb(from var(--accent) r g b / 0.06) 0%, transparent 60%);
-  --card-border-1: #fd4fb0;
-  --card-border-2: #19ded9;
-  --card-border-3: #1d6fe8;
-  --card-border-4: #e8ac10;
   --preview: #4f46e5;
-  --topbar-bg: var(--bg-card);
   --topbar-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 0 rgb(from var(--brand-primary) r g b / .12);
-  --card-head-bg: var(--bg-subtle);
-  --card-head-color: var(--text-muted);
-  --welcome-bg: var(--bg-card);
-  --welcome-border: var(--border);
-  --welcome-blush: radial-gradient(circle at top right, rgb(from var(--brand-primary) r g b / 0.12) 0%, rgb(from var(--brand-secondary) r g b / 0.06) 50%, transparent 70%);
   --brand-gradient: linear-gradient(90deg, #fd4fb0, #19ded9, #e8ac10);
   --btn-primary-bg: #de2572;
-  --btn-primary-color: #fff;
-  --btn-primary-hover-bg: color-mix(in srgb, var(--btn-primary-bg) 75%, #fff);
-  --sidebar-active-rail: linear-gradient(180deg, var(--gradient));
-  --stat-hover-shadow: var(--shadow-lg);
-  --nav-hover-bg: rgb(from var(--brand-primary) r g b / 0.09);
-  --nav-hover-color: var(--accent);
-  --nav-hover-icon-color: var(--accent);
-  --nav-hover-icon-glow: drop-shadow(0 0 6px rgb(from var(--brand-primary) r g b / 0.45));
-  --sidebar-label-color: rgb(from var(--brand-primary) r g b / 0.35);
-  --link-hover-color: var(--accent3);
-  --card-head-sub-color: #e0005a;
   --section-label-color: var(--accent);
-  --section-divider-color: var(--border);
   --btn-secondary-bg: #277676;
-  --btn-secondary-color: #fff;
-  --btn-tertiary-bg: #ffd166;
   --btn-tertiary-color: var(--text);
-  --badge-info-bg: rgb(from var(--brand-secondary) r g b / .12);
-  --badge-info-color: var(--brand-secondary);
-  --badge-info-border: rgb(from var(--brand-secondary) r g b / .25);
-  --table-head-bg: var(--bg-elevated);
-  --table-head-color: var(--text-muted);
   --filter-input-bg: var(--bg-elevated);
-  --filter-input-color: inherit;
-  --bulk-bg: var(--bg-subtle);
-  --todo-toggle-bg: var(--bg-subtle);
-  --code-color: var(--accent2);
-  --code-bg: rgb(from var(--brand-secondary) r g b / 0.08);
-  --strong-color: var(--accent);
-  --brand-sub-color: rgb(from var(--brand-muted) r g b / 0.45);
-  --scrollbar-thumb: rgb(from var(--brand-primary) r g b / .35);
-  --scrollbar-thumb-hover: rgb(from var(--brand-primary) r g b / .6);
-  --scrollbar-arrow: rgb(from var(--brand-primary) r g b / .65);
 }
 
-/* -- DARK THEME --------------------------------------------- */
+/* ------------------------------------------------------------------------ 
+  DARK THEME OVERRIDES
+------------------------------------------------------------------------ */
 [data-theme="dark"] {
   --bg: #121020;
   --bg-card: #1a1830;
@@ -164,7 +183,6 @@
   --text-muted: #9587c4;
   --text-dim: #8c81b1;
   --text-hint: #897eaf;
-  --text-sidebar: #b8b0d8;
   --accent: #8fdcff;
   --accent-glow: rgb(from var(--accent) r g b / 0.15);
   --accent2: #d66691;
@@ -182,57 +200,15 @@
   --shadow-lg: 0 16px 56px rgba(0,0,0,0.65);
   --glow: 0 0 0 3px rgb(from var(--brand-primary) r g b / 0.15);
   --blush: radial-gradient(ellipse at 110% -10%, rgb(from var(--brand-primary) r g b / 0.06) 0%, transparent 60%);
-  --card-border-1: var(--brand-primary);
-  --card-border-2: var(--brand-secondary);
-  --card-border-3: var(--brand-quaternary);
-  --card-border-4: var(--brand-tertiary);
-  --topbar-bg: var(--bg-card);
   --topbar-shadow: 0 4px 24px rgba(0,0,0,0.35), 0 1px 0 rgb(from var(--brand-primary) r g b / .08);
-  --card-head-bg: var(--bg-subtle);
-  --card-head-color: var(--text-muted);
-  --welcome-bg: var(--bg-card);
-  --welcome-border: var(--border);
-  --welcome-blush: radial-gradient(circle at top right, rgb(from var(--brand-primary) r g b / 0.12) 0%, rgb(from var(--brand-secondary) r g b / 0.06) 50%, transparent 70%);
   --brand-gradient: linear-gradient(90deg, var(--gradient));
   --btn-primary-bg: #076de9;
-  --btn-primary-color: #fff;
-  --btn-primary-hover-bg: color-mix(in srgb, var(--btn-primary-bg) 75%, #fff);
-  --sidebar-active-rail: linear-gradient(180deg, var(--gradient));
-  --stat-hover-shadow: var(--shadow-lg);
-  --nav-hover-bg: rgb(from var(--brand-primary) r g b / 0.09);
-  --nav-hover-color: var(--accent);
-  --nav-hover-icon-color: var(--accent);
-  --nav-hover-icon-glow: drop-shadow(0 0 6px rgb(from var(--brand-primary) r g b / 0.45));
-  --sidebar-label-color: rgb(from var(--brand-primary) r g b / 0.35);
-  --link-hover-color: var(--accent3);
-  --card-head-sub-color: rgb(from var(--brand-muted) r g b / 0.65);
   --section-label-color: var(--accent2);
-  --section-divider-color: var(--border);
   --btn-secondary-bg: #de2572;
-  --btn-secondary-color: #fff;
-  --btn-tertiary-bg: #ffd166;
   --btn-tertiary-color: var(--bg);
-  --badge-info-bg: rgb(from var(--brand-secondary) r g b / .12);
-  --badge-info-color: var(--brand-secondary);
-  --badge-info-border: rgb(from var(--brand-secondary) r g b / .25);
-  --table-head-bg: var(--bg-elevated);
-  --table-head-color: var(--text-muted);
   --filter-input-bg: #322e4d;
-  --filter-input-color: inherit;
-  --bulk-bg: var(--bg-subtle);
-  --todo-toggle-bg: var(--bg-subtle);
-  --code-color: var(--accent2);
-  --code-bg: rgb(from var(--brand-secondary) r g b / 0.08);
-  --strong-color: var(--accent);
-  --brand-sub-color: rgb(from var(--brand-muted) r g b / 0.45);
-  --scrollbar-thumb: rgb(from var(--brand-primary) r g b / .2);
-  --scrollbar-thumb-hover: rgb(from var(--brand-primary) r g b / .45);
-  --scrollbar-arrow: rgb(from var(--brand-primary) r g b / .5);
 }
 
-/* The sidebar stays dark regardless of the active theme, so it needs the
-   original bright --pending even under [data-theme="light"], where the
-   main-content --pending is darkened for WCAG contrast on light backgrounds. */
 .sidebar {
   --pending: #f97316;
 }

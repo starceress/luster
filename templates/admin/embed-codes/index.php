@@ -327,12 +327,12 @@ $epSafe = View::e($ep);
                   data-setup-text="<?= htmlspecialchars($setupLine1 . "\n\n" . $setupLine5, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
         </div>
 
-        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>): <span class="ec-setup-help" data-desc="This one line sets up your page to work with Luster: it tells your page where Luster is installed, loads the tools Luster needs to run, and lets your page serve Luster&rsquo;s stylesheet and uploaded images without showing visitors where Luster lives on your server.">?</span></p>
+        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>): <span class="ec-setup-help" data-desc="This one line sets up your page to work with Luster: it tells your page where Luster is installed, loads the tools Luster needs to run, and lets your page serve Luster's stylesheet and uploaded images without showing visitors where Luster lives on your server.">?</span></p>
         <div class="ec-setup-snip">
           <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine1) ?></code></div>
         </div>
 
-        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked: <span class="ec-setup-help" data-desc="This loads Luster&rsquo;s default styles for embeds so they're styled automatically. It uses ?luster_css instead of a direct file path so visitors can&rsquo;t see where Luster is installed on your server. Placing it before your own stylesheets lets your CSS override Luster&rsquo;s default.">?</span></p>
+        <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked: <span class="ec-setup-help" data-desc="This loads Luster's default styles for embeds so they're styled automatically. It uses ?luster_css instead of a direct file path so visitors can't see where Luster is installed on your server. Placing it before your own stylesheets lets your CSS override Luster's default.">?</span></p>
         <div class="ec-setup-snip">
           <div class="ec-setup-snip-line"><code>&lt;<span class="ec-hl-k">link</span> <span class="ec-hl-v">rel</span>=<span class="ec-hl-s">&quot;stylesheet&quot;</span> <span class="ec-hl-v">href</span>=<span class="ec-hl-s">&quot;?luster_css&quot;</span>&gt;</code></div>
         </div>
@@ -478,9 +478,9 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
           </div>
-          <details class="ec-ref-card ec-ref-advanced">
+          <details class="form-details">
             <summary>Advanced settings</summary>
-            <div class="ec-ref-advanced-body table-wrap">
+            <div class="form-details-body table-wrap">
               <table class="data-table">
                 <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
                 <tbody>
@@ -562,9 +562,9 @@ $epSafe = View::e($ep);
             </table>
             </div>
 </div>
-          <details class="ec-ref-card ec-ref-advanced">
+          <details class="form-details">
             <summary>Advanced affiliate setting</summary>
-            <div class="ec-ref-advanced-body table-wrap">
+            <div class="form-details-body table-wrap">
               <table class="data-table">
                 <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
                 <tbody>
@@ -585,9 +585,9 @@ $epSafe = View::e($ep);
             </table>
             </div>
 </div>
-          <details class="ec-ref-card ec-ref-advanced">
+          <details class="form-details">
             <summary>Advanced contact form setting</summary>
-            <div class="ec-ref-advanced-body table-wrap">
+            <div class="form-details-body table-wrap">
               <table class="data-table">
                 <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
                 <tbody>
@@ -678,9 +678,9 @@ $epSafe = View::e($ep);
             </table>
             </div>
 </div>
-          <details class="ec-ref-card ec-ref-advanced">
+          <details class="form-details">
             <summary>Advanced stats setting</summary>
-            <div class="ec-ref-advanced-body table-wrap">
+            <div class="form-details-body table-wrap">
               <table class="data-table">
                 <thead><tr><th class="actions-col">Setting</th><th>What it does</th></tr></thead>
                 <tbody>
@@ -1169,9 +1169,9 @@ $epSafe = View::e($ep);
         <div class="ec-ref-panel" id="ec-ref-cstat-vars">
           <h3 class="panel-header-title">Stats for custom PHP</h3>
           <p class="text-muted">Advanced. These are plain PHP variables created after you require <code>collective-stats.php</code>. Number and text variables can be echoed directly; object or array variables need PHP code that picks a key or property first.</p>
-          <details class="ec-ref-card ec-ref-advanced">
+          <details class="form-details">
             <summary>Show advanced PHP stats</summary>
-            <div class="ec-ref-advanced-body table-wrap">
+            <div class="form-details-body table-wrap">
             <table class="data-table">
               <thead><tr><th class="actions-col">PHP variable</th><th>What it shows</th></tr></thead>
               <tbody>

@@ -35,22 +35,22 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div class="card-head">Settings</div>
     <div class="panel-body">
       <a href="#panel-general" class="mini-nav-item"><?= View::icon('general') ?> General</a>
+      <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
       <a href="#panel-admin" class="mini-nav-item"><?= View::icon('account') ?> Account Details</a>
       <a href="#panel-accounts" class="mini-nav-item"><?= View::icon('admins') ?> Admin Accounts</a>
       <a href="#panel-devices" class="mini-nav-item"><?= View::icon('devices') ?> Remembered Devices</a>
       <a href="#panel-notifications" class="mini-nav-item"><?= View::icon('email') ?> Notifications</a>
-      <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
       <a href="#panel-smtp" class="mini-nav-item"><?= View::icon('email') ?> SMTP & Email</a>
       <a href="#panel-blacklist" class="mini-nav-item"><?= View::icon('blacklist') ?> Spam Filtering</a>
       <a href="#panel-system" class="mini-nav-item"><?= View::icon('wrench') ?> System & Updates</a>
       <div class="select-wrap settings-nav-select-wrap">
         <select id="settings-nav-select">
           <option value="panel-general">General</option>
+          <option value="panel-appearance">Appearance</option>
           <option value="panel-admin">Account Details</option>
           <option value="panel-accounts">Admin Accounts</option>
           <option value="panel-devices">Remembered Devices</option>
           <option value="panel-notifications">Notifications</option>
-          <option value="panel-appearance">Appearance</option>
           <option value="panel-smtp">SMTP &amp; Email</option>
           <option value="panel-blacklist">Spam Filtering</option>
           <option value="panel-system">System Details</option>

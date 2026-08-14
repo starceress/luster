@@ -98,12 +98,12 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
     </a>
   </div>
 
-  <div class="nav-search-wrap">
-    <?= View::icon('search', ['class' => 'nav-search-icon', 'aria-hidden' => 'true']) ?>
+  <div class="search-field-wrap nav-search-wrap">
+    <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
     <input type="search" id="nav-search-input" class="nav-search-input"
            placeholder="Search&hellip;" autocomplete="off" spellcheck="false" aria-label="Search navigation"
            data-base="<?= $b ?>">
-    <button type="button" class="nav-search-clear" id="nav-search-clear" aria-label="Clear Search">&times;</button>
+    <button type="button" class="search-clear-btn search-clear-btn--nav" id="nav-search-clear" aria-label="Clear Search"><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
   </div>
 
   <nav class="sidebar-nav">
