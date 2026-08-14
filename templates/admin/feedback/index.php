@@ -115,8 +115,7 @@ use Luster\Core\View;
       <div class="field-row field-row--top<?= isset($field_errors['message']) ? ' has-error' : '' ?>">
         <label class="field-label" for="f-message">Description <span class="req">*</span></label>
         <div>
-          <textarea id="f-message" name="message" class="form" rows="9"><?= View::e($old['message'] ?? '') ?></textarea>
-          <p class="form-hint">Please describe your issue, question, or suggestion in as much detail as possible.</p>
+          <textarea id="f-message" name="message" class="form" rows="9" placeholder="Please describe your issue, question, or suggestion in as much detail as possible."><?= View::e($old['message'] ?? '') ?></textarea>
           <?php if (isset($field_errors['message'])): ?>
           <p class="field-error"><?= View::e($field_errors['message']) ?></p>
           <?php endif; ?>

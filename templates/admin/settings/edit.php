@@ -37,7 +37,6 @@ $fe = $field_errors ?? [];
     </div>
 
     <div class="card-body">
-      <div class="section-label">Account Details</div>
 
       <div class="field-row<?= !empty($fe['username']) ? ' has-error' : '' ?>">
         <label class="field-label" for="au-username">Username <span class="req">*</span></label>
@@ -45,7 +44,6 @@ $fe = $field_errors ?? [];
           <input id="au-username" type="text" name="username" class="form"
                  maxlength="50" required autocomplete="off"
                  value="<?= View::e($user->username) ?>">
-          <p class="form-hint">The name this admin types on the login screen.</p>
           <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -56,7 +54,6 @@ $fe = $field_errors ?? [];
           <input id="au-email" type="email" name="email" class="form"
                  maxlength="255" required autocomplete="off"
                  value="<?= View::e($user->email) ?>">
-          <p class="form-hint">Used for admin account messages, including admin password resets.</p>
           <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -67,11 +64,9 @@ $fe = $field_errors ?? [];
           <input id="au-owner-name" type="text" name="display_name" class="form"
                  maxlength="100" required autocomplete="off"
                  value="<?= View::e($user->displayName ?? '') ?>">
-          <p class="form-hint">The friendly name shown inside the admin panel for this account.</p>
+          <p class="form-hint">The display name shown inside the admin panel for this account.</p>
         </div>
       </div>
-
-      <div class="section-label">Password</div>
 
       <div class="field-row<?= !empty($fe['new_password']) ? ' has-error' : '' ?>">
         <label class="field-label" for="au-pass">New Password</label>
@@ -79,13 +74,13 @@ $fe = $field_errors ?? [];
           <div class="input-icon-wrap">
             <input id="au-pass" type="password" name="new_password" class="form"
                    maxlength="255" autocomplete="new-password"
-                   placeholder="Leave blank to keep current">
+                   placeholder="Leave blank to keep current password">
             <button type="button" class="input-icon-btn" data-pw-toggle aria-label="Show password" tabindex="-1">
               <?= View::icon('eye-on') ?>
               <?= View::icon('eye-off') ?>
             </button>
           </div>
-          <p class="form-hint">Leave blank to keep the current password. If changing it, use at least 12 characters.</p>
+          <p class="form-hint">Leave blank to keep your current password. New passwords must be at least 12 characters.</p>
           <?php if (!empty($fe['new_password'])): ?><p class="field-error"><?= View::e($fe['new_password'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -96,13 +91,12 @@ $fe = $field_errors ?? [];
           <div class="input-icon-wrap">
             <input id="au-confirm" type="password" name="new_password_confirm" class="form"
                    maxlength="255" autocomplete="new-password"
-                   placeholder="Repeat new password">
+                   placeholder="Retype new password">
             <button type="button" class="input-icon-btn" data-pw-toggle aria-label="Show password" tabindex="-1">
               <?= View::icon('eye-on') ?>
               <?= View::icon('eye-off') ?>
             </button>
           </div>
-          <p class="form-hint">Type the same new password again so Luster can catch typos.</p>
           <?php if (!empty($fe['new_password_confirm'])): ?><p class="field-error"><?= View::e($fe['new_password_confirm'][0]) ?></p><?php endif; ?>
         </div>
       </div>

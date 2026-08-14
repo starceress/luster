@@ -74,7 +74,7 @@ $tabDefs = [
   <div class="actions-row">
     <?php if ($lid > 0): ?>
       <a href="<?= $b ?>/admin/import-members" class="btn btn-quaternary btn-sm">&#8595; Import Members</a>
-      <a href="<?= $b ?>/admin/members/<?= $lid ?>/export" class="btn btn-quaternary btn-sm">&#8593; Export CSV</a>
+      <a href="<?= $b ?>/admin/members/<?= $lid ?>/export" class="btn btn-quaternary btn-sm">&#8593; Export Members</a>
     <?php else: ?>
       <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-quaternary btn-sm">&#8593; Export Pending</a>
     <?php endif; ?>

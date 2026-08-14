@@ -23,6 +23,7 @@ $fe = $field_errors ?? [];
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
+
 <form method="POST" action="<?= $b ?>/admin/admin-users/add" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
@@ -36,7 +37,11 @@ $fe = $field_errors ?? [];
     </div>
 
     <div class="card-body">
-      <div class="section-label">Account Details</div>
+
+    <div class="callout callout-warn">
+      <?= View::icon('caution') ?>
+      <div><strong>This account will have full admin access.</strong> Luster doesn't have separate permission levels yet &mdash; every admin account, including this new one, can see and change everything: listings, members, site settings, backups, and even other admin accounts. Only create a login for someone you'd trust with the same access you have.</div>
+    </div>
 
       <div class="field-row<?= !empty($fe['username']) ? ' has-error' : '' ?>">
         <label class="field-label" for="au-username">Username <span class="req">*</span></label>
@@ -44,7 +49,6 @@ $fe = $field_errors ?? [];
           <input id="au-username" type="text" name="username" class="form"
                  maxlength="50" required autocomplete="off"
                  value="<?= View::e((string) ($old['username'] ?? '')) ?>">
-          <p class="form-hint">The name this admin will type on the login screen.</p>
           <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -66,11 +70,9 @@ $fe = $field_errors ?? [];
           <input id="au-owner-name" type="text" name="display_name" class="form"
                  maxlength="100" required autocomplete="off"
                  value="<?= View::e((string) ($old['display_name'] ?? '')) ?>">
-          <p class="form-hint">The friendly name shown inside the admin panel for this account.</p>
+          <p class="form-hint">The display name shown inside the admin panel for this account.</p>
         </div>
       </div>
-
-      <div class="section-label">Password</div>
 
       <div class="field-row<?= !empty($fe['password']) ? ' has-error' : '' ?>">
         <label class="field-label" for="au-pass">Password <span class="req">*</span></label>
@@ -83,7 +85,7 @@ $fe = $field_errors ?? [];
               <?= View::icon('eye-off') ?>
             </button>
           </div>
-          <p class="form-hint">Minimum 12 characters. The new admin can change this after logging in.</p>
+          <p class="form-hint">Minimum 12 characters. The user can change this after logging in.</p>
           <?php if (!empty($fe['password'])): ?><p class="field-error"><?= View::e($fe['password'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -99,7 +101,6 @@ $fe = $field_errors ?? [];
               <?= View::icon('eye-off') ?>
             </button>
           </div>
-          <p class="form-hint">Type the same password again so Luster can catch typos.</p>
           <?php if (!empty($fe['password_confirm'])): ?><p class="field-error"><?= View::e($fe['password_confirm'][0]) ?></p><?php endif; ?>
         </div>
       </div>

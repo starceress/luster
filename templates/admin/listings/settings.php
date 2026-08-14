@@ -76,8 +76,11 @@ $_urlFields   = [
 
       <p>
         When someone joins a listing, resets their password, or applies to affiliate, Luster needs to know which page on your
-        site hosts that form. Set those filenames here and they&rsquo;ll apply to every listing by default. If a specific listing
-        uses a different page, you can override it from that listing&rsquo;s <strong>Embed</strong> tab.
+        site hosts that form. <strong>Most sites can leave these blank</strong> &mdash; Luster will just send fans to the listing&rsquo;s
+        own page instead, which works fine for most sites. Fill these in if you&rsquo;d rather send fans straight to a specific
+        page (like a dedicated <code>join.php</code>) instead. Set filenames here and they&rsquo;ll apply to every listing by
+        default; a specific listing can still override it from that listing&rsquo;s <strong>Embed</strong> tab.
+        <span class="ec-setup-help" data-desc="Luster checks three places, in this order: the page set on a specific listing&rsquo;s Embed tab, then the default you set here, then finally just the listing&rsquo;s own URL &mdash; whichever it finds first wins.">?</span>
       </p>
       <?php $first = true; foreach ($_urlFields as $key => [$label, $hint]): ?>
         <div class="field-row<?= $first ? ' field-row--top' : '' ?>">

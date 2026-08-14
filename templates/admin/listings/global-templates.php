@@ -301,7 +301,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
           <div class="section-label">Affiliates <?= $srcBadge('affiliates_section_template') ?></div>
-          <p class="form-hint form-hint--spaced">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
+          <p>Wrap each affiliate in <code>{each_affiliate}&hellip;{/each_affiliate}</code>. Make sure to include BOTH <code>{affiliate_apply_toggle}</code> and <code>{affiliate_apply_form}</code>.</p>
 
           <div class="field-row field-row--top" style="margin-bottom: 1em">
             <label class="field-label" for="gl-aff-apply-style">Toggle style</label>
@@ -312,7 +312,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
                   <option value="button" <?= ($affiliate_apply_style ?? 'button') === 'button' ? 'selected' : '' ?>>Button</option>
                 </select>
               </div>
-              <p class="form-hint">How the <code>{affiliate_apply_toggle}</code> appears &mdash; as a plain underlined link or a styled button. Per-listing overrides this.</p>
+              <p class="form-hint">How the <code>{affiliate_apply_toggle}</code> appears &mdash; as a plain underlined link or a button.</p>
             </div>
           </div>
 
@@ -322,7 +322,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
               <input id="gl-aff-toggle-label" type="text" name="affiliate_apply_toggle_label" class="form" maxlength="200"
                      value="<?= View::e($affiliate_apply_toggle_label ?? '') ?>"
                      placeholder="Apply to become an affiliate?">
-              <p class="form-hint">Default text for the <code>{affiliate_apply_toggle}</code>. Per-listing overrides this. Leave blank for the built-in default.</p>
+              <p class="form-hint">Text displayed on the the <code>{affiliate_apply_toggle}</code> text link/button.</p>
             </div>
           </div>
 
@@ -337,7 +337,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
           <div class="section-label">Affiliate Application <?= $srcBadge('affiliate_apply_form_template') ?></div>
-          <p class="form-hint form-hint--spaced">Default layout for the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <p>Don't forget to add <code>{submit_button}</code> in order for your form to work.</p>
           <div class="field-group">
             <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
           </div>
@@ -349,7 +349,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
           <div class="section-label">Contact Form <?= $srcBadge('contact_form_template') ?></div>
-          <p class="form-hint form-hint--spaced">Default layout for the contact form (name, email, subject, message). Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <p>Don't forget to add <code>{submit_button}</code> in order for your form to work.</p>
           <div class="field-group">
             <textarea name="listing_default_contact_form_template" id="listing_default_contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_contact_form_template')) ?></textarea>
           </div>
@@ -361,7 +361,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
 
         <div class="tpl-group-section" data-tpl-group="newsfeed" <?= $_grp('newsfeed') ?>>
           <div class="section-label">News Feed <?= $srcBadge('newsfeed_template') ?></div>
-          <p class="form-hint form-hint--spaced">Default for listings with the News Feed add-on. Wrap each entry in <code>{each_newsfeed_entry}&hellip;{/each_newsfeed_entry}</code>.</p>
+          <p>Wrap each entry in <code>{each_newsfeed_entry}&hellip;{/each_newsfeed_entry}</code>.</p>
           <div class="field-group">
             <textarea name="listing_default_newsfeed_template" id="listing_default_newsfeed_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_newsfeed_template')) ?></textarea>
           </div>

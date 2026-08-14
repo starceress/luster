@@ -68,7 +68,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
         <label class="surface import-choice-item">
           <input type="radio" name="_conn_mode" value="live" id="js-mode-live" checked>
           <div>
-            <strong>Live database connection</strong>
+            <strong>Live Database Connection</strong>
             <span class="form-hint" style="margin:2px 0 0">
               Type the old database login details below.
               <?php if ($source === 'enthusiast'): ?>
@@ -80,7 +80,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
         <label class="surface import-choice-item">
           <input type="radio" name="_conn_mode" value="dump" id="js-mode-dump"<?= $dump_active ? ' checked' : '' ?>>
           <div>
-            <strong>Upload SQL dump</strong>
+            <strong>Upload SQL File</strong>
             <span class="form-hint" style="margin:2px 0 0">Upload a database backup file ending in <code>.sql</code> (max&nbsp;50&nbsp;MB). Luster detects the table layout for you.</span>
           </div>
         </label>
@@ -186,14 +186,14 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
     
               </div>
 
-    <!-- ── SQL dump upload ──────────────────────────────────────── -->
+    <!-- ── SQL file upload ──────────────────────────────────────── -->
     <div id="js-dump-section"<?= $dump_active ? '' : ' class="is-hidden"' ?>>
       <div class="card-body">
-        <div class="section-label">SQL Dump File</div>
+        <div class="section-label">SQL File Upload</div>
         <?php if ($dump_active): ?>
           <div class="callout callout-info" style="margin-bottom:1rem">
             <?= View::icon('check') ?>
-            <span>SQL dump already loaded for this session. <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="link">Skip to Options &rarr;</a></span>
+            <span>SQL file already loaded for this session. <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="link">Skip to Options &rarr;</a></span>
           </div>
         <?php endif; ?>
         
@@ -208,7 +208,6 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
               <strong>Drag &amp; drop or click to browse</strong>
               <span class="form-hint">.SQL &mdash; max 50 MB</span>
             </label>
-            <p class="form-hint" style="margin-top:.5rem">Use a SQL export of the old database. Luster only reads table definitions and inserted rows from the file; it ignores other SQL commands.</p>
           </div>
         </div>
       </div>

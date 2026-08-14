@@ -359,6 +359,8 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 
 .card-head { padding: .65rem 1rem; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; font-size: var(--fs-base); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--card-head-color); background: var(--card-head-bg); }
 
+.card-head-sub { font-size: var(--fs-sm); color: var(--card-head-sub-color); font-weight: 400; margin-left: .2rem; text-transform: uppercase; }
+
 .card-body { color: var(--text-muted); padding: 1.25rem 1.5rem; }
 
 .card-body + .card-body { border-top: 1px solid var(--hairline); }
@@ -400,8 +402,6 @@ button.link { background: none; border: none; padding: 0; font-family: inherit; 
 .main-card { position: relative; }
 
 .main-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--brand-primary), var(--accent), var(--brand-tertiary)); z-index: 1; }
-
-.card-head-sub { font-size: var(--fs-sm); color: var(--card-head-sub-color); font-weight: 400; margin-left: .2rem; text-transform: uppercase;}
 
 .card:has(.mem-table) { overflow-x: auto; }
 
@@ -907,7 +907,7 @@ input[type="checkbox"], input[type="radio"] { width: 15px; height: 15px; accent-
 
 .field-group.has-error .field-label { color: var(--danger); }
 
-.field-error { font-size: var(--fs-sm); color: var(--danger); margin-top: .35rem; line-height: 1.35; }
+.field-error { font-size: var(--fs-base); color: var(--danger); margin-top: .35rem; line-height: 1.35; }
 
 .form-details { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 0.5rem; margin-bottom: .55rem; }
 

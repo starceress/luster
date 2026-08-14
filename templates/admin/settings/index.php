@@ -115,7 +115,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="card-body">
             <div class="section-label">Change Password</div>
             <div class="field-group<?= !empty($fe['admin_current_password']) ? ' has-error' : '' ?>">
-              <label class="field-label" for="p-current-pass">Current Password <em class="opt">(required to set a new password)</em></label>
+              <label class="field-label" for="p-current-pass">Current Password</label>
               <div class="input-icon-wrap">
                 <input id="p-current-pass" type="password" name="admin_current_password" class="form"
                        maxlength="255" autocomplete="current-password"
@@ -125,7 +125,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <?= View::icon('eye-off') ?>
                 </button>
               </div>
-              <p class="form-hint">Only needed when you are changing your password.</p>
+              <p class="form-hint">Only required when when you want to change your current password.</p>
               <?php if (!empty($fe['admin_current_password'])): ?><p class="field-error"><?= View::e($fe['admin_current_password'][0]) ?></p><?php endif; ?>
             </div>
             <div class="field-grid">
@@ -134,7 +134,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <div class="input-icon-wrap">
                   <input id="p-new-pass" type="password" name="admin_new_password" class="form"
                          maxlength="255" autocomplete="new-password"
-                         placeholder="Leave blank to keep current">
+                         placeholder="Leave blank to keep current password">
                   <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
                     <?= View::icon('eye-on') ?>
                     <?= View::icon('eye-off') ?>
@@ -148,7 +148,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <div class="input-icon-wrap">
                   <input id="p-confirm-pass" type="password" name="admin_confirm_password" class="form"
                          maxlength="255" autocomplete="new-password"
-                         placeholder="Repeat new password">
+                         placeholder="Retype new password">
                   <button type="button" data-pw-toggle class="input-icon-btn" aria-label="Show password" tabindex="-1">
                     <?= View::icon('eye-on') ?>
                     <?= View::icon('eye-off') ?>
@@ -358,7 +358,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <span>Dark: <?= View::e($skin['dark']) ?></span>
                   </span>
                   <?php if ($activeSkin === $slug): ?>
-                    <span class="skin-card-active-badge"><?= View::icon('check') ?> Active</span>
+                    <span class="badge badge-current">Active</span>
                   <?php endif; ?>
                 </button>
               </form>
@@ -375,7 +375,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <span class="skin-card-name"><?= View::e(ucwords(str_replace('-', ' ', $slug))) ?></span>
                   <span class="skin-card-desc">Community skin</span>
                   <?php if ($activeSkin === $slug): ?>
-                    <span class="skin-card-active-badge"><?= View::icon('check') ?> Active</span>
+                    <span class="badge badge-current">Active</span>
                   <?php endif; ?>
                 </button>
               </form>
@@ -435,7 +435,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <label class="field-label" for="s-site-url">Website Public URL <span class="req">*</span></label>
               <input id="s-site-url" type="url" name="site_url" class="form" maxlength="500" required
                      value="<?= View::e(cfgVal($cfg, 'site_url')) ?>">
-              <p class="form-hint">Your website's public homepage URL, <i>without</i> a trailing slash. Luster uses this for the "Visit Site" admin link in the topand as a fallback for embedded forms.</p>
+              <p class="form-hint">Your website's public homepage URL, <i>without</i> a trailing slash. Luster uses this for outgoing emails and as a fallback for processing embedded forms.</p>
               <?php if (!empty($fe['site_url'])): ?><p class="field-error"><?= View::e($fe['site_url'][0]) ?></p><?php endif; ?>
             </div>
           </div>
@@ -448,30 +448,20 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="s-owner-name" type="text" name="owner_name" class="form"
                        maxlength="100"
                        value="<?= View::e(cfgVal($cfg, 'owner_name')) ?>">
-                <p class="form-hint">The public display name used in email templates and messages.</p>
+                <p class="form-hint">The public display name used in outgoing emails and your internal admin account.</p>
               </div>
               <div class="field-group">
                 <label class="field-label" for="s-owner-email">Contact Email</label>
                 <input id="s-owner-email" type="email" name="owner_email" class="form" maxlength="255"
                        value="<?= View::e(cfgVal($cfg, 'owner_email')) ?>">
-                <p class="form-hint">The public contact email used for outgoing messages. This can be different from your admin login email.</p>
+                <p class="form-hint">The public contact email used for outgoing messages. <i>(This can be different from your admin login email.)</i></p>
               </div>
             </div>
           </div>
 
           <div class="card-body">
-            <div class="section-label">Embed Form URL</div>
-            <div class="field-group">
-              <label class="field-label" for="s-embed-url">Embed Form Submission URL</label>
-              <?php $_embedBaseUrl = cfgVal($cfg, 'embed_base_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
-              <input id="s-embed-url" type="url" name="embed_base_url" class="form" maxlength="500"
-                     value="<?= View::e($_embedBaseUrl) ?>">
-              <p class="form-hint">The URL embedded forms on external pages submit to. Defaults to your install URL. Only change this if your public fanlisting pages are on a different domain or subdirectory than the Luster admin app.</p>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <div class="section-label">Display &amp; Locale</div>
+            <div class="section-label">Date & Time Format</div>
+              <p>Choose the timezone for all date/time display throughout the admin panel.</p>
             <div class="field-grid field-grid--3">
               <div class="field-group">
                 <label class="field-label" for="s-timezone">Timezone</label>
@@ -527,7 +517,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?php endforeach; ?>
                   </select>
                 </div>
-                <p class="form-hint">Choose the timezone for all date/time display throughout the admin panel.</p>
+
               </div>
               <div class="field-group">
                 <label class="field-label" for="s-date-format">Date Format</label>
@@ -543,12 +533,11 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?php endforeach; ?>
                   </select>
                 </div>
-                <p class="form-hint">Choose how dates look in admin tables and activity screens.</p>
               </div>
               <div class="field-group">
                 <label class="field-label" for="s-time-format">Time Format</label>
                 <?php
-                  $timeFmtFormats = ['H:i', 'g:i A', 'g:i a'];
+                  $timeFmtFormats = ['H:i', 'g:i A'];
                   $timeFmtOptions = array_combine($timeFmtFormats, array_map(static fn($f) => date($f), $timeFmtFormats));
                   $curTimeFmt = $admin_time_format ?? 'H:i';
                 ?>
@@ -559,8 +548,18 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?php endforeach; ?>
                   </select>
                 </div>
-                <p class="form-hint">Choose 24-hour time or 12-hour AM/PM time.</p>
               </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="section-label">Embed Form URL</div>
+            <div class="field-group">
+              <label class="field-label" for="s-embed-url">Embed Form Submission URL <span class="ec-setup-help" data-desc="This is the address your forms actually send their data to when someone hits Submit &mdash; basically, which install of Luster answers the request. It's different from Host Page URLs (Owned Listings &rarr; Settings), which control the form's location on your website, not where the form itself submits to.">?</span></label>
+              <?php $_embedBaseUrl = cfgVal($cfg, 'embed_base_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
+              <input id="s-embed-url" type="url" name="embed_base_url" class="form" maxlength="500"
+                     value="<?= View::e($_embedBaseUrl) ?>">
+              <p class="form-hint">Most sites never need to change this. Only change it if your public fanlisting pages are on a different domain or subdirectory than where Luster itself is installed. </p>
             </div>
           </div>
 
@@ -711,7 +710,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <input type="hidden" name="update_email_notify" value="0">
                   <input type="checkbox" id="notif-update-email" name="update_email_notify" value="1"
                          <?= ($site_settings['update_email_notify'] ?? '1') === '1' ? 'checked' : '' ?>>
-                  <span class="toggle-label">Email me when a new Luster update is available</span>
+                  <span class="toggle-label">Email me when a new Luster update is available.</span>
                 </label>
                 <p class="form-hint">Sends one email when an update is detected.</p>
               </div>
@@ -724,7 +723,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <input type="hidden" name="pending_digest_enabled" value="0">
                   <input type="checkbox" id="notif-pending-digest" name="pending_digest_enabled" value="1"
                          <?= ($site_settings['pending_digest_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
-                  <span class="toggle-label">Send a weekly summary of all pending items</span>
+                  <span class="toggle-label">Email me a weekly summary of all pending items.</span>
                 </label>
                 <p class="form-hint">Sends at most one email per week.</p>
               </div>
@@ -735,7 +734,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="section-label">Overdue Notifications</div>
 
             <div class="field-row">
-              <label class="field-label" for="notif-stale-days">Overdue Warning (days)</label>
+              <label class="field-label" for="notif-stale-days">Days until Overdue Warning</label>
               <div>
                 <input id="notif-stale-days" type="number" name="stale_days" class="form form--compact"
                        min="1" max="365"
@@ -751,7 +750,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <input type="hidden" name="overdue_notify_enabled" value="0">
                   <input type="checkbox" id="notif-overdue-email" name="overdue_notify_enabled" value="1"
                          <?= ($site_settings['overdue_notify_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
-                  <span class="toggle-label">Sends an email reminder when listings haven't been updated in X many days. Default: 55.</span>
+                  <span class="toggle-label">Email me a reminder when listings haven't been updated in X many days.</span>
                 </label>
                 <p class="form-hint">Sends at most one reminder per 24 hours.</p>
               </div>
@@ -763,7 +762,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="notif-overdue-days" type="number" name="overdue_days" class="form form--compact"
                        min="1" max="365"
                        value="<?= View::e($site_settings['overdue_days'] ?? '55') ?>">
-                <p class="form-hint">Send the reminder when this many days pass without an update. Default: 55.</p>
+                <p class="form-hint">Sends the email reminder when this many days pass have passed without an update. Default: 55.</p>
               </div>
             </div>
 
@@ -779,20 +778,13 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           ?>
 
             <div class="field-row">
-              <label class="field-label">Last Sent</label>
+              <label class="field-label">Last Overdue Email Sent</label>
               <div>
                 <p>Last notification sent: <strong><?= View::e($nfLastSent) ?></strong></p>
-              </div>
-            </div>
-
-            <div class="field-row">
-              <label class="field-label">Send Now</label>
-              <div>
                 <button type="button" class="btn btn-quaternary btn-sm"
                         data-submit-form="overdue-now-form">
-                  <?= View::icon('email') ?> Send overdue email now
+                  <?= View::icon('email') ?> Send Overdue Email Now
                 </button>
-                <p class="form-hint" style="margin-top:.5rem">Bypasses the 24-hour window and immediately sends the overdue email if any listings are due.</p>
               </div>
             </div>
           </div>
@@ -836,10 +828,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <p class="form-hint">Use a full email address to block one person, or start with <code>@</code> to block everyone from that email domain.</p>
               </div>
               <div class="field-group">
-                <label class="field-label" for="bl-note">Note <em class="opt">(optional)</em></label>
+                <label class="field-label" for="bl-note">Note</label>
                 <input id="bl-note" type="text" name="note" class="form"
                        maxlength="500" placeholder="Why this address was blocked">
-                <p class="form-hint">Internal note &mdash; not shown to visitors.</p>
+                <p class="form-hint">Optional. Internal note &mdash; not shown to visitors.</p>
               </div>
             </div>
           </div>

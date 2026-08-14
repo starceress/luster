@@ -1912,7 +1912,7 @@ final class SettingsController extends AdminController
             : 'j M Y';
         $siteSettings->set('date_format', $dateFormat);
 
-        $allowedTimeFormats = ['H:i', 'g:i A', 'g:i a'];
+        $allowedTimeFormats = ['H:i', 'g:i A'];
         $timeFormat = in_array($request->post('time_format'), $allowedTimeFormats, true)
             ? (string) $request->post('time_format')
             : 'H:i';

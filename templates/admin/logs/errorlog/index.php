@@ -18,10 +18,10 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
 <?php if ($total > 0): ?>
 <div class="toolbar">
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/errorlog/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export CSV</a>
+    <a href="<?= $b ?>/admin/errorlog/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export Log</a>
     <form method="POST" action="<?= $b ?>/admin/errorlog/flush" id="flush-logs-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-      <button type="button" class="btn btn-danger btn-sm" id="flush-logs-btn"><?= View::icon('delete') ?> Flush Logs</button>
+      <button type="button" class="btn btn-danger btn-sm" id="flush-logs-btn"><?= View::icon('delete') ?> Flush Log</button>
     </form>
   </div>
 </div>
