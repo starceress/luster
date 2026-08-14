@@ -254,7 +254,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
         <strong>Drag &amp; drop or click to browse</strong>
         <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
       </div>
-      <p class="panel-hint" style="margin-top:.5rem">Multiple files allowed. Dimensions are detected automatically.</p>
+      <p class="form-hint">Multiple files allowed. Dimensions are detected automatically.</p>
     </div>
 
     <div class="card-body">
@@ -273,7 +273,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
             <?php endif; ?>
           </select>
         </div>
-        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link btn"><?= View::icon('add') ?> Add New Donor</a></p>
+        <p class="form-hint"><a href="#" id="upload-add-donor-toggle" class="link btn"><?= View::icon('add') ?> Add New Donor</a></p>
       </div>
 
       <div id="upload-new-donor-wrap" class="is-hidden">
@@ -321,8 +321,8 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
     </a>
   </div>
 
-  <div class="codes-bulk">
-    <label class="codes-bulk-label">
+  <div class="bulk">
+    <label class="form-check">
       <input type="checkbox" id="codes-select-all">Select all </label>
     <div class="select-wrap">
       <select id="bulk-action-sel" class="select-xs">
@@ -333,25 +333,21 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
       </select>
     </div>
     <button type="button" id="bulk-apply-btn" class="btn btn-quaternary btn-sm">Apply to Selected</button>
-    <div class="codes-bulk-right">
+    <div class="actions-row actions-row--right">
       <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm is-hidden">Save Order</button>
     </div>
   </div>
 
   <?php if ($_colTotal === 0): ?>
-    <div class="card-empty-state">
-      <div class="empty">
-        <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
-        No collective codes yet. Use the Upload Codes panel to add some.
-      </div>
+    <div class="empty">
+      <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
+      No collective codes yet. Use the Upload Codes panel to add some.
     </div>
   <?php else: ?>
     <?php $_colFilterEmpty = ($_colStatusFilter === 'approved' && $_colApproved === 0) || ($_colStatusFilter === 'pending' && $_colPending === 0) || ($_colStatusFilter === 'rejected' && $_colRejected === 0); ?>
-    <div class="card-empty-state<?= $_colFilterEmpty ? '' : ' is-hidden' ?>" id="codes-filter-empty">
-      <div class="empty">
-        <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
-        No codes match this filter &mdash; <a href="<?= View::e($_colBaseUrl . '&tab=approved') ?>" class="link" data-code-filter="approved">show approved</a>.
-      </div>
+    <div class="empty<?= $_colFilterEmpty ? '' : ' is-hidden' ?>" id="codes-filter-empty">
+      <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
+      No codes match this filter &mdash; <a href="<?= View::e($_colBaseUrl . '&tab=approved') ?>" class="link" data-code-filter="approved">show approved</a>.
     </div>
     <?php foreach ($_colGrouped as $group): ?>
       <?php if (empty($group['codes'])) continue; ?>

@@ -155,7 +155,7 @@ $_tabRejected = $_codesBaseUrl !== null
         <strong>Drag &amp; drop or click to browse</strong>
         <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
       </div>
-      <p class="panel-hint" style="margin-top:.5rem">Multiple files allowed. Dimensions are detected automatically.</p>
+      <p class="form-hint">Multiple files allowed. Dimensions are detected automatically.</p>
     </div>
 
     <div class="card-body">
@@ -180,7 +180,7 @@ $_tabRejected = $_codesBaseUrl !== null
             <?php endif; ?>
           </select>
         </div>
-        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link btn"><?= View::icon('add') ?> Add New Donor</a></p>
+        <p class="form-hint"><a href="#" id="upload-add-donor-toggle" class="link btn"><?= View::icon('add') ?> Add New Donor</a></p>
       </div>
 
       <!-- Inline new donor fields -->
@@ -243,8 +243,8 @@ $_tabRejected = $_codesBaseUrl !== null
       </a>
     </div>
 
-    <div class="codes-bulk">
-      <label class="codes-bulk-label">
+    <div class="bulk">
+      <label class="form-check">
         <input type="checkbox" id="codes-select-all">Select all </label>
       <div class="select-wrap">
         <select id="bulk-action-sel" class="select-xs">
@@ -267,25 +267,21 @@ $_tabRejected = $_codesBaseUrl !== null
       </div>
       <?php endif; ?>
       <button type="button" id="bulk-apply-btn" class="btn btn-quaternary btn-sm">Apply to Selected</button>
-      <div class="codes-bulk-right">
+      <div class="actions-row actions-row--right">
         <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm is-hidden">Save Order</button>
       </div>
     </div>
 
     <?php if ($_totalCodes === 0): ?>
-      <div class="card-empty-state">
-        <div class="empty">
+      <div class="empty">
         <?= View::icon('image', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
         <div><strong>No codes yet. Use the Upload Codes panel to add some!</strong></div>
-        </div>
       </div>
     <?php else: ?>
       <?php $_filterEmptyInitial = ($_codeStatusFilter === 'approved' && $_approvedCount === 0) || ($_codeStatusFilter === 'pending' && $_pendingCount === 0) || ($_codeStatusFilter === 'rejected' && $_rejectedCount === 0); ?>
-      <div class="card-empty-state<?= $_filterEmptyInitial ? '' : ' is-hidden' ?>" id="codes-filter-empty">
-        <div class="empty">
-          <?= View::icon('image', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
-          <div><strong>No codes match this filter &mdash; <a href="<?= $_tabApproved ?>" class="link" data-code-filter="approved">show approved</a>.</strong></div>
-        </div>
+      <div class="empty<?= $_filterEmptyInitial ? '' : ' is-hidden' ?>" id="codes-filter-empty">
+        <?= View::icon('image', ['class' => 'empty-icon', 'width' => 32, 'height' => 32]) ?>
+        <div><strong>No codes match this filter &mdash; <a href="<?= $_tabApproved ?>" class="link" data-code-filter="approved">show approved</a>.</strong></div>
       </div>
       <?php foreach ($_groupedCodes as $group): ?>
         <?php if (empty($group['codes'])) continue; ?>

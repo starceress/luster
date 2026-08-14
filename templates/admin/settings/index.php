@@ -308,19 +308,19 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="field-row">
             <label class="field-label">Light / Dark</label>
             <div>
-              <div class="theme-mode-picker">
+              <div class="actions-row theme-mode-picker">
                 <form method="POST" action="<?= $b ?>/admin/settings/default-theme"
                       class="action-form-inline" id="default-theme-form">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="admin_default_theme" id="default-theme-value"
                          value="<?= View::e($activeDefaultTheme) ?>">
                 </form>
-                <label class="theme-mode-btn<?= $activeDefaultTheme === 'light' ? ' theme-mode-btn--active' : '' ?>">
+                <label class="status-pill theme-mode-btn<?= $activeDefaultTheme === 'light' ? ' theme-mode-btn--active' : '' ?>">
                   <input type="radio" name="default_theme_radio" value="light" class="sr-only"
                          <?= $activeDefaultTheme === 'light' ? 'checked' : '' ?>>
                   <?= View::icon('sun') ?> Light
                 </label>
-                <label class="theme-mode-btn<?= $activeDefaultTheme === 'dark' ? ' theme-mode-btn--active' : '' ?>">
+                <label class="status-pill theme-mode-btn<?= $activeDefaultTheme === 'dark' ? ' theme-mode-btn--active' : '' ?>">
                   <input type="radio" name="default_theme_radio" value="dark" class="sr-only"
                          <?= $activeDefaultTheme === 'dark' ? 'checked' : '' ?>>
                   <?= View::icon('moon') ?> Dark
@@ -337,14 +337,14 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             $activeSkin   = $site_settings['selected_skin'] ?? '';
             $bundledSkins = SkinCatalog::all();
           ?>
-          <div class="skin-picker">
+          <div class="auto-grid auto-grid--md skin-picker">
             <?php foreach ($bundledSkins as $skin):
                 $slug = $skin['slug'];
             ?>
               <form method="POST" action="<?= $b ?>/admin/settings/skin" class="action-form-inline">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="skin" value="<?= View::e($slug) ?>">
-                <button type="submit" class="skin-card<?= $activeSkin === $slug ? ' skin-card--active' : '' ?>"
+                <button type="submit" class="surface skin-card<?= $activeSkin === $slug ? ' skin-card--active' : '' ?>"
                         data-skin-preview="<?= View::e($slug) ?>">
                   <span class="skin-swatch">
                     <?php foreach ($skin['colors'] as $c): ?>
@@ -368,7 +368,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <form method="POST" action="<?= $b ?>/admin/settings/skin" class="action-form-inline">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="skin" value="<?= View::e($slug) ?>">
-                <button type="submit" class="skin-card<?= $activeSkin === $slug ? ' skin-card--active' : '' ?>">
+                <button type="submit" class="surface skin-card<?= $activeSkin === $slug ? ' skin-card--active' : '' ?>">
                   <span class="skin-swatch skin-swatch--community">
                     <span class="composer-label"><?= View::e(strtoupper(substr($slug, 0, 2))) ?></span>
                   </span>

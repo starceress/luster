@@ -318,18 +318,18 @@ $sumCell = static function (?array $ms, string $key): string {
       </button>
     </div>
     <div class="lc-progress-wrap is-hidden" id="lc-scan-prog" style="margin-bottom:.75rem">
-      <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-        <div class="lc-progress-bar" id="lc-scan-prog-bar" style="width:0%"></div>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" id="lc-scan-prog-bar" style="width:0%"></div>
       </div>
-      <span class="lc-prog-label" id="lc-scan-prog-label">Preparing&hellip;</span>
+      <span class="lc-prog-label text-muted nowrap" id="lc-scan-prog-label">Preparing&hellip;</span>
     </div>
 
     <!-- Check-all progress bar -->
     <div class="lc-progress-wrap is-hidden" id="lc-prog-members" style="margin-bottom:.75rem">
-      <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-        <div class="lc-progress-bar" id="lc-prog-bar-members" style="width:0%"></div>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" id="lc-prog-bar-members" style="width:0%"></div>
       </div>
-      <span class="lc-prog-label" id="lc-prog-label-members">0 / <?= (int) ($mem_total ?? 0) ?></span>
+      <span class="lc-prog-label text-muted nowrap" id="lc-prog-label-members">0 / <?= (int) ($mem_total ?? 0) ?></span>
     </div>
 
     <div class="card">
@@ -452,10 +452,10 @@ $sumCell = static function (?array $ms, string $key): string {
 
     <!-- Check-all progress bar -->
     <div class="lc-progress-wrap is-hidden" id="lc-prog-members" style="margin-bottom:.75rem">
-      <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-        <div class="lc-progress-bar" id="lc-prog-bar-members" style="width:0%"></div>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" id="lc-prog-bar-members" style="width:0%"></div>
       </div>
-      <span class="lc-prog-label" id="lc-prog-label-members">0 / <?= count($members ?? []) ?></span>
+      <span class="lc-prog-label text-muted nowrap" id="lc-prog-label-members">0 / <?= count($members ?? []) ?></span>
     </div>
 
     <div class="card">
@@ -501,7 +501,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 <?php if ($mem->member_url !== ''): ?>
                 <a href="<?= View::e((string) $mem->member_url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e((string) $mem->member_url) ?></a>
                 <?php if ($mem->link_redirect_url !== null): ?>
-                  <div class="lc-redirect-info">
+                  <div class="text-muted link-break">
                     &rarr; <a href="<?= View::e((string) $mem->link_redirect_url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e((string) $mem->link_redirect_url) ?></a>
                   </div>
                 <?php endif; ?>
@@ -569,10 +569,10 @@ $sumCell = static function (?array $ms, string $key): string {
       </form>
     </div>
     <div class="lc-progress-wrap is-hidden" id="lc-prog-affiliates">
-      <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-        <div class="lc-progress-bar" id="lc-prog-bar-affiliates" style="width:0%"></div>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" id="lc-prog-bar-affiliates" style="width:0%"></div>
       </div>
-      <span class="lc-prog-label" id="lc-prog-label-affiliates">0 / <?= count($affiliates) ?></span>
+      <span class="lc-prog-label text-muted nowrap" id="lc-prog-label-affiliates">0 / <?= count($affiliates) ?></span>
     </div>
 
     <?php if (empty($affiliates)): ?>
@@ -638,7 +638,7 @@ $sumCell = static function (?array $ms, string $key): string {
                   <?= View::e($aff->url) ?>
                 </a>
                 <?php if ($aff->linkRedirectUrl !== null): ?>
-                  <div class="lc-redirect-info">
+                  <div class="text-muted link-break">
                     &rarr; <a href="<?= View::e($aff->linkRedirectUrl) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e($aff->linkRedirectUrl) ?></a>
                   </div>
                 <?php endif; ?>
@@ -707,10 +707,10 @@ $sumCell = static function (?array $ms, string $key): string {
       </form>
     </div>
     <div class="lc-progress-wrap is-hidden" id="lc-prog-joined">
-      <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-        <div class="lc-progress-bar" id="lc-prog-bar-joined" style="width:0%"></div>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" id="lc-prog-bar-joined" style="width:0%"></div>
       </div>
-      <span class="lc-prog-label" id="lc-prog-label-joined">0 / <?= count($joined) ?></span>
+      <span class="lc-prog-label text-muted nowrap" id="lc-prog-label-joined">0 / <?= count($joined) ?></span>
     </div>
 
     <?php if (empty($joined)): ?>
@@ -755,7 +755,7 @@ $sumCell = static function (?array $ms, string $key): string {
                   <?= View::e($jl->url) ?>
                 </a>
                 <?php if ($jl->linkRedirectUrl !== null): ?>
-                  <div class="lc-redirect-info">
+                  <div class="text-muted link-break">
                     &rarr; <a href="<?= View::e($jl->linkRedirectUrl) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e($jl->linkRedirectUrl) ?></a>
                   </div>
                 <?php endif; ?>
@@ -780,7 +780,7 @@ $sumCell = static function (?array $ms, string $key): string {
                   <span class="text-dim" data-lc-listed-badge>&mdash;</span>
                 <?php endif; ?>
                 <?php if ($jl->listedMembersUrl !== null && $jl->listedMembersUrl !== ''): ?>
-                <div class="lc-redirect-info"><a href="<?= View::e($jl->listedMembersUrl) ?>" target="_blank" rel="noopener noreferrer" class="link text-xs"><?= View::e($jl->listedMembersUrl) ?></a></div>
+                <div class="text-muted link-break"><a href="<?= View::e($jl->listedMembersUrl) ?>" target="_blank" rel="noopener noreferrer" class="link text-xs"><?= View::e($jl->listedMembersUrl) ?></a></div>
                 <?php endif; ?>
               </td>
               <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>

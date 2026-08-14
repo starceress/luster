@@ -35,7 +35,7 @@ $b = rtrim(View::e($base_url), '/');
     No add-ons found. Place add-on directories inside <code>src/Addons/</code> to make them appear here.
   </div>
 <?php else: ?>
-  <div class="addon-grid">
+  <div class="auto-grid auto-grid--lg addon-grid">
     <?php foreach ($discovered as $key => $addon):
       $isInstalled = isset($installed[$key]);
     ?>
@@ -53,7 +53,7 @@ $b = rtrim(View::e($base_url), '/');
       <p class="addon-card-desc"><?= View::e($addon->getDescription()) ?></p>
 
       <div class="import-source-note">
-        <div class="addon-card-actions">
+        <div class="actions-row actions-row--wrap">
           <?php if ($isInstalled): ?>
             <?php if ($key === 'Kim'): ?>
               <a href="<?= $b ?>/admin/kim" class="btn btn-primary btn-sm">Manage</a>

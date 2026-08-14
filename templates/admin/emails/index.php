@@ -823,7 +823,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             <tr>
               <td class="text-strong"><?= View::e($t->name) ?></td>
               <td class="text-muted"><?= $t->subject !== '' ? View::e($t->subject) : '<span class="text-dim">-</span>' ?></td>
-              <td class="text-muted cell-meta-nowrap">
+              <td class="text-muted nowrap">
                 <?= View::e(date($admin_date_format, strtotime($t->created_at))) ?>
               </td>
               <td class="actions-col">

@@ -211,7 +211,7 @@ foreach (array_keys($quickActions) as $qaKey) {
         Quick Actions
         <span class="card-head-sub">Hover a tile and drag its <?= View::icon('grip') ?> handle to reorder.</span>
       </div>
-      <div class="collective-action-grid" id="qa-grid" data-qa-reorder-url="<?= $b ?>/admin/collective/quick-actions/reorder" data-qa-csrf="<?= View::e($csrf_token) ?>">
+      <div class="auto-grid auto-grid--sm collective-action-grid" id="qa-grid" data-qa-reorder-url="<?= $b ?>/admin/collective/quick-actions/reorder" data-qa-csrf="<?= View::e($csrf_token) ?>">
         <?php foreach ($quickActionsOrder as $qaKey): ?>
           <?php $qa = $quickActions[$qaKey]; ?>
           <a href="<?= View::e($qa['href']) ?>" class="surface collective-action-tile<?= !empty($qa['muted']) ? ' is-muted' : '' ?>" data-action-key="<?= View::e($qaKey) ?>" draggable="false">
@@ -228,7 +228,7 @@ foreach (array_keys($quickActions) as $qaKey) {
 
     <div class="card" style="margin-top:1rem">
       <div class="card-head">Migration & Bridges</div>
-      <div class="collective-action-grid">
+      <div class="auto-grid auto-grid--sm collective-action-grid">
         <a href="<?= $b ?>/admin/import" class="surface collective-action-tile">
           <span class="panel-header-icon"><?= View::icon('import') ?></span>
           <span class="collective-action-label">Import Data</span>

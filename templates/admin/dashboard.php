@@ -426,7 +426,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
             <td>
               <?php if ($newest_owned_name !== null): ?>
                 <a href="<?= $b ?>/admin/listings" class="link"><?= View::e($newest_owned_name) ?></a>
-                <?php if (!empty($newest_owned_opened)): ?> <span class="cell-meta-nowrap">(Opened <?= View::e(date($admin_date_format, strtotime((string) $newest_owned_opened))) ?>)</span>
+                <?php if (!empty($newest_owned_opened)): ?> <span class="text-muted nowrap">(Opened <?= View::e(date($admin_date_format, strtotime((string) $newest_owned_opened))) ?>)</span>
                 <?php endif; ?>
               <?php else: ?>
                 None yet
@@ -526,7 +526,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
           <?php $rank = 1; foreach ($top_countries as $country => $count): ?>
           <tr>
             <td><?= $rank++ ?>. <?= View::e($country) ?></td>
-            <td><?= (int) $count ?><?php if ($total_members > 0): ?> <span class="cell-meta-nowrap">(<?= round($count / $total_members * 100) ?>%)</span><?php endif; ?></td>
+            <td><?= (int) $count ?><?php if ($total_members > 0): ?> <span class="text-muted nowrap">(<?= round($count / $total_members * 100) ?>%)</span><?php endif; ?></td>
           </tr>
           <?php endforeach; ?>
         </tbody>

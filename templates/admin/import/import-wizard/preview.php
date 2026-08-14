@@ -252,8 +252,8 @@ $src = View::e($source);
   <div class="import-processing-spinner" role="status" aria-label="Importing"></div>
   <div class="import-processing-title">Importing&hellip;</div>
   <div class="import-processing-sub">Do not close or refresh this tab.</div>
-  <div class="import-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Import in progress">
-    <div class="import-progress-bar"></div>
+  <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Import in progress">
+    <div class="progress-bar progress-bar--indeterminate"></div>
   </div>
   <p class="import-processing-note">Records are being written to your Luster database. Large imports with many members may take several minutes.</p>
 </div>

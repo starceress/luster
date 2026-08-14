@@ -488,7 +488,7 @@ endif;
             </td>
             <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
             <td class="text-muted" data-label="Country"><?= View::e($m->country) ?></td>
-            <td class="text-muted cell-meta-nowrap" data-label="Date Joined"><?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?></td>
+            <td class="text-muted nowrap" data-label="Date Joined"><?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?></td>
             <?php foreach ($fields as $field): ?>
               <td class="text-muted" data-label="<?= View::e($field->label) ?>"><?= View::e($m->additionalFields[$field->name] ?? '') ?></td>
             <?php endforeach; ?>
@@ -615,7 +615,7 @@ include LUSTER_BASE . '/templates/admin/_pagination.php';
               <span class="badge badge-pending">Pending</span>
             <?php endif; ?>
           </td>
-          <td data-label="Joined" class="cell-meta-nowrap">
+          <td data-label="Joined" class="text-muted nowrap">
             <?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?>
           </td>
           <td class="actions-col" data-label="">
@@ -898,7 +898,7 @@ endif;
                 </details>
               <?php endif; ?>
             </td>
-            <td data-label="Submitted" class="cell-meta-nowrap"><?= View::e($pu->submitted_at) ?></td>
+            <td data-label="Submitted" class="text-muted nowrap"><?= View::e($pu->submitted_at) ?></td>
             <td class="actions-col" data-label="">
               <div class="actions-row">
                 <button type="submit" form="approve-update-overview-<?= (int) $pu->id ?>" class="btn btn-success btn-xs">Approve</button>

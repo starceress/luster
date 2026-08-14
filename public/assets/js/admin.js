@@ -5252,7 +5252,7 @@ document.addEventListener('click', function (e) {
   if (!targetId) return;
   var row = document.getElementById(targetId);
   if (!row) return;
-  var opening = row.classList.toggle('table-row-hidden');
+  var opening = row.classList.toggle('is-hidden');
   btn.classList.toggle('is-open', !opening);
 });
 
@@ -6078,7 +6078,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
       if (data.members_url) {
         if (!existing) {
           existing = document.createElement('div');
-          existing.className = 'lc-redirect-info lc-listed-members-url';
+          existing.className = 'text-muted link-break lc-listed-members-url';
           container.appendChild(existing);
         }
         existing.innerHTML = '<a href="' + data.members_url.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '" target="_blank" rel="noopener noreferrer" class="link text-xs">' + data.members_url.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</a>';

@@ -157,9 +157,9 @@ $hasErr  = $result->hasErrors();
           $moreInArray   = $skipCount - count($showItems);
         ?>
         <tr>
-          <td class="<?= $hasSkipDetail ? 'skip-summary-cell' : '' ?>" style="font-weight:600"><?= View::e($row['type']) ?></td>
-          <td class="table-num<?= $hasSkipDetail ? ' skip-summary-cell' : '' ?>"><?= (int)$row['imported'] === 0 ? '<span class="text-dim">' . number_format($row['imported']) . '</span>' : number_format($row['imported']) ?></td>
-          <td class="table-num<?= $hasSkipDetail ? ' skip-summary-cell' : '' ?>"><?= (int)$totalSkipped  === 0 ? '<span class="text-dim">' . number_format($totalSkipped)  . '</span>' : number_format($totalSkipped) ?></td>
+          <td class="<?= $hasSkipDetail ? 'nowrap' : '' ?>" style="font-weight:600"><?= View::e($row['type']) ?></td>
+          <td class="table-num<?= $hasSkipDetail ? ' nowrap' : '' ?>"><?= (int)$row['imported'] === 0 ? '<span class="text-dim">' . number_format($row['imported']) . '</span>' : number_format($row['imported']) ?></td>
+          <td class="table-num<?= $hasSkipDetail ? ' nowrap' : '' ?>"><?= (int)$totalSkipped  === 0 ? '<span class="text-dim">' . number_format($totalSkipped)  . '</span>' : number_format($totalSkipped) ?></td>
           <td class="table-cell-notes">
             <?php foreach ($row['warnings'] as $w): ?>
               <span class="text-muted"><?= View::e($w) ?></span><br>
@@ -178,7 +178,7 @@ $hasErr  = $result->hasErrors();
           </td>
         </tr>
         <?php if ($hasSkipDetail): ?>
-        <tr class="skip-detail-row table-row-hidden" id="skip-<?= md5($row['type']) ?>">
+        <tr class="skip-detail-row is-hidden" id="skip-<?= md5($row['type']) ?>">
           <td colspan="4" class="skip-detail-cell">
             <div class="skip-detail-inner">
               <div class="skip-detail-head">
@@ -188,7 +188,7 @@ $hasErr  = $result->hasErrors();
                   <a href="<?= $b ?>/admin/import/<?= $src ?>/report" class="link">Download full report</a> for complete list</span>
                 <?php endif; ?>
               </div>
-              <table class="skip-inner-table">
+              <table class="data-table">
                 <thead>
                   <tr>
                     <th>Item</th>

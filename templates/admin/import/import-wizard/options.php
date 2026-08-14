@@ -192,7 +192,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
             <input type="checkbox" name="import_members" value="1" id="ck-members" <?= scopeChecked($old, 'import_members') ?>>
             <div class="import-chk-body">
               <label class="import-chk-lbl" for="ck-members">Members</label>
-              <div class="import-dep-warn" id="js-mem-dep-warn">
+              <div class="import-dep-warn text-danger" id="js-mem-dep-warn">
                 <?= View::icon('alert', ['width' => 12, 'height' => 12]) ?>
                 Listings must also be selected because members are saved inside each listing's member table.
               </div>
@@ -268,7 +268,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
             <input type="checkbox" name="import_members" value="1" id="ck-members" <?= scopeChecked($old, 'import_members') ?>>
             <div class="import-chk-body">
               <label class="import-chk-lbl" for="ck-members">Members</label>
-              <div class="import-dep-warn" id="js-mem-dep-warn">
+              <div class="import-dep-warn text-danger" id="js-mem-dep-warn">
                 <?= View::icon('alert', ['width' => 12, 'height' => 12]) ?>
                 Listings must also be selected because members are saved inside each listing's member table.
               </div>
@@ -300,7 +300,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
             <div class="import-chk-body">
               <label class="import-chk-lbl" for="ck-rules">Join Rules</label>
               <div class="import-chk-sub">Per-listing "Join Rules" content shown before the join form. Requires the Join Rules add-on.</div>
-              <div class="import-dep-warn" id="js-rules-dep-warn">
+              <div class="import-dep-warn text-danger" id="js-rules-dep-warn">
                 <?= View::icon('alert', ['width' => 12, 'height' => 12]) ?>
                 Owned listings must also be selected because join rules are linked to each imported listing.
               </div>

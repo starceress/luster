@@ -54,15 +54,15 @@ $b = rtrim(View::e($base_url), '/');
       <span class="panel-header-title">Enthusiast</span>
     </div>
 
-    <ul class="import-source-list">
-      <li><?= View::icon('check') ?> Owned listings</li>
-      <li><?= View::icon('check') ?> Joined listings</li>
-      <li><?= View::icon('check') ?> Members</li>
-      <li><?= View::icon('check') ?> Assigned categories</li>
-      <li><?= View::icon('check') ?> Affiliates</li>
-      <li><?= View::icon('check') ?> Per-listing settings</li>
-      <li><?= View::icon('check') ?> Email templates</li>
-      <li><?= View::icon('check') ?> Other saved templates</li>
+    <ul class="star-list">
+      <li>Owned listings</li>
+      <li>Joined listings</li>
+      <li>Members</li>
+      <li>Assigned categories</li>
+      <li>Affiliates</li>
+      <li>Per-listing settings</li>
+      <li>Email templates</li>
+      <li>Other saved templates</li>
     </ul>
   </a>
   <?php endif; ?>
@@ -72,16 +72,16 @@ $b = rtrim(View::e($base_url), '/');
     <div class="import-source-header" style="color:var(--card-border-2)">
       <span class="panel-header-title">Listing Admin</span>
     </div>
-    <ul class="import-source-list">
-      <li><?= View::icon('check') ?> Owned listings</li>
-      <li><?= View::icon('check') ?> Joined listings</li>
-      <li><?= View::icon('check') ?> Members</li>
-      <li><?= View::icon('check') ?> Assigned categories</li>
-      <li><?= View::icon('check') ?> Affiliates</li>
-      <li><?= View::icon('check') ?> News Feed</li>
-      <li><?= View::icon('check') ?> Wishlist</li>
-      <li><?= View::icon('check') ?> KIM List</li>
-      <li><?= View::icon('check') ?> Join Rules</li>
+    <ul class="star-list">
+      <li>Owned listings</li>
+      <li>Joined listings</li>
+      <li>Members</li>
+      <li>Assigned categories</li>
+      <li>Affiliates</li>
+      <li>News Feed</li>
+      <li>Wishlist</li>
+      <li>KIM List</li>
+      <li>Join Rules</li>
     </ul>
   </a>
   <?php endif; ?>
@@ -92,10 +92,10 @@ $b = rtrim(View::e($base_url), '/');
     <div class="import-source-header" style="color:var(--card-border-3)">
       <span class="panel-header-title">BellaBuffs</span>
     </div>
-    <ul class="import-source-list">
-      <li><?= View::icon('check') ?> Members</li>
-      <li><?= View::icon('check') ?> Affiliates</li>
-      <li><?= View::icon('check') ?> Codes </li>
+    <ul class="star-list">
+      <li>Members</li>
+      <li>Affiliates</li>
+      <li>Codes </li>
     </ul>
   </a>
   <?php endif; ?>
@@ -105,18 +105,18 @@ $b = rtrim(View::e($base_url), '/');
     <div class="import-source-header" style="color:var(--card-border-1)">
       <span class="panel-header-title">Fanatically</span>
     </div>
-    <ul class="import-source-list">
-      <li><?= View::icon('check') ?> Owned listings</li>
-      <li><?= View::icon('check') ?> Joined listings</li>
-      <li><?= View::icon('check') ?> Members</li>
-      <li><?= View::icon('check') ?> Pending member updates</li>
-      <li><?= View::icon('check') ?> Assigned categories</li>
-      <li><?= View::icon('check') ?> Affiliates</li>
-      <li><?= View::icon('check') ?> Codes</li>
-      <li><?= View::icon('check') ?> Wishlist</li>
-      <li><?= View::icon('check') ?> KIM List</li>
-      <li><?= View::icon('check') ?> Adoptions</li>
-      <li><?= View::icon('check') ?> Site settings</li>
+    <ul class="star-list">
+      <li>Owned listings</li>
+      <li>Joined listings</li>
+      <li>Members</li>
+      <li>Pending member updates</li>
+      <li>Assigned categories</li>
+      <li>Affiliates</li>
+      <li>Codes</li>
+      <li>Wishlist</li>
+      <li>KIM List</li>
+      <li>Adoptions</li>
+      <li>Site settings</li>
     </ul>
   </a>
   <?php endif; ?>
@@ -126,9 +126,9 @@ $b = rtrim(View::e($base_url), '/');
     <div class="import-source-header" style="color:var(--card-border-4)">
       <span class="panel-header-title">CodeSort</span>
     </div>
-    <ul class="import-source-list">
-      <li><?= View::icon('check') ?> Codes</li>
-      <li><?= View::icon('check') ?> Assigned categories, sizes & donors</li>
+    <ul class="star-list">
+      <li>Codes</li>
+      <li>Assigned categories, sizes & donors</li>
     </ul>
   </a>
   <?php endif; ?>
@@ -138,9 +138,9 @@ $b = rtrim(View::e($base_url), '/');
     <div class="import-source-header" style="color:var(--card-border-3)">
       <span class="panel-header-title">FanUpdate</span>
     </div>
-    <ul class="import-source-list">
-      <li><?= View::icon('check') ?> Blog entries</li>
-      <li><?= View::icon('check') ?> Per-fanlisting assignment, matched by title</li>
+    <ul class="star-list">
+      <li>Blog entries</li>
+      <li>Per-fanlisting assignment, matched by title</li>
     </ul>
   </a>
   <?php endif; ?>

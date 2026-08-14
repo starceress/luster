@@ -1732,7 +1732,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
           <tbody>
             <?php foreach ($code_cats as $cat): ?>
             <?php $_isCatEditing = $code_edit_cat_id === $cat->id; ?>
-            <tr<?= $_isCatEditing ? ' class="table-row-hidden"' : '' ?>>
+            <tr<?= $_isCatEditing ? ' class="is-hidden"' : '' ?>>
               <td class="text-strong"><?= View::e($cat->name) ?></td>
               <td>
                 <?php $_catCodeCount = count(array_filter($code_category_ids, fn($ids) => in_array($cat->id, $ids, true))); ?>
@@ -1754,7 +1754,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                 </form>
               </td>
             </tr>
-            <tr<?= !$_isCatEditing ? ' class="table-row-hidden"' : '' ?>>
+            <tr<?= !$_isCatEditing ? ' class="is-hidden"' : '' ?>>
               <td colspan="4">
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/categories/<?= (int)$cat->id ?>/edit" class="codes-form-actions">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -1801,7 +1801,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
           <tbody>
             <?php foreach ($code_donors as $dn): ?>
             <?php $_isDnEditing = $code_edit_donor_id === $dn->id; ?>
-            <tr<?= $_isDnEditing ? ' class="table-row-hidden"' : '' ?>>
+            <tr<?= $_isDnEditing ? ' class="is-hidden"' : '' ?>>
               <td class="text-strong"><?= View::e($dn->name) ?></td>
               <td class="text-dim"><?= $dn->email !== null ? View::emailWrap($dn->email) : '&mdash;' ?></td>
               <td class="text-dim">
@@ -1820,7 +1820,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                 </form>
               </td>
             </tr>
-            <tr<?= !$_isDnEditing ? ' class="table-row-hidden"' : '' ?>>
+            <tr<?= !$_isDnEditing ? ' class="is-hidden"' : '' ?>>
               <td colspan="5" class="table-edit-cell">
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/donors/<?= (int)$dn->id ?>/edit" class="codes-form-actions">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
