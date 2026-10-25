@@ -19,6 +19,23 @@ panel will let you know that a manual update is needed and link you to the
 release page.
 
 
+### [1.0.0-2] — 2026-10-25
+
+A quick fix release.
+
+**Fixed:**
+- On some web hosts, pages with a form or anything else that needs to
+  remember visitors between page loads — join, members, update, reset,
+  contact, affiliates, wishlist, KIM, codes, adoption, and join rules — would
+  just stop partway down, with nothing after the header showing up. Owned,
+  joined, stats, and news pages were fine, which made it extra confusing.
+  These now work everywhere. You don't need to change anything on your site:
+  the one-time setup line you already pasted at the top of your header
+  takes care of it after you update.
+- If that setup line is missing (or has some HTML above it), those pages now
+  show a short message explaining what to fix, instead of a half-blank page.
+
+
 ### [1.0.0-1] — 2026-10-25
 
 A mix of new stuff, bug fixes, and a round of security hardening since 1.0.0.
