@@ -39,7 +39,14 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = $_lusterApp ?? require $_lusterRoot . '/bootstrap.php';
-$_lusterApp->getSession()->start();
+$_lusterSessionError = View::startEmbedSession($_lusterApp->getSession());
+if ($_lusterSessionError !== null) {
+    if ($luster_return ?? false) {
+        return $_lusterSessionError;
+    }
+    echo $_lusterSessionError;
+    return;
+}
 $_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
 if ($_lusterRedirectTo === '') {
     // Relative, not scheme://host/path - deliberately never trusts the

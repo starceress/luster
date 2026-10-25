@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 use Luster\Addons\Rules\RuleSet;
 use Luster\Addons\Rules\RulesRepo;
+use Luster\Core\View;
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable
@@ -52,7 +53,14 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
-$_lusterApp->getSession()->start();
+$_lusterSessionError = View::startEmbedSession($_lusterApp->getSession());
+if ($_lusterSessionError !== null) {
+    if ($luster_return ?? false) {
+        return $_lusterSessionError;
+    }
+    echo $_lusterSessionError;
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 3. Determine the current URL (self-post target) and the return URL

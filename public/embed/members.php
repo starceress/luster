@@ -13,6 +13,7 @@
 declare(strict_types=1);
 
 use Luster\Core\Pagination;
+use Luster\Core\View;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -55,7 +56,14 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
-$_lusterApp->getSession()->start();
+$_lusterSessionError = View::startEmbedSession($_lusterApp->getSession());
+if ($_lusterSessionError !== null) {
+    if ($luster_return ?? false) {
+        return $_lusterSessionError;
+    }
+    echo $_lusterSessionError;
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 3. Load listing data

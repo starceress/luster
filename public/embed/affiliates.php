@@ -13,6 +13,7 @@
 declare(strict_types=1);
 
 use Luster\Core\Pagination;
+use Luster\Core\View;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -43,7 +44,14 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 // Started here (not just implicitly via the nested affiliate-apply.php require
 // below) so the pending-feedback peek below reads a populated $_SESSION rather
 // than an empty one from before session_start() has run.
-$_lusterApp->getSession()->start();
+$_lusterSessionError = View::startEmbedSession($_lusterApp->getSession());
+if ($_lusterSessionError !== null) {
+    if ($luster_return ?? false) {
+        return $_lusterSessionError;
+    }
+    echo $_lusterSessionError;
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 2. Resolve parameters

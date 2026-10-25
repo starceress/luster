@@ -385,6 +385,15 @@ final class View
      *
      * Exits the script itself whenever it actually serves something, the
      * same as calling serveCss()/serveUploadedImage() directly would.
+     *
+     * When it doesn't, it starts an output buffer for the rest of the host
+     * page. Most embeds (join, members, update, contact, wishlist, KIM, ...)
+     * start a PHP session, and PHP can only do that before any of the page
+     * has been sent to the browser. Hosts that ship with output_buffering
+     * turned off send the host page's header HTML immediately, so without
+     * this every session-using embed died with "Failed to start session"
+     * and the page just stopped. PHP flushes the buffer on its own when the
+     * page finishes.
      */
     public static function serveEmbedAsset(): void
     {
@@ -396,6 +405,39 @@ final class View
             self::serveUploadedImage((string) ($_GET['luster_img'] ?? ''));
             exit;
         }
+
+        self::bufferHostPage();
+    }
+
+    /**
+     * Starts the session for a public embed. Returns null when it worked, or a
+     * ready-to-echo error message when it couldn't, so the embed can show
+     * something readable instead of the host page just stopping halfway.
+     *
+     * With the setup line at the top of the host page (see serveEmbedAsset())
+     * this should never fail on headers. It still can if the setup line is
+     * missing or sits below some HTML, or if the server can't save sessions.
+     * The message never includes file paths, since it's shown to visitors.
+     */
+    public static function startEmbedSession(Session $session): ?string
+    {
+        // Checked up front so PHP doesn't also print a pile of ini_set()
+        // "headers already sent" warnings into the page on hosts that show them.
+        if (session_status() !== PHP_SESSION_ACTIVE && headers_sent()) {
+            return '<p class="fl-errors">Luster embed error: this page sent some of its HTML before '
+                . 'Luster could start. Put the one-time setup line from Admin &rarr; Collective &rarr; '
+                . 'Code Snippets at the very top of your header file, before anything else.</p>';
+        }
+
+        try {
+            $session->start();
+        } catch (\RuntimeException) {
+            return '<p class="fl-errors">Luster embed error: this server couldn&#039;t start a PHP '
+                . 'session. Check Admin &rarr; Settings &rarr; System &amp; Updates for session '
+                . 'folder details.</p>';
+        }
+
+        return null;
     }
 
     // -----------------------------------------------------------------------
@@ -421,6 +463,21 @@ final class View
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
+    }
+
+    /**
+     * Starts one output buffer for the host page — see serveEmbedAsset().
+     * Only once per request, so a host page that pastes the setup line into
+     * more than one include doesn't stack buffers.
+     */
+    private static function bufferHostPage(): void
+    {
+        static $started = false;
+        if ($started) {
+            return;
+        }
+        $started = true;
+        ob_start();
     }
 
     /**

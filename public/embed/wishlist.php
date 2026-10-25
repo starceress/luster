@@ -14,6 +14,7 @@ declare(strict_types=1);
 use Luster\Addons\Wishlist\WishlistRepo;
 use Luster\Core\Pagination;
 use Luster\Core\TemplateEngine;
+use Luster\Core\View;
 use Luster\Repositories\SiteSettingsRepo;
 
 // ---------------------------------------------------------------------------
@@ -32,7 +33,14 @@ if (!is_file($_lusterRoot . '/vendor/autoload.php') || !is_file($_lusterRoot . '
 }
 
 $_app = require $_lusterRoot . '/bootstrap.php';
-$_app->getSession()->start();
+$_lusterSessionError = View::startEmbedSession($_app->getSession());
+if ($_lusterSessionError !== null) {
+    if ($luster_return ?? false) {
+        return $_lusterSessionError;
+    }
+    echo $_lusterSessionError;
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 2. Resolve parameters
