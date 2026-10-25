@@ -261,7 +261,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <?php endif; ?>
       <button type="button" class="btn btn-ghost js-form-clear">Clear</button>
       <?php if ($isEdit): ?>
-        <span class="composer-footer-spacer"></span>
+        <span class="flex-fill"></span>
         <button type="submit"
                 form="del-affiliate-<?= (int) $affiliate->id ?>"
                 class="btn btn-danger">Delete</button>

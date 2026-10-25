@@ -136,7 +136,7 @@ $srcBadge = static function (string $key) use ($ct): string {
       </div>
 
       <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
-        <div class="tpl-actions-row">
+        <div class="actions-row actions-row--wrap tpl-actions-row">
           <button type="button" class="btn btn-tertiary btn-sm"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/settings/templates/reset-all"
@@ -516,14 +516,13 @@ $srcBadge = static function (string $key) use ($ct): string {
           <button type="button"
                   id="collective-token-search-clear"
                   data-token-search-clear
-                  class="token-search-clear"
+                  class="search-clear-btn search-clear-btn--token"
                   aria-label="Clear embed token search"
-                  title="Clear search"
-                  hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+                  title="Clear search"><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
         </div>
       </div>
 
-      <p id="collective-token-search-empty" data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
+      <p id="collective-token-search-empty" data-token-search-empty class="form-hint form-hint--spaced" hidden>No tokens found.</p>
 
       <!-- ── Owned Listings ─────────────────────────── -->
       <details class="card chevron" data-token-card data-tpl-group="owned" <?= $_grp('owned') ?>>

@@ -127,7 +127,7 @@ $defaultGateLabel = $currentGateType === 'button'
           <button type="submit" class="btn btn-primary">Save Rules</button>
           <button type="reset" class="btn btn-quaternary">Reset</button>
           <?php if ($rules !== null): ?>
-          <div class="composer-footer-spacer"></div>
+          <div class="flex-fill"></div>
           <button type="submit" form="rules-delete-form" class="btn btn-danger">Delete</button>
           <?php endif; ?>
         </div>

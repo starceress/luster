@@ -18,24 +18,6 @@ $escapedEp  = str_replace(["\\", "'"], ["\\\\", "\\'"], $ep);
 $setupLine1 = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . $escapedEp . "'); require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.php'; Luster\\Core\\View::serveEmbedAsset(); ?>";
 $setupLine5 = '<link rel="stylesheet" href="?luster_css">';
 
-// Same PHP syntax highlighter used by the Full Embed Wizard's setup snippet.
-$hlPhp = static function (string $code): string {
-    $e = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    return (string) preg_replace_callback(
-        '/(\/\/[^\n]*)|(&#039;(?:[^&]|&(?!#039;))*&#039;)|(&lt;\?php|\?&gt;)|(\b(?:require_once|require|defined|define|isset|exit|true|false|null|if)\b)|(\$\w+)|(\b\d+\b)/',
-        static function (array $m): string {
-            if ($m[1] !== '') return '<span class="ec-hl-c">' . $m[0] . '</span>';
-            if ($m[2] !== '') return '<span class="ec-hl-s">' . $m[0] . '</span>';
-            if ($m[3] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
-            if ($m[4] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
-            if ($m[5] !== '') return '<span class="ec-hl-v">' . $m[0] . '</span>';
-            if ($m[6] !== '') return '<span class="ec-hl-n">' . $m[0] . '</span>';
-            return $m[0];
-        },
-        $e,
-    );
-};
-
 // Builds an HTML-escaped PHP snippet from an array of code lines. Every embed
 // line refers to the LUSTER_EMBED constant defined by the one-time setup
 // snippet above, rather than baking the install path into every snippet.
@@ -55,23 +37,7 @@ $snip = static function(array $lines): string {
 <!-- ── One-Time Setup ───────────────────────────────────────────────────── -->
 <section class="es-section">
   <div class="card ec-wizard-card">
-    <div class="ec-setup-top">
-      <div class="ec-setup-head">
-        <strong class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></strong>
-        <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
-                data-setup-text="<?= htmlspecialchars($setupLine1 . "\n\n" . $setupLine5, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
-      </div>
-
-      <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>): <span class="ec-setup-help" data-desc="This one line sets up your page to work with Luster: it tells your page where Luster is installed, loads the tools Luster needs to run, and lets your page serve Luster's stylesheet and uploaded images without showing visitors where Luster lives on your server.">?</span></p>
-      <div class="ec-setup-snip">
-        <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine1) ?></code></div>
-      </div>
-
-      <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked: <span class="ec-setup-help" data-desc="This loads Luster's default styles for embeds so they're styled automatically. It uses ?luster_css instead of a direct file path so visitors can't see where Luster is installed on your server. Placing it before your own stylesheets lets your CSS override Luster's default.">?</span></p>
-      <div class="ec-setup-snip">
-        <div class="ec-setup-snip-line"><code>&lt;<span class="ec-hl-k">link</span> <span class="ec-hl-v">rel</span>=<span class="ec-hl-s">&quot;stylesheet&quot;</span> <span class="ec-hl-v">href</span>=<span class="ec-hl-s">&quot;?luster_css&quot;</span>&gt;</code></div>
-      </div>
-    </div>
+    <?php include LUSTER_BASE . '/templates/admin/_embed-setup-snippet.php'; ?>
   </div>
 </section>
 

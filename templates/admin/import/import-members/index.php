@@ -29,7 +29,7 @@ $b = rtrim(View::e($base_url), '/');
       <div class="panel-header-title">Import Members Only</div>
       <div class="panel-header-sub">
         Use this smaller tool when you only need to add members to
-        an existing Luster listing. For a full site migration,
+        an existing listing. For a full site migration,
         use the <a href="<?= $b ?>/admin/import" class="link">Import Data Wizard</a> instead.
       </div>
     </div>
@@ -39,12 +39,12 @@ $b = rtrim(View::e($base_url), '/');
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
     <div class="card-body">
+    <p>Currently this importer only works for Enthusiast and Listing Admin member lists.</p>
       <div class="callout callout-info">
         <?= View::icon('notes') ?>
         <div>
-          <strong>How duplicates are handled:</strong> members with an email address already
-          already present in the selected listing are skipped. Existing members are not changed,
-          so re-running the same file is safe.
+          <strong>How Duplicates Are Handled:</strong> Members with an email address already
+          already present in the selected listing are skipped. Existing members are not changed, so re-running the same file is safe.
         </div>
       </div>
 
@@ -59,7 +59,7 @@ $b = rtrim(View::e($base_url), '/');
               <?php endforeach; ?>
             </select>
           </div>
-          <p class="form-hint">Choose the Luster listing these members should belong to.</p>
+          <p class="form-hint">Choose the listing these members should belong to.</p>
         </div>
       </div>
 
@@ -74,14 +74,13 @@ $b = rtrim(View::e($base_url), '/');
             <strong>Drag &amp; drop or click to browse</strong>
             <span class="form-hint">.SQL &mdash; max 10 MB</span>
           </label>
-          <p class="form-hint" style="margin-top:.5rem">Upload a SQL export of a member table from Enthusiast or Listing Admin.</p>
         </div>
       </div>
     </div>
   </form>
 
   <div class="composer-footer">
-    <button type="submit" form="im-upload-form" class="btn btn-primary">Upload &amp; Analyse</button>
+    <button type="submit" form="im-upload-form" class="btn btn-primary">Upload &amp; Analyze</button>
     <a href="<?= $b ?>/admin/import" class="btn btn-ghost">Cancel</a>
   </div>
 </div>

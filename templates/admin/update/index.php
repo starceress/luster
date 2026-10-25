@@ -133,18 +133,20 @@ $current = Version::CURRENT;
           <details class="form-details">
             <summary style="color: var(--success)">All checks passed</summary>
             <div class="form-details-body">
-              <div class="update-check-list">
-                <?php foreach ($preflight as $check): ?>
-                  <div class="surface update-check-row is-ok">
-                    <span class="update-check-icon"><?= View::icon('check') ?></span>
-                    <span class="update-check-main">
-                      <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
-                      <span><?= View::e((string) ($check['detail'] ?? '')) ?></span>
-                    </span>
-                    <span class="badge badge-current">Pass</span>
-                  </div>
-                <?php endforeach; ?>
-              </div>
+              <table class="data-table">
+                <tbody>
+                  <?php foreach ($preflight as $check): ?>
+                    <tr>
+                      <td class="table-num"><span class="update-check-icon"><?= View::icon('check') ?></span></td>
+                      <td>
+                        <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong><br>
+                        <span class="text-muted"><?= View::e((string) ($check['detail'] ?? '')) ?></span>
+                      </td>
+                      <td class="table-num"><span class="badge badge-current">Pass</span></td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
             </div>
           </details>
         <?php else: ?>
@@ -152,18 +154,20 @@ $current = Version::CURRENT;
             $failingChecks = array_filter($preflight, static fn(array $c): bool => ($c['ok'] ?? false) !== true);
             $passingChecks = array_filter($preflight, static fn(array $c): bool => ($c['ok'] ?? false) === true);
           ?>
-          <div class="update-check-list">
-            <?php foreach ($failingChecks as $check): ?>
-              <div class="surface update-check-row is-blocked">
-                <span class="update-check-icon"><?= View::icon('caution') ?></span>
-                <span class="update-check-main">
-                  <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
-                  <span><?= View::e((string) ($check['detail'] ?? '')) ?></span>
-                </span>
-                <span class="badge badge-error">Fix</span>
-              </div>
-            <?php endforeach; ?>
-          </div>
+          <table class="data-table">
+            <tbody>
+              <?php foreach ($failingChecks as $check): ?>
+                <tr>
+                  <td class="table-num"><span class="update-check-icon" style="color:var(--danger)"><?= View::icon('caution') ?></span></td>
+                  <td>
+                    <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong><br>
+                    <span class="text-muted"><?= View::e((string) ($check['detail'] ?? '')) ?></span>
+                  </td>
+                  <td class="table-num"><span class="badge badge-error">Fix</span></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
           <p style="color: var(--warn); text-align: center; font-size: var(--fs-lg); margin-top:1rem">
             Refresh this page after fixing the blocked checks. Luster will re-run pre-flight checks without re-downloading the package.
           </p>
@@ -171,18 +175,20 @@ $current = Version::CURRENT;
             <details class="form-details" style="margin-top:.75rem">
               <summary><?= count($passingChecks) ?> check<?= count($passingChecks) === 1 ? '' : 's' ?> already passing</summary>
               <div class="form-details-body">
-                <div class="update-check-list">
-                  <?php foreach ($passingChecks as $check): ?>
-                    <div class="surface update-check-row is-ok">
-                      <span class="update-check-icon"><?= View::icon('check') ?></span>
-                      <span class="update-check-main">
-                        <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong>
-                        <span><?= View::e((string) ($check['detail'] ?? '')) ?></span>
-                      </span>
-                      <span class="badge badge-current">Pass</span>
-                    </div>
-                  <?php endforeach; ?>
-                </div>
+                <table class="data-table">
+                  <tbody>
+                    <?php foreach ($passingChecks as $check): ?>
+                      <tr>
+                        <td class="table-num"><span class="update-check-icon"><?= View::icon('check') ?></span></td>
+                        <td>
+                          <strong><?= View::e((string) ($check['label'] ?? 'Check')) ?></strong><br>
+                          <span class="text-muted"><?= View::e((string) ($check['detail'] ?? '')) ?></span>
+                        </td>
+                        <td class="table-num"><span class="badge badge-current">Pass</span></td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
               </div>
             </details>
           <?php endif; ?>
@@ -245,15 +251,15 @@ $current = Version::CURRENT;
             </div>
           </div>
         <?php elseif ($update_status->updateAvailable): ?>
-          <div class="update-ready">
+          <div class="status-inline update-ready">
             <span>Version <?= View::e((string) $update_status->latest) ?> can be prepared.</span>
           </div>
         <?php elseif ($update_status->neverChecked): ?>
-          <div class="update-ready">
+          <div class="status-inline update-ready">
             <span>No update check has been run yet.</span>
           </div>
         <?php else: ?>
-          <div class="update-ready">
+          <div class="status-inline update-ready">
             <span>You are running the latest known release.</span>
           </div>
         <?php endif; ?>

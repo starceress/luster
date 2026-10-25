@@ -309,7 +309,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
     <?php if ($_colGroupCount > 0): ?><span class="card-head-sub">Click and drag the top left corner to reorder codes &mdash; changes are effective immediately.</span><?php endif; ?>
   </div>
 
-  <div class="codes-tabs">
+  <div class="tabs codes-tabs">
     <a href="<?= View::e($_colBaseUrl . '&tab=approved') ?>" class="tabs-btn<?= $_colStatusFilter === 'approved' ? ' active' : '' ?>" data-code-filter="approved">
       Approved <span class="badge badge-<?= $_colApproved > 0 ? 'current' : 'inactive' ?>"><?= $_colApproved ?></span>
     </a>

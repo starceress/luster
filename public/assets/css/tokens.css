@@ -96,7 +96,6 @@
   --sidebar-label-color: rgb(from var(--brand-primary) r g b / 0.35);
   --link-hover-color: var(--accent3);
   --card-head-sub-color: var(--text-dim);
-  --section-divider-color: var(--border);
   --btn-secondary-color: #fff;
   --btn-tertiary-bg: #ffd166;
   --badge-info-bg: rgb(from var(--brand-secondary) r g b / .12);
@@ -107,9 +106,6 @@
   --filter-input-color: inherit;
   --bulk-bg: var(--bg-subtle);
   --todo-toggle-bg: var(--bg-subtle);
-  --code-color: var(--accent2);
-  --code-bg: rgb(from var(--brand-secondary) r g b / 0.08);
-  --strong-color: var(--accent);
   --brand-sub-color: rgb(from var(--brand-muted) r g b / 0.45);
   --nav-search-bg: rgba(255,255,255,0.04);
   --nav-search-bg-focus: rgba(255,255,255,0.07);
@@ -131,7 +127,6 @@
   --bg-sidebar: #121020;
   --bg-subtle: #e2ddf0;
   --bg-elevated: #f0ecfa;
-  --bg-code: var(--bg-subtle);
   --border: #d0c8e8;
   --border-soft: #dcd8f0;
   --hairline: rgba(0,0,0,0.05);
@@ -175,7 +170,6 @@
   --bg-sidebar: #0c0b1c;
   --bg-subtle: #211e38;
   --bg-elevated: #1d1b34;
-  --bg-code: #07040f;
   --border: #2a2648;
   --border-soft: #1e1c40;
   --hairline: rgba(255,255,255,0.04);

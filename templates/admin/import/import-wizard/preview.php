@@ -211,9 +211,9 @@ $src = View::e($source);
         <thead>
           <tr>
             <th style="min-width:160px">Data Type</th>
-            <th class="table-num--plain">Found</th>
-            <th class="table-num--plain">Would Import</th>
-            <th class="table-num--plain">Would Skip</th>
+            <th>Found</th>
+            <th>Would Import</th>
+            <th>Would Skip</th>
             <th>Notes</th>
           </tr>
         </thead>
@@ -221,9 +221,9 @@ $src = View::e($source);
           <?php foreach ($preview->rows as $row): ?>
           <tr>
             <td style="font-weight:600"><?= View::e($row['type']) ?></td>
-            <td class="table-num--plain"><?= (int)$row['found']  === 0 ? '<span class="text-dim">' . number_format($row['found'])  . '</span>' : number_format($row['found']) ?></td>
-            <td class="table-num--plain"><?= (int)$row['import'] === 0 ? '<span class="text-dim">' . number_format($row['import']) . '</span>' : number_format($row['import']) ?></td>
-            <td class="table-num--plain"><?= (int)$row['skip']   === 0 ? '<span class="text-dim">' . number_format($row['skip'])   . '</span>' : number_format($row['skip']) ?></td>
+            <td><?= (int)$row['found']  === 0 ? '<span class="text-dim">' . number_format($row['found'])  . '</span>' : number_format($row['found']) ?></td>
+            <td><?= (int)$row['import'] === 0 ? '<span class="text-dim">' . number_format($row['import']) . '</span>' : number_format($row['import']) ?></td>
+            <td><?= (int)$row['skip']   === 0 ? '<span class="text-dim">' . number_format($row['skip'])   . '</span>' : number_format($row['skip']) ?></td>
             <td class="table-cell-notes">
               <span class="text-muted"><?= implode('<br>', array_map([View::class, 'e'], $row['warnings'])) ?: '&mdash;' ?></span>
             </td>

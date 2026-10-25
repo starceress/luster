@@ -44,7 +44,7 @@ $b = rtrim(View::e($base_url), '/');
   </div>
 </div>
 
-<div class="callout callout-info"><?= View::icon('notes') ?> <strong>Only moving members into one existing listing?</strong> <a href="<?= $b ?>/admin/import-members" class="link">Use the members-only importer instead.</a></div>
+<div class="callout callout-info"><?= View::icon('notes') ?> <strong>Only moving members into one existing listing?</strong> <a href="<?= $b ?>/admin/import-members" class="link">Use the Members-Only Importer instead.</a></div>
 
 <div class="stats-grid">
 
@@ -55,14 +55,13 @@ $b = rtrim(View::e($base_url), '/');
     </div>
 
     <ul class="star-list">
-      <li>Owned listings</li>
-      <li>Joined listings</li>
+      <li>Owned & Joined Listings</li>
       <li>Members</li>
-      <li>Assigned categories</li>
+      <li>Assigned Categories</li>
       <li>Affiliates</li>
-      <li>Per-listing settings</li>
-      <li>Email templates</li>
-      <li>Other saved templates</li>
+      <li>Per-Listing settings</li>
+      <li>Email Templates</li>
+      <li>Other Saved Templates</li>
     </ul>
   </a>
   <?php endif; ?>
@@ -73,10 +72,10 @@ $b = rtrim(View::e($base_url), '/');
       <span class="panel-header-title">Listing Admin</span>
     </div>
     <ul class="star-list">
-      <li>Owned listings</li>
+      <li>Owned & Joined Listings</li>
       <li>Joined listings</li>
       <li>Members</li>
-      <li>Assigned categories</li>
+      <li>Assigned Categories</li>
       <li>Affiliates</li>
       <li>News Feed</li>
       <li>Wishlist</li>
@@ -95,7 +94,7 @@ $b = rtrim(View::e($base_url), '/');
     <ul class="star-list">
       <li>Members</li>
       <li>Affiliates</li>
-      <li>Codes </li>
+      <li>Codes</li>
     </ul>
   </a>
   <?php endif; ?>
@@ -106,17 +105,15 @@ $b = rtrim(View::e($base_url), '/');
       <span class="panel-header-title">Fanatically</span>
     </div>
     <ul class="star-list">
-      <li>Owned listings</li>
-      <li>Joined listings</li>
+      <li>Owned & Joined Listings</li>
       <li>Members</li>
-      <li>Pending member updates</li>
-      <li>Assigned categories</li>
+      <li>Assigned Categories</li>
       <li>Affiliates</li>
       <li>Codes</li>
       <li>Wishlist</li>
       <li>KIM List</li>
       <li>Adoptions</li>
-      <li>Site settings</li>
+      <li>Site Settings</li>
     </ul>
   </a>
   <?php endif; ?>
@@ -128,7 +125,7 @@ $b = rtrim(View::e($base_url), '/');
     </div>
     <ul class="star-list">
       <li>Codes</li>
-      <li>Assigned categories, sizes & donors</li>
+      <li>Assigned Categories, Sizes & Donors</li>
     </ul>
   </a>
   <?php endif; ?>
@@ -139,8 +136,8 @@ $b = rtrim(View::e($base_url), '/');
       <span class="panel-header-title">FanUpdate</span>
     </div>
     <ul class="star-list">
-      <li>Blog entries</li>
-      <li>Per-fanlisting assignment, matched by title</li>
+      <li>Blog Entries</li>
+      <li>Per-Fanlisting Assignments, matched by title</li>
     </ul>
   </a>
   <?php endif; ?>

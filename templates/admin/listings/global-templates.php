@@ -129,7 +129,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
       </div>
 
       <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
-        <div class="tpl-actions-row">
+        <div class="actions-row actions-row--wrap tpl-actions-row">
           <button type="button" class="btn btn-tertiary btn-sm"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/global-templates/reset-all"
@@ -395,14 +395,13 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <button type="button"
                   id="global-token-search-clear"
                   data-token-search-clear
-                  class="token-search-clear"
+                  class="search-clear-btn search-clear-btn--token"
                   aria-label="Clear embed token search"
-                  title="Clear search"
-                  hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+                  title="Clear search"><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
         </div>
       </div>
 
-      <p id="global-token-search-empty" data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
+      <p id="global-token-search-empty" data-token-search-empty class="form-hint form-hint--spaced" hidden>No tokens found.</p>
 
       <!-- Members List -->
       <details class="card chevron" data-token-card data-tpl-group="members" <?= $_grp('members') ?>>

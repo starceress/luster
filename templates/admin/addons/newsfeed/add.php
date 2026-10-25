@@ -108,7 +108,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
               <?php endforeach; ?>
             </datalist>
             <p class="form-hint">Press Enter or comma to add. Multiple categories allowed. Start typing to see suggestions.</p>
-            <div id="upd-chips" class="tag-chips-list"></div>
+            <div id="upd-chips" class="stat-pills"></div>
           </div>
         </div>
 
@@ -138,7 +138,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         <button type="button" class="btn btn-quaternary js-form-reset"><?= $is_edit ? ' Reset to Original' : 'Clear' ?></button>
 
         <?php if ($is_edit): ?>
-          <div class="composer-footer-spacer"></div>
+          <div class="flex-fill"></div>
           <button type="submit" form="del-newsfeed-entry-form" class="btn btn-danger">Delete</button>
         <?php endif; ?>
       </div>

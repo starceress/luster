@@ -195,7 +195,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
       <?php endif; ?>
       <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear</button>
       <?php if ($isEdit): ?>
-        <span class="composer-footer-spacer"></span>
+        <span class="flex-fill"></span>
         <button type="submit" form="del-joined-<?= (int) $joined->id ?>" class="btn btn-danger">Delete</button>
       <?php endif; ?>
     </div>

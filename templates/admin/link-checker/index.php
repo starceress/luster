@@ -523,7 +523,7 @@ $sumCell = static function (?array $ms, string $key): string {
                 ?>
                 <span class="badge <?= $blClass ?>" data-lc-backlink-badge><?= $blLabel ?></span>
               </td>
-              <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
+              <td class="text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
               <td class="actions-col" data-label="">
@@ -662,7 +662,7 @@ $sumCell = static function (?array $ms, string $key): string {
                   </span>
                 <?php endif; ?>
               </td>
-              <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
+              <td class="text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $aff->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($aff->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
               <td class="actions-col" data-label="">
@@ -780,10 +780,10 @@ $sumCell = static function (?array $ms, string $key): string {
                   <span class="text-dim" data-lc-listed-badge>&mdash;</span>
                 <?php endif; ?>
                 <?php if ($jl->listedMembersUrl !== null && $jl->listedMembersUrl !== ''): ?>
-                <div class="text-muted link-break"><a href="<?= View::e($jl->listedMembersUrl) ?>" target="_blank" rel="noopener noreferrer" class="link text-xs"><?= View::e($jl->listedMembersUrl) ?></a></div>
+                <div class="text-muted link-break"><a href="<?= View::e($jl->listedMembersUrl) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e($jl->listedMembersUrl) ?></a></div>
                 <?php endif; ?>
               </td>
-              <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
+              <td class="text-muted" data-label="Last Checked" data-lc-checked>
                 <?= $jl->linkCheckedAt !== null ? View::e(date($admin_date_format, strtotime($jl->linkCheckedAt))) : '<span class="text-dim">&mdash;</span>' ?>
               </td>
               <td class="actions-col" data-label="">

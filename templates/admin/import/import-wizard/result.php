@@ -178,7 +178,7 @@ $hasErr  = $result->hasErrors();
           </td>
         </tr>
         <?php if ($hasSkipDetail): ?>
-        <tr class="skip-detail-row is-hidden" id="skip-<?= md5($row['type']) ?>">
+        <tr class="is-hidden" id="skip-<?= md5($row['type']) ?>">
           <td colspan="4" class="skip-detail-cell">
             <div class="skip-detail-inner">
               <div class="skip-detail-head">
@@ -204,14 +204,14 @@ $hasErr  = $result->hasErrors();
                   <?php endforeach; ?>
                   <?php if ($moreInArray > 0): ?>
                   <tr>
-                    <td colspan="2" class="text-muted table-note-italic">
+                    <td colspan="2" class="text-muted">
                       &hellip; and <?= number_format($moreInArray + $overflow) ?> more &mdash;
                       <a href="<?= $b ?>/admin/import/<?= $src ?>/report" class="link">download full report</a>
                     </td>
                   </tr>
                   <?php elseif ($overflow > 0): ?>
                   <tr>
-                    <td colspan="2" class="text-muted table-note-italic">
+                    <td colspan="2" class="text-muted">
                       &hellip; and <?= number_format($overflow) ?> more &mdash;
                       <a href="<?= $b ?>/admin/import/<?= $src ?>/report" class="link">download full report</a>
                     </td>

@@ -223,7 +223,7 @@ $bulkOptions = match ($statusTab) {
       </span>
     </div>
 
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select id="bulk-action-sel" class="select-xs" name="bulk_action">

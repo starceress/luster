@@ -308,7 +308,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="field-row">
             <label class="field-label">Light / Dark</label>
             <div>
-              <div class="actions-row theme-mode-picker">
+              <div class="actions-row">
                 <form method="POST" action="<?= $b ?>/admin/settings/default-theme"
                       class="action-form-inline" id="default-theme-form">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -337,7 +337,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             $activeSkin   = $site_settings['selected_skin'] ?? '';
             $bundledSkins = SkinCatalog::all();
           ?>
-          <div class="auto-grid auto-grid--md skin-picker">
+          <div class="auto-grid auto-grid--md">
             <?php foreach ($bundledSkins as $skin):
                 $slug = $skin['slug'];
             ?>
@@ -392,7 +392,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               Only activate skins from authors you control or explicitly trust.
               <?php if ($activeSkinHash !== null): ?>
                 This fingerprint helps you confirm the file has not changed since you activated it.
-                <br><code class="text-xs link-break"><?= View::e($activeSkinHash) ?></code>
+                <br><code class="link-break"><?= View::e($activeSkinHash) ?></code>
               <?php endif; ?>
             </div>
           </div>
@@ -994,32 +994,35 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             $checkedStr = $us->checkedAt !== null ? date($checkedFmt, $us->checkedAt) : null;
             $spd        = $session_path_diagnostics ?? null;
           ?>
-          <div class="sysinfo-row">
-            <span class="field-label">Name</span> Luster
+          <div class="field-row">
+            <span class="field-label">Name</span>
+            <div>Luster</div>
           </div>
-          <div class="sysinfo-row">
+          <div class="field-row">
             <span class="field-label">Install Path</span>
             <?php $_sysInstallPath = cfgVal($cfg, 'install_path') ?: (rtrim(str_replace('\\', '/', LUSTER_BASE), '/') . '/'); ?>
-            <span class="text-mono text-dim"><?= View::e($_sysInstallPath) ?></span>
+            <div class="text-mono text-dim"><?= View::e($_sysInstallPath) ?></div>
           </div>
-          <div class="sysinfo-row">
+          <div class="field-row">
             <span class="field-label">Installed Version</span>
-            <?= View::e(Version::CURRENT) ?>
+            <div><?= View::e(Version::CURRENT) ?></div>
           </div>
           <?php if (!$us->neverChecked): ?>
-          <div class="sysinfo-row">
+          <div class="field-row">
             <span class="field-label">Latest Version</span>
-            <?php if ($us->latest !== null): ?>
-              <?= View::e($us->latest) ?>
-            <?php elseif (!$us->checkFailed): ?>
-              No releases published yet
-            <?php else: ?>
-              Unknown
-            <?php endif; ?>
+            <div>
+              <?php if ($us->latest !== null): ?>
+                <?= View::e($us->latest) ?>
+              <?php elseif (!$us->checkFailed): ?>
+                No releases published yet
+              <?php else: ?>
+                Unknown
+              <?php endif; ?>
+            </div>
           </div>
-          <div class="sysinfo-row">
+          <div class="field-row">
             <span class="field-label">Release Status</span>
-            <span class="status-inline">
+            <div class="status-inline">
               <?php if ($us->checkFailed): ?>
                 <span class="badge badge-inactive">Check failed</span>
                 <?php if ($us->error !== null): ?><?= View::e($us->error) ?><?php endif; ?>
@@ -1031,12 +1034,12 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <?php else: ?>
                 <span class="badge badge-current">Up to date</span>
               <?php endif; ?>
-            </span>
+            </div>
           </div>
           <?php endif; ?>
-          <div class="sysinfo-row">
+          <div class="field-row">
             <span class="field-label">Last Checked</span>
-            <span style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+            <div class="status-inline">
               <?php if (!$us->neverChecked): ?><?= View::e($checkedStr ?? '') ?><?php endif; ?>
               <button type="button" id="update-check-btn" class="btn btn-secondary btn-xs"
                       data-url="<?= View::e($b) ?>/admin/settings/check-update"
@@ -1046,41 +1049,45 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <span id="update-check-result" style="font-size:var(--fs-sm)">
                 <?php if ($us->neverChecked): ?><span class="text-dim">No update check has been run yet</span><?php endif; ?>
               </span>
-            </span>
+            </div>
           </div>
-          <div class="sysinfo-row">
-            <span class="field-label">PHP Version</span> <?= View::e($php_version) ?>
+          <div class="field-row">
+            <span class="field-label">PHP Version</span>
+            <div><?= View::e($php_version) ?></div>
           </div>
-          <div class="sysinfo-row">
-            <span class="field-label">Database</span> <?= View::e($db_version) ?>
+          <div class="field-row">
+            <span class="field-label">Database</span>
+            <div><?= View::e($db_version) ?></div>
           </div>
           <?php if ($spd !== null): ?>
-          <div class="sysinfo-row">
+          <div class="field-row">
             <span class="field-label">Session Storage</span>
-            <span class="status-inline">
+            <div>
+              <span class="status-inline">
+                <?php if (!($spd['probeOk'] ?? true)): ?>
+                  <span class="badge badge-error">Not writable</span>
+                <?php elseif ($spd['usedFallback']): ?>
+                  <span class="badge badge-pending">Fallback in use</span>
+                <?php else: ?>
+                  <span class="badge badge-current">Default path</span>
+                <?php endif; ?>
+                <span class="text-mono text-dim"><?= View::e($spd['path']) ?></span>
+              </span>
               <?php if (!($spd['probeOk'] ?? true)): ?>
-                <span class="badge badge-error">Not writable</span>
+                <p class="form-hint" style="color:var(--danger)">
+                  Luster could not write to any session storage location. Logins will not
+                  work until write permissions are fixed on the storage path above or on
+                  your server&rsquo;s <code>session.save_path</code>. Contact your host.
+                </p>
               <?php elseif ($spd['usedFallback']): ?>
-                <span class="badge badge-pending">Fallback in use</span>
-              <?php else: ?>
-                <span class="badge badge-current">Default path</span>
+                <p class="form-hint">
+                  Your server&rsquo;s configured session storage location was not writable, so
+                  Luster is using a fallback location instead. Logins and member sessions still
+                  work normally, but consider asking your host to fix write permissions on the
+                  default <code>session.save_path</code>.
+                </p>
               <?php endif; ?>
-              <span class="text-mono text-dim"><?= View::e($spd['path']) ?></span>
-            </span>
-            <?php if (!($spd['probeOk'] ?? true)): ?>
-              <p class="form-hint" style="color:var(--danger)">
-                Luster could not write to any session storage location. Logins will not
-                work until write permissions are fixed on the storage path above or on
-                your server&rsquo;s <code>session.save_path</code>. Contact your host.
-              </p>
-            <?php elseif ($spd['usedFallback']): ?>
-              <p class="form-hint">
-                Your server&rsquo;s configured session storage location was not writable, so
-                Luster is using a fallback location instead. Logins and member sessions still
-                work normally, but consider asking your host to fix write permissions on the
-                default <code>session.save_path</code>.
-              </p>
-            <?php endif; ?>
+            </div>
           </div>
           <?php endif; ?>
         </div>
@@ -1129,35 +1136,35 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 </div>
                 <?php endforeach; ?>
               </div>
-              <div class="sysinfo-row">
+              <div class="field-row">
                 <span class="field-label">Upload path writable</span>
-                <span class="status-inline">
+                <div class="status-inline">
                   <?php if ($hd['uploads_writable'] ?? false): ?>
                     <span class="badge badge-current">Writable</span>
                   <?php else: ?>
                     <span class="badge badge-error">Not writable</span>
                     <span class="text-dim">public/uploads/</span>
                   <?php endif; ?>
-                </span>
+                </div>
               </div>
-              <div class="sysinfo-row">
+              <div class="field-row">
                 <span class="field-label">Logs path writable</span>
-                <span class="status-inline">
+                <div class="status-inline">
                   <?php if ($hd['logs_writable'] ?? false): ?>
                     <span class="badge badge-current">Writable</span>
                   <?php else: ?>
                     <span class="badge badge-error">Not writable</span>
                     <span class="text-dim">storage/logs/</span>
                   <?php endif; ?>
-                </span>
+                </div>
               </div>
               <?php
                 $applied = $hd['applied_migration'] ?? null;
                 $latest  = $hd['latest_migration']  ?? null;
               ?>
-              <div class="sysinfo-row">
+              <div class="field-row">
                 <span class="field-label">Migration state</span>
-                <span class="status-inline">
+                <div class="status-inline">
                   <?php if ($applied === null): ?>
                     <span class="badge badge-inactive">Unknown</span>
                   <?php elseif ($latest !== null && $applied >= $latest): ?>
@@ -1167,18 +1174,18 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <span class="text-dim">Applied <?= (int) $applied ?> of <?= (int) $latest ?></span>
                     <a href="<?= $b ?>/migrate/" class="link" style="font-size:var(--fs-sm)">Run migrations &rarr;</a>
                   <?php endif; ?>
-                </span>
+                </div>
               </div>
-              <div class="sysinfo-row">
+              <div class="field-row">
                 <span class="field-label">Outbound HTTPS</span>
-                <span style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+                <div class="status-inline">
                   <button type="button" id="health-check-http-btn" class="btn btn-secondary btn-xs"
                           data-url="<?= View::e($b) ?>/admin/settings/check-http"
                           data-csrf="<?= View::e($csrf_token ?? '') ?>">
                     Test connection
                   </button>
                   <span id="health-check-http-result" style="font-size:var(--fs-sm)"></span>
-                </span>
+                </div>
               </div>
             </div>
           </details>
@@ -1190,29 +1197,32 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <summary>Database Connection</summary>
             <div class="form-details-body">
               <p class="form-details-desc">Values from <code>config/app.php</code> &mdash; shown here so you can verify what database this install is pointing at.</p>
-              <div class="sysinfo-row">
-                <span class="field-label">Host</span> <?= View::e(cfgVal($cfg, 'db_host', 'localhost')) ?>
+              <div class="field-row">
+                <span class="field-label">Host</span>
+                <div><?= View::e(cfgVal($cfg, 'db_host', 'localhost')) ?></div>
               </div>
-              <div class="sysinfo-row">
-                <span class="field-label">Database</span> <?= View::e(cfgVal($cfg, 'db_name')) ?>
+              <div class="field-row">
+                <span class="field-label">Database</span>
+                <div><?= View::e(cfgVal($cfg, 'db_name')) ?></div>
               </div>
-              <div class="sysinfo-row">
-                <span class="field-label">User</span> <?= View::e(cfgVal($cfg, 'db_user')) ?>
+              <div class="field-row">
+                <span class="field-label">User</span>
+                <div><?= View::e(cfgVal($cfg, 'db_user')) ?></div>
               </div>
-              <div class="sysinfo-row">
+              <div class="field-row">
                 <span class="field-label">Debug mode</span>
-                <span class="status-inline">
+                <div class="status-inline">
                   <?php if ($cfg['app_debug'] ?? false): ?>
                     <span class="badge badge-error">Enabled</span>
                     <span class="text-dim">Turn off on a live public site.</span>
                   <?php else: ?>
                     <span class="badge badge-inactive">Disabled</span>
                   <?php endif; ?>
-                </span>
+                </div>
               </div>
-              <div class="sysinfo-row">
+              <div class="field-row">
                 <span class="field-label">Install URL</span>
-                <span class="text-mono text-dim"><?= View::e(cfgVal($cfg, 'app_url')) ?></span>
+                <div class="text-mono text-dim"><?= View::e(cfgVal($cfg, 'app_url')) ?></div>
               </div>
             </div>
           </details>

@@ -79,13 +79,12 @@ $flName     = View::e($listing->subject ?? '');
              aria-label="Search email tokens">
       <button type="button"
               data-token-search-clear
-              class="token-search-clear"
+              class="search-clear-btn search-clear-btn--token"
               aria-label="Clear search"
-              title="Clear search"
-              hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+              title="Clear search"><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
     </div></div>
 
-    <p data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
+    <p data-token-search-empty class="form-hint form-hint--spaced" hidden>No tokens found.</p>
 
     <details class="card chevron" data-token-card>
       <summary class="chevron-head">Available Tokens</summary>
@@ -183,7 +182,7 @@ $flName     = View::e($listing->subject ?? '');
         </button>
         <button type="button" class="btn btn-preview" id="es-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
-        <div class="composer-footer-spacer"></div>
+        <div class="flex-fill"></div>
         <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $listingId ?>&status=all" class="btn btn-danger">Cancel</a>
       </div>
     </form>

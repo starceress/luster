@@ -157,33 +157,29 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 <?php if ($no_listings ?? false): ?>
 <!-- ──── FIRST-TIME IMPORT CALLOUT ───────────────────────────────────── -->
 <div class="onboard-callout">
-  <div class="onboard-callout-inner">
-    <div class="onboard-callout-heading">
-      <span class="onboard-callout-sparke">&#10022;</span>
-      Getting Started
-    </div>
-    <p class="onboard-callout-body">
-      Migrating from Enthusiast, Listing Admin, Fanatically, CodeSort, or FanUpdate? Use the Import Data Wizard brings in your listings, members, affiliates, and images in minutes. 
-    </p>
-      <a href="<?= $b ?>/admin/import" class="btn btn-primary btn-sm">Open Import Data Wizard &rarr;</a> 
-      <a href="<?= $b ?>/admin/listings/add" class="btn btn-quaternary btn-sm">Add First Listing Manually&rarr;</a>
+  <div class="onboard-callout-heading">
+    <span class="onboard-callout-sparkle">&#10022;</span>
+    Getting Started
   </div>
+  <p class="onboard-callout-body">
+    Migrating from Enthusiast, Listing Admin, Fanatically, CodeSort, or FanUpdate? Use the Import Data Wizard brings in your listings, members, affiliates, and images in minutes.
+  </p>
+    <a href="<?= $b ?>/admin/import" class="btn btn-primary btn-sm">Open Import Data Wizard &rarr;</a>
+    <a href="<?= $b ?>/admin/listings/add" class="btn btn-quaternary btn-sm">Add First Listing Manually&rarr;</a>
 </div>
 <?php endif; ?>
 
 <!-- ──── HTTP APP URL WARNING ────────────────────────────────────────── -->
 <?php if ($show_http_warning ?? false): ?>
 <div class="reminder-banner">
-  <div class="reminder-banner-head">
-    <div class="reminder-banner-left">
-      <span class="reminder-banner-icon"><?= View::icon('caution') ?></span>
-      <div>
-        <span class="reminder-banner-title">Your site URL uses http://</span>
-        <span class="reminder-banner-msg">
-          That's fine for local testing, but logins won't work correctly on a live site without HTTPS.
-          <a href="<?= $b ?>/admin/settings#panel-general" class="link">Update your App URL before going live &rarr;</a>
-        </span>
-      </div>
+  <div class="actions-row reminder-banner-left">
+    <span class="reminder-banner-icon"><?= View::icon('caution') ?></span>
+    <div>
+      <span class="reminder-banner-title">Your site URL uses http://</span>
+      <span class="reminder-banner-msg">
+        That's fine for local testing, but logins won't work correctly on a live site without HTTPS.
+        <a href="<?= $b ?>/admin/settings#panel-general" class="link">Update your App URL before going live &rarr;</a>
+      </span>
     </div>
   </div>
 </div>
@@ -192,30 +188,28 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 <!-- ──── LUSTER UPDATES ──────────────────────────────────────────────── -->
 <?php if ($show_update_banner): ?>
 <div class="reminder-banner reminder-banner--update">
-  <div class="reminder-banner-head">
-    <div class="reminder-banner-left">
-      <span class="reminder-banner-icon"><?= View::icon('sparkles') ?></span>
-      <div>
-        <span class="reminder-banner-title">New Luster Version Available</span>
-        <span class="reminder-banner-msg">
-          <strong>Version <?= View::e($update_status->latest ?? '') ?></strong> is available
-          <?php if ($update_status->releaseTitle !== null
-                    && !preg_match('/^(Luster\s+)?v?' . preg_quote($update_status->latest ?? '', '/') . '$/i', trim($update_status->releaseTitle))): ?>
-            &mdash; <?= View::e($update_status->releaseTitle) ?>
-          <?php endif; ?>
-        </span>
-      </div>
+  <div class="actions-row reminder-banner-left">
+    <span class="reminder-banner-icon"><?= View::icon('sparkles') ?></span>
+    <div>
+      <span class="reminder-banner-title">New Luster Version Available</span>
+      <span class="reminder-banner-msg">
+        <strong>Version <?= View::e($update_status->latest ?? '') ?></strong> is available
+        <?php if ($update_status->releaseTitle !== null
+                  && !preg_match('/^(Luster\s+)?v?' . preg_quote($update_status->latest ?? '', '/') . '$/i', trim($update_status->releaseTitle))): ?>
+          &mdash; <?= View::e($update_status->releaseTitle) ?>
+        <?php endif; ?>
+      </span>
     </div>
-    <div class="status-inline">
-      <a href="<?= $b ?>/admin/update" class="btn btn-download btn-sm">
-        Prepare Update &rarr;
-      </a>
-      <form method="POST" action="<?= $b ?>/admin/dismiss-update" class="action-form-inline">
-        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-        <input type="hidden" name="version" value="<?= View::e($update_status->latest ?? '') ?>">
-        <button type="submit" class="btn btn-quaternary btn-sm">Dismiss</button>
-      </form>
-    </div>
+  </div>
+  <div class="status-inline">
+    <a href="<?= $b ?>/admin/update" class="btn btn-download btn-sm">
+      Prepare Update &rarr;
+    </a>
+    <form method="POST" action="<?= $b ?>/admin/dismiss-update" class="action-form-inline">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="version" value="<?= View::e($update_status->latest ?? '') ?>">
+      <button type="submit" class="btn btn-quaternary btn-sm">Dismiss</button>
+    </form>
   </div>
 </div>
 
@@ -244,7 +238,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <?php if ($total_pending > 0): ?>
     <div class="todo-section">
       <button class="todo-toggle" data-target="todo-action">
-        <div class="todo-toggle-left">
+        <div class="actions-row">
           <span class="todo-toggle-sigil"><?= View::icon('pending') ?></span>
           <span class="todo-toggle-title">Pending Members</span>
           <span class="badge badge-pending"><?= (int) $total_pending ?></span>
@@ -261,7 +255,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <?php if (!empty($stale_listings)): ?>
     <div class="todo-section">
       <button class="todo-toggle" data-target="todo-maint">
-        <div class="todo-toggle-left">
+        <div class="actions-row">
           <span class="todo-toggle-sigil"><?= View::icon('caution') ?></span>
           <span class="todo-toggle-title">Maintenance Needed</span>
           <span class="badge badge-pending" id="todo-maint-badge"><?= count($stale_listings) ?></span>
@@ -283,7 +277,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         </div>
         <?php foreach ($stale_listings as $staleItem): ?>
         <div class="todo-mrow">
-          <div class="todo-mrow-left">
+          <div class="actions-row todo-mrow-left">
             <label class="todo-mrow-check">
               <input type="checkbox" name="listing_ids[]"
                      value="<?= (int) $staleItem['listing']->id ?>"
@@ -293,7 +287,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
             <a href="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/edit"
                class="link"><?= View::e($staleItem['listing']->subject) ?></a>
           </div>
-          <div class="todo-mrow-right">
+          <div class="actions-row todo-mrow-right">
             <?php
               $daysAgo    = $staleItem['days_ago'];
               $daysColor  = ($daysAgo === null || $daysAgo >= ($overdue_threshold_days ?? 55))
@@ -334,7 +328,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <?php if (($pending_affiliates ?? 0) > 0): ?>
     <div class="todo-section">
       <button class="todo-toggle" data-target="todo-affiliates">
-        <div class="todo-toggle-left">
+        <div class="actions-row">
           <span class="todo-toggle-sigil"><?= View::icon('link') ?></span>
           <span class="todo-toggle-title">Pending Affiliates</span>
           <span class="badge badge-pending"><?= (int) $pending_affiliates ?></span>
@@ -351,7 +345,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <?php if (($pending_codes ?? 0) > 0): ?>
     <div class="todo-section">
       <button class="todo-toggle" data-target="todo-codes">
-        <div class="todo-toggle-left">
+        <div class="actions-row">
           <span class="todo-toggle-sigil"><?= View::icon('image') ?></span>
           <span class="todo-toggle-title">Pending Codes</span>
           <span class="badge badge-pending"><?= (int) $pending_codes ?></span>
@@ -368,7 +362,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <?php if (($pending_adoptions ?? 0) > 0): ?>
     <div class="todo-section">
       <button class="todo-toggle" data-target="todo-adoptions">
-        <div class="todo-toggle-left">
+        <div class="actions-row">
           <span class="todo-toggle-sigil"><?= View::icon('adoptions') ?></span>
           <span class="todo-toggle-title">Pending Adoptions</span>
           <span class="badge badge-pending"><?= (int) $pending_adoptions ?></span>
@@ -385,7 +379,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <?php if (($pending_kim ?? 0) > 0): ?>
     <div class="todo-section">
       <button class="todo-toggle" data-target="todo-kim">
-        <div class="todo-toggle-left">
+        <div class="actions-row">
           <span class="todo-toggle-sigil"><?= View::icon('kim') ?></span>
           <span class="todo-toggle-title">Pending KIM Sign-Ups</span>
           <span class="badge badge-pending"><?= (int) $pending_kim ?></span>

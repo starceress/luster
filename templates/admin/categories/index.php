@@ -172,7 +172,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
         Showing <?= $_catFrom ?>&ndash;<?= $_catTo ?> of <?= $_catTotal ?> categor<?= $_catTotal === 1 ? 'y' : 'ies' ?>
       </span>
     </div>
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select id="bulk-action-sel" name="bulk_action">

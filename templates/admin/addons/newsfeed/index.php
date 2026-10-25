@@ -141,7 +141,7 @@ $collLastDate = $latest_coll !== null
         <tr style="background: rgb(from var(--brand-tertiary) r g b / .06);">
           <td class="text-dim" data-label="#">0</td>
           <td data-label="Listing">
-            <div class="ctx-cell">
+            <div class="actions-row">
               <a href="<?= $b ?>/admin/newsfeed/collective" class="link"><b><?= View::e($site_name) ?></b></a>
               <span class="badge badge-info3">Collective</span>
             </div>

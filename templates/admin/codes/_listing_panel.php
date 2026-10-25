@@ -231,7 +231,7 @@ $_tabRejected = $_codesBaseUrl !== null
       <?php if ($_groupCount > 0): ?><span class="card-head-sub">Click and drag the top left corner to reorder codes &mdash; changes are effective immediately.</span><?php endif; ?>
     </div>
 
-    <div class="codes-tabs">
+    <div class="tabs codes-tabs">
       <a href="<?= $_tabApproved ?>" class="tabs-btn<?= $_codeStatusFilter === 'approved' ? ' active' : '' ?>" data-code-filter="approved">
         Approved <span class="badge badge-<?= $_approvedCount > 0 ? 'current' : 'inactive' ?>"><?= $_approvedCount ?></span>
       </a>

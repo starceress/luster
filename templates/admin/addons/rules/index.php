@@ -144,7 +144,7 @@ $rangeLast  = min($page * $per_page, $total);
       <span class="card-head-sub">Showing <?= $rangeFirst ?>&ndash;<?= $rangeLast ?> of <?= (int) $total ?> Listing<?= $total === 1 ? '' : 's' ?></span>
     </div>
 
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select id="rules-bulk-sel" class="select-xs" name="bulk_action">
@@ -207,7 +207,7 @@ $rangeLast  = min($page * $per_page, $total);
 
             <td data-label="Listing">
               <div class="subject-title-stack">
-                <div class="ctx-cell">
+                <div class="actions-row">
                   <a class="link" href="<?= $b ?>/admin/rules/<?= (int) $row['listing_id'] ?>/edit"><b><?= View::e($row['listing_subject'] ?: $row['listing_title']) ?></b></a>
                   <?php if ($row['listing_type'] !== '' && $row['listing_type'] !== 'listing'): ?>
                     <span class="badge badge-inactive"><?= View::e($_typeLabels[$row['listing_type']] ?? ucfirst($row['listing_type'])) ?></span>

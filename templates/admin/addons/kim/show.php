@@ -72,7 +72,7 @@ $fid = (int) $listing->id;
           data-del-bulk data-del-entity="kim_member"
           data-del-context="<?= View::e($listing->subject) ?>">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-      <div class="bulk bulk--flush">
+      <div class="bulk">
         Bulk Actions:
         <div class="select-wrap">
           <select name="bulk_action" class="select-xs">
@@ -173,7 +173,7 @@ $fid = (int) $listing->id;
           data-del-bulk data-del-entity="kim_member"
           data-del-context="<?= View::e($listing->subject) ?>">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-      <div class="bulk bulk--flush">
+      <div class="bulk">
         Bulk Actions:
         <div class="select-wrap">
           <select name="bulk_action" class="select-xs">

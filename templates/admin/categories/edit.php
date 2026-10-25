@@ -133,7 +133,7 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
       <a href="<?= $b ?>/admin/categories" class="btn btn-ghost">Cancel</a>
-      <span class="composer-footer-spacer"></span>
+      <span class="flex-fill"></span>
       <button type="submit"
               form="del-category-<?= (int) ($cat->id ?? 0) ?>"
               class="btn btn-danger">Delete Category</button>

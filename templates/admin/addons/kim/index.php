@@ -216,7 +216,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
     <?php endif; ?>
   </div>
 
-  <div class="bulk bulk--flush">
+  <div class="bulk">
     Bulk Actions:
     <div class="select-wrap">
       <select name="bulk_action" class="select-xs" id="kim-bulk-action">

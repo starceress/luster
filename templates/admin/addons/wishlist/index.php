@@ -272,7 +272,7 @@ $showDragHint = isset($typeTabs[$filter_type])
       <?php endif; ?>
     </div>
 
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       Bulk Actions:
       <div class="select-wrap">
         <select name="bulk_action" class="select-xs" id="wl-bulk-action">

@@ -1771,14 +1771,12 @@ function lstrTodayIso() {
 
   // ── Tab switching ──────────────────────────────────────────────────────────
   var tabBtns    = root.querySelectorAll('[data-ec-tab]');
-  var currentTab = 'main';
   var panels  = {
     main: document.getElementById('ec-panel-main'),
     ref:  document.getElementById('ec-panel-ref'),
   };
 
   function switchTab(id) {
-    currentTab = id;
     tabBtns.forEach(function (b) {
       var on = b.dataset.ecTab === id;
       b.classList.toggle('active', on);
@@ -1787,11 +1785,7 @@ function lstrTodayIso() {
     Object.keys(panels).forEach(function (k) {
       if (panels[k]) panels[k].classList.toggle('active', k === id);
     });
-    if (id === 'ref') {
-      var activeRefBtn = root.querySelector('.ec-ref-nav-item.act');
-      var panelId = activeRefBtn ? activeRefBtn.dataset.ecRef : '';
-      if (panelId) history.replaceState(null, '', location.pathname + location.search + '#ref/' + panelId);
-    } else if (id === 'main') {
+    if (id === 'main') {
       if (currentKey) {
         var sec = sectionForKey(currentKey);
         if (sec) history.replaceState(null, '', location.pathname + location.search + '#' + sec + '/' + currentKey);
@@ -1808,19 +1802,6 @@ function lstrTodayIso() {
   // ── Utilities ──────────────────────────────────────────────────────────────
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function highlight(code) {
-    var e = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    return e.replace(/(\/\/[^\n]*)|('(?:[^'\\]|\\.)*')|(&lt;\?php|\?&gt;)|(\brequire\b|\btrue\b|\bfalse\b|\bnull\b)|(\$\w+)|(\b\d+\b)/g, function (m,c,s,t,k,v,n) {
-      if (c !== undefined) return '<span class="ec-hl-c">' + m + '</span>';
-      if (s !== undefined) return '<span class="ec-hl-s">' + m + '</span>';
-      if (t !== undefined) return '<span class="ec-hl-k">' + m + '</span>';
-      if (k !== undefined) return '<span class="ec-hl-k">' + m + '</span>';
-      if (v !== undefined) return '<span class="ec-hl-v">' + m + '</span>';
-      if (n !== undefined) return '<span class="ec-hl-n">' + m + '</span>';
-      return m;
-    });
   }
 
   // ── Cascading section → embed selectors ───────────────────────────────────
@@ -1891,12 +1872,10 @@ function lstrTodayIso() {
   }
 
   // ── Right pane elements ────────────────────────────────────────────────────
-  var headIco        = document.getElementById('ec-head-ico');
   var headTitle      = document.getElementById('ec-head-title');
   var headBadge      = document.getElementById('ec-head-badge');
   var headDesc       = document.getElementById('ec-head-desc');
   var codePre        = document.getElementById('ec-code-pre');
-  var codeFile       = document.getElementById('ec-code-file');
   var codeCpBtn      = document.getElementById('ec-code-cp');
   var prevBtn        = document.getElementById('ec-prev-btn');
   var prevModal      = document.getElementById('ec-prev-modal');
@@ -2530,7 +2509,7 @@ function lstrTodayIso() {
 
   function refreshCode() {
     currentCode = generateCode(currentKey, custVals);
-    if (codePre) codePre.innerHTML = highlight(currentCode);
+    if (codePre) codePre.textContent = currentCode;
     var n = countCustomized(currentKey, custVals);
     if (optsBadge) {
       optsBadge.textContent = n + ' option' + (n !== 1 ? 's' : '') + ' set';
@@ -2909,16 +2888,12 @@ function lstrTodayIso() {
     pickItems.forEach(function (b) { b.classList.toggle('active', b.dataset.ecItem === key); });
     // Head
     var item = items[key] || {};
-    if (headIco)   headIco.innerHTML     = item.icon_html_lg || '';
     if (headTitle) headTitle.textContent = item.label || key;
     if (headBadge) {
       headBadge.textContent = item.badge_label || '';
       headBadge.className   = 'badge ' + (item.badge_cls || 'badge-info');
     }
     if (headDesc) headDesc.textContent = item.desc || '';
-    // Code file label
-    var fname = FILE[key] || key + '.php';
-    if (codeFile) codeFile.textContent = 'embed/' + fname;
     // Build options + code (also updates preview button via refreshCode)
     buildOpts(key);
     refreshCode();
@@ -2943,44 +2918,21 @@ function lstrTodayIso() {
     });
   }
 
-  // ── Setup snippet copy ─────────────────────────────────────────────────────
-  var setupCpBtn = document.getElementById('ec-setup-cp');
-  if (setupCpBtn) {
-    setupCpBtn.addEventListener('click', function () {
-      var text = setupCpBtn.dataset.setupText || '';
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(text).catch(function () {});
-      } else {
-        var ta = document.createElement('textarea');
-        ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-        document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); } catch (e) {}
-        document.body.removeChild(ta);
-      }
-      setupCpBtn.textContent = 'Copied!';
-      setTimeout(function () { setupCpBtn.textContent = 'Copy'; }, 1800);
+
+  // ── Template help: jump pills open + scroll to their topic ─────────────────
+  var refJumpPills = root.querySelectorAll('[data-ref-jump]');
+  refJumpPills.forEach(function (pill) {
+    pill.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var target = document.getElementById(pill.dataset.refJump);
+      if (!target) return;
+      target.open = true;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-  }
-
-  // ── Template help nav ──────────────────────────────────────────────────────
-  var refNavBtns = root.querySelectorAll('.ec-ref-nav-item');
-  var refPanels  = root.querySelectorAll('.ec-ref-panel');
-
-  function switchRefPanel(id) {
-    refNavBtns.forEach(function (b) { b.classList.toggle('act', b.dataset.ecRef === id); });
-    refPanels.forEach(function (p)  { p.classList.toggle('act', p.id === id); });
-    if (currentTab === 'ref') {
-      history.replaceState(null, '', location.pathname + location.search + '#ref/' + id);
-    }
-  }
-
-  refNavBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () { switchRefPanel(btn.dataset.ecRef); });
   });
 
   // ── Initialise ─────────────────────────────────────────────────────────────
   if (pickItems.length) selectItem(pickItems[0].dataset.ecItem);
-  if (refNavBtns.length) switchRefPanel(refNavBtns[0].dataset.ecRef);
 
   // Restore tab + selection from URL hash
   var _hash = location.hash.slice(1);
@@ -2990,7 +2942,9 @@ function lstrTodayIso() {
     var _key   = _parts[1];
     if (_sec === 'ref' && _key && document.getElementById(_key)) {
       switchTab('ref');
-      switchRefPanel(_key);
+      var _refTarget = document.getElementById(_key);
+      _refTarget.open = true;
+      _refTarget.scrollIntoView({ block: 'start' });
     } else if (_sec && _key && secSel && embSel && sectionForKey(_key) === _sec) {
       secSel.value = _sec;
       populateEmbSel(_sec);
@@ -4425,7 +4379,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 
         if (!active) wasOpen._active = false;
         if (emptyEl)  emptyEl.hidden  = !active || totalMatches > 0;
-        if (clearBtn) clearBtn.hidden = input.value.length === 0;
+        if (clearBtn) clearBtn.classList.toggle('is-visible', input.value.length > 0);
       }
 
       input.addEventListener('input', run);
@@ -6081,7 +6035,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
           existing.className = 'text-muted link-break lc-listed-members-url';
           container.appendChild(existing);
         }
-        existing.innerHTML = '<a href="' + data.members_url.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '" target="_blank" rel="noopener noreferrer" class="link text-xs">' + data.members_url.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</a>';
+        existing.innerHTML = '<a href="' + data.members_url.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '" target="_blank" rel="noopener noreferrer" class="link">' + data.members_url.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</a>';
       } else if (existing) {
         existing.remove();
       }
@@ -6512,7 +6466,7 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
     '</div>';
 
   var pop = document.createElement('div');
-  pop.className = 'skin-pop';
+  pop.className = 'pop-anchor skin-pop';
   pop.setAttribute('aria-hidden', 'true');
   pop.innerHTML =
     '<div class="sp-panel" data-theme="light">' + PANEL + '</div>' +
@@ -6545,11 +6499,11 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
     if (y < 8) y = r.bottom + GAP;
     pop.style.left = x + 'px';
     pop.style.top  = y + 'px';
-    pop.classList.add('skin-pop--visible');
+    pop.classList.add('pop-anchor--visible');
   }
 
   function hide() {
-    timer = setTimeout(function () { pop.classList.remove('skin-pop--visible'); }, 60);
+    timer = setTimeout(function () { pop.classList.remove('pop-anchor--visible'); }, 60);
   }
 
   cards.forEach(function (card) {
@@ -8459,7 +8413,7 @@ document.addEventListener('click', function (e) {
   if (!triggers.length) return;
 
   var pop = document.createElement('div');
-  pop.className = 'ec-help-pop';
+  pop.className = 'pop-anchor ec-help-pop';
   pop.setAttribute('aria-hidden', 'true');
   document.body.appendChild(pop);
 
@@ -8473,7 +8427,7 @@ document.addEventListener('click', function (e) {
     // tooltip's actual wrapped size (text length varies per trigger).
     pop.style.left = '-9999px';
     pop.style.top  = '0px';
-    pop.classList.add('ec-help-pop--visible');
+    pop.classList.add('pop-anchor--visible');
     var r   = trigger.getBoundingClientRect();
     var pr  = pop.getBoundingClientRect();
     var x   = Math.max(8, Math.min(r.left + r.width / 2 - pr.width / 2, window.innerWidth - pr.width - 8));
@@ -8484,7 +8438,7 @@ document.addEventListener('click', function (e) {
   }
 
   function hide() {
-    hideTimer = setTimeout(function () { pop.classList.remove('ec-help-pop--visible'); }, 60);
+    hideTimer = setTimeout(function () { pop.classList.remove('pop-anchor--visible'); }, 60);
   }
 
   triggers.forEach(function (trigger) {

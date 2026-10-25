@@ -827,7 +827,7 @@ $_tplCsrf = View::e($csrf_token ?? '');
       </div>
 
       <div class="tpl-reset-all-row card-body" data-tpl-group="all" <?= $activeGroup !== 'all' ? 'hidden' : '' ?>>
-        <div class="tpl-actions-row">
+        <div class="actions-row actions-row--wrap tpl-actions-row">
           <button type="button" class="btn btn-tertiary btn-sm"
                   id="fl-reset-all-templates"
                   data-action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates/reset-all"
@@ -1109,14 +1109,13 @@ $_tplCsrf = View::e($csrf_token ?? '');
         <button type="button"
                 id="collective-token-search-clear"
                 data-token-search-clear
-                class="token-search-clear"
+                class="search-clear-btn search-clear-btn--token"
                 aria-label="Clear embed token search"
-                title="Clear Search"
-                hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+                title="Clear Search"><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
       </div>
     </div>
 
-      <p id="collective-token-search-empty" data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
+      <p id="collective-token-search-empty" data-token-search-empty class="form-hint form-hint--spaced" hidden>No tokens found.</p>
 
       <!-- Members List -->
       <details class="card chevron" data-token-card data-tpl-group="members" <?= $_grp('members') ?>>
@@ -1758,7 +1757,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
               <td colspan="4">
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/categories/<?= (int)$cat->id ?>/edit" class="codes-form-actions">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                  <div class="codes-form-grow-sm">
+                  <div class="codes-form-grow codes-form-grow--sm">
                     <input class="form" type="text" name="name" value="<?= View::e($cat->name) ?>" required>
                   </div>
                   <div>
@@ -1789,9 +1788,9 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <div class="section-label codes-section-label">Donors</div>
       <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/donors/add" class="codes-form-inline">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-        <div class="codes-form-grow-sm"><input type="text" class="form" name="name" placeholder="Display name&hellip;" required></div>
-        <div class="codes-form-grow-sm"><input type="email" class="form" name="email" placeholder="Email (optional)"></div>
-        <div class="codes-form-grow-sm"><input type="url" class="form" name="url" placeholder="URL (optional)"></div>
+        <div class="codes-form-grow codes-form-grow--sm"><input type="text" class="form" name="name" placeholder="Display name&hellip;" required></div>
+        <div class="codes-form-grow codes-form-grow--sm"><input type="email" class="form" name="email" placeholder="Email (optional)"></div>
+        <div class="codes-form-grow codes-form-grow--sm"><input type="url" class="form" name="url" placeholder="URL (optional)"></div>
         <button type="submit" class="btn btn-primary"><?= View::icon('add') ?> Add</button>
       </form>
       <?php if ($_hasDonors): ?>
@@ -1824,9 +1823,9 @@ $_settingsOpen = $_hasCats || $_hasDonors;
               <td colspan="5" class="table-edit-cell">
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/donors/<?= (int)$dn->id ?>/edit" class="codes-form-actions">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                  <div class="codes-form-grow-sm"><input class="form" type="text" name="name" value="<?= View::e($dn->name) ?>" required></div>
-                  <div class="codes-form-grow-sm"><input class="form" type="email" name="email" value="<?= View::e($dn->email ?? '') ?>" placeholder="Email"></div>
-                  <div class="codes-form-grow-sm"><input class="form" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL"></div>
+                  <div class="codes-form-grow codes-form-grow--sm"><input class="form" type="text" name="name" value="<?= View::e($dn->name) ?>" required></div>
+                  <div class="codes-form-grow codes-form-grow--sm"><input class="form" type="email" name="email" value="<?= View::e($dn->email ?? '') ?>" placeholder="Email"></div>
+                  <div class="codes-form-grow codes-form-grow--sm"><input class="form" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL"></div>
                   <button class="btn btn-primary btn-sm">Save</button>
                 </form>
               </td>
@@ -2012,24 +2011,6 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   $setupLine1 = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . $_escEp . "'); require_once dirname(LUSTER_EMBED) . '/../vendor/autoload.php'; Luster\\Core\\View::serveEmbedAsset(); ?>";
   $setupLine5 = '<link rel="stylesheet" href="?luster_css">';
 
-  // Same PHP syntax highlighter used by the Full Embed Wizard's setup snippet.
-  $hlPhp = static function (string $code): string {
-      $e = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-      return (string) preg_replace_callback(
-          '/(\/\/[^\n]*)|(&#039;(?:[^&]|&(?!#039;))*&#039;)|(&lt;\?php|\?&gt;)|(\b(?:require_once|require|defined|define|isset|exit|true|false|null|if)\b)|(\$\w+)|(\b\d+\b)/',
-          static function (array $m): string {
-              if ($m[1] !== '') return '<span class="ec-hl-c">' . $m[0] . '</span>';
-              if ($m[2] !== '') return '<span class="ec-hl-s">' . $m[0] . '</span>';
-              if ($m[3] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
-              if ($m[4] !== '') return '<span class="ec-hl-k">' . $m[0] . '</span>';
-              if ($m[5] !== '') return '<span class="ec-hl-v">' . $m[0] . '</span>';
-              if ($m[6] !== '') return '<span class="ec-hl-n">' . $m[0] . '</span>';
-              return $m[0];
-          },
-          $e,
-      );
-  };
-
   // Builds an HTML-escaped PHP snippet from an array of code lines. Every embed
   // line refers to the LUSTER_EMBED constant defined by the one-time setup
   // snippet above, rather than baking the install path into every snippet.
@@ -2049,7 +2030,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       echo '<span class="es-item-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
       echo '<span class="es-item-desc">' . htmlspecialchars($desc, ENT_QUOTES, 'UTF-8') . '</span>';
       echo '</div>';
-      echo '<span class="badge ' . htmlspecialchars($badge, ENT_QUOTES, 'UTF-8') . '">' . ($badge === 'badge-info2' ? 'Form' : ($badge === 'badge-info3' ? 'Stats' : 'Data')) . '</span> &#10070;';
+      echo '<span class="badge ' . htmlspecialchars($badge, ENT_QUOTES, 'UTF-8') . '">' . ($badge === 'badge-info2' ? 'Form' : ($badge === 'badge-info3' ? 'Stats' : 'Data')) . '</span> ✦';
       echo '<button type="button" class="btn btn-quaternary btn-xs es-toggle" aria-expanded="false">View Code</button>';
       echo '<button type="button" class="btn btn-primary btn-xs es-copy" data-snippet="' . $_s . '">Copy</button>';
       echo '</div>';
@@ -2062,23 +2043,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
 <!-- ── One-Time Setup ─────────────────────────────────────────── -->
 <div class="card ec-wizard-card" style="margin-bottom:1em">
-  <div class="ec-setup-top">
-    <div class="ec-setup-head">
-      <strong class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></strong>
-      <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
-              data-setup-text="<?= htmlspecialchars($setupLine1 . "\n\n" . $setupLine5, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy All</button>
-    </div>
-
-    <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this in the very beginning of your header.php, <em>before</em> any HTML begins (above <code>&lt;!doctype&gt;</code> or <code>&lt;html&gt;</code>):</p>
-    <div class="ec-setup-snip">
-      <div class="ec-setup-snip-line"><code><?= $hlPhp($setupLine1) ?></code></div>
-    </div>
-
-    <p style="margin:0.75em 0 0.25em; color: var(--text-muted);">Paste this inside <code>&lt;head&gt;</code>, <em>before</em> your own stylesheets are linked:</p>
-    <div class="ec-setup-snip">
-      <div class="ec-setup-snip-line"><code>&lt;<span class="ec-hl-k">link</span> <span class="ec-hl-v">rel</span>=<span class="ec-hl-s">&quot;stylesheet&quot;</span> <span class="ec-hl-v">href</span>=<span class="ec-hl-s">&quot;?luster_css&quot;</span>&gt;</code></div>
-    </div>
-  </div>
+  <?php $setupShowHelp = false; include LUSTER_BASE . '/templates/admin/_embed-setup-snippet.php'; ?>
 </div>
 
 <div class="card card--gradient">

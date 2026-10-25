@@ -167,7 +167,7 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
       <span class="card-head-sub">Showing <?= $range_start ?>–<?= $range_end ?> of <?= $total ?> <?= $total === 1 ? 'entry' : 'entries' ?></span>
     </div>
 
-    <div class="bulk bulk--flush">
+    <div class="bulk">
       <input type="checkbox" class="sel-all" data-fid="upd-list" title="Select all">
       Bulk Actions:
       <div class="select-wrap">
@@ -185,41 +185,47 @@ $returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQu
           $grouped[date('F Y', strtotime($u->postedAt))][] = $u;
       }
     ?>
-    <div class="updates-timeline">
-      <?php foreach ($grouped as $monthYear => $monthUpdates): ?>
-        <div class="timeline-month-header"><?= View::e($monthYear) ?></div>
-        <?php foreach ($monthUpdates as $u): ?>
-          <?php
-            $dt   = strtotime($u->postedAt);
-            $dateStr = date($admin_date_format ?? 'm-d-Y', $dt);
-            $timeStr = date($admin_time_format ?? 'g:i A', $dt);
-            $snip = mb_strimwidth(str_replace(["\r\n", "\r", "\n"], ' ', $u->body), 0, 280, '…');
-          ?>
-          <div class="update-row">
-            <div>
-              <input type="checkbox" class="row-cb-upd-list" name="ids[]"
-                     value="<?= (int) $u->id ?>" data-name="<?= View::e($u->title) ?>">
-            </div>
-            <div class="update-date"><?= View::e($dateStr) ?> &mdash; <?= View::e($timeStr) ?></div>
-            <div>
-              <div class="update-title"><?= View::e($u->title) ?></div>
-              <div class="update-snip"><?= View::e($snip) ?></div>
-              <?php if (!empty($u->categories())): ?>
-                <div class="update-cats">
-                  <?php foreach ($u->categories() as $cat): ?>
-                    <span class="badge badge-inactive"><?= View::e($cat) ?></span>
-                  <?php endforeach; ?>
-                </div>
-              <?php endif; ?>
-            </div>
-            <div class="actions-row">
-              <a href="<?= $b ?>/admin/newsfeed/entry/<?= (int) $u->id ?>/edit"
-                 class="btn btn-tertiary btn-xs">Edit</a>
-              <button type="submit" form="del-newsfeed-<?= (int) $u->id ?>" class="btn btn-danger btn-xs">Delete</button>
-            </div>
-          </div>
-        <?php endforeach; ?>
-      <?php endforeach; ?>
+    <div class="table-wrap">
+      <table class="data-table">
+        <tbody>
+          <?php foreach ($grouped as $monthYear => $monthUpdates): ?>
+            <tr class="timeline-month-header"><td colspan="4"><?= View::e($monthYear) ?></td></tr>
+            <?php foreach ($monthUpdates as $u): ?>
+              <?php
+                $dt   = strtotime($u->postedAt);
+                $dateStr = date($admin_date_format ?? 'm-d-Y', $dt);
+                $timeStr = date($admin_time_format ?? 'g:i A', $dt);
+                $snip = mb_strimwidth(str_replace(["\r\n", "\r", "\n"], ' ', $u->body), 0, 280, '…');
+              ?>
+              <tr>
+                <td class="checkbox-col">
+                  <input type="checkbox" class="row-cb-upd-list" name="ids[]"
+                         value="<?= (int) $u->id ?>" data-name="<?= View::e($u->title) ?>">
+                </td>
+                <td class="update-date"><?= View::e($dateStr) ?> &mdash; <?= View::e($timeStr) ?></td>
+                <td>
+                  <div class="update-title"><?= View::e($u->title) ?></div>
+                  <div class="update-snip"><?= View::e($snip) ?></div>
+                  <?php if (!empty($u->categories())): ?>
+                    <div class="update-cats">
+                      <?php foreach ($u->categories() as $cat): ?>
+                        <span class="badge badge-inactive"><?= View::e($cat) ?></span>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php endif; ?>
+                </td>
+                <td class="actions-col">
+                  <div class="actions-row">
+                    <a href="<?= $b ?>/admin/newsfeed/entry/<?= (int) $u->id ?>/edit"
+                       class="btn btn-tertiary btn-xs">Edit</a>
+                    <button type="submit" form="del-newsfeed-<?= (int) $u->id ?>" class="btn btn-danger btn-xs">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
     </div>
   </div>
 </form>
