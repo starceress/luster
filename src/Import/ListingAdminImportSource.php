@@ -30,7 +30,9 @@ use PDO;
  * (requires the Wishlist add-on), KIM fan-interest entries (requires the KIM
  * add-on), and per-listing join rules (requires the Rules add-on). Custom member
  * field values stored in LA's `mExtra` blob are parsed on a best-effort basis.
- * Image paths are read from the LA `options` table when available.
+ * Image paths are read from the LA `options` table when available. For every
+ * listing it creates or matches, it also saves the link the Listing Admin
+ * compatibility bridge uses to find that listing (see writeBridgeRefs()).
  */
 final class ListingAdminImportSource implements ImportSourceInterface
 {
@@ -38,6 +40,22 @@ final class ListingAdminImportSource implements ImportSourceInterface
     private const SKIP_CAP = 500;
 
     private ?\ZipArchive $activeZip = null;
+
+    /** Codes at or above this count get a "this may take a while" note in the preview. */
+    private const CODES_SLOW_COUNT = 200;
+
+    private const CODES_NEED_SOURCE_ID =
+        'Codes were not imported: this Listing Admin install has no web address in its options, so Luster '
+        . 'can\'t tell its codes apart from another install\'s. Enter a Source ID on the Options step '
+        . '(for example: old-collective) and run the import again.';
+
+    /** Folder that holds uploads/ — the real public/ folder unless a test points it elsewhere. */
+    private readonly string $publicDir;
+
+    public function __construct(?string $publicDir = null)
+    {
+        $this->publicDir = rtrim($publicDir ?? dirname(__DIR__, 2) . '/public', '/\\');
+    }
 
     private const IMG_DIRS = [
         'affiliates' => 'images/affiliates',
@@ -169,6 +187,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $sreg   = $tp . $laReg;  // full source registry table name
         $rows   = [];
 
+        // Resolved before anything else so a bad Source ID stops the preview up front.
+        $laSource = $this->laSourceKey($source, $sp, $options);
+
         // Add-on availability (News Feed, Wishlist, KIM, Rules) must be checked against
         // the Luster target DB, not the foreign LA source.
         $addonCheckPdo = $target;
@@ -177,7 +198,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $rows[] = $this->previewTable($source, $sp . 'categories', 'Categories');
         }
         if ($options->importListings) {
-            $rows[] = $this->previewTable($source, $sreg, 'Owned Listings');
+            $rows[] = $this->previewTable($source, $sreg, 'Owned Listings', [
+                self::bridgeLinksPreviewNote($laSource['key'], $laSource['origin']),
+            ]);
         }
         if ($options->importMembers) {
             $rows[] = $this->previewTable($source, $sp . 'members', 'Members', [
@@ -208,6 +231,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
         if ($options->importRules) {
             $rows[] = $this->previewRules($source, $addonCheckPdo, $sreg);
         }
+        if ($options->importCodes) {
+            $rows[] = $this->previewCodes($source, $target, $options, $sp, $sreg, $laSource['key']);
+        }
 
         return new ImportPreview($rows, $schema, false);
     }
@@ -234,12 +260,15 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $rows   = [];
         $imageRows = [];
 
+        // Resolved before any writes so a bad Source ID can't leave a half-run import.
+        $laSource = $this->laSourceKey($source, $sp, $options);
+
         // Detect Luster's target schema (owned vs enth_fanlistings)
         $targetSchema = $this->detectTargetSchema($target);
 
         // Image migrator
         $migrator = $options->imageMode !== ''
-            ? new ImageMigrator(dirname(__DIR__, 2) . '/public')
+            ? new ImageMigrator($this->publicDir)
             : null;
 
         // Open a pre-uploaded ZIP archive.
@@ -284,6 +313,11 @@ final class ListingAdminImportSource implements ImportSourceInterface
             if ($listRow['image_copied'] > 0 || $listRow['image_skipped'] > 0) {
                 $imageRows[] = ['type' => 'Images (listings)', 'copied' => $listRow['image_copied'],
                                 'skipped' => $listRow['image_skipped'], 'errors' => $listRow['image_errors']];
+            }
+
+            // Links the Listing Admin bridge uses to find each listing from LA's $listid.
+            if (!empty($listingIdMap)) {
+                $rows[] = $this->writeBridgeRefs($target, $listingIdMap, $laSource['key']);
             }
         }
 
@@ -334,6 +368,30 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // --- Step 9: Join Rules
         if ($options->importRules) {
             $rows[] = $this->runRules($source, $target, $listingIdMap, $sreg);
+        }
+
+        // --- Step 10: Codes (fan graphics)
+        if ($options->importCodes) {
+            $codesListingMap = $listingIdMap;
+            if (!$options->importListings) {
+                // Codes only: use listings already in Luster, matched by URL the same
+                // way the listings step would, and give the bridge links for them too.
+                $codesListingMap = self::existingListingMap(
+                    $this->planListings($source, $target, $targetSchema, $sreg)
+                );
+                if (!empty($codesListingMap)) {
+                    $rows[] = $this->writeBridgeRefs($target, $codesListingMap, $laSource['key']);
+                }
+            }
+
+            ['row' => $codesRow, 'images' => $codesImages] = $this->runCodes(
+                $source, $target, $options, $sp, $codesListingMap, $laSource['key'], $migrator, $imageSettings
+            );
+            $rows[] = $codesRow;
+            if ($codesImages['copied'] > 0 || $codesImages['skipped'] > 0) {
+                $imageRows[] = ['type' => 'Images (codes)', 'copied' => $codesImages['copied'],
+                                'skipped' => $codesImages['skipped'], 'errors' => $codesImages['errors']];
+            }
         }
 
         // Close and clean up pre-uploaded ZIP if one was opened.
@@ -2421,11 +2479,13 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $dirKey = match ($targetSubDir) {
                 'affiliates' => 'affiliates_dir',
                 'joined'     => 'joined_dir',
+                'codes'      => 'codes_dir',
                 default      => 'listings_dir',
             };
             $urlKey = match ($targetSubDir) {
                 'affiliates' => 'affiliates_url',
                 'joined'     => 'joined_url',
+                'codes'      => 'codes_url',
                 default      => 'listings_url',
             };
             $configuredDir = $imageSettings[$dirKey] ?? '';
@@ -2529,13 +2589,1028 @@ final class ListingAdminImportSource implements ImportSourceInterface
         }
     }
 
+    // -----------------------------------------------------------------------
+    // Bridge listing links (lstr_listing_external_refs)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Works out this LA install's source key from the Source ID the admin typed,
+     * or from LA's own adm_http / my_website options. See ListingAdminSourceKey.
+     *
+     * @param  string $sp Full source prefix for non-registry tables ($tp . $laP).
+     * @return array{key: ?string, origin: string}
+     * @throws \RuntimeException When a typed-in Source ID isn't valid.
+     */
+    private function laSourceKey(PDO $source, string $sp, ImportOptions $options): array
+    {
+        $urls = ['adm_http' => '', 'my_website' => ''];
+        try {
+            $stmt = $source->prepare(
+                "SELECT `name`, `text` FROM `{$sp}options` WHERE `name` IN ('adm_http', 'my_website')"
+            );
+            $stmt->execute();
+            foreach ($stmt->fetchAll(PDO::FETCH_KEY_PAIR) as $name => $text) {
+                $urls[(string) $name] = (string) $text;
+            }
+        } catch (\Throwable) {
+            // No options table: fall through to "no web address" below.
+        }
+
+        // $options->laTablePrefix, not $sp: a dump's temporary table prefix changes on
+        // every upload, which would give the same install a different key each time.
+        return ListingAdminSourceKey::resolve(
+            $options->laSourceId,
+            $urls['adm_http'],
+            $urls['my_website'],
+            $options->laTablePrefix,
+        );
+    }
+
+    /** Preview note for the Owned Listings row: which bridge links will be saved. */
+    private static function bridgeLinksPreviewNote(?string $key, string $origin): string
+    {
+        return match ($origin) {
+            'override'   => "Bridge links will be saved under the Source ID you entered: {$key}.",
+            'adm_http'   => "Bridge links will be saved under Source ID {$key}, worked out from this install's admin address.",
+            'my_website' => "Bridge links will be saved under Source ID {$key}, worked out from this install's website address.",
+            default      => "This install's options don't include its web address, so only the shared bridge links "
+                . 'will be saved. That\'s fine with one Listing Admin install. If you have more than one, enter a '
+                . 'Source ID on the Options step.',
+        };
+    }
+
+    /**
+     * Saves the links the Listing Admin bridge uses to turn LA's $listid into a
+     * Luster listing, for every listing this import created or matched.
+     *
+     * Two links per listing:
+     *   - 'listing-admin:<key>' — this install only. Always saved (replaced) when
+     *     there's a key, since a key only ever belongs to one install.
+     *   - 'listing-admin' — the shared one existing bridge copies look up. Only
+     *     added if missing. If it already points to a different Luster listing
+     *     (most likely another LA install's), it's left alone and reported, so
+     *     the first install's bridge pages keep working.
+     *
+     * @param  array<int,int> $listingIdMap LA listing ID => Luster listing ID.
+     * @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<array{label:string,reason:string}>}
+     */
+    private function writeBridgeRefs(PDO $target, array $listingIdMap, ?string $sourceKey): array
+    {
+        $imported     = 0;
+        $skipped      = 0;
+        $conflicts    = 0;
+        $warnings     = [];
+        $errors       = [];
+        $skippedItems = [];
+
+        try {
+            $find = $target->prepare(
+                'SELECT listing_id FROM lstr_listing_external_refs
+                  WHERE source = :src AND external_id = :eid LIMIT 1'
+            );
+            $insert = $target->prepare(
+                'INSERT INTO lstr_listing_external_refs (listing_id, source, external_id)
+                 VALUES (:lid, :src, :eid)'
+            );
+            $replace = $sourceKey !== null
+                ? $target->prepare(
+                    'REPLACE INTO lstr_listing_external_refs (listing_id, source, external_id)
+                     VALUES (:lid, :src, :eid)'
+                )
+                : null;
+        } catch (\Throwable $e) {
+            return [
+                'type' => 'Bridge listing links', 'imported' => 0, 'skipped' => 0, 'warnings' => [],
+                'errors' => ['Bridge links could not be saved (run the migration page, then import again): ' . $e->getMessage()],
+                'skipped_items' => [],
+            ];
+        }
+
+        foreach ($listingIdMap as $laId => $lusterId) {
+            $eid = (string) $laId;
+            try {
+                if ($replace !== null) {
+                    $replace->execute([
+                        'lid' => $lusterId,
+                        'src' => ListingAdminSourceKey::refSource($sourceKey),
+                        'eid' => $eid,
+                    ]);
+                }
+
+                $find->execute(['src' => ListingAdminSourceKey::GENERIC_SOURCE, 'eid' => $eid]);
+                $existing = $find->fetchColumn();
+                $find->closeCursor();
+
+                if ($existing === false) {
+                    $insert->execute([
+                        'lid' => $lusterId,
+                        'src' => ListingAdminSourceKey::GENERIC_SOURCE,
+                        'eid' => $eid,
+                    ]);
+                    $imported++;
+                    continue;
+                }
+
+                $skipped++;
+                if ((int) $existing === (int) $lusterId) {
+                    $reason = 'Already linked';
+                } else {
+                    $conflicts++;
+                    $reason = 'Shared link already points to Luster listing #' . (int) $existing;
+                }
+                if (count($skippedItems) < self::SKIP_CAP) {
+                    $skippedItems[] = [
+                        'label'  => "Listing Admin listing #{$laId} → Luster listing #{$lusterId}",
+                        'reason' => $reason,
+                    ];
+                }
+            } catch (\Throwable $e) {
+                $errors[] = "Listing Admin listing #{$laId}: " . $e->getMessage();
+            }
+        }
+
+        if ($sourceKey !== null) {
+            $warnings[] = "Source ID for this install: {$sourceKey}";
+        } else {
+            $warnings[] = 'No Source ID for this install, so only the shared bridge links were saved.';
+        }
+
+        if ($conflicts > 0) {
+            $warnings[] = $sourceKey !== null
+                ? "{$conflicts} listing(s) already had a shared bridge link to a different Luster listing, probably "
+                    . 'from another Listing Admin install, so those were left alone. This install still got its own '
+                    . "links: set LUSTER_LA_SOURCE to \"{$sourceKey}\" in this install's luster-bridge.php so its pages use them."
+                : "{$conflicts} listing(s) already had a shared bridge link to a different Luster listing, probably "
+                    . 'from another Listing Admin install, so those were left alone. Enter a Source ID on the Options '
+                    . 'step and run the import again so this install gets its own links.';
+        }
+
+        return [
+            'type'          => 'Bridge listing links',
+            'imported'      => $imported,
+            'skipped'       => $skipped,
+            'warnings'      => $warnings,
+            'errors'        => $errors,
+            'skipped_items' => $skippedItems,
+        ];
+    }
+
+    // -----------------------------------------------------------------------
+    // Codes (fan graphics) — LA codes, codes_sizes, codes_donors, codes_categories
+    // -----------------------------------------------------------------------
+
+    /**
+     * What would happen to each LA listing, using the same rules as runListings():
+     * skipped without a URL or subject, matched to a Luster listing by exact URL,
+     * otherwise created. Read-only. Used by the preview, and by a codes-only run
+     * to find listings an earlier import brought in.
+     *
+     * @return array<int, array{action: string, id: ?int, title: string}>  LA listing ID =>
+     *         action 'existing' (id set), 'create', or 'skip'.
+     */
+    private function planListings(PDO $source, PDO $target, string $targetSchema, string $sreg): array
+    {
+        [$regTable, $idCol] = $this->targetRegistryInfo($targetSchema);
+
+        try {
+            $srcRows = $source->query("SELECT * FROM `{$sreg}` ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $check   = $target->prepare("SELECT {$idCol} FROM `{$regTable}` WHERE url = :url LIMIT 1");
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $plan = [];
+        foreach ($srcRows as $row) {
+            $laId    = (int) ($row['id'] ?? 0);
+            $url     = trim((string) ($row['url'] ?? ''));
+            $title   = trim((string) ($row['title'] ?? ($row['subject'] ?? '')));
+            $subject = trim((string) ($row['subject'] ?? $title));
+
+            if ($url === '' || $subject === '') {
+                $plan[$laId] = ['action' => 'skip', 'id' => null, 'title' => $subject !== '' ? $subject : $url];
+                continue;
+            }
+
+            $check->execute(['url' => $url]);
+            $existing = $check->fetchColumn();
+            $check->closeCursor();
+
+            $plan[$laId] = $existing !== false
+                ? ['action' => 'existing', 'id' => (int) $existing, 'title' => $subject]
+                : ['action' => 'create',   'id' => null,            'title' => $subject];
+        }
+        return $plan;
+    }
+
+    /**
+     * @param  array<int, array{action: string, id: ?int, title: string}> $plan From planListings().
+     * @return array<int,int> LA listing ID => Luster listing ID, listings already in Luster only.
+     */
+    private static function existingListingMap(array $plan): array
+    {
+        $map = [];
+        foreach ($plan as $laId => $step) {
+            if ($step['action'] === 'existing' && $step['id'] !== null) {
+                $map[$laId] = $step['id'];
+            }
+        }
+        return $map;
+    }
+
+    /**
+     * Preview row for codes, counted the same way runCodes() decides each code:
+     * skipped when its listing won't be in Luster (listings this run creates
+     * count when Owned listings is ticked); for codes this install already
+     * imported, skipped under Keep existing and updated under Update matching;
+     * new codes skipped when LA has no image file for them. Codes that will
+     * only get a missing image filled in are mentioned separately.
+     *
+     * @return array{type:string,found:int,import:int,skip:int,warnings:string[]}
+     */
+    private function previewCodes(PDO $source, PDO $target, ImportOptions $options, string $sp, string $sreg, ?string $sourceKey): array
+    {
+        try {
+            $srcCodes = $source->query("SELECT cID, fNiq, cFile FROM `{$sp}codes`")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return ['type' => 'Codes', 'found' => 0, 'import' => 0, 'skip' => 0, 'warnings' => [
+                'No codes table found — Listing Admin\'s Codes add-on was never turned on, so there are no codes to import.',
+            ]];
+        }
+
+        $found = count($srcCodes);
+        if ($sourceKey === null) {
+            return ['type' => 'Codes', 'found' => $found, 'import' => 0, 'skip' => $found, 'warnings' => [self::CODES_NEED_SOURCE_ID]];
+        }
+
+        // Codes this install already imported: import_ref => [filename, import_source_file].
+        $refPrefix = ListingAdminSourceKey::refSource($sourceKey) . ':';
+        try {
+            $stmt = $target->prepare('SELECT import_ref, filename, import_source_file FROM lstr_codes WHERE import_ref LIKE :pattern');
+            $stmt->execute(['pattern' => $refPrefix . '%']);
+            $alreadyImported = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $alreadyImported[(string) $r['import_ref']] = [(string) $r['filename'], (string) ($r['import_source_file'] ?? '')];
+            }
+        } catch (\Throwable) {
+            return ['type' => 'Codes', 'found' => $found, 'import' => 0, 'skip' => $found, 'warnings' => [
+                'Codes can\'t be imported yet: run the migration page first (Luster needs Migration 104), then import again.',
+            ]];
+        }
+
+        $overwrite = $options->conflictStrategy === 'overwrite';
+        $plan      = $this->planListings($source, $target, $this->detectTargetSchema($target), $sreg);
+        $counts    = ['new' => 0, 'update' => 0, 'updateCopy' => 0, 'kept' => 0, 'repair' => 0, 'noFile' => 0, 'noListing' => 0, 'collective' => 0];
+        $missing   = [];
+
+        foreach ($srcCodes as $code) {
+            $fNiq  = (int) ($code['fNiq'] ?? 0);
+            $cFile = trim((string) ($code['cFile'] ?? ''));
+
+            if ($fNiq !== 0) {
+                $action = $plan[$fNiq]['action'] ?? null;
+                if ($action !== 'existing' && !($action === 'create' && $options->importListings)) {
+                    $counts['noListing']++;
+                    $missing[$plan[$fNiq]['title'] ?? "Listing Admin listing #{$fNiq}"] = true;
+                    continue;
+                }
+            }
+
+            $ref = $refPrefix . (int) $code['cID'];
+            if (isset($alreadyImported[$ref])) {
+                [$localFile, $sourceFile] = $alreadyImported[$ref];
+                $imageMissing = !$this->codeImageIsPresent($localFile);
+                if ($overwrite) {
+                    $counts['update']++;
+                    // Same rule importCode() uses to decide whether to copy the image again.
+                    if ($cFile !== '' && ($imageMissing || $cFile !== $sourceFile)) {
+                        $counts['updateCopy']++;
+                    }
+                } else {
+                    $counts['kept']++;
+                    if ($cFile !== '' && $imageMissing) {
+                        $counts['repair']++;
+                    }
+                    continue;
+                }
+            } elseif ($cFile === '') {
+                $counts['noFile']++;
+                continue;
+            } else {
+                $counts['new']++;
+            }
+
+            if ($fNiq === 0) {
+                $counts['collective']++;
+            }
+        }
+
+        $import = $counts['new'] + $counts['update'];
+        $skip   = $found - $import;
+
+        $warnings = ["Codes will be saved under Source ID {$sourceKey}, so running the import again updates them instead of adding copies."];
+        if ($counts['collective'] > 0) {
+            $warnings[] = "{$counts['collective']} code(s) aren't tied to one listing and will go to your collective codes.";
+        }
+        if ($counts['update'] > 0) {
+            $warnings[] = "{$counts['update']} code(s) were imported before and will be updated in place.";
+        }
+        if ($counts['kept'] > 0) {
+            $warnings[] = "{$counts['kept']} code(s) were imported before and will be left as they are "
+                . '(choose Update matching to refresh them).';
+        }
+        if ($counts['repair'] > 0) {
+            $warnings[] = "{$counts['repair']} of those are missing their image, so Luster will try to copy it again.";
+        }
+        if ($counts['noListing'] > 0) {
+            $titles = array_keys($missing);
+            $warnings[] = "{$counts['noListing']} code(s) will be skipped because their listing isn't in Luster"
+                . ($options->importListings ? '' : ' (tick Owned listings to bring those listings over too)')
+                . ': ' . implode(', ', array_slice($titles, 0, 5)) . (count($titles) > 5 ? ', …' : '') . '.';
+        }
+        if ($counts['noFile'] > 0) {
+            $warnings[] = "{$counts['noFile']} code(s) have no image file in Listing Admin and will be skipped.";
+        }
+        // Every image this run will try to copy: new codes, Keep-existing repairs, and
+        // updated codes whose image is missing or changed in LA.
+        $toCopy = $counts['new'] + $counts['repair'] + $counts['updateCopy'];
+        if ($toCopy >= self::CODES_SLOW_COUNT && $options->imageMode !== 'zip') {
+            $warnings[] = "That's {$toCopy} code images to copy. If they're on another server, each one is downloaded "
+                . 'separately, which can take a while. Uploading a ZIP of your Listing Admin codes folder is quicker.';
+        }
+
+        return ['type' => 'Codes', 'found' => $found, 'import' => $import, 'skip' => $skip, 'warnings' => $warnings];
+    }
+
+    /**
+     * Step 10 — imports LA codes into lstr_codes.
+     *
+     * Every code is saved with import_ref = 'listing-admin:<source key>:<cID>', so a
+     * re-run finds it again: Keep existing leaves it alone (only filling in an image
+     * that never arrived); Update matching updates it in place, keeping its ID and
+     * position. Each code is saved in its own transaction, and new size/donor/
+     * category IDs only go into the shared caches once that code has committed —
+     * a rolled-back code can't leave the next one pointing at rows that no longer exist.
+     *
+     * @param  array<int,int> $listingMap LA listing ID => Luster listing ID.
+     * @return array{row: array, images: array{copied:int,skipped:int,errors:string[]}}
+     */
+    private function runCodes(
+        PDO $source, PDO $target, ImportOptions $options, string $sp,
+        array $listingMap, ?string $sourceKey, ?ImageMigrator $migrator, array $imageSettings
+    ): array {
+        $row    = ['type' => 'Codes', 'imported' => 0, 'skipped' => 0, 'warnings' => [], 'errors' => [], 'skipped_items' => []];
+        $images = ['copied' => 0, 'skipped' => 0, 'errors' => []];
+
+        try {
+            $source->query("SELECT 1 FROM `{$sp}codes` LIMIT 1");
+        } catch (\Throwable) {
+            $row['warnings'][] = 'No codes table found — Listing Admin\'s Codes add-on was never turned on, so there were no codes to import.';
+            return ['row' => $row, 'images' => $images];
+        }
+        if ($sourceKey === null) {
+            $row['errors'][] = self::CODES_NEED_SOURCE_ID;
+            return ['row' => $row, 'images' => $images];
+        }
+        try {
+            $target->query('SELECT import_ref, import_source_file FROM lstr_codes LIMIT 1');
+        } catch (\Throwable) {
+            $row['errors'][] = 'Codes were not imported: run the migration page first (Luster needs Migration 104), then import again.';
+            return ['row' => $row, 'images' => $images];
+        }
+
+        $lookups = [
+            'sizes'  => $this->laCodeLookup($source, "SELECT sID AS k, sName AS name, sOrder AS sort FROM `{$sp}codes_sizes`"),
+            'donors' => $this->laCodeLookup($source, "SELECT dID AS k, dName AS name, dEmail AS email, dURL AS url FROM `{$sp}codes_donors`"),
+            'cats'   => $this->laCodeLookup($source, "SELECT catID AS k, catName AS name, catParent AS parent FROM `{$sp}codes_categories`"),
+        ];
+        $direction = strtoupper(trim($this->laOption($source, $sp, 'codes_order'))) === 'DESC' ? 'DESC' : 'ASC';
+
+        // Shared across codes: committed lookups only (see the method docblock).
+        $state = ['sizes' => [], 'donors' => [], 'cats' => [], 'nextSort' => [], 'catsAtRoot' => [], 'catsUnknown' => []];
+
+        $offset = 0;
+        do {
+            try {
+                $stmt = $source->prepare(
+                    "SELECT cID, fNiq, cName, cFile, cCategory, cSize, cDonor, cPending, cAdded
+                       FROM `{$sp}codes`
+                      ORDER BY cAdded {$direction}, cID {$direction}
+                      LIMIT :limit OFFSET :offset"
+                );
+                $stmt->bindValue(':limit',  self::CHUNK, PDO::PARAM_INT);
+                $stmt->bindValue(':offset', $offset,     PDO::PARAM_INT);
+                $stmt->execute();
+                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\Throwable $e) {
+                $row['errors'][] = 'Could not read codes: ' . $e->getMessage();
+                break;
+            }
+
+            foreach ($chunk as $code) {
+                $fNiq = (int) ($code['fNiq'] ?? 0);
+                // Only fNiq = 0 means collective. A listing that didn't match is skipped,
+                // never quietly turned into a collective code.
+                if ($fNiq !== 0 && !isset($listingMap[$fNiq])) {
+                    $this->skipCode($row, $code, "No Luster listing for Listing Admin listing #{$fNiq}");
+                    continue;
+                }
+                $listingId = $fNiq === 0 ? null : $listingMap[$fNiq];
+                $importRef = ListingAdminSourceKey::refSource($sourceKey) . ':' . (int) $code['cID'];
+
+                $this->importCode($target, $options, $code, $listingId, $importRef, $lookups,
+                    $migrator, $imageSettings, $state, $row, $images);
+            }
+
+            $offset += self::CHUNK;
+        } while (count($chunk) === self::CHUNK);
+
+        if (!empty($state['catsAtRoot'])) {
+            $row['warnings'][] = count($state['catsAtRoot']) . ' code categor' . (count($state['catsAtRoot']) === 1 ? 'y was' : 'ies were')
+                . ' put at the top level because their parent category was missing or was itself inside another category.';
+        }
+        if (!empty($state['catsUnknown'])) {
+            $row['warnings'][] = count($state['catsUnknown']) . ' code categor' . (count($state['catsUnknown']) === 1 ? 'y' : 'ies')
+                . ' used by codes no longer exist in Listing Admin, so those codes were imported without them.';
+        }
+        if ($images['skipped'] > 0) {
+            $row['warnings'][] = "{$images['skipped']} code image(s) couldn't be copied. Those codes were still imported and keep "
+                . 'their approval status, so approved ones show as broken images until the image is there. Run the import '
+                . 'again (a ZIP of your codes folder works) to fill them in.';
+        }
+
+        return ['row' => $row, 'images' => $images];
+    }
+
+    /**
+     * Imports, updates, or repairs one LA code. See runCodes().
+     *
+     * @param array<string,mixed> $code   One LA codes row.
+     * @param array<string,array> $state  Shared caches, updated only after a commit.
+     */
+    private function importCode(
+        PDO $target, ImportOptions $options, array $code, ?int $listingId, string $importRef,
+        array $lookups, ?ImageMigrator $migrator, array $imageSettings,
+        array &$state, array &$row, array &$images
+    ): void {
+        $cFile     = trim((string) ($code['cFile'] ?? ''));
+        $label     = 'Code #' . (int) $code['cID'] . ($cFile !== '' ? " ({$cFile})" : '');
+        $overwrite = $options->conflictStrategy === 'overwrite';
+
+        $existing = $this->findImportedCode($target, $importRef);
+
+        // Keep existing: leave the code exactly as it is — just fill in an image that never arrived.
+        if ($existing !== null && !$overwrite) {
+            if ($cFile === '' || $this->codeImageIsPresent($existing['filename'])) {
+                $this->skipCode($row, $code, 'Already imported');
+                return;
+            }
+            // Counted locally: the copy only counts as copied once the code points at it.
+            $repairCounts = ['copied' => 0, 'skipped' => 0, 'errors' => []];
+            $copied = $this->copyCodeImage($migrator, $cFile, $options, $imageSettings, $repairCounts);
+            if ($copied === null) {
+                $images['skipped'] += $repairCounts['skipped'];
+                $images['errors']   = array_merge($images['errors'], $repairCounts['errors']);
+                $this->skipCode($row, $code, 'Already imported (image still missing)');
+                return;
+            }
+            try {
+                $target->prepare(
+                    'UPDATE lstr_codes SET filename = :filename, width = :w, height = :h, import_source_file = :src WHERE id = :id'
+                )->execute([
+                    'filename' => $copied['filename'], 'w' => $copied['width'], 'h' => $copied['height'],
+                    'src' => $copied['source'], 'id' => $existing['id'],
+                ]);
+            } catch (\Throwable $e) {
+                $this->deleteCodeImage($copied['filename']);
+                $images['skipped'] += $repairCounts['copied'] + $repairCounts['skipped'];
+                $images['errors']   = array_merge($images['errors'], $repairCounts['errors']);
+                $row['errors'][]    = "{$label}: " . $e->getMessage();
+                return;
+            }
+            $images['copied']  += $repairCounts['copied'];
+            $images['skipped'] += $repairCounts['skipped'];
+            $images['errors']   = array_merge($images['errors'], $repairCounts['errors']);
+            $this->skipCode($row, $code, 'Already imported (missing image added)');
+            return;
+        }
+
+        if ($existing === null && $cFile === '') {
+            $this->skipCode($row, $code, 'No image file in Listing Admin');
+            return;
+        }
+
+        $pending  = ['sizes' => [], 'donors' => [], 'cats' => []];
+        $newImage = null;
+        $oldImage = null;
+        $sort     = null;
+        $imageCounts = ['copied' => 0, 'skipped' => 0, 'errors' => []];
+
+        $target->beginTransaction();
+        try {
+            $sizeLabel = $this->laSizeLabel($lookups['sizes'], (int) ($code['cSize'] ?? 0));
+            $sizeId    = $listingId !== null
+                ? $this->codeSizeId($target, $listingId, (int) ($code['cSize'] ?? 0), $lookups['sizes'], $overwrite, $state, $pending)
+                : null;
+            $donor     = self::laDonor($lookups['donors'], (int) ($code['cDonor'] ?? 0));
+            $donorId   = ($listingId !== null && $donor !== null)
+                ? $this->codeDonorId($target, $listingId, (int) $code['cDonor'], $donor, $state, $pending)
+                : null;
+            $catIds    = $this->codeCategoryIds($target, $listingId, (string) ($code['cCategory'] ?? ''), $lookups['cats'], $state, $pending);
+
+            // Image: copy for a new code; for an existing one, only when its file is
+            // missing or LA now has a different file for it.
+            $image = null;
+            if ($existing === null) {
+                $newImage = $this->copyCodeImage($migrator, $cFile, $options, $imageSettings, $imageCounts);
+                $image    = $newImage ?? [
+                    'filename' => mb_substr(basename($cFile), 0, 255), 'width' => 0, 'height' => 0, 'source' => null,
+                ];
+            } elseif ($cFile !== ''
+                && (!$this->codeImageIsPresent($existing['filename']) || $cFile !== (string) $existing['import_source_file'])
+            ) {
+                $newImage = $this->copyCodeImage($migrator, $cFile, $options, $imageSettings, $imageCounts);
+                if ($newImage !== null) {
+                    $image = $newImage;
+                    if ($this->codeImageIsPresent($existing['filename'])) {
+                        $oldImage = $existing['filename'];
+                    }
+                }
+            }
+            if ($image !== null && ($image['width'] === 0 || $image['height'] === 0)) {
+                [$image['width'], $image['height']] = self::parseCodeDims($sizeLabel);
+            }
+
+            $collective = $listingId === null;
+            $fields = [
+                'fanlisting_id'   => $listingId,
+                'name'            => self::trimTo((string) ($code['cName'] ?? ''), 150),
+                'size_id'         => $sizeId,
+                'donor_id'        => $donorId,
+                'status'          => (int) ($code['cPending'] ?? 0) === 1 ? 'pending' : 'approved',
+                // Collective codes have no donor list, so their credit goes on the code itself
+                // (the same fields the collective codes page uses).
+                'submitter_name'  => $collective && $donor !== null ? self::trimTo($donor['name'], 150) : null,
+                'submitter_email' => $collective && $donor !== null ? $donor['email'] : null,
+                'submitter_url'   => $collective && $donor !== null ? self::trimTo((string) $donor['url'], 255) : null,
+            ];
+            if ($image !== null) {
+                $fields['filename']           = $image['filename'];
+                $fields['width']              = min(65535, max(0, $image['width']));
+                $fields['height']             = min(65535, max(0, $image['height']));
+                $fields['import_source_file'] = $image['source'];
+            }
+            $createdAt = self::normalizeImportDateTime($code['cAdded'] ?? null);
+            if ($createdAt !== null) {
+                $fields['created_at'] = $createdAt;
+            }
+
+            if ($existing === null) {
+                $sort = $this->nextCodeSort($target, $listingId, $state);
+                $fields['sort_order'] = min(65535, $sort);
+                $fields['import_ref'] = $importRef;
+                $columns = array_keys($fields);
+                $target->prepare(
+                    'INSERT INTO lstr_codes (' . implode(', ', $columns) . ')
+                     VALUES (:' . implode(', :', $columns) . ')'
+                )->execute($fields);
+                $codeId = (int) $target->lastInsertId();
+            } else {
+                $codeId = (int) $existing['id'];
+                $set    = implode(', ', array_map(static fn(string $c): string => "{$c} = :{$c}", array_keys($fields)));
+                $target->prepare("UPDATE lstr_codes SET {$set} WHERE id = :id")->execute($fields + ['id' => $codeId]);
+            }
+
+            // Replace the code's categories, clearing them if LA has none for it now.
+            $target->prepare('DELETE FROM lstr_code_category_map WHERE code_id = :code')->execute(['code' => $codeId]);
+            $link = $target->prepare('INSERT INTO lstr_code_category_map (code_id, category_id) VALUES (:code, :cat)');
+            foreach ($catIds as $catId) {
+                $link->execute(['code' => $codeId, 'cat' => $catId]);
+            }
+
+            $target->commit();
+        } catch (\Throwable $e) {
+            $target->rollBack();
+            if ($newImage !== null) {
+                $this->deleteCodeImage($newImage['filename']);
+            }
+            $images['skipped'] += $imageCounts['copied'] + $imageCounts['skipped'];
+            $images['errors']   = array_merge($images['errors'], $imageCounts['errors']);
+            $row['errors'][]    = "{$label}: " . $e->getMessage();
+            return;
+        }
+
+        // Committed: now the new IDs are safe to share with the codes that follow.
+        foreach (['sizes', 'donors', 'cats'] as $kind) {
+            $state[$kind] = $pending[$kind] + $state[$kind];
+        }
+        if ($sort !== null) {
+            $state['nextSort'][$listingId ?? 'collective'] = $sort + 1;
+        }
+        $images['copied']  += $imageCounts['copied'];
+        $images['skipped'] += $imageCounts['skipped'];
+        $images['errors']   = array_merge($images['errors'], $imageCounts['errors']);
+        if ($oldImage !== null) {
+            $this->deleteCodeImageIfUnused($target, $oldImage);
+        }
+        $row['imported']++;
+    }
+
+    /** @param array<string,mixed> $code */
+    private function skipCode(array &$row, array $code, string $reason): void
+    {
+        $row['skipped']++;
+        if (count($row['skipped_items']) < self::SKIP_CAP) {
+            $file = trim((string) ($code['cFile'] ?? ''));
+            $row['skipped_items'][] = [
+                'label'  => 'Code #' . (int) $code['cID'] . ($file !== '' ? " ({$file})" : ''),
+                'reason' => $reason,
+            ];
+        }
+    }
+
+    /** @return array{id:int, filename:string, import_source_file:?string}|null */
+    private function findImportedCode(PDO $target, string $importRef): ?array
+    {
+        $stmt = $target->prepare('SELECT id, filename, import_source_file FROM lstr_codes WHERE import_ref = :ref LIMIT 1');
+        $stmt->execute(['ref' => $importRef]);
+        $found = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($found === false) {
+            return null;
+        }
+        return [
+            'id'                 => (int) $found['id'],
+            'filename'           => (string) $found['filename'],
+            'import_source_file' => $found['import_source_file'] !== null ? (string) $found['import_source_file'] : null,
+        ];
+    }
+
+    /**
+     * One small LA lookup table keyed by its ID column (aliased 'k'). [] when the
+     * table is missing — LA only creates them once the Codes add-on is turned on.
+     *
+     * @return array<int, array<string,mixed>>
+     */
+    private function laCodeLookup(PDO $source, string $sql): array
+    {
+        try {
+            $map = [];
+            foreach ($source->query($sql)->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $map[(int) $r['k']] = $r;
+            }
+            return $map;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /** One value from LA's options table, '' when missing. */
+    private function laOption(PDO $source, string $sp, string $name): string
+    {
+        try {
+            $stmt = $source->prepare("SELECT `text` FROM `{$sp}options` WHERE `name` = :name LIMIT 1");
+            $stmt->execute(['name' => $name]);
+            return (string) ($stmt->fetchColumn() ?: '');
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    /** @param array<int, array<string,mixed>> $laSizes */
+    private function laSizeLabel(array $laSizes, int $sID): string
+    {
+        if ($sID <= 0 || !isset($laSizes[$sID])) {
+            return '';
+        }
+        return self::trimTo((string) $laSizes[$sID]['name'], 100) ?? '';
+    }
+
+    /**
+     * The Luster size for one LA size in one listing: reused when the listing
+     * already has one with that label (or, for a label like "88x31", those
+     * dimensions); created otherwise. Update matching also copies LA's sOrder.
+     *
+     * @param array<int, array<string,mixed>> $laSizes
+     */
+    private function codeSizeId(
+        PDO $target, int $listingId, int $sID, array $laSizes, bool $overwrite, array $state, array &$pending
+    ): ?int {
+        $label = $this->laSizeLabel($laSizes, $sID);
+        if ($label === '') {
+            return null;
+        }
+        $key = "{$listingId}|{$sID}";
+        if (isset($pending['sizes'][$key])) {
+            return $pending['sizes'][$key];
+        }
+        if (isset($state['sizes'][$key])) {
+            return $state['sizes'][$key];
+        }
+
+        [$w, $h] = self::parseCodeDims($label);
+        $order   = min(65535, max(0, (int) ($laSizes[$sID]['sort'] ?? 0)));
+
+        $find = $target->prepare('SELECT id FROM lstr_code_sizes WHERE fanlisting_id = :fid AND label = :label LIMIT 1');
+        $find->execute(['fid' => $listingId, 'label' => $label]);
+        $id = $find->fetchColumn();
+        if ($id === false && $w > 0) {
+            $find = $target->prepare('SELECT id FROM lstr_code_sizes WHERE fanlisting_id = :fid AND width = :w AND height = :h LIMIT 1');
+            $find->execute(['fid' => $listingId, 'w' => $w, 'h' => $h]);
+            $id = $find->fetchColumn();
+        }
+
+        if ($id !== false) {
+            $id = (int) $id;
+            if ($overwrite) {
+                $target->prepare('UPDATE lstr_code_sizes SET sort_order = :sort WHERE id = :id')->execute(['sort' => $order, 'id' => $id]);
+            }
+        } else {
+            $target->prepare(
+                'INSERT INTO lstr_code_sizes (fanlisting_id, label, width, height, sort_order) VALUES (:fid, :label, :w, :h, :sort)'
+            )->execute(['fid' => $listingId, 'label' => $label, 'w' => $w > 0 ? $w : null, 'h' => $h > 0 ? $h : null, 'sort' => $order]);
+            $id = (int) $target->lastInsertId();
+        }
+
+        $pending['sizes'][$key] = $id;
+        return $id;
+    }
+
+    /**
+     * An LA donor, cleaned up: name trimmed, email lowercased, blanks as null.
+     * Null when the code has no donor (cDonor 0) or the donor is gone.
+     *
+     * @param  array<int, array<string,mixed>> $laDonors
+     * @return array{name:string, email:?string, url:?string}|null
+     */
+    private static function laDonor(array $laDonors, int $dID): ?array
+    {
+        if ($dID <= 0 || !isset($laDonors[$dID])) {
+            return null;
+        }
+        $name = self::trimTo((string) $laDonors[$dID]['name'], 150);
+        if ($name === null) {
+            return null;
+        }
+        $email = self::trimTo(strtolower((string) ($laDonors[$dID]['email'] ?? '')), 255);
+        return [
+            'name'  => $name,
+            'email' => $email,
+            'url'   => self::trimTo((string) ($laDonors[$dID]['url'] ?? ''), 500),
+        ];
+    }
+
+    /**
+     * The Luster donor for one LA donor in one listing, matched on name, email,
+     * and URL together — two LA donors who share a name stay separate. The URL
+     * must match exactly, case included. Existing
+     * donor rows are never edited: if the donor's details changed in LA, the
+     * matching donor is found or created and the code is linked to that instead,
+     * so other codes using the old row aren't changed.
+     *
+     * @param array{name:string, email:?string, url:?string} $donor
+     */
+    private function codeDonorId(PDO $target, int $listingId, int $dID, array $donor, array $state, array &$pending): int
+    {
+        $key = "{$listingId}|{$dID}";
+        if (isset($pending['donors'][$key])) {
+            return $pending['donors'][$key];
+        }
+        if (isset($state['donors'][$key])) {
+            return $state['donors'][$key];
+        }
+
+        $where  = ['fanlisting_id = :fid', 'name = :name'];
+        $params = ['fid' => $listingId, 'name' => $donor['name']];
+        if ($donor['email'] === null) {
+            $where[] = 'email IS NULL';
+        } else {
+            $where[]         = 'email = :email';
+            $params['email'] = $donor['email'];
+        }
+        $find = $target->prepare('SELECT id, url FROM lstr_code_donors WHERE ' . implode(' AND ', $where) . ' ORDER BY id');
+        $find->execute($params);
+
+        // The URL is compared here, not in SQL: MySQL/MariaDB's usual collations ignore
+        // case, but a URL's path is case-sensitive (/Fan and /fan can be different pages).
+        $id = false;
+        foreach ($find->fetchAll(PDO::FETCH_ASSOC) as $candidate) {
+            $candidateUrl = $candidate['url'] !== null ? (string) $candidate['url'] : null;
+            if ($candidateUrl === $donor['url']) {
+                $id = (int) $candidate['id'];
+                break;
+            }
+        }
+
+        if ($id === false) {
+            $target->prepare(
+                'INSERT INTO lstr_code_donors (fanlisting_id, name, email, url) VALUES (:fid, :name, :email, :url)'
+            )->execute(['fid' => $listingId, 'name' => $donor['name'], 'email' => $donor['email'], 'url' => $donor['url']]);
+            $id = $target->lastInsertId();
+        }
+
+        $pending['donors'][$key] = (int) $id;
+        return (int) $id;
+    }
+
+    /**
+     * Luster category IDs for one code's cCategory. LA stores a category ID or
+     * '0' for none; digits are read out of whatever separators are there, and 0
+     * is dropped. Luster has one level of categories, so a category keeps its
+     * parent only when that parent exists and is a top-level category itself —
+     * a missing parent, a loop, or a deeper chain puts it at the top level.
+     * Categories are created under the code's own listing, even when LA filed
+     * the parent under a different listing.
+     *
+     * @param  array<int, array<string,mixed>> $laCats
+     * @return int[]
+     */
+    private function codeCategoryIds(PDO $target, ?int $listingId, string $raw, array $laCats, array &$state, array &$pending): array
+    {
+        preg_match_all('/\d+/', $raw, $m);
+        $catIds = array_values(array_unique(array_filter(array_map('intval', $m[0]), static fn(int $id): bool => $id > 0)));
+
+        $ids = [];
+        foreach ($catIds as $catId) {
+            if (!isset($laCats[$catId])) {
+                $state['catsUnknown'][$catId] = true;
+                continue;
+            }
+            $parentId = null;
+            $p = (int) ($laCats[$catId]['parent'] ?? 0);
+            if ($p > 0) {
+                if ($p !== $catId && isset($laCats[$p]) && (int) ($laCats[$p]['parent'] ?? 0) === 0) {
+                    $parentId = $this->codeCategoryId($target, $listingId, $p, (string) $laCats[$p]['name'], null, $state, $pending);
+                } else {
+                    $state['catsAtRoot'][$catId] = true;
+                }
+            }
+            $id = $this->codeCategoryId($target, $listingId, $catId, (string) $laCats[$catId]['name'], $parentId, $state, $pending);
+            if ($id !== null) {
+                $ids[] = $id;
+            }
+        }
+        return array_values(array_unique($ids));
+    }
+
+    /** Finds or creates one category, cached per (LA category, Luster listing). */
+    private function codeCategoryId(
+        PDO $target, ?int $listingId, int $catId, string $name, ?int $parentId, array $state, array &$pending
+    ): ?int {
+        $name = self::trimTo($name, 100);
+        if ($name === null) {
+            return null;
+        }
+        $key = $catId . '|' . ($listingId ?? 'collective');
+        if (isset($pending['cats'][$key])) {
+            return $pending['cats'][$key];
+        }
+        if (isset($state['cats'][$key])) {
+            return $state['cats'][$key];
+        }
+
+        $where  = [$listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid', 'name = :name',
+                   $parentId === null ? 'parent_id IS NULL' : 'parent_id = :parent'];
+        $params = ['name' => $name];
+        if ($listingId !== null) {
+            $params['fid'] = $listingId;
+        }
+        if ($parentId !== null) {
+            $params['parent'] = $parentId;
+        }
+        $find = $target->prepare('SELECT id FROM lstr_code_categories WHERE ' . implode(' AND ', $where) . ' LIMIT 1');
+        $find->execute($params);
+        $id = $find->fetchColumn();
+
+        if ($id === false) {
+            $target->prepare(
+                'INSERT INTO lstr_code_categories (fanlisting_id, name, parent_id, sort_order) VALUES (:fid, :name, :parent, 0)'
+            )->execute(['fid' => $listingId, 'name' => $name, 'parent' => $parentId]);
+            $id = $target->lastInsertId();
+        }
+
+        $pending['cats'][$key] = (int) $id;
+        return (int) $id;
+    }
+
+    /** Next sort position for a new code: after every code the listing already has. */
+    private function nextCodeSort(PDO $target, ?int $listingId, array $state): int
+    {
+        $key = $listingId ?? 'collective';
+        if (isset($state['nextSort'][$key])) {
+            return $state['nextSort'][$key];
+        }
+        $stmt = $listingId === null
+            ? $target->prepare('SELECT MAX(sort_order) FROM lstr_codes WHERE fanlisting_id IS NULL')
+            : $target->prepare('SELECT MAX(sort_order) FROM lstr_codes WHERE fanlisting_id = :fid');
+        $stmt->execute($listingId === null ? [] : ['fid' => $listingId]);
+        $max = $stmt->fetchColumn();
+        return $max === null || $max === false ? 0 : (int) $max + 1;
+    }
+
+    /**
+     * Copies one code image into uploads/codes/ and reads its real size.
+     *
+     * @param  array{copied:int,skipped:int,errors:string[]} $counts
+     * @return array{filename:string, width:int, height:int, source:string}|null
+     */
+    private function copyCodeImage(?ImageMigrator $migrator, string $cFile, ImportOptions $options, array $imageSettings, array &$counts): ?array
+    {
+        if ($migrator === null || $cFile === '') {
+            return null;
+        }
+        $unusedMap = [];
+        $filename  = $this->migrateImage(
+            $migrator, $cFile, 'codes', 'cd_', $options, $imageSettings,
+            $unusedMap, $counts['copied'], $counts['skipped'], $counts['errors']
+        );
+        if ($filename === null) {
+            return null;
+        }
+        // ImageMigrator has already checked by MIME type that this is a real image.
+        $info = getimagesize($this->codeImagePath($filename));
+        return [
+            'filename' => $filename,
+            'width'    => $info !== false ? (int) $info[0] : 0,
+            'height'   => $info !== false ? (int) $info[1] : 0,
+            'source'   => mb_substr($cFile, 0, 255),
+        ];
+    }
+
+    private function codeImagePath(string $filename): string
+    {
+        return $this->publicDir . '/uploads/codes/' . $filename;
+    }
+
+    /** Whether a code's image file is really there (a bare filename inside uploads/codes/). */
+    private function codeImageIsPresent(string $filename): bool
+    {
+        return $filename !== '' && basename($filename) === $filename && is_file($this->codeImagePath($filename));
+    }
+
+    private function deleteCodeImage(string $filename): void
+    {
+        if ($this->codeImageIsPresent($filename)) {
+            unlink($this->codeImagePath($filename));
+        }
+    }
+
+    /** Removes an image an update replaced, unless some other code still uses it. */
+    private function deleteCodeImageIfUnused(PDO $target, string $filename): void
+    {
+        try {
+            $stmt = $target->prepare('SELECT COUNT(*) FROM lstr_codes WHERE filename = :filename');
+            $stmt->execute(['filename' => $filename]);
+            if ((int) $stmt->fetchColumn() === 0) {
+                $this->deleteCodeImage($filename);
+            }
+        } catch (\Throwable) {
+            // Keeping a spare file is harmless; deleting one that's still used isn't.
+        }
+    }
+
+    /** Width and height from a label like "88x31" or "100 × 35"; [0, 0] otherwise. */
+    private static function parseCodeDims(string $label): array
+    {
+        if (preg_match('/^\s*(\d{1,4})\s*[x×]\s*(\d{1,4})\s*$/iu', $label, $m)) {
+            return [(int) $m[1], (int) $m[2]];
+        }
+        return [0, 0];
+    }
+
+    /** Trimmed and cut to fit a column; null when nothing is left. */
+    private static function trimTo(string $value, int $max): ?string
+    {
+        $value = trim($value);
+        return $value === '' ? null : mb_substr($value, 0, $max);
+    }
+
+    /**
+     * A full date and time from LA (e.g. cAdded), or null when it's missing or
+     * not a real date. Unlike normalizeImportDate() this keeps the time, and it
+     * rejects LA's "never set" placeholders (0000-00-00, 1970-01-01) and
+     * impossible dates like 2026-02-31.
+     */
+    private static function normalizeImportDateTime(mixed $raw): ?string
+    {
+        $s = trim((string) ($raw ?? ''));
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) {
+            $s .= ' 00:00:00';
+        }
+        $dt = \DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $s);
+        if ($dt === false || $dt->format('Y-m-d H:i:s') !== $s || (int) $dt->format('Y') < 1971) {
+            return null;
+        }
+        return $s;
+    }
+
     /**
      * Reads configured image directory paths and web URLs from the Listing Admin
      * options table (la_options or {prefix}options).
      *
      * Returns an associative array with keys:
-     *   affiliates_dir, joined_dir, listings_dir  (absolute filesystem paths)
-     *   affiliates_url, joined_url, listings_url  (web-accessible URLs)
+     *   affiliates_dir, joined_dir, listings_dir, codes_dir  (absolute filesystem paths)
+     *   affiliates_url, joined_url, listings_url, codes_url  (web-accessible URLs)
+     *
+     * codes_dir is codes_img_path, or adm_path when that's blank.
      *
      * All values are rtrim'd. Returns [] on any failure.
      *
@@ -2555,13 +3630,22 @@ final class ListingAdminImportSource implements ImportSourceInterface
                   WHERE `name` IN (
                       'aff_path',  'aff_http',
                       'img_path',  'img_http',
-                      'jnd_path',  'jnd_http'
+                      'jnd_path',  'jnd_http',
+                      'codes_img_path', 'codes_img_http',
+                      'adm_path'
                   )"
             );
             $stmt->execute();
             $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
         } catch (\Throwable) {
             return [];
+        }
+
+        // Listing Admin saves code images in its admin folder when codes_img_path
+        // is blank, so that's where to look in that case.
+        $codesDir = rtrim(trim((string) ($rows['codes_img_path'] ?? '')), '/\\');
+        if ($codesDir === '') {
+            $codesDir = rtrim(trim((string) ($rows['adm_path'] ?? '')), '/\\');
         }
 
         return [
@@ -2571,6 +3655,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
             'listings_url'   => rtrim((string) ($rows['img_http'] ?? ''), '/'),
             'joined_dir'     => rtrim((string) ($rows['jnd_path'] ?? ''), '/\\'),
             'joined_url'     => rtrim((string) ($rows['jnd_http'] ?? ''), '/'),
+            'codes_dir'      => $codesDir,
+            'codes_url'      => rtrim(trim((string) ($rows['codes_img_http'] ?? '')), '/'),
         ];
     }
 }

@@ -23,8 +23,10 @@ final class VersionLatestMigrationTest extends TestCase
         $source = file_get_contents($path);
         self::assertNotFalse($source, 'Could not read public/migrate/index.php');
 
-        preg_match_all('/^\/\/ (?:--- )?Migration (\d+)/m', $source, $matches);
-        self::assertNotEmpty($matches[1], 'Found no "// Migration N" comments in public/migrate/index.php');
+        // Require the colon so only real headings count ("// Migration 54: ..."),
+        // not comments that mention an older migration ("// Migration 47 dropped ...").
+        preg_match_all('/^\/\/ (?:--- )?Migration (\d+):/m', $source, $matches);
+        self::assertNotEmpty($matches[1], 'Found no "// Migration N:" headings in public/migrate/index.php');
 
         $highest = max(array_map('intval', $matches[1]));
 

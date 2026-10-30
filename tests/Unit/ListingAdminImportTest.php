@@ -1353,4 +1353,347 @@ final class ListingAdminImportTest extends TestCase
         $stmt = $tgt->query("SELECT form_url_reset FROM lstr_fanlisting_settings");
         $this->assertSame('', $stmt->fetchColumn(), 'Default filename should not be imported');
     }
+
+    // -----------------------------------------------------------------------
+    // Bridge listing links (lstr_listing_external_refs)
+    //
+    // public/compat/listing-admin/luster-bridge.php turns LA's $listid into a
+    // Luster listing through these links (ListingAdminBridgeResolver), so each
+    // test checks the links the same way the bridge reads them.
+    // -----------------------------------------------------------------------
+
+    private function addExternalRefsTable(PDO $tgt): void
+    {
+        $tgt->exec(
+            'CREATE TABLE IF NOT EXISTS lstr_listing_external_refs (
+                id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+                listing_id           INTEGER NOT NULL,
+                source               TEXT    NOT NULL,
+                external_id          TEXT    NOT NULL,
+                external_slug_or_url TEXT    NOT NULL DEFAULT \'\',
+                created_at           TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (source, external_id)
+            )'
+        );
+    }
+
+    /** @param array<string,string> $values LA option name => value */
+    private function addLaOptions(PDO $src, array $values, string $prefix = ''): void
+    {
+        $src->exec("CREATE TABLE IF NOT EXISTS `{$prefix}options` (name TEXT PRIMARY KEY, text TEXT NOT NULL DEFAULT '')");
+        $stmt = $src->prepare("INSERT INTO `{$prefix}options` (name, text) VALUES (:n, :t)");
+        foreach ($values as $name => $text) {
+            $stmt->execute(['n' => $name, 't' => $text]);
+        }
+    }
+
+    /** @return array<string,int> "source|external_id" => listing_id */
+    private function bridgeRefs(PDO $tgt): array
+    {
+        $refs = [];
+        foreach ($tgt->query('SELECT source, external_id, listing_id FROM lstr_listing_external_refs') as $r) {
+            $refs[$r['source'] . '|' . $r['external_id']] = (int) $r['listing_id'];
+        }
+        ksort($refs);
+        return $refs;
+    }
+
+    private function lusterIdForUrl(PDO $tgt, string $url): int
+    {
+        $stmt = $tgt->prepare('SELECT listingid FROM owned WHERE url = :url');
+        $stmt->execute(['url' => $url]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /** @return array<string,mixed> */
+    private function resultRow(\Luster\Import\ImportResult $result, string $type): array
+    {
+        foreach ($result->rows as $row) {
+            if ($row['type'] === $type) {
+                return $row;
+            }
+        }
+        $this->fail("No '{$type}' row in the import result");
+    }
+
+    private function sourceKeyFor(string $admHttp, string $laPrefix = ''): string
+    {
+        return (string) \Luster\Import\ListingAdminSourceKey::resolve('', $admHttp, '', $laPrefix)['key'];
+    }
+
+    public function testImportLinksNewListingsForTheBridge(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->addLaOptions($src, ['adm_http' => 'http://example.com/fan/admin/']);
+        $this->seedTarget($tgt);
+        $this->addExternalRefsTable($tgt);
+
+        $laA = $this->insertSourceListing($src, 'http://a.example.com', 'A');
+        $laB = $this->insertSourceListing($src, 'http://b.example.com', 'B');
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $key  = $this->sourceKeyFor('http://example.com/fan/admin/');
+        $idA  = $this->lusterIdForUrl($tgt, 'http://a.example.com');
+        $idB  = $this->lusterIdForUrl($tgt, 'http://b.example.com');
+        $this->assertSame([
+            "listing-admin:{$key}|{$laA}" => $idA,
+            "listing-admin:{$key}|{$laB}" => $idB,
+            "listing-admin|{$laA}"        => $idA,
+            "listing-admin|{$laB}"        => $idB,
+        ], $this->bridgeRefs($tgt));
+
+        $row = $this->resultRow($result, 'Bridge listing links');
+        $this->assertSame(2, $row['imported']);
+        $this->assertSame(0, $row['skipped']);
+        $this->assertSame([], $row['errors']);
+        $this->assertContains("Source ID for this install: {$key}", $row['warnings']);
+
+        $this->assertSame($idA, \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laA, ''));
+        $this->assertSame($idB, \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laB, $key));
+    }
+
+    public function testImportLinksListingsThatAlreadyExistInLuster(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->addLaOptions($src, ['adm_http' => 'http://example.com/admin']);
+        $this->seedTarget($tgt);
+        $this->addExternalRefsTable($tgt);
+
+        // Imported in an earlier run, before the importer saved bridge links.
+        $tgt->exec("INSERT INTO owned (dbtable, title, subject, url) VALUES ('old', 'Old', 'Old', 'http://old.example.com')");
+        $existingId = (int) $tgt->lastInsertId();
+        $laId       = $this->insertSourceListing($src, 'http://old.example.com', 'Old');
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $this->assertSame(1, (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn(), 'Listing should be matched, not duplicated');
+        $this->assertSame($existingId, \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laId, ''));
+        $this->assertSame(
+            $existingId,
+            \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laId, $this->sourceKeyFor('http://example.com/admin')),
+        );
+    }
+
+    public function testRerunDoesNotDuplicateBridgeLinks(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->addLaOptions($src, ['adm_http' => 'http://example.com/admin']);
+        $this->seedTarget($tgt);
+        $this->addExternalRefsTable($tgt);
+        $this->insertSourceListing($src, 'http://a.example.com', 'A');
+        $this->insertSourceListing($src, 'http://b.example.com', 'B');
+
+        $options = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($src, $tgt, $options);
+        $before = $this->bridgeRefs($tgt);
+
+        $second = $this->adapter()->run($src, $tgt, $options);
+
+        $this->assertSame($before, $this->bridgeRefs($tgt));
+        $row = $this->resultRow($second, 'Bridge listing links');
+        $this->assertSame(0, $row['imported']);
+        $this->assertSame(2, $row['skipped']);
+        $this->assertSame(['Already linked', 'Already linked'], array_column($row['skipped_items'], 'reason'));
+    }
+
+    public function testSharedLinkPointingElsewhereIsLeftAloneAndReported(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->addLaOptions($src, ['adm_http' => 'http://second.example.com/admin']);
+        $this->seedTarget($tgt);
+        $this->addExternalRefsTable($tgt);
+
+        $laId = $this->insertSourceListing($src, 'http://new.example.com', 'New');
+        // Another LA install already owns the shared link for this LA listing ID.
+        $tgt->prepare("INSERT INTO lstr_listing_external_refs (listing_id, source, external_id) VALUES (99, 'listing-admin', ?)")
+            ->execute([(string) $laId]);
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $key   = $this->sourceKeyFor('http://second.example.com/admin');
+        $newId = $this->lusterIdForUrl($tgt, 'http://new.example.com');
+
+        $this->assertSame(99, \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laId, ''), 'Shared link must keep pointing at the first install');
+        $this->assertSame($newId, \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laId, $key), 'This install still gets its own link');
+
+        $row = $this->resultRow($result, 'Bridge listing links');
+        $this->assertSame(0, $row['imported']);
+        $this->assertSame(1, $row['skipped']);
+        $this->assertSame('Shared link already points to Luster listing #99', $row['skipped_items'][0]['reason']);
+        $this->assertStringContainsString("set LUSTER_LA_SOURCE to \"{$key}\"", implode(' ', $row['warnings']));
+    }
+
+    public function testTwoInstallsEachGetTheirOwnLinks(): void
+    {
+        $tgt = $this->makePdo();
+        $this->seedTarget($tgt);
+        $this->addExternalRefsTable($tgt);
+
+        $first = $this->makePdo();
+        $this->seedLaSource($first);
+        $this->addLaOptions($first, ['adm_http' => 'http://first.example.com/admin']);
+        $laFirst = $this->insertSourceListing($first, 'http://first.example.com/fl', 'First');
+
+        $second = $this->makePdo();
+        $this->seedLaSource($second);
+        $this->addLaOptions($second, ['adm_http' => 'http://second.example.com/admin']);
+        $laSecond = $this->insertSourceListing($second, 'http://second.example.com/fl', 'Second');
+
+        $this->assertSame($laFirst, $laSecond, 'Both installs use the same LA listing ID — the case being tested');
+
+        $options = $this->makeOptions(['import_listings' => '1']);
+        $this->adapter()->run($first, $tgt, $options);
+        $this->adapter()->run($second, $tgt, $options);
+
+        $firstId  = $this->lusterIdForUrl($tgt, 'http://first.example.com/fl');
+        $secondId = $this->lusterIdForUrl($tgt, 'http://second.example.com/fl');
+        $resolve  = static fn(string $key): ?int => \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laFirst, $key);
+
+        $this->assertSame($firstId, $resolve(''), 'First install keeps the shared link');
+        $this->assertSame($firstId, $resolve($this->sourceKeyFor('http://first.example.com/admin')));
+        $this->assertSame($secondId, $resolve($this->sourceKeyFor('http://second.example.com/admin')));
+        $this->assertNull($resolve('some-other-site'), 'An unknown Source ID never falls back to the shared link');
+    }
+
+    public function testNoWebAddressSavesSharedLinksOnly(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);   // no options table at all
+        $this->seedTarget($tgt);
+        $this->addExternalRefsTable($tgt);
+        $laId = $this->insertSourceListing($src, 'http://a.example.com', 'A');
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $this->assertSame(
+            ["listing-admin|{$laId}" => $this->lusterIdForUrl($tgt, 'http://a.example.com')],
+            $this->bridgeRefs($tgt),
+        );
+        $this->assertContains(
+            'No Source ID for this install, so only the shared bridge links were saved.',
+            $this->resultRow($result, 'Bridge listing links')['warnings'],
+        );
+    }
+
+    public function testTypedSourceIdIsUsedForThisInstallsLinks(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->addLaOptions($src, ['adm_http' => 'http://new-domain.example.com/admin']);
+        $this->seedTarget($tgt);
+        $this->addExternalRefsTable($tgt);
+        $laId = $this->insertSourceListing($src, 'http://a.example.com', 'A');
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions([
+            'import_listings' => '1',
+            'la_source_id'    => 'old-collective',
+        ]));
+
+        $this->assertArrayHasKey("listing-admin:old-collective|{$laId}", $this->bridgeRefs($tgt));
+        $this->assertCount(2, $this->bridgeRefs($tgt), 'Only the typed Source ID and the shared link, no worked-out key');
+    }
+
+    public function testInvalidSourceIdStopsTheImportBeforeAnythingIsWritten(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->seedTarget($tgt);
+        $this->addExternalRefsTable($tgt);
+        $this->insertSourceListing($src, 'http://a.example.com', 'A');
+
+        try {
+            $this->adapter()->run($src, $tgt, $this->makeOptions([
+                'import_listings' => '1',
+                'la_source_id'    => 'Old_Collective',
+            ]));
+            $this->fail('An invalid Source ID should stop the import');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Source ID', $e->getMessage());
+        }
+
+        $this->assertSame(0, (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn());
+        $this->assertSame([], $this->bridgeRefs($tgt));
+    }
+
+    public function testLiveConnectionAndUploadedDumpGetTheSameSourceKey(): void
+    {
+        $laP  = 'la_';
+        $keys = [];
+
+        // '' = live connection (tables named with the LA prefix only);
+        // 'dump_' = uploaded SQL dump (temporary prefix in front of the LA prefix).
+        foreach (['', 'dump_'] as $dumpTp) {
+            $src  = $this->makePdo();
+            $tgt  = $this->makePdo();
+            $sp   = $dumpTp . $laP;
+            $sreg = $dumpTp . str_replace('_', '', $laP);
+
+            $src->exec("CREATE TABLE `{$sreg}` (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '',
+                url TEXT NOT NULL DEFAULT '', category TEXT NOT NULL DEFAULT '', since TEXT NULL, updated TEXT NULL,
+                fave_fields TEXT NOT NULL DEFAULT '', trouble INTEGER NOT NULL DEFAULT 0, upcoming INTEGER NOT NULL DEFAULT 0,
+                image TEXT NOT NULL DEFAULT ''
+            )");
+            $src->exec("CREATE TABLE `{$sp}categories` (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL DEFAULT '', parent INTEGER NOT NULL DEFAULT 0)");
+            $src->exec("INSERT INTO `{$sreg}` (title, subject, url) VALUES ('A', 'A', 'http://a.example.com')");
+            $this->addLaOptions($src, ['adm_http' => 'http://example.com/fan/admin/'], $sp);
+            $this->seedTarget($tgt);
+            $this->addExternalRefsTable($tgt);
+
+            $post = ['import_listings' => '1', 'la_table_prefix' => $laP];
+            if ($dumpTp !== '') {
+                $post['_dump_table_prefix']   = $dumpTp;
+                $post['_dump_schema_variant'] = 'listing_admin_3x';
+            }
+            $this->adapter()->run($src, $tgt, $this->makeOptions($post));
+
+            $keyed = array_filter(array_keys($this->bridgeRefs($tgt)), static fn(string $k): bool => str_starts_with($k, 'listing-admin:'));
+            $this->assertCount(1, $keyed);
+            $keys[$dumpTp === '' ? 'live' : 'dump'] = reset($keyed);
+        }
+
+        $this->assertSame($keys['live'], $keys['dump']);
+        $this->assertSame('listing-admin:' . $this->sourceKeyFor('http://example.com/fan/admin/', $laP) . '|1', $keys['live']);
+    }
+
+    public function testPreviewSaysWhichBridgeLinksWillBeSaved(): void
+    {
+        $tgt = $this->makePdo();
+        $this->seedTarget($tgt);
+
+        $withAddress = $this->makePdo();
+        $this->seedLaSource($withAddress);
+        $this->addLaOptions($withAddress, ['adm_http' => 'http://example.com/admin']);
+
+        $noAddress = $this->makePdo();
+        $this->seedLaSource($noAddress);
+
+        $options = $this->makeOptions(['import_listings' => '1']);
+        $warningsFor = function (PDO $src) use ($tgt, $options): string {
+            foreach ($this->adapter()->preview($src, $tgt, $options)->rows as $row) {
+                if ($row['type'] === 'Owned Listings') {
+                    return implode(' ', $row['warnings']);
+                }
+            }
+            $this->fail('No Owned Listings preview row');
+        };
+
+        $this->assertStringContainsString(
+            'Source ID ' . $this->sourceKeyFor('http://example.com/admin') . ", worked out from this install's admin address",
+            $warningsFor($withAddress),
+        );
+        $this->assertStringContainsString("don't include its web address", $warningsFor($noAddress));
+    }
 }

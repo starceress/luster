@@ -861,7 +861,10 @@ function installTables(PDO $pdo): void
             `submitter_url`   VARCHAR(255)      NULL DEFAULT NULL,
             `sort_order`      SMALLINT UNSIGNED NOT NULL DEFAULT 0,
             `created_at`      DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `import_ref`         VARCHAR(100)   NULL DEFAULT NULL,
+            `import_source_file` VARCHAR(255)   NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_lstr_codes_import_ref` (`import_ref`),
             INDEX `idx_fanlisting`        (`fanlisting_id`),
             INDEX `idx_fanlisting_sort`   (`fanlisting_id`, `sort_order`, `id`),
             INDEX `idx_lstr_codes_status` (`fanlisting_id`, `status`),
@@ -1106,7 +1109,7 @@ function installTables(PDO $pdo): void
             `member_email`        VARCHAR(255) NOT NULL,
             `member_name`         VARCHAR(255) NOT NULL DEFAULT '',
             `member_url`          VARCHAR(500) NOT NULL DEFAULT '',
-            `link_status`         ENUM('unchecked','ok','redirect','dead','error') NOT NULL DEFAULT 'unchecked',
+            `link_status`         ENUM('unchecked','ok','redirect','dead','error','no_url') NOT NULL DEFAULT 'unchecked',
             `link_redirect_url`   VARCHAR(500) NULL,
             `link_checked_at`     DATETIME NULL,
             `backlink_status`     ENUM('unchecked','found','missing') NOT NULL DEFAULT 'unchecked',
@@ -1183,7 +1186,7 @@ function installTables(PDO $pdo): void
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
          (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93),
-         (94),(95),(96),(97),(98),(99),(100),(101),(102)'
+         (94),(95),(96),(97),(98),(99),(100),(101),(102),(103),(104)'
     );
 }
 

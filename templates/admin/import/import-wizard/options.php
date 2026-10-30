@@ -85,6 +85,38 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
         <p class="form-hint" style="margin-top:.35rem">Leave blank for a normal Listing Admin install. If your table names start with extra text, like <code>trex_members</code>, enter that extra text here: <code>trex_</code>.</p>
       </div>
     </div>
+
+    <div class="card-body">
+      <div class="section-label">Source ID <span style="font-size:var(--fs-sm);text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-dim);margin-left:.4rem">(optional)</span></div>
+      <div class="card-body">
+        <input id="la_source_id" type="text" name="la_source_id" class="form" style="max-width:220px"
+               placeholder="old-collective" maxlength="36" autocomplete="off"
+               <?= !empty($la_known_sources) ? 'list="la-known-sources"' : '' ?>
+               value="<?= scopeOld($old, 'la_source_id') ?>">
+        <p class="form-hint" style="margin-top:.35rem">Usually leave this blank &mdash; Luster works it out from your Listing Admin install's web address. Fill it in if that address changed since an earlier import, or if you're importing more than one Listing Admin install. Lowercase letters, numbers, and hyphens, up to 36 characters.</p>
+        <?php if (!empty($la_known_sources)): ?>
+        <datalist id="la-known-sources">
+          <?php foreach ($la_known_sources as $knownSource): ?>
+            <option value="<?= View::e($knownSource['key']) ?>">
+          <?php endforeach; ?>
+        </datalist>
+        <p class="form-hint">Used by earlier imports:
+          <?php foreach ($la_known_sources as $i => $knownSource): ?>
+            <?php
+              $knownCounts = [];
+              if ((int) $knownSource['listings'] > 0) {
+                  $knownCounts[] = (int) $knownSource['listings'] . ' listing' . ((int) $knownSource['listings'] === 1 ? '' : 's');
+              }
+              if ((int) ($knownSource['codes'] ?? 0) > 0) {
+                  $knownCounts[] = (int) $knownSource['codes'] . ' code' . ((int) $knownSource['codes'] === 1 ? '' : 's');
+              }
+            ?>
+            <?= $i > 0 ? '&middot;' : '' ?> <code><?= View::e($knownSource['key']) ?></code><?= $knownCounts !== [] ? ' (' . View::e(implode(', ', $knownCounts)) . ')' : '' ?>
+          <?php endforeach; ?>
+        </p>
+        <?php endif; ?>
+      </div>
+    </div>
     <?php endif; ?>
 
     <!-- ── Conflict strategy ─────────────────────────────────── -->
@@ -304,6 +336,13 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
                 <?= View::icon('alert', ['width' => 12, 'height' => 12]) ?>
                 Owned listings must also be selected because join rules are linked to each imported listing.
               </div>
+            </div>
+          </div>
+          <div class="import-chk">
+            <input type="checkbox" name="import_codes" value="1" id="ck-codes" <?= scopeChecked($old, 'import_codes') ?>>
+            <div class="import-chk-body">
+              <label class="import-chk-lbl" for="ck-codes">Codes (fan graphics)</label>
+              <div class="import-chk-sub">Code images with their sizes, donors, and categories. Codes go to listings that are already in Luster or come over in this import; any others are skipped, and the preview tells you which.</div>
             </div>
           </div>
         <?php endif; ?>

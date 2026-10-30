@@ -66,6 +66,10 @@ $src = View::e($source);
         if ($options->importCategories) $importChips[] = 'Categories';
         if ($options->importAffiliates) $importChips[] = 'Affiliates';
         if ($options->importUpdates)    $importChips[] = 'Updates';
+        if ($options->importWishlist)   $importChips[] = 'Wishlist';
+        if ($options->importKim)        $importChips[] = 'KIM List';
+        if ($options->importRules)      $importChips[] = 'Join Rules';
+        if ($options->importCodes)      $importChips[] = 'Codes';
     } elseif ($options->source === 'fanupdate') {
         if ($options->importUpdates) $importChips[] = 'Updates';
     } elseif ($options->source === 'bellabuffs') {

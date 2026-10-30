@@ -3339,6 +3339,41 @@ try {
     $errors[] = 'Migration 103 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 104: import tracking columns on lstr_codes.
+// import_ref names the source of a code an import brought in (Listing Admin:
+// "listing-admin:<source key>:<cID>"), so running the import again updates that
+// code instead of adding a second copy. import_source_file is the source image
+// filename last copied in, so a changed image can be spotted. Both stay NULL for
+// codes added any other way. The UNIQUE key allows any number of NULLs.
+try {
+    $chkCodesCol = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_codes' AND COLUMN_NAME = :col"
+    );
+    $chkCodesCol->execute(['col' => 'import_ref']);
+    if (!(int) $chkCodesCol->fetchColumn()) {
+        $pdo->exec("ALTER TABLE `lstr_codes` ADD COLUMN `import_ref` VARCHAR(100) NULL DEFAULT NULL AFTER `created_at`");
+        $done[] = 'Migration 104: added <code>import_ref</code> to <code>lstr_codes</code>';
+    }
+    $chkCodesCol->execute(['col' => 'import_source_file']);
+    if (!(int) $chkCodesCol->fetchColumn()) {
+        $pdo->exec("ALTER TABLE `lstr_codes` ADD COLUMN `import_source_file` VARCHAR(255) NULL DEFAULT NULL AFTER `import_ref`");
+        $done[] = 'Migration 104: added <code>import_source_file</code> to <code>lstr_codes</code>';
+    }
+    $chkCodesIdx = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_codes' AND INDEX_NAME = :idx"
+    );
+    $chkCodesIdx->execute(['idx' => 'uq_lstr_codes_import_ref']);
+    if (!(int) $chkCodesIdx->fetchColumn()) {
+        $pdo->exec("ALTER TABLE `lstr_codes` ADD UNIQUE KEY `uq_lstr_codes_import_ref` (`import_ref`)");
+        $done[] = 'Migration 104: added unique key <code>uq_lstr_codes_import_ref</code>';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (104)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 104 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

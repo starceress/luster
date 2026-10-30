@@ -27,6 +27,7 @@ use Luster\Import\FanaticallyTemplateTranslator;
 use Luster\Import\FanUpdateImportSource;
 use Luster\Import\ImageMigrator;
 use Luster\Import\ListingAdminImportSource;
+use Luster\Import\ListingAdminSourceKey;
 use Luster\Import\ImportOptions;
 use Luster\Import\ImportSourceInterface;
 use Luster\Import\LegacyConfigReader;
@@ -564,13 +565,20 @@ final class ImportController extends AdminController
             } catch (\Throwable) {}
         }
 
+        // Source IDs used by earlier Listing Admin imports, so one can be reused
+        // after a domain move (see ListingAdminSourceKey).
+        $laKnownSources = $source === 'listing-admin'
+            ? ListingAdminSourceKey::knownSources($this->app->getDatabase()->pdo())
+            : [];
+
         return $this->adminLayout('admin/import/import-wizard/options.php', 'Import Options', 'import', [
-            'source'        => $source,
-            'source_name'   => $this->sourceName($source),
-            'old'           => $savedScope,
-            'zip_ready'     => $zipReady,
-            'zip_url'       => $baseUrl . "/admin/import/{$source}/zip-upload",
-            'enth_networks' => $enthNetworks,
+            'source'           => $source,
+            'source_name'      => $this->sourceName($source),
+            'old'              => $savedScope,
+            'zip_ready'        => $zipReady,
+            'zip_url'          => $baseUrl . "/admin/import/{$source}/zip-upload",
+            'enth_networks'    => $enthNetworks,
+            'la_known_sources' => $laKnownSources,
         ], '', [
             $this->crumb('Import Data', $this->adminUrl('/admin/import')),
             $this->crumb($this->sourceName($source), $this->adminUrl("/admin/import/{$source}/connect")),

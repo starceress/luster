@@ -82,6 +82,12 @@ final class ImportOptions
         public readonly string $tablePrefix          = '',
         public readonly string $schemaVariant        = '',
         public readonly string $laTablePrefix        = '',
+        /**
+         * Listing Admin only: the Source ID the admin typed, or '' to work it out
+         * from the LA install's own web address. Checked by ListingAdminSourceKey
+         * when the import runs, not here, so a bad value shows up as a preview error.
+         */
+        public readonly string $laSourceId           = '',
         /** Absolute path to a pre-uploaded ZIP file (mode=zip). Empty when not used. */
         public readonly string $zipPath              = '',
         // --- BellaBuffs-specific
@@ -246,6 +252,7 @@ final class ImportOptions
             tablePrefix:          (string) ($post['_dump_table_prefix']   ?? ''),
             schemaVariant:        (string) ($post['_dump_schema_variant'] ?? ''),
             laTablePrefix:        trim((string) ($post['la_table_prefix'] ?? '')),
+            laSourceId:           $source === 'listing-admin' ? trim((string) ($post['la_source_id'] ?? '')) : '',
             zipPath:              (string) ($post['_zip_path']            ?? ''),
             bbTargetListingId:    $bbTargetListingId,
             bbImportApproved:     $bbImportApproved,
