@@ -19,6 +19,42 @@ panel will let you know that a manual update is needed and link you to the
 release page.
 
 
+### [1.0.0-3] — 2026-10-30
+
+**After updating:** go to **Settings → System & Updates** and click **Run
+migrations** once (next to "Migration state"). This release adds a little
+database change that the Listing Admin codes import needs — until you run
+it, the import will remind you.
+
+**New:**
+- **Listing Admin codes now import:** The Listing Admin import used to leave
+  your codes (fan graphics) behind. Now they come over with their images,
+  sizes, donors, categories, and approval status, into the right listing.
+  Already imported everything else? Run the import again with only Codes
+  ticked. You can run it as often as you like without getting copies, and
+  if some images didn't make it the first time, running it again (a ZIP of
+  your codes folder works well) fills in just those.
+- **Source ID for Listing Admin imports:** If you've imported more than one
+  Listing Admin install into the same Luster, each one now keeps its own set
+  of listing links, so the compatibility bridge never mixes up which
+  fanlisting to show. Most people never need to touch this.
+
+**Fixed:**
+- The Listing Admin bridge couldn't find your listings on its own after an
+  import, so your old `show-join.php`-style pages needed each listing's ID set
+  by hand. The import now saves the links the bridge needs. Already imported?
+  Run the Listing Admin import again with only Owned listings ticked and Keep
+  existing selected — it adds the links without changing anything else. If
+  any of your pages pick their listing by hand with `$luster_listing_id`,
+  download the bridge again from Admin → Collective first: older copies of
+  the bridge let the new links override the listing you picked.
+- On brand-new installs, the Link Checker's member check could fail partway
+  through — or quietly lose track of members who don't list a website — until
+  you ran the migration page once. Fresh installs now set things up correctly
+  from the start. (If you've already run the migration page since updating,
+  your site already has this fix.)
+
+
 ### [1.0.0-2] — 2026-10-25
 
 A quick fix release.
