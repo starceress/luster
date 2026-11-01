@@ -948,17 +948,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
                     // Ensure a settings row exists even for skipped listings — it may be absent
                     // if the listing row existed but settings were never created (e.g. manual add
                     // before the first import).  ensureListingSettings() is a no-op when present.
-                    $luSkip = null;
-                    try {
-                        $luStmt = $source->prepare(
-                            "SELECT MAX(mAdd) FROM `{$tp}members` WHERE fNiq = :laId"
-                        );
-                        $luStmt->execute(['laId' => $laId]);
-                        $maxDate = (string) $luStmt->fetchColumn();
-                        if (strlen($maxDate) >= 8 && !str_starts_with($maxDate, '0000')) {
-                            $luSkip = substr($maxDate, 0, 10);
-                        }
-                    } catch (\Throwable) {}
+                    $luSkip = $this->newestMemberDate($source, $tp, $laId);
                     $this->ensureListingSettings($target, $existingId, $row, $luSkip);
                     // Re-run: if the settings row for this listing has image = NULL, retry.
                     if ($migrator !== null && $imgFilename !== '' && $options->imageMode !== 'zip') {
@@ -1054,19 +1044,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
                 // Derive last_updated: prefer main.updated, fall back to MAX(member mAdd).
                 // Never invent today when no real source date exists.
-                $lastUpdated = self::normalizeImportDate($row['updated'] ?? null);
-                if ($lastUpdated === null) {
-                    try {
-                        $luStmt = $source->prepare(
-                            "SELECT MAX(mAdd) FROM `{$tp}members` WHERE fNiq = :laId"
-                        );
-                        $luStmt->execute(['laId' => $laId]);
-                        $maxDate = (string) $luStmt->fetchColumn();
-                        if (strlen($maxDate) >= 8 && !str_starts_with($maxDate, '0000')) {
-                            $lastUpdated = substr($maxDate, 0, 10);
-                        }
-                    } catch (\Throwable) {}
-                }
+                $lastUpdated = self::normalizeImportDate($row['updated'] ?? null)
+                    ?? $this->newestMemberDate($source, $tp, $laId);
 
                 // Create or update the lstr_fanlisting_settings row. On overwrite of an
                 // existing listing, re-apply main.desc, form URL overrides, and LA templates.
@@ -1198,7 +1177,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
                     'password'  => (string) ($row['mPassword'] ?? ''),
                     'showemail' => (int) ($row['mVisible'] ?? 1),
                     'showurl'   => 1,
-                    'added'     => !empty($row['mAdd']) ? $row['mAdd'] : date('Y-m-d'),
+                    // A missing, zero or impossible join date stays blank: it's unknown,
+                    // and "today" would make every such member look like the newest one.
+                    'added'     => self::normalizeImportDate($row['mAdd'] ?? null),
                 ];
 
                 // Append additional field values
@@ -1580,7 +1561,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
                     'category'        => $firstCatName,
                     'categories_json' => $categoriesJson,
                     'category_id'     => $newCatId,
-                    'date_joined'     => !empty($row['jAdd']) ? $row['jAdd'] : null,
+                    'date_joined'     => self::normalizeImportDate($row['jAdd'] ?? null),
                     'active'          => $active,
                     'status'          => $active === 1 ? 'approved' : 'pending',
                 ]);
@@ -1657,7 +1638,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 $laListingId  = (int) ($row['fNiq'] ?? 0);
                 $newListingId = $laListingId > 0 ? ($listingIdMap[$laListingId] ?? null) : null;
 
-                $postedAt = !empty($row['uAdded']) ? $row['uAdded'] : date('Y-m-d H:i:s');
+                // posted_at can't be empty, so an unusable date falls back to now.
+                $postedAt = self::normalizeImportDateTime($row['uAdded'] ?? null) ?? date('Y-m-d H:i:s');
 
                 try {
                     $insertStmt->execute([
@@ -1804,7 +1786,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
                         'url'           => trim((string) ($row['mURL']      ?? '')),
                         'password'      => (string) ($row['mPassword']      ?? ''),
                         'pending'       => (int)    ($row['mPending']       ?? 1),
-                        'added_at'      => !empty($row['mAdd']) ? $row['mAdd'] : date('Y-m-d'),
+                        // added_at can't be empty, so an unusable date falls back to today.
+                        'added_at'      => self::normalizeImportDate($row['mAdd'] ?? null) ?? date('Y-m-d'),
                     ]);
                     $existingPairs[$pairKey] = true;
                     $imported++;
@@ -2525,8 +2508,37 @@ final class ListingAdminImportSource implements ImportSourceInterface
     }
 
     /**
+     * The newest real join date among a Listing Admin listing's members (YYYY-MM-DD), or
+     * null when there isn't one. Zero, sentinel and impossible dates (normalizeImportDate())
+     * are passed over rather than taken as the newest, so a bad row can neither reach
+     * last_updated nor hide the real newest date behind it.
+     */
+    private function newestMemberDate(PDO $source, string $tp, int $laId): ?string
+    {
+        try {
+            $stmt = $source->prepare(
+                "SELECT DISTINCT mAdd FROM `{$tp}members`
+                  WHERE fNiq = :laId AND mAdd IS NOT NULL
+                  ORDER BY mAdd DESC"
+            );
+            $stmt->execute(['laId' => $laId]);
+            while (($raw = $stmt->fetchColumn()) !== false) {
+                $date = self::normalizeImportDate($raw);
+                if ($date !== null) {
+                    $stmt->closeCursor();
+                    return $date;
+                }
+            }
+        } catch (\Throwable) {
+            // No members table (or no mAdd column): no date to offer.
+        }
+        return null;
+    }
+
+    /**
      * Returns a YYYY-MM-DD string from $raw, or null for empty/sentinel/invalid values.
-     * Rejects '', '0000-00-00', '1970-01-01', and anything not matching YYYY-MM-DD.
+     * Rejects '', '0000-00-00', '1970-01-01', anything not starting with YYYY-MM-DD,
+     * and dates that don't exist (2024-02-30) — strict MySQL refuses those too.
      */
     private static function normalizeImportDate(mixed $raw): ?string
     {
@@ -2537,7 +2549,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         if ($s === '' || $s === '0000-00-00' || $s === '1970-01-01') {
             return null;
         }
-        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $s)) {
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $s, $m) && checkdate((int) $m[2], (int) $m[3], (int) $m[1])) {
             return substr($s, 0, 10);
         }
         return null;

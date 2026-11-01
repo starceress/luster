@@ -1696,4 +1696,122 @@ final class ListingAdminImportTest extends TestCase
         );
         $this->assertStringContainsString("don't include its web address", $warningsFor($noAddress));
     }
+
+    // -----------------------------------------------------------------------
+    // Unusable dates (0000-00-00, blank, impossible) stay blank. The members
+    // step writes with MySQL-only SQL (ON DUPLICATE KEY UPDATE), so SQLite can't
+    // run it; its join dates go through normalizeImportDate(), tested below.
+    // -----------------------------------------------------------------------
+
+    public function testJoinedDatesThatArentUsableAreLeftBlank(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->seedTarget($tgt);
+
+        $dates = [
+            'http://real.test'       => '2023-11-16',
+            'http://zero.test'       => '0000-00-00',
+            'http://impossible.test' => '2023-02-29',
+            'http://missing.test'    => null,
+        ];
+        $insert = $src->prepare("INSERT INTO joined (jSubject, jURL, jStatus, jAdd) VALUES ('Joined', ?, 0, ?)");
+        foreach ($dates as $url => $added) {
+            $insert->execute([$url, $added]);
+        }
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_joined' => '1']));
+        $this->assertSame(count($dates), $this->resultRow($result, 'Joined listings')['imported']);
+
+        $this->assertSame([
+            'http://real.test'       => '2023-11-16',
+            'http://zero.test'       => null,
+            'http://impossible.test' => null,
+            'http://missing.test'    => null,
+        ], $tgt->query('SELECT url, date_joined FROM lstr_joined ORDER BY id')->fetchAll(PDO::FETCH_KEY_PAIR));
+    }
+
+    public function testNormalizeImportDateRejectsDatesThatDontExist(): void
+    {
+        $normalize = static fn(mixed $raw): ?string => (new \ReflectionMethod(ListingAdminImportSource::class, 'normalizeImportDate'))->invoke(null, $raw);
+
+        $this->assertSame('2024-02-29', $normalize('2024-02-29'), 'a leap day');
+        $this->assertSame('2024-05-07', $normalize(' 2024-05-07 13:45:00 '));
+        foreach ([null, '', '0000-00-00', '1970-01-01', '2023-02-29', '2024-02-30', '2024-13-01', '2024-00-10', '0000-01-01', 'yesterday'] as $raw) {
+            $this->assertNull($normalize($raw), var_export($raw, true));
+        }
+    }
+
+    /** last_updated falls back to the newest member join date; a bad newest date is passed over. */
+    public function testLastUpdatedSkipsUnusableMemberDatesForANewListing(): void
+    {
+        foreach ([
+            'one bad newest date'  => [['2024-01-10', '2024-02-30', '0000-00-00'], '2024-01-10'],
+            'nothing usable'       => [['2024-02-30', '0000-00-00', ''], null],
+        ] as $case => [$dates, $expected]) {
+            $src = $this->makePdo();
+            $tgt = $this->makePdo();
+            $this->seedLaSource($src);
+            $this->seedTargetWithLastUpdated($tgt);
+            $listingId = $this->insertSourceListing($src, 'http://test.com');
+            foreach ($dates as $i => $added) {
+                $src->prepare('INSERT INTO members (fNiq, mName, mEmail, mAdd) VALUES (?, ?, ?, ?)')
+                    ->execute([$listingId, "Fan {$i}", "fan{$i}@test.com", $added]);
+            }
+
+            $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+            $this->assertSame($expected, $tgt->query('SELECT last_updated FROM lstr_fanlisting_settings LIMIT 1')->fetchColumn(), $case);
+        }
+    }
+
+    /** The same fallback when Keep existing finds the listing already in Luster without settings. */
+    public function testLastUpdatedSkipsUnusableMemberDatesOnAKeepExistingRerun(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->seedTargetWithLastUpdated($tgt);
+        $listingId = $this->insertSourceListing($src, 'http://test.com');
+        $tgt->exec("INSERT INTO owned (dbtable, title, subject, url) VALUES ('test_fl', 'Test', 'Test', 'http://test.com')");
+        $existing = (int) $tgt->lastInsertId();
+        foreach (['2024-01-10', '2024-02-30', '0000-00-00'] as $i => $added) {
+            $src->prepare('INSERT INTO members (fNiq, mName, mEmail, mAdd) VALUES (?, ?, ?, ?)')
+                ->execute([$listingId, "Fan {$i}", "fan{$i}@test.com", $added]);
+        }
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1', 'conflict_strategy' => 'skip']));
+
+        $stmt = $tgt->prepare('SELECT last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = ?');
+        $stmt->execute([$existing]);
+        $this->assertSame('2024-01-10', $stmt->fetchColumn());
+        $this->assertSame(1, (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn(), 'kept, not added again');
+    }
+
+    /** KIM's added_at can't be empty, so an unusable date becomes today; a real one is kept. */
+    public function testKimDatesThatArentUsableBecomeToday(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->seedTarget($tgt);
+        $this->createKimTable($tgt);
+        $this->createLaKimTable($src);
+        $this->insertSourceListing($src, 'http://test.com');
+        foreach (['real@test.com' => '2024-01-01', 'zero@test.com' => '0000-00-00', 'impossible@test.com' => '2024-02-30', 'missing@test.com' => null] as $email => $added) {
+            $src->prepare("INSERT INTO kim (fNiq, mEmail, mName, mAdd) VALUES (1, ?, 'Fan', ?)")->execute([$email, $added]);
+        }
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1', 'import_kim' => '1']));
+        $this->assertSame(4, $this->resultRow($result, 'KIM List')['imported']);
+
+        $today = date('Y-m-d');
+        $this->assertSame([
+            'real@test.com'       => '2024-01-01',
+            'zero@test.com'       => $today,
+            'impossible@test.com' => $today,
+            'missing@test.com'    => $today,
+        ], $tgt->query('SELECT email, added_at FROM lstr_kim_members ORDER BY id')->fetchAll(PDO::FETCH_KEY_PAIR));
+    }
 }

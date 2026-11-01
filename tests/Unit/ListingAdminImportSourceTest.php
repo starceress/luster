@@ -151,4 +151,49 @@ final class ListingAdminImportSourceTest extends TestCase
         $stored = $target->query('SELECT body FROM lstr_newsfeed')->fetchColumn();
         $this->assertSame($rawBody, $stored);
     }
+
+    /** posted_at can't be empty, so an unusable date (0000-00-00, impossible, blank) becomes now. */
+    public function testRunUpdatesPostsAnUnusableDateAsNow(): void
+    {
+        $source = $this->makePdo();
+        $target = $this->makePdo();
+        $target->exec(
+            'CREATE TABLE lstr_newsfeed (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER, title TEXT NOT NULL, body TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT \'\', author TEXT NOT NULL DEFAULT \'\', posted_at TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )'
+        );
+        $source->exec('CREATE TABLE updates (uID INTEGER PRIMARY KEY, fNiq INTEGER, uTitle TEXT, uEntry TEXT, uAdded TEXT)');
+        $insert = $source->prepare("INSERT INTO updates (fNiq, uTitle, uEntry, uAdded) VALUES (0, ?, 'Body', ?)");
+        foreach ([
+            'Real'       => '2026-01-01 12:00:00',
+            'Date only'  => '2026-01-02',
+            'Zero'       => '0000-00-00 00:00:00',
+            'Impossible' => '2026-02-30 10:00:00',
+            'Blank'      => '',
+        ] as $title => $added) {
+            $insert->execute([$title, $added]);
+        }
+
+        $before = time();
+        $result = $this->adapter()->run($source, $target, $this->makeOptions(['import_updates' => '1']));
+        $after  = time();
+
+        $updatesRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Updates') {
+                $updatesRow = $row;
+            }
+        }
+        $this->assertSame([5, []], [$updatesRow['imported'], $updatesRow['errors']]);
+
+        $posted = $target->query('SELECT title, posted_at FROM lstr_newsfeed')->fetchAll(PDO::FETCH_KEY_PAIR);
+        $this->assertSame('2026-01-01 12:00:00', $posted['Real']);
+        $this->assertSame('2026-01-02 00:00:00', $posted['Date only']);
+        foreach (['Zero', 'Impossible', 'Blank'] as $title) {
+            $stamp = strtotime($posted[$title]);
+            $this->assertTrue($stamp >= $before && $stamp <= $after, "{$title} is posted now, got {$posted[$title]}");
+        }
+    }
 }

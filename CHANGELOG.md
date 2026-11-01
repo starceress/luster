@@ -54,6 +54,13 @@ release page.
   only one has it), skips the other, and lists who was skipped and why. That
   list stays on the page until you dismiss it, and Scan All doesn't reload the
   page on you while there's something to read.
+- **Listing Admin's "0000-00-00" dates don't trip up imports anymore.** Some
+  old servers saved "no date" that way. Depending on your database, those
+  members, joined listings, KIM sign-ups or updates either didn't import at all
+  or came over with a nonsense date. Now a member or joined listing with no
+  real date just has no date, and a KIM sign-up or update gets the day you
+  import it. A listing's "last updated" date also skips over bad member dates
+  instead of copying one in.
 
 
 ### [1.0.0-3] — 2026-10-30
