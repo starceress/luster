@@ -421,7 +421,162 @@ final class ListingAdminCodesImportTest extends TestCase
         $row = $this->codesRow($this->adapter()->run($src, $tgt, $this->options()));
 
         $this->assertSame([0, 0, []], [$row['imported'], $row['skipped'], $row['errors']]);
-        $this->assertStringContainsString('No codes table found', implode(' ', $row['warnings']));
+        $this->assertSame(['No Listing Admin codes table named "codes" was found.'], $row['warnings']);
+        $this->assertStringNotContainsString('turned on', implode(' ', $row['warnings']));
+    }
+
+    // -----------------------------------------------------------------------
+    // Prefixed installs and partial exports
+    // -----------------------------------------------------------------------
+
+    /**
+     * A codes-only export, the way someone exports just what they need: the listings,
+     * options and codes tables, but no members table. Strict detection doesn't find it,
+     * yet a typed prefix imports the code and its image — on a live connection and from
+     * an upload (every table behind the upload's temporary prefix).
+     */
+    public function testACodesOnlyExportWithoutMembersImportsWithATypedPrefix(): void
+    {
+        foreach (['' => 'live connection', 'lstr_tmp_ab12_' => 'SQL upload'] as $temp => $path) {
+            $this->rrmdir($this->publicDir);
+            mkdir($this->publicDir, 0777, true);
+            [$src, $tgt] = $this->codesOnlyExport('trex_', $temp);
+            $options = $this->options(['la_table_prefix' => 'trex_', '_dump_table_prefix' => $temp]);
+
+            if ($temp === '') {
+                $this->assertSame([], ListingAdminImportSource::detectInstalls($src), 'no members table: nothing detected');
+            }
+            $this->assertSame([], $this->adapter()->missingTables($src, $options), $path);
+
+            $preview = null;
+            foreach ($this->adapter()->preview($src, $tgt, $options)->rows as $r) {
+                if ($r['type'] === 'Codes') {
+                    $preview = $r;
+                }
+            }
+            $this->assertSame([1, 1], [$preview['found'], $preview['import']], $path);
+
+            $row = $this->codesRow($this->adapter()->run($src, $tgt, $options));
+            $this->assertSame([1, []], [$row['imported'], $row['errors']], $path);
+            $this->assertCount(1, $this->uploadedCodeFiles(), $path);
+        }
+    }
+
+    public function testACodesOnlyExportStillTickedForMembersNamesTheMissingTable(): void
+    {
+        [$src] = $this->codesOnlyExport('trex_');
+
+        $missing = $this->adapter()->missingTables($src, $this->options(['la_table_prefix' => 'trex_', 'import_members' => '1']));
+
+        $this->assertSame([['table' => 'trex_members', 'step' => 'Members']], $missing);
+        $this->assertSame(
+            'Luster couldn\'t find these Listing Admin tables starting with "trex_": trex_members (for Members). '
+            . 'Check the prefix, or untick those steps if your export doesn\'t include them.',
+            ListingAdminImportSource::missingTablesMessage($missing, 'trex_')
+        );
+        $this->assertSame([], $this->adapter()->missingTables($src, $this->options(['la_table_prefix' => 'trex_'])), 'unticking Members lets it through');
+    }
+
+    public function testCodesNeedTheListingsTable(): void
+    {
+        [$src] = $this->codesOnlyExport('trex_');
+        $src->exec('DROP TABLE trex');
+
+        $this->assertSame(
+            [['table' => 'trex', 'step' => 'Codes']],
+            $this->adapter()->missingTables($src, $this->options(['la_table_prefix' => 'trex_']))
+        );
+    }
+
+    /** A session that skips the Options check still can't preview zeros or write anything. */
+    public function testPreviewAndRunStopOnAWrongPrefixWithoutWriting(): void
+    {
+        [$src, $tgt] = $this->codesOnlyExport('trex_');
+        $options = $this->options(['la_table_prefix' => 'terx_']);
+        $expected = 'Luster couldn\'t find these Listing Admin tables starting with "terx_": terx (for Codes), terx_codes (for Codes).';
+
+        foreach (['preview', 'run'] as $step) {
+            try {
+                $this->adapter()->{$step}($src, $tgt, $options);
+                $this->fail("{$step}() should stop");
+            } catch (\RuntimeException $e) {
+                $this->assertStringStartsWith($expected, $e->getMessage(), $step);
+            }
+        }
+
+        $this->assertSame(0, (int) $this->scalar($tgt, 'SELECT COUNT(*) FROM lstr_codes'));
+        $this->assertSame(0, (int) $this->scalar($tgt, 'SELECT COUNT(*) FROM lstr_listing_external_refs'));
+        $this->assertSame([], $this->uploadedCodeFiles());
+    }
+
+    public function testAMissingCodesTableIsReportedByItsRealName(): void
+    {
+        [$src, $tgt] = $this->codesOnlyExport('trex_');
+        $src->exec('DROP TABLE trex_codes');
+        $live = $this->options(['la_table_prefix' => 'trex_']);
+
+        $this->assertSame(['No Listing Admin codes table named "trex_codes" was found.'], $this->codesRow($this->adapter()->run($src, $tgt, $live))['warnings']);
+
+        [$src, $tgt] = $this->codesOnlyExport('trex_', 'lstr_tmp_ab12_');
+        $src->exec('DROP TABLE lstr_tmp_ab12_trex_codes');
+        $upload = $this->options(['la_table_prefix' => 'trex_', '_dump_table_prefix' => 'lstr_tmp_ab12_']);
+
+        $expected = ['No Listing Admin codes table named "trex_codes" was found. If you uploaded an SQL file, check that the export includes it.'];
+        foreach ($this->adapter()->preview($src, $tgt, $upload)->rows as $r) {
+            if ($r['type'] === 'Codes') {
+                $this->assertSame($expected, $r['warnings']);
+            }
+        }
+        $row = $this->codesRow($this->adapter()->run($src, $tgt, $upload));
+        $this->assertSame($expected, $row['warnings']);
+        $this->assertStringNotContainsString('lstr_tmp', implode(' ', $row['warnings']));
+    }
+
+    public function testAnUnreadableCodesTableSaysSoInsteadOfNotFound(): void
+    {
+        [$src, $tgt] = $this->codesOnlyExport('trex_');
+        $src->exec('DROP TABLE trex_codes');
+        $src->exec('CREATE TABLE trex_codes (cID INTEGER PRIMARY KEY, fNiq INTEGER)'); // no cFile
+        $options = $this->options(['la_table_prefix' => 'trex_']);
+
+        foreach ($this->adapter()->preview($src, $tgt, $options)->rows as $r) {
+            if ($r['type'] === 'Codes') {
+                $this->assertStringStartsWith("Couldn't read Listing Admin's codes (trex_codes): ", $r['warnings'][0]);
+            }
+        }
+        $row = $this->codesRow($this->adapter()->run($src, $tgt, $options));
+        $this->assertStringStartsWith("Couldn't read Listing Admin's codes (trex_codes): ", $row['errors'][0]);
+        $this->assertSame([], $row['warnings']);
+    }
+
+    /**
+     * Renames the fixture's tables the way a prefixed install names them (main → trex,
+     * codes → trex_codes …), behind an upload's temporary prefix when one is given.
+     */
+    private function withPrefix(PDO $src, string $laPrefix, string $tempPrefix = ''): PDO
+    {
+        foreach ($src->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN) as $table) {
+            $new = $tempPrefix . ($table === 'main' ? str_replace('_', '', $laPrefix) : $laPrefix . $table);
+            $src->exec("ALTER TABLE `{$table}` RENAME TO `{$new}`");
+        }
+        return $src;
+    }
+
+    /**
+     * One listing in both Listing Admin and Luster, and one code with its image, in a
+     * prefixed export with no members table.
+     *
+     * @return array{0: PDO, 1: PDO} [source, target]
+     */
+    private function codesOnlyExport(string $laPrefix, string $tempPrefix = ''): array
+    {
+        $src = $this->laSource();
+        $tgt = $this->target();
+        $this->laListing($src, 1, 'http://fl.example.com');
+        $this->lusterListing($tgt, 'http://fl.example.com');
+        $this->png('a.png');
+        $this->laCode($src, ['cID' => 1, 'fNiq' => 1, 'cFile' => 'a.png']);
+        return [$this->withPrefix($src, $laPrefix, $tempPrefix), $tgt];
     }
 
     // -----------------------------------------------------------------------

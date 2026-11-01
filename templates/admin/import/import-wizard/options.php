@@ -11,12 +11,17 @@ use Luster\Core\View;
 $b   = rtrim(View::e($base_url), '/');
 $src = View::e($source);
 
-function scopeOld(array $old, string $key, string $default = ''): string {
-    return View::e((string) ($old[$key] ?? $default));
+// Guarded so the template can be rendered more than once in a process (tests do).
+if (!function_exists('scopeOld')) {
+    function scopeOld(array $old, string $key, string $default = ''): string {
+        return View::e((string) ($old[$key] ?? $default));
+    }
 }
-function scopeChecked(array $old, string $key, bool $default = true): string {
-    if (!isset($old[$key]) && empty($old)) return $default ? 'checked' : '';
-    return !empty($old[$key]) ? 'checked' : '';
+if (!function_exists('scopeChecked')) {
+    function scopeChecked(array $old, string $key, bool $default = true): string {
+        if (!isset($old[$key]) && empty($old)) return $default ? 'checked' : '';
+        return !empty($old[$key]) ? 'checked' : '';
+    }
 }
 
 $conflictMode = $old['conflict_strategy'] ?? 'skip';
@@ -76,13 +81,68 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     <?php endif; ?>
 
     <?php if ($source === 'listing-admin'): ?>
+    <?php
+      // Installs found in the source (ListingAdminImportSource::detectInstalls()). A prefix
+      // the admin already chose wins over them when they come back to this step.
+      $laInstalls = $la_installs ?? [];
+      $laChosen   = array_key_exists('la_table_prefix', $old) ? (string) $old['la_table_prefix'] : null;
+      $laOther    = \Luster\Import\ImportOptions::LA_PREFIX_OTHER;
+    ?>
     <div class="card-body">
       <div class="section-label">Table Prefix</div>
       <div class="card-body">
-        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form" style="max-width:220px"
-               placeholder="(leave blank for default install)"
-               value="<?= scopeOld($old, 'la_table_prefix') ?>">
-        <p class="form-hint" style="margin-top:.35rem">Leave blank for a normal Listing Admin install. If your table names start with extra text, like <code>trex_members</code>, enter that extra text here: <code>trex_</code>.</p>
+        <?php if (!empty($scope_error)): ?>
+        <div class="callout callout-err">
+          <?= View::icon('alert') ?>
+          <div><?= View::e($scope_error) ?></div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (count($laInstalls) > 1): ?>
+          <?php
+            $laPrefixes  = array_column($laInstalls, 'prefix');
+            $laPick      = $laChosen ?? $laPrefixes[0];
+            $laOtherText = (string) ($old['la_table_prefix_other'] ?? '');
+            if ($laPick !== $laOther && !in_array($laPick, $laPrefixes, true)) {
+                $laOtherText = $laPick;
+                $laPick      = $laOther;
+            }
+          ?>
+          <p class="form-hint" style="margin-top:0">Luster found more than one Listing Admin install in this database. Pick the one to import.</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <?php foreach ($laInstalls as $install): ?>
+            <label class="surface import-choice-item">
+              <input type="radio" name="la_table_prefix" value="<?= View::e($install['prefix']) ?>"
+                     <?= $laPick === $install['prefix'] ? 'checked' : '' ?>>
+              <div>
+                <strong><?= $install['prefix'] !== '' ? View::e($install['prefix']) : 'No prefix' ?></strong>
+                <span class="form-hint" style="margin:2px 0 0"><?= (int) $install['listings'] ?> listing<?= (int) $install['listings'] === 1 ? '' : 's' ?> &mdash; tables <code><?= View::e($install['registry']) ?></code>, <code><?= View::e($install['prefix']) ?>members</code>, &hellip;</span>
+              </div>
+            </label>
+            <?php endforeach; ?>
+            <label class="surface import-choice-item">
+              <input type="radio" name="la_table_prefix" value="<?= View::e($laOther) ?>"
+                     <?= $laPick === $laOther ? 'checked' : '' ?>>
+              <div>
+                <strong>Something else</strong>
+                <input type="text" name="la_table_prefix_other" class="form" style="max-width:220px;margin-top:.35rem"
+                       placeholder="trex_" aria-label="Other table prefix" value="<?= View::e($laOtherText) ?>">
+              </div>
+            </label>
+          </div>
+        <?php else: ?>
+          <?php $laFound = $laInstalls[0] ?? null; ?>
+          <input id="la_table_prefix" type="text" name="la_table_prefix" class="form" style="max-width:220px"
+                 placeholder="trex_"
+                 value="<?= View::e($laChosen ?? ($laFound['prefix'] ?? '')) ?>">
+          <?php if ($laFound !== null && $laFound['prefix'] !== ''): ?>
+            <p class="form-hint" style="margin-top:.35rem">Found in your Listing Admin tables (<code><?= View::e($laFound['registry']) ?></code>, <code><?= View::e($laFound['prefix']) ?>members</code>, &hellip;) &mdash; <?= (int) $laFound['listings'] ?> listing<?= (int) $laFound['listings'] === 1 ? '' : 's' ?>.</p>
+          <?php elseif ($laFound !== null): ?>
+            <p class="form-hint" style="margin-top:.35rem">Found Listing Admin tables with no prefix (<code>main</code>, <code>members</code>, &hellip;) &mdash; <?= (int) $laFound['listings'] ?> listing<?= (int) $laFound['listings'] === 1 ? '' : 's' ?>. Leave this blank.</p>
+          <?php else: ?>
+            <p class="form-hint" style="margin-top:.35rem">Luster couldn't find Listing Admin's tables automatically. Enter the start of your Listing Admin table names &mdash; for example, if you have <code>trex_members</code>, enter <code>trex_</code>. You can also find it in Listing Admin's <code>rats.inc.php</code>, on the <code>$_ST['prefix']</code> line. Leave it blank only if your tables have no prefix at all (<code>main</code>, <code>members</code>, &hellip;).</p>
+          <?php endif; ?>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -435,7 +495,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
               <input id="img-path" type="text" name="image_path" class="form"
                      placeholder="e.g. /home/user/old-install (optional)"
                      value="<?= scopeOld($old, 'image_path') ?>">
-              <p class="form-hint">Optional. Use this only when the old image files are on the same server as Luster.</p>
+              <p class="form-hint">Optional. Use this only when the old image files are on the same server as Luster.<?php if ($source === 'listing-admin'): ?> Also tried when the folder saved in Listing Admin doesn't work.<?php endif; ?></p>
             </div>
           </div>
           <div class="field-row">
@@ -444,7 +504,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
               <input id="img-url" type="url" name="image_url" class="form"
                      placeholder="e.g. https://example.com/old-install (optional)"
                      value="<?= scopeOld($old, 'image_url') ?>">
-              <p class="form-hint">Optional. Use the old public site URL when Luster needs to download images from another server.</p>
+              <p class="form-hint">Optional. Use the old public site URL when Luster needs to download images from another server.<?php if ($source === 'listing-admin'): ?> Also tried when the address saved in Listing Admin doesn't work.<?php endif; ?></p>
             </div>
           </div>
           <div class="field-row">

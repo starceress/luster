@@ -19,6 +19,34 @@ panel will let you know that a manual update is needed and link you to the
 release page.
 
 
+### [Unreleased]
+
+**Fixed:**
+- **Listing Admin imports found nothing if you left Table Prefix blank**, which
+  is exactly what the Options page told you to do. Turns out every Listing
+  Admin install has a prefix (`trex_` unless you changed it), so the import was
+  looking for tables that weren't there. Now Luster finds your Listing Admin
+  tables itself and fills the prefix in for you. If there's more than one
+  install in the database, you pick which one. And if the prefix is wrong, it
+  tells you which tables it couldn't find instead of showing a preview full of
+  zeros.
+- **Partial exports work too.** If your SQL file only has some of Listing
+  Admin's tables (say, just the ones for codes), type the prefix and untick
+  what you don't need. Luster only looks for the tables the ticked steps use.
+- **Images from old sites that moved to `https://` come through now.** Lots of
+  old scripts saved their image addresses as `http://`, and most sites send
+  those to `https://` these days. Luster didn't follow that, so every download
+  failed. Now it does, and it still checks every stop along the way. This helps
+  every importer, not just Listing Admin.
+- In a Listing Admin import, the **Server Path** and **Live Site URL** boxes
+  get used even when Listing Admin has its own image settings. If those don't
+  work anymore, Luster tries what you typed.
+- No more "the Codes add-on was never turned on". If a codes, KIM or updates
+  table isn't there, Luster just says so by name, and for an SQL upload
+  reminds you to check the export has it. The preview also says images are
+  copied automatically instead of "None".
+
+
 ### [1.0.0-3] — 2026-10-30
 
 **After updating:** go to **Settings → System & Updates** and click **Run

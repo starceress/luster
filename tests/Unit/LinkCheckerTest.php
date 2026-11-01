@@ -137,6 +137,75 @@ final class LinkCheckerTest extends TestCase
         );
     }
 
+    public function testResolveQueryOnlyKeepsThePath(): void
+    {
+        self::assertSame(
+            'https://example.com/codes/a.png?version=2',
+            UrlNormalizer::resolveLocation('https://example.com/codes/a.png', '?version=2'),
+        );
+        self::assertSame(
+            'https://example.com/codes/a.png?version=3',
+            UrlNormalizer::resolveLocation('https://example.com/codes/a.png?version=2#x', '?version=3'),
+        );
+    }
+
+    public function testResolveFragmentOnlyKeepsTheAddress(): void
+    {
+        self::assertSame(
+            'https://example.com/codes/a.png?v=1#top',
+            UrlNormalizer::resolveLocation('https://example.com/codes/a.png?v=1#old', '#top'),
+        );
+    }
+
+    public function testResolveRelativePathIgnoresTheRequestQuery(): void
+    {
+        self::assertSame(
+            'https://example.com/codes/b.png',
+            UrlNormalizer::resolveLocation('https://example.com/codes/a.png?next=/x/y', 'b.png'),
+        );
+    }
+
+    public function testResolveRelativePathAgainstAnAddressWithNoPath(): void
+    {
+        self::assertSame(
+            'https://example.com/b.png',
+            UrlNormalizer::resolveLocation('https://example.com', 'b.png'),
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // UrlNormalizer::resolveHttpLocation
+    // -----------------------------------------------------------------------
+
+    public function testResolveHttpLocationRejectsOtherSchemesBeforeResolving(): void
+    {
+        $from = 'https://example.test/codes/a.png';
+
+        foreach (['file:///etc/passwd', 'FILE:///etc/passwd', 'ftp://1.1.1.1/a.png', 'javascript:alert(1)',
+                  'data:image/png;base64,AAAA', 'C:/x.png', 'mailto:a@example.test', 'http:foo', 'https:/x'] as $location) {
+            self::assertNull(UrlNormalizer::resolveHttpLocation($from, $location), $location);
+        }
+    }
+
+    public function testResolveHttpLocationRejectsEmptyAndHostlessResults(): void
+    {
+        self::assertNull(UrlNormalizer::resolveHttpLocation('https://example.test/a.png', ''));
+        self::assertNull(UrlNormalizer::resolveHttpLocation('https://example.test/a.png', "  \r\n"));
+        self::assertNull(UrlNormalizer::resolveHttpLocation('https://example.test/a.png', 'https://'));
+    }
+
+    public function testResolveHttpLocationResolvesHttpAndRelativeLocations(): void
+    {
+        $from = 'https://example.test/codes/a.png';
+
+        self::assertSame('https://other.test/b.png', UrlNormalizer::resolveHttpLocation($from, ' https://other.test/b.png '));
+        self::assertSame('HTTP://other.test/b.png', UrlNormalizer::resolveHttpLocation($from, 'HTTP://other.test/b.png'));
+        self::assertSame('https://example.test/images/b.png', UrlNormalizer::resolveHttpLocation($from, '/images/b.png'));
+        self::assertSame('https://example.test/codes/b.png', UrlNormalizer::resolveHttpLocation($from, 'b.png'));
+        self::assertSame('https://example.test/codes/a.png?version=2', UrlNormalizer::resolveHttpLocation($from, '?version=2'));
+        self::assertSame('https://1.1.1.1/c.png', UrlNormalizer::resolveHttpLocation($from, '//1.1.1.1/c.png'));
+    }
+
     // -----------------------------------------------------------------------
     // UrlNormalizer::normalizeUrlForSearch
     // -----------------------------------------------------------------------

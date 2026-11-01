@@ -115,6 +115,12 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
     public function detectSchema(PDO $source): string
     {
+        if (self::detectInstalls($source) !== []) {
+            return 'listing_admin_3x';
+        }
+
+        // Looser, name-only checks: the schema is only a label, so keep recognising the
+        // layouts this always recognised, even without Listing Admin's columns.
         $driver = $source->getAttribute(PDO::ATTR_DRIVER_NAME);
 
         if ($driver === 'sqlite') {
@@ -169,6 +175,259 @@ final class ListingAdminImportSource implements ImportSourceInterface
     }
 
     // -----------------------------------------------------------------------
+    // Finding the Listing Admin tables
+    // -----------------------------------------------------------------------
+
+    /**
+     * Finds Listing Admin installs in a database by their tables, to fill in the
+     * Table Prefix on the Options step.
+     *
+     * Listing Admin names every table prefix . name (trex_members, trex_options …),
+     * and its listings table is the prefix with every underscore removed (trex), as in
+     * its own rats.inc.php. Each table ending in "members" suggests a prefix, which
+     * counts only when the listings, members and options tables all exist with Listing
+     * Admin's columns. A bare "members" next to "main" is the unprefixed layout Luster
+     * has always supported, returned with prefix ''.
+     *
+     * Strict on purpose: it only fills in the field. A prefix the admin types is checked
+     * by missingTables() instead, which a partial export can pass.
+     *
+     * @param list<string>|null $tableNames Original table names of an uploaded dump;
+     *                                      null reads them from $pdo.
+     * @param string            $tempPrefix The dump's temporary table prefix in $pdo;
+     *                                      never part of a returned prefix.
+     * @return list<array{prefix: string, registry: string, listings: int}>
+     */
+    public static function detectInstalls(PDO $pdo, ?array $tableNames = null, string $tempPrefix = ''): array
+    {
+        if ($tempPrefix !== '' && !preg_match('/^[a-zA-Z0-9_]+$/', $tempPrefix)) {
+            return [];
+        }
+
+        $names = $tableNames ?? self::listTables($pdo);
+        $set   = array_flip($names);
+        $found = [];
+
+        foreach ($names as $name) {
+            if (!str_ends_with($name, 'members')) {
+                continue;
+            }
+            $prefix = substr($name, 0, -strlen('members'));
+            if ($prefix !== '' && !preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+                continue;
+            }
+            $registry = self::registryTable($prefix);
+            if ($registry === '' || !isset($set[$registry], $set[$prefix . 'options'])) {
+                continue;
+            }
+            if (!self::hasColumns($pdo, $tempPrefix . $registry, ['id', 'title', 'subject', 'dbtabl'])
+                || !self::hasColumns($pdo, $tempPrefix . $prefix . 'members', ['mEmail', 'fNiq'])
+                || !self::hasColumns($pdo, $tempPrefix . $prefix . 'options', ['name', 'text'])) {
+                continue;
+            }
+
+            try {
+                $listings = (int) $pdo->query("SELECT COUNT(*) FROM `{$tempPrefix}{$registry}`")->fetchColumn();
+            } catch (\Throwable) {
+                continue;
+            }
+
+            $found[$prefix] = ['prefix' => $prefix, 'registry' => $registry, 'listings' => $listings];
+        }
+
+        ksort($found, SORT_STRING);
+        return array_values($found);
+    }
+
+    /**
+     * Tables the ticked steps need that the source doesn't have, each with the step
+     * that needs it, by their real Listing Admin names (never an upload's temporary
+     * prefix). Empty means the chosen prefix will do. Used on the Options step and by
+     * preview() and run(), so all three agree.
+     *
+     * A step needs only the table it reads its rows from; Codes also needs the listings
+     * table, since per-listing codes are matched to listings through it. Listing Admin's
+     * installer always creates all of these, so a full install passes with every step
+     * ticked. The codes, KIM and updates tables only exist once that add-on was switched
+     * on in Listing Admin, so they never block: those steps say when their table is
+     * missing. If none of the tables the ticked steps read exist, the prefix itself is
+     * wrong, so all of them are reported.
+     *
+     * Only table names are checked, not columns, so an unusual Listing Admin version or
+     * a partial export can still be imported with a typed prefix.
+     *
+     * @return list<array{table: string, step: string}>
+     */
+    public function missingTables(PDO $source, ImportOptions $options): array
+    {
+        $laP = $options->laTablePrefix;
+        if ($laP !== '') {
+            self::assertValidPrefix($laP);
+        }
+        $reg = self::registryTable($laP);
+
+        // [ticked, step label as on the Options step, tables it needs, tables it may lack]
+        $steps = [
+            [$options->importCategories, 'Categories',      [$laP . 'categories'], []],
+            [$options->importListings,   'Owned listings',  [$reg],                []],
+            [$options->importMembers,    'Members',         [$laP . 'members'],    []],
+            [$options->importAffiliates, 'Affiliates',      [$laP . 'affiliates'], []],
+            [$options->importJoined,     'Joined listings', [$laP . 'joined'],     []],
+            [$options->importWishlist,   'Wishlist',        [$laP . 'wishlist'],   []],
+            [$options->importRules,      'Join Rules',      [$reg],                []],
+            [$options->importCodes,      'Codes',           [$reg],                [$laP . 'codes']],
+            [$options->importUpdates,    'Updates',         [],                    [$laP . 'updates']],
+            [$options->importKim,        'KIM List',        [],                    [$laP . 'kim']],
+        ];
+
+        $existing = array_flip(self::listTables($source));
+        $tp       = $options->tablePrefix;
+        $missing  = [];
+        $read     = [];
+        $anyFound = false;
+
+        foreach ($steps as [$ticked, $step, $needs, $mayLack]) {
+            if (!$ticked) {
+                continue;
+            }
+            foreach ($needs as $table) {
+                $read[] = ['table' => $table, 'step' => $step];
+                if (isset($existing[$tp . $table])) {
+                    $anyFound = true;
+                } else {
+                    $missing[] = ['table' => $table, 'step' => $step];
+                }
+            }
+            foreach ($mayLack as $table) {
+                $read[] = ['table' => $table, 'step' => $step];
+                if (isset($existing[$tp . $table])) {
+                    $anyFound = true;
+                }
+            }
+        }
+
+        if ($read === []) {
+            return [];
+        }
+        return $anyFound ? $missing : $read;
+    }
+
+    /**
+     * The message for missingTables()' result, one entry per table with every step
+     * that needs it.
+     *
+     * @param list<array{table: string, step: string}> $missing
+     */
+    public static function missingTablesMessage(array $missing, string $laPrefix): string
+    {
+        $byTable = [];
+        foreach ($missing as $m) {
+            $byTable[$m['table']][$m['step']] = true;
+        }
+
+        $parts = [];
+        foreach ($byTable as $table => $steps) {
+            $parts[] = $table . ' (for ' . implode(', ', array_keys($steps)) . ')';
+        }
+
+        $where = $laPrefix !== '' ? "starting with \"{$laPrefix}\"" : 'with no table prefix';
+        $fix   = $laPrefix !== ''
+            ? 'Check the prefix'
+            : 'Enter the start of your Listing Admin table names as the Table Prefix (for example trex_)';
+
+        return "Luster couldn't find these Listing Admin tables {$where}: " . implode(', ', $parts)
+            . ". {$fix}, or untick those steps if your export doesn't include them.";
+    }
+
+    /** Listing Admin's listings table for a prefix: the prefix without underscores, or "main" for none. */
+    private static function registryTable(string $laPrefix): string
+    {
+        return $laPrefix !== '' ? str_replace('_', '', $laPrefix) : 'main';
+    }
+
+    /** @return list<string> Every table in $pdo's database (MySQL or SQLite); [] if they can't be listed. */
+    private static function listTables(PDO $pdo): array
+    {
+        try {
+            $sql = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite'
+                ? "SELECT name FROM sqlite_master WHERE type='table'"
+                : 'SHOW TABLES';
+            return array_map('strval', $pdo->query($sql)->fetchAll(PDO::FETCH_COLUMN));
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * Whether $table has every column in $columns, ignoring case as MySQL does.
+     *
+     * @param list<string> $columns
+     */
+    private static function hasColumns(PDO $pdo, string $table, array $columns): bool
+    {
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+            return false;
+        }
+
+        try {
+            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+                $have = array_column($pdo->query("PRAGMA table_info(`{$table}`)")->fetchAll(PDO::FETCH_ASSOC), 'name');
+            } else {
+                $stmt = $pdo->prepare(
+                    'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table'
+                );
+                $stmt->execute(['table' => $table]);
+                $have = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            }
+        } catch (\Throwable) {
+            return false;
+        }
+
+        $have = array_flip(array_map('strtolower', array_map('strval', $have)));
+        foreach ($columns as $column) {
+            if (!isset($have[strtolower($column)])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Whether $table exists in $pdo's database (MySQL or SQLite). */
+    private static function tableExists(PDO $pdo, string $table): bool
+    {
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+            return false;
+        }
+
+        try {
+            $stmt = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite'
+                ? $pdo->prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name = :table")
+                : $pdo->prepare(
+                    'SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+                      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table LIMIT 1'
+                );
+            $stmt->execute(['table' => $table]);
+            return $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Says a Listing Admin table wasn't found, by its real name, without guessing why:
+     * the add-on may never have been switched on, or an export may have left it out.
+     */
+    private static function tableNotFoundNote(ImportOptions $options, string $what, string $name): string
+    {
+        $note = "No Listing Admin {$what} table named \"{$options->laTablePrefix}{$name}\" was found.";
+        if ($options->tablePrefix !== '') {
+            $note .= ' If you uploaded an SQL file, check that the export includes it.';
+        }
+        return $note;
+    }
+
+    // -----------------------------------------------------------------------
     // Preview (read-only)
     // -----------------------------------------------------------------------
 
@@ -180,12 +439,18 @@ final class ListingAdminImportSource implements ImportSourceInterface
         if ($laP !== '') {
             self::assertValidPrefix($laP);
         }
-        // Registry table: custom prefix strips trailing underscores (e.g. 'trex_' → 'trex').
-        // Default (empty prefix) uses 'main'.
-        $laReg  = $laP !== '' ? str_replace('_', '', $laP) : 'main';
+        // Registry table: the prefix without underscores (e.g. 'trex_' → 'trex'), as
+        // Listing Admin names it. No prefix uses 'main'.
+        $laReg  = self::registryTable($laP);
         $sp     = $tp . $laP;    // full source prefix for non-registry tables
         $sreg   = $tp . $laReg;  // full source registry table name
         $rows   = [];
+
+        // Same check as the Options step: a wrong prefix shows why, not a page of zeros.
+        $missing = $this->missingTables($source, $options);
+        if ($missing !== []) {
+            throw new \RuntimeException(self::missingTablesMessage($missing, $laP));
+        }
 
         // Resolved before anything else so a bad Source ID stops the preview up front.
         $laSource = $this->laSourceKey($source, $sp, $options);
@@ -216,17 +481,22 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $rows[] = $this->previewTable($source, $sp . 'joined', 'Joined listings');
         }
         if ($options->importUpdates) {
-            $updatesWarns = ['LA crossposting fields (uDW, uIJ, uLJ) will be dropped.'];
-            if (!$this->updatesAddonInstalled($addonCheckPdo)) {
-                $updatesWarns[] = 'News Feed add-on is not installed — running the import will install it automatically so this data is not lost.';
+            if (!self::tableExists($source, $sp . 'updates')) {
+                $rows[] = ['type' => 'Updates', 'found' => 0, 'import' => 0, 'skip' => 0,
+                           'warnings' => [self::tableNotFoundNote($options, 'updates', 'updates')]];
+            } else {
+                $updatesWarns = ['LA crossposting fields (uDW, uIJ, uLJ) will be dropped.'];
+                if (!$this->updatesAddonInstalled($addonCheckPdo)) {
+                    $updatesWarns[] = 'News Feed add-on is not installed — running the import will install it automatically so this data is not lost.';
+                }
+                $rows[] = $this->previewTable($source, $sp . 'updates', 'Updates', $updatesWarns);
             }
-            $rows[] = $this->previewTable($source, $sp . 'updates', 'Updates', $updatesWarns);
         }
         if ($options->importWishlist) {
             $rows[] = $this->previewWishlist($source, $addonCheckPdo, $sp);
         }
         if ($options->importKim) {
-            $rows[] = $this->previewKim($source, $addonCheckPdo, $sp);
+            $rows[] = $this->previewKim($source, $addonCheckPdo, $sp, $options);
         }
         if ($options->importRules) {
             $rows[] = $this->previewRules($source, $addonCheckPdo, $sreg);
@@ -254,11 +524,17 @@ final class ListingAdminImportSource implements ImportSourceInterface
         if ($laP !== '') {
             self::assertValidPrefix($laP);
         }
-        $laReg  = $laP !== '' ? str_replace('_', '', $laP) : 'main';
+        $laReg  = self::registryTable($laP);
         $sp     = $tp . $laP;    // full source prefix for non-registry tables
         $sreg   = $tp . $laReg;  // full source registry table name
         $rows   = [];
         $imageRows = [];
+
+        // Same check as the Options step and preview(), before anything is written.
+        $missing = $this->missingTables($source, $options);
+        if ($missing !== []) {
+            throw new \RuntimeException(self::missingTablesMessage($missing, $laP));
+        }
 
         // Resolved before any writes so a bad Source ID can't leave a half-run import.
         $laSource = $this->laSourceKey($source, $sp, $options);
@@ -1339,6 +1615,12 @@ final class ListingAdminImportSource implements ImportSourceInterface
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<array{label:string,reason:string}>} */
     private function runUpdates(PDO $source, PDO $target, ImportOptions $options, array $listingIdMap, string $tp = ''): array
     {
+        if (!self::tableExists($source, $tp . 'updates')) {
+            return ['type' => 'Updates', 'imported' => 0, 'skipped' => 0,
+                    'warnings' => [self::tableNotFoundNote($options, 'updates', 'updates')], 'errors' => [],
+                    'skipped_items' => []];
+        }
+
         if (!AddonAutoInstaller::ensureInstalled($target, NewsfeedAddon::class) && !$this->updatesAddonInstalled($target)) {
             return ['type' => 'Updates', 'imported' => 0, 'skipped' => 0,
                     'warnings' => ['News Feed add-on could not be installed automatically — updates were skipped.'], 'errors' => [],
@@ -1367,7 +1649,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 $stmt->execute();
                 $chunk = $stmt->fetchAll();
             } catch (\Throwable $e) {
-                $errors[] = 'Could not read updates chunk: ' . $e->getMessage();
+                $errors[] = "Couldn't read Listing Admin's updates ({$options->laTablePrefix}updates): " . $e->getMessage();
                 break;
             }
 
@@ -1410,8 +1692,13 @@ final class ListingAdminImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
-    private function previewKim(PDO $source, PDO $target, string $tp): array
+    private function previewKim(PDO $source, PDO $target, string $tp, ImportOptions $options): array
     {
+        if (!self::tableExists($source, $tp . 'kim')) {
+            return ['type' => 'KIM List', 'found' => 0, 'import' => 0, 'skip' => 0,
+                    'warnings' => [self::tableNotFoundNote($options, 'KIM', 'kim')]];
+        }
+
         $kimWarns = ['Fan adoption-interest entries import as pending KIM members.'];
         if (!$this->kimAddonInstalled($target)) {
             $kimWarns[] = 'Keep In Mind add-on is not installed — running the import will install it automatically so this data is not lost.';
@@ -1424,6 +1711,12 @@ final class ListingAdminImportSource implements ImportSourceInterface
         PDO $source, PDO $target, ImportOptions $options,
         array $listingIdMap, string $tp
     ): array {
+        if (!self::tableExists($source, $tp . 'kim')) {
+            return ['type' => 'KIM List', 'imported' => 0, 'skipped' => 0,
+                    'warnings' => [self::tableNotFoundNote($options, 'KIM', 'kim')],
+                    'errors' => [], 'skipped_items' => []];
+        }
+
         if (!AddonAutoInstaller::ensureInstalled($target, KimAddon::class) && !$this->kimAddonInstalled($target)) {
             return ['type' => 'KIM List', 'imported' => 0, 'skipped' => 0,
                     'warnings' => ['Keep In Mind add-on could not be installed automatically — KIM entries were skipped.'],
@@ -1435,7 +1728,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $srcRows = $stmt->fetchAll();
         } catch (\Throwable $e) {
             return ['type' => 'KIM List', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => [], 'errors' => ['Could not read kim table: ' . $e->getMessage()],
+                    'warnings' => [], 'errors' => ["Couldn't read Listing Admin's KIM list ({$options->laTablePrefix}kim): " . $e->getMessage()],
                     'skipped_items' => []];
         }
 
@@ -2460,13 +2753,15 @@ final class ListingAdminImportSource implements ImportSourceInterface
     /**
      * Migrates a single image file using the configured mode.
      *
-     * Path/URL resolution priority for Listing Admin:
-     *   1. Use the path/URL read directly from the la_options table
-     *      ($imageSettings['affiliates_dir'], 'listings_dir', 'joined_dir',
-     *       'affiliates_url', 'listings_url', 'joined_url')
-     *   2. Fall back to the user-supplied path/URL as the direct image directory
-     *      (no subdirectory appended — LA has no fixed structure, so if the
-     *      options table had no configured path, the user must provide it directly)
+     * Where an image is looked for, in order, each only if the one before found nothing
+     * (blank ones are skipped):
+     *   1. the folder saved in Listing Admin's options ($imageSettings['…_dir']);
+     *   2. the Server Path typed on the Options step;
+     *   3. the address saved in Listing Admin's options ($imageSettings['…_url']);
+     *   4. the Live Site URL typed on the Options step.
+     * The typed ones are used as the image folder itself (LA has no fixed structure), and
+     * are also tried when Listing Admin's own setting no longer works — an old address
+     * that now redirects somewhere unusable, or a folder on another server.
      *
      * @param array<string,string> $imageSettings  From readImageSettings(); may be empty.
      */
@@ -2492,20 +2787,24 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $configuredUrl = $imageSettings[$urlKey] ?? '';
 
             $newFilename = null;
+            $dirs = array_unique(array_filter([$configuredDir, rtrim($options->imagePath, '/\\')], 'strlen'));
+            $urls = array_unique(array_filter([$configuredUrl, rtrim($options->imageUrl, '/')], 'strlen'));
 
-            // Try server path first (LA has no fixed subdir — path used directly)
-            if ($configuredDir !== '') {
-                $newFilename = $migrator->copyFromPath($configuredDir . '/' . $imageFilename, $targetSubDir, $prefix);
-            } elseif ($options->imagePath !== '') {
-                $newFilename = $migrator->copyFromPath(rtrim($options->imagePath, '/\\') . '/' . $imageFilename, $targetSubDir, $prefix);
+            // Folders first (LA has no fixed subdir — each is the image folder itself) …
+            foreach ($dirs as $dir) {
+                $newFilename = $migrator->copyFromPath($dir . '/' . $imageFilename, $targetSubDir, $prefix);
+                if ($newFilename !== null) {
+                    break;
+                }
             }
 
-            // Fall back to URL
+            // … then web addresses.
             if ($newFilename === null) {
-                if ($configuredUrl !== '') {
-                    $newFilename = $migrator->fetchFromUrl($configuredUrl . '/' . rawurlencode($imageFilename), $targetSubDir, $prefix);
-                } elseif ($options->imageUrl !== '') {
-                    $newFilename = $migrator->fetchFromUrl(rtrim($options->imageUrl, '/') . '/' . rawurlencode($imageFilename), $targetSubDir, $prefix);
+                foreach ($urls as $url) {
+                    $newFilename = $migrator->fetchFromUrl($url . '/' . rawurlencode($imageFilename), $targetSubDir, $prefix);
+                    if ($newFilename !== null) {
+                        break;
+                    }
                 }
             }
 
@@ -2829,11 +3128,16 @@ final class ListingAdminImportSource implements ImportSourceInterface
      */
     private function previewCodes(PDO $source, PDO $target, ImportOptions $options, string $sp, string $sreg, ?string $sourceKey): array
     {
+        if (!self::tableExists($source, $sp . 'codes')) {
+            return ['type' => 'Codes', 'found' => 0, 'import' => 0, 'skip' => 0, 'warnings' => [
+                self::tableNotFoundNote($options, 'codes', 'codes'),
+            ]];
+        }
         try {
             $srcCodes = $source->query("SELECT cID, fNiq, cFile FROM `{$sp}codes`")->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             return ['type' => 'Codes', 'found' => 0, 'import' => 0, 'skip' => 0, 'warnings' => [
-                'No codes table found — Listing Admin\'s Codes add-on was never turned on, so there are no codes to import.',
+                "Couldn't read Listing Admin's codes ({$options->laTablePrefix}codes): " . $e->getMessage(),
             ]];
         }
 
@@ -2961,10 +3265,14 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $row    = ['type' => 'Codes', 'imported' => 0, 'skipped' => 0, 'warnings' => [], 'errors' => [], 'skipped_items' => []];
         $images = ['copied' => 0, 'skipped' => 0, 'errors' => []];
 
+        if (!self::tableExists($source, $sp . 'codes')) {
+            $row['warnings'][] = self::tableNotFoundNote($options, 'codes', 'codes');
+            return ['row' => $row, 'images' => $images];
+        }
         try {
-            $source->query("SELECT 1 FROM `{$sp}codes` LIMIT 1");
-        } catch (\Throwable) {
-            $row['warnings'][] = 'No codes table found — Listing Admin\'s Codes add-on was never turned on, so there were no codes to import.';
+            $source->query("SELECT cID, fNiq, cFile FROM `{$sp}codes` LIMIT 1");
+        } catch (\Throwable $e) {
+            $row['errors'][] = "Couldn't read Listing Admin's codes ({$options->laTablePrefix}codes): " . $e->getMessage();
             return ['row' => $row, 'images' => $images];
         }
         if ($sourceKey === null) {

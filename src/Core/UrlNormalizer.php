@@ -21,7 +21,8 @@ final class UrlNormalizer
 {
     /**
      * Resolves a Location header value against the original request URL so that
-     * relative paths (e.g. "/new-path" or "other.php") become absolute URLs.
+     * relative paths (e.g. "/new-path", "other.php" or "?v=2") become absolute URLs.
+     * It doesn't check the scheme: use resolveHttpLocation() before following one.
      */
     public static function resolveLocation(string $requestUrl, string $location): string
     {
@@ -45,9 +46,62 @@ final class UrlNormalizer
             return $origin . $location;
         }
 
-        // Relative path — resolve against directory of the request URL
-        $base = preg_replace('#/[^/]*$#', '/', $requestUrl) ?? ($requestUrl . '/');
+        // Query-only (e.g. ?version=2) — same path, new query
+        if (str_starts_with($location, '?')) {
+            return self::withoutQueryOrFragment($requestUrl) . $location;
+        }
+
+        // Fragment-only (e.g. #top) — same address
+        if (str_starts_with($location, '#')) {
+            return (preg_replace('/#.*$/s', '', $requestUrl) ?? $requestUrl) . $location;
+        }
+
+        // Relative path — resolve against the directory of the request URL. Its query is
+        // ignored, so a "/" inside the query can't move the directory.
+        $path = self::withoutQueryOrFragment($requestUrl);
+        if (preg_match('#^[A-Za-z][A-Za-z0-9+.\-]*://[^/]*$#', $path)) {
+            return $path . '/' . $location; // no path at all, e.g. https://example.com
+        }
+        $base = preg_replace('#/[^/]*$#', '/', $path) ?? ($path . '/');
         return $base . $location;
+    }
+
+    /**
+     * Like resolveLocation(), for redirects that are about to be followed: returns
+     * null unless the result is an http(s) URL with a host.
+     *
+     * A Location with any other scheme (file:, ftp:, javascript:, data:, C:/…) is
+     * rejected before resolving. resolveLocation() would otherwise treat it as a
+     * relative path and turn file:///etc/passwd into https://host/dir/file:///etc/passwd,
+     * which passes a scheme check made afterwards. No relative reference can start
+     * with "word:" (RFC 3986), so nothing valid is lost.
+     */
+    public static function resolveHttpLocation(string $requestUrl, string $location): ?string
+    {
+        $location = trim($location);
+        if ($location === '') {
+            return null;
+        }
+
+        if (preg_match('#^[A-Za-z][A-Za-z0-9+.\-]*:#', $location) && !preg_match('#^https?://#i', $location)) {
+            return null;
+        }
+
+        $resolved = self::resolveLocation($requestUrl, $location);
+        $scheme   = strtolower((string) parse_url($resolved, PHP_URL_SCHEME));
+        $host     = (string) parse_url($resolved, PHP_URL_HOST);
+
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return null;
+        }
+
+        return $resolved;
+    }
+
+    /** The URL with its query string and fragment removed. */
+    private static function withoutQueryOrFragment(string $url): string
+    {
+        return preg_replace('/[?#].*$/s', '', $url) ?? $url;
     }
 
     /**

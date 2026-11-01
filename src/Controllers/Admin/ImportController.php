@@ -66,6 +66,8 @@ final class ImportController extends AdminController
     private const SESSION_DUMP_PREFIX = 'lstr_import_dump_prefix';
     private const SESSION_DUMP_TABLES = 'lstr_import_dump_tables';
     private const SESSION_FN_PREFIX   = 'lstr_import_fn_prefix';
+    // Listing Admin installs found in the source (ListingAdminImportSource::detectInstalls())
+    private const SESSION_LA_INSTALLS = 'lstr_import_la_installs';
     // BellaBuffs flat-file upload session keys
     private const SESSION_BB_APPROVED = 'lstr_import_bb_approved';
     private const SESSION_BB_PENDING  = 'lstr_import_bb_pending';
@@ -285,6 +287,17 @@ final class ImportController extends AdminController
                         $session->remove(self::SESSION_DUMP_PREFIX);
                         $session->remove(self::SESSION_DUMP_TABLES);
                         $session->remove(self::SESSION_FN_PREFIX);
+                        $session->remove(self::SESSION_LA_INSTALLS);
+                        if ($source === 'listing-admin') {
+                            try {
+                                $session->set(
+                                    self::SESSION_LA_INSTALLS,
+                                    ListingAdminImportSource::detectInstalls($adapter->openConnection($credentials))
+                                );
+                            } catch (\Throwable) {
+                                // Options then asks for the prefix instead of filling it in.
+                            }
+                        }
                         return Response::redirect($baseUrl . "/admin/import/{$source}/options");
                     }
                 }
@@ -389,6 +402,14 @@ final class ImportController extends AdminController
             $schema = $adapter->detectSchema($pdo);
         } catch (\Throwable $e) {
             return Response::json(['ok' => false, 'message' => $e->getMessage()]);
+        }
+
+        if ($source === 'listing-admin') {
+            return Response::json([
+                'ok'      => true,
+                'message' => 'Connected.',
+                'schema'  => self::laInstallsLabel(ListingAdminImportSource::detectInstalls($pdo)),
+            ]);
         }
 
         $fnPrefix    = $credentials['fn_prefix'] ?? 'fanatic_';
@@ -512,6 +533,8 @@ final class ImportController extends AdminController
             return Response::redirect($baseUrl . "/admin/import/{$source}/connect");
         }
 
+        $scopeError = '';
+
         if ($request->isPost()) {
             $scopePost           = $request->postAll();
             $scopePost['source'] = $source;
@@ -547,8 +570,15 @@ final class ImportController extends AdminController
                 $scopePost['_zip_path'] = $realZipFwd;
             }
 
+            if ($source === 'listing-admin') {
+                $scopeError = $this->checkLaTables($scopePost, $hasDump);
+            }
+
             $session->set(self::SESSION_SCOPE, $scopePost);
-            return Response::redirect($baseUrl . "/admin/import/{$source}/preview");
+            if ($scopeError === '') {
+                return Response::redirect($baseUrl . "/admin/import/{$source}/preview");
+            }
+            // Otherwise show Options again, choices kept, with the error.
         }
 
         $savedScope = (array) ($session->get(self::SESSION_SCOPE) ?? []);
@@ -579,6 +609,10 @@ final class ImportController extends AdminController
             'zip_url'          => $baseUrl . "/admin/import/{$source}/zip-upload",
             'enth_networks'    => $enthNetworks,
             'la_known_sources' => $laKnownSources,
+            'la_installs'      => $source === 'listing-admin'
+                ? (array) ($session->get(self::SESSION_LA_INSTALLS) ?? [])
+                : [],
+            'scope_error'      => $scopeError,
         ], '', [
             $this->crumb('Import Data', $this->adminUrl('/admin/import')),
             $this->crumb($this->sourceName($source), $this->adminUrl("/admin/import/{$source}/connect")),
@@ -1021,6 +1055,17 @@ final class ImportController extends AdminController
 
         $schemaVariant = SqlDumpLoader::inferSchemaVariant($tables);
 
+        // inferSchemaVariant() only sees names; finding a Listing Admin install needs its
+        // columns, which can only be read here, while the loaded tables are at hand.
+        $session->remove(self::SESSION_LA_INSTALLS);
+        if ($source === 'listing-admin') {
+            $installs = ListingAdminImportSource::detectInstalls($pdo, $tables, $tempPrefix);
+            $session->set(self::SESSION_LA_INSTALLS, $installs);
+            if ($installs !== []) {
+                $schemaVariant = 'listing_admin_3x';
+            }
+        }
+
         $session->set(self::SESSION_DUMP_PREFIX, $tempPrefix);
         $tables['_schema'] = $schemaVariant;
         $session->set(self::SESSION_DUMP_TABLES, $tables);
@@ -1033,6 +1078,60 @@ final class ImportController extends AdminController
         }
 
         return Response::redirect($baseUrl . "/admin/import/{$source}/options");
+    }
+
+    /**
+     * The Options step's check of the chosen Listing Admin prefix against the ticked
+     * steps. preview() and run() repeat the same check (ListingAdminImportSource::
+     * missingTables()). Returns the error to show, or '' when the tables are there.
+     */
+    private function checkLaTables(array $scopePost, bool $hasDump): string
+    {
+        $options = ImportOptions::fromPost($scopePost);
+        $adapter = new ListingAdminImportSource();
+
+        try {
+            if ($hasDump) {
+                $pdo = $this->app->getDatabase()->pdo();
+            } else {
+                $credentials = (array) ($this->app->getSession()->get(self::SESSION_CREDS) ?? []);
+                $guardError  = $this->validateStoredCredentials($credentials);
+                if ($guardError !== null) {
+                    return $guardError;
+                }
+                $pdo = $adapter->openConnection($credentials);
+            }
+            $missing = $adapter->missingTables($pdo, $options);
+        } catch (\Throwable $e) {
+            return 'Could not check the Listing Admin tables: ' . $e->getMessage();
+        }
+
+        return $missing === [] ? '' : ListingAdminImportSource::missingTablesMessage($missing, $options->laTablePrefix);
+    }
+
+    /**
+     * What Test Connection says about the Listing Admin installs it found.
+     *
+     * @param list<array{prefix: string, registry: string, listings: int}> $installs
+     */
+    private static function laInstallsLabel(array $installs): string
+    {
+        if ($installs === []) {
+            return 'No Listing Admin tables found in this database.';
+        }
+
+        if (count($installs) === 1) {
+            $install = $installs[0];
+            $which   = $install['prefix'] !== '' ? "table prefix {$install['prefix']}" : 'no table prefix';
+            return "Listing Admin ({$which}) — {$install['listings']} listing(s) found in `{$install['registry']}`";
+        }
+
+        $list = array_map(
+            static fn(array $i): string => ($i['prefix'] !== '' ? $i['prefix'] : 'no prefix') . " ({$i['listings']} listings)",
+            $installs
+        );
+        return 'Listing Admin — ' . count($installs) . ' installs found: ' . implode(', ', $list)
+            . ". You'll choose one on the next step.";
     }
 
     /**
@@ -1280,6 +1379,7 @@ final class ImportController extends AdminController
         $this->cleanupDumpTables();
         $session->remove(self::SESSION_DUMP_PREFIX);
         $session->remove(self::SESSION_DUMP_TABLES);
+        $session->remove(self::SESSION_LA_INSTALLS);
         $this->cleanupBbTempFiles();
     }
 

@@ -17,6 +17,7 @@ declare(strict_types=1);
 namespace Luster\Import;
 
 use Luster\Core\NetworkAddressGuard;
+use Luster\Core\UrlNormalizer;
 
 /**
  * Migrates image files for the import wizard across three modes.
@@ -41,15 +42,29 @@ final class ImageMigrator
         'image/webp' => 'webp',
     ];
 
+    /** Redirects fetchFromUrl() follows itself, after the first request. */
+    private const MAX_REDIRECTS = 3;
+
+    /** Size cap for every response body, redirects included. */
+    private const MAX_BYTES = 10 * 1024 * 1024;
+
+    private const TIMEOUT_SECONDS = 10;
+
     /** Base path to public/uploads/ (no trailing slash). */
     private string $uploadsBase;
 
+    /** @var callable(array{url: string, resolve: string, connect_timeout: int, timeout: int, verify_peer: bool, verify_host: bool, max_bytes: int}): array{code: int, location: ?string, body: string} */
+    private $transfer;
+
     /**
-     * @param string $lusterPublicDir  Absolute path to Luster's public/ directory.
+     * @param string        $lusterPublicDir  Absolute path to Luster's public/ directory.
+     * @param callable|null $transfer         One HTTP request (see curlTransfer()). Injected
+     *                                        by tests only; the checks around it still run.
      */
-    public function __construct(string $lusterPublicDir)
+    public function __construct(string $lusterPublicDir, ?callable $transfer = null)
     {
         $this->uploadsBase = rtrim($lusterPublicDir, '/\\') . '/uploads';
+        $this->transfer    = $transfer ?? self::curlTransfer(...);
     }
 
     // -----------------------------------------------------------------------
@@ -90,11 +105,19 @@ final class ImageMigrator
     // -----------------------------------------------------------------------
 
     /**
-     * Downloads an image from a remote URL via cURL with DNS-pinned connection.
+     * Downloads an image from a remote URL via cURL with DNS-pinned connections.
      *
-     * Returns null if cURL is unavailable, the host resolves to a private IP,
-     * the request times out, or the response is not a valid image. Failures
-     * are non-fatal.
+     * Redirects are followed here, one hop at a time (at most MAX_REDIRECTS), never
+     * by cURL itself. Every hop is checked the same way as the first request: http or
+     * https only, the host checked by NetworkAddressGuard, and the connection pinned
+     * to the IPs it approved on that hop's own port (an http→https hop is pinned to
+     * 443). A Location with any other scheme ends the download before another request
+     * is made (UrlNormalizer::resolveHttpLocation()). Every hop keeps TLS verification,
+     * the timeouts and the size cap; a redirect's body is never stored.
+     *
+     * Returns null if cURL is unavailable, a host is private or reserved, the request
+     * fails or times out, there are too many redirects, or the final response is not
+     * a valid image. Failures are non-fatal.
      *
      * @param string $url           Full URL to the image.
      * @param string $targetSubDir  Subdirectory under uploads/
@@ -103,10 +126,50 @@ final class ImageMigrator
      */
     public function fetchFromUrl(string $url, string $targetSubDir, string $prefix): ?string
     {
-        if (!function_exists('curl_init')) {
-            return null;
+        $current = $url;
+
+        for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
+            $request = self::buildRequest($current);
+            if ($request === null) {
+                return null;
+            }
+
+            $response = ($this->transfer)($request);
+            $code     = (int) ($response['code'] ?? 0);
+            $body     = (string) ($response['body'] ?? '');
+
+            // The transfer caps the body; anything over the cap is a failure, whatever its status.
+            if (strlen($body) > $request['max_bytes']) {
+                return null;
+            }
+
+            if ($code >= 200 && $code < 300) {
+                return $this->storeDownloaded($body, $targetSubDir, $prefix);
+            }
+
+            if ($code < 300 || $code >= 400) {
+                return null;
+            }
+
+            $location = $response['location'] ?? null;
+            $next     = is_string($location) ? UrlNormalizer::resolveHttpLocation($current, $location) : null;
+            if ($next === null) {
+                return null;
+            }
+            $current = $next;
         }
 
+        return null;
+    }
+
+    /**
+     * The request for one hop, or null when $url must not be fetched: not http(s),
+     * no host, or a host NetworkAddressGuard rejects or can't resolve.
+     *
+     * @return array{url: string, resolve: string, connect_timeout: int, timeout: int, verify_peer: bool, verify_host: bool, max_bytes: int}|null
+     */
+    private static function buildRequest(string $url): ?array
+    {
         $parts = parse_url($url);
         if (!is_array($parts)) {
             return null;
@@ -117,33 +180,71 @@ final class ImageMigrator
             return null;
         }
 
-        $host = NetworkAddressGuard::normalizeHost((string) ($parts['host'] ?? ''));
+        $host        = NetworkAddressGuard::normalizeHost((string) ($parts['host'] ?? ''));
         $guardResult = NetworkAddressGuard::validateAndResolve($host);
         if ($guardResult['error'] !== null || $guardResult['ips'] === []) {
             return null;
         }
 
-        $ch = curl_init($url);
-        if ($ch === false) {
-            return null;
+        $port = (int) (($parts['port'] ?? null) ?: ($scheme === 'https' ? 443 : 80));
+
+        return [
+            'url'             => $url,
+            'resolve'         => NetworkAddressGuard::buildCurlResolveEntry($host, $port, $guardResult['ips']),
+            'connect_timeout' => self::TIMEOUT_SECONDS,
+            'timeout'         => self::TIMEOUT_SECONDS,
+            'verify_peer'     => true,
+            'verify_host'     => true,
+            'max_bytes'       => self::MAX_BYTES,
+        ];
+    }
+
+    /**
+     * One HTTP request, exactly as described: no redirects followed, connection
+     * pinned to the resolve entry, body capped. A body over the cap comes back as a
+     * failed transfer (code 0) rather than a truncated file.
+     *
+     * @param array{url: string, resolve: string, connect_timeout: int, timeout: int, verify_peer: bool, verify_host: bool, max_bytes: int} $request
+     * @return array{code: int, location: ?string, body: string}
+     */
+    private static function curlTransfer(array $request): array
+    {
+        $failed = ['code' => 0, 'location' => null, 'body' => ''];
+        if (!function_exists('curl_init')) {
+            return $failed;
         }
 
-        $maxBytes  = 10 * 1024 * 1024;
+        $ch = curl_init($request['url']);
+        if ($ch === false) {
+            return $failed;
+        }
+
+        $maxBytes  = $request['max_bytes'];
         $bodyParts = [];
         $bodyLen   = 0;
+        $tooBig    = false;
+        $location  = null;
 
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => false,
             CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_MAXREDIRS      => 0,
+            CURLOPT_CONNECTTIMEOUT => $request['connect_timeout'],
+            CURLOPT_TIMEOUT        => $request['timeout'],
             CURLOPT_USERAGENT      => 'Luster-Import/1.0',
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_WRITEFUNCTION  => static function ($ch, string $chunk) use (&$bodyParts, &$bodyLen, $maxBytes): int {
+            CURLOPT_SSL_VERIFYPEER => $request['verify_peer'],
+            CURLOPT_SSL_VERIFYHOST => $request['verify_host'] ? 2 : 0,
+            CURLOPT_RESOLVE        => [$request['resolve']],
+            CURLOPT_HEADERFUNCTION => static function ($ch, string $header) use (&$location): int {
+                if (stripos($header, 'Location:') === 0) {
+                    $location = trim(substr($header, 9));
+                }
+                return strlen($header);
+            },
+            CURLOPT_WRITEFUNCTION  => static function ($ch, string $chunk) use (&$bodyParts, &$bodyLen, &$tooBig, $maxBytes): int {
                 $len = strlen($chunk);
                 if ($bodyLen + $len > $maxBytes) {
+                    $tooBig = true;
                     return 0;
                 }
                 $bodyParts[] = $chunk;
@@ -152,15 +253,21 @@ final class ImageMigrator
             },
         ]);
 
-        $port = (int) (($parts['port'] ?? null) ?: ($scheme === 'https' ? 443 : 80));
-        curl_setopt($ch, CURLOPT_RESOLVE, [NetworkAddressGuard::buildCurlResolveEntry($host, $port, $guardResult['ips'])]);
-
         curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $data = implode('', $bodyParts);
-        if ($data === '' || $code < 200 || $code >= 400) {
+        if ($tooBig) {
+            return $failed;
+        }
+
+        return ['code' => $code, 'location' => $location, 'body' => implode('', $bodyParts)];
+    }
+
+    /** Checks a downloaded body is an allowed image and stores it. */
+    private function storeDownloaded(string $data, string $targetSubDir, string $prefix): ?string
+    {
+        if ($data === '') {
             return null;
         }
 

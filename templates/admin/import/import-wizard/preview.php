@@ -184,6 +184,8 @@ $src = View::e($source);
           <?php endif; ?>
         <?php elseif ($options->imageMode === 'zip'): ?>
           Pre-uploaded ZIP
+        <?php elseif ($options->imageMode === 'auto'): ?>
+          Automatic &mdash; Luster finds them from your <?= View::e($source_name) ?> settings
         <?php else: ?>
           <span class="text-dim">None</span>
         <?php endif; ?>

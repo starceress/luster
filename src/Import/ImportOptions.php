@@ -26,6 +26,9 @@ namespace Luster\Import;
  */
 final class ImportOptions
 {
+    /** Value of the "Something else" choice when the Options step lists several Listing Admin installs. */
+    public const LA_PREFIX_OTHER = '__other__';
+
     /**
      * @param string $source              Source slug: 'enthusiast', 'listing-admin', 'fanupdate', 'codesort', 'fanatically'
      * @param string $conflictStrategy    'skip' | 'overwrite'
@@ -251,7 +254,7 @@ final class ImportOptions
             imageUrl:             rtrim(trim((string) ($post['image_url'] ?? '')), '/'),
             tablePrefix:          (string) ($post['_dump_table_prefix']   ?? ''),
             schemaVariant:        (string) ($post['_dump_schema_variant'] ?? ''),
-            laTablePrefix:        trim((string) ($post['la_table_prefix'] ?? '')),
+            laTablePrefix:        self::laTablePrefixFromPost($post),
             laSourceId:           $source === 'listing-admin' ? trim((string) ($post['la_source_id'] ?? '')) : '',
             zipPath:              (string) ($post['_zip_path']            ?? ''),
             bbTargetListingId:    $bbTargetListingId,
@@ -270,5 +273,18 @@ final class ImportOptions
             fnImportAdoption:     $fnImportAdoption,
             fnImportSiteSettings: $fnImportSiteSettings,
         );
+    }
+
+    /**
+     * The Listing Admin table prefix from the Options step: the text field, or the
+     * chosen install when several were found, or the typed one under "Something else".
+     */
+    private static function laTablePrefixFromPost(array $post): string
+    {
+        $prefix = trim((string) ($post['la_table_prefix'] ?? ''));
+        if ($prefix === self::LA_PREFIX_OTHER) {
+            $prefix = trim((string) ($post['la_table_prefix_other'] ?? ''));
+        }
+        return $prefix;
     }
 }
