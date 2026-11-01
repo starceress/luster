@@ -43,6 +43,9 @@ use Luster\Repositories\SiteSettingsRepo;
  */
 final class LinkCheckerController extends AdminController
 {
+    /** Skipped members named by the Scan form and the All Listings view; the rest are counted. */
+    private const SCAN_SKIPS_SHOWN = 5;
+
     // -----------------------------------------------------------------------
     // Index — summary page with affiliate + joined tables
     // -----------------------------------------------------------------------
@@ -62,8 +65,11 @@ final class LinkCheckerController extends AdminController
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
+        // Members the last Scan skipped (scanSkipSummary()), shown until dismissed.
+        $scanSkips = $session->get('lstr_flash_link_skips');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_link_skips');
 
         $config      = $this->app->getConfig();
         $perPage     = max(5, min(100, (int) ($config->get('lc_per_page', 10) ?? 10)));
@@ -271,6 +277,7 @@ final class LinkCheckerController extends AdminController
                 'lc_per_page'        => $perPage,
                 'success'            => $success,
                 'error'              => $error,
+                'scan_skips'         => is_array($scanSkips) ? $scanSkips : null,
             ],
         );
     }
@@ -813,13 +820,13 @@ final class LinkCheckerController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * Syncs a listing's approved member URLs into lstr_member_link_checks.
+     * Rebuilds a listing's member snapshot in lstr_member_link_checks (the "Scan" form).
      *
-     * Reads all approved members with a non-empty URL from the listing's member
-     * table via MemberLinkCheckRepo::syncFromListing() and upserts them into
-     * the check table (new rows added, existing rows' URLs updated, rows for
-     * members who have since removed their URL deleted). Reports the synced
-     * count in a flash message. Requires a valid listing with a dbprefix.
+     * MemberLinkCheckRepo::syncFromListing() replaces the listing's rows with every
+     * approved member, including ones with no URL (stored as 'no_url'), so earlier check
+     * results for the listing are reset. It's all or nothing: if it fails, the earlier
+     * rows are kept and the error is flashed. Members it had to skip go in
+     * lstr_flash_link_skips for index() to list. Requires a valid listing with a dbprefix.
      */
     public function scanMembers(Request $request): Response
     {
@@ -849,19 +856,25 @@ final class LinkCheckerController extends AdminController
         }
 
         try {
-            $count = (new MemberLinkCheckRepo($db, $config))->syncFromListing($listingId, $listing->dbprefix);
+            $result = (new MemberLinkCheckRepo($db, $config))->syncFromListing($listingId, $listing->dbprefix);
         } catch (\Throwable $e) {
-            $this->app->getSession()->set('lstr_flash_error', 'Scan failed: ' . $e->getMessage());
+            $this->app->getSession()->set(
+                'lstr_flash_error',
+                'Scan failed: ' . rtrim($e->getMessage(), '.') . '. Your earlier results for this listing were kept.'
+            );
             return Response::redirect($this->adminUrl('/admin/link-checker?listing_id=' . $listingId));
         }
 
-        $noun = $count !== 1 ? 'URLs' : 'URL';
-        $this->app->getSession()->set('lstr_flash_success', "Scan complete: {$count} member {$noun} imported for checking.");
+        $session = $this->app->getSession();
+        $session->set('lstr_flash_success', self::scanFlashMessage($result));
+        if ($result['skipped'] !== []) {
+            $session->set('lstr_flash_link_skips', self::scanSkipSummary($result));
+        }
 
         (new ActivityRepo($db))->log(
-            (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
+            (int) $session->get('lstr_admin_id', 0) ?: null,
             'link-checker',
-            "Scanned {$count} member URLs for listing #{$listingId}",
+            self::scanActivityMessage($result, $listingId),
             $request->ip(),
         );
 
@@ -875,10 +888,11 @@ final class LinkCheckerController extends AdminController
     /**
      * AJAX variant of scanMembers() for use by the "Scan All" batch and per-row Scan buttons.
      *
-     * Accepts listing_id as a POST field, syncs member URLs via
-     * MemberLinkCheckRepo::syncFromListing(), and returns JSON with the synced
-     * count and the updated link-status breakdown for that listing.
-     * Returns JSON error responses (404, 422, 500) instead of redirecting.
+     * Accepts listing_id as a POST field, rebuilds the listing's snapshot via
+     * MemberLinkCheckRepo::syncFromListing(), and returns JSON (scanAjaxPayload()) with
+     * the synced count, the updated link-status breakdown, and the members it skipped.
+     * Returns JSON error responses (404, 422, 500) instead of redirecting; a failed sync
+     * leaves the listing's earlier rows as they were.
      */
     public function scanMemberAjax(Request $request): Response
     {
@@ -905,17 +919,80 @@ final class LinkCheckerController extends AdminController
 
         try {
             $memRepo = new MemberLinkCheckRepo($db, $config);
-            $count   = $memRepo->syncFromListing($listingId, $listing->dbprefix);
+            $result  = $memRepo->syncFromListing($listingId, $listing->dbprefix);
             $stats   = $memRepo->getLinkStats($listingId);
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);
         }
 
-        return Response::json([
-            'synced'     => $count,
-            'listing_id' => $listingId,
-            'stats'      => $stats,
-        ]);
+        return Response::json(self::scanAjaxPayload($result, $listingId, $listing->subject ?: $listing->title, $stats));
+    }
+
+    /**
+     * The members a scan skipped, cut down to what's shown: how many, the first few,
+     * and how many more there are.
+     *
+     * @param array{synced: int, skipped: list<array{email: string, reason: string}>} $result
+     * @return array{count: int, members: list<array{email: string, reason: string}>, more: int}
+     */
+    private static function scanSkipSummary(array $result): array
+    {
+        $count = count($result['skipped']);
+        return [
+            'count'   => $count,
+            'members' => array_slice($result['skipped'], 0, self::SCAN_SKIPS_SHOWN),
+            'more'    => max(0, $count - self::SCAN_SKIPS_SHOWN),
+        ];
+    }
+
+    /**
+     * The Scan form's success message; the skipped list itself is shown separately.
+     *
+     * @param array{synced: int, skipped: list<array{email: string, reason: string}>} $result
+     */
+    private static function scanFlashMessage(array $result): string
+    {
+        $synced  = $result['synced'];
+        $message = "Scan complete: {$synced} member " . ($synced !== 1 ? 'URLs' : 'URL') . ' imported for checking.';
+
+        $skipped = count($result['skipped']);
+        if ($skipped > 0) {
+            $message .= " {$skipped} member" . ($skipped !== 1 ? 's' : '') . ' skipped — see the list below.';
+        }
+        return $message;
+    }
+
+    /**
+     * The activity-log line for a scan.
+     *
+     * @param array{synced: int, skipped: list<array{email: string, reason: string}>} $result
+     */
+    private static function scanActivityMessage(array $result, int $listingId): string
+    {
+        $message = "Scanned {$result['synced']} member URLs for listing #{$listingId}";
+        $skipped = count($result['skipped']);
+        return $skipped > 0 ? "{$message} ({$skipped} skipped)" : $message;
+    }
+
+    /**
+     * The JSON the per-row Scan and Scan All buttons get back. `synced` stays an int,
+     * as the row handler reads it.
+     *
+     * @param array{synced: int, skipped: list<array{email: string, reason: string}>} $result
+     * @param array<string, int> $stats
+     * @return array{synced: int, listing_id: int, listing_name: string, stats: array<string, int>, skipped: int, skipped_members: list<array{email: string, reason: string}>}
+     */
+    private static function scanAjaxPayload(array $result, int $listingId, string $listingName, array $stats): array
+    {
+        $summary = self::scanSkipSummary($result);
+        return [
+            'synced'          => $result['synced'],
+            'listing_id'      => $listingId,
+            'listing_name'    => $listingName,
+            'stats'           => $stats,
+            'skipped'         => $summary['count'],
+            'skipped_members' => $summary['members'],
+        ];
     }
 
     // -----------------------------------------------------------------------

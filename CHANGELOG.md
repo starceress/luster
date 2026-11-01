@@ -45,6 +45,15 @@ release page.
   table isn't there, Luster just says so by name, and for an SQL upload
   reminds you to check the export has it. The preview also says images are
   copied automatically instead of "None".
+- **A Link Checker scan that fails partway doesn't wipe your results anymore.**
+  It used to throw away that listing's earlier check results and leave a
+  half-finished list behind. Now a scan either finishes or changes nothing.
+- **Members with the same email in different capitals don't break scans.**
+  Some older member tables let `Jess@` and `jess@` both join, which made every
+  scan of that listing fail. Luster now keeps one (the one with a website, if
+  only one has it), skips the other, and lists who was skipped and why. That
+  list stays on the page until you dismiss it, and Scan All doesn't reload the
+  page on you while there's something to read.
 
 
 ### [1.0.0-3] — 2026-10-30

@@ -60,55 +60,162 @@ final class MemberLinkCheckRepo
         return $this->db->validatePrefix($raw);
     }
 
+    /** Column sizes in lstr_member_link_checks, in characters. */
+    private const MAX_EMAIL = 255;
+    private const MAX_NAME  = 255;
+    private const MAX_URL   = 500;
+
     /**
-     * Copies all approved members from the per-listing member table into
-     * lstr_member_link_checks -- including ones with no URL set, which get
-     * link_status='no_url' up front so they never get sent through a live
-     * check (an empty URL would otherwise misreport as a dead link) and
-     * read distinctly from a link that's actually broken. Clears any
-     * previous check records for the listing first so the snapshot is
-     * always fresh.
+     * Rebuilds a listing's snapshot in lstr_member_link_checks from its member table:
+     * every approved member, including ones with no URL set, which get
+     * link_status='no_url' up front so they never get sent through a live check (an
+     * empty URL would otherwise misreport as a dead link) and read distinctly from a
+     * link that's actually broken.
      *
-     * Returns the number of rows inserted.
+     * A successful sync replaces the listing's earlier rows, so its earlier check
+     * results are reset. It's all or nothing: the delete and the inserts run in one
+     * transaction, and if any of them fails the listing's rows are left exactly as they
+     * were and the error is rethrown. Because the sync owns that transaction, it refuses
+     * to run inside one the caller already opened.
+     *
+     * Members that can't be stored are skipped and reported rather than failing the
+     * whole scan: a blank email, an email over 255 characters, a URL over 500, and all
+     * but one of several members whose emails differ only in letter case or surrounding
+     * spaces (the check table's key treats those as the same email). Among those, one
+     * with a usable URL is kept; any remaining tie is broken byte by byte on name, email
+     * and URL, so the choice never depends on the order the database returns rows in.
+     * The kept member's email is stored exactly as the member table has it. A name over
+     * 255 characters is cut to fit (it's only displayed).
+     *
+     * @return array{synced: int, skipped: list<array{email: string, reason: string}>}
+     * @throws \LogicException when called inside an open transaction.
      */
-    public function syncFromListing(int $listingId, string $dbprefix): int
+    public function syncFromListing(int $listingId, string $dbprefix): array
     {
+        $pdo = $this->db->pdo();
+        if ($pdo->inTransaction()) {
+            throw new \LogicException('syncFromListing() runs its own transaction; call it outside one.');
+        }
+
         $table = $this->resolveTable($dbprefix);
 
-        $stmt = $this->db->pdo()->prepare(
+        $stmt = $pdo->prepare(
             "SELECT email, name, url
                FROM `{$table}`
               WHERE {$this->approvedWhere}
               ORDER BY name"
         );
         $stmt->execute();
-        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        ['rows' => $rows, 'skipped' => $skipped] = self::chooseMembers($stmt->fetchAll(PDO::FETCH_ASSOC));
 
-        $this->clearListing($listingId);
+        // Begun outside the try: if this throws, there's nothing of ours to roll back.
+        $pdo->beginTransaction();
+        try {
+            $this->clearListing($listingId);
 
-        if (empty($members)) {
-            return 0;
+            if ($rows !== []) {
+                $insert = $pdo->prepare(
+                    "INSERT INTO `lstr_member_link_checks`
+                         (listing_id, member_email, member_name, member_url, link_status)
+                     VALUES
+                         (:listing_id, :email, :name, :url, :link_status)"
+                );
+
+                foreach ($rows as $m) {
+                    $insert->execute([
+                        'listing_id'  => $listingId,
+                        'email'       => $m['email'],
+                        'name'        => $m['name'],
+                        'url'         => $m['url'],
+                        'link_status' => $m['url'] === '' ? 'no_url' : 'unchecked',
+                    ]);
+                }
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         }
 
-        $insert = $this->db->pdo()->prepare(
-            "INSERT INTO `lstr_member_link_checks`
-                 (listing_id, member_email, member_name, member_url, link_status)
-             VALUES
-                 (:listing_id, :email, :name, :url, :link_status)"
-        );
+        return ['synced' => count($rows), 'skipped' => $skipped];
+    }
 
-        foreach ($members as $m) {
-            $url = (string) ($m['url'] ?? '');
-            $insert->execute([
-                'listing_id'  => $listingId,
-                'email'       => (string) ($m['email'] ?? ''),
-                'name'        => (string) ($m['name']  ?? ''),
-                'url'         => $url,
-                'link_status' => $url === '' ? 'no_url' : 'unchecked',
-            ]);
+    /**
+     * Which members to store and which to skip (with why), both in the order they
+     * were read. See syncFromListing() for the rules.
+     *
+     * @param list<array<string, mixed>> $members Rows with email, name and url.
+     * @return array{rows: list<array{email: string, name: string, url: string}>, skipped: list<array{email: string, reason: string}>}
+     */
+    private static function chooseMembers(array $members): array
+    {
+        $candidates = [];
+        $reasons    = []; // index => why it's skipped
+        $groups     = []; // email, lowercased and trimmed => indexes
+
+        foreach (array_values($members) as $i => $member) {
+            $m = [
+                'email' => (string) ($member['email'] ?? ''),
+                'name'  => (string) ($member['name'] ?? ''),
+                'url'   => (string) ($member['url'] ?? ''),
+            ];
+            $candidates[$i] = $m;
+
+            if (trim($m['email']) === '') {
+                $reasons[$i] = 'No email address';
+            } elseif (mb_strlen($m['email'], 'UTF-8') > self::MAX_EMAIL) {
+                $reasons[$i] = 'Email address too long to check';
+            } elseif (mb_strlen($m['url'], 'UTF-8') > self::MAX_URL) {
+                $reasons[$i] = 'Website address too long to check';
+            } else {
+                $groups[mb_strtolower(trim($m['email']), 'UTF-8')][] = $i;
+            }
         }
 
-        return count($members);
+        $kept = [];
+        foreach ($groups as $indexes) {
+            usort($indexes, static fn(int $a, int $b): int => self::compareDuplicates($candidates[$a], $candidates[$b]));
+            $kept[array_shift($indexes)] = true;
+            foreach ($indexes as $i) {
+                $reasons[$i] = 'Same email as another member';
+            }
+        }
+
+        $rows    = [];
+        $skipped = [];
+        foreach ($candidates as $i => $m) {
+            if (isset($kept[$i])) {
+                $m['name'] = mb_substr($m['name'], 0, self::MAX_NAME, 'UTF-8');
+                $rows[]    = $m;
+            } else {
+                $skipped[] = ['email' => $m['email'], 'reason' => $reasons[$i]];
+            }
+        }
+
+        return ['rows' => $rows, 'skipped' => $skipped];
+    }
+
+    /**
+     * Orders members that share an email: one with a usable (non-blank) URL first, then
+     * name, email and URL compared byte by byte.
+     *
+     * @param array{email: string, name: string, url: string} $a
+     * @param array{email: string, name: string, url: string} $b
+     */
+    private static function compareDuplicates(array $a, array $b): int
+    {
+        $aHasUrl = trim($a['url']) !== '';
+        $bHasUrl = trim($b['url']) !== '';
+        if ($aHasUrl !== $bHasUrl) {
+            return $aHasUrl ? -1 : 1;
+        }
+
+        return strcmp($a['name'], $b['name'])
+            ?: strcmp($a['email'], $b['email'])
+            ?: strcmp($a['url'], $b['url']);
     }
 
     /** Fetches a single check record by its ID; returns null when not found. */

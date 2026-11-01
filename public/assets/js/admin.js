@@ -6111,6 +6111,51 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
     });
   });
 
+  // ── Members a scan skipped: one callout per listing in #lc-scan-notices ────
+  // Cloned from #lc-scan-notice-tpl and filled with textContent only (emails come
+  // from member tables). Callouts aren't lifted into toasts, so they stay until
+  // dismissed or the page is left.
+  function scanNoticeId(listingId) {
+    return 'lc-scan-notice-' + listingId;
+  }
+
+  function clearScanNotice(listingId) {
+    var old = document.getElementById(scanNoticeId(listingId));
+    if (old) old.remove();
+  }
+
+  function showScanNotice(data) {
+    var box = document.getElementById('lc-scan-notices');
+    var tpl = document.getElementById('lc-scan-notice-tpl');
+    if (!box || !tpl || !tpl.content || !tpl.content.firstElementChild) return;
+
+    var count   = parseInt(data.skipped, 10) || 0;
+    var members = Array.isArray(data.skipped_members) ? data.skipped_members : [];
+    var notice  = tpl.content.firstElementChild.cloneNode(true);
+    notice.id   = scanNoticeId(data.listing_id);
+
+    notice.querySelector('[data-notice-title]').textContent =
+      (data.listing_name || 'Listing') + ' (#' + data.listing_id + '): ' +
+      count + ' member' + (count !== 1 ? 's' : '') + ' skipped';
+
+    var list = notice.querySelector('[data-notice-list]');
+    members.forEach(function (m) {
+      var li = document.createElement('li');
+      li.textContent = (m.email ? m.email : '(no email)') + ' — ' + (m.reason || '');
+      list.appendChild(li);
+    });
+
+    var more = count - members.length;
+    notice.querySelector('[data-notice-more]').textContent = more > 0 ? 'and ' + more + ' more.' : '';
+
+    var old = document.getElementById(notice.id);
+    if (old) {
+      old.replaceWith(notice);
+    } else {
+      box.appendChild(notice);
+    }
+  }
+
   // ── Scan All Listings ────────────────────────────────────────────────────
   var scanAllBtn = document.getElementById('lc-scan-all-btn');
   if (scanAllBtn) {
@@ -6129,17 +6174,39 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
 
       var done    = 0;
       var total   = ids.length;
-      var skipped = 0;
+      var skipped = 0;   // listings with no member table
       var errors  = 0;
+      var membersSkipped    = 0; // members a scan couldn't store
+      var listingsWithSkips = 0;
 
       function scanNext() {
         if (done >= total) {
           var parts = ['Sync complete.'];
+          if (membersSkipped > 0) {
+            parts.push(membersSkipped + ' member' + (membersSkipped !== 1 ? 's' : '') + ' skipped in ' +
+              listingsWithSkips + ' listing' + (listingsWithSkips !== 1 ? 's' : '') + ' — details below.');
+          }
           if (skipped > 0) parts.push(skipped + ' skipped (no member table).');
           if (errors > 0) parts.push(errors + ' error' + (errors !== 1 ? 's' : '') + '.');
+          if (progBar) progBar.style.width = '100%';
+
+          if (membersSkipped > 0) {
+            // Something to read: no automatic reload, so the details stay on the page.
+            if (progLabel) progLabel.textContent = parts.join(' ');
+            if (progWrap && !document.getElementById('lc-scan-reload')) {
+              var reloadBtn = document.createElement('button');
+              reloadBtn.type        = 'button';
+              reloadBtn.id          = 'lc-scan-reload';
+              reloadBtn.className   = 'btn btn-secondary btn-xs';
+              reloadBtn.textContent = 'Reload page';
+              reloadBtn.addEventListener('click', function () { window.location.reload(); });
+              progWrap.appendChild(reloadBtn);
+            }
+            return;
+          }
+
           parts.push('Reloading…');
           if (progLabel) progLabel.textContent = parts.join(' ');
-          if (progBar)   progBar.style.width   = '100%';
           setTimeout(function () { window.location.reload(); }, 800);
           return;
         }
@@ -6161,6 +6228,12 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
               } else {
                 errors++;
               }
+            } else if ((parseInt(data.skipped, 10) || 0) > 0) {
+              membersSkipped    += parseInt(data.skipped, 10);
+              listingsWithSkips += 1;
+              showScanNotice(data);
+            } else if (data.listing_id !== undefined) {
+              clearScanNotice(data.listing_id);
             }
             done++;
             scanNext();
@@ -6223,12 +6296,26 @@ document.querySelectorAll('[data-clear-target]').forEach(function (btn) {
           setCell('.lc-ms-unchecked', fmtCell('unchecked', s.unchecked));
           setCell('.lc-ms-no-url',    fmtCell('no_url', s.no_url));
         }
+        if ((parseInt(data.skipped, 10) || 0) > 0) {
+          showScanNotice(data);
+        } else {
+          clearScanNotice(lid);
+        }
         btn.disabled    = false;
         btn.textContent = 'Scan';
       });
   });
 
 }());
+
+// ── Dismissible callouts ─────────────────────────────────────────────────────
+// A click on [data-dismiss-callout] removes the .callout around it.
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-dismiss-callout]');
+  if (!btn) return;
+  var callout = btn.closest('.callout');
+  if (callout) callout.remove();
+});
 
 // ── Embed snippet copy + code toggle ────────────────────────────────
 (function () {

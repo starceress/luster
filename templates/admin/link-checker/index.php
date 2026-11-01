@@ -181,6 +181,28 @@ $sumCell = static function (?array $ms, string $key): string {
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
+<?php
+  // Members the last Scan skipped. A callout, not an alert: alerts become 4-second
+  // toasts, and this is a list someone may need to act on.
+  $_scanSkipCount = (int) (($scan_skips ?? null)['count'] ?? 0);
+?>
+<?php if ($_scanSkipCount > 0): ?>
+  <div class="callout callout-warn">
+    <?= View::icon('alert') ?>
+    <div>
+      <strong><?= $_scanSkipCount ?> member<?= $_scanSkipCount === 1 ? ' was' : 's were' ?> skipped in this scan.</strong>
+      <ul style="margin:.35rem 0 0;padding-left:1.1rem">
+        <?php foreach ($scan_skips['members'] as $_skip): ?>
+          <li><?= (string) $_skip['email'] !== '' ? View::e((string) $_skip['email']) : '(no email)' ?> &mdash; <?= View::e((string) $_skip['reason']) ?></li>
+        <?php endforeach; ?>
+      </ul>
+      <?php if ((int) $scan_skips['more'] > 0): ?>
+        <span>and <?= (int) $scan_skips['more'] ?> more.</span>
+      <?php endif; ?>
+    </div>
+    <button type="button" class="btn btn-ghost btn-xs" data-dismiss-callout style="margin-left:auto">Dismiss</button>
+  </div>
+<?php endif; ?>
 
 <!-- ── TOOLBAR ────────────────────────────────────────────────────────────── -->
 <div class="toolbar">
@@ -323,6 +345,19 @@ $sumCell = static function (?array $ms, string $key): string {
       </div>
       <span class="lc-prog-label text-muted nowrap" id="lc-scan-prog-label">Preparing&hellip;</span>
     </div>
+    <!-- Members skipped by a per-row Scan or Scan All: one callout per listing, filled in by admin.js -->
+    <div id="lc-scan-notices"></div>
+    <template id="lc-scan-notice-tpl">
+      <div class="callout callout-warn">
+        <?= View::icon('alert') ?>
+        <div>
+          <strong data-notice-title></strong>
+          <ul data-notice-list style="margin:.35rem 0 0;padding-left:1.1rem"></ul>
+          <span data-notice-more></span>
+        </div>
+        <button type="button" class="btn btn-ghost btn-xs" data-dismiss-callout style="margin-left:auto">Dismiss</button>
+      </div>
+    </template>
 
     <!-- Check-all progress bar -->
     <div class="lc-progress-wrap is-hidden" id="lc-prog-members" style="margin-bottom:.75rem">
