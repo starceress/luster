@@ -91,6 +91,17 @@ final class ImportOptions
          * when the import runs, not here, so a bad value shows up as a preview error.
          */
         public readonly string $laSourceId           = '',
+        /**
+         * CodeSort only: the Source ID the admin typed, or '' to work it out from the
+         * install's image web address. Checked by CodeSortSourceKey when the import
+         * runs, not here, so a bad value shows up as a preview error.
+         */
+        public readonly string $csSourceId           = '',
+        /**
+         * CodeSort only: link codes an earlier CodeSort import saved without an
+         * import_ref, when they pair up exactly (see CodeSortImportSource).
+         */
+        public readonly bool   $csMatchEarlier       = false,
         /** Absolute path to a pre-uploaded ZIP file (mode=zip). Empty when not used. */
         public readonly string $zipPath              = '',
         // --- BellaBuffs-specific
@@ -256,6 +267,8 @@ final class ImportOptions
             schemaVariant:        (string) ($post['_dump_schema_variant'] ?? ''),
             laTablePrefix:        self::laTablePrefixFromPost($post),
             laSourceId:           $source === 'listing-admin' ? trim((string) ($post['la_source_id'] ?? '')) : '',
+            csSourceId:           $source === 'codesort' ? trim((string) ($post['cs_source_id'] ?? '')) : '',
+            csMatchEarlier:       $source === 'codesort' && !empty($post['cs_match_earlier']),
             zipPath:              (string) ($post['_zip_path']            ?? ''),
             bbTargetListingId:    $bbTargetListingId,
             bbImportApproved:     $bbImportApproved,

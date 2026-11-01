@@ -40,6 +40,10 @@ final class ListingAdminSourceKey
      */
     private const VALID_PATTERN = '/^[a-z0-9-]{1,36}$/';
 
+    /** Shown when a typed Source ID breaks the rule above (CodeSort's Source ID uses it too). */
+    public const INVALID_ID_MESSAGE = 'The Source ID can only use lowercase letters, numbers, and hyphens, '
+        . 'up to 36 characters (for example: old-collective).';
+
     /** Whether $key is a usable source key (worked-out keys always are). */
     public static function isValid(string $key): bool
     {
@@ -70,10 +74,7 @@ final class ListingAdminSourceKey
     {
         if ($override !== '') {
             if (!self::isValid($override)) {
-                throw new RuntimeException(
-                    'The Source ID can only use lowercase letters, numbers, and hyphens, '
-                    . 'up to 36 characters (for example: old-collective).'
-                );
+                throw new RuntimeException(self::INVALID_ID_MESSAGE);
             }
             return ['key' => $override, 'origin' => 'override'];
         }

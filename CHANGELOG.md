@@ -61,6 +61,41 @@ release page.
   real date just has no date, and a KIM sign-up or update gets the day you
   import it. A listing's "last updated" date also skips over bad member dates
   instead of copying one in.
+- **Running the CodeSort import again doesn't pile up extra sizes, donors and
+  categories anymore.** Picking "Update matching" skipped the check for ones
+  you already had, so every run added another set. Now both choices look for
+  what's already there first, and "Update matching" just copies over
+  CodeSort's size order. Two donors with the same name but different websites
+  stay two donors instead of getting merged, and if you gave a donor an email
+  in Luster, the import makes its own instead of using yours.
+- **Running the CodeSort import again doesn't add copies of your codes
+  either.** Each code now remembers which CodeSort code it came from, so Luster
+  finds it again even after its image was copied over under a new name. "Keep
+  existing" leaves it alone, and "Update matching" brings its approval, size,
+  donor and category up to date without copying the image again. (A code with
+  no category in CodeSort keeps the ones you gave it in Luster.) New codes go
+  after the ones a listing already has, instead of jumping to the top. Copies
+  that older imports already made stay put, so you can delete the extras on the
+  Codes page.
+- **Codes from an import before this update** don't remember where they came
+  from. If they came from this same CodeSort install, tick "Match codes from an
+  earlier CodeSort import" on the Options page and Luster links up the ones it
+  can pair exactly. Otherwise the preview tells you which ones might get added
+  a second time. Old codes whose images were already copied can't be matched
+  at all, so the import may add one more copy of those (just once). You can
+  delete the older ones on the Codes page.
+- If your CodeSort settings don't have a full web address for its images,
+  Luster can't tell your install apart from another one, so it asks for a
+  **Source ID** on the Options page before importing codes. Sizes, donors and
+  categories still come over without one.
+- **Codes that end up with no image get listed by name** on the results page,
+  along with how to fix them: delete them, then run the import again with a
+  working image path, web address or ZIP. Just know that deleting a code also
+  removes anything you changed on it in Luster.
+- **CodeSort import errors actually show up now.** The results page could say
+  "Completed with Errors" without ever saying what went wrong, and the
+  downloaded report didn't either. Now each problem is listed, like which code
+  or image file it was and why.
 
 
 ### [1.0.0-3] — 2026-10-30

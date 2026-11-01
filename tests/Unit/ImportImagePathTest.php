@@ -750,7 +750,8 @@ final class ImportImagePathTest extends TestCase
             size_id INTEGER NULL, donor_id INTEGER NULL,
             sort_order INTEGER NOT NULL DEFAULT 0,
             status TEXT NOT NULL DEFAULT 'approved',
-            submitter_name TEXT NULL, submitter_email TEXT NULL, submitter_url TEXT NULL)");
+            submitter_name TEXT NULL, submitter_email TEXT NULL, submitter_url TEXT NULL,
+            import_ref TEXT NULL UNIQUE, import_source_file TEXT NULL)");
         $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_code_categories
             (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL,
              name TEXT NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0)");
@@ -772,10 +773,10 @@ final class ImportImagePathTest extends TestCase
             'image_mode'           => 'path',
             'image_path'           => $imgDir,  // the images_folder value
             '_dump_schema_variant' => 'codesort_prefixed',
+            'cs_source_id'         => 'image-path-test',
         ]);
 
-        $adapter = new CodeSortImportSource();
-        $this->injectPublicDir($adapter, $this->publicDir());
+        $adapter = new CodeSortImportSource($this->publicDir());
         $result  = $adapter->run($src, $tgt, $opts);
 
         $codeRow = $this->findRow($result->rows, 'Codes');
@@ -823,7 +824,8 @@ final class ImportImagePathTest extends TestCase
             width INTEGER NOT NULL DEFAULT 0, height INTEGER NOT NULL DEFAULT 0,
             size_id INTEGER NULL, donor_id INTEGER NULL, sort_order INTEGER NOT NULL DEFAULT 0,
             status TEXT NOT NULL DEFAULT 'approved',
-            submitter_name TEXT NULL, submitter_email TEXT NULL, submitter_url TEXT NULL)");
+            submitter_name TEXT NULL, submitter_email TEXT NULL, submitter_url TEXT NULL,
+            import_ref TEXT NULL UNIQUE, import_source_file TEXT NULL)");
         $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_code_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, name TEXT NOT NULL DEFAULT '', sort_order INTEGER NOT NULL DEFAULT 0)");
         $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_code_sizes (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, name TEXT NOT NULL DEFAULT '', width INTEGER NOT NULL DEFAULT 0, height INTEGER NOT NULL DEFAULT 0)");
         $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_code_donors (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, name TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '')");
@@ -838,10 +840,10 @@ final class ImportImagePathTest extends TestCase
             'image_mode'           => 'path',
             'image_path'           => $imgDir,
             '_dump_schema_variant' => 'codesort_prefixed',
+            'cs_source_id'         => 'image-path-test',
         ]);
 
-        $adapter = new CodeSortImportSource();
-        $this->injectPublicDir($adapter, $this->publicDir());
+        $adapter = new CodeSortImportSource($this->publicDir());
         $result  = $adapter->run($src, $tgt, $opts);
 
         // With the fix: image is found in $imgDir/item.png

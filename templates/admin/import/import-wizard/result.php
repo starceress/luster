@@ -244,10 +244,38 @@ $hasErr  = $result->hasErrors();
   </div>
 </div>
 
-<?php if (empty($result->imageRows) && $result->totalImported() > 0): ?>
+<?php
+  // CodeSort checks each code's image itself and lists only the ones without one, so the
+  // generic note (which can't tell) isn't shown for it.
+  $missingImages = [];
+  if ($source === 'codesort') {
+      foreach ($result->rows as $row) {
+          $missingImages = array_merge($missingImages, $row['missing_images'] ?? []);
+      }
+  }
+  $missingShown = array_slice($missingImages, 0, 20);
+?>
+<?php if ($source !== 'codesort' && empty($result->imageRows) && $result->totalImported() > 0): ?>
   <div class="callout callout-warn">
     <?= View::icon('alert') ?>
     <div><strong>No images were migrated.</strong> To copy images too, <a href="<?= $b ?>/admin/import/<?= $src ?>/connect" class="link">run the import again</a> and provide a server path, old site URL, or ZIP of your image folder.</div>
+  </div>
+<?php endif; ?>
+<?php if ($missingImages !== []): ?>
+  <div class="callout callout-warn">
+    <?= View::icon('alert') ?>
+    <div>
+      <strong><?= count($missingImages) === 1 ? '1 code has' : number_format(count($missingImages)) . ' codes have' ?> no image yet.</strong>
+      <ul style="margin:.35rem 0 0;padding-left:1.1rem">
+        <?php foreach ($missingShown as $label): ?>
+          <li><?= View::e($label) ?></li>
+        <?php endforeach; ?>
+      </ul>
+      <?php if (count($missingImages) > count($missingShown)): ?>
+        <span>&hellip; and <?= number_format(count($missingImages) - count($missingShown)) ?> more &mdash; <a href="<?= $b ?>/admin/import/<?= $src ?>/report" class="link">download the full report</a>.</span>
+      <?php endif; ?>
+      <p style="margin:.5rem 0 0"><strong>To get their images:</strong> <?= View::e(ImportResult::MISSING_IMAGES_ADVICE) ?></p>
+    </div>
   </div>
 <?php endif; ?>
 <!-- ──── ACTIONS ────────────────────────────────────────────────────── -->

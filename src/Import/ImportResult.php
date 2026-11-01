@@ -24,6 +24,19 @@ namespace Luster\Import;
 final class ImportResult
 {
     /**
+     * What to do about the codes in a row's missing_images, after "To get their images:".
+     * Shown on the result page and in the report; only the CodeSort importer lists them.
+     */
+    public const MISSING_IMAGES_ADVICE = 'delete these codes on each listing\'s Codes page (you can tick several '
+        . 'and delete them together), then run the import again with a working image path, web address or ZIP. '
+        . 'They\'ll come back as new codes, with their images. Deleting a code also removes anything you changed '
+        . 'on it in Luster since the import — such as a name you gave it, its categories or its place in the '
+        . 'order. The new copy has only what CodeSort has.';
+
+    /**
+     * A row may also have missing_images (string[]): codes that were imported or matched
+     * but have no image file, one label each, e.g. "Moonlight: moon-a.png (code #41)".
+     *
      * @param list<array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<array{label:string,reason:string}>}> $rows
      * @param list<array{type:string,copied:int,skipped:int,errors:string[]}>                     $imageRows
      * @param float  $duration  Elapsed seconds
@@ -111,6 +124,13 @@ final class ImportResult
             }
             foreach ($row['skipped_items'] ?? [] as $si) {
                 $lines[] = '  SKIPPED: ' . $si['label'] . ' — ' . $si['reason'];
+            }
+            $missingImages = $row['missing_images'] ?? [];
+            foreach ($missingImages as $label) {
+                $lines[] = '  NO IMAGE: ' . $label;
+            }
+            if ($missingImages !== []) {
+                $lines[] = '  To get their images: ' . self::MISSING_IMAGES_ADVICE;
             }
         }
 

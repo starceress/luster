@@ -27,6 +27,7 @@ use Luster\Import\FanaticallyTemplateTranslator;
 use Luster\Import\FanUpdateImportSource;
 use Luster\Import\ImageMigrator;
 use Luster\Import\ListingAdminImportSource;
+use Luster\Import\CodeSortSourceKey;
 use Luster\Import\ListingAdminSourceKey;
 use Luster\Import\ImportOptions;
 use Luster\Import\ImportSourceInterface;
@@ -600,6 +601,10 @@ final class ImportController extends AdminController
         $laKnownSources = $source === 'listing-admin'
             ? ListingAdminSourceKey::knownSources($this->app->getDatabase()->pdo())
             : [];
+        // The same for CodeSort (see CodeSortSourceKey).
+        $csKnownSources = $source === 'codesort'
+            ? CodeSortSourceKey::knownSources($this->app->getDatabase()->pdo())
+            : [];
 
         return $this->adminLayout('admin/import/import-wizard/options.php', 'Import Options', 'import', [
             'source'           => $source,
@@ -609,6 +614,7 @@ final class ImportController extends AdminController
             'zip_url'          => $baseUrl . "/admin/import/{$source}/zip-upload",
             'enth_networks'    => $enthNetworks,
             'la_known_sources' => $laKnownSources,
+            'cs_known_sources' => $csKnownSources,
             'la_installs'      => $source === 'listing-admin'
                 ? (array) ($session->get(self::SESSION_LA_INSTALLS) ?? [])
                 : [],

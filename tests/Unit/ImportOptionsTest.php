@@ -54,4 +54,21 @@ final class ImportOptionsTest extends TestCase
 
         self::assertSame('zip', $opts->imageMode);
     }
+
+    public function testCodeSortSourceIdAndMatchOptionAreReadForCodeSortOnly(): void
+    {
+        $post = ['cs_source_id' => ' old-codes ', 'cs_match_earlier' => '1'];
+
+        $codesort = ImportOptions::fromPost(['source' => 'codesort'] + $post);
+        self::assertSame('old-codes', $codesort->csSourceId);
+        self::assertTrue($codesort->csMatchEarlier);
+
+        $unticked = ImportOptions::fromPost(['source' => 'codesort']);
+        self::assertSame('', $unticked->csSourceId);
+        self::assertFalse($unticked->csMatchEarlier);
+
+        $other = ImportOptions::fromPost(['source' => 'listing-admin'] + $post);
+        self::assertSame('', $other->csSourceId);
+        self::assertFalse($other->csMatchEarlier);
+    }
 }

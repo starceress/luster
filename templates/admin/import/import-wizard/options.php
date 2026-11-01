@@ -179,6 +179,32 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
     </div>
     <?php endif; ?>
 
+    <?php if ($source === 'codesort'): ?>
+    <?php $csKnownSources = $cs_known_sources ?? []; ?>
+    <div class="card-body">
+      <div class="section-label">Source ID <span style="font-size:var(--fs-sm);text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-dim);margin-left:.4rem">(optional)</span></div>
+      <div class="card-body">
+        <input id="cs_source_id" type="text" name="cs_source_id" class="form" style="max-width:220px"
+               placeholder="old-collective" maxlength="36" autocomplete="off"
+               <?= !empty($csKnownSources) ? 'list="cs-known-sources"' : '' ?>
+               value="<?= scopeOld($old, 'cs_source_id') ?>">
+        <p class="form-hint" style="margin-top:.35rem">Usually leave this blank &mdash; Luster works it out from your CodeSort install's image web address. Fill it in if there isn't one, if it changed since an earlier import, or if you're importing more than one CodeSort install. Lowercase letters, numbers, and hyphens, up to 36 characters.</p>
+        <?php if (!empty($csKnownSources)): ?>
+        <datalist id="cs-known-sources">
+          <?php foreach ($csKnownSources as $knownSource): ?>
+            <option value="<?= View::e($knownSource['key']) ?>">
+          <?php endforeach; ?>
+        </datalist>
+        <p class="form-hint">Used by earlier imports:
+          <?php foreach ($csKnownSources as $i => $knownSource): ?>
+            <?= $i > 0 ? '&middot;' : '' ?> <code><?= View::e($knownSource['key']) ?></code> (<?= (int) $knownSource['codes'] ?> code<?= (int) $knownSource['codes'] === 1 ? '' : 's' ?>)
+          <?php endforeach; ?>
+        </p>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <!-- ── Conflict strategy ─────────────────────────────────── -->
     <div class="card-body">
       <div class="section-label">If a record already exists in Luster</div>
@@ -433,6 +459,14 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
           <div class="import-chk">
             <input type="checkbox" name="import_codes" value="1" <?= scopeChecked($old, 'import_codes') ?>>
             <div class="import-chk-body"><label class="import-chk-lbl">Codes (fan graphics)</label></div>
+          </div>
+          <div class="import-chk">
+            <?php /* Off by default, unlike the boxes above: only the admin knows where earlier codes came from. */ ?>
+            <input type="checkbox" name="cs_match_earlier" value="1" id="ck-cs-match-earlier" <?= !empty($old['cs_match_earlier']) ? 'checked' : '' ?>>
+            <div class="import-chk-body">
+              <label class="import-chk-lbl" for="ck-cs-match-earlier">Match codes from an earlier CodeSort import</label>
+              <div class="import-chk-sub">Codes imported before this update don't record which CodeSort install they came from. Tick this only if this Luster's earlier CodeSort codes came from <em>this</em> CodeSort install. Luster then links each one it can pair up exactly (same listing, same file) instead of adding it again. The preview lists them first.</div>
+            </div>
           </div>
         <?php endif; ?>
 
