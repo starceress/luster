@@ -6,13 +6,15 @@ namespace Luster\Tests\Unit;
 
 use Luster\Core\Config;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\MemberRepo;
 use Luster\Tests\Unit\Support\SqliteDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for per-listing join settings:
- *  - ListingSettingsRepo::getJoinSettings() / saveJoinSettings() round-trips
- *  - Approval flag logic (auto-approve vs. manual pending)
+ *  - ListingSettingsRepo::getJoinSettings() round-trips
+ *  - MemberRepo::pendingJoinColumns(): every new join waits for approval, on
+ *    both schemas (JoinController::submit() merges these into the new row)
  *  - Confirmation email tri-state precedence
  *  - Generated password always triggers email regardless of override
  */
@@ -21,8 +23,37 @@ final class JoinSettingsTest extends TestCase
     private const DDL = <<<SQL
 CREATE TABLE lstr_fanlisting_settings (
     fanlisting_id             INTEGER PRIMARY KEY,
-    join_confirmation_email   INTEGER NULL DEFAULT NULL,
-    auto_approve_joins        INTEGER NOT NULL DEFAULT 0
+    join_confirmation_email   INTEGER NULL DEFAULT NULL
+)
+SQL;
+
+    /** Unprefixed schema: the listing's dbtable is the member table itself. */
+    private const OWNED_MEMBERS_DDL = <<<SQL
+CREATE TABLE fl_test (
+    email    TEXT    NOT NULL PRIMARY KEY,
+    name     TEXT    NOT NULL DEFAULT '',
+    country  TEXT    NOT NULL DEFAULT '',
+    url      TEXT    NOT NULL DEFAULT '',
+    password TEXT    NOT NULL DEFAULT '',
+    showurl  INTEGER NOT NULL DEFAULT 1,
+    added    TEXT    NULL,
+    pending  INTEGER NOT NULL DEFAULT 0
+)
+SQL;
+
+    /** Standard schema: the member table is {dbprefix}members. */
+    private const ENTH_MEMBERS_DDL = <<<SQL
+CREATE TABLE fl_test_members (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    email    TEXT    NOT NULL DEFAULT '',
+    name     TEXT    NOT NULL DEFAULT '',
+    country  TEXT    NOT NULL DEFAULT '',
+    url      TEXT    NOT NULL DEFAULT '',
+    password TEXT    NOT NULL DEFAULT '',
+    showurl  INTEGER NOT NULL DEFAULT 1,
+    added    TEXT    NULL,
+    approved INTEGER NOT NULL DEFAULT 1,
+    updated  TEXT    NULL
 )
 SQL;
 
@@ -36,30 +67,26 @@ SQL;
 
         $result = $repo->getJoinSettings(99);
 
-        self::assertNull($result['confirmation_email']);
-        self::assertFalse($result['auto_approve']);
+        self::assertSame(['confirmation_email' => null], $result);
     }
 
     public function testGetJoinSettingsReturnsNullConfirmEmail(): void
     {
         [$db, $repo] = $this->makeRepoWithDb();
         $db->pdo()->exec(
-            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email, auto_approve_joins)
-             VALUES (1, NULL, 0)'
+            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email)
+             VALUES (1, NULL)'
         );
 
-        $result = $repo->getJoinSettings(1);
-
-        self::assertNull($result['confirmation_email']);
-        self::assertFalse($result['auto_approve']);
+        self::assertSame(['confirmation_email' => null], $repo->getJoinSettings(1));
     }
 
     public function testGetJoinSettingsReturnsTrueConfirmEmail(): void
     {
         [$db, $repo] = $this->makeRepoWithDb();
         $db->pdo()->exec(
-            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email, auto_approve_joins)
-             VALUES (1, 1, 0)'
+            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email)
+             VALUES (1, 1)'
         );
 
         self::assertTrue($repo->getJoinSettings(1)['confirmation_email']);
@@ -69,51 +96,42 @@ SQL;
     {
         [$db, $repo] = $this->makeRepoWithDb();
         $db->pdo()->exec(
-            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email, auto_approve_joins)
-             VALUES (1, 0, 0)'
+            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email)
+             VALUES (1, 0)'
         );
 
         self::assertFalse($repo->getJoinSettings(1)['confirmation_email']);
     }
 
-    public function testGetJoinSettingsReturnsAutoApproveTrue(): void
-    {
-        [$db, $repo] = $this->makeRepoWithDb();
-        $db->pdo()->exec(
-            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email, auto_approve_joins)
-             VALUES (1, NULL, 1)'
-        );
-
-        self::assertTrue($repo->getJoinSettings(1)['auto_approve']);
-    }
-
-    public function testGetJoinSettingsBothFlagsSet(): void
-    {
-        [$db, $repo] = $this->makeRepoWithDb();
-        $db->pdo()->exec(
-            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email, auto_approve_joins)
-             VALUES (1, 0, 1)'
-        );
-
-        $result = $repo->getJoinSettings(1);
-        self::assertFalse($result['confirmation_email']);
-        self::assertTrue($result['auto_approve']);
-    }
-
     // -----------------------------------------------------------------------
-    // Approval flag — pending value for unprefixed schema
+    // New joins always wait for approval (no auto-approve), on both schemas
     // -----------------------------------------------------------------------
 
-    public function testManualApprovalGivesPendingOne(): void
+    public function testNewJoinIsPendingOnUnprefixedSchema(): void
     {
-        // auto_approve = false → pending = 1 (queued for review)
-        self::assertSame(1, $this->pendingValue(autoApprove: false));
+        $repo = $this->makeMemberRepo(self::OWNED_MEMBERS_DDL, '');
+
+        self::assertSame(['pending' => 1], $repo->pendingJoinColumns());
+
+        $repo->insert('fl_test', $this->newJoinRow($repo));
+
+        self::assertCount(1, $repo->getPending('fl_test'));
+        self::assertCount(0, $repo->getApproved('fl_test'));
     }
 
-    public function testAutoApprovalGivesPendingZero(): void
+    public function testNewJoinIsPendingOnStandardSchema(): void
     {
-        // auto_approve = true → pending = 0 (immediately visible)
-        self::assertSame(0, $this->pendingValue(autoApprove: true));
+        $repo = $this->makeMemberRepo(self::ENTH_MEMBERS_DDL, 'enth_');
+
+        $columns = $repo->pendingJoinColumns();
+        self::assertSame(0, $columns['approved']);
+        self::assertArrayHasKey('updated', $columns);
+        self::assertArrayNotHasKey('pending', $columns);
+
+        $repo->insert('fl_test_', $this->newJoinRow($repo));
+
+        self::assertCount(1, $repo->getPending('fl_test_'));
+        self::assertCount(0, $repo->getApproved('fl_test_'));
     }
 
     // -----------------------------------------------------------------------
@@ -151,21 +169,41 @@ SQL;
     // -----------------------------------------------------------------------
 
     /**
-     * Mirrors the approval-flag logic in JoinController::submit() for the
-     * unprefixed schema (pending=0 approved, pending=1 queued).
-     */
-    private function pendingValue(bool $autoApprove): int
-    {
-        return $autoApprove ? 0 : 1;
-    }
-
-    /**
      * Mirrors the send-confirmation decision in JoinController::submit().
      */
     private function decideSend(bool $wasGenerated, ?bool $override, bool $sendInfo): bool
     {
         return $wasGenerated
             || ($override !== null ? $override : $sendInfo);
+    }
+
+    /**
+     * The row JoinController::submit() builds for a new member: the form's
+     * columns plus MemberRepo::pendingJoinColumns().
+     *
+     * @return array<string, int|string>
+     */
+    private function newJoinRow(MemberRepo $repo): array
+    {
+        return array_merge([
+            'name'     => 'New Fan',
+            'email'    => 'new@example.com',
+            'url'      => '',
+            'country'  => 'Canada',
+            'showurl'  => 0,
+            'password' => 'hash',
+            'added'    => date('Y-m-d H:i:s'),
+        ], $repo->pendingJoinColumns());
+    }
+
+    private function makeMemberRepo(string $ddl, string $enthTablePrefix): MemberRepo
+    {
+        $path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lstr_test_cfg_' . uniqid('', true) . '.php';
+        file_put_contents($path, '<?php return ' . var_export(['enth_table_prefix' => $enthTablePrefix], true) . ';');
+        $config = new Config($path);
+        unlink($path);
+
+        return new MemberRepo(SqliteDatabase::make($ddl), $config);
     }
 
     private function makeRepo(): ListingSettingsRepo

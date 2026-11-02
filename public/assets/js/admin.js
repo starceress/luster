@@ -767,7 +767,7 @@ document.addEventListener('click', function (e) {
     var rows = document.getElementById('cat-rows');
     if (rows && typeof addCatRow === 'function') { rows.innerHTML = ''; addCatRow(); }
     var statusSel = document.querySelector('select[name="status"]');
-    if (statusSel) statusSel.value = 'joined';
+    if (statusSel) statusSel.value = 'approved';
   });
 }());
 

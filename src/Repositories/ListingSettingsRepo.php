@@ -8,7 +8,7 @@
  schema: template overrides (stats, members, affiliates, codes, updates,
  join form, etc.), embed URL paths, per-listing DB credentials, image
  filenames, last-updated dates, TFL/TAFL approval status, join settings
- (auto-approve, confirmation email), contact form settings, adoption flags,
+ (confirmation email), contact form settings, adoption flags,
  affiliate application settings, and listing descriptions. Also provides
  the built-in default templates used as fallbacks when no override is stored.
 */
@@ -1788,71 +1788,51 @@ final class ListingSettingsRepo
      * confirmation_email: null = inherit (follow fan's send_info preference),
      *                     true = always send optional confirmation,
      *                     false = suppress optional confirmation.
-     * auto_approve: false = manual approval required (default), true = auto-approve.
+     *
+     * (There's no auto-approve setting: every new join waits for approval.
+     * Migration 106 removed the old auto_approve_joins column.)
      *
      * Requires Migration 50.
      *
-     * @return array{confirmation_email: bool|null, auto_approve: bool}
+     * @return array{confirmation_email: bool|null}
      */
     public function getJoinSettings(int $listingId): array
     {
         try {
             $stmt = $this->db->prepare(
-                'SELECT join_confirmation_email, auto_approve_joins
+                'SELECT join_confirmation_email
                  FROM lstr_fanlisting_settings
                  WHERE fanlisting_id = :id'
             );
             $stmt->execute(['id' => $listingId]);
             $row = $stmt->fetch();
         } catch (\Exception) {
-            return ['confirmation_email' => null, 'auto_approve' => false];
+            return ['confirmation_email' => null];
         }
 
         if ($row === false) {
-            return ['confirmation_email' => null, 'auto_approve' => false];
+            return ['confirmation_email' => null];
         }
 
         $confirmEmail = $row['join_confirmation_email'] !== null
             ? (bool) $row['join_confirmation_email']
             : null;
 
-        return [
-            'confirmation_email' => $confirmEmail,
-            'auto_approve'       => (bool) $row['auto_approve_joins'],
-        ];
+        return ['confirmation_email' => $confirmEmail];
     }
 
-    /**
-     * Saves the per-listing auto-approve-joins flag. Requires Migration 50.
-     */
-    public function saveAutoApproveJoins(int $listingId, bool $autoApprove): void
+    public function saveJoinSettings(int $listingId, ?bool $confirmEmail): void
     {
         try {
             $stmt = $this->db->prepare(
-                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, auto_approve_joins)
-                 VALUES (:id, :auto)
-                 ON DUPLICATE KEY UPDATE auto_approve_joins = VALUES(auto_approve_joins)'
-            );
-            $stmt->execute(['id' => $listingId, 'auto' => (int) $autoApprove]);
-        } catch (\Exception) {
-            // Migration 50 not run yet
-        }
-    }
-
-    public function saveJoinSettings(int $listingId, ?bool $confirmEmail, bool $autoApprove): void
-    {
-        try {
-            $stmt = $this->db->prepare(
-                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email, auto_approve_joins)
-                 VALUES (:id, :confirm, :auto)
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email)
+                 VALUES (:id, :confirm)
                  ON DUPLICATE KEY UPDATE
-                     join_confirmation_email = VALUES(join_confirmation_email),
-                     auto_approve_joins      = VALUES(auto_approve_joins)'
+                     join_confirmation_email = VALUES(join_confirmation_email)'
             );
             $stmt->execute([
                 'id'      => $listingId,
                 'confirm' => $confirmEmail !== null ? (int) $confirmEmail : null,
-                'auto'    => (int) $autoApprove,
             ]);
         } catch (\Exception) {
             // Migration 50 not run yet

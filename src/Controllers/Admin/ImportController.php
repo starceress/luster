@@ -1609,6 +1609,7 @@ final class ImportController extends AdminController
                 'unsupported_structure' => $result->unsupportedStructure,
                 'target_template_key'   => $result->targetTemplateKey,
                 'importable'            => $result->importable,
+                'manual_only_reason'    => $result->manualOnlyReason,
                 'changed_from_default'  => $cmpResult !== 'matches_default',
                 'key_scope'             => $result->importable ? $this->getTemplateKeyScope($result->targetTemplateKey) : null,
             ];
@@ -1644,6 +1645,11 @@ final class ImportController extends AdminController
             return Response::redirect($b . '/admin/import/fanatically/templates');
         }
 
+        // templateApply() redirects back here with its errors (nothing selected,
+        // a database error, or files that changed since the preview), so show them.
+        $error = (string) ($session->get('lstr_flash_error') ?? '');
+        $session->remove('lstr_flash_error');
+
         $db       = $this->app->getDatabase();
         $listings = (new ListingRepo($db, $this->app->getConfig()))->getAll();
 
@@ -1651,6 +1657,7 @@ final class ImportController extends AdminController
             'translations' => $payload['translations'],
             'rejected'     => $payload['rejected'],
             'listings'     => $listings,
+            'error'        => $error,
         ]);
     }
 
@@ -1721,6 +1728,19 @@ final class ImportController extends AdminController
         $savedCollective = 0;
         $savedListing    = 0;
 
+        // The preview is saved for an hour, and Luster may have been updated in
+        // between. So each selected file is translated again with today's rules,
+        // and only imported when it's still allowed AND comes out exactly as the
+        // owner saw it in the preview. Anything else is skipped and reported.
+        $translator    = new FanaticallyTemplateTranslator();
+        $entriesByPath = [];
+        foreach ((array) ($payload['entries'] ?? []) as $entry) {
+            if (is_array($entry) && isset($entry['sourcePath'])) {
+                $entriesByPath[(string) $entry['sourcePath']] = $entry;
+            }
+        }
+        $changedSincePreview = [];
+
         $db->beginTransaction();
         try {
             foreach ($selected as $path) {
@@ -1733,8 +1753,21 @@ final class ImportController extends AdminController
                     continue;
                 }
 
-                $key      = $t['target_template_key'];
-                $content  = $t['translated_content'];
+                $entry   = $entriesByPath[$path] ?? null;
+                $current = $entry !== null
+                    ? $translator->translate($path, (string) ($entry['category'] ?? ''), (string) ($entry['content'] ?? ''))
+                    : null;
+                if ($current === null
+                    || !$current->importable
+                    || $current->targetTemplateKey !== $t['target_template_key']
+                    || $current->translatedContent !== $t['translated_content']
+                ) {
+                    $changedSincePreview[] = basename($path);
+                    continue;
+                }
+
+                $key      = $current->targetTemplateKey;
+                $content  = $current->translatedContent;
                 $keyScope = $this->getTemplateKeyScope($key);
 
                 if ($keyScope === 'collective') {
@@ -1781,10 +1814,22 @@ final class ImportController extends AdminController
             return Response::redirect($b . '/admin/import/fanatically/templates/preview');
         }
 
+        $changedNote = $changedSincePreview === [] ? '' : sprintf(
+            '%d template%s couldn\'t be imported because Luster\'s import rules changed since you uploaded the ZIP: %s. Upload the ZIP again to see the current preview.',
+            count($changedSincePreview),
+            count($changedSincePreview) === 1 ? '' : 's',
+            implode(', ', $changedSincePreview),
+        );
+
         $totalSaved = $savedCollective + $savedListing;
         if ($totalSaved === 0) {
-            $session->set('lstr_flash_error', 'No templates were applied. Select a listing for per-listing and email templates.');
+            $session->set('lstr_flash_error', $changedNote !== ''
+                ? $changedNote
+                : 'No templates were applied. Select a listing for per-listing and email templates.');
             return Response::redirect($b . '/admin/import/fanatically/templates/preview');
+        }
+        if ($changedNote !== '') {
+            $session->set('lstr_flash_error', $changedNote);
         }
 
         // Clean up temp file on success.

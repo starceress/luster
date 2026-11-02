@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Luster\Tests\Unit;
 
+use Luster\Core\Config;
+use Luster\Core\Database;
 use Luster\Core\FieldRenderer;
 use Luster\Core\FieldWrapper;
 use Luster\Import\FanaticallyImportSource;
 use Luster\Import\ImportOptions;
 use Luster\Models\AdditionalField;
+use Luster\Repositories\JoinedListingRepo;
 use Luster\Support\FormFieldBuilder;
 use PDO;
 use PHPUnit\Framework\TestCase;
@@ -19,7 +22,8 @@ use PHPUnit\Framework\TestCase;
  *   Fix 1 — approved_by stored as '' not null for unapproved listings
  *   Fix 2 — notify_member_on_join=1 → join_confirmation_email IS NULL;
  *            notify_member_on_join=0 → join_confirmation_email=0
- *   Fix 3 — hold_for_approval absent → auto_approve_joins=1 (Fanatically default = auto)
+ *   Fix 3 — hold_for_approval off or absent (Fanatically approves joins automatically)
+ *            → a note that Luster holds every new join for approval
  *   Fix 4 — for_adoption value imported into lstr_fanlisting_settings
  *
  * Plus joined-status mapping and multi-category categories_json.
@@ -44,6 +48,21 @@ final class FanaticallyImportSourceTest extends TestCase
     private function adapter(): FanaticallyImportSource
     {
         return new FanaticallyImportSource();
+    }
+
+    /** Wraps a raw test PDO in a Database so repositories can read the target. */
+    private function wrapPdo(PDO $pdo): Database
+    {
+        $cfgPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lstr_fan_cfg_' . uniqid('', true) . '.php';
+        file_put_contents($cfgPath, '<?php return [];');
+        $db = new Database(new Config($cfgPath));
+        unlink($cfgPath);
+
+        $prop = new \ReflectionProperty(Database::class, 'pdo');
+        $prop->setAccessible(true);
+        $prop->setValue($db, $pdo);
+
+        return $db;
     }
 
     private function makeOptions(array $overrides = []): ImportOptions
@@ -138,7 +157,6 @@ final class FanaticallyImportSourceTest extends TestCase
                 last_updated           DATE    NULL,
                 approved_by            TEXT    NOT NULL DEFAULT \'\',
                 queue_updates          INTEGER NOT NULL DEFAULT 0,
-                auto_approve_joins     INTEGER NOT NULL DEFAULT 0,
                 join_confirmation_email INTEGER NULL,
                 for_adoption           INTEGER NOT NULL DEFAULT 0,
                 members_per_page       INTEGER NOT NULL DEFAULT 25,
@@ -168,7 +186,7 @@ final class FanaticallyImportSourceTest extends TestCase
                 category_id      INTEGER NULL,
                 date_joined      DATE    NULL,
                 active           INTEGER NOT NULL DEFAULT 1,
-                status           TEXT    NOT NULL DEFAULT \'joined\',
+                status           TEXT    NOT NULL DEFAULT \'approved\',
                 sort_order       INTEGER NOT NULL DEFAULT 0,
                 link_status      TEXT    NOT NULL DEFAULT \'unchecked\',
                 link_checked_at  TEXT    NULL,
@@ -398,58 +416,106 @@ final class FanaticallyImportSourceTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // Fix 3 — hold_for_approval default
+    // Fix 3 — hold_for_approval: Luster always holds new joins, so the owner
+    // is told when Fanatically was approving them automatically
     // -----------------------------------------------------------------------
 
-    public function testHoldForApprovalAbsentDefaultsToAutoApprove(): void
+    /** @return list<string> every warning from preview (all rows) */
+    private function previewWarnings(PDO $src, PDO $tgt, ImportOptions $opts): array
+    {
+        $warnings = [];
+        foreach ($this->adapter()->preview($src, $tgt, $opts)->rows as $row) {
+            $warnings = array_merge($warnings, $row['warnings'] ?? []);
+        }
+        return $warnings;
+    }
+
+    /** @return list<string> warnings on the Owned Listings result row */
+    private function ownedListingsRunWarnings(PDO $src, PDO $tgt, ImportOptions $opts): array
+    {
+        foreach ($this->adapter()->run($src, $tgt, $opts)->rows as $row) {
+            if ($row['type'] === 'Owned Listings') {
+                return $row['warnings'];
+            }
+        }
+        return [];
+    }
+
+    /** @return array<string, array{0: array<string,string>, 1: bool}> */
+    public static function holdForApprovalProvider(): array
+    {
+        return [
+            'absent (Fanatically default)' => [[], true],
+            'off'                          => [['hold_for_approval' => '0'], true],
+            'on'                           => [['hold_for_approval' => '1'], false],
+        ];
+    }
+
+    /**
+     * @dataProvider holdForApprovalProvider
+     * @param array<string,string> $settings
+     */
+    public function testHoldForApprovalNoteInPreviewAndResults(array $settings, bool $expectNote): void
     {
         $src = $this->makePdo();
         $tgt = $this->makePdo();
-        $this->seedFanaticallySource($src); // no hold_for_approval row
+        $this->seedFanaticallySource($src, $settings);
         $this->seedTarget($tgt);
-
         $this->insertListing($src, 'https://example.com/fl/');
 
         $opts = $this->makeOptions(['import_listings' => '1']);
-        $this->adapter()->run($src, $tgt, $opts);
 
-        $row = $tgt->query('SELECT auto_approve_joins FROM lstr_fanlisting_settings LIMIT 1')->fetch();
-        self::assertSame('1', (string) $row['auto_approve_joins'],
-            'Absent hold_for_approval (Fanatically default=0=auto) should produce auto_approve_joins=1');
+        $hasNote = static fn(array $warnings): bool => array_filter(
+            $warnings,
+            static fn(string $w): bool => str_contains($w, 'Luster holds every new join for approval'),
+        ) !== [];
+
+        self::assertSame($expectNote, $hasNote($this->previewWarnings($src, $tgt, $opts)), 'preview note');
+        self::assertSame($expectNote, $hasNote($this->ownedListingsRunWarnings($src, $tgt, $opts)), 'results note');
+
+        // The listing settings row is still written without any auto-approve column.
+        $count = (int) $tgt->query('SELECT COUNT(*) FROM lstr_fanlisting_settings')->fetchColumn();
+        self::assertSame(1, $count, 'listing settings should be written');
     }
 
-    public function testHoldForApprovalOneProducesManualApproval(): void
-    {
-        $src = $this->makePdo();
-        $tgt = $this->makePdo();
-        $this->seedFanaticallySource($src, ['hold_for_approval' => '1']);
-        $this->seedTarget($tgt);
-
-        $this->insertListing($src, 'https://example.com/fl/');
-
-        $opts = $this->makeOptions(['import_listings' => '1']);
-        $this->adapter()->run($src, $tgt, $opts);
-
-        $row = $tgt->query('SELECT auto_approve_joins FROM lstr_fanlisting_settings LIMIT 1')->fetch();
-        self::assertSame('0', (string) $row['auto_approve_joins'],
-            'hold_for_approval=1 should produce auto_approve_joins=0 (manual approval)');
-    }
-
-    public function testHoldForApprovalZeroProducesAutoApprove(): void
+    public function testImportedMembersKeepTheirApprovalStateWhenFanaticallyAutoApproved(): void
     {
         $src = $this->makePdo();
         $tgt = $this->makePdo();
         $this->seedFanaticallySource($src, ['hold_for_approval' => '0']);
         $this->seedTarget($tgt);
 
-        $this->insertListing($src, 'https://example.com/fl/');
+        $src->exec(
+            "INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption)
+             VALUES (1, 'FL', 'FL Subject', 'https://example.com/fl', 'current', '', 0)"
+        );
+        $src->exec(
+            "CREATE TABLE IF NOT EXISTS members (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                listing_id          INTEGER NOT NULL,
+                name                TEXT    NOT NULL DEFAULT '',
+                email               TEXT    NOT NULL DEFAULT '',
+                url                 TEXT    NOT NULL DEFAULT '',
+                country             TEXT    NOT NULL DEFAULT '',
+                password_hash       TEXT    NOT NULL DEFAULT '',
+                custom_field_values TEXT    NULL,
+                is_approved         INTEGER NOT NULL DEFAULT 1,
+                joined_at           TEXT    NULL
+            )"
+        );
+        $src->exec(
+            "INSERT INTO members (listing_id, name, email, is_approved) VALUES
+                (1, 'Approved Fan', 'approved@example.com', 1),
+                (1, 'Waiting Fan',  'waiting@example.com',  0)"
+        );
 
-        $opts = $this->makeOptions(['import_listings' => '1']);
+        $opts = $this->makeOptions(['import_listings' => '1', 'import_members' => '1']);
         $this->adapter()->run($src, $tgt, $opts);
 
-        $row = $tgt->query('SELECT auto_approve_joins FROM lstr_fanlisting_settings LIMIT 1')->fetch();
-        self::assertSame('1', (string) $row['auto_approve_joins'],
-            'hold_for_approval=0 should produce auto_approve_joins=1');
+        $dbtable = (string) $tgt->query('SELECT dbtable FROM owned LIMIT 1')->fetchColumn();
+        $pending = $tgt->query("SELECT email, pending FROM `{$dbtable}` ORDER BY email")->fetchAll(PDO::FETCH_KEY_PAIR);
+        self::assertSame(['approved@example.com' => '0', 'waiting@example.com' => '1'],
+            array_map('strval', $pending));
     }
 
     // -----------------------------------------------------------------------
@@ -607,7 +673,7 @@ final class FanaticallyImportSourceTest extends TestCase
         $row = $tgt->query('SELECT active, status FROM lstr_joined LIMIT 1')->fetch();
         self::assertNotNull($row, 'Joined listing should be inserted');
         self::assertSame('1', (string) $row['active']);
-        self::assertSame('joined', $row['status']);
+        self::assertSame('approved', $row['status']);
     }
 
     public function testJoinedStatusValueImportsAsActiveJoined(): void
@@ -624,7 +690,25 @@ final class FanaticallyImportSourceTest extends TestCase
 
         $row = $tgt->query('SELECT active, status FROM lstr_joined LIMIT 1')->fetch();
         self::assertSame('1', (string) $row['active']);
-        self::assertSame('joined', $row['status']);
+        self::assertSame('approved', $row['status']);
+    }
+
+    public function testImportedJoinedListingReachesRandomAndLatestJoinedReaders(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $this->insertJoined($src, 'https://example.com/fl/', status: 'current');
+
+        $opts = $this->makeOptions(['import_joined' => '1']);
+        $this->adapter()->run($src, $tgt, $opts);
+
+        // The Random Joined and Latest Joined embeds read through these two methods.
+        $repo = new JoinedListingRepo($this->wrapPdo($tgt));
+        self::assertCount(1, $repo->getActiveApproved());
+        self::assertCount(1, $repo->getLatestJoined(5));
     }
 
     public function testJoinedPendingStatusImportsAsInactive(): void
@@ -1227,6 +1311,83 @@ final class FanaticallyImportSourceTest extends TestCase
             'overwrite should not change the existing dbtable slug');
     }
 
+    public function testOverwriteUpdatesExistingMemberAndKeepsTheirPrivacyChoices(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+
+        $src->exec(
+            "INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption)
+             VALUES (1, 'FL', 'FL Subject', 'https://example.com/fl', 'current', '', 0)"
+        );
+        $src->exec(
+            "CREATE TABLE IF NOT EXISTS members (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                listing_id          INTEGER NOT NULL,
+                name                TEXT    NOT NULL DEFAULT '',
+                email               TEXT    NOT NULL DEFAULT '',
+                url                 TEXT    NOT NULL DEFAULT '',
+                country             TEXT    NOT NULL DEFAULT '',
+                password_hash       TEXT    NOT NULL DEFAULT '',
+                custom_field_values TEXT    NULL,
+                is_approved         INTEGER NOT NULL DEFAULT 1,
+                joined_at           TEXT    NULL
+            )"
+        );
+        $src->exec(
+            "INSERT INTO members (listing_id, name, email, url, country, password_hash, is_approved)
+             VALUES (1, 'Fan One', 'fan@example.com', 'https://fan.example.com', 'AU', '', 1)"
+        );
+
+        $tgt->exec(
+            "INSERT INTO owned (dbtable, title, subject, url) VALUES ('my_existing_table', 'Old FL', 'Old Subject', 'https://example.com/fl')"
+        );
+        $tgt->exec(
+            'CREATE TABLE IF NOT EXISTS my_existing_table (
+                email   TEXT NOT NULL PRIMARY KEY,
+                name    TEXT NOT NULL DEFAULT \'\',
+                country TEXT NOT NULL DEFAULT \'\',
+                url     TEXT NOT NULL DEFAULT \'\',
+                pending INTEGER NOT NULL DEFAULT 0,
+                password TEXT NOT NULL DEFAULT \'\',
+                showemail INTEGER NOT NULL DEFAULT 1,
+                showurl  INTEGER NOT NULL DEFAULT 1,
+                added   TEXT NULL
+            )'
+        );
+        // The member already exists and has chosen to hide their email and website.
+        $tgt->exec(
+            "INSERT INTO my_existing_table (email, name, country, url, pending, password, showemail, showurl)
+             VALUES ('fan@example.com', 'Old Name', 'US', 'https://old.example.com', 0, '', 0, 0)"
+        );
+
+        $opts = $this->makeOptions([
+            'import_listings'   => '1',
+            'import_members'    => '1',
+            'conflict_strategy' => 'overwrite',
+        ]);
+
+        // Run twice: the second run takes the same update path again.
+        foreach ([1, 2] as $run) {
+            $result = $this->adapter()->run($src, $tgt, $opts);
+            foreach ($result->rows as $row) {
+                if ($row['type'] === 'Members') {
+                    self::assertSame([], $row['errors'], "Member overwrite run {$run} should have no errors");
+                }
+            }
+        }
+
+        $rows = $tgt->query('SELECT * FROM my_existing_table')->fetchAll();
+        self::assertCount(1, $rows, 'Overwrite must update the existing member, not add a copy');
+        self::assertSame('Fan One', $rows[0]['name']);
+        self::assertSame('AU', $rows[0]['country']);
+        self::assertSame('https://fan.example.com', $rows[0]['url']);
+        self::assertSame('0', (string) $rows[0]['showemail'], 'Overwrite must keep the hidden-email choice');
+        self::assertSame('0', (string) $rows[0]['showurl'], 'Overwrite must keep the hidden-website choice');
+    }
+
     // -----------------------------------------------------------------------
     // Preview — dependent scope warnings
     // -----------------------------------------------------------------------
@@ -1786,7 +1947,6 @@ final class FanaticallyImportSourceTest extends TestCase
                 last_updated           DATE    NULL,
                 approved_by            TEXT    NOT NULL DEFAULT \'\',
                 queue_updates          INTEGER NOT NULL DEFAULT 0,
-                auto_approve_joins     INTEGER NOT NULL DEFAULT 0,
                 join_confirmation_email INTEGER NULL,
                 for_adoption           INTEGER NOT NULL DEFAULT 0,
                 members_per_page       INTEGER NOT NULL DEFAULT 25,

@@ -3374,6 +3374,85 @@ try {
     $errors[] = 'Migration 104 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 105: joined listings still marked 'joined' become 'approved'.
+// Migration 38 renamed this status, but the Fanatically importer kept writing
+// 'joined', which hid those rows from the Random Joined and Latest Joined embeds
+// (they only read 'approved'). Only the status changes; active and every other
+// column stay as they are. Safe to run again: once fixed, nothing matches.
+try {
+    $fixedJoined = (int) $pdo->exec("UPDATE `lstr_joined` SET `status` = 'approved' WHERE `status` = 'joined'");
+    if ($fixedJoined > 0) {
+        $done[] = "Migration 105: changed {$fixedJoined} joined listing(s) from <code>joined</code> to <code>approved</code>";
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (105)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 105 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 106: remove Auto Approve Joins.
+// Every new join now waits for approval. Drops lstr_fanlisting_settings.auto_approve_joins
+// (added by Migration 50) and the older auto_approve column (Migration 2), which nothing
+// ever read. Before the drop, it lists the listings that had Auto Approve Joins on, so the
+// owner knows those listings' new joins now land in the pending queue. Each column is
+// checked on its own and the migration is only recorded after both are gone, so a run
+// that fails halfway can simply be retried.
+try {
+    $chkSettingsCol = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_fanlisting_settings' AND COLUMN_NAME = :col"
+    );
+
+    $chkSettingsCol->execute(['col' => 'auto_approve_joins']);
+    if ((int) $chkSettingsCol->fetchColumn() > 0) {
+        $autoApproveIds = $pdo->query(
+            'SELECT fanlisting_id FROM `lstr_fanlisting_settings` WHERE auto_approve_joins = 1 ORDER BY fanlisting_id'
+        )->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($autoApproveIds !== []) {
+            // Listing titles, best-effort: the registry is `owned` (title) or
+            // {prefix}listings (name). A failed lookup just leaves the ID on its own.
+            $migPrefix   = (string) ($config['enth_table_prefix'] ?? '');
+            $titleLookup = null;
+            if (preg_match('/^[a-zA-Z0-9_]*$/', $migPrefix) === 1) {
+                $titleLookup = $migPrefix === ''
+                    ? $pdo->prepare('SELECT `title` FROM `owned` WHERE `listingid` = :id')
+                    : $pdo->prepare("SELECT `name` FROM `{$migPrefix}listings` WHERE `id` = :id");
+            }
+
+            $autoApproveLabels = [];
+            foreach ($autoApproveIds as $autoApproveId) {
+                $title = '';
+                if ($titleLookup !== null) {
+                    try {
+                        $titleLookup->execute(['id' => (int) $autoApproveId]);
+                        $title = (string) ($titleLookup->fetchColumn() ?: '');
+                    } catch (PDOException) {
+                        $title = '';
+                    }
+                }
+                $autoApproveLabels[] = '#' . (int) $autoApproveId
+                    . ($title !== '' ? ' ' . htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '');
+            }
+
+            $done[] = 'Migration 106: Auto Approve Joins was on for ' . count($autoApproveIds) . ' listing(s): '
+                . implode(', ', $autoApproveLabels) . '. New joins for these listings now wait for your approval.';
+        }
+
+        $pdo->exec('ALTER TABLE `lstr_fanlisting_settings` DROP COLUMN `auto_approve_joins`');
+        $done[] = 'Migration 106: removed <code>auto_approve_joins</code> from <code>lstr_fanlisting_settings</code>';
+    }
+
+    $chkSettingsCol->execute(['col' => 'auto_approve']);
+    if ((int) $chkSettingsCol->fetchColumn() > 0) {
+        $pdo->exec('ALTER TABLE `lstr_fanlisting_settings` DROP COLUMN `auto_approve`');
+        $done[] = 'Migration 106: removed the unused <code>auto_approve</code> column from <code>lstr_fanlisting_settings</code>';
+    }
+
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (106)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 106 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

@@ -202,6 +202,13 @@ final class FanaticallyImportSource implements ImportSourceInterface
             }
         }
 
+        if ($options->importListings) {
+            $joinNote = $this->joinApprovalNote($this->readGlobalSettings($source, $p));
+            if ($joinNote !== null) {
+                $transformedNotes[] = 'Data transformed — ' . $joinNote;
+            }
+        }
+
         $upcomingJoinedCount = 0;
         if ($options->importJoined) {
             try {
@@ -687,13 +694,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         // Load global Fanatically settings that apply to all listings.
         // Fanatically does not store these per-listing; they are site-wide.
-        $globalSettings = [];
-        try {
-            $st = $source->query("SELECT setting_key, setting_value FROM `{$p}settings`");
-            foreach ($st ? $st->fetchAll() : [] as $row) {
-                $globalSettings[(string) $row['setting_key']] = (string) $row['setting_value'];
-            }
-        } catch (\Throwable) {}
+        $globalSettings = $this->readGlobalSettings($source, $p);
+        $joinNote       = $this->joinApprovalNote($globalSettings);
 
         // Build category assignment junction for all listings at once
         $lcJunction = []; // listing_id → [category_id, ...]
@@ -912,7 +914,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         return [
             ['type' => 'Owned Listings', 'imported' => $imported, 'skipped' => $skipped,
-             'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems,
+             'warnings' => $joinNote !== null ? [$joinNote] : [], 'errors' => $errors, 'skipped_items' => $skippedItems,
              'image_copied' => $imgCopied, 'image_skipped' => $imgSkipped, 'image_errors' => $imgErrors],
             $listingIdMap,
             $listingDbtables,
@@ -1078,12 +1080,17 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     }
 
                     if ($exists) {
+                        // Overwrite keeps the member's own showemail/showurl choices, so those
+                        // two values are left out of both the SET list and the bound
+                        // parameters. PDO rejects a parameter the SQL doesn't use.
                         $setClauses = 'name=:name, country=:country, url=:url, pending=:pending, password=:password, added=:added';
                         foreach ($fieldValues as $colName => $_) {
                             $setClauses .= ", `{$colName}`=:{$colName}";
                         }
+                        $updateParams = $params;
+                        unset($updateParams['showemail'], $updateParams['showurl']);
                         $target->prepare("UPDATE `{$memberTable}` SET {$setClauses} WHERE email=:email")
-                               ->execute($params);
+                               ->execute($updateParams);
                     } else {
                         $target->prepare("INSERT INTO `{$memberTable}` ({$cols}) VALUES ({$vals})")
                                ->execute($params);
@@ -1500,7 +1507,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
             $status     = (string) ($jl['status'] ?? 'current');
             $active     = in_array($status, ['current', 'joined', 'upcoming'], true) ? 1 : 0;
-            $lstrStatus = ($status === 'pending' || $status === 'inactive') ? 'pending' : 'joined';
+            // Luster's joined statuses are 'approved' and 'pending' (Migration 38). The
+            // Random/Latest Joined embeds only read 'approved' rows.
+            $lstrStatus = ($status === 'pending' || $status === 'inactive') ? 'pending' : 'approved';
 
             // Category resolution — build primary (legacy) fields + categories_json
             $catIds        = $joinedCatJunction[$srcId] ?? [];
@@ -2688,6 +2697,44 @@ final class FanaticallyImportSource implements ImportSourceInterface
     }
 
     /**
+     * Fanatically's site-wide settings ({p}settings key/value rows). Empty when the
+     * table can't be read.
+     *
+     * @return array<string,string>
+     */
+    private function readGlobalSettings(PDO $source, string $p): array
+    {
+        $globalSettings = [];
+        try {
+            $st = $source->query("SELECT setting_key, setting_value FROM `{$p}settings`");
+            foreach ($st ? $st->fetchAll() : [] as $row) {
+                $globalSettings[(string) $row['setting_key']] = (string) $row['setting_value'];
+            }
+        } catch (\Throwable) {}
+
+        return $globalSettings;
+    }
+
+    /**
+     * Fanatically approves new joins automatically unless hold_for_approval is on
+     * (it's off by default). Luster always holds new joins for approval, so the
+     * owner is told when that changes for them. Members brought over keep their
+     * own approval status either way.
+     *
+     * @param array<string,string> $globalSettings
+     */
+    private function joinApprovalNote(array $globalSettings): ?string
+    {
+        $holdsJoins = isset($globalSettings['hold_for_approval'])
+            && (int) $globalSettings['hold_for_approval'] !== 0;
+
+        return $holdsJoins
+            ? null
+            : 'Fanatically approved new joins automatically. Luster holds every new join for approval, '
+                . 'so new members will wait in the pending queue. Imported members keep their current approval status.';
+    }
+
+    /**
      * @param array<string,string> $globalSettings  Key/value rows from {p}settings (all listings share these)
      */
     private function upsertListingSettings(
@@ -2699,11 +2746,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         // Fanatically behaviour flags live in the global settings table, not per listing.
         //
-        // hold_for_approval=1  → manual approval required → auto_approve_joins=0
-        // hold_for_approval=0 or ABSENT (Fanatically default) → auto_approve_joins=1
-        $autoApprove = isset($globalSettings['hold_for_approval'])
-            ? ((int) $globalSettings['hold_for_approval'] ? 0 : 1)
-            : 1; // Fanatically default: no hold → auto-approve
+        // hold_for_approval isn't copied: Luster holds every new join for approval.
+        // joinApprovalNote() tells the owner when Fanatically was approving them
+        // automatically.
 
         // hold_update_for_approval=1 → queue_updates=1; 0 or absent → 0
         $queueUpdates = isset($globalSettings['hold_update_for_approval'])
@@ -2730,12 +2775,12 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $target->prepare(
                     'UPDATE lstr_fanlisting_settings
                      SET last_updated=:lu, approved_by=:ab, queue_updates=:qu,
-                         auto_approve_joins=:aa, join_confirmation_email=:je,
+                         join_confirmation_email=:je,
                          description=COALESCE(NULLIF(:description, \'\'), description)
                      WHERE fanlisting_id=:id'
                 )->execute([
                     'lu' => $lu,  'ab' => $lstrApprovedBy,
-                    'qu' => $queueUpdates, 'aa' => $autoApprove,
+                    'qu' => $queueUpdates,
                     'je' => $joinEmail,   'id' => $listingId,
                     'description' => $description,
                 ]);
@@ -2745,11 +2790,11 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $affVal = $hasAffApply ? ', 1'                       : '';
                 $target->prepare(
                     "INSERT INTO lstr_fanlisting_settings
-                       (fanlisting_id, last_updated, approved_by, queue_updates, auto_approve_joins, join_confirmation_email, description{$affCol})
-                     VALUES (:id, :lu, :ab, :qu, :aa, :je, :description{$affVal})"
+                       (fanlisting_id, last_updated, approved_by, queue_updates, join_confirmation_email, description{$affCol})
+                     VALUES (:id, :lu, :ab, :qu, :je, :description{$affVal})"
                 )->execute([
                     'id' => $listingId, 'lu' => $lu,    'ab' => $lstrApprovedBy,
-                    'qu' => $queueUpdates, 'aa' => $autoApprove, 'je' => $joinEmail,
+                    'qu' => $queueUpdates, 'je' => $joinEmail,
                     'description' => $description ?: null,
                 ]);
             }

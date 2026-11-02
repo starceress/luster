@@ -48,6 +48,13 @@ final class ListingLifecycleService
      * the legacy inactive representation (upcoming=false, trouble=true) back
      * to the registry. Returns false when the listing doesn't exist or
      * $status isn't a recognized lifecycle status.
+     *
+     * Re-archiving an already-archived listing (bulk "Archive as..." does this
+     * without any metadata) keeps what's stored instead of wiping it: a null
+     * $archiveNote keeps the saved note, and null successor fields keep the
+     * saved adopted-to name/URL while the listing stays Adopted Out. Moving to
+     * Closed always drops the successor, the same as the edit form. Passing ''
+     * still clears a field on purpose. The date is kept by upsert() itself.
      */
     public function archive(
         int     $listingId,
@@ -72,6 +79,15 @@ final class ListingLifecycleService
         $existingRow      = $this->lifecycleRepo->getByListingId($listingId);
         $snapshotUpcoming = $existingRow !== null ? $existingRow['legacy_upcoming'] : $listing->upcoming;
         $snapshotTrouble  = $existingRow !== null ? $existingRow['legacy_trouble']  : $listing->trouble;
+
+        // upsert() replaces the whole row, so anything not passed in would be erased.
+        if ($existingRow !== null) {
+            $archiveNote ??= $existingRow['archive_note'];
+            if ($status === self::STATUS_ADOPTED_OUT && $existingRow['lifecycle_status'] === self::STATUS_ADOPTED_OUT) {
+                $adoptedToName ??= $existingRow['adopted_to_name'];
+                $adoptedToUrl  ??= $existingRow['adopted_to_url'];
+            }
+        }
 
         $this->lifecycleRepo->upsert(
             $listingId,

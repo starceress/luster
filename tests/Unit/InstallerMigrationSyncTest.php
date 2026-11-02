@@ -140,6 +140,25 @@ final class InstallerMigrationSyncTest extends TestCase
         self::assertStringContainsString('ADD UNIQUE KEY `uq_lstr_codes_import_ref` (`import_ref`)', $this->runner);
     }
 
+    public function testInstallerSettingsHaveNoAutoApproveColumnsAfterMigration106(): void
+    {
+        preg_match('/CREATE TABLE IF NOT EXISTS `lstr_fanlisting_settings` \((.*?)\) ENGINE=/s', $this->installer, $table);
+        self::assertNotEmpty($table, 'Could not find the lstr_fanlisting_settings CREATE TABLE in install/index.php');
+
+        foreach (['auto_approve_joins', 'auto_approve'] as $column) {
+            self::assertStringNotContainsString(
+                '`' . $column . '`',
+                $table[1],
+                "install/index.php must not create lstr_fanlisting_settings.{$column}; Migration 106 removes it."
+            );
+            self::assertStringContainsString(
+                'DROP COLUMN `' . $column . '`',
+                $this->runner,
+                "Migration 106 must drop lstr_fanlisting_settings.{$column}."
+            );
+        }
+    }
+
     /**
      * Numbers from real migration headings only. Headings always have a colon
      * after the number ("// Migration 54: ..."); other comments in the runner

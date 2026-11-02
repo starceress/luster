@@ -641,6 +641,26 @@ final class MemberRepo
     }
 
     /**
+     * The status columns for a member who just joined through the public form.
+     * Every new join waits for approval (there's no auto-approve), so this is
+     * always the pending state for this install's schema:
+     *
+     *   Unprefixed schema: pending=1.
+     *   Standard schema:   approved=0, plus the updated timestamp that schema
+     *                      stamps on every write.
+     *
+     * @return array<string, int|string>
+     */
+    public function pendingJoinColumns(): array
+    {
+        if ($this->approvedWhere === 'pending = 0') {
+            return ['pending' => 1];
+        }
+
+        return ['approved' => 0, 'updated' => date('Y-m-d H:i:s')];
+    }
+
+    /**
      * Marks a pending member as approved.
      *
      * Standard schema: sets approved=1.

@@ -36,7 +36,7 @@ use Luster\Core\TemplateEngine;
  *   aff_name, aff_url, aff_email           — affiliate-apply-sent
  *
  * Conditions resolved from $action (key = action slug, '-' → '_'):
- *   joined, joined_pending, updated, updated_pending, removed,
+ *   joined_pending, updated, updated_pending, removed,
  *   reset_sent, reset_done, code_submitted,
  *   kim_signed_up, kim_updated,
  *   adopt_submitted, contact_sent, affiliate_apply_sent
@@ -44,6 +44,9 @@ use Luster\Core\TemplateEngine;
  * Additional context-based conditions:
  *   aff_email    — true when $context['aff_email'] is non-empty
  *   no_aff_email — inverse
+ *
+ * Retired actions (see RETIRED_ACTIONS) still have their condition registered,
+ * always false, so an old saved template's block is hidden rather than printed.
  */
 final class SuccessRenderer
 {
@@ -53,8 +56,7 @@ final class SuccessRenderer
      * @var array<string, string>
      */
     private const DEFAULTS = [
-        'joined'               => '<div class="fl-success"><p>Thank you for joining! Your membership is now live.</p></div>',
-        'joined-pending'       => '<div class="fl-success"><p>Thank you for joining! Your membership may need to be approved before it appears in the member list.</p></div>',
+        'joined-pending'       => '<div class="fl-success"><p>Thank you for joining! Your membership is awaiting approval and will appear in the member list once it\'s approved.</p></div>',
         'updated'              => '<div class="fl-success"><p>Your membership has been updated successfully.</p></div>',
         'updated-pending'      => '<div class="fl-success"><p>Your update has been submitted and is awaiting admin review. Changes will appear once approved.</p></div>',
         'removed'              => '<div class="fl-success"><p>You have been removed from the listing. We\'re sorry to see you go!</p></div>',
@@ -70,11 +72,28 @@ final class SuccessRenderer
     ];
 
     /**
+     * Actions that no longer happen, mapped to the action used in their place.
+     *
+     * 'joined' was the "your membership is now live" message for auto-approved
+     * joins. Auto Approve Joins was removed (Migration 106), so every join is
+     * 'joined-pending'. Owners' saved templates may still contain
+     * {if_joined}...{/if_joined}: that condition stays registered and is always
+     * false, so the block disappears instead of showing its raw tags.
+     *
+     * @var array<string, string>
+     */
+    private const RETIRED_ACTIONS = [
+        'joined' => 'joined-pending',
+    ];
+
+    /**
      * Returns the hardcoded default template HTML for the given action,
      * or an empty string for an unknown action.
      */
     public static function defaultTemplate(string $action): string
     {
+        $action = self::RETIRED_ACTIONS[$action] ?? $action;
+
         return self::DEFAULTS[$action] ?? '';
     }
 
@@ -88,6 +107,8 @@ final class SuccessRenderer
         string $action,
         array $context = [],
     ): string {
+        $action = self::RETIRED_ACTIONS[$action] ?? $action;
+
         if ($template === '') {
             return self::DEFAULTS[$action] ?? '<div class="fl-success"><p>Done.</p></div>';
         }
@@ -97,6 +118,9 @@ final class SuccessRenderer
         foreach (array_keys(self::DEFAULTS) as $knownAction) {
             $condKey               = str_replace('-', '_', $knownAction);
             $conditions[$condKey]  = ($action === $knownAction);
+        }
+        foreach (array_keys(self::RETIRED_ACTIONS) as $retiredAction) {
+            $conditions[str_replace('-', '_', $retiredAction)] = false;
         }
 
         // Context-based conditions for affiliate-apply-sent

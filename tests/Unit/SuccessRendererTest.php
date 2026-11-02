@@ -17,7 +17,7 @@ final class SuccessRendererTest extends TestCase
     private static function knownActions(): array
     {
         return [
-            'joined', 'joined-pending', 'updated', 'updated-pending',
+            'joined-pending', 'updated', 'updated-pending',
             'removed', 'reset-sent', 'reset-done', 'code-submitted',
             'kim-signed-up', 'kim-updated', 'kim-reset-done',
             'adopt-submitted', 'contact-sent', 'affiliate-apply-sent',
@@ -57,11 +57,36 @@ final class SuccessRendererTest extends TestCase
     // Template processing path — action conditionals
     // -----------------------------------------------------------------------
 
-    public function testJoinedConditionTrueForJoinedAction(): void
+    // Auto Approve Joins was removed, so 'joined' (the "now live" action) is retired.
+
+    public function testRetiredJoinedBlockIsHiddenForPendingJoins(): void
     {
-        $tpl  = '{if_joined}yes{/if_joined}{if_joined_pending}no{/if_joined_pending}';
-        $html = SuccessRenderer::render($tpl, 'joined');
-        self::assertSame('yes', $html);
+        // An owner's template saved back when auto-approve existed.
+        $tpl  = 'Thanks! {if_joined}You are live.{/if_joined}{if_joined_pending}Awaiting approval.{/if_joined_pending}';
+        $html = SuccessRenderer::render($tpl, 'joined-pending');
+        self::assertSame('Thanks! Awaiting approval.', $html);
+    }
+
+    public function testRetiredJoinedBlockNeverPrintsRawTags(): void
+    {
+        $html = SuccessRenderer::render('Hi{if_joined} live{/if_joined}', 'joined-pending');
+        self::assertSame('Hi', $html);
+        self::assertStringNotContainsString('{if_joined}', $html);
+    }
+
+    public function testLegacyJoinedActionRendersAsPending(): void
+    {
+        $tpl  = '{if_joined}live{/if_joined}{if_joined_pending}pending{/if_joined_pending}';
+        self::assertSame('pending', SuccessRenderer::render($tpl, 'joined'));
+    }
+
+    public function testLegacyJoinedActionDefaultIsThePendingMessage(): void
+    {
+        $html = SuccessRenderer::render('', 'joined');
+        self::assertSame(SuccessRenderer::render('', 'joined-pending'), $html);
+        self::assertStringNotContainsString('now live', $html);
+        self::assertStringContainsString('awaiting approval', $html);
+        self::assertSame(SuccessRenderer::defaultTemplate('joined-pending'), SuccessRenderer::defaultTemplate('joined'));
     }
 
     public function testJoinedPendingConditionTrueForJoinedPendingAction(): void
@@ -105,13 +130,13 @@ final class SuccessRendererTest extends TestCase
 
     public function testFanNameTokenReplacedFromContext(): void
     {
-        $html = SuccessRenderer::render('Hello {fan_name}!', 'joined', ['fan_name' => 'Alice']);
+        $html = SuccessRenderer::render('Hello {fan_name}!', 'joined-pending', ['fan_name' => 'Alice']);
         self::assertSame('Hello Alice!', $html);
     }
 
     public function testListingTitleTokenReplacedFromContext(): void
     {
-        $html = SuccessRenderer::render('You joined {listing_title}.', 'joined', ['listing_title' => 'Best Fanlisting']);
+        $html = SuccessRenderer::render('You joined {listing_title}.', 'joined-pending', ['listing_title' => 'Best Fanlisting']);
         self::assertSame('You joined Best Fanlisting.', $html);
     }
 
@@ -129,13 +154,13 @@ final class SuccessRendererTest extends TestCase
 
     public function testUnknownContextTokenProducesEmptyOutput(): void
     {
-        $html = SuccessRenderer::render('X:{fan_name}Y', 'joined');
+        $html = SuccessRenderer::render('X:{fan_name}Y', 'joined-pending');
         self::assertSame('X:Y', $html);
     }
 
     public function testContextTokensAreXssEscaped(): void
     {
-        $html = SuccessRenderer::render('{fan_name}', 'joined', ['fan_name' => '<script>alert(1)</script>']);
+        $html = SuccessRenderer::render('{fan_name}', 'joined-pending', ['fan_name' => '<script>alert(1)</script>']);
         self::assertStringNotContainsString('<script>', $html);
         self::assertStringContainsString('&lt;script&gt;', $html);
     }
@@ -181,7 +206,7 @@ final class SuccessRendererTest extends TestCase
 
     public function testEmptyTemplateUsesDefaultRegardlessOfContext(): void
     {
-        $html = SuccessRenderer::render('', 'joined', ['fan_name' => 'Ignored']);
+        $html = SuccessRenderer::render('', 'joined-pending', ['fan_name' => 'Ignored']);
         self::assertStringContainsString('fl-success', $html);
         self::assertStringNotContainsString('{fan_name}', $html);
         self::assertStringNotContainsString('Ignored', $html);
@@ -190,7 +215,7 @@ final class SuccessRendererTest extends TestCase
     public function testTemplateWithNoTokensReturnedVerbatim(): void
     {
         $tpl  = '<div class="fl-success"><p>Custom message with no tokens.</p></div>';
-        $html = SuccessRenderer::render($tpl, 'joined');
+        $html = SuccessRenderer::render($tpl, 'joined-pending');
         self::assertSame($tpl, $html);
     }
 

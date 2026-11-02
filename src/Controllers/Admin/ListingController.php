@@ -969,7 +969,6 @@ final class ListingController extends AdminController
             // (saveTemplates()) — not read or saved here, so saving the General
             // tab can never clobber them.
 
-            $autoApproveJoins = $request->post('auto_approve_joins') === '1';
             $queueUpdates     = $request->post('queue_updates') === '1';
 
             // Read early — purely so a validation failure can redraw the form with
@@ -1119,7 +1118,6 @@ final class ListingController extends AdminController
                         'listing_type'            => $listingType,
                         'contact_enabled'         => $contactEnabled,
                         'contact_recipient'       => $contactRecipient,
-                        'auto_approve_joins'      => $autoApproveJoins,
                         'queue_updates'           => $queueUpdates,
                         'description'             => $description,
                         'fl_last_updated'         => $lastUpdatedInputRaw,
@@ -1231,7 +1229,6 @@ final class ListingController extends AdminController
                 $codeEmailVal  = $codeEmailPost === '' ? null : ($codeEmailPost === '1');
                 $settingsRepo->setCodeApprovalEmail($id, $codeEmailVal);
             }
-            $settingsRepo->saveAutoApproveJoins($id, $autoApproveJoins);
             $settingsRepo->setQueueUpdates($id, $queueUpdates);
             if ($lastUpdatedInput !== '' || $request->post('fl_last_updated') !== null) {
                 $settingsRepo->setLastUpdated($id, $lastUpdatedInput !== '' ? $lastUpdatedInput : null);
@@ -2294,7 +2291,6 @@ final class ListingController extends AdminController
         $description        = $settingsRepo->getDescription($id);
         $affiliateApplySettings = $settingsRepo->getAffiliateApplySettings($id);
         $codeApprovalEmail  = $settingsRepo->getCodeApprovalEmail($id);
-        $joinSettings           = $settingsRepo->getJoinSettings($id);
         $queueUpdates           = $settingsRepo->getQueueUpdates($id);
         $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
         $updatesAddonInstalled  = $this->app->isAddonInstalled('Newsfeed');
@@ -2498,7 +2494,6 @@ final class ListingController extends AdminController
             'redirect_url_affiliate_apply'   => $affiliateApplySettings['redirect_url'],
             'stat_newmembers_limit'          => $settingsRepo->getStatNewmembersLimit($id),
             'code_approval_email'            => $codeApprovalEmail,
-            'auto_approve_joins'             => $joinSettings['auto_approve'],
             'queue_updates'                  => $queueUpdates,
             'codes'               => $codes,
             'code_cats'           => $codeCats,

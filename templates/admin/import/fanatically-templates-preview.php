@@ -50,6 +50,10 @@ $labelFor = static function(string $key): string {
   <a href="<?= $b ?>/admin/import/fanatically/templates" class="link">&larr; Upload another ZIP</a>
 </div>
 
+<?php if (($error ?? '') !== ''): ?>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
+<?php endif; ?>
+
 <?php if (empty($translations) && empty($rejected)): ?>
   <div class="alert alert-error">No template files were found in the uploaded ZIP.</div>
 <?php else: ?>
@@ -176,6 +180,9 @@ $labelFor = static function(string $key): string {
         <td>
           <?php if ($t['contains_php']): ?>
             <span class="badge badge-error">Contains PHP</span>
+          <?php elseif (!empty($t['manual_only_reason'])): ?>
+            <span class="badge badge-inactive">Copy by hand</span>
+            <p class="form-hint"><?= View::e($t['manual_only_reason']) ?></p>
           <?php elseif ($t['unsupported_structure']): ?>
             <span class="badge badge-inactive">Unsupported structure</span>
           <?php elseif ($t['target_template_key'] === null): ?>

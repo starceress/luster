@@ -21,7 +21,47 @@ release page.
 
 ### [Unreleased]
 
+**After updating:** go to **Settings → System & Updates** and click **Run
+migrations** once. This update tidies two things in your database (see below),
+and the migration page tells you if any of your listings were affected.
+
+**Changed:**
+- **Every new member now waits for your approval.** The "Auto Approve Joins"
+  switch on a listing's edit page is gone. When it was on, a fan who joined
+  went straight into the member list, which meant anyone could add themselves
+  without you looking first. Now all new joins land in the pending queue on
+  the Members page, the same as they already did for most listings. Members you
+  already approved stay approved. If any of your listings had the switch on,
+  the migration page lists them so you know where to look.
+- After joining, fans see "Your membership is awaiting approval" instead of
+  "may need to be approved", because now it always does. If you customized
+  your join success message with an `{if_joined}...{/if_joined}` part (the old
+  "you're live" message), that part just won't show anymore. Nothing breaks.
+- Fans who leave the password box empty no longer get a second "reset your
+  password" email right after joining. Its link only ever worked for
+  auto-approved members, so for everyone else it was a dead end. Their join
+  email still includes the password Luster made up for them.
+
 **Fixed:**
+- **Re-archiving a listing doesn't erase its notes anymore.** Picking "Archive
+  as Closed" or "Archive as Adopted Out" from the bulk menu on a listing that
+  was already closed or adopted out wiped its archive note and the adopted-to
+  name and link. Now those stay put. Switching an Adopted Out listing to
+  Closed still drops the adopted-to details, the same as the edit page does.
+- **Joined listings brought over from Fanatically show up in your Random and
+  Latest Joined boxes.** The import saved them with an old status name those
+  two boxes don't look for. The import uses the right one now, and the
+  migration fixes any already saved the old way.
+- **Running a Fanatically import again with "Overwrite" doesn't fail on
+  members anymore.** Every member who was already there came back with an
+  error. Now they get updated, and anyone who'd hidden their email or website
+  keeps it hidden.
+- **Fanatically's "lost password" email isn't offered for import anymore.** It
+  sends fans a new password, but Luster's reset email sends a link instead, so
+  an imported copy said "Your password is:" followed by nothing. The template
+  preview now says to copy any wording you like over by hand.
+- A Fanatically import now tells you, on the preview and the results page, if
+  Fanatically was approving new joins automatically, since Luster won't.
 - **Listing Admin imports found nothing if you left Table Prefix blank**, which
   is exactly what the Options page told you to do. Turns out every Listing
   Admin install has a prefix (`trex_` unless you changed it), so the import was

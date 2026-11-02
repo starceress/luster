@@ -20,6 +20,10 @@ namespace Luster\Import;
  *
  * preview_only entries may be viewed and downloaded but must never be written
  * to any Luster template storage.
+ *
+ * manualOnlyReason is set when a template has a Luster counterpart but works
+ * so differently that it can never be imported automatically; it explains
+ * what to copy over by hand. Such entries are always preview_only.
  */
 final class TranslationResult
 {
@@ -31,5 +35,6 @@ final class TranslationResult
         public readonly bool    $unsupportedStructure,
         public readonly ?string $targetTemplateKey,
         public readonly bool    $importable,
+        public readonly ?string $manualOnlyReason = null,
     ) {}
 }

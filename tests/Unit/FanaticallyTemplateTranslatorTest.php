@@ -148,6 +148,26 @@ final class FanaticallyTemplateTranslatorTest extends TestCase
         self::assertSame('email:approve', $r->targetTemplateKey);
     }
 
+    public function testLostPasswordEmailIsManualOnlyEvenWhenEveryTokenIsKnown(): void
+    {
+        // Fanatically's shipped lost-password wording. Luster's reset email has no
+        // password to give, so importing this would send "Your password is:" and nothing.
+        $source = "Hi {name},\n\nYour password is: {password}\n\nUpdate at {update_link}\n{owner_name}";
+        $r = $this->translate('templates/email/lostpassword.txt', 'email', $source);
+
+        self::assertFalse($r->importable);
+        self::assertNotNull($r->manualOnlyReason);
+        self::assertSame('email:reset', $r->targetTemplateKey);
+        self::assertSame($source, $r->translatedContent, 'Manual-only templates are shown untranslated');
+        self::assertStringNotContainsString('{fan_password}', $r->translatedContent);
+    }
+
+    public function testOtherEmailsHaveNoManualOnlyReason(): void
+    {
+        $r = $this->translate('templates/email/join.txt', 'email', 'Dear {name},');
+        self::assertNull($r->manualOnlyReason);
+    }
+
     public function testEmailAdminNewMemberTargetKey(): void
     {
         $r = $this->translate('templates/email/admin-new-member.txt', 'email', '{name}');

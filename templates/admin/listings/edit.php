@@ -657,18 +657,6 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <?php endif; ?>
 
         <div class="field-row">
-          <label class="field-label">Auto Approve Joins</label>
-          <div>
-            <label class="toggle-wrap">
-              <input type="checkbox" name="auto_approve_joins" value="1" id="fl-auto-approve-joins"
-                     <?= ($auto_approve_joins ?? false) ? 'checked' : '' ?>>
-              <span class="toggle-label">Auto-approve new joins for this listing</span>
-            </label>
-            <p class="form-hint">New joins are held for manual approval by default. Enabling this will approve new joins automatically (for this listing only).</p>
-          </div>
-        </div>
-
-        <div class="field-row">
           <label class="field-label">Queue Member Updates for Review</label>
           <div>
             <label class="toggle-wrap">

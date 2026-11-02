@@ -346,6 +346,117 @@ SQL;
     }
 
     // -----------------------------------------------------------------------
+    // Re-archiving keeps the note, successor and date (bulk "Archive as...")
+    // -----------------------------------------------------------------------
+
+    /**
+     * Archives through the edit-form path (upsert with metadata and a date),
+     * the way a listing gets its note and successor in the first place.
+     */
+    private function archiveWithDetails(ListingLifecycleRepo $lifecycleRepo, int $id, string $status): void
+    {
+        $isAdopted = $status === 'adopted_out';
+        $lifecycleRepo->upsert(
+            $id, $status, true, false,
+            $isAdopted ? 'Jane' : null,
+            $isAdopted ? 'https://jane.example' : null,
+            'Handed off.',
+            '2020-05-01',
+        );
+    }
+
+    public function testRearchiveClosedToClosedKeepsNoteAndDate(): void
+    {
+        [$service, , $lifecycleRepo, $db] = $this->makeOwned();
+        $id = $this->insertOwned($db);
+        $this->archiveWithDetails($lifecycleRepo, $id, 'closed');
+
+        $service->archive($id, 'closed');
+
+        $row = $lifecycleRepo->getByListingId($id);
+        self::assertSame('closed', $row['lifecycle_status']);
+        self::assertSame('Handed off.', $row['archive_note']);
+        self::assertSame('2020-05-01', $row['archived_at']);
+    }
+
+    public function testRearchiveAdoptedToAdoptedKeepsSuccessorNoteAndDate(): void
+    {
+        [$service, , $lifecycleRepo, $db] = $this->makeOwned();
+        $id = $this->insertOwned($db);
+        $this->archiveWithDetails($lifecycleRepo, $id, 'adopted_out');
+
+        $service->archive($id, 'adopted_out');
+
+        $row = $lifecycleRepo->getByListingId($id);
+        self::assertSame('adopted_out', $row['lifecycle_status']);
+        self::assertSame('Jane', $row['adopted_to_name']);
+        self::assertSame('https://jane.example', $row['adopted_to_url']);
+        self::assertSame('Handed off.', $row['archive_note']);
+        self::assertSame('2020-05-01', $row['archived_at']);
+    }
+
+    public function testRearchiveClosedToAdoptedKeepsNoteAndDate(): void
+    {
+        [$service, , $lifecycleRepo, $db] = $this->makeOwned();
+        $id = $this->insertOwned($db);
+        $this->archiveWithDetails($lifecycleRepo, $id, 'closed');
+
+        $service->archive($id, 'adopted_out');
+
+        $row = $lifecycleRepo->getByListingId($id);
+        self::assertSame('adopted_out', $row['lifecycle_status']);
+        self::assertNull($row['adopted_to_name'], 'A Closed listing had no successor to carry over');
+        self::assertSame('Handed off.', $row['archive_note']);
+        self::assertSame('2020-05-01', $row['archived_at']);
+    }
+
+    public function testRearchiveAdoptedToClosedDropsSuccessorButKeepsNoteAndDate(): void
+    {
+        [$service, , $lifecycleRepo, $db] = $this->makeOwned();
+        $id = $this->insertOwned($db);
+        $this->archiveWithDetails($lifecycleRepo, $id, 'adopted_out');
+
+        $service->archive($id, 'closed');
+
+        $row = $lifecycleRepo->getByListingId($id);
+        self::assertSame('closed', $row['lifecycle_status']);
+        self::assertNull($row['adopted_to_name'], 'Closed listings have no successor');
+        self::assertNull($row['adopted_to_url']);
+        self::assertSame('Handed off.', $row['archive_note']);
+        self::assertSame('2020-05-01', $row['archived_at']);
+    }
+
+    public function testRearchiveWithExplicitEmptyStringsStillClears(): void
+    {
+        [$service, , $lifecycleRepo, $db] = $this->makeOwned();
+        $id = $this->insertOwned($db);
+        $this->archiveWithDetails($lifecycleRepo, $id, 'adopted_out');
+
+        $service->archive($id, 'adopted_out', '', '', '');
+
+        $row = $lifecycleRepo->getByListingId($id);
+        self::assertSame('', $row['adopted_to_name']);
+        self::assertSame('', $row['adopted_to_url']);
+        self::assertSame('', $row['archive_note']);
+    }
+
+    public function testRearchiveKeepsOriginalReopenSnapshot(): void
+    {
+        [$service, $listingRepo, $lifecycleRepo, $db] = $this->makeOwned();
+        $id = $this->insertOwned($db, status: 1); // upcoming
+        $service->archive($id, 'adopted_out', 'Jane', 'https://jane.example', 'Handed off.');
+
+        $service->archive($id, 'adopted_out');
+        $service->archive($id, 'closed');
+        $service->reopen($id);
+
+        $listing = $listingRepo->getById($id);
+        self::assertTrue($listing->upcoming, 'Reopen must restore the state from before the first archive');
+        self::assertFalse($listing->trouble);
+        self::assertNull($lifecycleRepo->getByListingId($id));
+    }
+
+    // -----------------------------------------------------------------------
     // ListingLifecycleService::isLifecycleStatus()
     // -----------------------------------------------------------------------
 

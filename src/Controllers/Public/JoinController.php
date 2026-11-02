@@ -27,12 +27,10 @@ use Luster\Core\Validator;
 use Luster\Core\View;
 use Luster\Models\Listing;
 use Luster\Repositories\EmailTemplateRepo;
-use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
-use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingFormUrlResolver;
@@ -72,8 +70,8 @@ final class JoinController
      *
      * Runs honeypot, rate-limit, CAPTCHA, blacklist, and duplicate-email checks
      * before inserting the new member. Sends a confirmation email (and an admin
-     * notification if the listing has an email address). On auto-approve listings
-     * the member is active immediately; otherwise they land in the pending queue.
+     * notification if the listing has an email address). Every new member lands
+     * in the pending queue; an admin approves them from the Members page.
      */
     public function submit(Request $request, array $params): Response
     {
@@ -119,7 +117,7 @@ final class JoinController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render('', 'joined'));
+            $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render('', 'joined-pending'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -247,10 +245,7 @@ final class JoinController
         }
 
         if ($rawPassword === '') {
-            $rawPassword  = bin2hex(random_bytes(8));
-            $wasGenerated = true;
-        } else {
-            $wasGenerated = false;
+            $rawPassword = bin2hex(random_bytes(8));
         }
         $passwordHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
 
@@ -265,23 +260,10 @@ final class JoinController
             'added'    => date('Y-m-d H:i:s'),
         ];
 
-        // Per-listing join settings (auto-approve + email override).
-        $joinSettings = $settingsRepo->getJoinSettings($listingId);
-        $autoApprove  = $joinSettings['auto_approve'];
+        // Every new join waits for approval: pending=1 or approved=0, depending on schema.
+        $insertData = array_merge($insertData, $memberRepo->pendingJoinColumns());
 
-        // Determine approved/pending column based on schema variant.
-        // Default: new members are pending (manual approval required).
-        // Per-listing auto_approve opts this listing into immediate approval.
         $prefix = (string) $this->app->getConfig()->get('enth_table_prefix', '');
-
-        if ($prefix === '') {
-            // Unprefixed schema: pending=0 = approved, pending=1 = queued
-            $insertData['pending'] = $autoApprove ? 0 : 1;
-        } else {
-            // Standard schema: approved=1 = approved, approved=0 = pending
-            $insertData['approved'] = $autoApprove ? 1 : 0;
-            $insertData['updated']  = date('Y-m-d H:i:s');
-        }
 
         // Additional fields — names from FieldRepo only, never raw user input.
         // Checkbox fields post as arrays; implode to a comma-separated string.
@@ -294,18 +276,8 @@ final class JoinController
         }
 
         $memberRepo->insert($listing->dbprefix, $insertData);
-        // Only reset the stale clock when the join is immediately approved.
-        // Pending joins wait for admin approval, which will touch it via MemberController.
-        if ($autoApprove) {
-            $settingsRepo->touchLastUpdated($listingId);
-            // Sync member link check snapshot for auto-approved joins (best-effort)
-            if ($url !== '') {
-                try {
-                    (new MemberLinkCheckRepo($this->app->getDatabase(), $this->app->getConfig()))
-                        ->upsertMember($listingId, $email, $name, $url);
-                } catch (\Throwable) {}
-            }
-        }
+        // Last Updated and the member link-check snapshot are handled when an
+        // admin approves the member (MemberController), not here.
 
         // Confirmation email always sent (best-effort — do not abort on failure)
         {
@@ -313,13 +285,12 @@ final class JoinController
                 $cfg       = $this->app->getConfig();
                 $mailer    = new Mailer($cfg);
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-                $resetUrl  = $autoApprove
-                    ? $this->issuePasswordSetupUrl($listingId, $email)
-                    : ListingFormUrlResolver::resolve(
-                        (string) ($embedSettings['form_url_reset'] ?? ''),
-                        $listing->url,
-                        $globalDefaults['form_url_reset'],
-                    );
+                // The reset page itself. The fan can request a link there once approved.
+                $resetUrl  = ListingFormUrlResolver::resolve(
+                    (string) ($embedSettings['form_url_reset'] ?? ''),
+                    $listing->url,
+                    $globalDefaults['form_url_reset'],
+                );
                 $tokens    = EmailTemplateRepo::buildTokens(
                     listingName:    $listing->title,
                     listingUrl:     $listing->url,
@@ -342,17 +313,6 @@ final class JoinController
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_JOIN, $tokens);
                 if ($subject !== '') {
                     $mailer->send($email, $name, $subject, $body);
-                }
-
-                if ($wasGenerated && $resetUrl !== '') {
-                    [$resetSubject, $resetBody] = $emailRepo->resolveForListing(
-                        $listingId,
-                        EmailTemplateRepo::TYPE_RESET,
-                        $tokens,
-                    );
-                    if ($resetSubject !== '') {
-                        $mailer->send($email, $name, $resetSubject, $resetBody);
-                    }
                 }
             } catch (\Throwable $e) {
                 error_log('[Luster] Join email failed: ' . $e->getMessage());
@@ -395,8 +355,7 @@ final class JoinController
 
         $session->remove('lstr_embed_return_to');
         $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';
-        $action     = $autoApprove ? 'joined' : 'joined-pending';
-        $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, $action, [
+        $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'joined-pending', [
             'fan_name'      => $name,
             'listing_title' => $listing->title,
             'listing_url'   => $listing->url,
@@ -407,42 +366,6 @@ final class JoinController
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
-
-    /**
-     * Creates a one-time password-setup token for a newly auto-approved member
-     * and returns the full URL to the confirm form with the raw token in the query string.
-     *
-     * Called only for auto-approved joins where the password was auto-generated —
-     * the URL is embedded in both the join confirmation email and a separate reset email
-     * so the fan can choose their own password before their first update.
-     */
-    private function issuePasswordSetupUrl(int $listingId, string $email): string
-    {
-        $resetRepo = new FanPasswordResetRepo($this->app->getDatabase());
-        $resetRepo->deleteByEmail($listingId, $email);
-
-        $rawToken  = bin2hex(random_bytes(32));
-        $tokenHash = hash('sha256', $rawToken);
-        $expiresAt = (new \DateTimeImmutable())
-            ->modify('+3600 seconds')
-            ->format('Y-m-d H:i:s');
-
-        $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
-
-        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings   = $settingsRepo->getResolvedEmbedSettings($listingId);
-        $globalDefaults  = $settingsRepo->getGlobalFormUrlDefaults();
-        $listingRepo     = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing         = $listingRepo->getById($listingId);
-        $resetPageUrl    = ListingFormUrlResolver::resolve(
-            (string) $embedSettings['form_url_reset'],
-            (string) ($listing->url ?? ''),
-            $globalDefaults['form_url_reset'],
-        );
-
-        $sep = str_contains($resetPageUrl, '?') ? '&' : '?';
-        return $resetPageUrl . $sep . 'token=' . urlencode($rawToken);
-    }
 
     /**
      * Returns true if the fan has agreed to the current rules version for this

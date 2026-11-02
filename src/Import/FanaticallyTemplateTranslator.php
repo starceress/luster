@@ -318,14 +318,7 @@ final class FanaticallyTemplateTranslator
             '{owner_name}'      => '{owner_name}',
         ],
 
-        'email_reset' => [
-            '{name}'            => '{fan_name}',
-            '{listing_title}'   => '{listing_title}',
-            '{password}'        => '{fan_password}',
-            '{update_link}'     => '{form_url_update}',
-            '{collective_name}' => '{site_name}',
-            '{owner_name}'      => '{owner_name}',
-        ],
+        // email_reset has no map: it is manual-only (see MANUAL_ONLY_TYPES).
 
         'email_remove' => [
             '{name}'            => '{fan_name}',
@@ -365,6 +358,23 @@ final class FanaticallyTemplateTranslator
      *
      * @var array<string, list<string>>
      */
+    /**
+     * Types that have a Luster counterpart but can never be imported automatically,
+     * with the reason shown in the template preview. They stay preview_only and are
+     * returned untranslated so the owner copies wording over by hand.
+     *
+     * email_reset: Fanatically's lost-password email sends the fan a brand-new
+     * password ({password}). Luster's reset email sends a one-time {reset_url} link
+     * and never has a password to fill in, so an imported copy would say
+     * "Your password is:" followed by nothing and leave the fan with no way in.
+     *
+     * @var array<string, string>
+     */
+    private const MANUAL_ONLY_TYPES = [
+        'email_reset' => 'Fanatically emails a new password here, but Luster emails a one-time reset link instead. '
+            . 'Copy any wording you want into Luster\'s password reset email by hand, and keep its {reset_url} link.',
+    ];
+
     private const UNSUPPORTED_STRUCTURE_SIGNALS = [
         'join_form'   => ['{form}'],
         'update_form' => ['{form}'],
@@ -416,6 +426,19 @@ final class FanaticallyTemplateTranslator
         }
 
         $containsPhp = $this->detectPhp($content);
+
+        if (isset(self::MANUAL_ONLY_TYPES[$type])) {
+            return new TranslationResult(
+                translatedContent:    $content,
+                unmappedTokens:       [],
+                containsPhp:          $containsPhp,
+                unsupportedStructure: false,
+                targetTemplateKey:    $targetKey,
+                importable:           false,
+                manualOnlyReason:     self::MANUAL_ONLY_TYPES[$type],
+            );
+        }
+
         $unsupported = $this->detectUnsupportedStructure($type, $content);
 
         if ($containsPhp || $unsupported) {
