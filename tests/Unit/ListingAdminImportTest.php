@@ -6,6 +6,7 @@ namespace Luster\Tests\Unit;
 
 use Luster\Import\ImportOptions;
 use Luster\Import\ListingAdminImportSource;
+use Luster\Tests\Unit\Support\TracingPdo;
 use PDO;
 use PHPUnit\Framework\TestCase;
 
@@ -1695,6 +1696,183 @@ final class ListingAdminImportTest extends TestCase
             $warningsFor($withAddress),
         );
         $this->assertStringContainsString("don't include its web address", $warningsFor($noAddress));
+    }
+
+    // -----------------------------------------------------------------------
+    // Protocol-relative ('//host/path') addresses: an install keeps the key
+    // earlier imports saved its links under, or the import stops and asks.
+    // -----------------------------------------------------------------------
+
+    // 1.0.0-3's keys for one LA install at example.com/fan/admin with no table prefix,
+    // worked out with that release's code (git show e3da9ea:src/Import/ListingAdminSourceKey.php).
+    /** https://example.com/fan/admin — and every form of the address from now on. */
+    private const KEY_C = 'a7d0fcd35541';
+    /** //Example.COM/fan/admin */
+    private const KEY_L = '34d05aee870f';
+
+    /** @return array{int, int} LA IDs of listings A and B. */
+    private function sourceWithTwoListings(PDO $src, string $admHttp): array
+    {
+        $this->seedLaSource($src);
+        $this->addLaOptions($src, ['adm_http' => $admHttp]);
+        return [
+            $this->insertSourceListing($src, 'http://a.example.com', 'A'),
+            $this->insertSourceListing($src, 'http://b.example.com', 'B'),
+        ];
+    }
+
+    /**
+     * Listing A as an earlier import left it, linked under each of $keys.
+     * Listing B is new to Luster.
+     *
+     * @param list<string> $keys
+     */
+    private function earlierImport(PDO $tgt, int $laA, array $keys): int
+    {
+        $this->seedTarget($tgt);
+        $this->addExternalRefsTable($tgt);
+        $tgt->exec("INSERT INTO owned (dbtable, title, subject, url) VALUES ('a', 'A', 'A', 'http://a.example.com')");
+        $idA = (int) $tgt->lastInsertId();
+
+        $link = $tgt->prepare('INSERT INTO lstr_listing_external_refs (listing_id, source, external_id) VALUES (?, ?, ?)');
+        $link->execute([$idA, 'listing-admin', (string) $laA]);
+        foreach ($keys as $key) {
+            $link->execute([$idA, "listing-admin:{$key}", (string) $laA]);
+        }
+        return $idA;
+    }
+
+    /** @return array<string, list<array<string,mixed>>> */
+    private function targetRows(PDO $tgt): array
+    {
+        $rows = [];
+        foreach (['owned', 'lstr_listing_external_refs', 'lstr_fanlisting_settings', 'lstr_joined'] as $table) {
+            $rows[$table] = $tgt->query("SELECT * FROM {$table} ORDER BY 1")->fetchAll();
+        }
+        return $rows;
+    }
+
+    public function testRerunKeepsTheSourceIdAnEarlierImportUsed(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        [$laA, $laB] = $this->sourceWithTwoListings($src, '//Example.COM/fan/admin');
+        $idA = $this->earlierImport($tgt, $laA, [self::KEY_L]);
+        $options = $this->makeOptions(['import_listings' => '1']);
+
+        $this->assertStringContainsString(
+            'Bridge links will be saved under Source ID ' . self::KEY_L,
+            implode(' ', $this->adapter()->preview($src, $tgt, $options)->rows[0]['warnings']),
+        );
+
+        $result = $this->adapter()->run($src, $tgt, $options);
+        $idB    = $this->lusterIdForUrl($tgt, 'http://b.example.com');
+
+        $this->assertSame([
+            'listing-admin:' . self::KEY_L . "|{$laA}" => $idA,
+            'listing-admin:' . self::KEY_L . "|{$laB}" => $idB,
+            "listing-admin|{$laA}"                    => $idA,
+            "listing-admin|{$laB}"                    => $idB,
+        ], $this->bridgeRefs($tgt));
+        $this->assertContains('Source ID for this install: ' . self::KEY_L, $this->resultRow($result, 'Bridge listing links')['warnings']);
+
+        $this->assertSame($idA, \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laA, self::KEY_L));
+        $this->assertSame($idB, \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laB, self::KEY_L), 'A listing added in this run is found too');
+    }
+
+    public function testSeveralEarlierSourceIdsStopThePreviewAndRunBeforeAnythingIsWritten(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        [$laA] = $this->sourceWithTwoListings($src, '//Example.COM/fan/admin');
+        $this->earlierImport($tgt, $laA, [self::KEY_C, self::KEY_L]);
+        $before  = $this->targetRows($tgt);
+        $options = $this->makeOptions(['import_listings' => '1']);
+
+        foreach (['preview', 'run'] as $step) {
+            try {
+                $this->adapter()->{$step}($src, $tgt, $options);
+                $this->fail("The {$step} should stop");
+            } catch (\RuntimeException $e) {
+                $this->assertStringStartsWith(
+                    'Earlier imports saved this Listing Admin install under more than one Source ID: '
+                    . self::KEY_C . ' (1 listing link, no codes) and ' . self::KEY_L . ' (1 listing link, no codes).',
+                    $e->getMessage(),
+                    $step
+                );
+            }
+            $this->assertSame($before, $this->targetRows($tgt), $step);
+        }
+    }
+
+    public function testEitherEarlierSourceIdCanBeChosenByTypingIt(): void
+    {
+        foreach ([self::KEY_L => self::KEY_C, self::KEY_C => self::KEY_L] as $chosen => $other) {
+            $src = $this->makePdo();
+            $tgt = $this->makePdo();
+            [$laA, $laB] = $this->sourceWithTwoListings($src, '//Example.COM/fan/admin');
+            $idA = $this->earlierImport($tgt, $laA, [self::KEY_C, self::KEY_L]);
+
+            $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1', 'la_source_id' => $chosen]));
+
+            $idB  = $this->lusterIdForUrl($tgt, 'http://b.example.com');
+            $refs = $this->bridgeRefs($tgt);
+            $this->assertSame($idB, $refs["listing-admin:{$chosen}|{$laB}"] ?? null, "Chosen {$chosen}");
+            $this->assertSame($idA, \Luster\Support\ListingAdminBridgeResolver::resolve($tgt, $laA, $chosen));
+            $this->assertSame(
+                ["listing-admin:{$other}|{$laA}" => $idA],
+                array_filter($refs, static fn(string $k): bool => str_starts_with($k, "listing-admin:{$other}|"), ARRAY_FILTER_USE_KEY),
+                "Nothing new under {$other}",
+            );
+        }
+    }
+
+    public function testImportsThatDontUseTheSourceIdNeverLookItUp(): void
+    {
+        $src = $this->makePdo();
+        $this->sourceWithTwoListings($src, '//Example.COM/fan/admin');
+        $this->insertJoined($src, 'http://joined.example.com', 0);
+
+        // Earlier Source IDs that would stop a listings or codes import, and a database
+        // where the lookup would fail anyway.
+        $tgt = TracingPdo::memory();
+        $this->earlierImport($tgt, 1, [self::KEY_C, self::KEY_L]);
+        $tgt->statements = [];
+        $tgt->failOn     = '/lstr_listing_external_refs|lstr_codes/';
+
+        // Members alone does nothing without the listings step, so joined listings do the writing.
+        $options = $this->makeOptions(['import_joined' => '1', 'import_members' => '1']);
+        $this->adapter()->preview($src, $tgt, $options);
+        $result = $this->adapter()->run($src, $tgt, $options);
+
+        $this->assertSame(1, $this->resultRow($result, 'Joined listings')['imported']);
+        $this->assertSame(1, (int) $tgt->query('SELECT COUNT(*) FROM lstr_joined')->fetchColumn());
+        $this->assertSame([], $tgt->statementsMatching('/lstr_listing_external_refs|lstr_codes/'));
+    }
+
+    public function testAFailedSourceIdLookupStopsThePreviewAndRunBeforeAnythingIsWritten(): void
+    {
+        $src = $this->makePdo();
+        [$laA] = $this->sourceWithTwoListings($src, '//Example.COM/fan/admin');
+
+        // This install's earlier links are there; a failed read must not look like "never imported".
+        $tgt = TracingPdo::memory();
+        $this->earlierImport($tgt, $laA, [self::KEY_L]);
+        $before = $this->targetRows($tgt);
+        $tgt->failOn = '/source IN/';
+        $options = $this->makeOptions(['import_listings' => '1']);
+
+        foreach (['preview', 'run'] as $step) {
+            try {
+                $this->adapter()->{$step}($src, $tgt, $options);
+                $this->fail("The {$step} should stop");
+            } catch (\RuntimeException $e) {
+                $this->assertStringStartsWith("Luster couldn't check which Source ID earlier imports of this install used", $e->getMessage(), $step);
+            }
+            $tgt->failOn = null;
+            $this->assertSame($before, $this->targetRows($tgt), $step);
+            $tgt->failOn = '/source IN/';
+        }
     }
 
     // -----------------------------------------------------------------------

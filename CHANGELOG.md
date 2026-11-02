@@ -96,6 +96,18 @@ release page.
   "Completed with Errors" without ever saying what went wrong, and the
   downloaded report didn't either. Now each problem is listed, like which code
   or image file it was and why.
+- **Listing Admin addresses that start with `//`** (no `http:` or `https:`)
+  now get the same Source ID as the full address. So switching between the two
+  in your Listing Admin settings, or changing the capitals, doesn't make the
+  import think it's a different install and add your codes again. Installs
+  you've already imported keep the Source ID they have, so your bridge pages
+  keep working. Two catches, and both only matter if the address started with
+  `//` back when you imported: if it had capital letters in it and you've
+  changed it since, or if you've since taken the `//` off without putting
+  `http://` or `https://` in front, type your old Source ID on the Options page
+  (it's listed there) before importing again. And if an earlier import already
+  saved an install under two Source IDs, Luster now asks you which one to use
+  instead of just picking one.
 
 
 ### [1.0.0-3] — 2026-10-30

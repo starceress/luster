@@ -452,8 +452,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
             throw new \RuntimeException(self::missingTablesMessage($missing, $laP));
         }
 
-        // Resolved before anything else so a bad Source ID stops the preview up front.
-        $laSource = $this->laSourceKey($source, $sp, $options);
+        // Resolved before anything else so a bad or unclear Source ID stops the preview up front.
+        $laSource = $this->laSourceKey($source, $target, $sp, $options);
 
         // Add-on availability (News Feed, Wishlist, KIM, Rules) must be checked against
         // the Luster target DB, not the foreign LA source.
@@ -536,8 +536,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
             throw new \RuntimeException(self::missingTablesMessage($missing, $laP));
         }
 
-        // Resolved before any writes so a bad Source ID can't leave a half-run import.
-        $laSource = $this->laSourceKey($source, $sp, $options);
+        // Resolved before any writes so a bad or unclear Source ID can't leave a half-run import.
+        $laSource = $this->laSourceKey($source, $target, $sp, $options);
 
         // Detect Luster's target schema (owned vs enth_fanlistings)
         $targetSchema = $this->detectTargetSchema($target);
@@ -2908,11 +2908,17 @@ final class ListingAdminImportSource implements ImportSourceInterface
      * Works out this LA install's source key from the Source ID the admin typed,
      * or from LA's own adm_http / my_website options. See ListingAdminSourceKey.
      *
+     * Only the listings and codes steps use the key, so only they check which key
+     * earlier imports of this install used (resolveFor()). Any other import skips
+     * that read: nothing it writes depends on the key.
+     *
      * @param  string $sp Full source prefix for non-registry tables ($tp . $laP).
      * @return array{key: ?string, origin: string}
-     * @throws \RuntimeException When a typed-in Source ID isn't valid.
+     * @throws \RuntimeException When a typed-in Source ID isn't valid, when earlier
+     *                           imports used more than one of this install's keys, or
+     *                           when Luster's database couldn't be read to find out.
      */
-    private function laSourceKey(PDO $source, string $sp, ImportOptions $options): array
+    private function laSourceKey(PDO $source, PDO $target, string $sp, ImportOptions $options): array
     {
         $urls = ['adm_http' => '', 'my_website' => ''];
         try {
@@ -2929,6 +2935,15 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
         // $options->laTablePrefix, not $sp: a dump's temporary table prefix changes on
         // every upload, which would give the same install a different key each time.
+        if ($options->importListings || $options->importCodes) {
+            return ListingAdminSourceKey::resolveFor(
+                $target,
+                $options->laSourceId,
+                $urls['adm_http'],
+                $urls['my_website'],
+                $options->laTablePrefix,
+            );
+        }
         return ListingAdminSourceKey::resolve(
             $options->laSourceId,
             $urls['adm_http'],

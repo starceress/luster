@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Luster\Tests\Unit;
 
+use Luster\Import\ImportOptions;
+use Luster\Import\ListingAdminImportSource;
 use PDO;
 use PHPUnit\Framework\TestCase;
 
@@ -117,6 +119,66 @@ final class ListingAdminBridgeFileTest extends TestCase
     public function testNoLinkAndNoManualIdLeavesZero(): void
     {
         self::assertSame(0, $this->bridgePicks(listid: 8));
+    }
+
+    public function testSourceIdFromBeforeProtocolRelativeAddressesWereFixedStillWorksAfterARerun(): void
+    {
+        // 1.0.0-3's key for an LA install at //Example.COM/fan/admin with no table prefix
+        // (git show e3da9ea:src/Import/ListingAdminSourceKey.php). Today's key for that
+        // address is different, so this is what a bridge page set up back then still uses.
+        $oldKey = '34d05aee870f';
+
+        $tgt = new PDO('sqlite:' . $this->dir . '/refs.sqlite');
+        $tgt->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $tgt->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $tgt->exec("CREATE TABLE owned (
+            listingid INTEGER PRIMARY KEY AUTOINCREMENT, dbtable TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '',
+            subject TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',
+            catid TEXT NOT NULL DEFAULT '', category_id INTEGER NULL, opened TEXT NULL, status INTEGER NOT NULL DEFAULT 2,
+            imagefile TEXT NOT NULL DEFAULT '', additional TEXT NOT NULL DEFAULT '', dbserver TEXT NOT NULL DEFAULT '',
+            dbuser TEXT NOT NULL DEFAULT '', dbpassword TEXT NOT NULL DEFAULT '', dbdatabase TEXT NOT NULL DEFAULT ''
+        )");
+        $tgt->exec("CREATE TABLE lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '',
+            slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $tgt->exec("CREATE TABLE lstr_fanlisting_settings (
+            fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0,
+            members_template TEXT NULL, stats_template TEXT NULL, affiliates_section_template TEXT NULL, description TEXT NULL,
+            form_url_join TEXT NOT NULL DEFAULT '', form_url_update TEXT NOT NULL DEFAULT '', form_url_reset TEXT NOT NULL DEFAULT '',
+            image TEXT NULL, last_updated DATE NULL
+        )");
+
+        // LA listing 8, as that earlier import left it.
+        $tgt->exec("INSERT INTO owned (dbtable, title, subject, url) VALUES ('a', 'A', 'A', 'http://a.example.com')");
+        $idA = (int) $tgt->lastInsertId();
+        $tgt->prepare("INSERT INTO lstr_listing_external_refs (listing_id, source, external_id) VALUES (?, 'listing-admin', '8'), (?, ?, '8')")
+            ->execute([$idA, $idA, 'listing-admin:' . $oldKey]);
+
+        $src = new PDO('sqlite::memory:');
+        $src->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $src->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $src->exec("CREATE TABLE main (
+            id INTEGER PRIMARY KEY, title TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '',
+            url TEXT NOT NULL DEFAULT '', category TEXT NOT NULL DEFAULT '', since TEXT NULL, updated TEXT NULL,
+            fave_fields TEXT NOT NULL DEFAULT '', trouble INTEGER NOT NULL DEFAULT 0, upcoming INTEGER NOT NULL DEFAULT 0,
+            image TEXT NOT NULL DEFAULT ''
+        )");
+        $src->exec("CREATE TABLE categories (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL DEFAULT '', parent INTEGER NOT NULL DEFAULT 0)");
+        $src->exec("CREATE TABLE options (name TEXT PRIMARY KEY, text TEXT NOT NULL DEFAULT '')");
+        $src->exec("INSERT INTO options (name, text) VALUES ('adm_http', '//Example.COM/fan/admin')");
+        // Listing 9 is new, so its link is made by this run.
+        $src->exec("INSERT INTO main (id, title, subject, url) VALUES (8, 'A', 'A', 'http://a.example.com'), (9, 'B', 'B', 'http://b.example.com')");
+
+        (new ListingAdminImportSource())->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'listing-admin',
+            'conflict_strategy' => 'skip',
+            'import_listings'   => '1',
+        ]));
+        $idB = (int) $tgt->query("SELECT listingid FROM owned WHERE url = 'http://b.example.com'")->fetchColumn();
+        $tgt = null;
+
+        self::assertSame($idA, $this->bridgePicks(listid: 8, laSource: $oldKey));
+        self::assertSame($idB, $this->bridgePicks(listid: 9, laSource: $oldKey));
+        self::assertNotSame(0, $idB);
     }
 
     /**

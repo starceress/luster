@@ -54,12 +54,9 @@ final class CodeSortSourceKey
         $imagesUrl = trim($imagesUrl);
         $host      = parse_url($imagesUrl, PHP_URL_HOST);
         if (is_string($host) && $host !== '') {
-            // parse_url() finds the host in '//host/path' too, but normalizeUrl() only drops a
-            // scheme, so it would keep that whole thing as a path, capitals and all. Without
-            // the slashes it hashes the same as http(s)://host/path.
-            $address = str_starts_with($imagesUrl, '//') ? substr($imagesUrl, 2) : $imagesUrl;
+            // normalizeUrl() reads '//host/path' the same as http(s)://host/path.
             return [
-                'key'    => substr(sha1(ListingAdminSourceKey::normalizeUrl($address)), 0, 12),
+                'key'    => substr(sha1(ListingAdminSourceKey::normalizeUrl($imagesUrl)), 0, 12),
                 'origin' => 'images_url',
             ];
         }

@@ -624,6 +624,171 @@ final class ListingAdminCodesImportTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Protocol-relative ('//host/path') addresses: codes saved under the key
+    // an earlier import used are found again, never added a second time.
+    // -----------------------------------------------------------------------
+
+    // 1.0.0-3's keys for an LA install at la.example.com/admin with no table prefix,
+    // worked out with that release's code (git show e3da9ea:src/Import/ListingAdminSourceKey.php).
+    /** https://la.example.com/admin — and every form of the address from now on. */
+    private const KEY_C = '50e5026068f6';
+    /** //La.Example.COM/admin */
+    private const KEY_L = '932cf77ba024';
+    /** //la.example.com/admin */
+    private const KEY_D = '4e3ded09de5d';
+
+    /**
+     * An LA install with two codes for one listing that's already in Luster.
+     *
+     * @return array{PDO, PDO} source, target
+     */
+    private function twoCodes(string $admHttp): array
+    {
+        $src = $this->laSource(['adm_http' => $admHttp]);
+        $tgt = $this->target();
+        $this->laListing($src, 1, 'http://fl.example.com');
+        $this->lusterListing($tgt, 'http://fl.example.com');
+        $this->png('a.png');
+        $this->png('b.png');
+        $this->laCode($src, ['cID' => 1, 'fNiq' => 1, 'cFile' => 'a.png']);
+        $this->laCode($src, ['cID' => 2, 'fNiq' => 1, 'cFile' => 'b.png']);
+        return [$src, $tgt];
+    }
+
+    /**
+     * Saves the codes the way an earlier import did under $key: a run with $key
+     * typed in writes exactly the rows 1.0.0-3 wrote for the address it came from.
+     */
+    private function earlierImportUnder(PDO $src, PDO $tgt, string $key): void
+    {
+        $this->adapter()->run($src, $tgt, $this->options(['la_source_id' => $key]));
+    }
+
+    private function setAdmHttp(PDO $src, string $admHttp): void
+    {
+        $src->prepare("UPDATE options SET text = ? WHERE name = 'adm_http'")->execute([$admHttp]);
+    }
+
+    /** @return array<string,int> import_ref => code ID */
+    private function codeIds(PDO $tgt): array
+    {
+        return array_map('intval', array_column($this->codes($tgt), 'id', 'import_ref'));
+    }
+
+    /** @return list<string> lstr_listing_external_refs sources, without the shared one. */
+    private function keyedLinkSources(PDO $tgt): array
+    {
+        return $tgt->query("SELECT DISTINCT source FROM lstr_listing_external_refs WHERE source <> 'listing-admin' ORDER BY source")
+            ->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    private static function refUnder(string $key, int $cID): string
+    {
+        return ListingAdminSourceKey::refSource($key) . ':' . $cID;
+    }
+
+    public function testRerunFindsTheCodesAnEarlierImportSavedUnderItsOldSourceId(): void
+    {
+        [$src, $tgt] = $this->twoCodes('//La.Example.COM/admin');
+        $this->earlierImportUnder($src, $tgt, self::KEY_L);
+        $ids = $this->codeIds($tgt);
+        $this->assertSame([self::refUnder(self::KEY_L, 1), self::refUnder(self::KEY_L, 2)], array_keys($ids));
+
+        // Update matching counts the codes it updates in place as imported.
+        foreach (['skip' => [0, 2], 'overwrite' => [2, 0]] as $strategy => $counts) {
+            $row = $this->codesRow($this->adapter()->run($src, $tgt, $this->options(['conflict_strategy' => $strategy])));
+
+            $this->assertSame($counts, [$row['imported'], $row['skipped']], $strategy);
+            $this->assertSame($ids, $this->codeIds($tgt), $strategy);
+        }
+        $this->assertSame([ListingAdminSourceKey::refSource(self::KEY_L)], $this->keyedLinkSources($tgt));
+        $this->assertCount(2, $this->uploadedCodeFiles());
+    }
+
+    public function testLowercaseProtocolRelativeAddressNowWrittenInFullFindsItsCodes(): void
+    {
+        [$src, $tgt] = $this->twoCodes('//la.example.com/admin');
+        $this->earlierImportUnder($src, $tgt, self::KEY_D);
+        $ids = $this->codeIds($tgt);
+
+        $this->setAdmHttp($src, 'https://la.example.com/admin');
+        $row = $this->codesRow($this->adapter()->run($src, $tgt, $this->options()));
+
+        $this->assertSame([0, 2], [$row['imported'], $row['skipped']]);
+        $this->assertSame($ids, $this->codeIds($tgt));
+        $this->assertSame([ListingAdminSourceKey::refSource(self::KEY_D)], $this->keyedLinkSources($tgt));
+    }
+
+    public function testANewInstallGetsOneSetOfCodesWhicheverWayItsAddressIsWritten(): void
+    {
+        [$src, $tgt] = $this->twoCodes('//La.Example.COM/admin');
+
+        foreach (['//La.Example.COM/admin', '//la.example.com/admin/', 'https://la.example.com/admin'] as $admHttp) {
+            $this->setAdmHttp($src, $admHttp);
+            $this->adapter()->run($src, $tgt, $this->options());
+        }
+
+        $this->assertSame([self::refUnder(self::KEY_C, 1), self::refUnder(self::KEY_C, 2)], array_keys($this->codeIds($tgt)));
+        $this->assertSame([ListingAdminSourceKey::refSource(self::KEY_C)], $this->keyedLinkSources($tgt));
+    }
+
+    public function testCodesOnlyImportStopsWhenEarlierImportsUsedSeveralSourceIds(): void
+    {
+        [$src, $tgt] = $this->twoCodes('//La.Example.COM/admin');
+        // What the bug left behind: the same codes under two keys.
+        $this->earlierImportUnder($src, $tgt, self::KEY_C);
+        $this->earlierImportUnder($src, $tgt, self::KEY_L);
+        $ids   = $this->codeIds($tgt);
+        $links = $tgt->query('SELECT * FROM lstr_listing_external_refs ORDER BY id')->fetchAll();
+        $this->assertCount(4, $ids);
+
+        foreach (['preview', 'run'] as $step) {
+            try {
+                $this->adapter()->{$step}($src, $tgt, $this->options());
+                $this->fail("The {$step} should stop");
+            } catch (\RuntimeException $e) {
+                $this->assertStringStartsWith(
+                    'Earlier imports saved this Listing Admin install under more than one Source ID: '
+                    . self::KEY_C . ' (1 listing link, 2 codes) and ' . self::KEY_L . ' (1 listing link, 2 codes).',
+                    $e->getMessage(),
+                    $step
+                );
+            }
+            $this->assertSame($ids, $this->codeIds($tgt), $step);
+            $this->assertSame($links, $tgt->query('SELECT * FROM lstr_listing_external_refs ORDER BY id')->fetchAll(), $step);
+        }
+
+        // Typing either one matches only that one's codes.
+        foreach ([self::KEY_L, self::KEY_C] as $chosen) {
+            $row = $this->codesRow($this->adapter()->run($src, $tgt, $this->options(['la_source_id' => $chosen])));
+
+            $this->assertSame([0, 2], [$row['imported'], $row['skipped']], $chosen);
+            $this->assertSame($ids, $this->codeIds($tgt), $chosen);
+        }
+    }
+
+    public function testMixedCaseProtocolRelativeAddressNeedsItsOldSourceIdTyped(): void
+    {
+        [$src, $tgt] = $this->twoCodes('//La.Example.COM/admin');
+        $this->earlierImportUnder($src, $tgt, self::KEY_L);
+        $ids = $this->codeIds($tgt);
+        $this->setAdmHttp($src, 'https://la.example.com/admin');
+
+        // The known limit: the old capitals can't be worked out, so today's key finds nothing.
+        $preview = null;
+        foreach ($this->adapter()->preview($src, $tgt, $this->options())->rows as $r) {
+            $preview = $r['type'] === 'Codes' ? $r : $preview;
+        }
+        $this->assertSame([2, 2, 0], [$preview['found'], $preview['import'], $preview['skip']]);
+
+        $row = $this->codesRow($this->adapter()->run($src, $tgt, $this->options(['la_source_id' => self::KEY_L])));
+
+        $this->assertSame([0, 2], [$row['imported'], $row['skipped']]);
+        $this->assertSame($ids, $this->codeIds($tgt));
+        $this->assertSame([ListingAdminSourceKey::refSource(self::KEY_L)], $this->keyedLinkSources($tgt));
+    }
+
+    // -----------------------------------------------------------------------
     // Re-runs and images
     // -----------------------------------------------------------------------
 
