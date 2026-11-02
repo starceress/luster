@@ -1527,15 +1527,18 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     }
                     $resolvedName   = $catNameMap[$lusterCatId]   ?? '';
                     $resolvedSource = $catSourceMap[$lusterCatId] ?? 'custom';
-                    $jsonEntries[]  = ['name' => $resolvedName, 'network' => $resolvedSource];
+                    // Category sources are lowercase ('tfl'); the joined edit form
+                    // only recognises its own labels ('TFL'), see networkLabel().
+                    $jsonEntries[]  = [
+                        'name'    => $resolvedName,
+                        'network' => \Luster\Support\JoinedCategories::networkLabel($resolvedSource),
+                    ];
                     if ($i === 0) {
                         $catId   = $lusterCatId;
                         $catName = $resolvedName;
                     }
                 }
-                if (!empty($jsonEntries)) {
-                    $categoriesJson = json_encode($jsonEntries, JSON_UNESCAPED_UNICODE);
-                }
+                $categoriesJson = \Luster\Support\JoinedCategories::encode($jsonEntries);
             } elseif ($caps['has_joined_categories'] === false) {
                 // No junction table — fall back to legacy category_id column
                 $legacyCatId = (int) ($jl['category_id'] ?? 0);
@@ -1545,9 +1548,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
                         $catId   = $lusterCatId;
                         $catName = $catNameMap[$lusterCatId] ?? '';
                         $source2 = $catSourceMap[$lusterCatId] ?? 'custom';
-                        $categoriesJson = json_encode(
-                            [['name' => $catName, 'network' => $source2]],
-                            JSON_UNESCAPED_UNICODE
+                        $categoriesJson = \Luster\Support\JoinedCategories::encode(
+                            [['name' => $catName, 'network' => \Luster\Support\JoinedCategories::networkLabel($source2)]]
                         );
                     }
                 }

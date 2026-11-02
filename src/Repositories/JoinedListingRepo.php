@@ -17,6 +17,7 @@ namespace Luster\Repositories;
 
 use Luster\Core\Database;
 use Luster\Models\JoinedListing;
+use Luster\Support\JoinedCategories;
 
 /**
  * Data access for the lstr_joined table.
@@ -24,6 +25,9 @@ use Luster\Models\JoinedListing;
  * Each row represents a fanlisting the site owner has joined as a member.
  * Category metadata is stored both as a legacy plain string (category) and
  * as a structured JSON column (categories_json) for multi-network support.
+ * JoinedCategories describes that format and decides which categories a row
+ * is in; the category filter and the category counts here both go through it
+ * so they always agree.
  * The active flag controls public visibility independently of the status
  * field ('approved' | 'pending' | 'hiatus' etc.).
  *
@@ -33,6 +37,66 @@ use Luster\Models\JoinedListing;
 final class JoinedListingRepo
 {
     public function __construct(private readonly Database $db) {}
+
+    // -----------------------------------------------------------------------
+    // Category filter
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns the WHERE fragment and its bound values for "rows in $category".
+     *
+     * Which rows are in a category is worked out in PHP with
+     * JoinedCategories::names(), the same rule getCategoryCountMap() counts
+     * with, and the query is then limited to those row IDs. Letting SQL compare
+     * the names instead made the two disagree (see JoinedCategories). A
+     * category no row is in gives "1 = 0", which matches nothing.
+     *
+     * @return array{0: string, 1: array<string, int>} [SQL fragment, placeholder => row ID]
+     */
+    private function categoryCondition(string $category): array
+    {
+        $stmt = $this->db->prepare('SELECT id, category, categories_json FROM lstr_joined');
+        $stmt->execute();
+
+        $params = [];
+        foreach ($stmt->fetchAll() as $row) {
+            if (in_array($category, self::rowCategoryNames($row), true)) {
+                $params[':catid' . count($params)] = (int) $row['id'];
+            }
+        }
+
+        if ($params === []) {
+            return ['1 = 0', []];
+        }
+
+        return ['id IN (' . implode(', ', array_keys($params)) . ')', $params];
+    }
+
+    /**
+     * Binds the row IDs returned by categoryCondition() (nothing to bind when
+     * no category filter is set).
+     *
+     * @param array<string, int> $params
+     */
+    private static function bindCategoryIds(\PDOStatement $stmt, array $params): void
+    {
+        foreach ($params as $placeholder => $id) {
+            $stmt->bindValue($placeholder, $id, \PDO::PARAM_INT);
+        }
+    }
+
+    /**
+     * The category names a raw lstr_joined row is in.
+     *
+     * @param array<string, mixed> $row Needs the category and categories_json columns
+     * @return string[]
+     */
+    private static function rowCategoryNames(array $row): array
+    {
+        $json = isset($row['categories_json']) ? (string) $row['categories_json'] : null;
+
+        return JoinedCategories::names($json, (string) ($row['category'] ?? ''));
+    }
 
     // -----------------------------------------------------------------------
     // Reads
@@ -49,7 +113,6 @@ final class JoinedListingRepo
     public function getAll(int $perPage = 10, int $page = 1, string $filterCat = '', string $statusTab = 'all', bool $newestFirst = false): array
     {
         $offset     = ($page - 1) * $perPage;
-        $catPattern = '%"name":"' . $filterCat . '"%';
         $orderBy    = $newestFirst ? 'id DESC' : 'category ASC, name ASC';
 
         $statusClause = match ($statusTab) {
@@ -61,17 +124,16 @@ final class JoinedListingRepo
             default           => '',
         };
 
+        [$catSql, $catParams] = $filterCat !== '' ? $this->categoryCondition($filterCat) : ['', []];
+
         $whereParts = array_filter([
-            $filterCat !== '' ? '(category = :cat OR categories_json LIKE :catj)' : '',
+            $catSql,
             $statusClause,
         ], static fn(string $s) => $s !== '');
         $whereClause = $whereParts !== [] ? 'WHERE ' . implode(' AND ', $whereParts) : '';
 
         $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_joined {$whereClause}");
-        if ($filterCat !== '') {
-            $countStmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
-            $countStmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
-        }
+        self::bindCategoryIds($countStmt, $catParams);
         $countStmt->execute();
         $total = (int) $countStmt->fetchColumn();
 
@@ -80,10 +142,7 @@ final class JoinedListingRepo
              ORDER BY {$orderBy}
              LIMIT :limit OFFSET :offset"
         );
-        if ($filterCat !== '') {
-            $stmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
-            $stmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
-        }
+        self::bindCategoryIds($stmt, $catParams);
         $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
         $stmt->execute();
@@ -120,10 +179,10 @@ final class JoinedListingRepo
             $params[':net'] = '%' . $filterNetwork . '%';
         }
 
+        $catParams = [];
         if ($filterCat !== '') {
-            $conditions[]    = '(category = :cat OR categories_json LIKE :catj)';
-            $params[':cat']  = $filterCat;
-            $params[':catj'] = '%"name":"' . $filterCat . '"%';
+            [$catSql, $catParams] = $this->categoryCondition($filterCat);
+            $conditions[] = $catSql;
         }
 
         $whereClause = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
@@ -140,6 +199,7 @@ final class JoinedListingRepo
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value, \PDO::PARAM_STR);
         }
+        self::bindCategoryIds($stmt, $catParams);
         $stmt->execute();
         $row = $stmt->fetch();
 
@@ -164,8 +224,8 @@ final class JoinedListingRepo
     {
         $offset     = ($page - 1) * $perPage;
         $pattern    = '%' . $q . '%';
-        $catClause  = $filterCat !== '' ? ' AND (category = :cat OR categories_json LIKE :catj)' : '';
-        $catPattern = '%"name":"' . $filterCat . '"%';
+        [$catSql, $catParams] = $filterCat !== '' ? $this->categoryCondition($filterCat) : ['', []];
+        $catClause  = $catSql !== '' ? ' AND ' . $catSql : '';
         $orderBy    = $newestFirst ? 'id DESC' : 'name ASC';
 
         $tabClause = match ($statusTab) {
@@ -188,10 +248,7 @@ final class JoinedListingRepo
             $countStmt->bindValue(':q3',  $pattern,    \PDO::PARAM_STR);
             $countStmt->bindValue(':q4',  $pattern,    \PDO::PARAM_STR);
             $countStmt->bindValue(':net', $netPattern, \PDO::PARAM_STR);
-            if ($filterCat !== '') {
-                $countStmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
-                $countStmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
-            }
+            self::bindCategoryIds($countStmt, $catParams);
             $countStmt->execute();
             $total = (int) $countStmt->fetchColumn();
 
@@ -207,10 +264,7 @@ final class JoinedListingRepo
             $stmt->bindValue(':q3',     $pattern,    \PDO::PARAM_STR);
             $stmt->bindValue(':q4',     $pattern,    \PDO::PARAM_STR);
             $stmt->bindValue(':net',    $netPattern, \PDO::PARAM_STR);
-            if ($filterCat !== '') {
-                $stmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
-                $stmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
-            }
+            self::bindCategoryIds($stmt, $catParams);
             $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
         } else {
@@ -222,10 +276,7 @@ final class JoinedListingRepo
             $countStmt->bindValue(':q2', $pattern, \PDO::PARAM_STR);
             $countStmt->bindValue(':q3', $pattern, \PDO::PARAM_STR);
             $countStmt->bindValue(':q4', $pattern, \PDO::PARAM_STR);
-            if ($filterCat !== '') {
-                $countStmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
-                $countStmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
-            }
+            self::bindCategoryIds($countStmt, $catParams);
             $countStmt->execute();
             $total = (int) $countStmt->fetchColumn();
 
@@ -239,10 +290,7 @@ final class JoinedListingRepo
             $stmt->bindValue(':q2',     $pattern, \PDO::PARAM_STR);
             $stmt->bindValue(':q3',     $pattern, \PDO::PARAM_STR);
             $stmt->bindValue(':q4',     $pattern, \PDO::PARAM_STR);
-            if ($filterCat !== '') {
-                $stmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
-                $stmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
-            }
+            self::bindCategoryIds($stmt, $catParams);
             $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
         }
@@ -340,11 +388,9 @@ final class JoinedListingRepo
     }
 
     /**
-     * Returns all distinct, non-empty category names sorted alphabetically.
-     *
-     * For rows with a non-empty categories_json, each entry's 'name' value is
-     * collected. For rows without categories_json, the legacy category string
-     * is used as the fallback.
+     * Returns all distinct, non-empty category names sorted alphabetically,
+     * using JoinedCategories::names() for each row (categories_json names, or
+     * the plain category for rows without any).
      *
      * @param bool $activeOnly When true, only considers non-hidden (active=1) rows,
      *                         so categories that only contain hidden listings are excluded.
@@ -361,19 +407,8 @@ final class JoinedListingRepo
         $names = [];
 
         foreach ($stmt->fetchAll() as $row) {
-            $json = $row['categories_json'] ?? null;
-
-            if ($json !== null && $json !== '') {
-                $decoded = json_decode($json, true);
-                if (is_array($decoded)) {
-                    foreach ($decoded as $entry) {
-                        if (isset($entry['name']) && $entry['name'] !== '') {
-                            $names[] = (string) $entry['name'];
-                        }
-                    }
-                }
-            } elseif (isset($row['category']) && $row['category'] !== '') {
-                $names[] = (string) $row['category'];
+            foreach (self::rowCategoryNames($row) as $name) {
+                $names[] = $name;
             }
         }
 
@@ -385,7 +420,10 @@ final class JoinedListingRepo
 
     /**
      * Returns a map of category name → count of active listings in that category.
-     * Only active listings are counted. Mirrors the logic in getCategories().
+     * Only active listings are counted. Uses the same JoinedCategories::names()
+     * rule as the category filter, so opening a category always shows as many
+     * listings as its count says. A listing with the same name twice (say under
+     * two networks) counts once.
      *
      * @return array<string, int>
      */
@@ -403,20 +441,7 @@ final class JoinedListingRepo
                 continue;
             }
 
-            $json = $row['categories_json'] ?? null;
-
-            if ($json !== null && $json !== '') {
-                $decoded = json_decode($json, true);
-                if (is_array($decoded)) {
-                    foreach ($decoded as $entry) {
-                        if (isset($entry['name']) && $entry['name'] !== '') {
-                            $name          = (string) $entry['name'];
-                            $counts[$name] = ($counts[$name] ?? 0) + 1;
-                        }
-                    }
-                }
-            } elseif (isset($row['category']) && $row['category'] !== '') {
-                $name          = (string) $row['category'];
+            foreach (self::rowCategoryNames($row) as $name) {
                 $counts[$name] = ($counts[$name] ?? 0) + 1;
             }
         }

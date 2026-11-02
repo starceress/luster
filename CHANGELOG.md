@@ -22,7 +22,7 @@ release page.
 ### [Unreleased]
 
 **After updating:** go to **Settings → System & Updates** and click **Run
-migrations** once. This update tidies two things in your database (see below),
+migrations** once. This update tidies three things in your database (see below),
 and the migration page tells you if any of your listings were affected.
 
 **Changed:**
@@ -52,6 +52,31 @@ and the migration page tells you if any of your listings were affected.
   Latest Joined boxes.** The import saved them with an old status name those
   two boxes don't look for. The import uses the right one now, and the
   migration fixes any already saved the old way.
+- **Joined listings you've edited show up on their category page again.**
+  Saving a joined listing on its edit page quietly lost part of its category,
+  so it went missing from any category with a "/" in its name. That's every
+  TAFL category ("Anime/Manga: ...") plus a few TFL ones like "Food/Drinks".
+  The category dropdown still counted it, so a category could say 18 and only
+  show 16. On the "All" page those listings had also slid down near the end.
+  The edit page saves categories properly now, and running migrations tidies
+  up the ones saved the old way. Joined listings with more than one category
+  show up under each of them, not just the first.
+- **A joined category's number always matches what you see when you open it.**
+  "Cafe" and "Café" (or "cafe") used to show each other's listings, a really
+  long category name could pull in listings from a shorter one, and a listing
+  picked under the same category twice was counted twice.
+- **Saving a joined listing brought over from Fanatically keeps its
+  categories.** The edit page didn't recognise how the import labelled TFL and
+  TAFL, so saving one wiped its categories. The import labels them properly
+  now, and the migration fixes listings you've already imported.
+- **Categories the dropdowns don't know about stay put.** If a listing has a
+  network or category that isn't in the pickers anymore (like "Custom" from an
+  import), the edit page still shows it, and saving keeps it.
+- **Blank category rows don't shuffle your categories anymore.** On the joined
+  and owned listing pages, leaving a Network & Category row empty above a
+  filled one could save a category under the wrong network or drop it. And if
+  saving a joined listing fails (say the URL is missing), the form comes back
+  with the categories you picked, or none if you'd removed them all.
 - **Running a Fanatically import again with "Overwrite" doesn't fail on
   members anymore.** Every member who was already there came back with an
   error. Now they get updated, and anyone who'd hidden their email or website

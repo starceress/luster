@@ -30,9 +30,27 @@ $val = static function (string $key, $model, string $prop, string $default = '')
 $activeVal = isset($old['active']) ? ($old['active'] === '1') : ($joined?->active ?? true);
 $statusVal = isset($old['status']) ? $old['status'] : ($joined?->status ?? 'approved');
 
-// Decode existing categories_json for JS pre-population.
+// Pre-populate the category rows: the posted rows when a save failed validation
+// (so the picks aren't lost), otherwise the listing's saved categories_json.
+// $old is only non-empty after a failed save. Check that rather than the
+// category arrays: removing every row posts no cat_network[] at all, and that
+// must come back as "no categories", not as the saved ones.
 $existingCats = [];
-if ($isEdit && $joined->categoriesJson !== null) {
+if ($old !== []) {
+    $oldNets  = array_values((array) ($old['cat_network']       ?? []));
+    $oldNames = array_values((array) ($old['cat_name']          ?? []));
+    $oldOther = array_values((array) ($old['cat_network_other'] ?? []));
+    foreach ($oldNets as $i => $net) {
+        $net = trim((string) $net);
+        $nm  = trim((string) ($oldNames[$i] ?? ''));
+        if ($net === 'other') {
+            $net = trim((string) ($oldOther[$i] ?? ''));
+        }
+        if ($net !== '' && $nm !== '') {
+            $existingCats[] = ['network' => $net, 'name' => $nm];
+        }
+    }
+} elseif ($isEdit && $joined->categoriesJson !== null) {
     $decoded = json_decode($joined->categoriesJson, true);
     if (is_array($decoded)) {
         $existingCats = $decoded;

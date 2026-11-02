@@ -318,6 +318,7 @@ HTML, false, $migSelectedSkin);
 $config = require $configPath;
 
 require_once __DIR__ . '/../../src/Support/CategorySeedCatalog.php';
+require_once __DIR__ . '/../../src/Support/JoinedCategories.php';
 
 $dsn = sprintf(
     'mysql:host=%s;port=%d;dbname=%s;charset=%s',
@@ -3451,6 +3452,32 @@ try {
     $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (106)');
 } catch (PDOException $e) {
     $errors[] = 'Migration 106 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// --- Migration 107: tidy how joined listings store their categories.
+// Saving a joined listing in the admin emptied its plain `category` column, so
+// the "All" view grouped it as Uncategorized. categories_json was also saved in
+// mixed forms: "/" written as "\/", accented letters as escape codes, and
+// Fanatically imports used lowercase network names ("tfl") that the edit form
+// didn't recognise, so saving such a listing dropped its categories. This
+// rewrites categories_json with plain slashes and letters and the form's network
+// labels, and fills an empty `category` with the listing's first category. The
+// work is done by JoinedCategories::repairStoredRows() (loaded at the top of this
+// file), which has its own tests. Safe to run again: once fixed, nothing changes.
+try {
+    $joinedCatRepair     = \Luster\Support\JoinedCategories::repairStoredRows($pdo);
+    $joinedCatsFilled    = $joinedCatRepair['categories_filled'];
+    $joinedJsonRewritten = $joinedCatRepair['json_rewritten'];
+
+    if ($joinedCatsFilled > 0) {
+        $done[] = "Migration 107: {$joinedCatsFilled} joined listing(s) got their category back, so they show on their category page again";
+    }
+    if ($joinedJsonRewritten > 0) {
+        $done[] = "Migration 107: tidied how categories are saved for {$joinedJsonRewritten} joined listing(s)";
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (107)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 107 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // Build results HTML

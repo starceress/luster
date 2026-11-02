@@ -1540,7 +1540,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
                     $newCatId = $catNameToId[$idKey] ?? $catNameToId[$normalizedName] ?? null;
                 }
             }
-            $categoriesJson = !empty($catJsonEntries) ? json_encode($catJsonEntries) : null;
+            $categoriesJson = \Luster\Support\JoinedCategories::encode($catJsonEntries);
             // LA: jStatus=0 means current/active; jStatus=1 means pending.
             $active         = ((int) ($row['jStatus'] ?? 0)) === 0 ? 1 : 0;
 

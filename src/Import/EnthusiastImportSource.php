@@ -967,7 +967,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                             $ovCatId = $catNameToId[$ovIdKey] ?? $catNameToId[$ovNormName] ?? null;
                         }
                     }
-                    $ovCatJson = !empty($ovJsonEntries) ? json_encode($ovJsonEntries) : null;
+                    $ovCatJson = \Luster\Support\JoinedCategories::encode($ovJsonEntries);
                     $updStmt = $target->prepare(
                         'UPDATE lstr_joined SET name = :name, category = :category, categories_json = :categories_json, category_id = :category_id, description = :description, comments = :comments WHERE url = :url'
                     );
@@ -1013,7 +1013,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     $newCatId = $catNameToId[$idKey] ?? $catNameToId[$normalizedName] ?? null;
                 }
             }
-            $categoriesJson = !empty($catJsonEntries) ? json_encode($catJsonEntries) : null;
+            $categoriesJson = \Luster\Support\JoinedCategories::encode($catJsonEntries);
 
             // Invert pending flag: Enthusiast pending=0 means approved → active=1
             $active = ((int) ($row['pending'] ?? 0)) === 0 ? 1 : 0;

@@ -20,6 +20,7 @@ use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\JoinedListingRepo;
+use Luster\Support\JoinedCategories;
 
 /**
  * Manages the owner's joined-fanlisting entries: paginated index with network/
@@ -148,7 +149,6 @@ final class JoinedController extends AdminController
         if ($request->isPost()) {
             $name        = trim((string) $request->post('name', ''));
             $url         = self::httpsify(trim((string) $request->post('url', '')));
-            $category    = trim((string) $request->post('category', ''));
             $dateJoined  = trim((string) $request->post('date_joined', ''));
             $active      = $request->post('active') === '1';
             $status      = trim((string) $request->post('status', 'approved'));
@@ -159,7 +159,10 @@ final class JoinedController extends AdminController
                 $status = 'approved';
             }
 
+            // The form only has network/category rows, so the plain category
+            // column is filled from the first of them.
             $categoriesJson = $this->buildCategoriesJson($categoryRepo, $request);
+            $category       = JoinedCategories::primaryFor($categoriesJson);
 
             // --- Image upload ---
             $image      = null;
@@ -304,7 +307,6 @@ final class JoinedController extends AdminController
         if ($request->isPost()) {
             $name        = trim((string) $request->post('name', ''));
             $url         = self::httpsify(trim((string) $request->post('url', '')));
-            $category    = trim((string) $request->post('category', ''));
             $dateJoined  = trim((string) $request->post('date_joined', ''));
             $active      = $request->post('active') === '1';
             $deleteImage = $request->post('delete_image') === '1';
@@ -316,7 +318,11 @@ final class JoinedController extends AdminController
                 $status = 'approved';
             }
 
+            // The form only has network/category rows, so the plain category
+            // column is filled from the first of them. Passing $joined keeps an
+            // old plain category the form had no row for (see JoinedCategories::primaryFor()).
             $categoriesJson = $this->buildCategoriesJson($categoryRepo, $request);
+            $category       = JoinedCategories::primaryFor($categoriesJson, $joined);
 
             // --- Image upload ---
             $image       = $joined->image;   // preserve existing by default
@@ -729,40 +735,25 @@ final class JoinedController extends AdminController
 
     /**
      * Assembles the JSON blob stored in lstr_joined.categories_json from the
-     * parallel cat_network[] / cat_name[] POST arrays; auto-registers any
-     * "other" network name via CategoryRepo::addCustomNetwork().
+     * parallel cat_network[] / cat_name[] POST arrays (paired up by
+     * JoinedCategories::fromFormRows()); auto-registers any "other" network
+     * name via CategoryRepo::addCustomNetwork().
      *
      * @return string|null JSON string, or null when no valid entries are present
      */
     private function buildCategoriesJson(CategoryRepo $categoryRepo, Request $request): ?string
     {
-        $networks = array_values((array) $request->post('cat_network', []));
-        $names    = array_values((array) $request->post('cat_name', []));
-        $others   = array_values((array) $request->post('cat_network_other', []));
+        $rows = JoinedCategories::fromFormRows(
+            (array) $request->post('cat_network', []),
+            (array) $request->post('cat_name', []),
+            (array) $request->post('cat_network_other', []),
+        );
 
-        $entries = [];
-
-        foreach ($networks as $i => $rawNetwork) {
-            $network = trim((string) $rawNetwork);
-            $name    = trim((string) ($names[$i] ?? ''));
-
-            if ($network === 'other') {
-                $customName = trim((string) ($others[$i] ?? ''));
-                if ($customName === '') {
-                    continue;
-                }
-                $categoryRepo->addCustomNetwork($customName);
-                $network = $customName;
-            }
-
-            if ($network === '' || $name === '') {
-                continue;
-            }
-
-            $entries[] = ['network' => $network, 'name' => $name];
+        foreach ($rows['new_networks'] as $network) {
+            $categoryRepo->addCustomNetwork($network);
         }
 
-        return $entries !== [] ? (string) json_encode($entries, JSON_UNESCAPED_UNICODE) : null;
+        return JoinedCategories::encode($rows['entries']);
     }
 
     // -----------------------------------------------------------------------

@@ -555,9 +555,21 @@ document.addEventListener('click', function (e) {
   var customCats = JSON.parse(widget.dataset.customCats || '{}'); // { "NetworkName": [{id,name}, ...] }
   var existing   = JSON.parse(widget.dataset.existing);
 
+  // Saved rows can say "tfl"/"tafl" (older Fanatically imports); the list says TFL/TAFL.
+  function normalizeNet(net) {
+    var upper = String(net || '').toUpperCase();
+    return (upper === 'TFL' || upper === 'TAFL') ? upper : (net || '');
+  }
+
   function buildNetOpts(selected) {
     var h = '<option value="">\u2014 Select Network \u2014</option>';
-    var nets = ['TFL', 'TAFL'].concat(customNets).sort(function (a, b) {
+    var nets = ['TFL', 'TAFL'].concat(customNets);
+    // A saved network that isn't in the list (e.g. "Custom" from an import)
+    // still gets an option, so saving the form doesn't silently drop the row.
+    if (selected && selected !== 'other' && nets.indexOf(selected) === -1) {
+      nets.push(selected);
+    }
+    nets.sort(function (a, b) {
       return a.toLowerCase().localeCompare(b.toLowerCase());
     });
     nets.forEach(function (name) {
@@ -571,6 +583,11 @@ document.addEventListener('click', function (e) {
 
   function buildCatOpts(cats, selected) {
     var h = '<option value="">\u2014 Select Category \u2014</option>';
+    // Same for a saved category that's no longer in this network's list.
+    var known = cats.some(function (c) { return c.name === selected; });
+    if (selected && !known) {
+      h += '<option value="' + esc(selected) + '" selected>' + esc(selected) + '</option>';
+    }
     cats.forEach(function (c) {
       h += '<option value="' + esc(c.name) + '"' +
            (selected === c.name ? ' selected' : '') + '>' + esc(c.name) + '</option>';
@@ -613,15 +630,19 @@ document.addEventListener('click', function (e) {
       }
       othTxt.style.display = 'none';
     } else {
+      // No network picked yet. The hidden text box stays enabled (and empty)
+      // so this row still sends one cat_name[] value. The server pairs
+      // cat_network[] and cat_name[] by position; a row sending no name would
+      // shift every later row's category onto the wrong network.
       catSel.disabled      = true;  catSel.style.display = 'none';
       if (catSelWrap) catSelWrap.style.display = 'none';
-      catTxt.disabled      = true;  catTxt.style.display = 'none';
+      catTxt.disabled      = false; catTxt.style.display = 'none'; catTxt.value = '';
       othTxt.style.display = 'none';
     }
   }
 
   function makeRow(netVal, catVal, otherNetVal) {
-    netVal = netVal || ''; catVal = catVal || ''; otherNetVal = otherNetVal || '';
+    netVal = normalizeNet(netVal); catVal = catVal || ''; otherNetVal = otherNetVal || '';
     var row = document.createElement('div');
     row.className = 'cat-row';
     row.innerHTML =
@@ -642,7 +663,7 @@ document.addEventListener('click', function (e) {
     row.querySelector('.cat-remove-btn').addEventListener('click', function () {
       row.remove();
     });
-    if (netVal) syncRow(row, netVal, catVal);
+    syncRow(row, netVal, catVal);
     return row;
   }
 

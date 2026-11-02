@@ -779,6 +779,12 @@ final class FanaticallyImportSourceTest extends TestCase
         self::assertCount(2, $decoded);
         self::assertSame('Music', $decoded[0]['name']);
         self::assertSame('Anime', $decoded[1]['name']);
+        // Neither name is an official TFL/TAFL category, so both import as custom
+        // categories. The network is the label the joined edit form uses
+        // ('Custom'), not the lowercase source ('custom'), so saving the listing
+        // keeps its categories.
+        self::assertSame('Custom', $decoded[0]['network']);
+        self::assertSame('Custom', $decoded[1]['network']);
     }
 
     // -----------------------------------------------------------------------
