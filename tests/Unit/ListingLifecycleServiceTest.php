@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Tests ListingLifecycleService::archive()/reopen() against both Enthusiast
- * schema variants (unprefixed 'owned' and standard 'enth_listings').
+ * schema variants (unprefixed 'owned' and standard 'enth_fanlistings').
  * Confirms: archiving snapshots the pre-archive upcoming/trouble state and
  * writes the legacy inactive representation (never widening its meaning),
  * reopen restores the exact snapshot, round-trips are no-ops on the legacy
@@ -48,7 +48,7 @@ CREATE TABLE lstr_listing_lifecycle (
 SQL;
 
     private const ENTH_DDL = <<<SQL
-CREATE TABLE enth_listings (
+CREATE TABLE enth_fanlistings (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     name            TEXT    NOT NULL DEFAULT '',
     url             TEXT    NOT NULL DEFAULT 'https://example.com',
@@ -112,7 +112,7 @@ SQL;
     private function insertEnth(Database $db, string $name = 'Test', bool $upcoming = false, bool $trouble = false): int
     {
         $pdo = $this->pdo($db);
-        $pdo->prepare('INSERT INTO enth_listings (name, subject, upcoming, trouble) VALUES (:n, :n, :u, :tr)')
+        $pdo->prepare('INSERT INTO enth_fanlistings (name, subject, upcoming, trouble) VALUES (:n, :n, :u, :tr)')
             ->execute(['n' => $name, 'u' => (int) $upcoming, 'tr' => (int) $trouble]);
         return (int) $pdo->lastInsertId();
     }

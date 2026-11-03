@@ -72,12 +72,12 @@ if ($isOwned) {
         showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL)");
     $memberTable = 'fl_moon';
 } else {
-    $pdo->exec("CREATE TABLE enth_listings (
+    $pdo->exec("CREATE TABLE enth_fanlistings (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',
         email TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '', dbprefix TEXT NOT NULL DEFAULT '',
         additional_info TEXT NOT NULL DEFAULT '', category INTEGER NOT NULL DEFAULT 0,
         upcoming INTEGER NOT NULL DEFAULT 0, trouble INTEGER NOT NULL DEFAULT 0, opened TEXT NULL)");
-    $pdo->exec("INSERT INTO enth_listings (id, name, url, subject, dbprefix) VALUES (1, 'Moon FL', 'https://fans.test/moon/', 'The Moon', 'fl_moon_')");
+    $pdo->exec("INSERT INTO enth_fanlistings (id, name, url, subject, dbprefix) VALUES (1, 'Moon FL', 'https://fans.test/moon/', 'The Moon', 'fl_moon_')");
     $pdo->exec("CREATE TABLE fl_moon_members (
         id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL DEFAULT '', name TEXT NOT NULL DEFAULT '',
         country TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', approved INTEGER NOT NULL DEFAULT 1,

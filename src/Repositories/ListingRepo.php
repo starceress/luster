@@ -56,8 +56,9 @@ final class ListingRepo
 
         $this->isOwnedSchema = ($prefix === '');
 
-        // Build and validate the table name
-        $rawTable    = $this->isOwnedSchema ? 'owned' : $prefix . 'listings';
+        // Build and validate the table name. The standard layout's registry is
+        // always enth_fanlistings, the same table the importers write.
+        $rawTable    = $this->isOwnedSchema ? 'owned' : 'enth_fanlistings';
         $this->table = $this->db->validatePrefix($rawTable);
         $this->pkCol = $this->isOwnedSchema ? 'listingid' : 'id';
     }
@@ -517,10 +518,12 @@ final class ListingRepo
      * ListingAdminImportSource::createMemberTable()), and points
      * owned.dbtable at it.
      *
-     * Only meaningful for the unprefixed schema — the standard enth_
-     * prefixed schema has no per-listing physical table, so this is a
-     * no-op there. Without this, a listing created via the admin "Add
-     * Listing" form has nowhere to store members and the join form fails.
+     * Unprefixed schema only. Without this, a listing created via the admin
+     * "Add Listing" form has nowhere to store members and the join form
+     * fails. It's a no-op on the standard enth_ schema, whose members live
+     * in a {dbprefix}members table (MemberRepo) that this doesn't create:
+     * adding a listing from the admin panel only supports the unprefixed
+     * schema (insert() writes `owned`'s columns).
      *
      * email/url column widths (255/500) must match JoinController's own
      * Validator maxLength() calls exactly — narrower columns here would

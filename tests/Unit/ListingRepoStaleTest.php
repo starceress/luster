@@ -130,14 +130,14 @@ SQL;
     }
 
     // -----------------------------------------------------------------------
-    // Standard Enthusiast schema (enth_listings with upcoming/trouble cols)
+    // Standard Enthusiast schema (enth_fanlistings with upcoming/trouble cols)
     // -----------------------------------------------------------------------
 
     public function testStandardSchemaActiveListingNoSettingsRowIsStale(): void
     {
         [$repo] = $this->makeEnthRepo();
         $pdo = $this->enthDb->pdo();
-        $pdo->exec("INSERT INTO enth_listings (name, upcoming, trouble) VALUES ('Stale Enth', 0, 0)");
+        $pdo->exec("INSERT INTO enth_fanlistings (name, upcoming, trouble) VALUES ('Stale Enth', 0, 0)");
 
         $results = $repo->getStaleListings(55);
 
@@ -149,7 +149,7 @@ SQL;
     {
         [$repo] = $this->makeEnthRepo();
         $this->enthDb->pdo()->exec(
-            "INSERT INTO enth_listings (name, upcoming, trouble) VALUES ('Not Open Yet', 1, 0)"
+            "INSERT INTO enth_fanlistings (name, upcoming, trouble) VALUES ('Not Open Yet', 1, 0)"
         );
 
         self::assertSame([], $repo->getStaleListings(55));
@@ -159,7 +159,7 @@ SQL;
     {
         [$repo] = $this->makeEnthRepo();
         $this->enthDb->pdo()->exec(
-            "INSERT INTO enth_listings (name, upcoming, trouble) VALUES ('Broken', 0, 1)"
+            "INSERT INTO enth_fanlistings (name, upcoming, trouble) VALUES ('Broken', 0, 1)"
         );
 
         self::assertSame([], $repo->getStaleListings(55));
@@ -169,7 +169,7 @@ SQL;
     {
         [$repo, $db] = $this->makeEnthRepo();
         $pdo = $db->pdo();
-        $pdo->exec("INSERT INTO enth_listings (name, upcoming, trouble) VALUES ('Fresh Enth', 0, 0)");
+        $pdo->exec("INSERT INTO enth_fanlistings (name, upcoming, trouble) VALUES ('Fresh Enth', 0, 0)");
         $id = (int) $pdo->lastInsertId();
         $pdo->exec(
             "INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated) VALUES ({$id}, date('now'))"
@@ -185,14 +185,14 @@ SQL;
     private Database $enthDb;
 
     /**
-     * Build a repo wired to the standard enth_listings schema.
+     * Build a repo wired to the standard enth_fanlistings schema.
      *
      * @return array{0: ListingRepo, 1: Database}
      */
     private function makeEnthRepo(): array
     {
         $ddl = <<<SQL
-CREATE TABLE enth_listings (
+CREATE TABLE enth_fanlistings (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     name     TEXT    NOT NULL DEFAULT '',
     upcoming INTEGER NOT NULL DEFAULT 0,

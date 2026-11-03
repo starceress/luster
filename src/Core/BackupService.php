@@ -77,7 +77,7 @@ final class BackupService
         $includeUploads = $profile === 'complete';
         $includeVendor  = $profile === 'rollback';
 
-        $registry = $this->enthTablePrefix === '' ? 'owned' : $this->enthTablePrefix . 'listings';
+        $registry = $this->registryTable();
         $zip->addFromString(
             'BACKUP-NOTES.txt',
             "Luster backup created " . date('c') . "\n\n"
@@ -192,7 +192,10 @@ final class BackupService
     private function lusterTableNames(PDO $pdo): array
     {
         $allTables = [];
-        foreach ($pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_NUM) as $row) {
+        $listed    = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite'
+            ? $pdo->query("SELECT name FROM sqlite_master WHERE type = 'table'")
+            : $pdo->query('SHOW TABLES');
+        foreach ($listed->fetchAll(PDO::FETCH_NUM) as $row) {
             $allTables[] = (string) ($row[0] ?? '');
         }
 
@@ -204,11 +207,8 @@ final class BackupService
             }
         }
 
-        // Derive the registry table the same way ListingRepo does:
-        // ($prefix === '') ? 'owned' : $prefix . 'listings'
-        // so enth_table_prefix='enth_' gives 'enth_listings', not 'enth_fanlistings'.
         $isOwnedSchema = ($this->enthTablePrefix === '');
-        $registry      = $isOwnedSchema ? 'owned' : $this->enthTablePrefix . 'listings';
+        $registry      = $this->registryTable();
         $memberCol     = $isOwnedSchema ? 'dbtable' : 'dbprefix';
 
         if (in_array($registry, $allTables, true)) {
@@ -230,6 +230,12 @@ final class BackupService
 
         sort($tables);
         return $tables;
+    }
+
+    /** The listing registry, the same table ListingRepo reads: `owned`, or enth_fanlistings on the standard layout. */
+    private function registryTable(): string
+    {
+        return $this->enthTablePrefix === '' ? 'owned' : 'enth_fanlistings';
     }
 
     private function quoteIdentifier(string $identifier): string

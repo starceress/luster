@@ -2303,9 +2303,8 @@ final class FanaticallyImportSourceTest extends TestCase
 
     public function testStandardEnthusiastLayoutIsRefusedBeforeAnythingIsWritten(): void
     {
-        // Luster isn't consistent about where that layout keeps listings (the
-        // readers use {prefix}listings, the importer wrote enth_fanlistings), so
-        // the import refuses it rather than writing where nothing reads.
+        // The importer's enth_fanlistings branches haven't been tested end to
+        // end, so the import refuses that layout rather than write untested.
         $src = $this->makePdo();
         $tgt = $this->makePdo();
         $this->seedFanaticallySource($src);

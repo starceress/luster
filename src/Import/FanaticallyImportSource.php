@@ -61,11 +61,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
     /**
      * Shown when the Luster database uses the standard Enthusiast layout (no
      * `owned` table). Luster's own installer always creates the unprefixed
-     * layout, and for the standard one Luster isn't consistent about which
-     * table holds the listings (the readers use {prefix}listings, this importer
-     * wrote enth_fanlistings), so writing there would put listings and fields
-     * where the admin and public pages don't look. The import is refused before
-     * anything is written until that's settled.
+     * layout, and this importer's enth_fanlistings branches have never been
+     * tested end to end, so the import is refused before anything is written
+     * until they are.
      */
     private const ENTH_LAYOUT_UNSUPPORTED =
         "This Luster database uses the older Enthusiast table layout (enth_ tables), and the Fanatically import can't write to that layout yet.";

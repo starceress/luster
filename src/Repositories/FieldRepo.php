@@ -59,7 +59,7 @@ final class FieldRepo
 
         $this->isOwnedSchema = ($prefix === '');
 
-        $rawTable        = $this->isOwnedSchema ? 'owned' : $prefix . 'listings';
+        $rawTable        = $this->isOwnedSchema ? 'owned' : 'enth_fanlistings';
         $this->table     = $this->db->validatePrefix($rawTable);
         $this->infoCol   = $this->isOwnedSchema ? 'additional'   : 'additional_info';
         $this->pkCol     = $this->isOwnedSchema ? 'listingid'    : 'id';

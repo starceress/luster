@@ -106,11 +106,7 @@ final class LinkCheckerController extends AdminController
 
         $searchParam = trim((string) $request->query('search', ''));
 
-        $enthPrefix     = (string) $config->get('enth_table_prefix', '');
-        $listingTable   = $db->validatePrefix($enthPrefix === '' ? 'owned' : $enthPrefix . 'listings');
-        $listingIdCol   = $enthPrefix === '' ? 'listingid' : 'id';
-        $listingSubjCol = 'subject';
-        $affListingSub  = "(SELECT {$listingSubjCol} FROM `{$listingTable}` WHERE `{$listingIdCol}` = lstr_affiliates.fanlisting_id)";
+        $affListingSub  = self::affiliateListingSubject((string) $config->get('enth_table_prefix', ''));
         $affSortAllowed = ['name' => 'name', 'listing' => $affListingSub, 'link_status' => 'link_status', 'reciprocal' => 'reciprocal_status', 'last_checked' => 'link_checked_at'];
         $affSortParam   = trim((string) $request->query('aff_sort', $defaultSort));
         $affDirParam    = strtolower(trim((string) $request->query('aff_dir', 'asc')));
@@ -926,6 +922,17 @@ final class LinkCheckerController extends AdminController
         }
 
         return Response::json(self::scanAjaxPayload($result, $listingId, $listing->subject ?: $listing->title, $stats));
+    }
+
+    /**
+     * SQL for an affiliate's listing subject, to sort affiliates by listing. The
+     * registry is the one ListingRepo reads: `owned`, or enth_fanlistings on the
+     * standard enth_ layout.
+     */
+    private static function affiliateListingSubject(string $enthTablePrefix): string
+    {
+        [$table, $idCol] = $enthTablePrefix === '' ? ['owned', 'listingid'] : ['enth_fanlistings', 'id'];
+        return "(SELECT subject FROM `{$table}` WHERE `{$idCol}` = lstr_affiliates.fanlisting_id)";
     }
 
     /**

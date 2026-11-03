@@ -1738,10 +1738,9 @@ try {
                 }
             }
         } else {
-            $enthTable = $enthPrefix . 'listings';
             $pdo->exec(
                 "INSERT IGNORE INTO lstr_listing_categories (fanlisting_id, category_id)
-                 SELECT id, category_id FROM `{$enthTable}` WHERE category_id IS NOT NULL"
+                 SELECT id, category_id FROM `enth_fanlistings` WHERE category_id IS NOT NULL"
             );
             // The standard Enthusiast schema has no catid column — category_id is the only source
         }
@@ -3411,25 +3410,18 @@ try {
 
         if ($autoApproveIds !== []) {
             // Listing titles, best-effort: the registry is `owned` (title) or
-            // {prefix}listings (name). A failed lookup just leaves the ID on its own.
-            $migPrefix   = (string) ($config['enth_table_prefix'] ?? '');
-            $titleLookup = null;
-            if (preg_match('/^[a-zA-Z0-9_]*$/', $migPrefix) === 1) {
-                $titleLookup = $migPrefix === ''
-                    ? $pdo->prepare('SELECT `title` FROM `owned` WHERE `listingid` = :id')
-                    : $pdo->prepare("SELECT `name` FROM `{$migPrefix}listings` WHERE `id` = :id");
-            }
+            // enth_fanlistings (name). A failed lookup just leaves the ID on its own.
+            $titleLookup = (string) ($config['enth_table_prefix'] ?? '') === ''
+                ? $pdo->prepare('SELECT `title` FROM `owned` WHERE `listingid` = :id')
+                : $pdo->prepare('SELECT `name` FROM `enth_fanlistings` WHERE `id` = :id');
 
             $autoApproveLabels = [];
             foreach ($autoApproveIds as $autoApproveId) {
-                $title = '';
-                if ($titleLookup !== null) {
-                    try {
-                        $titleLookup->execute(['id' => (int) $autoApproveId]);
-                        $title = (string) ($titleLookup->fetchColumn() ?: '');
-                    } catch (PDOException) {
-                        $title = '';
-                    }
+                try {
+                    $titleLookup->execute(['id' => (int) $autoApproveId]);
+                    $title = (string) ($titleLookup->fetchColumn() ?: '');
+                } catch (PDOException) {
+                    $title = '';
                 }
                 $autoApproveLabels[] = '#' . (int) $autoApproveId
                     . ($title !== '' ? ' ' . htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '');

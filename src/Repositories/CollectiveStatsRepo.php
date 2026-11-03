@@ -57,7 +57,7 @@ final class CollectiveStatsRepo
 
         $this->isOwnedSchema = ($prefix === '');
 
-        $rawTable            = $this->isOwnedSchema ? 'owned' : $prefix . 'listings';
+        $rawTable            = $this->isOwnedSchema ? 'owned' : 'enth_fanlistings';
         $this->ownedTable    = $this->db->validatePrefix($rawTable);
         $this->ownedPk       = $this->isOwnedSchema ? 'listingid' : 'id';
         $this->ownedPrefixCol = $this->isOwnedSchema ? 'dbtable' : 'dbprefix';
