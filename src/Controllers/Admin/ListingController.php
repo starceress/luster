@@ -2673,8 +2673,9 @@ final class ListingController extends AdminController
                     break;
                 }
 
+                // Schemes are case-insensitive: HTTPS://example.com is kept as typed.
                 if (filter_var($url, FILTER_VALIDATE_URL) === false
-                    || !in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true)) {
+                    || !in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true)) {
                     $error = 'Please enter a valid previous owner URL (e.g. https://example.com).';
                     break;
                 }

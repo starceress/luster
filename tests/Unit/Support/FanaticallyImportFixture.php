@@ -111,6 +111,12 @@ trait FanaticallyImportFixture
             fanlisting_id INTEGER NOT NULL PRIMARY KEY, lifecycle_status TEXT NOT NULL, archived_at TEXT NULL,
             legacy_upcoming INTEGER NOT NULL DEFAULT 0, legacy_trouble INTEGER NOT NULL DEFAULT 0,
             adopted_to_name TEXT NULL, adopted_to_url TEXT NULL, archive_note TEXT NULL)');
+        // Migration 102's shape; the CHECKs stand in for VARCHAR(255) / VARCHAR(500).
+        $pdo->exec("CREATE TABLE lstr_listing_previous_owners (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL,
+            owner_name TEXT NOT NULL DEFAULT '' CHECK (length(owner_name) <= 255),
+            owner_url TEXT NOT NULL DEFAULT '' CHECK (length(owner_url) <= 500),
+            sort_order INTEGER NOT NULL DEFAULT 0)");
         $pdo->exec('CREATE TABLE lstr_pending_updates (
             id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, member_email TEXT NOT NULL,
             changes TEXT NOT NULL)');

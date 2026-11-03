@@ -62,6 +62,10 @@ below), and the migration page tells you if any of your listings were affected.
   was already closed or adopted out wiped its archive note and the adopted-to
   name and link. Now those stay put. Switching an Adopted Out listing to
   Closed still drops the adopted-to details, the same as the edit page does.
+- **Previous owner links in capital letters save now.** A link like
+  `HTTPS://example.com` is a perfectly good web address, but the listing edit
+  page turned it away as "not a valid URL". It's saved just the way you typed
+  it now.
 - **Joined listings brought over from Fanatically show up in your Random and
   Latest Joined boxes.** The import saved them with an old status name those
   two boxes don't look for. The import uses the right one now, and the
@@ -174,6 +178,18 @@ below), and the migration page tells you if any of your listings were affected.
   the very rare case it can't, the results page tells you exactly what was
   saved. This needs the migration step above. Until it's run, the import tells
   you so before changing anything.
+- **Previous owners come over from Fanatically.** If you listed the people who
+  ran a listing before you in Fanatically, their names and links now come over
+  to that listing's Previous Owners in Luster, in the same order. Importing
+  again with "Overwrite" makes them match Fanatically (empty the list there and
+  it's emptied here too), and "Skip" leaves the ones a listing already has in
+  Luster alone. Two Fanatically listings with the same address share one list.
+  A link that isn't a web address, or a name that's too long, is fixed up or
+  left out, and the results page tells you. Older Fanatically versions that
+  don't have previous owners leave Luster's alone. This needs the migration
+  step above; until it's run, the import tells you before changing anything.
+  And if something goes wrong partway and Luster can't undo it, the import
+  stops right there instead of carrying on with things half-saved.
 - **Fanatically listings with no category don't stop the import anymore.** A
   listing with no category failed to import, and every listing after it was
   skipped too. Listings with categories are also saved the same way the

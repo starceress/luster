@@ -906,7 +906,7 @@ final class ImportController extends AdminController
                 // Non-fatal: a logging failure must not mask the original import error.
             }
         } finally {
-            if ($dumpPrefix !== null) {
+            if ($dumpPrefix !== null && self::noSaveLeftOpen($this->app->getDatabase()->pdo())) {
                 $this->cleanupDumpTables();
                 $session->remove(self::SESSION_DUMP_PREFIX);
                 $session->remove(self::SESSION_DUMP_TABLES);
@@ -1396,6 +1396,23 @@ final class ImportController extends AdminController
      * removed before passing to SqlDumpLoader::cleanup() so it is not treated as a
      * table name.
      */
+    /**
+     * Whether nothing is left half-saved on $pdo. An import that couldn't undo a
+     * failed save stops with its transaction still open, and the dump clean-up's
+     * DROP TABLEs would commit it. Rolls back first if it can; if it's still
+     * open, the clean-up waits (the session keeps the dump's tables, so the next
+     * run cleans them up).
+     */
+    private static function noSaveLeftOpen(\PDO $pdo): bool
+    {
+        if ($pdo->inTransaction()) {
+            try {
+                $pdo->rollBack();
+            } catch (\Throwable) {}
+        }
+        return !$pdo->inTransaction();
+    }
+
     private function cleanupDumpTables(): void
     {
         $session = $this->app->getSession();

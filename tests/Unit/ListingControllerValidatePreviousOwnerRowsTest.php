@@ -103,6 +103,16 @@ final class ListingControllerValidatePreviousOwnerRowsTest extends TestCase
         self::assertNotSame('', $error);
     }
 
+    public function testSchemeInCapitalsIsAcceptedAndKeptAsTyped(): void
+    {
+        // A Fanatically import keeps links like these, so the edit page has to
+        // save them again.
+        [$rows, $error] = $this->invoke(['Alice', 'Bob'], ['HTTPS://alice.example.com/', 'Https://bob.example.com/']);
+
+        self::assertSame('', $error);
+        self::assertSame(['HTTPS://alice.example.com/', 'Https://bob.example.com/'], array_column($rows, 'owner_url'));
+    }
+
     public function testStopsAtFirstInvalidRowAndDoesNotReturnLaterValidRows(): void
     {
         $overlong = str_repeat('a', 256);

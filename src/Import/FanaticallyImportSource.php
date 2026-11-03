@@ -90,13 +90,29 @@ final class FanaticallyImportSource implements ImportSourceInterface
     /**
      * Shown when Luster couldn't read part of its own database that decides where
      * listings go: its listings, its import records, or which tables exist (or
-     * whether import records can hold field names, or the lifecycle table an
-     * unknown date). Read as "nothing there", that could put a listing into
-     * another one, hand it someone else's table, or write a Closed listing
-     * Luster can't hold.
+     * whether import records can hold field names, the lifecycle table an
+     * unknown date, or the previous-owners table is there). Read as "nothing
+     * there", that could put a listing into another one, hand it someone else's
+     * table, or write a Closed listing or previous owners Luster can't hold.
      */
     private const TARGET_UNREADABLE =
-        "Luster couldn't read part of its own database (its listings, its import records, its list of tables or its Closed and Adopted Out listings), so it can't tell where your Fanatically listings belong. Try the import again; if it keeps happening, run the migration page first.";
+        "Luster couldn't read part of its own database (its listings, its import records, its list of tables, its Closed and Adopted Out listings or its previous owners), so it can't tell where your Fanatically listings belong. Try the import again; if it keeps happening, run the migration page first.";
+
+    /**
+     * Shown when some Fanatically listings have previous owners but Luster's
+     * table for them (Migration 102) isn't there yet. Nothing is written first.
+     */
+    private const PREVIOUS_OWNERS_NEED_MIGRATION =
+        "Some of your Fanatically listings have previous owners, and Luster needs a database update before it can bring them over. Run the migration page first (Luster needs Migration 102), then import again.";
+
+    /**
+     * Shown when a failed save couldn't be undone and the database is still in
+     * the middle of it. Anything run after it (member tables, the SQL dump
+     * clean-up) would save it half-done, so the import stops right there. The
+     * error above it says what to check first (a listing it may have left).
+     */
+    private const TRANSACTION_LEFT_OPEN =
+        "Luster couldn't finish undoing a save that failed, so the import stopped right there, before changing anything else. Nothing after that point was imported. Reload the page and do what the errors above say, then import again with Overwrite.";
 
     /**
      * Shown when some Fanatically listings are Closed or Adopted Out but Luster's
@@ -115,6 +131,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
     /** See refsHaveMetadata(). */
     private ?bool $refsHaveMetadata = null;
+
+    /** Set by finishFailedTransaction() when a rollback left a transaction open; run() stops. */
+    private bool $transactionLeftOpen = false;
 
     /**
      * Validates a table prefix string against the same pattern as Database::validatePrefix().
@@ -230,6 +249,12 @@ final class FanaticallyImportSource implements ImportSourceInterface
             return new ImportPreview([[
                 'type' => 'Database update', 'found' => 0, 'import' => 0, 'skip' => 0,
                 'warnings' => ["Can't import — " . self::FIELD_NAMES_NEED_MIGRATION],
+            ]], 'fanatically_1x', false);
+        }
+        if ($state !== null && $state['previousOwners'] === 'missing' && $this->plansHavePreviousOwners($fieldPlans)) {
+            return new ImportPreview([[
+                'type' => 'Database update', 'found' => 0, 'import' => 0, 'skip' => 0,
+                'warnings' => ["Can't import — " . self::PREVIOUS_OWNERS_NEED_MIGRATION],
             ]], 'fanatically_1x', false);
         }
         if ($state !== null && $state['lifecycle'] !== 'nullable' && $this->sourceHasArchivedListings($source, $p)) {
@@ -389,6 +414,10 @@ final class FanaticallyImportSource implements ImportSourceInterface
         }
         if ($options->importListings) {
             $rows[] = $this->previewTable($source, "{$p}listings", 'Owned Listings', $this->previewListingStatusWarnings($source, "{$p}listings"));
+            $ownersRow = $this->previewPreviousOwners($options, $state ?? [], $fieldPlans);
+            if ($ownersRow !== null) {
+                $rows[] = $ownersRow;
+            }
         }
         if ($options->importMembers) {
             $rows[] = $this->previewTable($source, "{$p}members", 'Members', [
@@ -521,6 +550,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
         }
         $rows   = [];
         $imgRows = [];
+        $this->transactionLeftOpen = false;
         $caps   = $this->detectCapabilities($source, $p);
 
         $targetSchema = $this->detectTargetSchema($target);
@@ -557,6 +587,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $this->fieldNamesCantBeKept($target, $fieldPlans)  => ['Database update', self::FIELD_NAMES_NEED_MIGRATION],
             $options->importListings && $listingState['lifecycle'] !== 'nullable' && $this->sourceHasArchivedListings($source, $p)
                                                                => ['Database update', self::LIFECYCLE_NEEDS_MIGRATION],
+            $options->importListings && $listingState['previousOwners'] === 'missing' && $this->plansHavePreviousOwners($fieldPlans)
+                                                               => ['Database update', self::PREVIOUS_OWNERS_NEED_MIGRATION],
             default                                            => null,
         };
         if ($refusal !== null) {
@@ -597,6 +629,22 @@ final class FanaticallyImportSource implements ImportSourceInterface
             [$listRow, $listingIdMap, $listingDbtables, $imgList, $listingOutcomes] =
                 $this->runListings($source, $target, $targetSchema, $options, $p, $caps, $categoryIdMap, $migrator, $listingState);
 
+            // Previous owners next, while every listing's save is finished and
+            // before any member-table DDL, which would commit an open transaction.
+            $ownersRow = $this->transactionLeftOpen
+                ? null
+                : $this->importPreviousOwners($target, $options, $listingState, $fieldPlans, $listingIdMap, $listingOutcomes);
+            if ($this->transactionLeftOpen) {
+                $rows[] = $listRow;
+                if ($ownersRow !== null && self::hasSomethingToReport($ownersRow)) {
+                    $rows[] = $ownersRow;
+                }
+                $rows[] = ['type' => 'Import stopped', 'imported' => 0, 'skipped' => 0, 'warnings' => [],
+                           'errors' => [self::TRANSACTION_LEFT_OPEN], 'skipped_items' => []];
+                $this->closeActiveZip($options);
+                return new ImportResult($rows, $imgRows, microtime(true) - $start, 'fanatically_1x');
+            }
+
             // Member table + field definitions for every imported listing, even one
             // with no members or when Members isn't ticked.
             $provisioned   = $this->provisionMemberStorage($target, $targetSchema, $listingIdMap, $listingDbtables, $listingOutcomes, $fieldPlans);
@@ -605,6 +653,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $listRow['errors']   = array_merge($listRow['errors'], $provisioned['errors']);
 
             $rows[] = $listRow;
+            if (self::hasSomethingToReport($ownersRow)) {
+                $rows[] = $ownersRow;
+            }
             if ($imgList['copied'] + $imgList['skipped'] > 0) {
                 $imgRows[] = array_merge(['type' => 'Images (listings)'], $imgList);
             }
@@ -689,6 +740,20 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $rows[] = $this->runSiteSettings($source, $target, $p, $options);
         }
 
+        $this->closeActiveZip($options);
+
+        return new ImportResult($rows, $imgRows, microtime(true) - $start, 'fanatically_1x');
+    }
+
+    /** Whether a result row has anything to show (it did something, or has a note or error). @param array<string,mixed> $row */
+    private static function hasSomethingToReport(array $row): bool
+    {
+        return $row['imported'] + $row['skipped'] > 0 || $row['warnings'] !== [] || $row['errors'] !== [];
+    }
+
+    /** Closes and removes the image ZIP once the import is done with it. */
+    private function closeActiveZip(ImportOptions $options): void
+    {
         if ($this->activeZip !== null) {
             $this->activeZip->close();
             $this->activeZip = null;
@@ -696,8 +761,6 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 @unlink($options->zipPath);
             }
         }
-
-        return new ImportResult($rows, $imgRows, microtime(true) - $start, 'fanatically_1x');
     }
 
     // -----------------------------------------------------------------------
@@ -1160,14 +1223,18 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 }
 
             } catch (\Throwable $e) {
-                if ($target->inTransaction()) {
-                    try {
-                        $target->rollBack();
-                    } catch (\Throwable) {}
-                }
-                // Only a save that didn't finish is undone, never one already committed.
+                // Only a save that didn't finish is undone, never one already
+                // committed, and nothing more is written while one is still open.
                 $undone = '';
-                if ($registryTouched && !$registryWritten) {
+                if (!$this->finishFailedTransaction($target)) {
+                    // Nothing more may run, not even a check, so a listing the
+                    // save may have left behind (a MyISAM `owned` keeps it) is
+                    // named with what to do before importing again.
+                    $undone = ", and Luster couldn't finish undoing it"
+                        . ($registryTouched && !$registryWritten
+                            ? ', so it ' . self::uncheckedSaveAdvice($existingId === null, (int) $newId, $url, '')
+                            : '.');
+                } elseif ($registryTouched && !$registryWritten) {
                     $undone = $this->unfinishedSaveOutcome(
                         $target, $regTable, $pkCol, $isOwned, (int) $newId, $before,
                         $url, (string) $srcId, $sourceStatusMeta
@@ -3352,7 +3419,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 }
             }
 
-            $listings[] = ['srcId' => $srcId, 'label' => $label, 'destId' => $destId, 'map' => $map, 'defs' => $defs, 'note' => $note];
+            $listings[] = ['srcId' => $srcId, 'label' => $label, 'destId' => $destId, 'map' => $map, 'defs' => $defs, 'note' => $note,
+                           'owners' => $this->parsePreviousOwners($row, $label)];
         }
 
         // 2. Name each listing's fields.
@@ -3376,7 +3444,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     $claimed[$destId][$name] = true;
                 }
             }
-            $plans[$listing['srcId']] = $plan;
+            // Where it goes (an existing id, or a placeholder below 0 for a listing
+            // the import creates) and its previous owners, for importPreviousOwners().
+            $plans[$listing['srcId']] = $plan + ['destination' => $destId, 'previousOwners' => $listing['owners']];
             if ($listing['note'] !== null) {
                 $notes[] = $listing['note'];
             }
@@ -4043,10 +4113,539 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 'index'     => $this->existingListingIndex($target, $regTable, $pkCol, $isOwned),
                 'tables'    => $withTables ? $this->physicalTableNames($target) : [],
                 'lifecycle' => $this->lifecycleTableState($target),
+                'previousOwners' => $this->previousOwnersTableState($target),
             ];
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Whether lstr_listing_previous_owners is there (Migration 102): 'missing' or
+     * 'present'. Throws when it can't be checked.
+     */
+    private function previousOwnersTableState(PDO $target): string
+    {
+        if ($target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $st = $target->query('PRAGMA table_info(`lstr_listing_previous_owners`)');
+            if ($st === false) {
+                throw new \RuntimeException("Couldn't read lstr_listing_previous_owners.");
+            }
+            return $st->fetchAll(PDO::FETCH_ASSOC) === [] ? 'missing' : 'present';
+        }
+
+        $st = $target->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_listing_previous_owners'"
+        );
+        if ($st === false || !$st->execute()) {
+            throw new \RuntimeException("Couldn't read lstr_listing_previous_owners.");
+        }
+        return (int) $st->fetchColumn() > 0 ? 'present' : 'missing';
+    }
+
+    /**
+     * Whether any Fanatically listing has previous owners Luster would have to
+     * keep (the Migration 102 guard). An explicit [] or a list with nothing
+     * usable doesn't count: without the table there's nothing to clear.
+     *
+     * @param array<int, array<string,mixed>> $plans readCustomFieldPlans()
+     */
+    private function plansHavePreviousOwners(array $plans): bool
+    {
+        foreach ($plans as $plan) {
+            if (($plan['previousOwners']['state'] ?? '') === 'list') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A Fanatically listing's previous owners (listings.previous_owners, a JSON
+     * list of {name, url}), and what Luster may do with them:
+     *
+     *  - 'no_column' / 'no_value': Fanatically has no information (an install
+     *    from before 1.1.10, or a listing not saved since), so Luster's are
+     *    left alone;
+     *  - 'malformed': not a JSON list (an object such as {} included); left
+     *    alone, with a note;
+     *  - 'clear': exactly [], so Fanatically says there are none;
+     *  - 'list': at least one usable entry, in order, repeats kept;
+     *  - 'unusable': a list where none of the entries can be used; left alone,
+     *    with a note, and never taken for [].
+     *
+     * An entry is used when it's an object whose name and url are strings (or
+     * missing). Names are kept as stored, trimmed: Fanatically shows them escaped,
+     * as Luster does. A link that isn't http(s) (in any case: HTTPS:// is kept
+     * as written) or is over 500 characters is dropped and the name kept; an
+     * entry with only a bad link is left out; a name over 255 characters is cut
+     * at a character. 'key' is the entry as
+     * Fanatically has it, so a repeat is spotted before anything was cut.
+     *
+     * @param array<string,mixed> $row A source listings row
+     * @return array{state: string, owners: list<array{name: string, url: string, key: string}>, notes: list<string>}
+     */
+    private function parsePreviousOwners(array $row, string $label): array
+    {
+        $result = static fn(string $state, array $owners = [], array $notes = []): array
+            => ['state' => $state, 'owners' => $owners, 'notes' => $notes];
+
+        if (!array_key_exists('previous_owners', $row)) {
+            return $result('no_column');
+        }
+        $raw = $row['previous_owners'];
+        if ($raw === null || trim((string) $raw) === '') {
+            return $result('no_value');
+        }
+        // Without assoc, a JSON object stays an object, so {} is never mistaken for [].
+        $decoded = json_decode((string) $raw);
+        if (!is_array($decoded)) {
+            return $result('malformed', [], ["{$label}: its previous owners couldn't be read, so Luster left them alone."]);
+        }
+        if ($decoded === []) {
+            return $result('clear');
+        }
+
+        $owners   = [];
+        $unusable = 0; // not an object, a field that isn't text, or only a bad link
+        $linkless = 0;
+        $cut      = 0;
+        foreach ($decoded as $entry) {
+            if (!$entry instanceof \stdClass) {
+                $unusable++;
+                continue;
+            }
+            $name = $entry->name ?? null;
+            $url  = $entry->url ?? null;
+            if (($name !== null && !is_string($name)) || ($url !== null && !is_string($url))) {
+                $unusable++;
+                continue;
+            }
+            $name = trim((string) $name);
+            $url  = trim((string) $url);
+            if ($name === '' && $url === '') {
+                continue; // a blank row, which Fanatically doesn't show either
+            }
+            $key = $name . "\x00" . $url;
+            if ($url !== '' && (mb_strlen($url) > 500
+                || filter_var($url, FILTER_VALIDATE_URL) === false
+                || !in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true))) {
+                if ($name === '') {
+                    $unusable++;
+                    continue;
+                }
+                $url = '';
+                $linkless++;
+            }
+            if (mb_strlen($name) > 255) {
+                $name = mb_substr($name, 0, 255);
+                $cut++;
+            }
+            $owners[] = ['name' => $name, 'url' => $url, 'key' => $key];
+        }
+
+        if ($owners === []) {
+            return $result('unusable', [], ["{$label}: none of its previous owners could be used, so Luster left them alone."]);
+        }
+        $notes = [];
+        if ($unusable > 0) {
+            $notes[] = "{$label}: {$unusable} of its previous owners couldn't be read and were left out.";
+        }
+        if ($linkless > 0) {
+            $notes[] = "{$label}: {$linkless} previous owner link(s) aren't web addresses Luster can use (or are over 500 characters), so those previous owners are saved without a link.";
+        }
+        if ($cut > 0) {
+            $notes[] = "{$label}: {$cut} previous owner name(s) were over 255 characters and were shortened.";
+        }
+        return $result('list', $owners, $notes);
+    }
+
+    /**
+     * What happens to each Luster listing's previous owners, worked out from
+     * every Fanatically listing planned to go into it (readCustomFieldPlans()'s
+     * 'destination'), in source order. The preview and the import both use it,
+     * so they combine, count and hold back previous owners the same way:
+     *
+     *  - created by this import: the previous owners of each of them that was
+     *    saved or kept, an exact repeat from a later one dropped. Nothing was
+     *    there to lose, so one that wasn't imported costs nothing, and the next
+     *    Overwrite brings the full set.
+     *  - already in Luster, Skip: left alone ('kept').
+     *  - already in Luster, Overwrite: replaced with theirs (an explicit [] clears
+     *    them), but only when every one of them with previous owners, or with
+     *    broken ones, was saved and readable. Otherwise they're left alone
+     *    ('held') with a note saying why, so a sibling that's missing can't have
+     *    its previous owners erased.
+     *
+     * $listingOutcomes is what runListings() did with each Fanatically listing
+     * (created | updated | kept). The preview passes null: there, every listing
+     * is expected to be saved, as the Owned Listings row expects.
+     *
+     * Each group has its 'action' ('write', 'kept', 'held', 'unsaved' when none
+     * of its listings was saved, or 'none' for a new listing with none to
+     * write), a 'label', the source listings in it that were 'saved' (the first
+     * one's Luster id is the listing), the 'owners' to write ([] = clear), how
+     * many previous owners its listings have in all ('found') and how many of
+     * those aren't written ('skipped'). The notes are the parser's, then why any
+     * were held, then how many Skip kept.
+     *
+     * @param array<int, array<string,mixed>> $plans           readCustomFieldPlans(), keyed by source listing id
+     * @param array<int,string>|null          $listingOutcomes Source listing id → created | updated | kept
+     * @return array{groups: list<array<string,mixed>>, notes: list<string>}
+     */
+    private function planPreviousOwners(array $plans, bool $overwrite, ?array $listingOutcomes): array
+    {
+        $bySource = []; // destination → its source listing ids, in source order
+        $notes    = [];
+        foreach ($plans as $srcId => $plan) {
+            $notes = array_merge($notes, $plan['previousOwners']['notes'] ?? []);
+            $bySource[(int) ($plan['destination'] ?? 0)][] = (int) $srcId;
+        }
+        $outcomeOf = static fn(int $srcId, int $destination): ?string => $listingOutcomes === null
+            ? ($destination < 0 ? 'created' : ($overwrite ? 'updated' : 'kept'))
+            : ($listingOutcomes[$srcId] ?? null);
+
+        $groups = [];
+        $kept   = 0; // listings already in Luster that Skip leaves with their own
+        foreach ($bySource as $destination => $srcIds) {
+            if ($destination === 0) {
+                continue;
+            }
+            $states = [];
+            $found  = 0;
+            foreach ($srcIds as $srcId) {
+                $states[$srcId] = (string) ($plans[$srcId]['previousOwners']['state'] ?? 'no_column');
+                $found         += count($plans[$srcId]['previousOwners']['owners'] ?? []);
+            }
+            $relevant = array_keys(array_filter($states, static fn(string $s): bool => in_array($s, ['clear', 'list', 'malformed', 'unusable'], true)));
+            if ($relevant === []) {
+                continue;
+            }
+            $saved = array_values(array_filter($srcIds, static fn(int $s): bool => $outcomeOf($s, $destination) !== null));
+            $group = [
+                'destination' => $destination,
+                'label'       => implode(' / ', array_unique(array_map(static fn(int $s): string => (string) $plans[$s]['label'], $srcIds))),
+                'saved'       => $saved,
+                'owners'      => [],
+                'found'       => $found,
+                'skipped'     => $found,
+            ];
+
+            if ($saved === []) {
+                $groups[] = ['action' => 'unsaved'] + $group; // the listing itself wasn't imported (reported there)
+                continue;
+            }
+            if ($destination > 0 && !$overwrite) {
+                $kept    += $found > 0 ? 1 : 0;
+                $groups[] = ['action' => 'kept'] + $group;
+                continue;
+            }
+            if ($destination > 0) {
+                $why = null;
+                foreach ($relevant as $srcId) {
+                    $other = (string) $plans[$srcId]['label'];
+                    if ($outcomeOf($srcId, $destination) !== 'updated') {
+                        $why = "\"{$other}\", which has the same address in Fanatically, wasn't imported. Import again with Overwrite to bring them over.";
+                        break;
+                    }
+                    if ($states[$srcId] === 'malformed' || $states[$srcId] === 'unusable') {
+                        // On its own, its note already says they were left alone.
+                        $why = count($relevant) > 1
+                            ? "the previous owners of \"{$other}\", which has the same address in Fanatically, couldn't be used. Fix them in Fanatically, then import again with Overwrite to bring them over."
+                            : '';
+                        break;
+                    }
+                }
+                if ($why !== null) {
+                    if ($why !== '') {
+                        $notes[] = "{$group['label']}: previous owners weren't changed, because {$why}";
+                    }
+                    $groups[] = ['action' => 'held'] + $group;
+                    continue;
+                }
+            }
+
+            $owners  = [];
+            $skipped = 0;
+            $earlier = []; // entries from earlier source listings, as Fanatically has them
+            foreach ($srcIds as $srcId) {
+                $mine = $plans[$srcId]['previousOwners']['owners'] ?? [];
+                if (!in_array($srcId, $saved, true)) {
+                    $skipped += count($mine);
+                    continue;
+                }
+                $added = [];
+                foreach ($mine as $owner) {
+                    if (isset($earlier[$owner['key']])) {
+                        $skipped++;
+                        continue;
+                    }
+                    $owners[]             = $owner;
+                    $added[$owner['key']] = true;
+                }
+                $earlier += $added;
+            }
+            // A new listing has none to clear.
+            $action   = $destination < 0 && $owners === [] ? 'none' : 'write';
+            $groups[] = ['action' => $action, 'owners' => $owners, 'skipped' => $skipped] + $group;
+        }
+        if ($kept > 0) {
+            $notes[] = "{$kept} listing(s) already in Luster keep their own previous owners, because you chose Skip.";
+        }
+        return ['groups' => $groups, 'notes' => $notes];
+    }
+
+    /**
+     * The preview's "Previous Owners" row, from planPreviousOwners(), so it
+     * counts and holds back exactly what the import will: how many there are,
+     * how many get written, how many don't (repeats, ones Skip leaves, ones held
+     * back), and every note, with each listing an Overwrite will clear named.
+     * Like the Owned Listings row, it doesn't read what Luster has now, so one
+     * that already matches still counts as written. Null when no listing has any
+     * previous-owner information.
+     *
+     * @param array<string,mixed>             $state readListingTargetState()
+     * @param array<int, array<string,mixed>> $plans readCustomFieldPlans()
+     * @return array<string,mixed>|null
+     */
+    private function previewPreviousOwners(ImportOptions $options, array $state, array $plans): ?array
+    {
+        $notes = [];
+        $any   = false;
+        foreach ($plans as $plan) {
+            $notes = array_merge($notes, $plan['previousOwners']['notes'] ?? []);
+            $any   = $any || in_array($plan['previousOwners']['state'] ?? '', ['clear', 'list', 'malformed', 'unusable'], true);
+        }
+        if (!$any) {
+            return null;
+        }
+        // Before Migration 102 the guard refused anything with previous owners,
+        // so what's left is [] or nothing usable, and nowhere to clear them.
+        if (($state['previousOwners'] ?? 'missing') !== 'present') {
+            return ['type' => 'Previous Owners', 'found' => 0, 'import' => 0, 'skip' => 0, 'warnings' => $notes];
+        }
+
+        $plan   = $this->planPreviousOwners($plans, $options->conflictStrategy !== 'skip', null);
+        $notes  = $plan['notes'];
+        $found  = 0;
+        $import = 0;
+        $skip   = 0;
+        foreach ($plan['groups'] as $group) {
+            $found += $group['found'];
+            $skip  += $group['skipped'];
+            if ($group['action'] === 'write') {
+                $import += count($group['owners']);
+                if ($group['owners'] === []) {
+                    $notes[] = "{$group['label']}: Fanatically has no previous owners for it, so Overwrite clears the ones it has in Luster.";
+                }
+            }
+        }
+        return ['type' => 'Previous Owners', 'found' => $found, 'import' => $import, 'skip' => $skip, 'warnings' => $notes];
+    }
+
+    /**
+     * Brings the previous owners over, after the Listings step and before any
+     * member-table DDL, as planPreviousOwners() works them out from what the
+     * Listings step really saved.
+     *
+     * Each write is checked (writePreviousOwners()). A failure is that listing's
+     * error and the import goes on, unless its transaction couldn't be finished:
+     * then nothing more is written (transactionLeftOpen).
+     *
+     * @param array<string,mixed>             $state           readListingTargetState()
+     * @param array<int, array<string,mixed>> $plans           readCustomFieldPlans(), keyed by source listing id
+     * @param array<int,int>                  $listingIdMap    Source listing id → the Luster listing it's in
+     * @param array<int,string>               $listingOutcomes Source listing id → created | updated | kept
+     * @return array<string,mixed> The "Previous Owners" result row
+     */
+    private function importPreviousOwners(
+        PDO $target, ImportOptions $options, array $state, array $plans, array $listingIdMap, array $listingOutcomes
+    ): array {
+        $result = ['type' => 'Previous Owners', 'imported' => 0, 'skipped' => 0, 'warnings' => [], 'errors' => [], 'skipped_items' => []];
+        // Before Migration 102 the guard refused anything with previous owners,
+        // so what's left is [] or nothing usable: there's nothing to clear.
+        if (($state['previousOwners'] ?? 'missing') !== 'present') {
+            foreach ($plans as $plan) {
+                $result['warnings'] = array_merge($result['warnings'], $plan['previousOwners']['notes'] ?? []);
+            }
+            return $result;
+        }
+
+        // Saved means it has a Luster listing to write to.
+        $plan   = $this->planPreviousOwners($plans, $options->conflictStrategy !== 'skip', array_intersect_key($listingOutcomes, $listingIdMap));
+        $groups = $plan['groups'];
+        $result['warnings'] = $plan['notes'];
+        foreach ($groups as $i => $group) {
+            $result['skipped'] += $group['skipped'];
+            if ($group['action'] !== 'write') {
+                continue;
+            }
+            $label  = (string) $group['label'];
+            $owners = $group['owners'];
+            $write  = $this->writePreviousOwners($target, (int) $listingIdMap[$group['saved'][0]], $owners);
+            $count  = count($owners);
+            $error  = $write['error'];
+            switch ($write['outcome']) {
+                case 'unchanged':
+                    $result['skipped'] += $count;
+                    break;
+                case 'saved':
+                    $result['imported'] += $count;
+                    if ($count === 0) {
+                        $result['warnings'][] = "{$label}: previous owners cleared, to match Fanatically.";
+                    }
+                    break;
+                case 'unread':
+                    $result['skipped'] += $count;
+                    $result['errors'][]  = "Listing '{$label}': Luster couldn't read the previous owners it already has ({$error}), so it left them alone. Import again with Overwrite to try once more.";
+                    break;
+                case 'restored':
+                    $result['skipped'] += $count;
+                    $result['errors'][]  = "Listing '{$label}': Luster couldn't save its previous owners ({$error}), so they're as they were. Import again with Overwrite to try once more.";
+                    break;
+                case 'changed':
+                    $now  = (array) $write['now'];
+                    $have = count($now);
+                    $what = $have > 0 && $have < $count && array_slice($write['want'], 0, $have) === $now
+                        ? "only the first {$have} of its {$count} previous owners were saved"
+                        : "Luster now has {$have} previous owner(s) for it, which isn't what was there before or what Fanatically has";
+                    $result['skipped'] += $count;
+                    $result['errors'][]  = "Listing '{$label}': "
+                        . ($error !== '' ? "Luster couldn't save its previous owners ({$error}), and they're not as they were either: " : 'its previous owners came out different from what was saved: ')
+                        . "{$what}. Import again with Overwrite to finish it.";
+                    break;
+                case 'unverified':
+                    $result['skipped'] += $count;
+                    $result['errors'][]  = "Listing '{$label}': "
+                        . ($error !== ''
+                            ? "Luster couldn't save its previous owners ({$error}) and couldn't check what's there now ({$write['checkError']}). Check them on the listing's edit page, then import again with Overwrite."
+                            : "Luster saved its previous owners but couldn't check them afterwards ({$write['checkError']}). Check them on the listing's edit page.");
+                    break;
+                default: // left_open
+                    $result['skipped'] += $count;
+                    $result['errors'][]  = "Listing '{$label}': Luster couldn't save its previous owners ({$error}) or finish undoing that.";
+                    $left = count(array_filter(array_slice($groups, $i + 1), static fn(array $g): bool => $g['action'] === 'write'));
+                    if ($left > 0) {
+                        $result['errors'][] = "The previous owners of the {$left} listing(s) after it weren't imported.";
+                    }
+                    break 2;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Replaces a listing's previous owners with $owners and says, from what is
+     * really there afterwards, how it went:
+     *
+     *  - 'unchanged': they already matched, so nothing was written;
+     *  - 'saved': they match now;
+     *  - 'restored': the write failed and they're exactly as they were;
+     *  - 'changed': they match neither (described from 'now');
+     *  - 'unverified': they couldn't be read back;
+     *  - 'unread': the ones there couldn't be read first, so nothing was written;
+     *  - 'left_open': the write failed and couldn't be undone (finishFailedTransaction()).
+     *
+     * Its own transaction (the listing's save committed before it), written
+     * straight to the table, never through PreviousOwnersRepo::replaceForListing(),
+     * which hides failures. Compared as ordered (name, link) pairs.
+     *
+     * @param list<array{name: string, url: string}> $owners
+     * @return array{outcome: string, error: string, checkError: string, now: list<array{0: string, 1: string}>|null, want: list<array{0: string, 1: string}>}
+     */
+    private function writePreviousOwners(PDO $target, int $listingId, array $owners): array
+    {
+        $want = array_map(static fn(array $o): array => [$o['name'], $o['url']], $owners);
+        $out  = static fn(string $outcome, string $error = '', string $checkError = '', ?array $now = null): array
+            => ['outcome' => $outcome, 'error' => $error, 'checkError' => $checkError, 'now' => $now, 'want' => $want];
+
+        try {
+            $before = $this->readPreviousOwnerRows($target, $listingId);
+        } catch (\Throwable $e) {
+            return $out('unread', $e->getMessage());
+        }
+        if ($before === $want) {
+            return $out('unchanged');
+        }
+
+        $error = '';
+        try {
+            if (!$target->beginTransaction()) {
+                throw new \RuntimeException("the database didn't start the save");
+            }
+            $st = $target->prepare('DELETE FROM lstr_listing_previous_owners WHERE fanlisting_id = :fid');
+            if ($st === false || !$st->execute(['fid' => $listingId])) {
+                throw new \RuntimeException("the database didn't accept it");
+            }
+            foreach ($want as $i => [$name, $url]) {
+                $st = $target->prepare(
+                    'INSERT INTO lstr_listing_previous_owners (fanlisting_id, owner_name, owner_url, sort_order)
+                     VALUES (:fid, :name, :url, :sort)'
+                );
+                if ($st === false || !$st->execute(['fid' => $listingId, 'name' => $name, 'url' => $url, 'sort' => $i])) {
+                    throw new \RuntimeException("the database didn't accept it");
+                }
+            }
+            $target->commit();
+        } catch (\Throwable $e) {
+            $error = $e->getMessage();
+            if (!$this->finishFailedTransaction($target)) {
+                return $out('left_open', $error);
+            }
+        }
+
+        try {
+            $now = $this->readPreviousOwnerRows($target, $listingId);
+        } catch (\Throwable $e) {
+            return $out('unverified', $error, $e->getMessage());
+        }
+        return match (true) {
+            $now === $want   => $out('saved', $error),
+            $now === $before => $out('restored', $error !== '' ? $error : "it didn't take"),
+            default          => $out('changed', $error, '', $now),
+        };
+    }
+
+    /**
+     * A listing's previous owners as (name, link) pairs, in the order they show.
+     * Throws when they can't be read.
+     *
+     * @return list<array{0: string, 1: string}>
+     */
+    private function readPreviousOwnerRows(PDO $target, int $listingId): array
+    {
+        $st = $target->prepare(
+            'SELECT owner_name, owner_url FROM lstr_listing_previous_owners
+              WHERE fanlisting_id = :fid ORDER BY sort_order ASC, id ASC'
+        );
+        if ($st === false || !$st->execute(['fid' => $listingId])) {
+            throw new \RuntimeException("the database didn't answer");
+        }
+        return array_map(
+            static fn(array $r): array => [(string) $r['owner_name'], (string) $r['owner_url']],
+            $st->fetchAll(PDO::FETCH_ASSOC)
+        );
+    }
+
+    /**
+     * After a failed write, rolls back the transaction it was in. False when one
+     * is still open afterwards: anything run next (member-table DDL, the SQL dump
+     * clean-up's DROPs) would commit it half-done, so transactionLeftOpen is set
+     * and run() stops before writing anything else.
+     */
+    private function finishFailedTransaction(PDO $target): bool
+    {
+        if ($target->inTransaction()) {
+            try {
+                $target->rollBack();
+            } catch (\Throwable) {}
+        }
+        if ($target->inTransaction()) {
+            $this->transactionLeftOpen = true;
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -4339,13 +4938,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
             return ', so nothing about this listing was saved.';
         }
         if ($undo['outcome'] === 'unknown') {
-            if (!$isNew) {
-                return ", and Luster couldn't check whether listing #{$listingId} was put back the way it was ({$undo['error']}). Check it on your Listings page, then import again with Overwrite to finish it.";
-            }
-            return ", and Luster couldn't check whether the new listing (#{$listingId}) was removed again ({$undo['error']})."
-                . ($url !== ''
-                    ? ' Import again with Overwrite to finish it.'
-                    : " If listing #{$listingId} is on your Listings page, delete it before importing again, or the import will add it a second time.");
+            return ', and Luster ' . self::uncheckedSaveAdvice($isNew, $listingId, $url, " ({$undo['error']})");
         }
 
         $shows = $this->registryStateLabel($target, $isOwned, $listingId, (array) $undo['row']);
@@ -4359,6 +4952,26 @@ final class FanaticallyImportSource implements ImportSourceInterface
             . ($recorded || $url !== ''
                 ? ' Import again with Overwrite to finish it.'
                 : " Luster couldn't record which Fanatically listing it came from either, so importing again would add it a second time: delete listing #{$listingId} first, then import again.");
+    }
+
+    /**
+     * The end of a listing's error when Luster couldn't see whether its save was
+     * undone, starting at "couldn't check whether": what to look at before
+     * importing again. A listing that was already in Luster is always found
+     * again (by its new address, or by the record it was matched with), and so
+     * is a new one with an address. A new one with no address can only be found
+     * by an import record it may not have, so it has to go first, or the next
+     * import adds it a second time. $why goes in brackets after the check.
+     */
+    private static function uncheckedSaveAdvice(bool $isNew, int $listingId, string $url, string $why): string
+    {
+        if (!$isNew) {
+            return "couldn't check whether listing #{$listingId} was put back the way it was{$why}. Check it on your Listings page, then import again with Overwrite to finish it.";
+        }
+        return "couldn't check whether the new listing (#{$listingId}) was removed again{$why}."
+            . ($url !== ''
+                ? ' Import again with Overwrite to finish it.'
+                : " If listing #{$listingId} is on your Listings page, delete it before importing again, or the import will add it a second time.");
     }
 
     /** Whether the Fanatically import record for $externalId now names $listingId. */

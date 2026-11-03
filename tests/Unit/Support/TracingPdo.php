@@ -33,6 +33,12 @@ final class TracingPdo extends PDO
      */
     public bool $noTransactions = false;
 
+    /** True: the next commit() throws and commits nothing (the transaction stays open). */
+    public bool $failCommit = false;
+
+    /** True: rollBack() throws and takes nothing back, so the transaction stays open. */
+    public bool $failRollBack = false;
+
     public static function memory(): self
     {
         $pdo = new self('sqlite::memory:');
@@ -66,11 +72,18 @@ final class TracingPdo extends PDO
 
     public function commit(): bool
     {
+        if ($this->failCommit) {
+            $this->failCommit = false;
+            throw new PDOException('Simulated failure for: COMMIT');
+        }
         return $this->noTransactions ? true : parent::commit();
     }
 
     public function rollBack(): bool
     {
+        if ($this->failRollBack) {
+            throw new PDOException('Simulated failure for: ROLLBACK');
+        }
         return $this->noTransactions ? true : parent::rollBack();
     }
 
