@@ -271,6 +271,9 @@ $_flTabCounts = $tab_counts ?? [];
 <?php if ($success !== ''): ?>
   <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
+<?php if ($error !== ''): ?>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
+<?php endif; ?>
 
 <?php if (empty($listings)): ?>
   <div class="card">

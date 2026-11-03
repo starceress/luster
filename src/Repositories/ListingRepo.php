@@ -480,9 +480,16 @@ final class ListingRepo
      *
      * Also populates the lstr_listing_categories junction table when $categoryIds
      * is provided and non-empty (Migration 51 must have run).
+     *
+     * Unprefixed schema only (supportsInsert()): it throws on the standard enth_
+     * schema before writing anything.
      */
     public function insert(string $title, string $subject, string $url, string $email, int $status, ?string $image, ?int $categoryId, ?string $opened, string $catid = '', ?array $categoryIds = null): int
     {
+        if (!$this->supportsInsert()) {
+            throw new RuntimeException("Adding a listing isn't supported on the enth_ table layout.");
+        }
+
         $stmt = $this->db->prepare(
             "INSERT INTO {$this->table}
              (title,subject,url,email,status,imagefile,category_id,opened,catid,additional,dbtable,dbserver,dbuser,dbpassword,dbdatabase)
@@ -510,6 +517,17 @@ final class ListingRepo
         }
 
         return $newId;
+    }
+
+    /**
+     * Whether a listing can be added here (insert()). Only on the unprefixed
+     * schema: insert() writes `owned`'s columns and provisionMemberTable() makes
+     * an unprefixed member table, and Luster has never defined what a new
+     * enth_fanlistings row and its {dbprefix}members table need.
+     */
+    public function supportsInsert(): bool
+    {
+        return $this->isOwnedSchema;
     }
 
     /**

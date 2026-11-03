@@ -400,11 +400,26 @@ final class ListingController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
+     * Where the Add Listing form and its save go on the enth_ table layout,
+     * which ListingRepo::insert() doesn't support: back to Owned Listings with
+     * a message, having read and written nothing.
+     */
+    private function addListingUnsupported(): Response
+    {
+        $this->app->getSession()->set('lstr_flash_error',
+            "This Luster database uses the older Enthusiast table layout (enth_ tables), and adding a listing from the admin panel doesn't work on that layout yet. Nothing was saved.");
+        return Response::redirect($this->app->getBaseUrl() . '/admin/listings');
+    }
+
+    /**
      * Renders the add-listing form with category selector dropdowns.
      */
     public function addForm(Request $request, array $params): Response
     {
         $db           = $this->app->getDatabase();
+        if (!(new ListingRepo($db, $this->app->getConfig()))->supportsInsert()) {
+            return $this->addListingUnsupported();
+        }
         $categoryRepo = new CategoryRepo($db);
 
         $tflCats        = $categoryRepo->getBySource('tfl');
@@ -441,6 +456,11 @@ final class ListingController extends AdminController
         $db             = $this->app->getDatabase();
         $config         = $this->app->getConfig();
         $listingRepo = new ListingRepo($db, $config);
+        // Before anything else: an image upload or a new category would be
+        // left behind by an insert that can't work.
+        if (!$listingRepo->supportsInsert()) {
+            return $this->addListingUnsupported();
+        }
         $categoryRepo   = new CategoryRepo($db);
 
         $title    = trim((string) $request->post('title', ''));
