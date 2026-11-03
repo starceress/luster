@@ -480,20 +480,29 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
       <div class="field-group">
         <label class="field-label" for="fn_kim_status">KIM List Import Status</label>
         <div style="display:flex;flex-direction:column;gap:8px" style="margin-top:.375rem">
+          <?php $fnKimStatus = in_array($old['fn_kim_status'] ?? '', ['keep', 'pending', 'active'], true) ? $old['fn_kim_status'] : 'keep'; ?>
           <label class="surface import-choice-item">
-            <input type="radio" name="fn_kim_status" value="active"
-                   <?= ($old['fn_kim_status'] ?? 'active') !== 'pending' ? 'checked' : '' ?>>
+            <input type="radio" name="fn_kim_status" value="keep"
+                   <?= $fnKimStatus === 'keep' ? 'checked' : '' ?>>
             <div>
-              <strong>Active</strong>
-              <span class="form-hint" style="margin:2px 0 0">KIM entries are imported as active and visible on the public list. Preserves Fanatically&rsquo;s default behavior.</span>
+              <strong>Same as in Fanatically</strong>
+              <span class="form-hint" style="margin:2px 0 0">Entries you approved in Fanatically show on the public list; entries still waiting there stay pending in Luster.</span>
             </div>
           </label>
           <label class="surface import-choice-item">
             <input type="radio" name="fn_kim_status" value="pending"
-                   <?= ($old['fn_kim_status'] ?? '') === 'pending' ? 'checked' : '' ?>>
+                   <?= $fnKimStatus === 'pending' ? 'checked' : '' ?>>
             <div>
-              <strong>Pending (requires approval)</strong>
-              <span class="form-hint" style="margin:2px 0 0">KIM entries need to be approved before appearing publicly. Use if you prefer manual review after import.</span>
+              <strong>All pending (requires approval)</strong>
+              <span class="form-hint" style="margin:2px 0 0">Every entry waits for your approval before appearing publicly. Use if you prefer to review them all after import.</span>
+            </div>
+          </label>
+          <label class="surface import-choice-item">
+            <input type="radio" name="fn_kim_status" value="active"
+                   <?= $fnKimStatus === 'active' ? 'checked' : '' ?>>
+            <div>
+              <strong>All active</strong>
+              <span class="form-hint" style="margin:2px 0 0">Every entry shows on the public list right away, including ones you hadn&rsquo;t approved in Fanatically.</span>
             </div>
           </label>
         </div>

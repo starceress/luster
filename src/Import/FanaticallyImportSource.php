@@ -45,7 +45,65 @@ final class FanaticallyImportSource implements ImportSourceInterface
         'import_codesort_enabled', 'import_bellabuffs_enabled', 'import_kimadmin_enabled',
     ];
 
+    /**
+     * Names a custom field can't keep: the standard member columns (so it can't
+     * clash with one) and the member-template tokens built from them ({fan_email},
+     * {fan_additional_fields}...). A clashing field gets a _2/_3 suffix instead.
+     */
+    private const RESERVED_FIELD_NAMES = [
+        'id', 'email', 'name', 'country', 'url', 'pending', 'approved', 'password',
+        'showemail', 'showurl', 'added', 'updated', 'additional_fields', 'additional_field_cells',
+    ];
+
+    /** Same limit as the admin Fields form, so an imported field can be edited there. */
+    private const FIELD_NAME_MAX = 30;
+
+    /**
+     * Shown when the Luster database uses the standard Enthusiast layout (no
+     * `owned` table). Luster's own installer always creates the unprefixed
+     * layout, and for the standard one Luster isn't consistent about which
+     * table holds the listings (the readers use {prefix}listings, this importer
+     * wrote enth_fanlistings), so writing there would put listings and fields
+     * where the admin and public pages don't look. The import is refused before
+     * anything is written until that's settled.
+     */
+    private const ENTH_LAYOUT_UNSUPPORTED =
+        "This Luster database uses the older Enthusiast table layout (enth_ tables), and the Fanatically import can't write to that layout yet.";
+
+    /**
+     * Shown when the source has custom fields but Luster can't remember which
+     * field got which name (no metadata_json, added by Migration 91). Without
+     * that, a repeat import can't tell its own fields from the listing's and
+     * would give them new names every time, so the import waits for it.
+     */
+    private const FIELD_NAMES_NEED_MIGRATION =
+        "Your Fanatically listings have custom fields, and Luster needs a database update to keep track of them between imports. Run the migration page first (Luster needs Migration 91), then import again.";
+
+    /**
+     * Shown when the field names Luster already has (stored by earlier imports,
+     * or a listing's own fields) couldn't be read. Naming fields without them
+     * could hand an existing column to a different field, so nothing is imported.
+     */
+    private const FIELD_NAMES_UNREADABLE =
+        "Luster couldn't read the custom field names it already has (from earlier imports, or your listings' own fields), so it can't tell which columns belong to which field. Try the import again.";
+
+    /**
+     * Shown when Luster couldn't read part of its own database that decides where
+     * listings go: its listings, its import records, or which tables exist (or
+     * whether import records can hold field names). Read as "nothing there", that
+     * could put a listing into another one or hand it someone else's table.
+     */
+    private const TARGET_UNREADABLE =
+        "Luster couldn't read part of its own database (its listings, its import records or its list of tables), so it can't tell where your Fanatically listings belong. Try the import again; if it keeps happening, run the migration page first.";
+
+    /** Shown when the Fanatically listings themselves couldn't be read. */
+    private const SOURCE_LISTINGS_UNREADABLE =
+        "Luster couldn't read your Fanatically listings, so it couldn't work out their custom fields. Check the connection details and try the import again.";
+
     private ?\ZipArchive $activeZip = null;
+
+    /** See refsHaveMetadata(). */
+    private ?bool $refsHaveMetadata = null;
 
     /**
      * Validates a table prefix string against the same pattern as Database::validatePrefix().
@@ -128,6 +186,41 @@ final class FanaticallyImportSource implements ImportSourceInterface
         $rows = [];
         $caps = $this->detectCapabilities($source, $p);
 
+        if ($this->detectTargetSchema($target) !== 'enthusiast_unprefixed') {
+            return new ImportPreview([[
+                'type' => 'Database layout', 'found' => 0, 'import' => 0, 'skip' => 0,
+                'warnings' => ["Can't import — " . self::ENTH_LAYOUT_UNSUPPORTED],
+            ]], 'fanatically_1x', false);
+        }
+
+        // Same custom-field names (and renames) the import will use, from the same
+        // up-front reads of Luster's own database.
+        $fieldPlans = [];
+        $fieldNotes = [];
+        $fieldError = null;
+        if ($options->importListings) {
+            $state = $this->readListingTargetState($target, $this->detectTargetSchema($target), false);
+            if ($state === null) {
+                return new ImportPreview([[
+                    'type' => 'Database', 'found' => 0, 'import' => 0, 'skip' => 0,
+                    'warnings' => ["Can't import — " . self::TARGET_UNREADABLE],
+                ]], 'fanatically_1x', false);
+            }
+            [$fieldPlans, $fieldNotes, $fieldError] = $this->readCustomFieldPlans($source, $target, $p, $options, $state['index']);
+        }
+        if ($fieldError !== null) {
+            return new ImportPreview([[
+                'type' => 'Custom fields', 'found' => 0, 'import' => 0, 'skip' => 0,
+                'warnings' => ["Can't import — " . $fieldError],
+            ]], 'fanatically_1x', false);
+        }
+        if ($this->fieldNamesCantBeKept($target, $fieldPlans)) {
+            return new ImportPreview([[
+                'type' => 'Database update', 'found' => 0, 'import' => 0, 'skip' => 0,
+                'warnings' => ["Can't import — " . self::FIELD_NAMES_NEED_MIGRATION],
+            ]], 'fanatically_1x', false);
+        }
+
         // Add-on availability (Wishlist/KIM/Adoption) is checked against the Luster
         // target DB, matching run()'s use of wishlistAddonInstalled($target) etc.
         $addonCheckPdo = $target;
@@ -207,6 +300,10 @@ final class FanaticallyImportSource implements ImportSourceInterface
             if ($joinNote !== null) {
                 $transformedNotes[] = 'Data transformed — ' . $joinNote;
             }
+            // Same custom-field renames the import will report.
+            foreach ($fieldNotes as $fieldNote) {
+                $transformedNotes[] = 'Data transformed — ' . $fieldNote;
+            }
         }
 
         $upcomingJoinedCount = 0;
@@ -256,6 +353,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
         if (!empty($dependentWithoutListings)) {
             $label = implode(', ', $dependentWithoutListings);
             $conditionalNotes[] = "Needs decision — {$label} selected without Listings. The listing ID map is rebuilt each run; all {$label} rows will be skipped unless Listings is also selected.";
+            if (in_array('Codes', $dependentWithoutListings, true)) {
+                $conditionalNotes[] = "Collective codes (Fanatically's \"Collective\") don't belong to a listing, so they still import without Listings.";
+            }
         }
 
         // Add grouped warning rows
@@ -287,14 +387,72 @@ final class FanaticallyImportSource implements ImportSourceInterface
             }
         }
         if ($options->importAffiliates) {
-            $rows[] = $this->previewTable($source, "{$p}affiliates", 'Affiliates', [
+            $affRow = $this->previewTable($source, "{$p}affiliates", 'Affiliates', [
                 'Multi-listing affiliates (listing_ids JSON array) will produce one Luster row per matched listing.',
             ]);
+            // Same reading of listing_ids the import uses.
+            $malformed = 0;
+            try {
+                $st = $source->query("SELECT listing_ids FROM `{$p}affiliates`");
+                foreach ($st ? $st->fetchAll(PDO::FETCH_COLUMN) : [] as $rawIds) {
+                    if ($this->parseAffiliateListingIds($rawIds)[0] === 'malformed') {
+                        $malformed++;
+                    }
+                }
+            } catch (\Throwable) {}
+            if ($malformed > 0) {
+                $affRow['import']    -= $malformed;
+                $affRow['skip']      += $malformed;
+                $affRow['warnings'][] = $this->malformedAffiliatesNote($malformed, true);
+            }
+            $rows[] = $affRow;
         }
         if ($options->importCodes) {
-            $rows[] = $this->previewTable($source, "{$p}codes", 'Codes', [
+            $codesRow = $this->previewTable($source, "{$p}codes", 'Codes', [
                 'Fanatically stores codes in a flat table. Size labels and donor fields will be normalized into lstr_code_sizes and lstr_code_donors.',
             ]);
+            // Collective codes: counted with the same skip rule the import applies.
+            $hasCodeIdentity  = $this->tableHasColumn($target, 'lstr_codes', 'import_source_file');
+            $storedCollective = $hasCodeIdentity ? $this->storedCollectiveCodes($target) : [];
+            $ambiguous        = $this->ambiguousCollectiveCodes($source, $p, $storedCollective);
+            $collectiveCodes = 0;
+            $collectiveSkips = 0;
+            try {
+                $st = $source->query("SELECT file_name, size_label FROM `{$p}codes` WHERE listing_id = 0");
+                foreach ($st ? $st->fetchAll() : [] as $row) {
+                    $collectiveCodes++;
+                    $fileName = trim((string) ($row['file_name'] ?? ''));
+                    if ($fileName === ''
+                        || $this->collectiveCodeSkipReason($fileName, trim((string) ($row['size_label'] ?? '')), $ambiguous, $hasCodeIdentity, $storedCollective) !== null
+                    ) {
+                        $collectiveSkips++;
+                    }
+                }
+            } catch (\Throwable) {}
+
+            if ($collectiveCodes > 0) {
+                $codesRow['warnings'][] = "{$collectiveCodes} collective code(s) (Fanatically's \"Collective\") will be imported as collective codes, "
+                    . 'with any donor credited on the code itself.';
+            }
+            if ($collectiveCodes > 0 && !$hasCodeIdentity) {
+                $codesRow['warnings'][] = "Needs decision — collective codes can't be imported yet: run the migration page first (Luster needs Migration 104).";
+            }
+            if (!$options->importListings) {
+                // Without Listings only collective codes have somewhere to go.
+                $codesRow['skip']   = $codesRow['found'] - $collectiveCodes;
+                $codesRow['import'] = $collectiveCodes;
+            }
+            $codesRow['import'] -= $collectiveSkips;
+            $codesRow['skip']   += $collectiveSkips;
+
+            foreach ($ambiguous as $name => $info) {
+                $codesRow['warnings'][] = $info['existing']
+                    ? "Needs decision — collective code \"{$name}\" comes in sizes Luster can't read as width x height ("
+                        . implode(', ', $info['labels']) . ') and is already in Luster, so those copies will be skipped. Update them on the collective codes page.'
+                    : "Collective code \"{$name}\" comes in sizes Luster can't read as width x height (" . implode(', ', $info['labels'])
+                        . '). Every copy is imported now, but importing again later will skip those copies, because Luster can\'t tell them apart.';
+            }
+            $rows[] = $codesRow;
         }
         if ($options->importJoined) {
             $rows[] = $this->previewTable($source, "{$p}joined", 'Joined Listings');
@@ -312,6 +470,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $kimWarns = $this->kimAddonInstalled($addonCheckPdo) ? [] : [
                     'KIM add-on is not installed — running the import will install it automatically so this data is not lost.',
                 ];
+                $kimWarns = array_merge($kimWarns, $this->previewKimWarnings($source, $p, $options));
                 $rows[] = $this->previewTable($source, "{$p}kim", 'KIM List', $kimWarns);
             }
         }
@@ -348,6 +507,48 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         $targetSchema = $this->detectTargetSchema($target);
 
+        // Refused before anything is written: see ENTH_LAYOUT_UNSUPPORTED.
+        if ($targetSchema !== 'enthusiast_unprefixed') {
+            if ($options->zipPath !== '' && is_file($options->zipPath)) {
+                @unlink($options->zipPath);
+            }
+            return new ImportResult([[
+                'type' => 'Database layout', 'imported' => 0, 'skipped' => 0, 'warnings' => [],
+                'errors' => [self::ENTH_LAYOUT_UNSUPPORTED . ' Nothing was imported.'], 'skipped_items' => [],
+            ]], [], microtime(true) - $start, 'fanatically_1x');
+        }
+
+        // Where listings go is read from Luster's own database once, strictly, and
+        // every listing's custom-field names are worked out from that (reserved
+        // names and clashes renamed), all before anything is written. The import
+        // waits when any of it couldn't be read, and for Migration 91 when Luster
+        // couldn't remember the names: see TARGET_UNREADABLE and FIELD_NAMES_NEED_MIGRATION.
+        $listingState = null;
+        $fieldPlans   = [];
+        $fieldNotes   = [];
+        $fieldError   = null;
+        if ($options->importListings) {
+            $listingState = $this->readListingTargetState($target, $targetSchema, true);
+            if ($listingState !== null) {
+                [$fieldPlans, $fieldNotes, $fieldError] = $this->readCustomFieldPlans($source, $target, $p, $options, $listingState['index']);
+            }
+        }
+        $refusal = match (true) {
+            $options->importListings && $listingState === null => ['Database', self::TARGET_UNREADABLE],
+            $fieldError !== null                               => ['Custom fields', $fieldError],
+            $this->fieldNamesCantBeKept($target, $fieldPlans)  => ['Database update', self::FIELD_NAMES_NEED_MIGRATION],
+            default                                            => null,
+        };
+        if ($refusal !== null) {
+            if ($options->zipPath !== '' && is_file($options->zipPath)) {
+                @unlink($options->zipPath);
+            }
+            return new ImportResult([[
+                'type' => $refusal[0], 'imported' => 0, 'skipped' => 0, 'warnings' => [],
+                'errors' => [$refusal[1] . ' Nothing was imported.'], 'skipped_items' => [],
+            ]], [], microtime(true) - $start, 'fanatically_1x');
+        }
+
         $migrator = $options->imageMode !== ''
             ? new ImageMigrator(dirname(__DIR__, 2) . '/public')
             : null;
@@ -371,10 +572,18 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         // ── Phase 3: Owned Listings + per-listing settings ────────────────
         $listingIdMap    = []; // fanatic listing_id → Luster registry pk
-        $listingDbtables = []; // fanatic listing_id → dbtable slug
+        $memberStorage   = []; // fanatic listing_id → member table, its columns, field plan
         if ($options->importListings) {
-            [$listRow, $listingIdMap, $listingDbtables, $imgList] =
-                $this->runListings($source, $target, $targetSchema, $options, $p, $caps, $categoryIdMap, $migrator);
+            [$listRow, $listingIdMap, $listingDbtables, $imgList, $listingOutcomes] =
+                $this->runListings($source, $target, $targetSchema, $options, $p, $caps, $categoryIdMap, $migrator, $listingState);
+
+            // Member table + field definitions for every imported listing, even one
+            // with no members or when Members isn't ticked.
+            $provisioned   = $this->provisionMemberStorage($target, $targetSchema, $listingIdMap, $listingDbtables, $listingOutcomes, $fieldPlans);
+            $memberStorage = $provisioned['storage'];
+            $listRow['warnings'] = array_merge($listRow['warnings'], $fieldNotes, $provisioned['warnings']);
+            $listRow['errors']   = array_merge($listRow['errors'], $provisioned['errors']);
+
             $rows[] = $listRow;
             if ($imgList['copied'] + $imgList['skipped'] > 0) {
                 $imgRows[] = array_merge(['type' => 'Images (listings)'], $imgList);
@@ -383,12 +592,12 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         // ── Phase 4: Members ──────────────────────────────────────────────
         if ($options->importMembers && !empty($listingIdMap)) {
-            $rows[] = $this->runMembers($source, $target, $targetSchema, $options, $p, $caps, $listingIdMap, $listingDbtables);
+            $rows[] = $this->runMembers($source, $target, $targetSchema, $options, $p, $caps, $listingIdMap, $memberStorage);
         }
 
         // ── Phase 11: Pending Member Updates ─────────────────────────────
         if ($options->importMembers && $caps['has_pending_update'] && !empty($listingIdMap)) {
-            $rows[] = $this->runPendingUpdates($source, $target, $targetSchema, $p, $listingIdMap, $options);
+            $rows[] = $this->runPendingUpdates($source, $target, $targetSchema, $p, $listingIdMap, $memberStorage, $options);
         }
 
         // ── Phase 5: Affiliates ───────────────────────────────────────────
@@ -623,10 +832,14 @@ final class FanaticallyImportSource implements ImportSourceInterface
      * @param array<int,int>    $categoryIdMap
      * @return array{0:array,1:array<int,int>,2:array<int,string>,3:array}
      */
+    /**
+     * @param array{index: array{urls: array<string,int>, byExternal: array<string,int>, dbtables: array<int,string>}, tables: list<string>} $state
+     *        From readListingTargetState(): the same reads the field plans used.
+     */
     private function runListings(
         PDO $source, PDO $target, string $targetSchema,
         ImportOptions $options, string $p, array $caps,
-        array $categoryIdMap, ?ImageMigrator $migrator
+        array $categoryIdMap, ?ImageMigrator $migrator, array $state
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -634,52 +847,30 @@ final class FanaticallyImportSource implements ImportSourceInterface
         $skippedItems = [];
         $listingIdMap    = [];
         $listingDbtables = [];
+        $listingOutcomes = []; // fanatic listing_id → 'created' | 'updated' | 'kept' (Skip)
         $imgCopied       = 0;
         $imgSkipped      = 0;
         $imgErrors       = [];
 
         [$regTable, $pkCol, $isOwned] = $this->targetRegistryInfo($targetSchema);
 
-        // Build existing URL set, dbtable collision set, and id→dbtable map in one query.
-        // The id→dbtable map is used by the overwrite path to reuse the existing table name
-        // instead of generating a new one (which would leave members in an orphaned table).
-        $existingUrls        = []; // lower(url) → listing id
-        $usedDbtables        = []; // dbtable/dbprefix string → true
-        $existingIdToDbtable = []; // listing id → dbtable/dbprefix
+        // Existing listings by address and by earlier import, with each one's member
+        // table. Overwrite reuses that table instead of generating a new one (which
+        // would leave members in an orphaned table). readCustomFieldPlans() matched
+        // listings with this same copy, so the field plans and this step agree.
+        $index = $state['index'];
 
-        $dtCol = $isOwned ? 'dbtable' : 'dbprefix';
-        try {
-            $stmt = $target->query("SELECT {$pkCol}, url, {$dtCol} FROM `{$regTable}`");
-            foreach ($stmt ? $stmt->fetchAll() : [] as $row) {
-                $uKey = strtolower(rtrim((string) $row['url'], '/'));
-                $rid  = (int) $row[$pkCol];
-                $dt   = (string) $row[$dtCol];
-                if ($uKey !== '') {
-                    $existingUrls[$uKey] = $rid;
-                }
-                $usedDbtables[$dt]         = true;
-                $existingIdToDbtable[$rid] = $dt;
-            }
-        } catch (\Throwable) {}
+        $usedDbtables = []; // lower(dbtable/dbprefix) → true
+        foreach ($index['dbtables'] as $dt) {
+            $usedDbtables[strtolower($dt)] = true;
+        }
 
-        // Map of fanatically external_id → Luster listing_id, used as fallback
-        // matching when a source listing has a blank URL (URL match is always primary).
-        // Refs pointing to listings that no longer exist in the registry are filtered out
-        // so a deleted listing does not silently absorb a re-imported blank-URL listing.
-        $existingByExternalId = []; // (string) fanatically_id → int luster_id
-        try {
-            $stmt = $target->prepare(
-                "SELECT listing_id, external_id FROM lstr_listing_external_refs WHERE source = 'fanatically'"
-            );
-            $stmt->execute();
-            foreach ($stmt->fetchAll() as $row) {
-                $existingByExternalId[(string) $row['external_id']] = (int) $row['listing_id'];
-            }
-        } catch (\Throwable) {}
-        $existingByExternalId = array_filter(
-            $existingByExternalId,
-            fn(int $id): bool => isset($existingIdToDbtable[$id])
-        );
+        // Every table already in the database is off limits for a new listing's
+        // member table, not only the ones other listings use. Otherwise a listing
+        // called "owned" or "lstr_codes" would be handed Luster's own table.
+        foreach ($state['tables'] as $tableName) {
+            $usedDbtables[strtolower($tableName)] = true;
+        }
 
         try {
             $srcListings = $source->query("SELECT * FROM `{$p}listings` ORDER BY id ASC")->fetchAll();
@@ -688,7 +879,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 ['type' => 'Owned Listings', 'imported' => 0, 'skipped' => 0, 'warnings' => [],
                  'errors' => ['Could not read listings: ' . $e->getMessage()], 'skipped_items' => [],
                  'image_copied' => 0, 'image_skipped' => 0, 'image_errors' => []],
-                [], [], ['copied' => 0, 'skipped' => 0, 'errors' => []],
+                [], [], ['copied' => 0, 'skipped' => 0, 'errors' => []], [],
             ];
         }
 
@@ -708,10 +899,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
             } catch (\Throwable) {}
         }
 
-        foreach ($srcListings as $lst) {
-            $srcId  = (int) $lst['id'];
-            $url    = rtrim(trim((string) ($lst['url'] ?? '')), '/');
-            $urlKey = strtolower($url);
+        foreach (array_values($srcListings) as $position => $lst) {
+            $srcId = (int) $lst['id'];
+            $url   = rtrim(trim((string) ($lst['url'] ?? '')), '/');
 
             // Status mapping — whitelist-only: only 'current' and 'upcoming' get their
             // corresponding Luster states; closed, adopted_out, pending, and any future
@@ -743,15 +933,12 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $openedDate  = (string) ($lst['opened_date'] ?? '');
             $description = (string) ($lst['description'] ?? '');
 
-            // URL match is primary (authoritative Luster state); external-ref is fallback
-            // only when URL is blank (handles listings that have no web presence yet).
-            $existingId = ($url !== '' ? ($existingUrls[$urlKey] ?? null) : null)
-                ?? $existingByExternalId[(string) $srcId]
-                ?? null;
+            $existingId = $this->matchExistingListing($index, $url, $srcId);
 
             if ($existingId !== null) {
                 if ($options->conflictStrategy === 'skip') {
-                    $listingIdMap[$srcId] = $existingId;
+                    $listingIdMap[$srcId]    = $existingId;
+                    $listingOutcomes[$srcId] = 'kept';
                     $this->upsertListingSettings($target, $existingId, $approvedBy, $lst['last_updated'] ?? null, $globalSettings, (int) ($lst['for_adoption'] ?? 0), $description);
                     // Backfill opened date only if target row currently has none.
                     // CAST(opened AS CHAR) avoids MySQL strict mode rejecting the ''
@@ -767,7 +954,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     }
                     // Record external ref even in skip mode — ensures a re-run
                     // backfills the mapping without needing an overwrite pass.
-                    $this->upsertExternalRef($target, $existingId, 'fanatically', (string) $srcId, $sourceStatusMeta);
+                    if (!$this->upsertExternalRef($target, $existingId, 'fanatically', (string) $srcId, $sourceStatusMeta)) {
+                        $errors[] = "Listing '" . (string) ($lst['title'] ?? '') . "': Luster couldn't update its record of which Fanatically listing it came from.";
+                    }
                     $fansFansId = trim((string) ($lst['fansfansfans_id'] ?? ''));
                     if ($fansFansId !== '') {
                         $this->upsertExternalRef($target, $existingId, 'fansfansfans', $fansFansId);
@@ -785,8 +974,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
             // rows land in the correct table, not a freshly generated orphan.
             // Insert: generate a new unique slug.
             $existingIdForOverwrite = $existingId;
-            if ($existingIdForOverwrite !== null && isset($existingIdToDbtable[$existingIdForOverwrite])) {
-                $dbtable = $existingIdToDbtable[$existingIdForOverwrite];
+            if ($existingIdForOverwrite !== null && isset($index['dbtables'][$existingIdForOverwrite])) {
+                $dbtable = $index['dbtables'][$existingIdForOverwrite];
             } else {
                 $dbtable = $this->generateDbtable($subject ?: $title, $usedDbtables);
                 $usedDbtables[$dbtable] = true;
@@ -798,6 +987,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $primaryCatId = $categoryIdMap[$catIds[0]] ?? null;
             }
 
+            $registryWritten = false;
             try {
                 if ($isOwned) {
                     if ($existingId !== null) {
@@ -824,9 +1014,6 @@ final class FanaticallyImportSource implements ImportSourceInterface
                             'opened' => $openedDate ?: null,
                         ]);
                         $newId = (int) $target->lastInsertId();
-                        if ($urlKey !== '') {
-                            $existingUrls[$urlKey] = $newId;
-                        }
                         $imported++;
                     }
                 } else {
@@ -852,20 +1039,31 @@ final class FanaticallyImportSource implements ImportSourceInterface
                             'upcoming' => $upcoming, 'trouble' => $trouble, 'opened' => $openedDate ?: null,
                         ]);
                         $newId = (int) $target->lastInsertId();
-                        if ($urlKey !== '') {
-                            $existingUrls[$urlKey] = $newId;
-                        }
                         $imported++;
                     }
                 }
 
+                $registryWritten = true;
+
                 $listingIdMap[$srcId]    = $newId;
                 $listingDbtables[$srcId] = $dbtable;
+                $listingOutcomes[$srcId] = $existingId !== null ? 'updated' : 'created';
+                // The listing now has this row's address (new, or written by
+                // Overwrite), so later rows match it by that address and not by an
+                // old one. A later row with the same address finds this listing, so
+                // it has to find its member table too, not get a new one.
+                $this->rememberListingAddress($index, $newId, $url);
+                $index['dbtables'][$newId] = $dbtable;
 
                 // Record external refs. REPLACE INTO repairs a stale mapping when
                 // the same external ID re-imports to a different Luster listing.
-                $this->upsertExternalRef($target, $newId, 'fanatically', (string) $srcId, $sourceStatusMeta);
-                $existingByExternalId[(string) $srcId] = $newId;
+                // When it can't, the record still names another listing, and the
+                // field names can't be saved with it (saveFieldMap() checks), so
+                // this listing's fields and members are held back and reported.
+                if (!$this->upsertExternalRef($target, $newId, 'fanatically', (string) $srcId, $sourceStatusMeta)) {
+                    $errors[] = "Listing '{$title}': Luster couldn't update its record of which Fanatically listing it came from.";
+                }
+                $index['byExternal'][(string) $srcId] = $newId;
                 $fansFansId = trim((string) ($lst['fansfansfans_id'] ?? ''));
                 if ($fansFansId !== '') {
                     $this->upsertExternalRef($target, $newId, 'fansfansfans', $fansFansId);
@@ -909,6 +1107,17 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
             } catch (\Throwable $e) {
                 $errors[] = "Listing '{$title}': " . $e->getMessage();
+                if (!$registryWritten) {
+                    // The field plans were worked out expecting this listing to be
+                    // saved (a new listing, or its new address), and later rows were
+                    // matched with that in mind. Carrying on could put a later
+                    // listing, and its members' answers, into the wrong listing.
+                    $left = count($srcListings) - $position - 1;
+                    if ($left > 0) {
+                        $errors[] = "The {$left} listing(s) after it weren't imported, because where they belong depended on this one being saved. Fix the problem above and import again.";
+                    }
+                    break;
+                }
             }
         }
 
@@ -919,6 +1128,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $listingIdMap,
             $listingDbtables,
             ['copied' => $imgCopied, 'skipped' => $imgSkipped, 'errors' => $imgErrors],
+            $listingOutcomes,
         ];
     }
 
@@ -927,36 +1137,22 @@ final class FanaticallyImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /**
-     * @param array<int,int>    $listingIdMap
-     * @param array<int,string> $listingDbtables
+     * @param array<int,int>                 $listingIdMap
+     * @param array<int,array<string,mixed>> $memberStorage From provisionMemberStorage(), keyed by source listing id
      */
     private function runMembers(
         PDO $source, PDO $target, string $targetSchema,
         ImportOptions $options, string $p, array $caps,
-        array $listingIdMap, array $listingDbtables
+        array $listingIdMap, array $memberStorage
     ): array {
-        $imported         = 0;
-        $skipped          = 0;
-        $errors           = [];
-        $skippedItems     = [];
-        $registeredFields = []; // Luster listing IDs for which field defs have been persisted
+        $imported      = 0;
+        $skipped       = 0;
+        $errors        = [];
+        $warnings      = [];
+        $skippedItems  = [];
+        $droppedValues = 0;
 
-        [$regTable, $pkCol, $isOwned] = $this->targetRegistryInfo($targetSchema);
-
-        // Load custom_fields JSON per listing
-        $customFieldsMap = [];
-        try {
-            $st = $source->query("SELECT id, custom_fields FROM `{$p}listings`");
-            foreach ($st ? $st->fetchAll() : [] as $row) {
-                $json = trim((string) ($row['custom_fields'] ?? ''));
-                if ($json !== '' && $json !== 'null') {
-                    $decoded = json_decode($json, true);
-                    if (is_array($decoded)) {
-                        $customFieldsMap[(int) $row['id']] = $decoded;
-                    }
-                }
-            }
-        } catch (\Throwable) {}
+        [, , $isOwned] = $this->targetRegistryInfo($targetSchema);
 
         $offset = 0;
         do {
@@ -973,52 +1169,25 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
             foreach ($chunk as $mem) {
                 $srcListingId = (int) ($mem['listing_id'] ?? 0);
-                $newListingId = $listingIdMap[$srcListingId] ?? null;
-                if ($newListingId === null) {
+                if (!isset($listingIdMap[$srcListingId])) {
                     $skippedItems[] = ['label' => $mem['email'] ?? '?', 'reason' => 'Listing not imported'];
                     $skipped++;
                     continue;
                 }
 
-                $dbtable = $listingDbtables[$srcListingId] ?? null;
-                if ($dbtable === null) {
-                    // Existing listing — look up its dbtable
-                    try {
-                        $col     = $isOwned ? 'dbtable' : 'dbprefix';
-                        $idCol   = $isOwned ? 'listingid' : 'id';
-                        $st2     = $target->prepare("SELECT {$col} FROM `{$regTable}` WHERE {$idCol}=:id");
-                        $st2->execute(['id' => $newListingId]);
-                        $dbtable = $st2->fetchColumn() ?: null;
-                    } catch (\Throwable) {}
-                }
-                if ($dbtable === null) {
+                // The member table was set up once per listing, before any member was
+                // written (provisionMemberStorage), whether or not it had members.
+                $storage = $memberStorage[$srcListingId] ?? null;
+                if ($storage === null || !$storage['usable']) {
+                    $skippedItems[] = [
+                        'label'  => $mem['email'] ?? '?',
+                        'reason' => (string) ($storage['reason'] ?? 'The listing has no member table'),
+                    ];
                     $skipped++;
                     continue;
                 }
-
-                // Ensure member table exists.
-                // enth_ schema: MemberRepo resolves table as {dbprefix}members, so the
-                // actual table name is $dbtable . 'members'. Column names use additional_ prefix.
-                $memberTable = $isOwned ? $dbtable : $dbtable . 'members';
-                $fieldDefs = array_values(array_filter(
-                    $customFieldsMap[$srcListingId] ?? [],
-                    fn($f) => $this->sanitizeFieldName((string) ($f['name'] ?? '')) !== '',
-                ));
-                $fields = array_map(
-                    fn($f) => $this->sanitizeFieldName((string) ($f['name'] ?? '')),
-                    $fieldDefs
-                );
-                $this->createMemberTable($target, $memberTable, $fields, $isOwned);
-
-                // Persist field definitions to the listing registry so admin forms
-                // know the imported columns exist (once per listing per run).
-                // Passing the full definitions (not just bare names) preserves
-                // Fanatically's own label/options/required metadata instead of
-                // collapsing every field to an untyped text input.
-                if (!empty($fieldDefs) && !isset($registeredFields[$newListingId])) {
-                    $this->persistCustomFieldDefinitions($target, $newListingId, $isOwned, $fieldDefs);
-                    $registeredFields[$newListingId] = true;
-                }
+                $memberTable = (string) $storage['table'];
+                $columns     = $storage['columns'];
 
                 $email = strtolower(trim((string) ($mem['email'] ?? '')));
                 if ($email === '') {
@@ -1040,60 +1209,71 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     continue;
                 }
 
-                $approved = (int) ($mem['is_approved'] ?? 1);
-                $pending  = $approved === 1 ? 0 : 1;
+                $approved = (int) ($mem['is_approved'] ?? 1) === 1;
 
-                // Parse custom field values; map to actual column names for the target schema.
-                $fieldValues = []; // actual_column_name => value
+                // Pending vs approved lives in a different column on each schema.
+                $statusColumn = $isOwned ? 'pending' : 'approved';
+                if (!isset($columns[$statusColumn])) {
+                    $skippedItems[] = [
+                        'label'  => $email,
+                        'reason' => "The listing's member table has no {$statusColumn} column, so this member's approval couldn't be saved",
+                    ];
+                    $skipped++;
+                    continue;
+                }
+
+                // Custom field values go to the column each source field was given by
+                // the field plan. A value for a field the table doesn't have (a listing
+                // that was already in Luster and left alone under Skip) is dropped.
+                $fieldValues = []; // column => value
                 $cfJson      = trim((string) ($mem['custom_field_values'] ?? ''));
                 if ($cfJson !== '' && $cfJson !== 'null') {
                     $cf = json_decode($cfJson, true);
                     if (is_array($cf)) {
                         foreach ($cf as $origName => $val) {
-                            $safe = $this->sanitizeFieldName((string) $origName);
-                            if ($safe !== '') {
-                                $colName = $isOwned ? $safe : 'additional_' . $safe;
-                                $fieldValues[$colName] = (string) $val;
+                            $column = $this->plannedFieldColumn($storage['plan'], (string) $origName, $isOwned);
+                            if ($column === null || !isset($columns[$column])) {
+                                $droppedValues++;
+                                continue;
                             }
+                            $fieldValues[$column] = is_scalar($val) ? (string) $val : '';
                         }
                     }
                 }
 
-                try {
-                    $cols = 'email, name, country, url, pending, password, showemail, showurl, added';
-                    $vals = ':email, :name, :country, :url, :pending, :password, :showemail, :showurl, :added';
-                    $params = [
-                        'email'     => $email,
-                        'name'      => (string) ($mem['name']    ?? ''),
-                        'country'   => (string) ($mem['country'] ?? ''),
-                        'url'       => (string) ($mem['url']     ?? ''),
-                        'pending'   => $pending,
-                        'password'  => (string) ($mem['password_hash'] ?? ''),
-                        'showemail' => 1,
-                        'showurl'   => 1,
-                        'added'     => (string) ($mem['joined_at'] ?? date('Y-m-d')),
-                    ];
-                    foreach ($fieldValues as $colName => $colVal) {
-                        $cols   .= ", `{$colName}`";
-                        $vals   .= ", :{$colName}";
-                        $params[$colName] = $colVal;
-                    }
+                $data = [
+                    'email'     => $email,
+                    'name'      => (string) ($mem['name']    ?? ''),
+                    'country'   => (string) ($mem['country'] ?? ''),
+                    'url'       => (string) ($mem['url']     ?? ''),
+                    'password'  => (string) ($mem['password_hash'] ?? ''),
+                    'showemail' => 1,
+                    'showurl'   => 1,
+                    'added'     => (string) ($mem['joined_at'] ?? date('Y-m-d')),
+                ];
+                if ($isOwned) {
+                    $data['pending'] = $approved ? 0 : 1;
+                } else {
+                    $data['approved'] = $approved ? 1 : 0;
+                    $data['updated']  = date('Y-m-d H:i:s');
+                }
+                // Only columns the table really has: an existing table may be older.
+                $data = array_filter($data, static fn(string $col): bool => isset($columns[$col]), ARRAY_FILTER_USE_KEY);
+                $data = array_merge($data, $fieldValues);
 
+                try {
                     if ($exists) {
-                        // Overwrite keeps the member's own showemail/showurl choices, so those
-                        // two values are left out of both the SET list and the bound
-                        // parameters. PDO rejects a parameter the SQL doesn't use.
-                        $setClauses = 'name=:name, country=:country, url=:url, pending=:pending, password=:password, added=:added';
-                        foreach ($fieldValues as $colName => $_) {
-                            $setClauses .= ", `{$colName}`=:{$colName}";
-                        }
-                        $updateParams = $params;
-                        unset($updateParams['showemail'], $updateParams['showurl']);
-                        $target->prepare("UPDATE `{$memberTable}` SET {$setClauses} WHERE email=:email")
-                               ->execute($updateParams);
+                        // Overwrite keeps the member's own showemail/showurl choices.
+                        $update = $data;
+                        unset($update['email'], $update['showemail'], $update['showurl']);
+                        $set = implode(', ', array_map(static fn(string $col): string => "`{$col}`=:{$col}", array_keys($update)));
+                        $target->prepare("UPDATE `{$memberTable}` SET {$set} WHERE email=:email")
+                               ->execute($update + ['email' => $email]);
                     } else {
+                        $cols = implode(', ', array_map(static fn(string $col): string => "`{$col}`", array_keys($data)));
+                        $vals = implode(', ', array_map(static fn(string $col): string => ':' . $col, array_keys($data)));
                         $target->prepare("INSERT INTO `{$memberTable}` ({$cols}) VALUES ({$vals})")
-                               ->execute($params);
+                               ->execute($data);
                         $imported++;
                     }
                 } catch (\Throwable $e) {
@@ -1104,9 +1284,14 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $offset += self::CHUNK;
         } while (count($chunk) === self::CHUNK);
 
+        if ($droppedValues > 0) {
+            $warnings[] = "{$droppedValues} custom field value(s) weren't imported because their listing in Luster has no matching field. "
+                . '(A listing that was already in Luster keeps its own fields when you pick Skip.)';
+        }
+
         return [
             'type' => 'Members', 'imported' => $imported, 'skipped' => $skipped,
-            'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems,
+            'warnings' => $warnings, 'errors' => $errors, 'skipped_items' => $skippedItems,
         ];
     }
 
@@ -1123,10 +1308,11 @@ final class FanaticallyImportSource implements ImportSourceInterface
         $imported     = 0;
         $skipped      = 0;
         $errors       = [];
-        $skippedItems = [];
-        $imgCopied    = 0;
-        $imgSkipped   = 0;
-        $imgErrors    = [];
+        $skippedItems   = [];
+        $imgCopied      = 0;
+        $imgSkipped     = 0;
+        $imgErrors      = [];
+        $malformedCount = 0;
 
         // Build existing (fanlisting_id, url) → id map for dedup / overwrite
         $existingSet = []; // key → affiliate id
@@ -1162,26 +1348,26 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         foreach ($rows as $aff) {
             $url  = rtrim(trim((string) ($aff['url'] ?? '')), '/');
-            $rawIds = (string) ($aff['listing_ids'] ?? '');
 
-            // Decode listing_ids to determine collective vs per-listing
-            $decoded     = null;
-            $isCollective = false;
-            if ($rawIds === '' || $rawIds === '[]' || $rawIds === 'null') {
-                $isCollective = true;
-            } else {
-                $decoded = json_decode($rawIds, true);
-                if (!is_array($decoded) || empty($decoded) || $decoded === [0]) {
-                    $isCollective = true;
-                }
+            // Which fanlistings this affiliate belongs to. A list Luster can't read
+            // is skipped and reported, never turned into a site-wide affiliate.
+            [$scope, $decoded] = $this->parseAffiliateListingIds($aff['listing_ids'] ?? null);
+            if ($scope === 'malformed') {
+                $skippedItems[] = [
+                    'label'  => $url !== '' ? $url : (string) ($aff['name'] ?? '?'),
+                    'reason' => "Its list of fanlistings (listing_ids) couldn't be read, so it wasn't imported: "
+                        . mb_substr(trim((string) ($aff['listing_ids'] ?? '')), 0, 80),
+                ];
+                $skipped++;
+                $malformedCount++;
+                continue;
             }
 
             $targets = [];
-            if ($isCollective) {
+            if ($scope === 'collective') {
                 $targets[] = null; // fanlisting_id = NULL
-            } elseif (is_array($decoded)) {
-                foreach ($decoded as $srcLid) {
-                    $lid = (int) $srcLid;
+            } else {
+                foreach ($decoded as $lid) {
                     if ($lid === 0) {
                         $targets[] = null;
                     } elseif (isset($listingIdMap[$lid])) {
@@ -1272,9 +1458,59 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         return [
             ['type' => 'Affiliates', 'imported' => $imported, 'skipped' => $skipped,
-             'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems],
+             'warnings' => $malformedCount > 0 ? [$this->malformedAffiliatesNote($malformedCount, false)] : [],
+             'errors' => $errors, 'skipped_items' => $skippedItems],
             ['copied' => $imgCopied, 'skipped' => $imgSkipped, 'errors' => $imgErrors],
         ];
+    }
+
+    /**
+     * Reads a Fanatically affiliate's listing_ids. Empty, null and [] mean the
+     * whole collective (Fanatically's own convention), as does [0]. A JSON list
+     * of whole numbers means those fanlistings (0 in the list adds a collective
+     * copy). Anything else (broken JSON, a JSON object even if empty, a bare
+     * number, text or nested values) is 'malformed': the caller skips and
+     * reports it rather than guessing,
+     * because guessing "collective" would show a corrupt affiliate site-wide.
+     *
+     * @return array{0: 'collective'|'listings'|'malformed', 1: list<int>}
+     */
+    private function parseAffiliateListingIds(mixed $raw): array
+    {
+        $text = trim((string) ($raw ?? ''));
+        if ($text === '' || $text === 'null' || $text === '[]') {
+            return ['collective', []];
+        }
+
+        // Decoded as objects (not associative arrays), so a JSON object such as
+        // {} or {"0":1} stays an object and is rejected: only a real JSON list counts.
+        $decoded = json_decode($text);
+        if (!is_array($decoded)) {
+            return ['malformed', []];
+        }
+
+        $ids = [];
+        foreach ($decoded as $value) {
+            if (is_int($value) && $value >= 0) {
+                $ids[] = $value;
+            } elseif (is_string($value) && preg_match('/^\d+$/', $value) === 1) {
+                $ids[] = (int) $value;
+            } else {
+                return ['malformed', []];
+            }
+        }
+
+        if ($ids === [] || $ids === [0]) {
+            return ['collective', []];
+        }
+        return ['listings', array_values(array_unique($ids))];
+    }
+
+    private function malformedAffiliatesNote(int $count, bool $forPreview): string
+    {
+        return $forPreview
+            ? "Data dropped — {$count} affiliate(s) have a list of fanlistings (listing_ids) Luster can't read. They'll be skipped and listed on the results page, so you can add them by hand."
+            : "{$count} affiliate(s) were skipped because their list of fanlistings (listing_ids) couldn't be read. They're listed below, so you can add them by hand.";
     }
 
     // -----------------------------------------------------------------------
@@ -1299,6 +1535,17 @@ final class FanaticallyImportSource implements ImportSourceInterface
         $codeSizeIdMap  = [];
         $codeDonorIdMap = [];
 
+        // Collective codes are tracked by their full filename (Migration 104's column).
+        // Luster's collective codes are loaded once and matched in PHP, byte for
+        // byte (the database compares filenames ignoring case); codes this import
+        // adds are appended as it goes.
+        $hasCodeIdentity  = $this->tableHasColumn($target, 'lstr_codes', 'import_source_file');
+        $storedCollective = $hasCodeIdentity ? $this->storedCollectiveCodes($target) : [];
+        // Collective codes (Fanatically listing 0) whose name comes under more than
+        // one size label that isn't WxH can't be told apart once stored. Worked out
+        // before anything is written: name => labels, and whether Luster already had one.
+        $ambiguousCollective = $this->ambiguousCollectiveCodes($source, $p, $storedCollective);
+
         $offset = 0;
         do {
             try {
@@ -1314,15 +1561,41 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
             foreach ($chunk as $code) {
                 $srcListingId = (int) ($code['listing_id'] ?? 0);
+                $sizeLabel    = trim((string) ($code['size_label'] ?? ''));
+                $fileName     = trim((string) ($code['file_name']  ?? ''));
+
+                // Fanatically's "Collective" is listing 0. It becomes a Luster
+                // collective code (no listing). Any other listing has to have come
+                // over: an unknown listing never turns into a collective code.
+                if ($srcListingId === 0) {
+                    if ($fileName === '') {
+                        $skipped++;
+                        continue;
+                    }
+                    $outcome = $this->importCollectiveCode(
+                        $target, $options, $code, $sizeLabel, $fileName, $ambiguousCollective, $hasCodeIdentity,
+                        $storedCollective, $migrator, $imgCopied, $imgSkipped,
+                    );
+                    if ($outcome['imported']) {
+                        $imported++;
+                    } else {
+                        $skipped++;
+                        if ($outcome['reason'] !== '') {
+                            $skippedItems[] = ['label' => $fileName, 'reason' => $outcome['reason']];
+                        }
+                    }
+                    if ($outcome['error'] !== '') {
+                        $errors[] = $outcome['error'];
+                    }
+                    continue;
+                }
+
                 $newListingId = $listingIdMap[$srcListingId] ?? null;
                 if ($newListingId === null) {
                     $skippedItems[] = ['label' => (string) ($code['file_name'] ?? '?'), 'reason' => 'Listing not imported'];
                     $skipped++;
                     continue;
                 }
-
-                $sizeLabel  = trim((string) ($code['size_label'] ?? ''));
-                $fileName   = trim((string) ($code['file_name']  ?? ''));
 
                 if ($fileName === '') {
                     $skipped++;
@@ -1333,22 +1606,28 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $sizeId = $this->upsertCodeSize($target, $newListingId, $sizeLabel, $codeSizeIdMap);
 
                 // Dedup by (fanlisting_id, name, size_id): same filename under a different
-                // size label is a distinct code row and must not be collapsed.
+                // size label is a distinct code row and must not be collapsed. The
+                // database compares names ignoring case, so every candidate is fetched
+                // and the name is matched exactly here: Code.png and code.png are two files.
                 $existingCodeId = null;
                 try {
                     if ($sizeId !== null) {
                         $ck = $target->prepare(
-                            'SELECT id FROM lstr_codes WHERE fanlisting_id=:fid AND name=:name AND size_id=:sid LIMIT 1'
+                            'SELECT id, name FROM lstr_codes WHERE fanlisting_id=:fid AND name=:name AND size_id=:sid ORDER BY id'
                         );
                         $ck->execute(['fid' => $newListingId, 'name' => $fileName, 'sid' => $sizeId]);
                     } else {
                         $ck = $target->prepare(
-                            'SELECT id FROM lstr_codes WHERE fanlisting_id=:fid AND name=:name AND size_id IS NULL LIMIT 1'
+                            'SELECT id, name FROM lstr_codes WHERE fanlisting_id=:fid AND name=:name AND size_id IS NULL ORDER BY id'
                         );
                         $ck->execute(['fid' => $newListingId, 'name' => $fileName]);
                     }
-                    $ckRow = $ck->fetch();
-                    $existingCodeId = $ckRow !== false ? (int) $ckRow['id'] : null;
+                    foreach ($ck->fetchAll() as $ckRow) {
+                        if ((string) $ckRow['name'] === $fileName) {
+                            $existingCodeId = (int) $ckRow['id'];
+                            break;
+                        }
+                    }
                 } catch (\Throwable) {}
 
                 if ($existingCodeId !== null && $options->conflictStrategy === 'skip') {
@@ -1367,11 +1646,12 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
                 // Migrate image
                 $newImageFile = $fileName;
+                $copiedFile   = null;
                 if ($migrator !== null) {
                     $resolved    = $this->resolveCodeImagePath($fileName, $sizeLabel, $srcListingId, $options);
-                    $migrated    = $this->migrateImage($migrator, $resolved, 'codes', $options);
-                    if ($migrated !== null) {
-                        $newImageFile = $migrated;
+                    $copiedFile  = $this->migrateImage($migrator, $resolved, 'codes', $options);
+                    if ($copiedFile !== null) {
+                        $newImageFile = $copiedFile;
                         $imgCopied++;
                     } else {
                         $imgSkipped++;
@@ -1384,15 +1664,18 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
                 try {
                     if ($existingCodeId !== null) {
-                        // overwrite: update the existing row
-                        $target->prepare(
-                            'UPDATE lstr_codes SET size_id=:sid, donor_id=:did, filename=:filename,
-                             status=:status, width=:w, height=:h WHERE id=:id'
-                        )->execute([
-                            'sid' => $sizeId, 'did' => $donorId, 'filename' => $newImageFile,
-                            'status' => $codeStatus, 'w' => $codeW, 'h' => $codeH,
-                            'id' => $existingCodeId,
-                        ]);
+                        // overwrite: update the existing row. Its image file only changes
+                        // when a new one was actually copied; otherwise a working, already
+                        // migrated file would be swapped for the bare source name.
+                        $update = [
+                            'size_id' => $sizeId, 'donor_id' => $donorId,
+                            'status'  => $codeStatus, 'width' => $codeW, 'height' => $codeH,
+                        ];
+                        if ($copiedFile !== null) {
+                            $update['filename'] = $copiedFile;
+                        }
+                        $set = implode(', ', array_map(static fn(string $col): string => "{$col}=:{$col}", array_keys($update)));
+                        $target->prepare("UPDATE lstr_codes SET {$set} WHERE id=:id")->execute($update + ['id' => $existingCodeId]);
                     } else {
                         $target->prepare(
                             'INSERT INTO lstr_codes
@@ -1418,6 +1701,234 @@ final class FanaticallyImportSource implements ImportSourceInterface
              'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems],
             ['copied' => $imgCopied, 'skipped' => $imgSkipped, 'errors' => $imgErrors],
         ];
+    }
+
+    /**
+     * Collective code names that come under more than one size label that isn't
+     * WxH (e.g. "small" and "big"). Collective codes have no size row, only a
+     * width and height, so two such copies look identical once stored. A first
+     * import keeps them all; a repeat import can't tell which stored copy is
+     * which, so it skips those copies. A copy of the same name under a readable
+     * size (e.g. 88x31) isn't affected. 'existing' is whether Luster already had
+     * an unreadable-size copy before this import started; it's worked out once,
+     * from $stored, and doesn't change while the import adds copies.
+     *
+     * @param list<array{id: int, name: string, src: ?string, w: int, h: int}> $stored
+     * @return array<string, array{labels: list<string>, existing: bool}>
+     */
+    private function ambiguousCollectiveCodes(PDO $source, string $p, array $stored): array
+    {
+        $labelsByName = [];
+        try {
+            $st = $source->query("SELECT file_name, size_label FROM `{$p}codes` WHERE listing_id = 0");
+            foreach ($st ? $st->fetchAll() : [] as $row) {
+                $label = trim((string) ($row['size_label'] ?? ''));
+                if ($this->parseSize($label) !== [0, 0]) {
+                    continue;
+                }
+                $labelsByName[trim((string) ($row['file_name'] ?? ''))][$label] = true;
+            }
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $ambiguous = [];
+        foreach ($labelsByName as $name => $labels) {
+            $name = (string) $name;
+            if ($name === '' || count($labels) < 2) {
+                continue;
+            }
+            $ambiguous[$name] = [
+                'labels'   => array_map('strval', array_keys($labels)),
+                'existing' => $this->collectiveCodeMatches($stored, $name, 0, 0) !== [],
+            ];
+        }
+        return $ambiguous;
+    }
+
+    /**
+     * Luster's collective codes (no listing, no size row), for matching a
+     * Fanatically collective code in PHP. The database compares filenames
+     * ignoring case, so it can't be asked which one is "code.png".
+     *
+     * @return list<array{id: int, name: string, src: ?string, w: int, h: int}>
+     */
+    private function storedCollectiveCodes(PDO $target): array
+    {
+        $stored = [];
+        try {
+            $st = $target->query(
+                'SELECT id, name, import_source_file, width, height FROM lstr_codes
+                  WHERE fanlisting_id IS NULL AND size_id IS NULL ORDER BY id'
+            );
+            foreach ($st ? $st->fetchAll() : [] as $row) {
+                $stored[] = [
+                    'id'   => (int) $row['id'],
+                    'name' => (string) ($row['name'] ?? ''),
+                    'src'  => $row['import_source_file'] !== null ? (string) $row['import_source_file'] : null,
+                    'w'    => (int) $row['width'],
+                    'h'    => (int) $row['height'],
+                ];
+            }
+        } catch (\Throwable) {}
+        return $stored;
+    }
+
+    /**
+     * The stored collective codes a Fanatically collective code matches, by id:
+     * those imported from exactly this filename at this width and height, or, only
+     * when there are none, codes added in Luster (no import_source_file) with
+     * exactly this name and size. Filenames are compared byte for byte.
+     *
+     * @param list<array{id: int, name: string, src: ?string, w: int, h: int}> $stored
+     * @return list<int>
+     */
+    private function collectiveCodeMatches(array $stored, string $fileName, int $w, int $h): array
+    {
+        $imported = [];
+        $manual   = [];
+        foreach ($stored as $code) {
+            if ($code['w'] !== $w || $code['h'] !== $h) {
+                continue;
+            }
+            if ($code['src'] !== null) {
+                if ($code['src'] === $fileName) {
+                    $imported[] = $code['id'];
+                }
+            } elseif ($code['name'] === $fileName) {
+                $manual[] = $code['id'];
+            }
+        }
+        return $imported !== [] ? $imported : $manual;
+    }
+
+    /**
+     * Why a Fanatically collective code will be skipped, or null when it can be
+     * imported. The preview counts and the import both use this, so they agree.
+     *
+     * @param array<string, array{labels: list<string>, existing: bool}>         $ambiguous
+     * @param list<array{id: int, name: string, src: ?string, w: int, h: int}> $stored
+     */
+    private function collectiveCodeSkipReason(
+        string $fileName, string $sizeLabel, array $ambiguous, bool $hasIdentityColumn, array $stored
+    ): ?string {
+        if (!$hasIdentityColumn) {
+            return "Collective codes can't be imported yet: run the migration page first (Luster needs Migration 104), then import again.";
+        }
+        if (strlen($fileName) > 255) {
+            return "Its filename is longer than 255 characters, so Luster can't keep track of it between imports.";
+        }
+        [$w, $h] = $this->parseSize($sizeLabel);
+        $unreadable = $w === 0 && $h === 0 && isset($ambiguous[$fileName]);
+        if ($unreadable && $ambiguous[$fileName]['existing']) {
+            return "This collective code comes in sizes Luster can't read as width x height ("
+                . implode(', ', array_map(static fn(string $l): string => $l === '' ? '(none)' : $l, $ambiguous[$fileName]['labels']))
+                . "), so it can't tell which copy already in Luster is which. Add or update it on the collective codes page.";
+        }
+        // A first import's unreadable-size copies are each added without a lookup.
+        // Anything else is looked up, and has to find at most one copy.
+        if (!$unreadable) {
+            $copies = count($this->collectiveCodeMatches($stored, $fileName, $w, $h));
+            if ($copies > 1) {
+                return "Luster already has {$copies} copies of this collective code that can't be told apart, "
+                    . 'so it was left alone. Update it on the collective codes page.';
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Imports one Fanatically collective code (listing 0) as a Luster collective
+     * code, the same way the Listing Admin import does: no listing, no size or
+     * donor row, the real width/height on the code, and the donor credited on
+     * the code itself (submitter_*), which is what the collective codes pages
+     * read. The image is looked up under Fanatically's own listing-0 folder.
+     *
+     * The full source filename is kept in import_source_file (the name column
+     * only holds 150 characters), and a repeat import finds the code by that
+     * plus width + height (collectiveCodeMatches()). A collective code added in
+     * Luster (no import_source_file) with exactly the same name and size also
+     * matches. A code this adds goes into $stored, so later rows find it.
+     * Overwrite keeps the code's current image file unless a new one was copied.
+     *
+     * @param array<string,mixed>                                                $code
+     * @param array<string, array{labels: list<string>, existing: bool}>         $ambiguous
+     * @param list<array{id: int, name: string, src: ?string, w: int, h: int}> $stored
+     * @return array{imported: bool, reason: string, error: string}
+     */
+    private function importCollectiveCode(
+        PDO $target, ImportOptions $options, array $code, string $sizeLabel, string $fileName,
+        array $ambiguous, bool $hasIdentityColumn, array &$stored, ?ImageMigrator $migrator, int &$imgCopied, int &$imgSkipped
+    ): array {
+        $reason = $this->collectiveCodeSkipReason($fileName, $sizeLabel, $ambiguous, $hasIdentityColumn, $stored);
+        if ($reason !== null) {
+            return ['imported' => false, 'reason' => $reason, 'error' => ''];
+        }
+
+        [$w, $h] = $this->parseSize($sizeLabel);
+        // Copies under unreadable sizes can't be matched, so a first import adds each.
+        $unmatchable    = $w === 0 && $h === 0 && isset($ambiguous[$fileName]);
+        $existingCodeId = $unmatchable ? null : ($this->collectiveCodeMatches($stored, $fileName, $w, $h)[0] ?? null);
+
+        if ($existingCodeId !== null && $options->conflictStrategy === 'skip') {
+            return ['imported' => false, 'reason' => '', 'error' => ''];
+        }
+
+        // Fanatically keeps collective images under its listing-0 folder.
+        $copiedFile = null;
+        if ($migrator !== null) {
+            $resolved   = $this->resolveCodeImagePath($fileName, $sizeLabel, 0, $options);
+            $copiedFile = $this->migrateImage($migrator, $resolved, 'codes', $options);
+            if ($copiedFile !== null) {
+                $imgCopied++;
+            } else {
+                $imgSkipped++;
+            }
+        }
+
+        $donorName  = trim((string) ($code['donor_name']  ?? ''));
+        $donorUrl   = trim((string) ($code['donor_url']   ?? ''));
+        $donorEmail = trim((string) ($code['donor_email'] ?? ''));
+        $fields = [
+            'status'             => (int) ($code['is_approved'] ?? 1) === 1 ? 'approved' : 'pending',
+            'width'              => $w,
+            'height'             => $h,
+            'submitter_name'     => $donorName !== '' ? mb_substr($donorName, 0, 150) : null,
+            'submitter_email'    => $donorName !== '' && $donorEmail !== '' ? mb_substr($donorEmail, 0, 255) : null,
+            'submitter_url'      => $donorName !== '' && $donorUrl !== '' ? mb_substr($donorUrl, 0, 255) : null,
+            'import_source_file' => $fileName,
+        ];
+
+        try {
+            if ($existingCodeId !== null) {
+                // Only a successfully copied image replaces the one already there.
+                if ($copiedFile !== null) {
+                    $fields['filename'] = $copiedFile;
+                }
+                $set = implode(', ', array_map(static fn(string $col): string => "{$col}=:{$col}", array_keys($fields)));
+                $target->prepare("UPDATE lstr_codes SET {$set} WHERE id=:id")->execute($fields + ['id' => $existingCodeId]);
+                // A code added in Luster is now tracked by this filename.
+                foreach ($stored as $i => $storedCode) {
+                    if ($storedCode['id'] === $existingCodeId) {
+                        $stored[$i]['src'] = $fileName;
+                    }
+                }
+            } else {
+                $fields = [
+                    'fanlisting_id' => null, 'size_id' => null, 'donor_id' => null,
+                    'name'          => mb_substr($fileName, 0, 150),
+                    'filename'      => $copiedFile ?? $fileName,
+                ] + $fields;
+                $cols = implode(', ', array_keys($fields));
+                $vals = implode(', ', array_map(static fn(string $col): string => ':' . $col, array_keys($fields)));
+                $target->prepare("INSERT INTO lstr_codes ({$cols}) VALUES ({$vals})")->execute($fields);
+                $stored[] = ['id' => (int) $target->lastInsertId(), 'name' => $fields['name'], 'src' => $fileName, 'w' => $w, 'h' => $h];
+            }
+        } catch (\Throwable $e) {
+            return ['imported' => false, 'reason' => '', 'error' => "Collective code '{$fileName}': " . $e->getMessage()];
+        }
+
+        return ['imported' => true, 'reason' => '', 'error' => ''];
     }
 
     // -----------------------------------------------------------------------
@@ -1767,9 +2278,6 @@ final class FanaticallyImportSource implements ImportSourceInterface
              VALUES (:fid, :name, :email, :url, :password, :pending, :added_at)'
         );
 
-        // active = 0 means import as pending (pending = 1); active = 1 means import as active (pending = 0)
-        $kimPending = $options->fnKimActive ? 0 : 1;
-
         try {
             $st   = $source->query("SELECT * FROM `{$p}kim` ORDER BY id ASC");
             $rows = $st ? $st->fetchAll() : [];
@@ -1780,7 +2288,13 @@ final class FanaticallyImportSource implements ImportSourceInterface
             ];
         }
 
+        // Luster's KIM list has no notes field. Every entry's note is listed on the
+        // results page (and in its downloadable report) instead, whether or not the
+        // entry itself came over, so nothing is lost and nothing becomes public.
+        $warnings = $this->kimNoteWarnings($rows, $this->sourceListingTitles($source, $p));
+
         foreach ($rows as $kim) {
+            $kimPending   = $this->kimPendingValue($kim, $options);
             $srcListingId = (int) ($kim['listing_id'] ?? 0);
             if ($srcListingId === 0) {
                 $skippedItems[] = ['label' => (string) ($kim['email'] ?? '?'), 'reason' => 'listing_id=0 (collective/unassigned) has no Luster target'];
@@ -1841,8 +2355,67 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         return [
             'type' => 'KIM List', 'imported' => $imported, 'skipped' => $skipped,
-            'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems,
+            'warnings' => $warnings, 'errors' => $errors, 'skipped_items' => $skippedItems,
         ];
+    }
+
+    /**
+     * The pending value (1 = waiting for approval) for one KIM entry. By default
+     * each entry keeps its own Fanatically approval; a missing is_approved column
+     * (older Fanatically) counts as approved, which is what Fanatically assumed.
+     *
+     * @param array<string,mixed> $kim
+     */
+    private function kimPendingValue(array $kim, ImportOptions $options): int
+    {
+        return match ($options->fnKimStatus) {
+            'pending' => 1,
+            'active'  => 0,
+            default   => (int) ($kim['is_approved'] ?? 1) === 1 ? 0 : 1,
+        };
+    }
+
+    /**
+     * One results-page line per KIM entry that has a note, since Luster's KIM
+     * list has nowhere to keep them.
+     *
+     * @param list<array<string,mixed>> $rows
+     * @param array<int,string>         $listingTitles source listing id => title
+     * @return list<string>
+     */
+    private function kimNoteWarnings(array $rows, array $listingTitles): array
+    {
+        $lines = [];
+        foreach ($rows as $kim) {
+            $note = trim((string) ($kim['notes'] ?? ''));
+            if ($note === '') {
+                continue;
+            }
+            $srcListingId = (int) ($kim['listing_id'] ?? 0);
+            $listing      = $listingTitles[$srcListingId] ?? ($srcListingId === 0 ? 'no fanlisting' : "listing #{$srcListingId}");
+            $lines[] = 'KIM note for ' . strtolower(trim((string) ($kim['email'] ?? '?'))) . " ({$listing}): {$note}";
+        }
+
+        if ($lines === []) {
+            return [];
+        }
+        array_unshift($lines, count($lines) . " KIM note(s) weren't imported, because Luster's KIM list has no notes field. "
+            . "They're listed here so you can copy them, and only you can see this page. They aren't saved anywhere in Luster, "
+            . 'so download the import report before you leave this page or start another import.');
+        return $lines;
+    }
+
+    /** @return array<int,string> source listing id => title (subject when untitled) */
+    private function sourceListingTitles(PDO $source, string $p): array
+    {
+        $titles = [];
+        try {
+            $st = $source->query("SELECT * FROM `{$p}listings`");
+            foreach ($st ? $st->fetchAll() : [] as $row) {
+                $titles[(int) $row['id']] = trim((string) ($row['title'] ?? '')) ?: trim((string) ($row['subject'] ?? ''));
+            }
+        } catch (\Throwable) {}
+        return $titles;
     }
 
     // -----------------------------------------------------------------------
@@ -1955,9 +2528,13 @@ final class FanaticallyImportSource implements ImportSourceInterface
      *
      * @param array<int,int> $listingIdMap fanatic listing_id → Luster registry pk
      */
+    /**
+     * @param array<int,int>                 $listingIdMap
+     * @param array<int,array<string,mixed>> $memberStorage From provisionMemberStorage(), keyed by source listing id
+     */
     private function runPendingUpdates(
         PDO $source, PDO $target, string $targetSchema,
-        string $p, array $listingIdMap, ImportOptions $options
+        string $p, array $listingIdMap, array $memberStorage, ImportOptions $options
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -2011,6 +2588,16 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     continue;
                 }
 
+                $storage = $memberStorage[$srcListingId] ?? null;
+                if ($storage === null || !$storage['usable']) {
+                    $skippedItems[] = [
+                        'label'  => (string) ($mem['email'] ?? '?'),
+                        'reason' => (string) ($storage['reason'] ?? 'The listing has no member table'),
+                    ];
+                    $skipped++;
+                    continue;
+                }
+
                 $raw = json_decode((string) ($mem['pending_update'] ?? ''), true);
                 if (!is_array($raw)) {
                     $skipped++;
@@ -2026,19 +2613,18 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 }
 
                 // Custom fields: stored as a JSON-encoded string inside the blob.
-                // Keys must go through the same sanitizeFieldName() pass that member
-                // import uses when creating columns, so the keys match actual DB columns.
+                // Keys use the same field plan as member import, so they name real
+                // columns; a field the member table doesn't have is left out.
                 $cfJson = $raw['custom_field_values'] ?? '';
                 if (is_string($cfJson) && $cfJson !== '') {
                     $cfValues = json_decode($cfJson, true);
                     if (is_array($cfValues)) {
                         foreach ($cfValues as $fieldName => $value) {
-                            $safe = $this->sanitizeFieldName((string) $fieldName);
-                            if ($safe === '') {
+                            $key = $this->plannedFieldColumn($storage['plan'], (string) $fieldName, $isOwned);
+                            if ($key === null || !isset($storage['columns'][$key])) {
                                 continue;
                             }
-                            $key           = $isOwned ? $safe : 'additional_' . $safe;
-                            $changes[$key] = (string) $value;
+                            $changes[$key] = is_scalar($value) ? (string) $value : '';
                         }
                     }
                 }
@@ -2600,58 +3186,975 @@ final class FanaticallyImportSource implements ImportSourceInterface
     // DDL helpers (shared with ListingAdminImportSource pattern)
     // -----------------------------------------------------------------------
 
+    // -----------------------------------------------------------------------
+    // Custom fields and member storage
+    // -----------------------------------------------------------------------
+
     /**
-     * Creates a per-listing member table (Enthusiast-compatible schema).
+     * Works out every source listing's custom-field names before anything is
+     * written (see planCustomFields()).
      *
-     * @param string[] $additionalFields Validated bare field names
+     * First, each source listing is matched to the Luster listing it will go into,
+     * row by row, the same way runListings() matches it (existingListingIndex()),
+     * including the address changes runListings() makes as it goes: a listing an
+     * earlier row creates, and (Overwrite only) an existing listing's new address.
+     * The names earlier imports gave (storedFieldMaps()) only count while their
+     * import record still points at that Luster listing.
+     *
+     * Then each listing's fields are named. A field can't take a name that Luster
+     * listing already has, a name kept for a field that's gone from Fanatically,
+     * or a name that belongs to another source listing going into the same Luster
+     * listing: everything those listings have on record is reserved up front, so
+     * the order of the rows doesn't matter, plus whatever earlier rows were given.
+     *
+     * The third value is an error (FIELD_NAMES_UNREADABLE) when the names Luster
+     * already has couldn't be read; there are no plans then, and nothing may be
+     * imported, because names chosen without them could take another field's column.
+     *
+     * $index is the same existingListingIndex() copy runListings() gets.
+     *
+     * @param array{urls: array<string,int>, byExternal: array<string,int>, dbtables: array<int,string>} $index
+     * @return array{0: array<int, array<string,mixed>>, 1: list<string>, 2: string|null} plans keyed by source listing id, notes, error
      */
-    private function createMemberTable(PDO $target, string $dbtable, array $additionalFields, bool $isOwned = true): void
+    private function readCustomFieldPlans(PDO $source, PDO $target, string $p, ImportOptions $options, array $index): array
     {
-        $extraCols = '';
-        foreach ($additionalFields as $field) {
-            if (!preg_match('/^[a-zA-Z0-9_]+$/', $field)) {
+        // Without the listings there's nothing to plan from; carrying on would
+        // import them later without their fields and drop their members' answers.
+        try {
+            $st = $source->query("SELECT * FROM `{$p}listings` ORDER BY id ASC");
+            if ($st === false) {
+                return [[], [], self::SOURCE_LISTINGS_UNREADABLE];
+            }
+            $rows = $st->fetchAll();
+        } catch (\Throwable) {
+            return [[], [], self::SOURCE_LISTINGS_UNREADABLE];
+        }
+
+        [$regTable, $pkCol, $isOwned] = $this->targetRegistryInfo($this->detectTargetSchema($target));
+        $storedMaps = $this->storedFieldMaps($target);
+        $overwrite  = $options->conflictStrategy !== 'skip';
+        if ($storedMaps === null) {
+            return [[], [], self::FIELD_NAMES_UNREADABLE];
+        }
+
+        // 1. Where each source listing goes, and what it has on record there.
+        $listings  = [];
+        $destNames = []; // Luster listing id => field names it already has
+        $onRecord  = []; // Luster listing id => stored name => source listing ids holding it
+        $nextNew   = -1; // stands in for the id of a listing runListings() will create
+        foreach ($rows as $row) {
+            $srcId = (int) ($row['id'] ?? 0);
+            $label = trim((string) ($row['title'] ?? '')) ?: trim((string) ($row['subject'] ?? '')) ?: "listing #{$srcId}";
+
+            $url    = rtrim(trim((string) ($row['url'] ?? '')), '/');
+            $destId = $this->matchExistingListing($index, $url, $srcId);
+            if ($destId === null) {
+                // runListings() creates a listing here, and later rows find it the same way.
+                $destId = $nextNew--;
+                $this->rememberListingAddress($index, $destId, $url);
+                $index['byExternal'][(string) $srcId] = $destId;
+            } elseif ($overwrite) {
+                // Overwrite gives the listing this row's address; Skip leaves it.
+                $this->rememberListingAddress($index, $destId, $url);
+                $index['byExternal'][(string) $srcId] = $destId;
+            }
+            if ($destId > 0 && !isset($destNames[$destId])) {
+                $destNames[$destId] = $this->destinationFieldNames(
+                    $target, $destId, $index['dbtables'][$destId] ?? '', $regTable, $pkCol, $isOwned
+                );
+                if ($destNames[$destId] === null) {
+                    return [[], [], self::FIELD_NAMES_UNREADABLE];
+                }
+            }
+
+            $stored = $storedMaps[$srcId] ?? null;
+            $map    = $stored !== null && $stored['listing_id'] === $destId ? $stored['map'] : [];
+            foreach ($map as $name) {
+                $onRecord[$destId][$name][] = $srcId;
+            }
+
+            $defs = [];
+            $note = null;
+            $json = trim((string) ($row['custom_fields'] ?? ''));
+            if ($json !== '' && $json !== 'null') {
+                $decoded = json_decode($json, true);
+                if (is_array($decoded)) {
+                    $defs = $decoded;
+                } else {
+                    $note = "{$label}: its list of custom fields couldn't be read, so none of its fields were imported.";
+                }
+            }
+
+            $listings[] = ['srcId' => $srcId, 'label' => $label, 'destId' => $destId, 'map' => $map, 'defs' => $defs, 'note' => $note];
+        }
+
+        // 2. Name each listing's fields.
+        $plans   = [];
+        $notes   = [];
+        $claimed = []; // Luster listing id => names earlier rows in this import were given
+        foreach ($listings as $listing) {
+            $destId = $listing['destId'];
+            $others = $claimed[$destId] ?? [];
+            foreach ($onRecord[$destId] ?? [] as $name => $holders) {
+                if (array_diff($holders, [$listing['srcId']]) !== []) {
+                    $others[$name] = true;
+                }
+            }
+
+            [$plan, $planNotes] = $this->planCustomFields(
+                $listing['defs'], $listing['label'], $listing['map'], $destNames[$destId] ?? [], $others
+            );
+            foreach ([$plan['bySource'], $plan['retained']] as $names) {
+                foreach ($names as $name) {
+                    $claimed[$destId][$name] = true;
+                }
+            }
+            $plans[$listing['srcId']] = $plan;
+            if ($listing['note'] !== null) {
+                $notes[] = $listing['note'];
+            }
+            $notes = array_merge($notes, $planNotes);
+        }
+
+        return [$plans, $notes, null];
+    }
+
+    /**
+     * The source-field → Luster-field names each earlier import gave a listing's
+     * custom fields, keyed by Fanatically listing id, with the Luster listing the
+     * import record points at. Kept with the listing's import record
+     * (lstr_listing_external_refs.metadata_json, 'field_map'), so a repeat import
+     * gives every field the same name again even if the fields were reordered or
+     * a new one now clashes. Source names come back as strings. Empty when
+     * there's nothing stored (or nowhere to store it: no metadata_json before
+     * Migration 91). Null when the names are there but couldn't be read: planning
+     * without them would hand their columns to other fields.
+     *
+     * @return array<int, array{listing_id: int, map: array<string,string>}>|null
+     */
+    private function storedFieldMaps(PDO $target): ?array
+    {
+        if (!$this->refsHaveMetadata($target)) {
+            return [];
+        }
+
+        $maps = [];
+        try {
+            $st = $target->prepare(
+                "SELECT external_id, listing_id, metadata_json FROM lstr_listing_external_refs
+                  WHERE source = 'fanatically' AND metadata_json IS NOT NULL"
+            );
+            $st->execute();
+            foreach ($st->fetchAll() as $row) {
+                $meta = json_decode((string) $row['metadata_json'], true);
+                if (!is_array($meta) || !is_array($meta['field_map'] ?? null)) {
+                    continue;
+                }
+                $map = [];
+                foreach ($meta['field_map'] as $sourceName => $name) {
+                    if (is_string($name)) {
+                        $map[(string) $sourceName] = $name;
+                    }
+                }
+                $maps[(int) $row['external_id']] = ['listing_id' => (int) $row['listing_id'], 'map' => $map];
+            }
+        } catch (\Throwable) {
+            return null;
+        }
+        return $maps;
+    }
+
+    /**
+     * The field names a Luster listing already has: its field definitions, and
+     * its member table's field columns when that table is a real member table.
+     * Null when its field definitions or its table's columns couldn't be read.
+     *
+     * @return array<string,true>|null
+     */
+    private function destinationFieldNames(
+        PDO $target, int $listingId, string $dbtable, string $regTable, string $pkCol, bool $isOwned
+    ): ?array {
+        $names = [];
+        try {
+            $infoCol = $isOwned ? 'additional' : 'additional_info';
+            $st      = $target->prepare("SELECT {$infoCol} FROM `{$regTable}` WHERE {$pkCol} = :id");
+            $st->execute(['id' => $listingId]);
+            foreach (array_keys($this->parseFieldDefinitions((string) ($st->fetchColumn() ?: ''), $isOwned)) as $name) {
+                $names[strtolower((string) $name)] = true;
+            }
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $table = $isOwned ? $dbtable : $dbtable . 'members';
+        try {
+            $columns = $dbtable !== '' && !$this->isProtectedTableName($table) ? $this->memberTableColumns($target, $table) : null;
+        } catch (\Throwable) {
+            return null;
+        }
+        if ($columns !== null && $this->looksLikeMemberTable($columns, $isOwned)) {
+            foreach (array_keys($columns) as $column) {
+                $column = (string) $column;
+                if (!$isOwned) {
+                    if (!str_starts_with($column, 'additional_')) {
+                        continue;
+                    }
+                    $column = substr($column, strlen('additional_'));
+                }
+                $names[$column] = true;
+            }
+        }
+        return $names;
+    }
+
+    /**
+     * Gives each of one listing's Fanatically custom fields a Luster field name,
+     * once, so the member table, the field definitions, member values and queued
+     * updates all agree.
+     *
+     * A field an earlier import already named ($stored) keeps that name, so
+     * reordering fields or adding one that clashes can't move values into
+     * another field's column. A stored name whose field is gone from Fanatically
+     * is kept as well ('retained'), with its column and values, so a new field
+     * can never take it over. Every other field is named in source order: its
+     * name cleaned to letters/numbers/underscores, a leading "additional_"
+     * dropped (Luster reads that prefix as its own and would lose the value), cut
+     * to FIELD_NAME_MAX, and given a _2, _3... suffix when the name is reserved
+     * (RESERVED_FIELD_NAMES), already in the Luster listing ($destinationNames),
+     * kept for a removed field, or taken by another field here or by another
+     * source listing going into the same Luster listing ($claimedElsewhere).
+     * Each rename, and every entry that couldn't be used, is reported.
+     *
+     * Source names travel in a list, never as array keys to iterate: PHP turns
+     * a numeric key such as "123" into an integer.
+     *
+     * @param array<int|string, mixed> $defs             Fanatically custom_fields entries
+     * @param array<string,string>     $stored           source field name => name an earlier import gave it
+     * @param array<string,true>       $destinationNames names the Luster listing already has
+     * @param array<string,true>       $claimedElsewhere names other source listings going into it were given
+     * @return array{0: array{label: string, fields: list<array{source: string, name: string, def: array<string,mixed>}>, bySource: array<string,string>, retained: array<string,string>}, 1: list<string>}
+     */
+    private function planCustomFields(
+        array $defs, string $label, array $stored = [], array $destinationNames = [], array $claimedElsewhere = []
+    ): array {
+        $reserved = array_flip(self::RESERVED_FIELD_NAMES);
+        $notes    = [];
+
+        // 1. The usable entries, in source order.
+        $entries = []; // list<array{source: string, def: array<string,mixed>, base: string}>
+        $seen    = []; // source name => true
+        foreach (array_values($defs) as $i => $def) {
+            if (!is_array($def)) {
+                $notes[] = "{$label}: custom field entry #" . ($i + 1) . " couldn't be read, so it was left out.";
                 continue;
             }
-            $colName = $isOwned ? $field : 'additional_' . $field;
-            $extraCols .= "  `{$colName}` TEXT NOT NULL DEFAULT '',\n";
+            $sourceName = trim((string) ($def['name'] ?? ''));
+            if ($sourceName === '') {
+                $notes[] = "{$label}: custom field entry #" . ($i + 1) . " has no name, so it was left out.";
+                continue;
+            }
+            if (isset($seen[$sourceName])) {
+                $notes[] = "{$label}: there are two fields called \"{$sourceName}\", so only the first one was kept.";
+                continue;
+            }
+
+            $base = $this->sanitizeFieldName($sourceName);
+            while (str_starts_with($base, 'additional_')) {
+                $base = substr($base, strlen('additional_'));
+            }
+            $base = trim(substr($base, 0, self::FIELD_NAME_MAX), '_');
+            if ($base === '') {
+                $notes[] = "{$label}: the field \"{$sourceName}\" has no letters or numbers to name it by, so it was left out.";
+                continue;
+            }
+            $seen[$sourceName] = true;
+            $entries[]         = ['source' => $sourceName, 'def' => $def, 'base' => $base];
         }
 
-        $driver = $target->getAttribute(PDO::ATTR_DRIVER_NAME);
+        // 2. Names an earlier import gave these fields come first, so they stay put
+        //    (unless another source listing going into the same listing has it).
+        $taken = $claimedElsewhere; // name => true
+        $names = [];                // entry index => name
+        foreach ($entries as $i => $entry) {
+            $name = $stored[$entry['source']] ?? null;
+            if (is_string($name) && $this->isUsableFieldName($name) && !isset($taken[$name])) {
+                $taken[$name] = true;
+                $names[$i]    = $name;
+            }
+        }
 
-        if ($driver === 'sqlite') {
-            $target->exec(
-                "CREATE TABLE IF NOT EXISTS `{$dbtable}` (
-                  `email`     TEXT NOT NULL,
-                  `name`      TEXT NOT NULL DEFAULT '',
-                  `country`   TEXT NOT NULL DEFAULT '',
-                  `url`       TEXT NOT NULL DEFAULT '',
-                  `pending`   INTEGER NOT NULL DEFAULT 0,
-                  `password`  TEXT NOT NULL DEFAULT '',
-                  `showemail` INTEGER NOT NULL DEFAULT 1,
-                  `showurl`   INTEGER NOT NULL DEFAULT 1,
-                  `added`     TEXT NULL,
-                  {$extraCols}
-                  PRIMARY KEY (`email`)
-                )"
+        // 3. A field that's gone from Fanatically keeps its name, so its column and
+        //    values are never handed to a new field.
+        $retained = [];
+        foreach ($stored as $sourceName => $name) {
+            $sourceName = (string) $sourceName;
+            if (!isset($seen[$sourceName]) && is_string($name) && $this->isUsableFieldName($name)) {
+                $retained[$sourceName] = $name;
+                $taken[$name]          = true;
+            }
+        }
+
+        // 4. Everything else gets its cleaned name, or the next free suffix.
+        foreach ($entries as $i => $entry) {
+            if (isset($names[$i])) {
+                continue;
+            }
+            $base = $entry['base'];
+            $name = $base;
+            $n    = 2;
+            while (isset($reserved[$name]) || isset($taken[$name]) || isset($destinationNames[$name])) {
+                $suffix = '_' . $n++;
+                $name   = rtrim(substr($base, 0, self::FIELD_NAME_MAX - strlen($suffix)), '_') . $suffix;
+            }
+            $taken[$name] = true;
+            $names[$i]    = $name;
+        }
+
+        $byName   = array_flip($names); // name => entry index
+        $fields   = [];
+        $bySource = [];
+        foreach ($entries as $i => $entry) {
+            $sourceName = $entry['source'];
+            $name       = $names[$i];
+            $base       = $entry['base'];
+            $fields[]   = ['source' => $sourceName, 'name' => $name, 'def' => $entry['def']];
+            $bySource[$sourceName] = $name;
+
+            $plain = $this->sanitizeFieldName($sourceName);
+            if ($name === $plain) {
+                continue;
+            }
+            $why = match (true) {
+                ($stored[$sourceName] ?? null) === $name
+                    => "that's the name an earlier import gave it",
+                $name === $base && str_starts_with($plain, 'additional_')
+                    => 'Luster keeps "additional_" for its own use',
+                $name === $base
+                    => 'Luster field names can be at most ' . self::FIELD_NAME_MAX . ' characters',
+                isset($reserved[$base])
+                    => "\"{$base}\" is already part of every member's details",
+                isset($byName[$base])
+                    => "another field already uses \"{$base}\"",
+                in_array($base, $retained, true)
+                    => "an earlier import used \"{$base}\" for a field that's no longer in Fanatically",
+                isset($claimedElsewhere[$base])
+                    => "another Fanatically listing going into the same Luster listing already uses \"{$base}\"",
+                isset($destinationNames[$base])
+                    => "the listing in Luster already has a field called \"{$base}\"",
+                default
+                    => "another field already uses \"{$base}\"",
+            };
+            $notes[] = "{$label}: the field \"{$sourceName}\" is saved as \"{$name}\" because {$why}.";
+        }
+
+        return [['label' => $label, 'fields' => $fields, 'bySource' => $bySource, 'retained' => $retained], $notes];
+    }
+
+    /** A name planCustomFields() could have produced: safe to reuse from storage. */
+    private function isUsableFieldName(string $name): bool
+    {
+        return preg_match('/^[a-z0-9_]+$/', $name) === 1
+            && strlen($name) <= self::FIELD_NAME_MAX
+            && !str_starts_with($name, 'additional_')
+            && !in_array($name, self::RESERVED_FIELD_NAMES, true);
+    }
+
+    /**
+     * The member-table column for a source field name, using the listing's field
+     * plan: an exact match first (a current field, then one kept for a field
+     * that's gone from Fanatically), then a field whose cleaned name matches when
+     * exactly one of all of them does (stored values sometimes differ from the
+     * field definition in spacing or capitals). Null when there's no such field.
+     *
+     * @param array<string,mixed> $plan
+     */
+    private function plannedFieldColumn(array $plan, string $sourceName, bool $isOwned): ?string
+    {
+        // An answer saved under a field that's gone from Fanatically still belongs
+        // to that field: Fanatically renames a field's definition without touching
+        // the answers members already gave. It goes to the field's own kept column
+        // (or is left out and counted when that column is gone), never to the new
+        // field whose name happens to clean up the same.
+        $retained = $plan['retained'] ?? [];
+        $name     = $plan['bySource'][$sourceName] ?? $plan['bySource'][trim($sourceName)]
+            ?? $retained[$sourceName] ?? $retained[trim($sourceName)]
+            ?? null;
+        if ($name === null) {
+            $wanted     = $this->sanitizeFieldName($sourceName);
+            $candidates = array_map(static fn(array $f): array => [$f['source'], $f['name']], $plan['fields'] ?? []);
+            foreach ($retained as $retainedSource => $retainedName) {
+                $candidates[] = [(string) $retainedSource, $retainedName];
+            }
+            $matches = array_values(array_filter(
+                $candidates,
+                fn(array $c): bool => $wanted !== '' && $this->sanitizeFieldName($c[0]) === $wanted,
+            ));
+            $name = count($matches) === 1 ? $matches[0][1] : null;
+        }
+
+        if ($name === null) {
+            return null;
+        }
+        return $isOwned ? $name : 'additional_' . $name;
+    }
+
+    /**
+     * Makes sure every imported listing has somewhere to keep members before any
+     * member is written, whether or not it has members (or Members is ticked):
+     *  - a listing created by this import gets a member table with its planned
+     *    field columns, plus its field definitions;
+     *  - a listing updated by Overwrite gets any missing table or field columns
+     *    added, and any missing field definitions;
+     *  - a listing that was already in Luster and kept under Skip isn't changed
+     *    at all; its existing table and columns are just looked up.
+     * Fanatically listings that share an address go into one Luster listing, so
+     * they're set up together with all of their fields. A Luster listing this
+     * import created gets every one of their fields, even when the later source
+     * listings were kept (Skip) because the first one had just created it.
+     * A failure only affects that one Luster listing and is reported.
+     *
+     * @param array<int,int>                 $listingIdMap
+     * @param array<int,string>              $listingDbtables
+     * @param array<int,string>              $listingOutcomes 'created' | 'updated' | 'kept'
+     * @param array<int,array<string,mixed>> $plans
+     * @return array{storage: array<int,array<string,mixed>>, warnings: list<string>, errors: list<string>}
+     */
+    private function provisionMemberStorage(
+        PDO $target, string $targetSchema,
+        array $listingIdMap, array $listingDbtables, array $listingOutcomes, array $plans
+    ): array {
+        [$regTable, $pkCol, $isOwned] = $this->targetRegistryInfo($targetSchema);
+
+        $storage  = [];
+        $warnings = [];
+        $errors   = [];
+
+        // Source listings by the Luster listing they went into.
+        $groups = [];
+        foreach ($listingIdMap as $srcId => $newId) {
+            $groups[$newId][] = (int) $srcId;
+        }
+
+        foreach ($groups as $newId => $srcIds) {
+            $plansHere = [];
+            $labels    = [];
+            $outcomes  = [];
+            $dbtable   = null;
+            foreach ($srcIds as $srcId) {
+                $plansHere[$srcId] = $plans[$srcId] ?? ['label' => "listing #{$srcId}", 'fields' => [], 'bySource' => [], 'retained' => []];
+                $labels[]          = (string) $plansHere[$srcId]['label'];
+                $outcomes[]        = $listingOutcomes[$srcId] ?? 'kept';
+                $dbtable         ??= $listingDbtables[$srcId] ?? null;
+            }
+            $outcome = in_array('created', $outcomes, true) ? 'created' : (in_array('updated', $outcomes, true) ? 'updated' : 'kept');
+
+            $result = $this->provisionListingStorage(
+                $target, $isOwned, $regTable, $pkCol, (int) $newId, $dbtable, $outcome,
+                implode(' / ', array_unique($labels)), $plansHere
             );
-            return;
+            $warnings = array_merge($warnings, $result['warnings']);
+            $errors   = array_merge($errors, $result['errors']);
+
+            foreach ($srcIds as $srcId) {
+                $storage[$srcId] = $result['entry'] + ['plan' => $plansHere[$srcId]];
+            }
         }
 
-        $target->exec(
-            "CREATE TABLE IF NOT EXISTS `{$dbtable}` (
-               `email`     VARCHAR(255) NOT NULL,
-               `name`      VARCHAR(100) NOT NULL DEFAULT '',
-               `country`   VARCHAR(100) NOT NULL DEFAULT '',
-               `url`       VARCHAR(500) NOT NULL DEFAULT '',
-               `pending`   TINYINT(1)   NOT NULL DEFAULT 0,
-               `password`  VARCHAR(255) NOT NULL DEFAULT '',
-               `showemail` TINYINT(1)   NOT NULL DEFAULT 1,
-               `showurl`   TINYINT(1)   NOT NULL DEFAULT 1,
-               `added`     DATE NULL,
-               {$extraCols}
-               PRIMARY KEY (`email`)
-             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        return ['storage' => $storage, 'warnings' => $warnings, 'errors' => $errors];
+    }
+
+    /**
+     * provisionMemberStorage() for one Luster listing and the source listings
+     * going into it ($plans, keyed by source listing id).
+     *
+     * Their field names are saved with their import records (saveFieldMap())
+     * before any column is created, and the listing is only set up once that
+     * worked. Otherwise a repeat import would find columns it has no record of,
+     * treat them as the listing's own and give the same fields new names.
+     *
+     * @param array<int,array<string,mixed>> $plans
+     * @return array{entry: array{table: string, columns: array<string,true>, usable: bool, reason: string}, warnings: list<string>, errors: list<string>}
+     */
+    private function provisionListingStorage(
+        PDO $target, bool $isOwned, string $regTable, string $pkCol,
+        int $newId, ?string $dbtable, string $outcome, string $label, array $plans
+    ): array {
+        $entry = ['table' => '', 'columns' => [], 'usable' => false, 'reason' => ''];
+
+        if ($dbtable === null) {
+            $dtCol = $isOwned ? 'dbtable' : 'dbprefix';
+            try {
+                $st = $target->prepare("SELECT {$dtCol} FROM `{$regTable}` WHERE {$pkCol}=:id");
+                $st->execute(['id' => $newId]);
+                $dbtable = (string) ($st->fetchColumn() ?: '');
+            } catch (\Throwable) {
+                $dbtable = '';
+            }
+        }
+        if ($dbtable === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $dbtable)) {
+            $entry['reason'] = "The listing has no usable member table name in Luster";
+            return ['entry' => $entry, 'errors' => [],
+                    'warnings' => ["{$label}: it has no usable member table name in Luster, so its members weren't imported."]];
+        }
+
+        $fields = [];
+        foreach ($plans as $plan) {
+            $fields = array_merge($fields, $plan['fields']);
+        }
+
+        // enth_ schema: MemberRepo reads {dbprefix}members, with additional_ columns.
+        $table          = $isOwned ? $dbtable : $dbtable . 'members';
+        $entry['table'] = $table;
+        $wanted         = array_map(
+            static fn(array $f): string => $isOwned ? $f['name'] : 'additional_' . $f['name'],
+            $fields,
         );
+
+        // Never alter (or write members into) a table that isn't this listing's
+        // member table: Luster's own tables, a table that already existed for a
+        // brand-new listing, or an existing table that isn't shaped like one.
+        if ($this->isProtectedTableName($table)) {
+            $entry['reason'] = "The listing points at {$table}, which is one of Luster's own tables";
+            return ['entry' => $entry, 'warnings' => [],
+                    'errors' => ["{$label}: it points at {$table}, which is one of Luster's own tables, so nothing was changed and its members weren't imported."]];
+        }
+
+        $warnings = [];
+        try {
+            $columns = $this->memberTableColumns($target, $table);
+
+            $refusal = null;
+            if ($columns !== null && $outcome === 'created') {
+                $refusal = "a table called {$table} already exists";
+            } elseif ($columns !== null && !$this->looksLikeMemberTable($columns, $isOwned)) {
+                $refusal = "its table {$table} doesn't look like a member table";
+            }
+            if ($refusal !== null) {
+                $entry['reason'] = ucfirst($refusal);
+                return ['entry' => $entry, 'warnings' => [],
+                        'errors' => ["{$label}: {$refusal}, so nothing was changed and its members weren't imported."]];
+            }
+
+            if ($outcome === 'kept' && $columns === null) {
+                $entry['reason'] = 'The listing was already in Luster and was left as it is (Skip), but it has no member table';
+                return ['entry' => $entry, 'errors' => [],
+                        'warnings' => ["{$label}: it was already in Luster and was left as it is (Skip), but it has no member table, so its members weren't imported."]];
+            }
+
+            // The names first: nothing is created (or written) that the next import
+            // couldn't recognise as this import's own.
+            foreach ($plans as $srcId => $plan) {
+                if (!$this->saveFieldMap($target, (int) $srcId, $newId, $plan)) {
+                    $entry['reason'] = "Luster couldn't save which of the listing's fields is which";
+                    return ['entry' => $entry, 'warnings' => [],
+                            'errors' => ["{$label}: Luster couldn't save which of its custom fields is which, so nothing was changed and its members weren't imported. Import again to try once more."]];
+                }
+            }
+
+            if ($outcome === 'kept') {
+                // Nothing in the listing changes; its names are remembered (above),
+                // so a later Overwrite gives its fields the same ones.
+                $entry['columns'] = $columns;
+                $entry['usable']  = true;
+                return ['entry' => $entry, 'warnings' => [], 'errors' => []];
+            }
+
+            if ($columns === null) {
+                $this->createMemberTable($target, $table, $wanted, $isOwned);
+            } else {
+                $this->addMemberColumns($target, $table, array_values(array_diff($wanted, array_keys($columns))));
+            }
+            $entry['columns'] = $this->memberTableColumns($target, $table) ?? [];
+            $entry['usable']  = $entry['columns'] !== [];
+            if (!$entry['usable']) {
+                $entry['reason'] = "The listing's member table couldn't be read after it was set up";
+            }
+        } catch (\Throwable $e) {
+            $entry['reason'] = "The listing's member table couldn't be set up";
+            return ['entry' => $entry, 'warnings' => [],
+                    'errors' => ["{$label}: its member table couldn't be set up ({$e->getMessage()}), so its members weren't imported."]];
+        }
+
+        if (!$this->persistCustomFieldDefinitions($target, $newId, $isOwned, $fields)) {
+            $warnings[] = "{$label}: its custom field definitions couldn't be saved. The fields' columns are there; add them on the listing's Fields page.";
+        }
+
+        return ['entry' => $entry, 'warnings' => $warnings, 'errors' => []];
+    }
+
+    /**
+     * True when some source listing has custom fields but Luster has nowhere to
+     * remember their names: no metadata_json, which Migration 91 adds.
+     *
+     * @param array<int,array<string,mixed>> $plans
+     */
+    private function fieldNamesCantBeKept(PDO $target, array $plans): bool
+    {
+        foreach ($plans as $plan) {
+            if ($plan['fields'] !== []) {
+                return !$this->refsHaveMetadata($target);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Stores the names this import gave a source listing's custom fields with
+     * its import record (lstr_listing_external_refs.metadata_json 'field_map'),
+     * so the next import reuses them: the plan's fields plus the names kept for
+     * fields that are gone from Fanatically. It replaces what was there, so a map
+     * an earlier import left for another Luster listing is cleared, even when the
+     * listing has no fields now.
+     *
+     * The names are only saved on a record that points at $listingId, the Luster
+     * listing they're for. A record still naming another listing (moving it
+     * failed) keeps that listing's names untouched.
+     *
+     * Returns whether the names are safely stored on this listing's record: it
+     * reads them back after writing. With nothing to store it's true; with names
+     * to store and no import record, a record for another listing, or no
+     * metadata_json column (Migration 91) it's false.
+     *
+     * @param array<string,mixed> $plan
+     */
+    private function saveFieldMap(PDO $target, int $srcId, int $listingId, array $plan): bool
+    {
+        $map = [];
+        foreach ($plan['retained'] ?? [] as $sourceName => $name) {
+            $map[(string) $sourceName] = $name;
+        }
+        foreach ($plan['fields'] as $field) {
+            $map[$field['source']] = $field['name'];
+        }
+
+        if (!$this->refsHaveMetadata($target)) {
+            return $map === [];
+        }
+
+        $read = static function () use ($target, $srcId): array|false {
+            $st = $target->prepare(
+                "SELECT listing_id, metadata_json FROM lstr_listing_external_refs WHERE source = 'fanatically' AND external_id = :eid"
+            );
+            $st->execute(['eid' => (string) $srcId]);
+            return $st->fetch(PDO::FETCH_ASSOC);
+        };
+
+        try {
+            $record = $read();
+            if ($record === false || (int) $record['listing_id'] !== $listingId) {
+                return $map === []; // no record for this listing to keep the names with
+            }
+            $meta = json_decode((string) ($record['metadata_json'] ?? ''), true);
+            $meta = is_array($meta) ? $meta : [];
+            if ($map === [] && !array_key_exists('field_map', $meta)) {
+                return true;
+            }
+            unset($meta['field_map']);
+            if ($map !== []) {
+                $meta['field_map'] = $map;
+            }
+
+            $target->prepare(
+                "UPDATE lstr_listing_external_refs SET metadata_json = :meta
+                  WHERE source = 'fanatically' AND external_id = :eid AND listing_id = :lid"
+            )->execute(['meta' => $this->encodeRefMetadata($meta), 'eid' => (string) $srcId, 'lid' => $listingId]);
+
+            $saved = $read();
+            if ($saved === false || (int) $saved['listing_id'] !== $listingId) {
+                return false;
+            }
+            $savedMeta = json_decode((string) ($saved['metadata_json'] ?? ''), true);
+            $savedMap  = is_array($savedMeta) && is_array($savedMeta['field_map'] ?? null) ? $savedMeta['field_map'] : [];
+            return $this->sameFieldMap($savedMap, $map);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Whether two source → Luster field-name maps hold the same names (keys that
+     * look like numbers come back from JSON as integers).
+     *
+     * @param array<int|string,mixed> $a
+     * @param array<int|string,mixed> $b
+     */
+    private function sameFieldMap(array $a, array $b): bool
+    {
+        $normalize = static function (array $map): array {
+            $out = [];
+            foreach ($map as $sourceName => $name) {
+                $out[(string) $sourceName] = $name;
+            }
+            ksort($out, SORT_STRING);
+            return $out;
+        };
+        return $normalize($a) === $normalize($b);
+    }
+
+    /**
+     * metadata_json for an import record, or null when there's nothing to keep.
+     * field_map is always written as an object, so a source field called "0"
+     * stays a name.
+     *
+     * @param array<string,mixed> $meta
+     */
+    private function encodeRefMetadata(array $meta): ?string
+    {
+        if ($meta === []) {
+            return null;
+        }
+        if (is_array($meta['field_map'] ?? null)) {
+            $meta['field_map'] = (object) $meta['field_map'];
+        }
+        return json_encode($meta);
+    }
+
+    /**
+     * Luster listings a Fanatically listing can match: by address (lowercase,
+     * no trailing slash), and by the Fanatically id an earlier import recorded
+     * (only for listings still in the registry, so a deleted listing doesn't
+     * absorb a re-imported one), plus every listing's member table name.
+     * It's read once per preview or import, before anything is written, and
+     * runListings() and readCustomFieldPlans() both match with that copy, each
+     * adding the listings it creates, so they always agree. Throws when either
+     * read fails: an empty index would make every listing look new.
+     *
+     * @return array{urls: array<string,int>, byExternal: array<string,int>, dbtables: array<int,string>}
+     */
+    private function existingListingIndex(PDO $target, string $regTable, string $pkCol, bool $isOwned): array
+    {
+        $urls     = [];
+        $dbtables = [];
+        $dtCol    = $isOwned ? 'dbtable' : 'dbprefix';
+        $stmt     = $target->query("SELECT {$pkCol}, url, {$dtCol} FROM `{$regTable}`");
+        if ($stmt === false) {
+            throw new \RuntimeException("Couldn't read {$regTable}.");
+        }
+        foreach ($stmt->fetchAll() as $row) {
+            $uKey = strtolower(rtrim((string) $row['url'], '/'));
+            $rid  = (int) $row[$pkCol];
+            if ($uKey !== '') {
+                $urls[$uKey] = $rid;
+            }
+            $dbtables[$rid] = (string) $row[$dtCol];
+        }
+
+        $byExternal = [];
+        $stmt       = $target->prepare(
+            "SELECT listing_id, external_id FROM lstr_listing_external_refs WHERE source = 'fanatically'"
+        );
+        if ($stmt === false || !$stmt->execute()) {
+            throw new \RuntimeException("Couldn't read lstr_listing_external_refs.");
+        }
+        foreach ($stmt->fetchAll() as $row) {
+            if (isset($dbtables[(int) $row['listing_id']])) {
+                $byExternal[(string) $row['external_id']] = (int) $row['listing_id'];
+            }
+        }
+
+        return ['urls' => $urls, 'byExternal' => $byExternal, 'dbtables' => $dbtables];
+    }
+
+    /**
+     * The parts of Luster's database that decide where listings go, read once,
+     * strictly, before anything is written: whether import records can hold field
+     * names (refsHaveMetadata(), then remembered for the rest of the run), the
+     * existing-listing index, and for an import every table name. Null when any of
+     * them couldn't be read: the import then stops (TARGET_UNREADABLE), because
+     * each of them read as empty would put something in the wrong place.
+     *
+     * @return array{index: array{urls: array<string,int>, byExternal: array<string,int>, dbtables: array<int,string>}, tables: list<string>}|null
+     */
+    private function readListingTargetState(PDO $target, string $targetSchema, bool $withTables): ?array
+    {
+        [$regTable, $pkCol, $isOwned] = $this->targetRegistryInfo($targetSchema);
+        $this->refsHaveMetadata = null;
+        try {
+            $this->refsHaveMetadata($target);
+            return [
+                'index'  => $this->existingListingIndex($target, $regTable, $pkCol, $isOwned),
+                'tables' => $withTables ? $this->physicalTableNames($target) : [],
+            ];
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * The Luster listing a Fanatically listing goes into, or null for a new one.
+     * The address is primary (authoritative Luster state); the recorded
+     * Fanatically id is the fallback, which covers a listing with no address yet.
+     *
+     * @param array{urls: array<string,int>, byExternal: array<string,int>} $index
+     */
+    private function matchExistingListing(array $index, string $url, int $srcId): ?int
+    {
+        return ($url !== '' ? ($index['urls'][strtolower($url)] ?? null) : null)
+            ?? $index['byExternal'][(string) $srcId]
+            ?? null;
+    }
+
+    /**
+     * Records the address a listing now has in the index: the one it was just
+     * created or overwritten with. Any address it had before is dropped, so a
+     * later row at that old address can't land in this listing.
+     *
+     * @param array{urls: array<string,int>, byExternal: array<string,int>, dbtables: array<int,string>} $index
+     */
+    private function rememberListingAddress(array &$index, int $listingId, string $url): void
+    {
+        foreach ($index['urls'] as $key => $id) {
+            if ($id === $listingId) {
+                unset($index['urls'][$key]);
+            }
+        }
+        if ($url !== '') {
+            $index['urls'][strtolower($url)] = $listingId;
+        }
+    }
+
+    /**
+     * Every table in the target database. Throws when they can't be listed: an
+     * empty list would let a new listing be handed a table that's already there.
+     *
+     * @return list<string>
+     */
+    private function physicalTableNames(PDO $target): array
+    {
+        $st = $target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite'
+            ? $target->query("SELECT name FROM sqlite_master WHERE type = 'table'")
+            : $target->query('SHOW TABLES');
+        if ($st === false) {
+            throw new \RuntimeException("Couldn't list the database's tables.");
+        }
+        return array_map('strval', $st->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /** Luster's own tables and the listing registries: never a member table. */
+    private function isProtectedTableName(string $table): bool
+    {
+        $lower = strtolower($table);
+        return str_starts_with($lower, 'lstr_')
+            || in_array($lower, ['owned', 'enth_fanlistings', 'enth_listings'], true);
+    }
+
+    /**
+     * Whether an existing table has the columns MemberRepo needs for this
+     * schema, so it's safe to add field columns to and write members into.
+     *
+     * @param array<string,true> $columns
+     */
+    private function looksLikeMemberTable(array $columns, bool $isOwned): bool
+    {
+        $required = ['email', 'name', 'country', 'url', 'password', $isOwned ? 'pending' : 'approved'];
+        foreach ($required as $column) {
+            if (!isset($columns[$column])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * The columns a member table has, as lowercase name => true, or null when the
+     * table doesn't exist. Throws when the columns couldn't be read: treating that
+     * as "no table" would hide a listing's own columns from the field plan.
+     *
+     * @return array<string,true>|null
+     */
+    private function memberTableColumns(PDO $target, string $table): ?array
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
+            return null;
+        }
+
+        if ($target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $st = $target->query("PRAGMA table_info(`{$table}`)");
+            if ($st === false) {
+                throw new \RuntimeException("Couldn't read the columns of {$table}.");
+            }
+            $names = array_column($st->fetchAll(PDO::FETCH_ASSOC), 'name');
+        } else {
+            $st = $target->prepare(
+                'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t'
+            );
+            if ($st === false || !$st->execute(['t' => $table])) {
+                throw new \RuntimeException("Couldn't read the columns of {$table}.");
+            }
+            $names = $st->fetchAll(PDO::FETCH_COLUMN);
+        }
+
+        if ($names === []) {
+            return null;
+        }
+        $columns = [];
+        foreach ($names as $name) {
+            $columns[strtolower((string) $name)] = true;
+        }
+        return $columns;
+    }
+
+    /**
+     * Creates a per-listing member table in the shape MemberRepo reads for this
+     * schema. Unprefixed: email is the key and pending=1 means queued. Standard
+     * enth_: an id key, approved=1 means approved, and an updated timestamp that
+     * approvals and edits stamp. Custom field columns are TEXT NULL, the same as
+     * the admin Fields page adds them.
+     *
+     * @param list<string> $fieldColumns Final column names (already prefixed for enth_)
+     */
+    private function createMemberTable(PDO $target, string $table, array $fieldColumns, bool $isOwned): void
+    {
+        $sqlite = $target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
+
+        $extra = [];
+        foreach ($fieldColumns as $column) {
+            if (preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+                $extra[] = "`{$column}` TEXT NULL";
+            }
+        }
+
+        if ($isOwned) {
+            $cols = $sqlite
+                ? ["`email` TEXT NOT NULL", "`name` TEXT NOT NULL DEFAULT ''", "`country` TEXT NOT NULL DEFAULT ''",
+                   "`url` TEXT NOT NULL DEFAULT ''", '`pending` INTEGER NOT NULL DEFAULT 0', "`password` TEXT NOT NULL DEFAULT ''",
+                   '`showemail` INTEGER NOT NULL DEFAULT 1', '`showurl` INTEGER NOT NULL DEFAULT 1', '`added` TEXT NULL']
+                : ['`email` VARCHAR(255) NOT NULL', "`name` VARCHAR(100) NOT NULL DEFAULT ''", "`country` VARCHAR(100) NOT NULL DEFAULT ''",
+                   "`url` VARCHAR(500) NOT NULL DEFAULT ''", '`pending` TINYINT(1) NOT NULL DEFAULT 0', "`password` VARCHAR(255) NOT NULL DEFAULT ''",
+                   '`showemail` TINYINT(1) NOT NULL DEFAULT 1', '`showurl` TINYINT(1) NOT NULL DEFAULT 1', '`added` DATE NULL'];
+            $keys = ['PRIMARY KEY (`email`)'];
+        } else {
+            $cols = $sqlite
+                ? ['`id` INTEGER PRIMARY KEY AUTOINCREMENT', '`email` TEXT NOT NULL UNIQUE', "`name` TEXT NOT NULL DEFAULT ''",
+                   "`country` TEXT NOT NULL DEFAULT ''", "`url` TEXT NOT NULL DEFAULT ''", '`approved` INTEGER NOT NULL DEFAULT 0',
+                   "`password` TEXT NOT NULL DEFAULT ''", '`showemail` INTEGER NOT NULL DEFAULT 1', '`showurl` INTEGER NOT NULL DEFAULT 1',
+                   '`added` TEXT NULL', '`updated` TEXT NULL']
+                : ['`id` INT UNSIGNED NOT NULL AUTO_INCREMENT', '`email` VARCHAR(255) NOT NULL', "`name` VARCHAR(100) NOT NULL DEFAULT ''",
+                   "`country` VARCHAR(100) NOT NULL DEFAULT ''", "`url` VARCHAR(500) NOT NULL DEFAULT ''", '`approved` TINYINT(1) NOT NULL DEFAULT 0',
+                   "`password` VARCHAR(255) NOT NULL DEFAULT ''", '`showemail` TINYINT(1) NOT NULL DEFAULT 1', '`showurl` TINYINT(1) NOT NULL DEFAULT 1',
+                   '`added` DATE NULL', '`updated` DATETIME NULL'];
+            $keys = $sqlite ? [] : ['PRIMARY KEY (`id`)', 'UNIQUE KEY `uq_email` (`email`)'];
+        }
+
+        $body   = implode(",\n  ", array_merge($cols, $extra, $keys));
+        $suffix = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $target->exec("CREATE TABLE IF NOT EXISTS `{$table}` (\n  {$body}\n){$suffix}");
+    }
+
+    /**
+     * Adds missing custom field columns to an existing member table (Overwrite
+     * only), as TEXT NULL like the admin Fields page does.
+     *
+     * @param list<string> $columns Final column names
+     */
+    private function addMemberColumns(PDO $target, string $table, array $columns): void
+    {
+        foreach ($columns as $column) {
+            if (preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+                $target->exec("ALTER TABLE `{$table}` ADD COLUMN `{$column}` TEXT NULL");
+            }
+        }
     }
 
     private function detectTargetSchema(PDO $target): string
@@ -2672,10 +4175,21 @@ final class FanaticallyImportSource implements ImportSourceInterface
         return [$isOwned ? 'owned' : 'enth_fanlistings', $isOwned ? 'listingid' : 'id', $isOwned];
     }
 
+    /**
+     * A new member table name from the listing subject. $existing holds every
+     * name already taken (lowercase): other listings' tables and every table in
+     * the database. Names starting with lstr_ are Luster's own (an add-on not
+     * installed yet may still create one), so those get an fl_ prefix.
+     *
+     * @param array<string,true> $existing
+     */
     private function generateDbtable(string $subject, array $existing): string
     {
         $base = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '_', $subject));
         $base = trim($base, '_') ?: 'listing';
+        if (str_starts_with($base, 'lstr_')) {
+            $base = 'fl_' . $base;
+        }
         if (strlen($base) > 50) {
             $base = substr($base, 0, 50);
         }
@@ -2929,12 +4443,16 @@ final class FanaticallyImportSource implements ImportSourceInterface
      * convention its own join-form renderer uses) rather than collapsing
      * every imported field to a bare untyped name.
      *
-     * @param array<int, array{name:string, label?:string, required?:bool, options?:array<int,string>}> $fieldDefs
+     * Field names come from planCustomFields(), so they match the member
+     * table's columns. Returns false when the registry couldn't be read or
+     * written, so the caller can report it.
+     *
+     * @param list<array{source: string, name: string, def: array<string,mixed>}> $plannedFields
      */
-    private function persistCustomFieldDefinitions(PDO $target, int $listingId, bool $isOwned, array $fieldDefs): void
+    private function persistCustomFieldDefinitions(PDO $target, int $listingId, bool $isOwned, array $plannedFields): bool
     {
-        if (empty($fieldDefs)) {
-            return;
+        if (empty($plannedFields)) {
+            return true;
         }
 
         $table   = $isOwned ? 'owned'      : 'enth_fanlistings';
@@ -2944,55 +4462,14 @@ final class FanaticallyImportSource implements ImportSourceInterface
         try {
             $st = $target->prepare("SELECT {$infoCol} FROM `{$table}` WHERE {$idCol}=:id");
             $st->execute(['id' => $listingId]);
-            $raw = (string) ($st->fetchColumn() ?: '');
-
-            // Parse existing entries into a name-keyed map. owned.additional
-            // supports the same serialized-array format additional_info does
-            // (both are read through FieldRepo::getFieldsForListing(), which
-            // tries unserialize() first regardless of schema) — so a listing
-            // that already has rich field metadata (from a prior Enthusiast
-            // import, or a manual admin edit) keeps it here rather than being
-            // downgraded back to bare names on every re-import.
-            $existing = [];
-            if ($raw !== '') {
-                $decoded = @unserialize($raw, ['allowed_classes' => false]);
-                if (is_array($decoded)) {
-                    foreach ($decoded as $item) {
-                        $n = (string) ($item['name'] ?? $item[0] ?? '');
-                        if ($n !== '') {
-                            $existing[$n] = $item;
-                        }
-                    }
-                } elseif ($isOwned) {
-                    // Legacy owned schema: bare comma-separated names, no metadata.
-                    foreach (array_filter(array_map('trim', explode(',', $raw))) as $n) {
-                        $existing[$n] = ['name' => $n, 'label' => ucwords(str_replace('_', ' ', $n)), 'type' => 'text', 'required' => false];
-                    }
-                } else {
-                    // Legacy enth_ schema: pipe-delimited name,Label,type,required.
-                    foreach (explode('|', $raw) as $piece) {
-                        $piece = trim($piece);
-                        if ($piece === '') {
-                            continue;
-                        }
-                        $parts = explode(',', $piece, 4);
-                        $n = trim($parts[0]);
-                        if ($n !== '') {
-                            $existing[$n] = [
-                                'name'     => $n,
-                                'label'    => trim($parts[1] ?? ucwords(str_replace('_', ' ', $n))),
-                                'type'     => trim($parts[2] ?? 'text'),
-                                'required' => (bool) (int) trim($parts[3] ?? '0'),
-                            ];
-                        }
-                    }
-                }
-            }
+            $raw      = (string) ($st->fetchColumn() ?: '');
+            $existing = $this->parseFieldDefinitions($raw, $isOwned);
 
             $added = false;
-            foreach ($fieldDefs as $def) {
-                $name = $this->sanitizeFieldName((string) ($def['name'] ?? ''));
-                if ($name === '' || isset($existing[$name])) {
+            foreach ($plannedFields as $field) {
+                $name = $field['name'];
+                $def  = $field['def'];
+                if (isset($existing[$name])) {
                     continue;
                 }
                 $options = array_values(array_filter(array_map('trim', (array) ($def['options'] ?? []))));
@@ -3013,7 +4490,63 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $target->prepare("UPDATE `{$table}` SET {$infoCol}=:info WHERE {$idCol}=:id")
                     ->execute(['info' => serialize(array_values($existing)), 'id' => $listingId]);
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * A listing's stored field definitions as a name-keyed map. owned.additional
+     * supports the same serialized-array format additional_info does (both are
+     * read through FieldRepo::getFieldsForListing(), which tries unserialize()
+     * first regardless of schema), so a listing that already has rich field
+     * metadata (from a prior Enthusiast import, or a manual admin edit) keeps it
+     * rather than being downgraded back to bare names on every re-import.
+     *
+     * @return array<string, array<int|string,mixed>>
+     */
+    private function parseFieldDefinitions(string $raw, bool $isOwned): array
+    {
+        $existing = [];
+        if ($raw === '') {
+            return $existing;
+        }
+
+        $decoded = @unserialize($raw, ['allowed_classes' => false]);
+        if (is_array($decoded)) {
+            foreach ($decoded as $item) {
+                $n = (string) ($item['name'] ?? $item[0] ?? '');
+                if ($n !== '') {
+                    $existing[$n] = $item;
+                }
+            }
+        } elseif ($isOwned) {
+            // Legacy owned schema: bare comma-separated names, no metadata.
+            foreach (array_filter(array_map('trim', explode(',', $raw))) as $n) {
+                $existing[$n] = ['name' => $n, 'label' => ucwords(str_replace('_', ' ', $n)), 'type' => 'text', 'required' => false];
+            }
+        } else {
+            // Legacy enth_ schema: pipe-delimited name,Label,type,required.
+            foreach (explode('|', $raw) as $piece) {
+                $piece = trim($piece);
+                if ($piece === '') {
+                    continue;
+                }
+                $parts = explode(',', $piece, 4);
+                $n = trim($parts[0]);
+                if ($n !== '') {
+                    $existing[$n] = [
+                        'name'     => $n,
+                        'label'    => trim($parts[1] ?? ucwords(str_replace('_', ' ', $n))),
+                        'type'     => trim($parts[2] ?? 'text'),
+                        'required' => (bool) (int) trim($parts[3] ?? '0'),
+                    ];
+                }
+            }
+        }
+        return $existing;
     }
 
     // -----------------------------------------------------------------------
@@ -3022,6 +4555,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
      * Writes or replaces a listing→external-ID mapping. When $metadata is provided
      * and the lstr_listing_external_refs table has a metadata_json column (added by
      * Migration 91), the JSON-encoded payload is stored alongside the row.
+     * Returns false when the record couldn't be written.
      *
      * @param array<string,mixed>|null $metadata
      */
@@ -3031,9 +4565,24 @@ final class FanaticallyImportSource implements ImportSourceInterface
         string $source,
         string $externalId,
         ?array $metadata = null,
-    ): void {
+    ): bool {
         try {
-            if ($metadata !== null && $this->tableHasColumn($target, 'lstr_listing_external_refs', 'metadata_json')) {
+            if ($this->refsHaveMetadata($target)) {
+                // REPLACE rewrites the whole row, so carry over the field names
+                // (field_map) earlier imports stored, but only while the record
+                // stays with the same Luster listing: names that belong to another
+                // listing's columns must never come along. $metadata replaces the rest.
+                $st = $target->prepare(
+                    'SELECT listing_id, metadata_json FROM lstr_listing_external_refs WHERE source = :src AND external_id = :eid'
+                );
+                $st->execute(['src' => $source, 'eid' => $externalId]);
+                $oldRow = $st->fetch();
+                $old    = $oldRow !== false && (int) $oldRow['listing_id'] === $listingId
+                    ? json_decode((string) ($oldRow['metadata_json'] ?? ''), true)
+                    : null;
+                $keep = is_array($old) && isset($old['field_map']) ? ['field_map' => $old['field_map']] : [];
+                $meta = array_merge($keep, $metadata ?? []);
+
                 $target->prepare(
                     'REPLACE INTO lstr_listing_external_refs (listing_id, source, external_id, metadata_json)
                      VALUES (:lid, :src, :eid, :meta)'
@@ -3041,7 +4590,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     'lid'  => $listingId,
                     'src'  => $source,
                     'eid'  => $externalId,
-                    'meta' => json_encode($metadata),
+                    'meta' => $this->encodeRefMetadata($meta),
                 ]);
             } else {
                 $target->prepare(
@@ -3049,40 +4598,70 @@ final class FanaticallyImportSource implements ImportSourceInterface
                      VALUES (:lid, :src, :eid)'
                 )->execute(['lid' => $listingId, 'src' => $source, 'eid' => $externalId]);
             }
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+            return false;
+        }
+        return true;
     }
 
     // -----------------------------------------------------------------------
 
-    private function tableHasColumn(PDO $pdo, string $table, string $column): bool
+    /**
+     * Whether import records have metadata_json (Migration 91), where the field
+     * names are kept. Worked out once per preview or import, before anything is
+     * written (an import resets it first), and strictly: a failed check throws
+     * rather than reading as "no column", which would skip the Migration 91 guard
+     * and rewrite import records without their saved names.
+     */
+    private function refsHaveMetadata(PDO $target): bool
     {
-        try {
-            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-                $stmt = $pdo->query("PRAGMA table_info(`{$table}`)");
-                foreach ($stmt ? $stmt->fetchAll() : [] as $row) {
-                    if (($row['name'] ?? '') === $column) {
-                        return true;
-                    }
-                }
-                return false;
-            }
+        return $this->refsHaveMetadata ??= $this->tableHasColumn($target, 'lstr_listing_external_refs', 'metadata_json', true);
+    }
 
-            if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
-                return false;
-            }
-            $stmt = $pdo->prepare(
-                'SELECT 1
-                 FROM INFORMATION_SCHEMA.COLUMNS
-                 WHERE TABLE_SCHEMA = DATABASE()
-                   AND TABLE_NAME = :table
-                   AND COLUMN_NAME = :column
-                 LIMIT 1'
-            );
-            $stmt->execute(['table' => $table, 'column' => $column]);
-            return $stmt->fetchColumn() !== false;
+    /** $strict: throw when the check itself fails, instead of answering false. */
+    private function tableHasColumn(PDO $pdo, string $table, string $column, bool $strict = false): bool
+    {
+        if ($strict) {
+            return $this->tableHasColumnOrFail($pdo, $table, $column);
+        }
+        try {
+            return $this->tableHasColumnOrFail($pdo, $table, $column);
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    private function tableHasColumnOrFail(PDO $pdo, string $table, string $column): bool
+    {
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+            return false;
+        }
+
+        if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $stmt = $pdo->query("PRAGMA table_info(`{$table}`)");
+            if ($stmt === false) {
+                throw new \RuntimeException("Couldn't read the columns of {$table}.");
+            }
+            foreach ($stmt->fetchAll() as $row) {
+                if (($row['name'] ?? '') === $column) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT 1
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = :table
+               AND COLUMN_NAME = :column
+             LIMIT 1'
+        );
+        if ($stmt === false || !$stmt->execute(['table' => $table, 'column' => $column])) {
+            throw new \RuntimeException("Couldn't read the columns of {$table}.");
+        }
+        return $stmt->fetchColumn() !== false;
     }
 
     /** @return string[] */
@@ -3114,6 +4693,49 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 }
             }
         } catch (\Throwable) {}
+        return $warns;
+    }
+
+    /**
+     * What the KIM import will do with approval and notes, using the same
+     * kimPendingValue() rule the import uses.
+     *
+     * @return list<string>
+     */
+    private function previewKimWarnings(PDO $source, string $p, ImportOptions $options): array
+    {
+        try {
+            $st   = $source->query("SELECT * FROM `{$p}kim`");
+            $rows = $st ? $st->fetchAll() : [];
+        } catch (\Throwable) {
+            return [];
+        }
+        if ($rows === []) {
+            return [];
+        }
+
+        $waiting = 0;
+        $notes   = 0;
+        foreach ($rows as $kim) {
+            $waiting += $this->kimPendingValue($kim, $options);
+            if (trim((string) ($kim['notes'] ?? '')) !== '') {
+                $notes++;
+            }
+        }
+        $total   = count($rows);
+        $visible = $total - $waiting;
+
+        $warns   = [];
+        $warns[] = match ($options->fnKimStatus) {
+            'pending' => "All {$total} KIM entr(ies) will wait for your approval.",
+            'active'  => "All {$total} KIM entr(ies) will show on the public KIM list, including any you hadn't approved in Fanatically.",
+            default   => "{$visible} KIM entr(ies) will show on the public KIM list and {$waiting} will wait for approval, the same as in Fanatically.",
+        };
+        if ($notes > 0) {
+            $warns[] = "Data dropped — {$notes} KIM note(s) can't be imported, because Luster's KIM list has no notes field. "
+                . "The results page will list them so you can copy them, but they aren't saved anywhere in Luster: "
+                . 'download the import report before you leave that page.';
+        }
         return $warns;
     }
 

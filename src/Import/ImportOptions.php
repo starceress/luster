@@ -54,7 +54,7 @@ final class ImportOptions
      * @param string   $imagePath                Absolute server path to old script root (tried first in auto mode)
      * @param string   $imageUrl                 Base URL of old script (fallback in auto mode)
      * @param string   $fnTablePrefix            Fanatically: table prefix (default 'fanatic_')
-     * @param bool     $fnKimActive              Fanatically: import KIM entries as active (true) or pending (false)
+     * @param string   $fnKimStatus              Fanatically: KIM entry status: 'keep' (each entry as in Fanatically), 'pending' or 'active'
      * @param bool     $fnImportAdoption         Fanatically: import adoption applications → lstr_adoption_applications (requires Adoption add-on)
      * @param bool     $fnImportSiteSettings     Fanatically: import non-sensitive site settings into lstr_site_settings
      */
@@ -130,8 +130,11 @@ final class ImportOptions
         // --- Fanatically-specific
         /** Table prefix for Fanatically tables (default 'fanatic_'). */
         public readonly string $fnTablePrefix          = 'fanatic_',
-        /** When true, KIM entries are imported as active (pending=0); false = pending=1. */
-        public readonly bool   $fnKimActive             = true,
+        /**
+         * KIM entry status: 'keep' keeps each entry's own Fanatically approval (default),
+         * 'pending' makes every entry wait for approval, 'active' makes every entry visible.
+         */
+        public readonly string $fnKimStatus             = 'keep',
         /** Import adoption applications (requires Adoption add-on). */
         public readonly bool   $fnImportAdoption        = false,
         /** Import non-sensitive site settings into lstr_site_settings. */
@@ -181,14 +184,16 @@ final class ImportOptions
 
         // --- Fanatically field resolution
         $fnTablePrefix       = 'fanatic_';
-        $fnKimActive         = true;
+        $fnKimStatus         = 'keep';
         $fnImportAdoption    = false;
         $fnImportSiteSettings = false;
 
         if ($source === 'fanatically') {
             $rawPrefix = trim((string) ($post['fn_table_prefix'] ?? 'fanatic_'));
             $fnTablePrefix       = $rawPrefix; // empty string is valid (prefix-less Fanatically install)
-            $fnKimActive         = ($post['fn_kim_status'] ?? 'active') !== 'pending';
+            $fnKimStatus         = in_array($post['fn_kim_status'] ?? '', ['keep', 'pending', 'active'], true)
+                ? (string) $post['fn_kim_status']
+                : 'keep';
             $fnImportAdoption    = !empty($post['fn_import_adoption']);
             $fnImportSiteSettings = !empty($post['fn_import_site_settings']);
         }
@@ -282,7 +287,7 @@ final class ImportOptions
             bbButtonsPath:        $bbButtonsPath,
             bbButtonsDir:         $bbButtonsDir,
             fnTablePrefix:        $fnTablePrefix,
-            fnKimActive:          $fnKimActive,
+            fnKimStatus:          $fnKimStatus,
             fnImportAdoption:     $fnImportAdoption,
             fnImportSiteSettings: $fnImportSiteSettings,
         );

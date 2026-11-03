@@ -222,14 +222,17 @@ final class FanaticallyImportSourceTest extends TestCase
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS lstr_codes (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                fanlisting_id INTEGER NOT NULL,
+                fanlisting_id INTEGER NULL,
                 size_id       INTEGER NULL,
                 donor_id      INTEGER NULL,
-                name          TEXT    NOT NULL DEFAULT \'\',
+                name          TEXT    NOT NULL DEFAULT \'\' COLLATE NOCASE,
                 filename      TEXT    NOT NULL DEFAULT \'\',
                 status        TEXT    NOT NULL DEFAULT \'approved\',
                 width         INTEGER NOT NULL DEFAULT 0,
-                height        INTEGER NOT NULL DEFAULT 0
+                height        INTEGER NOT NULL DEFAULT 0,
+                submitter_name  TEXT NULL,
+                submitter_email TEXT NULL,
+                submitter_url   TEXT NULL
             )'
         );
         $pdo->exec(
@@ -2018,14 +2021,17 @@ final class FanaticallyImportSourceTest extends TestCase
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS lstr_codes (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                fanlisting_id INTEGER NOT NULL,
+                fanlisting_id INTEGER NULL,
                 size_id       INTEGER NULL,
                 donor_id      INTEGER NULL,
-                name          TEXT    NOT NULL DEFAULT \'\',
+                name          TEXT    NOT NULL DEFAULT \'\' COLLATE NOCASE,
                 filename      TEXT    NOT NULL DEFAULT \'\',
                 status        TEXT    NOT NULL DEFAULT \'approved\',
                 width         INTEGER NOT NULL DEFAULT 0,
-                height        INTEGER NOT NULL DEFAULT 0
+                height        INTEGER NOT NULL DEFAULT 0,
+                submitter_name  TEXT NULL,
+                submitter_email TEXT NULL,
+                submitter_url   TEXT NULL
             )'
         );
         $pdo->exec(
@@ -2066,187 +2072,39 @@ final class FanaticallyImportSourceTest extends TestCase
         );
     }
 
-    public function testEnthSchemaCustomFieldsRegisteredInAdditionalInfo(): void
+    public function testStandardEnthusiastLayoutIsRefusedBeforeAnythingIsWritten(): void
     {
+        // Luster isn't consistent about where that layout keeps listings (the
+        // readers use {prefix}listings, the importer wrote enth_fanlistings), so
+        // the import refuses it rather than writing where nothing reads.
         $src = $this->makePdo();
         $tgt = $this->makePdo();
         $this->seedFanaticallySource($src);
         $this->seedEnthTarget($tgt);
-
-        // Listing with custom_fields JSON
         $src->exec('ALTER TABLE listings ADD COLUMN custom_fields TEXT NULL');
-        $customFields = json_encode([['name' => 'fave_song', 'label' => 'Fave Song', 'type' => 'text', 'required' => false]]);
         $src->exec(
-            "INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption, custom_fields)
-             VALUES (1, 'FL', 'Subj', 'https://example.com/fl/', 'current', '', 0, '{$customFields}')"
+            "INSERT INTO listings (id, title, subject, url, custom_fields)
+             VALUES (1, 'FL', 'FL', 'https://example.com/fl', '[{\"name\":\"fave_song\",\"label\":\"Song\"}]')"
         );
-
-        $src->exec(
-            'CREATE TABLE IF NOT EXISTS members (
-                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-                listing_id          INTEGER NOT NULL,
-                name                TEXT    NOT NULL DEFAULT \'\',
-                email               TEXT    NOT NULL DEFAULT \'\',
-                url                 TEXT    NOT NULL DEFAULT \'\',
-                country             TEXT    NOT NULL DEFAULT \'\',
-                password_hash       TEXT    NOT NULL DEFAULT \'\',
-                custom_field_values TEXT    NULL,
-                is_approved         INTEGER NOT NULL DEFAULT 1,
-                joined_at           TEXT    NULL
-            )'
-        );
-        $src->exec(
-            "INSERT INTO members (listing_id, name, email, is_approved)
-             VALUES (1, 'Fan', 'fan@example.com', 1)"
-        );
-
         $opts = $this->makeOptions(['import_listings' => '1', 'import_members' => '1']);
-        $this->adapter()->run($src, $tgt, $opts);
 
-        $row = $tgt->query('SELECT additional_info FROM enth_fanlistings LIMIT 1')->fetch();
-        self::assertNotNull($row, 'enth_fanlistings row should exist');
-        $decoded = unserialize((string) $row['additional_info']);
-        self::assertIsArray($decoded, 'additional_info should be a serialized PHP array');
-        $names = array_column($decoded, 'name');
-        self::assertContains('fave_song', $names,
-            'additional_info should contain the imported custom field name');
-    }
+        $preview = $this->adapter()->preview($src, $tgt, $opts);
+        self::assertCount(1, $preview->rows);
+        self::assertSame(0, $preview->totalToImport());
+        self::assertStringContainsString("can't write to that layout", $preview->rows[0]['warnings'][0]);
 
-    public function testEnthSchemaCustomFieldWithOptionsPersistedAsDropdown(): void
-    {
-        $src = $this->makePdo();
-        $tgt = $this->makePdo();
-        $this->seedFanaticallySource($src);
-        $this->seedEnthTarget($tgt);
+        $tablesBefore = $tgt->query("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
+        $result = $this->adapter()->run($src, $tgt, $opts);
 
-        $src->exec('ALTER TABLE listings ADD COLUMN custom_fields TEXT NULL');
-        $customFields = json_encode([[
-            'name'     => 'favorite_movie',
-            'label'    => 'Favorite Movie',
-            'required' => true,
-            'options'  => ['John Wick', 'John Wick: Chapter 2', 'All of them'],
-        ]]);
-        $src->exec(
-            "INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption, custom_fields)
-             VALUES (1, 'FL', 'Subj', 'https://example.com/fl/', 'current', '', 0, '{$customFields}')"
+        self::assertCount(1, $result->rows);
+        self::assertStringContainsString('Nothing was imported', $result->rows[0]['errors'][0]);
+        self::assertSame(0, (int) $tgt->query('SELECT COUNT(*) FROM enth_fanlistings')->fetchColumn());
+        self::assertSame(0, (int) $tgt->query('SELECT COUNT(*) FROM lstr_fanlisting_settings')->fetchColumn());
+        self::assertSame(
+            $tablesBefore,
+            $tgt->query("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")->fetchAll(PDO::FETCH_COLUMN),
+            'No member table (or any other table) may be created'
         );
-
-        $src->exec(
-            'CREATE TABLE IF NOT EXISTS members (
-                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-                listing_id          INTEGER NOT NULL,
-                name                TEXT    NOT NULL DEFAULT \'\',
-                email               TEXT    NOT NULL DEFAULT \'\',
-                url                 TEXT    NOT NULL DEFAULT \'\',
-                country             TEXT    NOT NULL DEFAULT \'\',
-                password_hash       TEXT    NOT NULL DEFAULT \'\',
-                custom_field_values TEXT    NULL,
-                is_approved         INTEGER NOT NULL DEFAULT 1,
-                joined_at           TEXT    NULL
-            )'
-        );
-        $src->exec(
-            "INSERT INTO members (listing_id, name, email, is_approved)
-             VALUES (1, 'Fan', 'fan@example.com', 1)"
-        );
-
-        $opts = $this->makeOptions(['import_listings' => '1', 'import_members' => '1']);
-        $this->adapter()->run($src, $tgt, $opts);
-
-        $row = $tgt->query('SELECT additional_info FROM enth_fanlistings LIMIT 1')->fetch();
-        self::assertNotNull($row, 'enth_fanlistings row should exist');
-        $decoded = unserialize((string) $row['additional_info']);
-        self::assertIsArray($decoded, 'additional_info should be a serialized PHP array');
-        self::assertSame('favorite_movie', $decoded[0]['name']);
-        self::assertSame('Favorite Movie', $decoded[0]['label']);
-        self::assertSame('dropdown', $decoded[0]['type'], 'A field with real options must import as a dropdown, not text.');
-        self::assertTrue($decoded[0]['required']);
-        self::assertSame('John Wick, John Wick: Chapter 2, All of them', $decoded[0]['options']);
-
-        // Round-trip through the actual public-form rendering path — proves the
-        // three choices really render as three distinct <option>s, not one
-        // pipe-joined blob (FormFieldBuilder/FieldRenderer split options on
-        // commas, not pipes).
-        $field = new AdditionalField(
-            name:     $decoded[0]['name'],
-            label:    $decoded[0]['label'],
-            type:     $decoded[0]['type'],
-            required: $decoded[0]['required'],
-            options:  $decoded[0]['options'],
-        );
-        $fb = new FormFieldBuilder(new FieldRenderer(), new FieldWrapper());
-        $descriptors = $fb->descriptorsFromAdditionalFields([$field], []);
-        // Dropdown descriptors get an extra leading blank '' => '' placeholder
-        // option (the "choose one" row), so 3 real choices means 4 total entries.
-        self::assertCount(4, $descriptors[0]['options'] ?? [],
-            'Rendered dropdown must have the blank placeholder plus 3 distinct options, not one pipe-joined string.');
-        self::assertArrayHasKey('John Wick', $descriptors[0]['options']);
-        self::assertArrayHasKey('John Wick: Chapter 2', $descriptors[0]['options']);
-        self::assertArrayHasKey('All of them', $descriptors[0]['options']);
-    }
-
-    public function testEnthSchemaMemberTableNamedWithMembersSuffix(): void
-    {
-        $src = $this->makePdo();
-        $tgt = $this->makePdo();
-        $this->seedFanaticallySource($src);
-        $this->seedEnthTarget($tgt);
-
-        // Listing with custom_fields JSON
-        $src->exec('ALTER TABLE listings ADD COLUMN custom_fields TEXT NULL');
-        $customFields = json_encode([['name' => 'fave_song', 'label' => 'Fave Song', 'type' => 'text', 'required' => false]]);
-        $src->exec(
-            "INSERT INTO listings (id, title, subject, url, status, approved_by, for_adoption, custom_fields)
-             VALUES (1, 'FL', 'Subj', 'https://example.com/fl/', 'current', '', 0, '{$customFields}')"
-        );
-
-        $src->exec(
-            'CREATE TABLE IF NOT EXISTS members (
-                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-                listing_id          INTEGER NOT NULL,
-                name                TEXT    NOT NULL DEFAULT \'\',
-                email               TEXT    NOT NULL DEFAULT \'\',
-                url                 TEXT    NOT NULL DEFAULT \'\',
-                country             TEXT    NOT NULL DEFAULT \'\',
-                password_hash       TEXT    NOT NULL DEFAULT \'\',
-                custom_field_values TEXT    NOT NULL DEFAULT \'\',
-                is_approved         INTEGER NOT NULL DEFAULT 1,
-                joined_at           TEXT    NULL
-            )'
-        );
-        $cfJson = json_encode(['fave_song' => 'Bohemian Rhapsody']);
-        $src->exec(
-            "INSERT INTO members (listing_id, name, email, is_approved, custom_field_values)
-             VALUES (1, 'Fan', 'fan@example.com', 1, '{$cfJson}')"
-        );
-
-        $opts = $this->makeOptions(['import_listings' => '1', 'import_members' => '1']);
-        $this->adapter()->run($src, $tgt, $opts);
-
-        // Retrieve the dbprefix that was inserted into enth_fanlistings
-        $flRow = $tgt->query('SELECT dbprefix FROM enth_fanlistings LIMIT 1')->fetch();
-        self::assertNotNull($flRow, 'enth_fanlistings row should exist');
-        $dbprefix = (string) $flRow['dbprefix'];
-
-        // Member table should be {dbprefix}members, not {dbprefix}
-        $memberTable = $dbprefix . 'members';
-        $tables = $tgt->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(\PDO::FETCH_COLUMN);
-        self::assertContains($memberTable, $tables,
-            "Member table should be named '{$memberTable}' (dbprefix + 'members') for enth_ schema");
-        self::assertNotContains($dbprefix, array_diff($tables, [$memberTable]),
-            "Member table should NOT be created as bare '{$dbprefix}' slug for enth_ schema");
-
-        // Column names should use additional_ prefix
-        $cols = $tgt->query("PRAGMA table_info(`{$memberTable}`)")->fetchAll(\PDO::FETCH_COLUMN, 1);
-        self::assertContains('additional_fave_song', $cols,
-            "Column should be 'additional_fave_song' in enth_ schema member table");
-        self::assertNotContains('fave_song', $cols,
-            "Bare 'fave_song' column should not exist in enth_ schema member table");
-
-        // Member data should be readable from the correctly named column
-        $memberRow = $tgt->query("SELECT additional_fave_song FROM `{$memberTable}` WHERE email='fan@example.com'")->fetch();
-        self::assertSame('Bohemian Rhapsody', (string) ($memberRow['additional_fave_song'] ?? ''),
-            'Custom field value should be stored in the additional_-prefixed column');
     }
 
     // -----------------------------------------------------------------------

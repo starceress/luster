@@ -87,6 +87,66 @@ and the migration page tells you if any of your listings were affected.
   preview now says to copy any wording you like over by hand.
 - A Fanatically import now tells you, on the preview and the results page, if
   Fanatically was approving new joins automatically, since Luster won't.
+- **Fanatically listings with no members yet get a member list anyway.** A
+  listing with nobody in it (or any listing, if you left Members unticked)
+  came over with nowhere to keep members and without its custom fields, so its
+  join form and member list didn't work. Now every imported listing gets both
+  straight away.
+- **Custom fields called things like "Email" don't break a Fanatically import
+  anymore.** A field named after something every member already has (Email,
+  Name, Country...) or two fields whose names come out the same ("a-b" and
+  "a b") stopped the import partway through. Now the extra one gets a new name,
+  like `email_2`, and the preview and results tell you which ones moved. Luster
+  remembers those names, so importing again gives every field the same one,
+  even if the fields were reordered or a new one was added. A field you removed
+  in Fanatically keeps its answers, and a field you added in Luster yourself is
+  never written over: a new Fanatically field with the same name gets its own,
+  like `color_2`. If you renamed a field in Fanatically, the answers members
+  gave before the rename stay with the old field instead of jumping into the new
+  one. Fields named with just numbers (like "123") import fine too. If Luster
+  hasn't had the database update that remembers these names, or can't read or
+  save them (or can't read its own listings and tables), the import stops before
+  changing anything and tells you, instead of guessing.
+- **A Fanatically listing can't end up using one of Luster's own tables.** A
+  listing named after one (like "owned") could be handed that table to keep its
+  members in. Now every table that already exists is off limits, and Luster
+  won't change a table that isn't a member list.
+- **Two Fanatically listings with the same address share one member list.**
+  They become one listing in Luster, but the second one's members used to go
+  into a table that listing never reads. Now both sets of members, and both
+  listings' custom fields, land in the same place.
+- **A listing that moved to a new address in Fanatically stays itself.** With
+  Overwrite, a new listing that took its old address used to be poured into it.
+  Now each one ends up where it belongs. And if Luster can't save a listing
+  partway through, the import stops before the listings after it instead of
+  guessing where they go, so you can fix it and import again.
+- When you pick **Keep existing**, a listing that's already in Luster keeps its
+  own fields and member table exactly as they are. Any values for fields it
+  doesn't have are left out, and the results say how many.
+- **KIM entries you hadn't approved in Fanatically stay pending.** The import
+  used to make every KIM entry public, or every one pending. Now each one keeps
+  the status it had in Fanatically, and you can still choose "all pending" or
+  "all active" on the Options page.
+- **KIM notes aren't lost.** Luster's KIM list has nowhere to keep them, so the
+  results page lists every note for you to copy, and they're never shown
+  publicly. They aren't saved anywhere in Luster either, so click **Download
+  Report** before you leave the results page.
+- **An affiliate with a broken list of fanlistings is skipped instead of showing
+  on every page.** If Luster couldn't read which fanlistings an affiliate
+  belonged to, it used to make it a site-wide affiliate. Now it's skipped and
+  listed on the results page so you can add it by hand.
+- **Fanatically's collective codes come over.** Codes saved under "Collective"
+  used to be skipped. Now they import as collective codes with their size,
+  approval and donor, even if you don't import listings, and importing again
+  finds them instead of adding copies. Importing again also keeps the images
+  Luster already copied for your codes, unless it copies a new one. Codes whose
+  names only differ in capital letters (`Code.png` and `code.png`) stay two
+  codes, and if Luster has more than one copy of a code and can't tell which
+  one to update, it leaves them alone and tells you instead of guessing.
+- If your Luster database uses the older Enthusiast table layout (`enth_`
+  tables), the Fanatically import now says it can't import into that layout
+  yet, before changing anything, instead of saving listings where Luster's
+  pages don't look.
 - **Listing Admin imports found nothing if you left Table Prefix blank**, which
   is exactly what the Options page told you to do. Turns out every Listing
   Admin install has a prefix (`trex_` unless you changed it), so the import was

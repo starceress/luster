@@ -21,6 +21,9 @@ final class TracingPdo extends PDO
     /** Regex: statements matching it throw instead of running. Null = none fail. */
     public ?string $failOn = null;
 
+    /** How many more matching statements fail before they start working again. Null = every one. */
+    public ?int $failTimes = null;
+
     public static function memory(): self
     {
         $pdo = new self('sqlite::memory:');
@@ -57,6 +60,12 @@ final class TracingPdo extends PDO
     {
         $this->statements[] = $sql;
         if ($this->failOn !== null && preg_match($this->failOn, $sql) === 1) {
+            if ($this->failTimes !== null) {
+                if ($this->failTimes <= 0) {
+                    return;
+                }
+                $this->failTimes--;
+            }
             throw new PDOException('Simulated failure for: ' . $sql);
         }
     }
