@@ -157,6 +157,32 @@ below), and the migration page tells you if any of your listings were affected.
   names only differ in capital letters (`Code.png` and `code.png`) stay two
   codes, and if Luster has more than one copy of a code and can't tell which
   one to update, it leaves them alone and tells you instead of guessing.
+- **Closed and adopted-out Fanatically listings come over as Closed and
+  Adopted Out.** They used to land as plain inactive listings, so they never
+  showed up in your Past Fanlistings. Now they do. Fanatically doesn't keep
+  the date a listing closed or who adopted it, so the date is marked unknown
+  (see "Date unknown" above) and you can fill it in yourself. Importing again
+  with "Overwrite" keeps the date and note you added, switches Closed to
+  Adopted Out (or back) if you changed it in Fanatically, and reopens a
+  listing that isn't closed in Fanatically anymore. If Fanatically gives a
+  listing a status Luster doesn't recognise, it stays closed with everything you
+  added, and the results page says why. "Skip" leaves them alone. If Luster
+  can't save a listing's Closed or Adopted Out part, it doesn't save that
+  listing at all, so a listing never ends up half-done (showing up as both
+  current and past). That works on older databases that started out as
+  Enthusiast too: Luster puts the listing back the way it was itself, and in
+  the very rare case it can't, the results page tells you exactly what was
+  saved. This needs the migration step above. Until it's run, the import tells
+  you so before changing anything.
+- **Fanatically listings with no category don't stop the import anymore.** A
+  listing with no category failed to import, and every listing after it was
+  skipped too. Listings with categories are also saved the same way the
+  listing edit page saves them now, so they keep every category, not just the
+  first. A listing in lots of categories keeps all of them in Luster; the older
+  category field that Enthusiast-style pages read only has room for so many,
+  and the results page tells you when a listing has more than fit. If a
+  category can't be saved, the results page says so too, instead of the
+  category quietly going missing.
 - If your Luster database uses the older Enthusiast table layout (`enth_`
   tables), the Fanatically import now says it can't import into that layout
   yet, before changing anything, instead of saving listings where Luster's

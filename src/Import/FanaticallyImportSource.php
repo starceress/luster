@@ -90,11 +90,22 @@ final class FanaticallyImportSource implements ImportSourceInterface
     /**
      * Shown when Luster couldn't read part of its own database that decides where
      * listings go: its listings, its import records, or which tables exist (or
-     * whether import records can hold field names). Read as "nothing there", that
-     * could put a listing into another one or hand it someone else's table.
+     * whether import records can hold field names, or the lifecycle table an
+     * unknown date). Read as "nothing there", that could put a listing into
+     * another one, hand it someone else's table, or write a Closed listing
+     * Luster can't hold.
      */
     private const TARGET_UNREADABLE =
-        "Luster couldn't read part of its own database (its listings, its import records or its list of tables), so it can't tell where your Fanatically listings belong. Try the import again; if it keeps happening, run the migration page first.";
+        "Luster couldn't read part of its own database (its listings, its import records, its list of tables or its Closed and Adopted Out listings), so it can't tell where your Fanatically listings belong. Try the import again; if it keeps happening, run the migration page first.";
+
+    /**
+     * Shown when some Fanatically listings are Closed or Adopted Out but Luster's
+     * lifecycle table can't hold an unknown date yet (Migration 108, or the table
+     * itself from Migration 93). Fanatically keeps no closing date, so those
+     * listings need one, and writing them anyway would fail partway through.
+     */
+    private const LIFECYCLE_NEEDS_MIGRATION =
+        "Some of your Fanatically listings are Closed or Adopted Out, and Luster needs a database update before it can bring them over that way. Run the migration page first (Luster needs Migration 108), then import again.";
 
     /** Shown when the Fanatically listings themselves couldn't be read. */
     private const SOURCE_LISTINGS_UNREADABLE =
@@ -198,6 +209,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
         $fieldPlans = [];
         $fieldNotes = [];
         $fieldError = null;
+        $state      = null;
         if ($options->importListings) {
             $state = $this->readListingTargetState($target, $this->detectTargetSchema($target), false);
             if ($state === null) {
@@ -218,6 +230,12 @@ final class FanaticallyImportSource implements ImportSourceInterface
             return new ImportPreview([[
                 'type' => 'Database update', 'found' => 0, 'import' => 0, 'skip' => 0,
                 'warnings' => ["Can't import — " . self::FIELD_NAMES_NEED_MIGRATION],
+            ]], 'fanatically_1x', false);
+        }
+        if ($state !== null && $state['lifecycle'] !== 'nullable' && $this->sourceHasArchivedListings($source, $p)) {
+            return new ImportPreview([[
+                'type' => 'Database update', 'found' => 0, 'import' => 0, 'skip' => 0,
+                'warnings' => ["Can't import — " . self::LIFECYCLE_NEEDS_MIGRATION],
             ]], 'fanatically_1x', false);
         }
 
@@ -537,6 +555,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $options->importListings && $listingState === null => ['Database', self::TARGET_UNREADABLE],
             $fieldError !== null                               => ['Custom fields', $fieldError],
             $this->fieldNamesCantBeKept($target, $fieldPlans)  => ['Database update', self::FIELD_NAMES_NEED_MIGRATION],
+            $options->importListings && $listingState['lifecycle'] !== 'nullable' && $this->sourceHasArchivedListings($source, $p)
+                                                               => ['Database update', self::LIFECYCLE_NEEDS_MIGRATION],
             default                                            => null,
         };
         if ($refusal !== null) {
@@ -833,7 +853,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
      * @return array{0:array,1:array<int,int>,2:array<int,string>,3:array}
      */
     /**
-     * @param array{index: array{urls: array<string,int>, byExternal: array<string,int>, dbtables: array<int,string>}, tables: list<string>} $state
+     * @param array{index: array{urls: array<string,int>, byExternal: array<string,int>, dbtables: array<int,string>}, tables: list<string>, lifecycle: string} $state
      *        From readListingTargetState(): the same reads the field plans used.
      */
     private function runListings(
@@ -848,6 +868,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
         $listingIdMap    = [];
         $listingDbtables = [];
         $listingOutcomes = []; // fanatic listing_id → 'created' | 'updated' | 'kept' (Skip)
+        $listingNotes    = []; // "Title: ..." notes for the results page
         $imgCopied       = 0;
         $imgSkipped      = 0;
         $imgErrors       = [];
@@ -905,7 +926,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
             // Status mapping — whitelist-only: only 'current' and 'upcoming' get their
             // corresponding Luster states; closed, adopted_out, pending, and any future
-            // unknown status all map to inactive (trouble=1) to fail safe.
+            // unknown status all map to inactive (trouble=1) to fail safe. Closed and
+            // adopted_out also get a lifecycle row (importLifecycle()), and inactive is
+            // the registry state an archived listing has anyway.
             $status   = (string) ($lst['status'] ?? 'current');
             $upcoming = $status === 'upcoming' ? 1 : 0;
             $trouble  = ($status !== 'current' && $status !== 'upcoming') ? 1 : 0;
@@ -917,9 +940,10 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $upcoming = 0;
             }
 
-            // Preserve unmappable source states so a future lifecycle enhancement can
-            // recover them without requiring a full re-import. Only written when the
-            // status or blank-URL state produced a lossy mapping.
+            // Keep the source status on the import record when the mapping above loses
+            // it (Migration 93 made lifecycle rows from this for imports done before
+            // the table existed). Only written when the status or blank-URL state
+            // produced a lossy mapping.
             $sourceStatusMeta = (($trouble === 1 && $status !== 'pending') || $url === '')
                 ? ['source_status' => $status]
                 : null;
@@ -981,23 +1005,43 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $usedDbtables[$dbtable] = true;
             }
 
-            $catIds = $lcJunction[$srcId] ?? [];
-            $primaryCatId = null;
-            if (!empty($catIds)) {
-                $primaryCatId = $categoryIdMap[$catIds[0]] ?? null;
+            // Every source category Luster has, in order, saved the way the listing
+            // edit page saves them: catid '|1|2|' ('' for none) plus the first one
+            // in category_id.
+            $mappedCatIds = [];
+            foreach ($lcJunction[$srcId] ?? [] as $srcCatId) {
+                $lusterCatId = $categoryIdMap[$srcCatId] ?? null;
+                if ($lusterCatId !== null && !in_array($lusterCatId, $mappedCatIds, true)) {
+                    $mappedCatIds[] = $lusterCatId;
+                }
             }
+            $primaryCatId = $mappedCatIds[0] ?? null;
+            [$catidList, $inCatidList] = self::legacyCatidList($mappedCatIds);
 
-            $registryWritten = false;
+            $registryWritten = false; // saved for good (committed)
+            $registryTouched = false; // the registry statement ran, so it may need undoing
+            $before          = null;  // an overwritten row's old values, for undoRegistryWrite()
             try {
+                // The registry row and its Closed / Adopted Out record change together
+                // or not at all (importLifecycle()). An active row with the archive
+                // record left behind shows in both Current and Past; a Closed listing
+                // without one is only inactive, and open to joins. Nothing else goes
+                // in here, and member tables are set up later, well outside it. A
+                // MyISAM `owned` can't roll back, so the catch below checks and puts
+                // the row back by hand.
+                $target->beginTransaction();
+                if ($existingId !== null) {
+                    $before = $this->registryRow($target, $regTable, $pkCol, $isOwned, $existingId);
+                }
                 if ($isOwned) {
                     if ($existingId !== null) {
                         $target->prepare(
                             "UPDATE `owned` SET title=:title, subject=:subject, url=:url,
-                             catid=:catid, status=:status, opened=:opened
+                             catid=:catid, category_id=:category_id, status=:status, opened=:opened
                              WHERE listingid=:id"
                         )->execute([
                             'title' => $title, 'subject' => $subject, 'url' => $url,
-                            'catid' => $primaryCatId,
+                            'catid' => $catidList, 'category_id' => $primaryCatId,
                             'status' => ($upcoming ? 1 : ($trouble ? 0 : 2)),
                             'opened' => $openedDate ?: null,
                             'id' => $existingId,
@@ -1005,16 +1049,15 @@ final class FanaticallyImportSource implements ImportSourceInterface
                         $newId = $existingId;
                     } else {
                         $target->prepare(
-                            "INSERT INTO `owned` (dbtable, title, subject, url, catid, status, opened, additional)
-                             VALUES (:dbtable, :title, :subject, :url, :catid, :status, :opened, '')"
+                            "INSERT INTO `owned` (dbtable, title, subject, url, catid, category_id, status, opened, additional)
+                             VALUES (:dbtable, :title, :subject, :url, :catid, :category_id, :status, :opened, '')"
                         )->execute([
                             'dbtable' => $dbtable, 'title' => $title, 'subject' => $subject,
-                            'url' => $url, 'catid' => $primaryCatId,
+                            'url' => $url, 'catid' => $catidList, 'category_id' => $primaryCatId,
                             'status' => ($upcoming ? 1 : ($trouble ? 0 : 2)),
                             'opened' => $openedDate ?: null,
                         ]);
                         $newId = (int) $target->lastInsertId();
-                        $imported++;
                     }
                 } else {
                     if ($existingId !== null) {
@@ -1039,11 +1082,26 @@ final class FanaticallyImportSource implements ImportSourceInterface
                             'upcoming' => $upcoming, 'trouble' => $trouble, 'opened' => $openedDate ?: null,
                         ]);
                         $newId = (int) $target->lastInsertId();
-                        $imported++;
                     }
                 }
+                $registryTouched = true;
 
+                // Closed / Adopted Out come over as real archived listings, and a
+                // listing archived in Luster but active in Fanatically is reopened.
+                // Before Migration 93 there's nowhere to keep it.
+                $lifecycleNote = $state['lifecycle'] !== 'missing'
+                    ? $this->importLifecycle($target, (int) $newId, $status, $title, $url !== '')
+                    : '';
+                $target->commit();
+
+                // Only now, with both saved, does this listing count and get mapped.
                 $registryWritten = true;
+                if ($existingId === null) {
+                    $imported++;
+                }
+                if ($lifecycleNote !== '') {
+                    $listingNotes[] = $lifecycleNote;
+                }
 
                 $listingIdMap[$srcId]    = $newId;
                 $listingDbtables[$srcId] = $dbtable;
@@ -1069,20 +1127,16 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     $this->upsertExternalRef($target, $newId, 'fansfansfans', $fansFansId);
                 }
 
-                // Write lstr_listing_categories junction
-                if (!empty($catIds)) {
-                    foreach ($catIds as $srcCatId) {
-                        $lusterCatId = $categoryIdMap[$srcCatId] ?? null;
-                        if ($lusterCatId === null) {
-                            continue;
-                        }
-                        try {
-                            $target->prepare(
-                                'INSERT IGNORE INTO lstr_listing_categories (fanlisting_id, category_id)
-                                 VALUES (:fid, :cid)'
-                            )->execute(['fid' => $newId, 'cid' => $lusterCatId]);
-                        } catch (\Throwable) {}
-                    }
+                // lstr_listing_categories is where Luster reads a listing's categories,
+                // and the only place that has all of them once catid is full.
+                $categoryError = $this->addListingCategories($target, (int) $newId, $mappedCatIds);
+                if ($categoryError !== '') {
+                    $errors[] = "Listing '{$title}': {$categoryError}";
+                }
+                if ($inCatidList < count($mappedCatIds)) {
+                    $listingNotes[] = "{$title}: has " . count($mappedCatIds) . ' categories. '
+                        . ($categoryError === '' ? 'All of them are saved, but the' : 'The')
+                        . " older category field that Enthusiast-style pages read only has room for the first {$inCatidList}.";
                 }
 
                 // Insert/update lstr_fanlisting_settings
@@ -1106,7 +1160,20 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 }
 
             } catch (\Throwable $e) {
-                $errors[] = "Listing '{$title}': " . $e->getMessage();
+                if ($target->inTransaction()) {
+                    try {
+                        $target->rollBack();
+                    } catch (\Throwable) {}
+                }
+                // Only a save that didn't finish is undone, never one already committed.
+                $undone = '';
+                if ($registryTouched && !$registryWritten) {
+                    $undone = $this->unfinishedSaveOutcome(
+                        $target, $regTable, $pkCol, $isOwned, (int) $newId, $before,
+                        $url, (string) $srcId, $sourceStatusMeta
+                    );
+                }
+                $errors[] = "Listing '{$title}': " . $e->getMessage() . $undone;
                 if (!$registryWritten) {
                     // The field plans were worked out expecting this listing to be
                     // saved (a new listing, or its new address), and later rows were
@@ -1123,7 +1190,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         return [
             ['type' => 'Owned Listings', 'imported' => $imported, 'skipped' => $skipped,
-             'warnings' => $joinNote !== null ? [$joinNote] : [], 'errors' => $errors, 'skipped_items' => $skippedItems,
+             'warnings' => array_merge($joinNote !== null ? [$joinNote] : [], $listingNotes), 'errors' => $errors, 'skipped_items' => $skippedItems,
              'image_copied' => $imgCopied, 'image_skipped' => $imgSkipped, 'image_errors' => $imgErrors],
             $listingIdMap,
             $listingDbtables,
@@ -3959,11 +4026,12 @@ final class FanaticallyImportSource implements ImportSourceInterface
      * The parts of Luster's database that decide where listings go, read once,
      * strictly, before anything is written: whether import records can hold field
      * names (refsHaveMetadata(), then remembered for the rest of the run), the
-     * existing-listing index, and for an import every table name. Null when any of
+     * existing-listing index, what the lifecycle table can hold
+     * (lifecycleTableState()), and for an import every table name. Null when any of
      * them couldn't be read: the import then stops (TARGET_UNREADABLE), because
      * each of them read as empty would put something in the wrong place.
      *
-     * @return array{index: array{urls: array<string,int>, byExternal: array<string,int>, dbtables: array<int,string>}, tables: list<string>}|null
+     * @return array{index: array{urls: array<string,int>, byExternal: array<string,int>, dbtables: array<int,string>}, tables: list<string>, lifecycle: string}|null
      */
     private function readListingTargetState(PDO $target, string $targetSchema, bool $withTables): ?array
     {
@@ -3972,12 +4040,412 @@ final class FanaticallyImportSource implements ImportSourceInterface
         try {
             $this->refsHaveMetadata($target);
             return [
-                'index'  => $this->existingListingIndex($target, $regTable, $pkCol, $isOwned),
-                'tables' => $withTables ? $this->physicalTableNames($target) : [],
+                'index'     => $this->existingListingIndex($target, $regTable, $pkCol, $isOwned),
+                'tables'    => $withTables ? $this->physicalTableNames($target) : [],
+                'lifecycle' => $this->lifecycleTableState($target),
             ];
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * What lstr_listing_lifecycle can hold: 'missing' (before Migration 93),
+     * 'not_null' (before Migration 108, no unknown dates), or 'nullable'. Throws
+     * when it can't be checked.
+     */
+    private function lifecycleTableState(PDO $target): string
+    {
+        if ($target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $st = $target->query('PRAGMA table_info(`lstr_listing_lifecycle`)');
+            if ($st === false) {
+                throw new \RuntimeException("Couldn't read lstr_listing_lifecycle.");
+            }
+            $columns = $st->fetchAll(PDO::FETCH_ASSOC);
+            if ($columns === []) {
+                return 'missing';
+            }
+            foreach ($columns as $column) {
+                if (($column['name'] ?? '') === 'archived_at') {
+                    return (int) $column['notnull'] === 0 ? 'nullable' : 'not_null';
+                }
+            }
+            return 'not_null';
+        }
+
+        $st = $target->prepare(
+            "SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_listing_lifecycle' AND COLUMN_NAME = 'archived_at'"
+        );
+        if ($st === false || !$st->execute()) {
+            throw new \RuntimeException("Couldn't read lstr_listing_lifecycle.");
+        }
+        $nullable = $st->fetchColumn();
+        return match (true) {
+            $nullable === false => 'missing',
+            $nullable === 'YES' => 'nullable',
+            default             => 'not_null',
+        };
+    }
+
+    /**
+     * Whether any Fanatically listing is Closed or Adopted Out. True when that
+     * can't be read, so the Migration 108 check errs on the side of asking.
+     */
+    private function sourceHasArchivedListings(PDO $source, string $p): bool
+    {
+        try {
+            $st = $source->query("SELECT COUNT(*) FROM `{$p}listings` WHERE status IN ('closed', 'adopted_out')");
+            return $st === false || (int) $st->fetchColumn() > 0;
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
+    /**
+     * Brings a listing's Closed / Adopted Out state over from Fanatically, in the
+     * same transaction as its registry row (runListings()), so the two never
+     * disagree. Only called for a listing this import just created or overwrote
+     * (Skip leaves Luster's state alone), right after its registry row was written
+     * from the source status. For Closed / Adopted Out, and for any status Luster
+     * doesn't know, that's the inactive state an archived listing has anyway.
+     *
+     *  - Archived in Fanatically, not in Luster: a new lifecycle row. Fanatically
+     *    keeps no closing date or new owner, so the date is unknown (run() made
+     *    sure Migration 108 is in), and reopening gives what an active import of
+     *    this listing would: Current, or inactive when it has no address.
+     *  - Archived in both: the owner's date, note and reopen state are kept and
+     *    only a changed status is written. One that's now Closed loses its
+     *    adopted-to details, the same as the edit form.
+     *  - Current, Upcoming or Pending in Fanatically, archived in Luster: the row
+     *    is removed, which reopens it (the registry already has that status).
+     *  - Any other status, or none, while archived in Luster: nothing changes,
+     *    and the note says why. An unknown status is no reason to throw away the
+     *    owner's archive details.
+     *
+     * Written straight to the table, never through ListingLifecycleService::archive(),
+     * whose snapshot would capture the inactive state this import just wrote.
+     *
+     * @return string A note for the results page, or ''
+     * @throws \RuntimeException When it can't be read or written, so the caller
+     *         rolls the registry change back with it
+     */
+    private function importLifecycle(PDO $target, int $listingId, string $sourceStatus, string $title, bool $hasAddress): string
+    {
+        $labels     = ['closed' => 'Closed', 'adopted_out' => 'Adopted Out'];
+        $dateLabels = ['closed' => 'Closed On', 'adopted_out' => 'Adopted On'];
+        $archived   = isset($labels[$sourceStatus]);
+        $active     = in_array($sourceStatus, ['current', 'upcoming', 'pending'], true);
+        $run        = static function (string $sql, array $params) use ($target): \PDOStatement {
+            $st = $target->prepare($sql);
+            if ($st === false || !$st->execute($params)) {
+                throw new \RuntimeException("the database didn't accept it");
+            }
+            return $st;
+        };
+
+        try {
+            $stored = $run(
+                'SELECT lifecycle_status, archived_at FROM `lstr_listing_lifecycle` WHERE fanlisting_id = :id',
+                ['id' => $listingId]
+            )->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException("Luster couldn't check whether it's closed or adopted out (" . $e->getMessage() . ")", 0, $e);
+        }
+
+        if ($stored === false) {
+            if (!$archived) {
+                return '';
+            }
+            try {
+                $run(
+                    'INSERT INTO `lstr_listing_lifecycle`
+                        (fanlisting_id, lifecycle_status, archived_at, legacy_upcoming, legacy_trouble)
+                     VALUES (:id, :status, NULL, 0, :trouble)',
+                    ['id' => $listingId, 'status' => $sourceStatus, 'trouble' => $hasAddress ? 0 : 1]
+                );
+            } catch (\Throwable $e) {
+                throw new \RuntimeException("Luster couldn't mark it {$labels[$sourceStatus]} (" . $e->getMessage() . ")", 0, $e);
+            }
+            return '';
+        }
+
+        $storedStatus = (string) $stored['lifecycle_status'];
+        $storedLabel  = $labels[$storedStatus] ?? $storedStatus;
+
+        if ($archived) {
+            if ($storedStatus === $sourceStatus) {
+                return '';
+            }
+            try {
+                $run(
+                    $sourceStatus === 'closed'
+                        ? 'UPDATE `lstr_listing_lifecycle` SET lifecycle_status = :status, adopted_to_name = NULL, adopted_to_url = NULL WHERE fanlisting_id = :id'
+                        : 'UPDATE `lstr_listing_lifecycle` SET lifecycle_status = :status WHERE fanlisting_id = :id',
+                    ['id' => $listingId, 'status' => $sourceStatus]
+                );
+            } catch (\Throwable $e) {
+                throw new \RuntimeException("Luster couldn't change it to {$labels[$sourceStatus]} (" . $e->getMessage() . ")", 0, $e);
+            }
+            $date = (string) ($stored['archived_at'] ?? '');
+            return "{$title}: now {$labels[$sourceStatus]} instead of {$storedLabel}, to match Fanatically. "
+                . ($date !== ''
+                    ? 'Its ' . ($dateLabels[$storedStatus] ?? 'archive') . ' date (' . substr($date, 0, 10) . ") is kept as its {$dateLabels[$sourceStatus]} date; you can change it on the listing's edit page."
+                    : 'Its date is still unknown.');
+        }
+
+        if ($active) {
+            try {
+                $run('DELETE FROM `lstr_listing_lifecycle` WHERE fanlisting_id = :id', ['id' => $listingId]);
+            } catch (\Throwable $e) {
+                throw new \RuntimeException("Luster couldn't reopen it (" . $e->getMessage() . ")", 0, $e);
+            }
+            return "{$title}: reopened, because it isn't closed or adopted out in Fanatically.";
+        }
+
+        $shown = trim($sourceStatus) === '' ? 'is blank' : "is \"{$sourceStatus}\"";
+        return "{$title}: stays {$storedLabel}, with its date and note as they were. Its status in Fanatically {$shown}, which Luster doesn't know.";
+    }
+
+    /** What owned.catid / enth_fanlistings.catid can hold (VARCHAR(255) in Enthusiast and Luster's installer). */
+    private const CATID_MAX_LENGTH = 255;
+
+    /**
+     * The listing's categories as the old '|1|2|' list Enthusiast-style pages read
+     * ('' for none), cut at a whole id so it fits CATID_MAX_LENGTH. Luster itself
+     * reads lstr_listing_categories, which keeps every one.
+     *
+     * @param list<int> $categoryIds
+     * @return array{0: string, 1: int} The list, and how many ids it holds
+     */
+    private static function legacyCatidList(array $categoryIds): array
+    {
+        $list = '';
+        $held = 0;
+        foreach ($categoryIds as $categoryId) {
+            $next = ($list === '' ? '|' : $list) . $categoryId . '|';
+            if (strlen($next) > self::CATID_MAX_LENGTH) {
+                break;
+            }
+            $list = $next;
+            $held++;
+        }
+        return [$list, $held];
+    }
+
+    /** @return list<string> The registry columns a Fanatically import writes on Overwrite */
+    private function registryColumns(bool $isOwned): array
+    {
+        return $isOwned
+            ? ['title', 'subject', 'url', 'catid', 'category_id', 'status', 'opened']
+            : ['name', 'subject', 'url', 'catid', 'upcoming', 'trouble', 'opened'];
+    }
+
+    /**
+     * A listing's registry columns as they are now, or null when it has no row.
+     * Throws when they can't be read.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function registryRow(PDO $target, string $regTable, string $pkCol, bool $isOwned, int $listingId): ?array
+    {
+        $cols = implode(', ', array_map(static fn(string $c): string => "`{$c}`", $this->registryColumns($isOwned)));
+        $st   = $target->prepare("SELECT {$cols} FROM `{$regTable}` WHERE `{$pkCol}` = :id");
+        if ($st === false || !$st->execute(['id' => $listingId])) {
+            throw new \RuntimeException("couldn't read the listing back");
+        }
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * After a listing save that didn't finish was rolled back, makes sure its
+     * registry row really is back the way it was. InnoDB's rollback already did
+     * it. A MyISAM `owned` (installs that began on Enthusiast) can't roll back, so
+     * the row is put back by hand: a new listing removed, an overwritten one given
+     * its old values ($before, read in the same save before it wrote anything).
+     * The row is read back afterwards, so the outcome is what's really there:
+     * 'restored', 'survived' (with the row as it is now), or 'unknown' when it
+     * couldn't be read.
+     *
+     * @param array<string, mixed>|null $before Null for a new listing
+     * @return array{outcome: string, row: array<string, mixed>|null, error: string}
+     */
+    private function undoRegistryWrite(PDO $target, string $regTable, string $pkCol, bool $isOwned, int $listingId, ?array $before): array
+    {
+        $isBack = static fn(?array $row): bool => $before === null ? $row === null : $row === $before;
+        try {
+            $now = $this->registryRow($target, $regTable, $pkCol, $isOwned, $listingId);
+        } catch (\Throwable $e) {
+            return ['outcome' => 'unknown', 'row' => null, 'error' => $e->getMessage()];
+        }
+        if ($isBack($now)) {
+            return ['outcome' => 'restored', 'row' => null, 'error' => ''];
+        }
+
+        $error = '';
+        try {
+            if ($before === null) {
+                $st     = $target->prepare("DELETE FROM `{$regTable}` WHERE `{$pkCol}` = :id");
+                $params = ['id' => $listingId];
+            } else {
+                $set    = [];
+                $params = ['id' => $listingId];
+                foreach ($this->registryColumns($isOwned) as $i => $column) {
+                    $set[]           = "`{$column}` = :c{$i}";
+                    $params["c{$i}"] = $before[$column];
+                }
+                $st = $target->prepare("UPDATE `{$regTable}` SET " . implode(', ', $set) . " WHERE `{$pkCol}` = :id");
+            }
+            if ($st === false || !$st->execute($params)) {
+                throw new \RuntimeException("the database didn't accept it");
+            }
+        } catch (\Throwable $e) {
+            $error = $e->getMessage();
+        }
+
+        try {
+            $now = $this->registryRow($target, $regTable, $pkCol, $isOwned, $listingId);
+        } catch (\Throwable $e) {
+            return ['outcome' => 'unknown', 'row' => null, 'error' => $error !== '' ? $error : $e->getMessage()];
+        }
+        if ($isBack($now)) {
+            return ['outcome' => 'restored', 'row' => null, 'error' => ''];
+        }
+        return ['outcome' => 'survived', 'row' => $now, 'error' => $error !== '' ? $error : "it didn't change back"];
+    }
+
+    /**
+     * What's left of a listing whose save didn't finish, worded for the end of
+     * its error, from undoRegistryWrite()'s checked outcome (never assumed).
+     *
+     * A new listing that's still there gets its import record now, so the next
+     * import finds it instead of adding a second copy: a listing with no address
+     * can't be found any other way. The record is read back before the message
+     * relies on it. An overwritten listing can always be found again (by its new
+     * address, or by the record it was matched with).
+     *
+     * @param array<string, mixed>|null $before    Null for a new listing
+     * @param array<string, mixed>|null $refMeta   The import record's metadata, as runListings() writes it
+     */
+    private function unfinishedSaveOutcome(
+        PDO $target, string $regTable, string $pkCol, bool $isOwned, int $listingId, ?array $before,
+        string $url, string $externalId, ?array $refMeta
+    ): string {
+        $undo  = $this->undoRegistryWrite($target, $regTable, $pkCol, $isOwned, $listingId, $before);
+        $isNew = $before === null;
+
+        if ($undo['outcome'] === 'restored') {
+            return ', so nothing about this listing was saved.';
+        }
+        if ($undo['outcome'] === 'unknown') {
+            if (!$isNew) {
+                return ", and Luster couldn't check whether listing #{$listingId} was put back the way it was ({$undo['error']}). Check it on your Listings page, then import again with Overwrite to finish it.";
+            }
+            return ", and Luster couldn't check whether the new listing (#{$listingId}) was removed again ({$undo['error']})."
+                . ($url !== ''
+                    ? ' Import again with Overwrite to finish it.'
+                    : " If listing #{$listingId} is on your Listings page, delete it before importing again, or the import will add it a second time.");
+        }
+
+        $shows = $this->registryStateLabel($target, $isOwned, $listingId, (array) $undo['row']);
+        if (!$isNew) {
+            return ", and Luster couldn't put listing #{$listingId} back the way it was ({$undo['error']}). It has its new details from Fanatically and {$shows}. Import again with Overwrite to finish it.";
+        }
+
+        $recorded = $this->upsertExternalRef($target, $listingId, 'fanatically', $externalId, $refMeta)
+            && $this->externalRefPointsAt($target, $externalId, $listingId);
+        return ", and Luster couldn't remove the new listing again ({$undo['error']}). It's saved as listing #{$listingId}, which {$shows}."
+            . ($recorded || $url !== ''
+                ? ' Import again with Overwrite to finish it.'
+                : " Luster couldn't record which Fanatically listing it came from either, so importing again would add it a second time: delete listing #{$listingId} first, then import again.");
+    }
+
+    /** Whether the Fanatically import record for $externalId now names $listingId. */
+    private function externalRefPointsAt(PDO $target, string $externalId, int $listingId): bool
+    {
+        try {
+            $st = $target->prepare("SELECT listing_id FROM lstr_listing_external_refs WHERE source = 'fanatically' AND external_id = :eid");
+            if ($st === false || !$st->execute(['eid' => $externalId])) {
+                return false;
+            }
+            $found = $st->fetchColumn();
+            return $found !== false && (int) $found === $listingId;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Where a listing shows up now, from its registry row and its lifecycle row:
+     * "shows as Current", "shows as Closed", "shows as both Current and Closed".
+     *
+     * @param array<string, mixed> $row registryRow()
+     */
+    private function registryStateLabel(PDO $target, bool $isOwned, int $listingId, array $row): string
+    {
+        $main = $isOwned
+            ? ([0 => 'Pending', 1 => 'Upcoming', 2 => 'Current'][(int) ($row['status'] ?? 0)] ?? 'Pending')
+            : ((int) ($row['upcoming'] ?? 0) === 1 ? 'Upcoming' : ((int) ($row['trouble'] ?? 0) === 1 ? 'Pending' : 'Current'));
+        try {
+            $st = $target->prepare('SELECT lifecycle_status FROM `lstr_listing_lifecycle` WHERE fanlisting_id = :id');
+            if ($st === false || !$st->execute(['id' => $listingId])) {
+                throw new \RuntimeException("couldn't read it");
+            }
+            $found = $st->fetchColumn();
+        } catch (\Throwable) {
+            return "shows as {$main} (Luster couldn't check whether it's also marked Closed or Adopted Out)";
+        }
+        if ($found === false) {
+            return "shows as {$main}";
+        }
+        $archived = ['closed' => 'Closed', 'adopted_out' => 'Adopted Out'][(string) $found] ?? (string) $found;
+        return $main === 'Pending' ? "shows as {$archived}" : "shows as both {$main} and {$archived}";
+    }
+
+    /**
+     * Adds a listing's categories to lstr_listing_categories, keeping the ones it
+     * already has (an import never takes one away). Plain inserts of only the
+     * missing ones, so a failure is a failure, not a skipped duplicate.
+     *
+     * @param list<int> $categoryIds
+     * @return string '' when every one is there, or what went wrong
+     */
+    private function addListingCategories(PDO $target, int $listingId, array $categoryIds): string
+    {
+        if ($categoryIds === []) {
+            return '';
+        }
+        $total = count($categoryIds);
+        try {
+            $st = $target->prepare('SELECT category_id FROM lstr_listing_categories WHERE fanlisting_id = :id');
+            if ($st === false || !$st->execute(['id' => $listingId])) {
+                throw new \RuntimeException("the database didn't answer");
+            }
+            $have = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+        } catch (\Throwable $e) {
+            return "Luster couldn't check which categories it already has (" . $e->getMessage() . "), so none of its {$total} categories were added. Import again with Overwrite to add them.";
+        }
+
+        $failed = 0;
+        $first  = '';
+        foreach ($categoryIds as $categoryId) {
+            if (in_array($categoryId, $have, true)) {
+                continue;
+            }
+            try {
+                $st = $target->prepare('INSERT INTO lstr_listing_categories (fanlisting_id, category_id) VALUES (:fid, :cid)');
+                if ($st === false || !$st->execute(['fid' => $listingId, 'cid' => $categoryId])) {
+                    throw new \RuntimeException("the database didn't accept it");
+                }
+            } catch (\Throwable $e) {
+                $failed++;
+                $first = $first !== '' ? $first : $e->getMessage();
+            }
+        }
+        return $failed === 0
+            ? ''
+            : "Luster couldn't save {$failed} of its {$total} categories ({$first}). Import again with Overwrite to add them.";
     }
 
     /**
@@ -4673,7 +5141,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 "SELECT
                     SUM(CASE WHEN TRIM(COALESCE(url, '')) = '' THEN 1 ELSE 0 END) AS blank_url,
                     SUM(CASE WHEN status = 'closed'       THEN 1 ELSE 0 END) AS closed,
-                    SUM(CASE WHEN status = 'adopted_out'  THEN 1 ELSE 0 END) AS adopted_out
+                    SUM(CASE WHEN status = 'adopted_out'  THEN 1 ELSE 0 END) AS adopted_out,
+                    SUM(CASE WHEN status IN ('closed', 'adopted_out') AND TRIM(COALESCE(url, '')) = '' THEN 1 ELSE 0 END) AS archived_blank_url
                  FROM `{$table}`"
             );
             $row = $st ? $st->fetch() : null;
@@ -4686,10 +5155,14 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     $warns[] = "Data transformed — {$blankUrl} listing(s) have no URL and will be imported as inactive; they can be matched again on re-import.";
                 }
                 if ($closed > 0) {
-                    $warns[] = "Data transformed — {$closed} closed listing(s) will be imported as inactive; original status is preserved in metadata.";
+                    $warns[] = "Data transformed — {$closed} closed listing(s) will come over as Closed. Fanatically doesn't record when a listing closed, so the date is marked unknown; reopening one in Luster makes it Current.";
                 }
                 if ($adoptedOut > 0) {
-                    $warns[] = "Data transformed — {$adoptedOut} adopted-out listing(s) will be imported as inactive; original status is preserved in metadata.";
+                    $warns[] = "Data transformed — {$adoptedOut} adopted-out listing(s) will come over as Adopted Out. Fanatically doesn't record when a listing was adopted out or who took it, so the date is marked unknown and there's no new owner; reopening one in Luster makes it Current.";
+                }
+                $archivedBlankUrl = (int) ($row['archived_blank_url'] ?? 0);
+                if ($archivedBlankUrl > 0) {
+                    $warns[] = "Data transformed — {$archivedBlankUrl} of the closed or adopted-out listing(s) have no URL, so reopening one in Luster makes it inactive instead of Current.";
                 }
             }
         } catch (\Throwable) {}

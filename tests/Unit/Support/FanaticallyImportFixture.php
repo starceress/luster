@@ -106,6 +106,11 @@ trait FanaticallyImportFixture
             id INTEGER PRIMARY KEY AUTOINCREMENT, listing_id INTEGER NOT NULL, source TEXT NOT NULL,
             external_id TEXT NOT NULL, external_slug_or_url TEXT NOT NULL DEFAULT '', metadata_json TEXT NULL,
             UNIQUE (source, external_id))");
+        // After Migration 108: archived_at can be NULL (date unknown).
+        $pdo->exec('CREATE TABLE lstr_listing_lifecycle (
+            fanlisting_id INTEGER NOT NULL PRIMARY KEY, lifecycle_status TEXT NOT NULL, archived_at TEXT NULL,
+            legacy_upcoming INTEGER NOT NULL DEFAULT 0, legacy_trouble INTEGER NOT NULL DEFAULT 0,
+            adopted_to_name TEXT NULL, adopted_to_url TEXT NULL, archive_note TEXT NULL)');
         $pdo->exec('CREATE TABLE lstr_pending_updates (
             id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, member_email TEXT NOT NULL,
             changes TEXT NOT NULL)');
@@ -153,7 +158,7 @@ trait FanaticallyImportFixture
         $pdo->exec("CREATE TABLE owned (
             listingid INTEGER PRIMARY KEY AUTOINCREMENT, dbtable TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '',
             subject TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',
-            catid TEXT NULL, category_id INTEGER NULL, opened TEXT NULL, status INTEGER NOT NULL DEFAULT 2,
+            catid TEXT NOT NULL DEFAULT '' CHECK (length(catid) <= 255), category_id INTEGER NULL, opened TEXT NULL, status INTEGER NOT NULL DEFAULT 2,
             imagefile TEXT NOT NULL DEFAULT '', additional TEXT NOT NULL DEFAULT '')");
         $this->createLusterTables($pdo);
         return $pdo;

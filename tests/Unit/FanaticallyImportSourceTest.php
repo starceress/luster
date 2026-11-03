@@ -137,7 +137,7 @@ final class FanaticallyImportSourceTest extends TestCase
                 subject    TEXT    NOT NULL DEFAULT \'\',
                 email      TEXT    NOT NULL DEFAULT \'\',
                 url        TEXT    NOT NULL DEFAULT \'\',
-                catid      TEXT    NULL,
+                catid      TEXT    NOT NULL DEFAULT \'\' CHECK (length(catid) <= 255),
                 category_id INTEGER NULL,
                 opened     TEXT    NULL,
                 status     INTEGER NOT NULL DEFAULT 2,
@@ -269,6 +269,19 @@ final class FanaticallyImportSourceTest extends TestCase
                 external_slug_or_url TEXT NOT NULL DEFAULT \'\',
                 metadata_json TEXT NULL,
                 UNIQUE (source, external_id)
+            )'
+        );
+        // After Migration 108: archived_at can be NULL (date unknown).
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS lstr_listing_lifecycle (
+                fanlisting_id    INTEGER NOT NULL PRIMARY KEY,
+                lifecycle_status TEXT    NOT NULL,
+                archived_at      TEXT    NULL,
+                legacy_upcoming  INTEGER NOT NULL DEFAULT 0,
+                legacy_trouble   INTEGER NOT NULL DEFAULT 0,
+                adopted_to_name  TEXT    NULL,
+                adopted_to_url   TEXT    NULL,
+                archive_note     TEXT    NULL
             )'
         );
     }
@@ -1068,6 +1081,222 @@ final class FanaticallyImportSourceTest extends TestCase
         self::assertNotFalse($row, 'External ref row must exist');
         $meta = json_decode((string) ($row['metadata_json'] ?? ''), true);
         self::assertSame('closed', $meta['source_status'] ?? null, 'closed source_status must be preserved in metadata_json');
+    }
+
+    // -----------------------------------------------------------------------
+    // Categories on the listing row (owned.catid / category_id)
+    // -----------------------------------------------------------------------
+
+    /** @param list<int> $categoryIds Source category ids, in the order Fanatically lists them */
+    private function setListingCategories(PDO $src, int $listingId, array $categoryIds): void
+    {
+        $src->exec('CREATE TABLE IF NOT EXISTS listing_categories (listing_id INTEGER NOT NULL, category_id INTEGER NOT NULL)');
+        $src->prepare('DELETE FROM listing_categories WHERE listing_id = :id')->execute(['id' => $listingId]);
+        $ins = $src->prepare('INSERT INTO listing_categories (listing_id, category_id) VALUES (:l, :c)');
+        foreach ($categoryIds as $categoryId) {
+            $ins->execute(['l' => $listingId, 'c' => $categoryId]);
+        }
+    }
+
+    /** @return array{0: string, 1: ?int} owned.catid and owned.category_id of the only listing */
+    private function ownedCategories(PDO $tgt): array
+    {
+        $row = $tgt->query('SELECT catid, category_id FROM owned')->fetch();
+        return [(string) $row['catid'], $row['category_id'] === null ? null : (int) $row['category_id']];
+    }
+
+    private function lusterCategoryId(PDO $tgt, string $name): int
+    {
+        $st = $tgt->prepare('SELECT id FROM lstr_categories WHERE name = :n');
+        $st->execute(['n' => $name]);
+        return (int) $st->fetchColumn();
+    }
+
+    public function testAListingWithNoCategoriesGetsAnEmptyCategoryList(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt); // catid NOT NULL, like the installer's
+        $this->insertListing($src, 'https://example.com/fl/', status: 'closed');
+        $this->setListingCategories($src, 1, []);
+
+        foreach (['skip', 'overwrite'] as $strategy) {
+            $result = $this->adapter()->run($src, $tgt, $this->makeOptions([
+                'import_listings' => '1', 'import_categories' => '1', 'conflict_strategy' => $strategy,
+            ]));
+            foreach ($result->rows as $row) {
+                self::assertSame([], $row['errors'], "{$strategy}: {$row['type']}");
+            }
+            self::assertSame(1, (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn());
+            self::assertSame(['', null], $this->ownedCategories($tgt), $strategy);
+        }
+    }
+
+    public function testCategoriesAreSavedTheWayTheListingEditPageSavesThem(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+        $src->exec("INSERT INTO categories (id, name, parent_id) VALUES (1, 'Music', NULL), (2, 'Anime', NULL)");
+        $this->insertListing($src, 'https://example.com/fl/');
+        // 99 isn't a category Fanatically has, so it's left out; Anime is listed twice.
+        $this->setListingCategories($src, 1, [99, 2, 1, 2]);
+        $opts = $this->makeOptions(['import_listings' => '1', 'import_categories' => '1', 'conflict_strategy' => 'overwrite']);
+
+        $this->adapter()->run($src, $tgt, $opts);
+        $music = $this->lusterCategoryId($tgt, 'Music');
+        $anime = $this->lusterCategoryId($tgt, 'Anime');
+        self::assertNotSame(0, $music);
+        self::assertNotSame(0, $anime);
+        self::assertSame(["|{$anime}|{$music}|", $anime], $this->ownedCategories($tgt),
+            'Every category Luster has, in order, and the first one Luster has as the main one');
+
+        $this->setListingCategories($src, 1, [1]);
+        $this->adapter()->run($src, $tgt, $opts);
+        self::assertSame(["|{$music}|", $music], $this->ownedCategories($tgt), 'Overwrite writes them again');
+
+        $this->setListingCategories($src, 1, []);
+        $this->adapter()->run($src, $tgt, $opts);
+        self::assertSame(['', null], $this->ownedCategories($tgt));
+    }
+
+    /** @return array<string, array{0: list<int>, 1: string, 2: int}> */
+    public static function legacyCatidListProvider(): array
+    {
+        // 62 three-digit ids and two two-digit ones: '|' + 62 * 4 + 2 * 3 = 255 exactly.
+        $fits = array_merge(range(100, 161), [10, 11]);
+        $full = '|' . implode('|', $fits) . '|';
+        return [
+            'none'                         => [[], '', 0],
+            'one'                          => [[7], '|7|', 1],
+            'exactly 255 characters'       => [$fits, $full, 64],
+            'one more id cut off whole'    => [[...$fits, 5], $full, 64],
+            'a long id that does not fit'  => [[...array_slice($fits, 0, 63), 123456], '|' . implode('|', array_slice($fits, 0, 63)) . '|', 63],
+        ];
+    }
+
+    /**
+     * @dataProvider legacyCatidListProvider
+     * @param list<int> $ids
+     */
+    public function testTheOldCategoryListStopsAtAWholeIdWithin255Characters(array $ids, string $expected, int $held): void
+    {
+        $method = new \ReflectionMethod(FanaticallyImportSource::class, 'legacyCatidList');
+        $method->setAccessible(true);
+        [$list, $count] = $method->invoke(null, $ids);
+        self::assertSame($expected, $list);
+        self::assertSame($held, $count);
+        self::assertLessThanOrEqual(255, strlen($list));
+    }
+
+    public function testAListingInMoreCategoriesThanTheOldListHoldsStillImports(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt); // catid limited to 255 characters, like the installer's
+        $ins = $src->prepare('INSERT INTO categories (id, name) VALUES (:id, :n)');
+        for ($i = 1; $i <= 100; $i++) {
+            $ins->execute(['id' => $i, 'n' => "Category {$i}"]);
+        }
+        $this->insertListing($src, 'https://example.com/fl/');
+        $this->insertListing($src, 'https://example.com/fl2/');
+        $this->setListingCategories($src, 1, range(1, 100));
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1', 'import_categories' => '1']));
+        $row = null;
+        foreach ($result->rows as $r) {
+            if ($r['type'] === 'Owned Listings') {
+                $row = $r;
+            }
+        }
+        self::assertNotNull($row);
+        self::assertSame([], $row['errors']);
+        self::assertSame(2, $row['imported'], 'Neither it nor the listing after it is lost');
+
+        // Luster ids 1..100 in order: 1-9 and 10-87 fill 253 characters; "88|" won't fit.
+        $catid = (string) $tgt->query('SELECT catid FROM owned WHERE url = \'https://example.com/fl\'')->fetchColumn();
+        self::assertSame('|' . implode('|', range(1, 87)) . '|', $catid);
+        self::assertSame(253, strlen($catid));
+        $joined = implode("\n", $row['warnings']);
+        self::assertStringContainsString(
+            'Test Listing: has 100 categories. All of them are saved, but the older category field that Enthusiast-style pages read only has room for the first 87.',
+            $joined
+        );
+
+        // "All of them are saved" is true: every one is linked, and the listing
+        // shows up under a category past what the old field holds.
+        $listingId = (int) $tgt->query("SELECT listingid FROM owned WHERE url = 'https://example.com/fl'")->fetchColumn();
+        self::assertSame(range(1, 100), array_map('intval', $tgt->query(
+            "SELECT category_id FROM lstr_listing_categories WHERE fanlisting_id = {$listingId} ORDER BY category_id"
+        )->fetchAll(PDO::FETCH_COLUMN)));
+        $repo = new \Luster\Repositories\ListingRepo($this->wrapPdo($tgt), $this->emptyConfig());
+        foreach ([88, 100] as $categoryId) {
+            self::assertSame(['https://example.com/fl'], array_map(static fn($l): string => $l->url, $repo->getFiltered('current', $categoryId)),
+                "Shown under category {$categoryId}");
+        }
+    }
+
+    private function emptyConfig(): Config
+    {
+        $path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lstr_fan_cfg_' . uniqid('', true) . '.php';
+        file_put_contents($path, '<?php return [];');
+        $config = new Config($path);
+        unlink($path);
+        return $config;
+    }
+
+    /** @return array<string, array{0: string, 1: string}> */
+    public static function failedCategoryLinkProvider(): array
+    {
+        return [
+            'one link fails'               => ['/INSERT INTO lstr_listing_categories/', "Listing 'Test Listing': Luster couldn't save 1 of its 100 categories ("],
+            'its links can\'t be checked'  => ['/SELECT category_id FROM lstr_listing_categories/', "Listing 'Test Listing': Luster couldn't check which categories it already has ("],
+        ];
+    }
+
+    /** @dataProvider failedCategoryLinkProvider */
+    public function testAFailedCategoryLinkIsReportedAndOverwriteAddsIt(string $failOn, string $error): void
+    {
+        $src = $this->makePdo();
+        $tgt = \Luster\Tests\Unit\Support\TracingPdo::memory();
+        $this->seedFanaticallySource($src);
+        $this->seedTarget($tgt);
+        $ins = $src->prepare('INSERT INTO categories (id, name) VALUES (:id, :n)');
+        for ($i = 1; $i <= 100; $i++) {
+            $ins->execute(['id' => $i, 'n' => "Category {$i}"]);
+        }
+        $this->insertListing($src, 'https://example.com/fl/');
+        $this->setListingCategories($src, 1, range(1, 100));
+        $opts = $this->makeOptions(['import_listings' => '1', 'import_categories' => '1', 'conflict_strategy' => 'overwrite']);
+        $listingsRow = function () use ($src, $tgt, $opts): array {
+            foreach ($this->adapter()->run($src, $tgt, $opts)->rows as $r) {
+                if ($r['type'] === 'Owned Listings') {
+                    return $r;
+                }
+            }
+            self::fail('No Owned Listings row');
+        };
+
+        $tgt->failOn    = $failOn;
+        $tgt->failTimes = 1;
+        $row = $listingsRow();
+        $tgt->failOn = null;
+
+        self::assertCount(1, $row['errors']);
+        self::assertStringStartsWith($error, $row['errors'][0]);
+        self::assertStringEndsWith('Import again with Overwrite to add them.', $row['errors'][0]);
+        $joined = implode("\n", $row['warnings']);
+        self::assertStringNotContainsString('All of them are saved', $joined, 'Not when some of them are not');
+        self::assertStringContainsString('Test Listing: has 100 categories. The older category field that Enthusiast-style pages read only has room for the first 87.', $joined);
+        self::assertLessThan(100, (int) $tgt->query('SELECT COUNT(*) FROM lstr_listing_categories')->fetchColumn());
+
+        $row = $listingsRow();
+        self::assertSame([], $row['errors']);
+        self::assertStringContainsString('All of them are saved', implode("\n", $row['warnings']));
+        self::assertSame(100, (int) $tgt->query('SELECT COUNT(*) FROM lstr_listing_categories')->fetchColumn());
     }
 
     public function testCurrentStatusDoesNotWriteSourceStatusMetadata(): void

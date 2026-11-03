@@ -24,6 +24,15 @@ final class TracingPdo extends PDO
     /** How many more matching statements fail before they start working again. Null = every one. */
     public ?int $failTimes = null;
 
+    /** Also fails a statement when this returns true; it gets the SQL. For "only the third read". */
+    public ?\Closure $failWhen = null;
+
+    /**
+     * True: behave like a MyISAM table, where a transaction does nothing. Every
+     * statement saves at once, and a rollback takes nothing back.
+     */
+    public bool $noTransactions = false;
+
     public static function memory(): self
     {
         $pdo = new self('sqlite::memory:');
@@ -50,6 +59,26 @@ final class TracingPdo extends PDO
         return parent::exec($statement);
     }
 
+    public function beginTransaction(): bool
+    {
+        return $this->noTransactions ? true : parent::beginTransaction();
+    }
+
+    public function commit(): bool
+    {
+        return $this->noTransactions ? true : parent::commit();
+    }
+
+    public function rollBack(): bool
+    {
+        return $this->noTransactions ? true : parent::rollBack();
+    }
+
+    public function inTransaction(): bool
+    {
+        return $this->noTransactions ? false : parent::inTransaction();
+    }
+
     /** Statements recorded so far that match $pattern. @return list<string> */
     public function statementsMatching(string $pattern): array
     {
@@ -59,6 +88,9 @@ final class TracingPdo extends PDO
     private function trace(string $sql): void
     {
         $this->statements[] = $sql;
+        if ($this->failWhen !== null && ($this->failWhen)($sql) === true) {
+            throw new PDOException('Simulated failure for: ' . $sql);
+        }
         if ($this->failOn !== null && preg_match($this->failOn, $sql) === 1) {
             if ($this->failTimes !== null) {
                 if ($this->failTimes <= 0) {
