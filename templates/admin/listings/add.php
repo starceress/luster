@@ -20,9 +20,10 @@ $oldAdoptedToName = (string) ($old['adopted_to_name'] ?? '');
 $oldAdoptedToUrl  = (string) ($old['adopted_to_url']  ?? '');
 $oldArchiveNote   = (string) ($old['archive_note']    ?? '');
 // A brand-new listing has no existing saved date to restore to — Reset just
-// clears back to blank here, unlike Edit where it restores the last-saved date.
-$archivedAtOriginalVal = '';
-$archivedAtVal         = $val('archived_at', $archivedAtOriginalVal);
+// clears back to blank (and unticks "Date unknown") here, unlike Edit where it
+// restores what's saved.
+$archivedAtOriginalVal     = '';
+$archivedAtUnknownOriginal = false;
 
 $dataTfl        = json_encode($tfl_cats       ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 $dataTafl       = json_encode($tafl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
@@ -214,18 +215,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="field-row" id="archived-at-row">
-        <label class="field-label" for="fl-archived-at" id="fl-archived-at-label">Closed On</label>
-        <div>
-          <div class="actions-row actions-row--wrap">
-            <input id="fl-archived-at" type="date" name="archived_at" class="form form--compact"
-                   value="<?= View::e($archivedAtVal) ?>" data-original-value="<?= View::e($archivedAtOriginalVal) ?>">
-            <button type="button" class="btn btn-tertiary btn-sm" id="set-archived-today-btn">Set Today's Date</button>
-            <button type="button" class="btn btn-quaternary btn-sm" id="reset-archived-date-btn">Reset</button>
-          </div>
-          <?php if (!empty($fe['archived_at'])): ?><p class="field-error"><?= View::e($fe['archived_at'][0]) ?></p><?php endif; ?>
-        </div>
-      </div>
+      <?php require __DIR__ . '/_archived-at-row.php'; ?>
 
       <div class="field-row" id="opened-row">
         <label class="field-label" for="fl-opened">Opened On</label>

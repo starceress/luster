@@ -1005,11 +1005,12 @@ function installTables(PDO $pdo): void
 
         // Listing lifecycle current-state (Closed / Adopted Out), layered on top of the
         // legacy upcoming/trouble columns without ever widening their meaning. One row
-        // only for listings that are currently archived. Migration 93.
+        // only for listings that are currently archived. Migration 93; archived_at is
+        // NULL when the closing date is unknown (Migration 108).
         "CREATE TABLE IF NOT EXISTS `lstr_listing_lifecycle` (
             `fanlisting_id`    INT UNSIGNED  NOT NULL,
             `lifecycle_status` VARCHAR(20)   NOT NULL,
-            `archived_at`      DATETIME      NOT NULL,
+            `archived_at`      DATETIME      NULL,
             `legacy_upcoming`  TINYINT(1)    NOT NULL DEFAULT 0,
             `legacy_trouble`   TINYINT(1)    NOT NULL DEFAULT 0,
             `adopted_to_name`  VARCHAR(255)  NULL,
@@ -1184,7 +1185,7 @@ function installTables(PDO $pdo): void
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
          (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93),
-         (94),(95),(96),(97),(98),(99),(100),(101),(102),(103),(104),(105),(106),(107)'
+         (94),(95),(96),(97),(98),(99),(100),(101),(102),(103),(104),(105),(106),(107),(108)'
     );
 }
 

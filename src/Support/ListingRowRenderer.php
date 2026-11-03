@@ -28,7 +28,10 @@ final class ListingRowRenderer
      *                                           (keys: image, last_updated, approved_by, description),
      *                                           plus optional lifecycle metadata when $listing is
      *                                           archived: adopted_to_name, adopted_to_url,
-     *                                           archive_note, archived_at (see ListingLifecycleRepo).
+     *                                           archive_note, archived_at (see
+     *                                           ListingLifecycleRepo::renderFields(); a blank
+     *                                           archived_at on an archived listing means the
+     *                                           date is unknown).
      * @param array{approved?: int, pending?: int, country_count?: int} $memberStats
      */
     public static function render(
@@ -137,6 +140,11 @@ final class ListingRowRenderer
                 'approved_by'        => $approvedBy !== '',
                 'date_updated'       => DateFormatter::mostRecent((string) ($memberStats['newest_date'] ?? ''), (string) ($settings['last_updated'] ?? '')) !== null,
                 'description'        => $description !== '',
+                // {if_archived_at}: there's a closing date to show. {if_archived_at_unknown}:
+                // the listing is archived but nobody knows when it closed; an active
+                // listing never counts, though it has no date either.
+                'archived_at'         => $archivedAt !== '',
+                'archived_at_unknown' => $listing->lifecycle !== null && $archivedAt === '',
             ],
         );
     }

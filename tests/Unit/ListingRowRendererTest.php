@@ -978,6 +978,19 @@ final class ListingRowRendererTest extends TestCase
         );
     }
 
+    public function testArchivedAtConditionalsTellAKnownDateFromAnUnknownOne(): void
+    {
+        $tpl = '[{archived_at}]{if_archived_at}known{/if_archived_at}{if_archived_at_unknown}unknown{/if_archived_at_unknown}';
+        $closed = $this->makeListing(lifecycle: 'closed');
+
+        self::assertSame('[2026-06-01]known', ListingRowRenderer::render($closed, $tpl, ['archived_at' => '2026-06-01 12:00:00'], ''));
+        // An unknown date reaches the renderer as '' (ListingLifecycleRepo::renderFields()).
+        self::assertSame('[]unknown', ListingRowRenderer::render($closed, $tpl, ['archived_at' => ''], ''));
+        self::assertSame('[]unknown', ListingRowRenderer::render($this->makeListing(lifecycle: 'adopted_out'), $tpl, [], ''));
+        self::assertSame('[]', ListingRowRenderer::render($this->makeListing(), $tpl, [], ''),
+            "An active listing has no date, but it isn't an unknown one");
+    }
+
     public function testArchivedAtTruncatesTimeComponentAndRespectsDateFormat(): void
     {
         $listing  = $this->makeListing(lifecycle: 'closed');

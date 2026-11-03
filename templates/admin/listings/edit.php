@@ -415,21 +415,10 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <?php
-          $archivedAtOriginalVal = (string) ($archived_at_original ?? '');
-          $archivedAtVal         = (string) ($old['archived_at'] ?? $archivedAtOriginalVal);
+          $archivedAtOriginalVal     = (string) ($archived_at_original ?? '');
+          $archivedAtUnknownOriginal = (bool) ($archived_at_unknown_original ?? false);
+          require __DIR__ . '/_archived-at-row.php';
         ?>
-        <div class="field-row" id="archived-at-row">
-          <label class="field-label" for="fl-archived-at" id="fl-archived-at-label">Closed On</label>
-          <div>
-            <div class="actions-row actions-row--wrap">
-              <input id="fl-archived-at" type="date" name="archived_at" class="form form--compact"
-                     value="<?= View::e($archivedAtVal) ?>" data-original-value="<?= View::e($archivedAtOriginalVal) ?>">
-              <button type="button" class="btn btn-tertiary btn-sm" id="set-archived-today-btn">Set Today's Date</button>
-              <button type="button" class="btn btn-quaternary btn-sm" id="reset-archived-date-btn">Reset</button>
-            </div>
-            <?php if (!empty($fe['archived_at'])): ?><p class="field-error"><?= View::e($fe['archived_at'][0]) ?></p><?php endif; ?>
-          </div>
-        </div>
 
         <div class="section-label">Previous Owners</div>
         <div class="field-row">

@@ -825,6 +825,9 @@ input.form:disabled,
 select:disabled,
 textarea:disabled { opacity: .7; cursor: not-allowed; }
 
+/* Listing Add/Edit: Set Today's Date while "Date unknown" is ticked. */
+#archived-at-row .btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
 input.form::placeholder, textarea::placeholder { color: var(--text-dim); }
 
 textarea { max-height: 300px; min-height: 200px; resize: vertical; tab-size: 2; margin-bottom: .25rem; }

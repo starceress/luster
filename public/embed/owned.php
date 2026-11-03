@@ -249,12 +249,10 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
             foreach ($_lusterListingIds as $_lcListingId) {
                 $_lcRow = $_lusterLifecycleRepo->getByListingId($_lcListingId);
                 if ($_lcRow !== null) {
-                    $_lusterSettingsMap[$_lcListingId] = array_merge($_lusterSettingsMap[$_lcListingId] ?? [], [
-                        'adopted_to_name' => $_lcRow['adopted_to_name'] ?? '',
-                        'adopted_to_url'  => $_lcRow['adopted_to_url']  ?? '',
-                        'archive_note'    => $_lcRow['archive_note']    ?? '',
-                        'archived_at'     => $_lcRow['archived_at']     ?? '',
-                    ]);
+                    $_lusterSettingsMap[$_lcListingId] = array_merge(
+                        $_lusterSettingsMap[$_lcListingId] ?? [],
+                        \Luster\Repositories\ListingLifecycleRepo::renderFields($_lcRow),
+                    );
                 }
             }
         }

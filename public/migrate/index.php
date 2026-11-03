@@ -3480,6 +3480,30 @@ try {
     $errors[] = 'Migration 107 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 108: a Closed / Adopted Out listing's date can be unknown.
+// lstr_listing_lifecycle.archived_at becomes nullable. NULL means nobody knows
+// when the listing closed (the "Date unknown" box on its edit page, or an
+// imported listing with no closing date), instead of a made-up date. Dates
+// already saved are untouched. Only recorded once the column really is
+// nullable, so a lifecycle table that Migration 93 hasn't created yet gets
+// fixed on a later run. Safe to run again.
+try {
+    $chkArchivedAt = $pdo->query(
+        "SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_listing_lifecycle' AND COLUMN_NAME = 'archived_at'"
+    );
+    $archivedAtNullable = $chkArchivedAt !== false ? $chkArchivedAt->fetchColumn() : false;
+    if ($archivedAtNullable === 'NO') {
+        $pdo->exec('ALTER TABLE `lstr_listing_lifecycle` MODIFY COLUMN `archived_at` DATETIME NULL');
+        $done[] = 'Migration 108: a closed or adopted-out listing&rsquo;s date can now be marked as unknown';
+    }
+    if ($archivedAtNullable !== false) {
+        $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (108)');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 108 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

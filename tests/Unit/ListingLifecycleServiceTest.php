@@ -38,7 +38,7 @@ CREATE TABLE owned (
 CREATE TABLE lstr_listing_lifecycle (
     fanlisting_id    INTEGER NOT NULL PRIMARY KEY,
     lifecycle_status TEXT    NOT NULL,
-    archived_at      TEXT    NOT NULL,
+    archived_at      TEXT    NULL,
     legacy_upcoming  INTEGER NOT NULL DEFAULT 0,
     legacy_trouble   INTEGER NOT NULL DEFAULT 0,
     adopted_to_name  TEXT    NULL,
@@ -63,7 +63,7 @@ CREATE TABLE enth_listings (
 CREATE TABLE lstr_listing_lifecycle (
     fanlisting_id    INTEGER NOT NULL PRIMARY KEY,
     lifecycle_status TEXT    NOT NULL,
-    archived_at      TEXT    NOT NULL,
+    archived_at      TEXT    NULL,
     legacy_upcoming  INTEGER NOT NULL DEFAULT 0,
     legacy_trouble   INTEGER NOT NULL DEFAULT 0,
     adopted_to_name  TEXT    NULL,
@@ -377,6 +377,33 @@ SQL;
         self::assertSame('closed', $row['lifecycle_status']);
         self::assertSame('Handed off.', $row['archive_note']);
         self::assertSame('2020-05-01', $row['archived_at']);
+    }
+
+    public function testBulkRearchiveKeepsAnUnknownDateNoteAndSuccessor(): void
+    {
+        [$service, , $lifecycleRepo, $db] = $this->makeOwned();
+        $id = $this->insertOwned($db);
+        $lifecycleRepo->upsert($id, 'adopted_out', true, false, 'Jane', 'https://jane.example', 'Handed off.', null);
+
+        $service->archive($id, 'adopted_out');
+
+        $row = $lifecycleRepo->getByListingId($id);
+        self::assertNull($row['archived_at'], 'Bulk archive leaves an unknown date unknown');
+        self::assertSame(['Jane', 'https://jane.example', 'Handed off.'], [$row['adopted_to_name'], $row['adopted_to_url'], $row['archive_note']]);
+    }
+
+    public function testReopeningAndArchivingAgainStartsWithTodayNotUnknown(): void
+    {
+        [$service, , $lifecycleRepo, $db] = $this->makeOwned();
+        $id = $this->insertOwned($db);
+        $service->archive($id, 'closed');
+        $lifecycleRepo->upsert($id, 'closed', false, false, null, null, null, null);
+
+        $service->reopen($id);
+        $service->archive($id, 'closed');
+
+        // Reopening removes the lifecycle row, so "unknown" doesn't survive it.
+        self::assertSame(date('Y-m-d'), $lifecycleRepo->getByListingId($id)['archived_at']);
     }
 
     public function testRearchiveAdoptedToAdoptedKeepsSuccessorNoteAndDate(): void

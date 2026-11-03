@@ -35,7 +35,7 @@ CREATE TABLE owned (
 CREATE TABLE lstr_listing_lifecycle (
     fanlisting_id    INTEGER NOT NULL PRIMARY KEY,
     lifecycle_status TEXT    NOT NULL,
-    archived_at      TEXT    NOT NULL,
+    archived_at      TEXT    NULL,
     legacy_upcoming  INTEGER NOT NULL DEFAULT 0,
     legacy_trouble   INTEGER NOT NULL DEFAULT 0,
     adopted_to_name  TEXT    NULL,

@@ -457,8 +457,15 @@ final class ListingController extends AdminController
         $adoptedToName = $status === 'adopted_out' ? trim((string) $request->post('adopted_to_name', '')) : null;
         $adoptedToUrl  = $status === 'adopted_out' ? self::httpsify(trim((string) $request->post('adopted_to_url', ''))) : null;
         $archiveNote   = $isArchiving ? trim((string) $request->post('archive_note', '')) : null;
-        $archivedAtInput = $isArchiving ? trim((string) $request->post('archived_at', '')) : null;
-        $archivedAtError = self::validateArchivedAt($archivedAtInput);
+        $archivedAtUnknown = $request->post('archived_at_unknown') === '1';
+        [$archivedAtValue, $archivedAtError] = $isArchiving
+            ? self::resolveArchivedAt(
+                trim((string) $request->post('archived_at', '')),
+                $archivedAtUnknown,
+                null,
+                !$archivedAtUnknown || (new ListingLifecycleRepo($db))->supportsUnknownDate(),
+            )
+            : ['', ''];
         $listingType   = (string) $request->post('listing_type', 'listing');
         if (!in_array($listingType, ['listing', 'clique', 'collective', 'shrine', 'webring', 'other'], true)) {
             $listingType = 'listing';
@@ -481,18 +488,9 @@ final class ListingController extends AdminController
             $customCats[$cn] = $categoryRepo->getBySource($cn);
         }
 
-        $networks = array_values((array) $request->post('cat_network', []));
-        $names    = array_values((array) $request->post('cat_name', []));
-        $others   = array_values((array) $request->post('cat_network_other', []));
-        $catIds   = [];
-        foreach ($networks as $i => $rawNet) {
-            $net = trim((string) $rawNet);
-            if ($net === 'other') $net = trim((string) ($others[$i] ?? ''));
-            $n = trim((string) ($names[$i] ?? ''));
-            if ($net === '' || $n === '') continue;
-            $catIds[] = $categoryRepo->findOrCreate($net, $n);
-        }
-        $catidStr = $catIds ? '|' . implode('|', $catIds) . '|' : '';
+        // Only read here; the categories are created once nothing else can stop
+        // the save (below), so a refused save doesn't leave new ones behind.
+        $catPicks = self::categoryPicks($request);
 
         $urlRequired = !$isArchiving;
         $v = new Validator([
@@ -599,6 +597,9 @@ final class ListingController extends AdminController
             default               => 0,
         };
 
+        $catIds   = self::createCategories($categoryRepo, $catPicks);
+        $catidStr = $catIds ? '|' . implode('|', $catIds) . '|' : '';
+
         $newId = $listingRepo->insert($title, $subject, $url, $email, $statusInt, $image, !empty($catIds) ? $catIds[0] : null, $opened, $catidStr, $catIds);
 
         // Unprefixed schema only: a fresh listing has nowhere to store members
@@ -631,7 +632,7 @@ final class ListingController extends AdminController
 
         if ($isArchiving) {
             $lifecycleRepo = new ListingLifecycleRepo($db);
-            $lifecycleRepo->upsert($newId, $status, false, false, $adoptedToName, $adoptedToUrl, $archiveNote, $archivedAtInput);
+            $lifecycleRepo->upsert($newId, $status, false, false, $adoptedToName, $adoptedToUrl, $archiveNote, $archivedAtValue);
             $session      = $this->app->getSession();
             $activityRepo = new ActivityRepo($db);
             $activityRepo->log(
@@ -859,6 +860,9 @@ final class ListingController extends AdminController
         // saved value even after a validation failure on some other field.
         $archivedAtRaw          = (string) ($lifecycleRow['archived_at'] ?? '');
         $archivedAtOriginalVal  = strlen($archivedAtRaw) >= 10 ? substr($archivedAtRaw, 0, 10) : '';
+        // An archived listing whose date is unknown: "Date unknown" starts ticked,
+        // and Reset goes back to that.
+        $archivedAtUnknownOriginal = $lifecycleRow !== null && $lifecycleRow['archived_at'] === null;
 
         // Previous Owners — fetched once up front since both the GET render and
         // the POST-validation-failure render need them (see edit.php's Previous
@@ -898,8 +902,16 @@ final class ListingController extends AdminController
             $adoptedToName = $status === 'adopted_out' ? trim((string) $request->post('adopted_to_name', '')) : null;
             $adoptedToUrl  = $status === 'adopted_out' ? self::httpsify(trim((string) $request->post('adopted_to_url', ''))) : null;
             $archiveNote   = $isArchiving ? trim((string) $request->post('archive_note', '')) : null;
-            $archivedAtInput = $isArchiving ? trim((string) $request->post('archived_at', '')) : null;
-            $archivedAtError = self::validateArchivedAt($archivedAtInput);
+            $archivedAtInput   = $isArchiving ? trim((string) $request->post('archived_at', '')) : null;
+            $archivedAtUnknown = $request->post('archived_at_unknown') === '1';
+            [$archivedAtValue, $archivedAtError] = $isArchiving
+                ? self::resolveArchivedAt(
+                    (string) $archivedAtInput,
+                    $archivedAtUnknown,
+                    $lifecycleRow,
+                    !$archivedAtUnknown || $lifecycleRepo->supportsUnknownDate(),
+                )
+                : ['', ''];
             $subject     = trim((string) $request->post('subject', ''));
             if ($title === '') {
                 $title = $subject;
@@ -911,20 +923,9 @@ final class ListingController extends AdminController
             $opened      = in_array($status, ['upcoming', 'pending'], true)
                 ? null
                 : ($openedRaw !== '' ? $openedRaw : null);
-            $nets       = array_values((array) $request->post('cat_network', []));
-            $nms        = array_values((array) $request->post('cat_name', []));
-            $otherNets  = array_values((array) $request->post('cat_network_other', []));
-            $catids     = [];
-            foreach ($nets as $i => $net) {
-                $net = trim((string) $net);
-                $nm  = trim((string) ($nms[$i] ?? ''));
-                if ($net === 'other') {
-                    $net = trim((string) ($otherNets[$i] ?? ''));
-                }
-                if ($nm === '' || $net === '') continue;
-                $catids[] = $categoryRepo->findOrCreate($net, $nm);
-            }
-            $catidStr    = $catids ? '|' . implode('|', $catids) . '|' : '';
+            // Only read here; the categories are created once the save has passed
+            // validation (below), so a refused save doesn't leave new ones behind.
+            $catPicks    = self::categoryPicks($request);
             $deleteImage = $request->post('delete_image') === '1';
 
             $allowedTypes = ['listing', 'clique', 'collective', 'shrine', 'webring', 'other'];
@@ -1090,6 +1091,7 @@ final class ListingController extends AdminController
                         'previous_owners'     => $previousOwners,
                         'stats_template_has_previous_owners_token' => $statsTemplateHasPreviousOwnersToken,
                         'archived_at_original' => $archivedAtOriginalVal,
+                        'archived_at_unknown_original' => $archivedAtUnknownOriginal,
                         'old'                 => [
                             'subject'            => $subject,
                             'title'              => $title,
@@ -1101,6 +1103,9 @@ final class ListingController extends AdminController
                             'adopted_to_url'     => $adoptedToUrl  ?? '',
                             'archive_note'       => $archiveNote   ?? '',
                             'archived_at'        => $archivedAtInput ?? '',
+                            // Explicit either way, so a box the owner just unticked
+                            // stays unticked even when the saved date is unknown.
+                            'archived_at_unknown' => $archivedAtUnknown ? '1' : '0',
                             'cat_network'        => (array) $request->post('cat_network', []),
                             'cat_name'           => (array) $request->post('cat_name', []),
                             'cat_network_other'  => (array) $request->post('cat_network_other', []),
@@ -1138,6 +1143,9 @@ final class ListingController extends AdminController
             }
 
             // --- All valid: persist ---
+            $catids    = self::createCategories($categoryRepo, $catPicks);
+            $catidStr  = $catids ? '|' . implode('|', $catids) . '|' : '';
+
             // Lifecycle row: upsert when archiving (snapshotting the PRE-save upcoming/
             // trouble so a future Reopen restores correctly), delete otherwise (no-op
             // when the listing wasn't archived). $listing here is the row fetched before
@@ -1151,7 +1159,7 @@ final class ListingController extends AdminController
                 // which would overwrite the true original state and break Reopen.
                 $snapshotUpcoming = $wasArchived ? (bool) ($lifecycleRow['legacy_upcoming'] ?? false) : $listing->upcoming;
                 $snapshotTrouble  = $wasArchived ? (bool) ($lifecycleRow['legacy_trouble']  ?? false) : $listing->trouble;
-                $lifecycleRepo->upsert($id, $status, $snapshotUpcoming, $snapshotTrouble, $adoptedToName, $adoptedToUrl, $archiveNote, $archivedAtInput);
+                $lifecycleRepo->upsert($id, $status, $snapshotUpcoming, $snapshotTrouble, $adoptedToName, $adoptedToUrl, $archiveNote, $archivedAtValue);
                 $activityRepo->log(
                     (int) $session->get('lstr_admin_id'),
                     'listing.archive',
@@ -1293,6 +1301,7 @@ final class ListingController extends AdminController
                 'previous_owners'     => $previousOwners,
                 'stats_template_has_previous_owners_token' => $statsTemplateHasPreviousOwnersToken,
                 'archived_at_original' => $archivedAtOriginalVal,
+                'archived_at_unknown_original' => $archivedAtUnknownOriginal,
                 'lifecycle_meta'      => $lifecycleRow,
             ],
         ), '', [
@@ -2513,13 +2522,88 @@ final class ListingController extends AdminController
     }
 
     /**
+     * The network/category rows the Add/Edit category widget posted, as
+     * [network, name] pairs ("other" replaced by the network typed beside it),
+     * skipping incomplete rows. Nothing is written here: createCategories() makes
+     * them once the save has passed validation.
+     *
+     * @return list<array{0: string, 1: string}>
+     */
+    private static function categoryPicks(Request $request): array
+    {
+        $networks = array_values((array) $request->post('cat_network', []));
+        $names    = array_values((array) $request->post('cat_name', []));
+        $others   = array_values((array) $request->post('cat_network_other', []));
+
+        $picks = [];
+        foreach ($networks as $i => $rawNet) {
+            $net = trim((string) $rawNet);
+            if ($net === 'other') {
+                $net = trim((string) ($others[$i] ?? ''));
+            }
+            $name = trim((string) ($names[$i] ?? ''));
+            if ($net !== '' && $name !== '') {
+                $picks[] = [$net, $name];
+            }
+        }
+        return $picks;
+    }
+
+    /**
+     * Finds or creates each picked category, in order.
+     *
+     * @param list<array{0: string, 1: string}> $picks From categoryPicks()
+     * @return list<int>
+     */
+    private static function createCategories(CategoryRepo $categoryRepo, array $picks): array
+    {
+        return array_map(static fn(array $pick): int => $categoryRepo->findOrCreate($pick[0], $pick[1]), $picks);
+    }
+
+    /**
+     * What to save as a listing's "Closed On"/"Adopted On" date while it's being
+     * archived, from the date field, the "Date unknown" box, and the lifecycle
+     * row already stored (null when the listing isn't archived yet). The value
+     * goes to ListingLifecycleRepo::upsert():
+     *  - box ticked: null, an unknown date. The date field is ignored (it's
+     *    disabled, so the browser doesn't send it anyway). Storing null needs
+     *    Migration 108 ($canStoreUnknown); without it this is an error, found
+     *    before anything is saved or uploaded.
+     *  - a date: that date, once validateArchivedAt() accepts it.
+     *  - blank: '', keep what's stored (today on a first archive). When the
+     *    stored date is unknown, though, a blank field with the box unticked is
+     *    an error, rather than a silent switch to today or a save that changes
+     *    nothing.
+     * Reopening never gets here, so it ignores the box.
+     *
+     * @param array<string,mixed>|null $lifecycleRow
+     * @return array{0: string|null, 1: string} the value to save, and an error ('' when fine)
+     */
+    private static function resolveArchivedAt(string $dateInput, bool $unknownTicked, ?array $lifecycleRow, bool $canStoreUnknown): array
+    {
+        if ($unknownTicked) {
+            return $canStoreUnknown
+                ? [null, '']
+                : ['', 'Luster needs a database update before a date can be marked unknown. Run the migration page first (Luster needs Migration 108), then save again.'];
+        }
+
+        $error = self::validateArchivedAt($dateInput);
+        if ($error !== '') {
+            return ['', $error];
+        }
+        if ($dateInput === '' && $lifecycleRow !== null && $lifecycleRow['archived_at'] === null) {
+            return ['', 'Enter the date, or tick Date unknown.'];
+        }
+
+        return [$dateInput, ''];
+    }
+
+    /**
      * Validates the "Closed On"/"Adopted On" date field (archived_at). Blank
-     * is always valid — it means "preserve whatever's already stored, or
-     * default to today for a fresh archive," resolved at
-     * ListingLifecycleRepo::upsert() — but a non-blank value has to be a
-     * real calendar date: archived_at writes to a DATETIME NOT NULL column,
-     * so a bad value can't just be silently dropped the way fl_last_updated's
-     * looser regex-only check gets away with (that column is nullable).
+     * is valid here — resolveArchivedAt() decides what a blank field means —
+     * but a non-blank value has to be a real calendar date, so a bad value is
+     * rejected rather than silently dropped the way fl_last_updated's looser
+     * regex-only check allows (a known date is stored exactly as typed).
      * checkdate() alone still accepts years like 0001-0999, which MySQL's
      * strict mode can also reject, so the year is bounds-checked explicitly
      * too.

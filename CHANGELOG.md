@@ -22,8 +22,18 @@ release page.
 ### [Unreleased]
 
 **After updating:** go to **Settings → System & Updates** and click **Run
-migrations** once. This update tidies three things in your database (see below),
-and the migration page tells you if any of your listings were affected.
+migrations** once. This update makes four small changes to your database (see
+below), and the migration page tells you if any of your listings were affected.
+
+**Added:**
+- **A closed or adopted-out listing's date can be "unknown".** If you don't
+  know when a listing closed or was adopted out, tick **Date unknown** next to
+  its Closed On / Adopted On date instead of making one up. Your Owned and Past
+  templates can show it with `{if_archived_at_unknown}...{/if_archived_at_unknown}`
+  (say, "closed some time ago"), and `{if_archived_at}...{/if_archived_at}`
+  shows something only when there is a date. If a listing's date is unknown and
+  you untick the box, Luster asks for the date instead of quietly using today.
+  This needs the migration step above.
 
 **Changed:**
 - **Every new member now waits for your approval.** The "Auto Approve Joins"
@@ -43,6 +53,10 @@ and the migration page tells you if any of your listings were affected.
   email still includes the password Luster made up for them.
 
 **Fixed:**
+- **A listing that didn't save doesn't leave new categories behind.** If you
+  picked a brand-new category or network on the Add or Edit listing page and
+  the save was refused (say, the subject was missing), the new category was
+  still created. Now it's only created once the listing actually saves.
 - **Re-archiving a listing doesn't erase its notes anymore.** Picking "Archive
   as Closed" or "Archive as Adopted Out" from the bulk menu on a listing that
   was already closed or adopted out wiped its archive note and the adopted-to

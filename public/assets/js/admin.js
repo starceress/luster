@@ -1171,10 +1171,23 @@ function lstrTodayIso() {
 // (ListingLifecycleRepo::upsert()), so a button that visibly blanked the field
 // would misleadingly suggest the date gets cleared when saving would actually
 // silently restore the old value.
+//
+// "Date unknown" (#fl-archived-at-unknown): while it's ticked the date input and
+// Set Today's Date are disabled, so no date is sent; Reset stays usable and also
+// puts the box back to its saved state (data-original-checked).
 
 (function () {
   var setBtn   = document.getElementById('set-archived-today-btn');
   var resetBtn = document.getElementById('reset-archived-date-btn');
+  var unknown  = document.getElementById('fl-archived-at-unknown');
+
+  function syncUnknown() {
+    var f   = document.getElementById('fl-archived-at');
+    var off = !!(unknown && unknown.checked);
+    if (f) f.disabled = off;
+    if (setBtn) setBtn.disabled = off;
+  }
+
   if (setBtn) {
     setBtn.addEventListener('click', function () {
       var f = document.getElementById('fl-archived-at');
@@ -1185,7 +1198,15 @@ function lstrTodayIso() {
     resetBtn.addEventListener('click', function () {
       var f = document.getElementById('fl-archived-at');
       if (f) f.value = f.dataset.originalValue || '';
+      if (unknown) {
+        unknown.checked = unknown.dataset.originalChecked === '1';
+        syncUnknown();
+      }
     });
+  }
+  if (unknown) {
+    unknown.addEventListener('change', syncUnknown);
+    syncUnknown();
   }
 }());
 

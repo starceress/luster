@@ -609,12 +609,7 @@ final class SettingsController extends AdminController
         foreach ($ids as $lcListingId) {
             $lcRow = $lifecycleRepo->getByListingId($lcListingId);
             if ($lcRow !== null) {
-                $settingsMap[$lcListingId] = array_merge($settingsMap[$lcListingId] ?? [], [
-                    'adopted_to_name' => $lcRow['adopted_to_name'] ?? '',
-                    'adopted_to_url'  => $lcRow['adopted_to_url']  ?? '',
-                    'archive_note'    => $lcRow['archive_note']    ?? '',
-                    'archived_at'     => $lcRow['archived_at']     ?? '',
-                ]);
+                $settingsMap[$lcListingId] = array_merge($settingsMap[$lcListingId] ?? [], ListingLifecycleRepo::renderFields($lcRow));
             }
         }
 
