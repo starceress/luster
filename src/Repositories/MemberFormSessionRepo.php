@@ -43,6 +43,12 @@ final class MemberFormSessionRepo
         }
     }
 
+    /** When a token lasting this many seconds should expire. See Database::expiresIn(). */
+    public function expiresIn(int $seconds): string
+    {
+        return $this->db->expiresIn($seconds);
+    }
+
     public function create(
         int    $listingId,
         string $email,

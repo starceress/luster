@@ -93,6 +93,13 @@ below), and the migration page tells you if any of your listings were affected.
   signed-in fan got tricked into sending one, it could change their details or remove
   them from the listing. Browsers already stop most of these coming from other sites.
   The backup only counts now when there's no sign-in, and it still has to be a real one.
+- **Reset links last as long as they say they do.** Luster set when a link would run
+  out using one clock and checked it using another, and those two clocks can be set
+  to different time zones. So a one-hour reset link could work for hours longer, or
+  be dead the moment it arrived. Now both sides use the same clock. This covers fan,
+  admin and KIM reset links, Collective Update links, the update form's backup and
+  the admin **Remember me** option. Links already sent keep their old time until they
+  run out.
 - **On Keep In Mind, a password only unlocks the entries that use it.** KIM sign-ups
   don't check the email address belongs to whoever typed it, so someone could sign
   up with a fan's address and, once approved, use their own password to change or

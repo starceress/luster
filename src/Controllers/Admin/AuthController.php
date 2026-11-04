@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use DateTimeImmutable;
 use Luster\Core\Application;
 use Luster\Core\Mailer;
 use Luster\Core\RateLimit;
@@ -184,7 +183,7 @@ final class AuthController
         if ($rememberMe) {
             $rawToken       = bin2hex(random_bytes(32));
             $tokenHash      = hash('sha256', $rawToken);
-            $expiresAt      = (new DateTimeImmutable())->modify('+30 days')->format('Y-m-d H:i:s');
+            $expiresAt      = $db->expiresIn(86400 * 30);
             $ua             = substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 100);
             $deviceLabel    = self::labelFromUserAgent($ua);
 
@@ -360,7 +359,7 @@ final class AuthController
 
             $rawToken  = bin2hex(random_bytes(32));
             $tokenHash = hash('sha256', $rawToken);
-            $expiresAt = (new DateTimeImmutable())->modify('+60 minutes')->format('Y-m-d H:i:s');
+            $expiresAt = $db->expiresIn(3600);
 
             $resetRepo->create((int) $user['id'], $tokenHash, $expiresAt);
 

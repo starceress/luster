@@ -42,9 +42,7 @@ final class CollectiveUpdateTokenRepo
 
         $rawToken  = bin2hex(random_bytes(32));
         $tokenHash = hash('sha256', $rawToken);
-        $expiresAt = (new \DateTimeImmutable())
-            ->modify('+' . self::TTL_SECONDS . ' seconds')
-            ->format('Y-m-d H:i:s');
+        $expiresAt = $this->db->expiresIn(self::TTL_SECONDS);
 
         $stmt = $this->db->prepare(
             'INSERT INTO lstr_collective_update_tokens (token_hash, email, expires_at)

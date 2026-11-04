@@ -48,9 +48,7 @@ final class MemberFormSessionService
 
         $rawToken  = bin2hex(random_bytes(32));
         $tokenHash = hash('sha256', $rawToken);
-        $expiresAt = (new \DateTimeImmutable())
-            ->modify('+' . self::TTL_SECONDS . ' seconds')
-            ->format('Y-m-d H:i:s');
+        $expiresAt = $this->repo->expiresIn(self::TTL_SECONDS);
 
         $this->repo->create($listingId, $email, $action, $tokenHash, $expiresAt, $memberStamp);
 

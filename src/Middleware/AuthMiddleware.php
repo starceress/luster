@@ -134,7 +134,7 @@ final class AuthMiddleware
         // cookie cannot be reused. One active token per admin is intentional.
         $newRawToken  = bin2hex(random_bytes(32));
         $newTokenHash = hash('sha256', $newRawToken);
-        $newExpiresAt = date('Y-m-d H:i:s', time() + 86400 * 30);
+        $newExpiresAt = $this->db->expiresIn(86400 * 30);
 
         // Compare-and-swap: include the old hash so a concurrent request that
         // already rotated (rowCount = 0) does not silently succeed here.

@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Luster\Core;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -153,6 +155,38 @@ final class Database
     public function forUpdate(): string
     {
         return $this->pdo()->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite' ? '' : ' FOR UPDATE';
+    }
+
+    /**
+     * When a token that lasts this many seconds should expire, for an expires_at
+     * column. Those columns are checked against NOW() in SQL, so the expiry has to
+     * come from the database's clock too. PHP's can be hours away from it, because
+     * the two get their zones from different places.
+     *
+     * The adding is done in UTC only so PHP's daylight saving can't shift the answer.
+     * The result is still the database's own wall-clock time, never converted. If NOW()
+     * can't be read or understood this throws, because falling back to PHP's clock
+     * would bring the problem straight back.
+     *
+     * @throws RuntimeException A failed read throws PDOException, which is one of these.
+     */
+    public function expiresIn(int $seconds): string
+    {
+        $stmt = $this->prepare('SELECT NOW()');
+        $stmt->execute();
+        $now = $stmt->fetchColumn();
+
+        $parsed = is_string($now)
+            ? DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $now, new DateTimeZone('UTC'))
+            : false;
+
+        // createFromFormat() turns month 13 into next January without complaining,
+        // so a value only counts if it reads back exactly the same.
+        if ($parsed === false || $parsed->format('Y-m-d H:i:s') !== $now) {
+            throw new RuntimeException("Couldn't read the database's clock.");
+        }
+
+        return $parsed->modify($seconds . ' seconds')->format('Y-m-d H:i:s');
     }
 
     /**

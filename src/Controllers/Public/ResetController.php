@@ -142,9 +142,7 @@ final class ResetController
             // Generate token
             $rawToken  = bin2hex(random_bytes(32));
             $tokenHash = hash('sha256', $rawToken);
-            $expiresAt = (new \DateTimeImmutable())
-                ->modify('+' . self::TOKEN_TTL_SECONDS . ' seconds')
-                ->format('Y-m-d H:i:s');
+            $expiresAt = $this->app->getDatabase()->expiresIn(self::TOKEN_TTL_SECONDS);
 
             $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
 

@@ -14,8 +14,12 @@ declare(strict_types=1);
             member-auth-harness.php <scenarios.json> <mail file> <log file>
 
  A scenario: {"layout": "owned"|"enth", "no_migration": bool, "queue_updates": bool,
+   "php_zone": "Europe/Berlin", "db_now": "2031-06-15 12:00:00",
    "members": [{"listing": 1, "email": "...", "name": "...", "password": "...", "md5": bool, "status": "..."}],
    "steps": [{"do": "...", ...}]}
+
+ php_zone and db_now set PHP's zone and freeze what the database's NOW() says, to put
+ the two clocks far apart. Without them, NOW() follows PHP's clock.
 
  Listings: 1 Moon and 2 Sun. Steps are in the switch below. GET_LOCK and friends are
  TracingPdo's scripted versions, so a test can make a chosen lock refuse and see the
@@ -30,6 +34,7 @@ use Luster\Addons\Kim\Controllers\KimUpdateController;
 use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Addons\Kim\KimPasswordResetRepo;
 use Luster\Addons\Kim\KimSignIn;
+use Luster\Controllers\Admin\AuthController;
 use Luster\Controllers\Admin\MemberController;
 use Luster\Controllers\Admin\PendingUpdateController;
 use Luster\Controllers\Public\CollectiveUpdateController;
@@ -40,6 +45,7 @@ use Luster\Core\Application;
 use Luster\Core\Database;
 use Luster\Core\MemberFormSessionService;
 use Luster\Core\Request;
+use Luster\Middleware\AuthMiddleware;
 use Luster\Repositories\CollectiveUpdateTokenRepo;
 use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\MemberFormSessionRepo;
@@ -91,7 +97,7 @@ function authFixture(string $root, array $s): array
     unlink($cfgPath);
 
     $pdo = TracingPdo::memory();
-    $pdo->sqliteCreateFunction('NOW', static fn(): string => date('Y-m-d H:i:s'));
+    $pdo->sqliteCreateFunction('NOW', static fn(): string => $s['db_now'] ?? date('Y-m-d H:i:s'));
     $pdo->sqliteCreateFunction('CURDATE', static fn(): string => date('Y-m-d'));
     $prop = new ReflectionProperty(Database::class, 'pdo');
     $prop->setAccessible(true);
@@ -180,6 +186,15 @@ function authFixture(string $root, array $s): array
     $pdo->exec("CREATE TABLE lstr_kim_password_resets (
         id INTEGER PRIMARY KEY AUTOINCREMENT, kim_member_id INTEGER NOT NULL, token_hash TEXT NOT NULL,
         expires_at TEXT NOT NULL, created_at TEXT NULL)");
+    $pdo->exec("CREATE TABLE lstr_admin_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, email TEXT NOT NULL DEFAULT '',
+        display_name TEXT NULL, password TEXT NOT NULL DEFAULT '', last_login TEXT NULL)");
+    $pdo->exec("CREATE TABLE lstr_admin_remember_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, admin_user_id INTEGER NOT NULL, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL,
+        device_label TEXT NULL, last_used_at TEXT NULL, user_agent_hint TEXT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+    $pdo->exec("CREATE TABLE lstr_password_resets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, admin_user_id INTEGER NOT NULL, token_hash TEXT NOT NULL,
+        expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, created_at TEXT NULL)");
 
     $pdo->statements = [];
 
@@ -224,12 +239,15 @@ function fileFrom(string $path, int $offset): string
     return (string) file_get_contents($path, false, null, $offset);
 }
 
+$startingZone = date_default_timezone_get();
+
 $results = [];
 foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_THROW_ON_ERROR) as $s) {
     clearstatcache();
     $mailStart = is_file($mailFile) ? filesize($mailFile) : 0;
     $logStart  = is_file($logFile) ? filesize($logFile) : 0;
 
+    date_default_timezone_set((string) ($s['php_zone'] ?? $startingZone));
     [$app, $pdo] = authFixture($root, $s);
     $layout = (string) $s['layout'];
     $_SESSION = ['lstr_admin_id' => 1, 'lstr_admin_username' => 'admin', 'captcha_join_answer' => 7, 'captcha_kim_signup_answer' => 7];
@@ -302,6 +320,10 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                     break;
                 case 'fail_on':
                     $pdo->failOn = $step['regex'] ?? null;
+                    break;
+                case 'db_clock':
+                    // The database's clock moves on to this time and stays there.
+                    $pdo->sqliteCreateFunction('NOW', static fn(): string => (string) $step['at']);
                     break;
                 case 'insert_member':
                     insertMember($pdo, $layout, $step['member']);
@@ -390,7 +412,35 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                     (new MemberController($app))->approveAllOverview($post([]), []);
                     break;
 
+                // ---- Admin sign-ins and resets ----
+                case 'admin_user':
+                    $pdo->prepare('INSERT INTO lstr_admin_users (id, username, email, password) VALUES (1, ?, ?, ?)')
+                        ->execute(['star', 'star@x.test', cheapHash('admin-password-1')]);
+                    break;
+                case 'admin_login':
+                    (new AuthController($app))->login($post(['username' => 'star', 'password' => 'admin-password-1', 'remember_me' => '1']), []);
+                    break;
+                case 'admin_forgot':
+                    (new AuthController($app))->forgot($post(['identifier' => 'star']), []);
+                    break;
+                case 'admin_remember_token':
+                    $raw = bin2hex(random_bytes(32));
+                    $pdo->prepare('INSERT INTO lstr_admin_remember_tokens (admin_user_id, token_hash, expires_at) VALUES (1, ?, ?)')
+                        ->execute([hash('sha256', $raw), $step['expires_at']]);
+                    $tokens['remember'] = $raw;
+                    break;
+                case 'admin_remembered':
+                    // A new visit: no session, just the cookie.
+                    $session->remove('lstr_admin_id');
+                    $_COOKIE['lstr_remember'] = '1:' . $tokens['remember'];
+                    (new AuthMiddleware($session, '/admin/login', [], $app->getDatabase()))
+                        ->process(new Request([], [], ['REQUEST_URI' => '/admin', 'REQUEST_METHOD' => 'GET'], [], []));
+                    break;
+
                 // ---- Resets and Collective Update ----
+                case 'reset_request':
+                    (new ResetController($app))->submit($post(['email' => $email, '_luster_embed_form' => 'm1']), ['id' => (string) $listing]);
+                    break;
                 case 'reset_token':
                     $raw = bin2hex(random_bytes(32));
                     (new FanPasswordResetRepo($app->getDatabase()))->create($listing, $email, hash('sha256', $raw), (new DateTimeImmutable('+1 hour'))->format('Y-m-d H:i:s'));
@@ -510,6 +560,14 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
         'form_tokens'    => $read('SELECT member_email, allowed_action, used_at FROM lstr_member_form_sessions ORDER BY id'),
         'resets'         => $read('SELECT fanlisting_id, email FROM lstr_fan_password_resets ORDER BY id'),
         'collective_tokens' => $read('SELECT email, used_at FROM lstr_collective_update_tokens ORDER BY id'),
+        'expiries'       => array_map(static fn(string $table): array => array_column($read("SELECT expires_at FROM {$table} ORDER BY id"), 'expires_at'), [
+            'form_tokens'     => 'lstr_member_form_sessions',
+            'fan_resets'      => 'lstr_fan_password_resets',
+            'collective'      => 'lstr_collective_update_tokens',
+            'kim_resets'      => 'lstr_kim_password_resets',
+            'admin_resets'    => 'lstr_password_resets',
+            'remember_tokens' => 'lstr_admin_remember_tokens',
+        ]),
         'flashes'        => $stepFlashes,
         'session_authed' => array_values(array_filter(array_keys($_SESSION), static fn($k): bool => str_contains((string) $k, 'authed') || str_contains((string) $k, 'kim_update_entries') || str_contains((string) $k, 'formtoken'))),
         'statements'     => $traced,

@@ -86,9 +86,7 @@ final class KimPasswordResetRepo
             }
 
             $rawToken  = bin2hex(random_bytes(32));
-            $expiresAt = (new \DateTimeImmutable())
-                ->modify('+' . $ttlSeconds . ' seconds')
-                ->format('Y-m-d H:i:s');
+            $expiresAt = $this->db->expiresIn($ttlSeconds);
 
             $this->deleteByMember($kimMemberId);
             $this->create($kimMemberId, hash('sha256', $rawToken), $expiresAt);
