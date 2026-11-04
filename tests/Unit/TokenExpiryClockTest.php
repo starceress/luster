@@ -32,15 +32,18 @@ final class TokenExpiryClockTest extends TestCase
     private const ONE_HOUR     = 3600;
     private const THIRTY_DAYS  = 2592000;
 
-    /** Where every place that writes an expiry puts it, and how long that token lasts. */
+    /**
+     * Where every place that writes an expiry puts it, and how long that token lasts.
+     * reads_first: how many times it reads the clock before that, for the rate limiter.
+     */
     private const PLACES = [
-        'form token'           => ['steps' => [['do' => 'signed_in']], 'where' => 'form_tokens', 'life' => self::HALF_AN_HOUR],
-        'fan reset'            => ['steps' => [['do' => 'reset_request']], 'where' => 'fan_resets', 'life' => self::ONE_HOUR],
-        'collective update'    => ['steps' => [['do' => 'collective_token']], 'where' => 'collective', 'life' => self::ONE_HOUR],
-        'KIM reset'            => ['steps' => [['do' => 'kim_reset_request']], 'where' => 'kim_resets', 'life' => self::ONE_HOUR],
-        'admin reset'          => ['steps' => [['do' => 'admin_forgot']], 'where' => 'admin_resets', 'life' => self::ONE_HOUR],
-        'remember me'          => ['steps' => [['do' => 'admin_login']], 'where' => 'remember_tokens', 'life' => self::THIRTY_DAYS],
-        'remember me, rotated' => ['steps' => [['do' => 'admin_remembered']], 'where' => 'remember_tokens', 'life' => self::THIRTY_DAYS],
+        'form token'           => ['steps' => [['do' => 'signed_in']], 'where' => 'form_tokens', 'life' => self::HALF_AN_HOUR, 'reads_first' => 0],
+        'fan reset'            => ['steps' => [['do' => 'reset_request']], 'where' => 'fan_resets', 'life' => self::ONE_HOUR, 'reads_first' => 1],
+        'collective update'    => ['steps' => [['do' => 'collective_token']], 'where' => 'collective', 'life' => self::ONE_HOUR, 'reads_first' => 0],
+        'KIM reset'            => ['steps' => [['do' => 'kim_reset_request']], 'where' => 'kim_resets', 'life' => self::ONE_HOUR, 'reads_first' => 1],
+        'admin reset'          => ['steps' => [['do' => 'admin_forgot']], 'where' => 'admin_resets', 'life' => self::ONE_HOUR, 'reads_first' => 1],
+        'remember me'          => ['steps' => [['do' => 'admin_login']], 'where' => 'remember_tokens', 'life' => self::THIRTY_DAYS, 'reads_first' => 0],
+        'remember me, rotated' => ['steps' => [['do' => 'admin_remembered']], 'where' => 'remember_tokens', 'life' => self::THIRTY_DAYS, 'reads_first' => 0],
     ];
 
     /** Far enough into the future that the token is still good on any scripted clock. */
@@ -130,6 +133,17 @@ final class TokenExpiryClockTest extends TestCase
         $db->expiresIn(1800);
     }
 
+    public function testNowAndAStoredTimeCompareAsPlainWallClockTimes(): void
+    {
+        date_default_timezone_set('Pacific/Kiritimati');
+        $db = $this->databaseWhoseClockSays('2026-06-15 12:00:00');
+
+        self::assertSame('2026-06-15 12:00:00', $db->now()->format('Y-m-d H:i:s'));
+        self::assertEquals($db->now(), $db->storedTime('2026-06-15 12:00:00'));
+        self::assertLessThan($db->now(), $db->storedTime('2026-06-15 11:59:59'));
+        self::assertGreaterThan($db->now(), $db->storedTime('2026-06-15 12:00:01'));
+    }
+
     // ------------------------------------------------------------------
     // Every place that writes an expiry
     // ------------------------------------------------------------------
@@ -201,8 +215,11 @@ final class TokenExpiryClockTest extends TestCase
     public function testWhenTheClockCantBeReadNoTokenIsWrittenAndNoLinkGoesOut(): void
     {
         $scenarios = [];
-        foreach (self::PLACES as $place => ['steps' => $steps]) {
-            $scenarios[$place] = $this->scenario([['do' => 'fail_on', 'regex' => '/^SELECT NOW\(\)$/'], ...$steps]);
+        foreach (self::PLACES as $place => ['steps' => $steps, 'reads_first' => $readsFirst]) {
+            $scenarios[$place] = $this->scenario([
+                ['do' => 'fail_on_after', 'regex' => '/^SELECT NOW\(\)$/', 'let_through' => $readsFirst],
+                ...$steps,
+            ]);
         }
 
         foreach ($this->runScenarios($scenarios) as $place => $r) {

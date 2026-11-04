@@ -172,6 +172,22 @@ final class Database
      */
     public function expiresIn(int $seconds): string
     {
+        return $this->now()->modify($seconds . ' seconds')->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * What the database's clock says right now, for working out times that get stored
+     * and compared later. It's the same clock for every request, while PHP's zone
+     * depends on how the request came in: embeds never apply the Timezone setting.
+     *
+     * It's marked UTC only so adding to it and comparing it is plain arithmetic. It's
+     * still the database's wall-clock time, so don't convert it or show it to anyone.
+     * Compare it with storedTime(), which reads stored values the same way.
+     *
+     * @throws RuntimeException A failed read throws PDOException, which is one of these.
+     */
+    public function now(): DateTimeImmutable
+    {
         $stmt = $this->prepare('SELECT NOW()');
         $stmt->execute();
         $now = $stmt->fetchColumn();
@@ -186,7 +202,13 @@ final class Database
             throw new RuntimeException("Couldn't read the database's clock.");
         }
 
-        return $parsed->modify($seconds . ' seconds')->format('Y-m-d H:i:s');
+        return $parsed;
+    }
+
+    /** Reads a time that was stored from now(), so the two can be compared. */
+    public function storedTime(string $stored): DateTimeImmutable
+    {
+        return new DateTimeImmutable($stored, new DateTimeZone('UTC'));
     }
 
     /**

@@ -100,6 +100,15 @@ below), and the migration page tells you if any of your listings were affected.
   admin and KIM reset links, Collective Update links, the update form's backup and
   the admin **Remember me** option. Links already sent keep their old time until they
   run out.
+- **Going back and forth can't get around a form's attempt limit anymore.** Your public
+  forms can be reached two ways: on your own page, and at Luster's own address. If your
+  **Timezone** setting and your server's PHP time zone were an hour or more apart, those
+  two disagreed about what time it was. Switching between them kept resetting the
+  attempt count and could wipe out a block, so on the update form someone could keep
+  guessing a fan's password with nothing stopping them. Now every form goes by the same
+  clock. Admin login wasn't affected, since there's only one way in. If someone's
+  blocked when you update, that one block could end early or run long, and you can
+  clear it under **Settings → Spam Filtering**.
 - **On Keep In Mind, a password only unlocks the entries that use it.** KIM sign-ups
   don't check the email address belongs to whoever typed it, so someone could sign
   up with a fan's address and, once approved, use their own password to change or

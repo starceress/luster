@@ -25,6 +25,12 @@ use DateTimeImmutable;
  * Predefined action limits (enforced by hitDefault()):
  *   admin_login  — 5 attempts per 15 minutes (900 s)
  *   public_join  — 10 attempts per hour (3600 s)
+ *
+ * Every time here is on the database's clock, never PHP's. A public form can be
+ * reached through its embed or through public/index.php, and those two run in
+ * different PHP zones when the Timezone setting and php.ini disagree. With PHP's clock,
+ * a time one wrote looked hours off to the other, so going back and forth kept
+ * resetting the count and could wipe out a block.
  */
 final class RateLimit
 {
@@ -79,7 +85,7 @@ final class RateLimit
      */
     public function hit(string $identifier, string $action, int $maxAttempts, int $windowSeconds): void
     {
-        $now    = new DateTimeImmutable();
+        $now    = $this->db->now();
         $nowStr = $now->format('Y-m-d H:i:s');
 
         // Fetch any existing row for this identifier+action
@@ -101,7 +107,7 @@ final class RateLimit
         } else {
             // Compare last_attempt to the window boundary in PHP so the logic
             // works on both MySQL and SQLite (avoids DB-dialect-specific SQL).
-            $lastAttempt = new DateTimeImmutable((string) $existing['last_attempt']);
+            $lastAttempt = $this->db->storedTime((string) $existing['last_attempt']);
             $windowStart = $now->modify("-{$windowSeconds} seconds");
 
             if ($lastAttempt < $windowStart) {
@@ -175,8 +181,8 @@ final class RateLimit
             return false;
         }
 
-        $blockedUntil = new DateTimeImmutable((string) $row['blocked_until']);
-        $now          = new DateTimeImmutable();
+        $blockedUntil = $this->db->storedTime((string) $row['blocked_until']);
+        $now          = $this->db->now();
 
         if ($now >= $blockedUntil) {
             // Block has expired — clean up so the counter resets on the next hit
@@ -188,7 +194,8 @@ final class RateLimit
     }
 
     /**
-     * Returns the block expiry time, or null if the identifier is not blocked.
+     * Returns the block expiry time on PHP's clock, or null if the identifier is not
+     * blocked.
      */
     public function blockedUntil(string $identifier, string $action): ?DateTimeImmutable
     {
@@ -203,10 +210,21 @@ final class RateLimit
             return null;
         }
 
-        $blockedUntil = new DateTimeImmutable((string) $row['blocked_until']);
-        $now          = new DateTimeImmutable();
+        $blockedUntil = $this->db->storedTime((string) $row['blocked_until']);
+        $now          = $this->db->now();
 
-        return $now >= $blockedUntil ? null : $blockedUntil;
+        return $now >= $blockedUntil ? null : self::onPhpClock($blockedUntil, $now);
+    }
+
+    /**
+     * The same moment as a time on the database's clock, on PHP's. What's left of the
+     * block is the same on both clocks, so it's PHP's now plus that.
+     */
+    private static function onPhpClock(DateTimeImmutable $stored, DateTimeImmutable $databaseNow): DateTimeImmutable
+    {
+        $secondsLeft = $stored->getTimestamp() - $databaseNow->getTimestamp();
+
+        return (new DateTimeImmutable())->modify($secondsLeft . ' seconds');
     }
 
     /**
@@ -248,7 +266,8 @@ final class RateLimit
      * Returns every row currently blocking someone (blocked_until in the
      * future), newest block first. Rows that are merely accumulating attempts
      * but haven't crossed the threshold yet are not included — there's nothing
-     * for an admin to act on until a block actually exists.
+     * for an admin to act on until a block actually exists. Each blocked_until is on
+     * PHP's clock, because that's what the admin panel shows.
      *
      * @return array<int, array{id: int, identifier: string, action: string, action_label: string, attempts: int, blocked_until: string}>
      */
@@ -262,11 +281,11 @@ final class RateLimit
         );
         $stmt->execute();
 
-        $now    = new DateTimeImmutable();
+        $now    = $this->db->now();
         $active = [];
 
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-            $blockedUntil = new DateTimeImmutable((string) $row['blocked_until']);
+            $blockedUntil = $this->db->storedTime((string) $row['blocked_until']);
             if ($blockedUntil <= $now) {
                 continue; // Expired — isBlocked() will clean it up lazily on next check
             }
@@ -277,7 +296,7 @@ final class RateLimit
                 'action'        => (string) $row['action'],
                 'action_label'  => self::actionLabel((string) $row['action']),
                 'attempts'      => (int) $row['attempts'],
-                'blocked_until' => (string) $row['blocked_until'],
+                'blocked_until' => self::onPhpClock($blockedUntil, $now)->format('Y-m-d H:i:s'),
             ];
         }
 

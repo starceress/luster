@@ -321,9 +321,24 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                 case 'fail_on':
                     $pdo->failOn = $step['regex'] ?? null;
                     break;
+                case 'fail_on_after':
+                    // Lets this many matching statements through, then fails the next one.
+                    $pattern   = (string) $step['regex'];
+                    $letThrough = (int) $step['let_through'];
+                    $pdo->failWhen = static function (string $sql) use ($pattern, &$letThrough): bool {
+                        if (preg_match($pattern, $sql) !== 1) {
+                            return false;
+                        }
+                        return $letThrough-- === 0;
+                    };
+                    break;
                 case 'db_clock':
                     // The database's clock moves on to this time and stays there.
                     $pdo->sqliteCreateFunction('NOW', static fn(): string => (string) $step['at']);
+                    break;
+                case 'php_zone':
+                    // Stands for a request coming in another way, like an embed vs public/index.php.
+                    date_default_timezone_set((string) $step['zone']);
                     break;
                 case 'insert_member':
                     insertMember($pdo, $layout, $step['member']);
@@ -520,8 +535,9 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
         }
 
         // A simulated failure is for the step after it, and only that one.
-        if ($step['do'] !== 'fail_on') {
-            $pdo->failOn = null;
+        if ($step['do'] !== 'fail_on' && $step['do'] !== 'fail_on_after') {
+            $pdo->failOn   = null;
+            $pdo->failWhen = null;
         }
 
         $flashes = [];
