@@ -34,6 +34,14 @@ below), and the migration page tells you if any of your listings were affected.
   shows something only when there is a date. If a listing's date is unknown and
   you untick the box, Luster asks for the date instead of quietly using today.
   This needs the migration step above.
+- **You can add a member yourself.** The Members page has a new **Add Member**
+  button. Pick the listing, fill in the fan's details and any extra fields,
+  and choose whether they're Approved or Pending. Luster makes up a password
+  for them, just like the join form does when a fan leaves it blank, and they
+  can pick their own later with Reset Password. Turn on **Email Fan?** to send
+  them the approval email (Approved) or the join email with their password
+  (Pending). It's off unless you switch it on. Closed and Adopted Out listings
+  can't take new members, so they aren't offered.
 
 **Changed:**
 - **Every new member now waits for your approval.** The "Auto Approve Joins"
@@ -66,6 +74,17 @@ below), and the migration page tells you if any of your listings were affected.
   `HTTPS://example.com` is a perfectly good web address, but the listing edit
   page turned it away as "not a valid URL". It's saved just the way you typed
   it now.
+- **The approval email fills in the fan's website, country and reset link.**
+  If your approval email used `{fan_url}`, `{fan_country}` or `{reset_url}`,
+  approving one member with the Approve button left those blank. They're filled
+  in now, the same as in the join email. (Approve All and the bulk Approve
+  still leave them blank for now.)
+- **Extra fields named with only numbers don't break things anymore.**
+  Enthusiast let you name an extra field something like `123`. On the table
+  layout without `enth_` in front, a listing with a field like that crashed
+  its Members page, Edit Member, the member list on your site and the join
+  form. They all work now. (Making a brand-new field with a numbers-only name
+  from Additional Fields still fails, so give new fields a letter for now.)
 - **Joined listings brought over from Fanatically show up in your Random and
   Latest Joined boxes.** The import saved them with an old status name those
   two boxes don't look for. The import uses the right one now, and the

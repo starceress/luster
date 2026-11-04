@@ -39,6 +39,15 @@ final class TracingPdo extends PDO
     /** True: rollBack() throws and takes nothing back, so the transaction stays open. */
     public bool $failRollBack = false;
 
+    /**
+     * Set on each simulated statement failure's errorInfo, the field a real
+     * driver error fills (e.g. ['23000', 1062, 'Duplicate entry'] for MySQL's
+     * duplicate key). Null leaves it unset.
+     *
+     * @var array{0: string, 1: int, 2: string}|null
+     */
+    public ?array $failErrorInfo = null;
+
     public static function memory(): self
     {
         $pdo = new self('sqlite::memory:');
@@ -102,7 +111,7 @@ final class TracingPdo extends PDO
     {
         $this->statements[] = $sql;
         if ($this->failWhen !== null && ($this->failWhen)($sql) === true) {
-            throw new PDOException('Simulated failure for: ' . $sql);
+            throw $this->failure($sql);
         }
         if ($this->failOn !== null && preg_match($this->failOn, $sql) === 1) {
             if ($this->failTimes !== null) {
@@ -111,7 +120,16 @@ final class TracingPdo extends PDO
                 }
                 $this->failTimes--;
             }
-            throw new PDOException('Simulated failure for: ' . $sql);
+            throw $this->failure($sql);
         }
+    }
+
+    private function failure(string $sql): PDOException
+    {
+        $e = new PDOException('Simulated failure for: ' . $sql);
+        if ($this->failErrorInfo !== null) {
+            $e->errorInfo = $this->failErrorInfo;
+        }
+        return $e;
     }
 }

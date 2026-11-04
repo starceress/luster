@@ -78,6 +78,9 @@ $tabDefs = [
     <?php else: ?>
       <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-quaternary btn-sm">&#8593; Export Pending</a>
     <?php endif; ?>
+    <?php if ($can_add_member ?? false): ?>
+      <a href="<?= $b ?>/admin/members/add<?= $lid > 0 ? '?listing_id=' . $lid : '' ?>" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Member</a>
+    <?php endif; ?>
     <a href="<?= $b ?>/admin/members/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Member Settings</a>
   </div>
 </div>
@@ -420,6 +423,9 @@ endif;
         <div><strong>No members yet.</strong></div>
         <div>They'll appear here after the first fan joins.</div>
         <a href="<?= $b ?>/admin/import-members" class="btn btn-primary btn-sm"><?= View::icon('import') ?> Import Members</a>
+        <?php if ($can_add_member ?? false): ?>
+          <a href="<?= $b ?>/admin/members/add?listing_id=<?= $lid ?>" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Member</a>
+        <?php endif; ?>
       <?php endif; ?>
     </div>
   </div>

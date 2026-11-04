@@ -211,6 +211,12 @@ return [
         $router->post('/admin/members/settings',
             MemberController::class, 'saveSettings');
 
+        // add is registered before {id} so 'add' isn't captured as a listing id.
+        $router->get('/admin/members/add',
+            MemberController::class, 'add');
+        $router->post('/admin/members/add',
+            MemberController::class, 'add');
+
         $router->post('/admin/members/approve-all-overview',
             MemberController::class, 'approveAllOverview');
 

@@ -621,6 +621,8 @@ final class MemberRepo
         $params       = [];
 
         foreach ($data as $col => $value) {
+            // A field named like "123" (Enthusiast allows it) is an int key here.
+            $col = (string) $col;
             $this->validateColumnName($col);
             $columns[]           = "`{$col}`";
             $placeholders[]      = ':c_' . $col;
@@ -658,6 +660,24 @@ final class MemberRepo
         }
 
         return ['approved' => 0, 'updated' => date('Y-m-d H:i:s')];
+    }
+
+    /**
+     * The status columns for a member an admin adds as already approved (Add
+     * Member), the counterpart of pendingJoinColumns():
+     *
+     *   Unprefixed schema: pending=0.
+     *   Standard schema:   approved=1, plus the updated timestamp.
+     *
+     * @return array<string, int|string>
+     */
+    public function approvedColumns(): array
+    {
+        if ($this->approvedWhere === 'pending = 0') {
+            return ['pending' => 0];
+        }
+
+        return ['approved' => 1, 'updated' => date('Y-m-d H:i:s')];
     }
 
     /**
@@ -750,6 +770,8 @@ final class MemberRepo
         $params   = [];
 
         foreach ($data as $col => $value) {
+            // A field named like "123" (Enthusiast allows it) is an int key here.
+            $col = (string) $col;
             $this->validateColumnName($col);
             $setParts[]          = "`{$col}` = :u_{$col}";
             $params['u_' . $col] = $value;

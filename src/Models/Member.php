@@ -87,6 +87,9 @@ final class Member
         $additionalFields = [];
 
         foreach ($row as $key => $value) {
+            // A column named like "123" (Enthusiast allows it) is an int key here.
+            $key = (string) $key;
+
             // Standard enth_ schema: additional_ prefix
             if (str_starts_with($key, 'additional_')) {
                 $additionalFields[substr($key, strlen('additional_'))] = (string) $value;

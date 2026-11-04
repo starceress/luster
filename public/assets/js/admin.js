@@ -8577,3 +8577,49 @@ document.addEventListener('click', function (e) {
     trigger.addEventListener('blur',       hide);
   });
 }());
+
+// ── 60. Add Member: the selected listing's Additional Fields + Clear ───────────
+//
+// One fields group per listing ([data-member-add-fields="ID"]). Only the
+// selected listing's group is shown and enabled, so the others are never
+// posted (two listings can share a field name), and what's typed in a group
+// survives switching away and back. Clear keeps the listing, empties the rest
+// and puts the [data-ma-default] radios back.
+
+(function () {
+  var listing = document.getElementById('ma-listing');
+  if (!listing || !listing.form) return;
+  var form   = listing.form;
+  var groups = form.querySelectorAll('[data-member-add-fields]');
+
+  function sync() {
+    groups.forEach(function (group) {
+      var on = group.getAttribute('data-member-add-fields') === listing.value;
+      group.hidden = !on;
+      group.querySelectorAll('input, select, textarea').forEach(function (el) { el.disabled = !on; });
+    });
+  }
+
+  listing.addEventListener('change', sync);
+  // A native reset restores the listing after this event, so sync a tick later.
+  form.addEventListener('reset', function () { setTimeout(sync, 0); });
+
+  var clear = document.getElementById('ma-clear');
+  if (!clear) return;
+  clear.addEventListener('click', function () {
+    form.querySelectorAll('input, select, textarea').forEach(function (el) {
+      if (el === listing || el.disabled) return;
+      if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button' || el.type === 'reset') return;
+      if (el.type === 'radio') {
+        el.checked = el.hasAttribute('data-ma-default');
+      } else if (el.type === 'checkbox') {
+        el.checked = false;
+      } else if (el.tagName === 'SELECT') {
+        el.selectedIndex = 0;
+      } else {
+        el.value = '';
+      }
+    });
+    sync();
+  });
+}());

@@ -14,19 +14,25 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
+use Luster\Core\Countries;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Models\AdditionalField;
+use Luster\Models\Listing;
+use Luster\Models\Member;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\FieldRepo;
+use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
+use Luster\Support\ListingFormUrlResolver;
 
 /**
  * Unified member management controller.
@@ -306,6 +312,9 @@ final class MemberController extends AdminController
             'listing_counts'          => $listingCountsMap,
             'cross_listing_search'    => $crossListingSearch,
             'filters_active'          => $listingId > 0 || $search !== '',
+            // Closed / Adopted Out listings take no new members (Add Member).
+            'can_add_member'          => $listing === null
+                || (new ListingLifecycleRepo($db))->getByListingId($listingId) === null,
             'success'                 => $success,
             'error'                   => $error,
         ]);
@@ -321,6 +330,304 @@ final class MemberController extends AdminController
         $listingId = (int) ($params['id'] ?? 0);
         $baseUrl   = $this->app->getBaseUrl();
         return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET + POST /admin/members/add  (?listing_id=N preselects that listing)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Adds one member by hand. GET renders the form; POST checks it, saves the
+     * member and, when "Email Fan?" is on, sends the approval email (Approved)
+     * or the join email (Pending, with the password, like a real join). The
+     * owner's new-member notification never goes out: the admin did this.
+     *
+     * Luster makes up the password, exactly as the join form does when a fan
+     * leaves it blank; the member can choose their own later with Reset
+     * Password. Only listings that can take new members are offered (see
+     * addableListings()). Required extra fields aren't enforced here, so the
+     * admin can leave any of them blank.
+     */
+    public function add(Request $request, array $params): Response
+    {
+        $listings = $this->addableListings();
+
+        if (!$request->isPost()) {
+            $listingId = self::idFrom($request->query('listing_id', ''));
+            return $this->renderAddForm($listings, isset($listings[$listingId]) ? $listingId : 0, [], [], '');
+        }
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+        $post   = $request->postAll();
+
+        $listingId = self::idFrom($post['listing_id'] ?? '');
+        $listing   = $listings[$listingId] ?? null;
+
+        // Each of these posts one value. An array is a field error here, never
+        // cast to "Array"; a missing radio takes the form's default.
+        $defaults = ['name' => '', 'email' => '', 'url' => '', 'country' => '', 'showurl' => '1', 'status' => 'approved', 'email_fan' => '0'];
+        $input    = [];
+        $notValid = [];
+        foreach ($defaults as $key => $default) {
+            $raw = $post[$key] ?? $default;
+            if (!is_string($raw)) {
+                $notValid[] = $key;
+                $raw        = $default;
+            }
+            $input[$key] = trim($raw);
+        }
+
+        $v = new Validator($input);
+        foreach ($notValid as $key) {
+            $v->addFieldError($key, "That value isn't valid.");
+        }
+        if ($listingId === 0) {
+            $v->addFieldError('listing_id', 'Choose a listing.');
+        } elseif ($listing === null) {
+            $v->addFieldError('listing_id', "That listing can't take new members: it's closed, adopted out, or has no member table.");
+        }
+        // Same limits as the join form. Checked in the form's order, so the
+        // error summary lists them the way the fields appear.
+        if (!$v->hasFieldErrors('name')) {
+            $v->field('name')->required()->maxLength(100);
+        }
+        if (!$v->hasFieldErrors('email')) {
+            $v->field('email')->required()->email()->maxLength(255);
+        }
+        if (!$v->hasFieldErrors('url')) {
+            $v->field('url')->httpUrl()->maxLength(500);
+        }
+        if ($input['country'] !== '' && !in_array($input['country'], Countries::list(), true)) {
+            $v->addFieldError('country', 'Choose a country from the list.');
+        }
+        if (!in_array($input['showurl'], ['1', '0'], true)) {
+            $v->addFieldError('showurl', 'Choose Show or Hide.');
+        }
+        if (!in_array($input['status'], ['approved', 'pending'], true)) {
+            $v->addFieldError('status', 'Choose Approved or Pending.');
+        }
+        if (!in_array($input['email_fan'], ['0', '1'], true)) {
+            $v->addFieldError('email_fan', 'Choose Off or On.');
+        }
+
+        // Extra fields: only the posted listing's own definitions are read, so
+        // anything else posted (another listing's fields included) is ignored.
+        // Each is posted as field_{listing id}_{field name}: two listings' radios
+        // with the same name would be one radio group in the browser, even while
+        // hidden and disabled, so picking one would untick the other.
+        $extra = [];
+        if ($listing !== null) {
+            $bareNames = (string) $config->get('enth_table_prefix', '') === '';
+            foreach ((new FieldRepo($db, $config))->getFieldsForListing($listingId) as $field) {
+                $key   = 'field_' . $listingId . '_' . $field->name;
+                $value = self::addFieldValue($field, $key, $post[$key] ?? '', $v);
+                if ($value !== null) {
+                    $extra[$bareNames ? $field->name : 'additional_' . $field->name] = $value;
+                }
+            }
+        }
+
+        $memberRepo = new MemberRepo($db, $config);
+        $dbError    = "Couldn't save this member because of a database error. Nothing was added.";
+
+        // Already in this listing, in any status (pending and rejected too).
+        if ($listing !== null && !$v->hasFieldErrors('email')) {
+            try {
+                $existing = $memberRepo->getByEmail($listing->dbprefix, $input['email']);
+            } catch (\RuntimeException $e) {
+                error_log('[Luster] Add Member: checking listing #' . $listingId . ' for ' . $input['email'] . ' failed: ' . $e->getMessage());
+                return $this->renderAddForm($listings, $listingId, $post, $v->errors(), $dbError);
+            }
+            if ($existing !== null) {
+                $existingStatus = $existing->approved ? 'Approved' : ($existing->rejected ? 'Rejected' : 'Pending');
+                $v->addFieldError('email', "This email is already in this listing ({$existingStatus}).");
+            }
+        }
+
+        if ($v->fails()) {
+            return $this->renderAddForm($listings, $listing !== null ? $listingId : 0, $post, $v->errors(), implode(' ', $v->allErrors()));
+        }
+
+        $isApproved  = $input['status'] === 'approved';
+        $rawPassword = bin2hex(random_bytes(8));
+        // Core columns first: + keeps them if an extra field shares a name.
+        $row = [
+            'name'     => $input['name'],
+            'email'    => $input['email'],
+            'url'      => $input['url'],
+            'country'  => $input['country'],
+            'showurl'  => (int) $input['showurl'],
+            'password' => password_hash($rawPassword, PASSWORD_ARGON2ID),
+            'added'    => date('Y-m-d H:i:s'),
+        ] + ($isApproved ? $memberRepo->approvedColumns() : $memberRepo->pendingJoinColumns()) + $extra;
+
+        try {
+            $memberRepo->insert($listing->dbprefix, $row);
+        } catch (\RuntimeException $e) {
+            // Only MySQL/MariaDB's duplicate-entry error means "already here";
+            // anything else isn't guessed at.
+            $info = $e instanceof \PDOException ? $e->errorInfo : null;
+            if (is_array($info) && ($info[0] ?? null) === '23000' && (int) ($info[1] ?? 0) === 1062) {
+                $v->addFieldError('email', 'This email is already in this listing.');
+                return $this->renderAddForm($listings, $listingId, $post, $v->errors(), implode(' ', $v->allErrors()));
+            }
+            error_log('[Luster] Add Member: saving ' . $input['email'] . ' to listing #' . $listingId . ' failed: ' . $e->getMessage());
+            return $this->renderAddForm($listings, $listingId, $post, [], $dbError);
+        }
+
+        // An approved member counts as listing activity, like approving one.
+        if ($isApproved) {
+            (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
+            if ($input['url'] !== '') {
+                try {
+                    (new MemberLinkCheckRepo($db, $config))->upsertMember($listingId, $input['email'], $input['name'], $input['url']);
+                } catch (\Throwable) {}
+            }
+        }
+
+        $emailOutcome = 'off';
+        if ($input['email_fan'] === '1') {
+            $member       = Member::fromRow($row);
+            $emailOutcome = $isApproved
+                ? $this->sendApprovalEmail($listing, $member)
+                : $this->sendJoinEmail($listing, $member, $rawPassword);
+        }
+
+        $session = $this->app->getSession();
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'member.add',
+            "Added member {$input['email']} to listing #{$listingId} as " . ($isApproved ? 'approved' : 'pending'),
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', match ($emailOutcome) {
+            'off'      => 'Member added.',
+            'sent'     => 'Member added and emailed.',
+            'disabled' => 'Member added. No email went out because that email template is turned off.',
+            default    => "Member added, but the email couldn't be sent.",
+        });
+        return Response::redirect($this->app->getBaseUrl() . '/admin/members?listing_id=' . $listingId . '&status=all');
+    }
+
+    /**
+     * The listings Add Member offers, keyed by id, sorted like the Members
+     * page's listing filter: every listing with a member table that isn't
+     * Closed or Adopted Out (the join form's rule).
+     *
+     * @return array<int, Listing>
+     */
+    private function addableListings(): array
+    {
+        $db       = $this->app->getDatabase();
+        $listings = array_values(array_filter(
+            (new ListingRepo($db, $this->app->getConfig()))->getAll(),
+            static fn(Listing $l): bool => $l->dbprefix !== '',
+        ));
+        $archived = (new ListingLifecycleRepo($db))->getMapForListings(array_map(static fn(Listing $l): int => $l->id, $listings));
+        usort($listings, static fn(Listing $a, Listing $b): int => strcasecmp($a->subject ?: $a->title, $b->subject ?: $b->title));
+
+        $addable = [];
+        foreach ($listings as $l) {
+            if (!isset($archived[$l->id])) {
+                $addable[$l->id] = $l;
+            }
+        }
+        return $addable;
+    }
+
+    /**
+     * Renders the Add Member form. $selectedId is 0 or a key of $listings;
+     * $old (the post, on an error) only fills the selected listing's fields.
+     *
+     * @param array<int, Listing>         $listings
+     * @param array<string, list<string>> $fieldErrors
+     */
+    private function renderAddForm(array $listings, int $selectedId, array $old, array $fieldErrors, string $error): Response
+    {
+        $fieldsByListing = array_filter(
+            array_intersect_key((new FieldRepo($this->app->getDatabase(), $this->app->getConfig()))->getAllFields(), $listings),
+            static fn(array $fields): bool => $fields !== [],
+        );
+        $selected = $listings[$selectedId] ?? null;
+
+        return $this->adminLayout('admin/members/add.php', 'Add Member', 'members', [
+            'listings'          => $listings,
+            'fields_by_listing' => $fieldsByListing,
+            'selected_id'       => $selected !== null ? $selectedId : 0,
+            'old'               => $old,
+            'field_errors'      => $fieldErrors,
+            'error'             => $error,
+        ], '', $selected !== null
+            ? $this->memberBreadcrumbs($selected, 'Add Member')
+            : [$this->crumb('Members', $this->adminUrl('/admin/members')), $this->crumb('Add Member')]);
+    }
+
+    /**
+     * Normalizes one posted extra-field answer for Add Member, then checks it
+     * against the field's control (AdditionalField::controlKind()). Returns
+     * the value to store, or null after recording a field error under $key
+     * (the posted name). Blank is always fine. Arrays never reach
+     * Validator::field(), which would cast them to "Array".
+     */
+    private static function addFieldValue(AdditionalField $field, string $key, mixed $raw, Validator $v): ?string
+    {
+        $label   = $field->label !== '' ? $field->label : $field->name;
+        $kind    = $field->controlKind();
+        $options = $field->optionList();
+
+        if ($kind === 'checkboxes') {
+            // A flat list of picks, saved joined the way the join form saves them.
+            $raw = is_string($raw) ? ($raw === '' ? [] : [$raw]) : $raw;
+            if (!is_array($raw)) {
+                $v->addFieldError($key, "{$label}: that answer isn't valid.");
+                return null;
+            }
+            $picks = [];
+            foreach ($raw as $pick) {
+                if (!is_string($pick)) {
+                    $v->addFieldError($key, "{$label}: that answer isn't valid.");
+                    return null;
+                }
+                $pick = trim($pick);
+                if ($pick === '') {
+                    continue;
+                }
+                if (!in_array($pick, $options, true)) {
+                    $v->addFieldError($key, "{$label}: pick from the listed options.");
+                    return null;
+                }
+                $picks[] = $pick;
+            }
+            $value = implode(', ', array_values(array_unique($picks)));
+        } else {
+            if (!is_string($raw)) {
+                $v->addFieldError($key, "{$label}: that answer isn't valid.");
+                return null;
+            }
+            $value = trim($raw);
+            if ($value !== '' && in_array($kind, ['select', 'radio'], true) && !in_array($value, $options, true)) {
+                $v->addFieldError($key, "{$label}: pick one of the listed options.");
+                return null;
+            }
+            if ($kind === 'checkbox' && !in_array($value, ['', '1'], true)) {
+                $v->addFieldError($key, "{$label}: that answer isn't valid.");
+                return null;
+            }
+        }
+
+        if (mb_strlen($value, 'UTF-8') > 255) {
+            $v->addFieldError($key, "{$label} can be at most 255 characters.");
+            return null;
+        }
+        return $value;
+    }
+
+    /** A posted or query id: digits only, anything else (an array included) is 0. */
+    private static function idFrom(mixed $value): int
+    {
+        return is_string($value) && ctype_digit($value) ? (int) $value : 0;
     }
 
     // -----------------------------------------------------------------------
@@ -1289,32 +1596,7 @@ final class MemberController extends AdminController
                         (new MemberLinkCheckRepo($db, $config))->upsertMember($listingId, $member->email, $member->name, $member->url);
                     } catch (\Throwable) {}
                 }
-                try {
-                    $cfg       = $this->app->getConfig();
-                    $mailer    = new Mailer($cfg);
-                    $emailRepo = new EmailTemplateRepo($db);
-                    $_lsr      = new ListingSettingsRepo($db);
-                    $_es       = $_lsr->getResolvedEmbedSettings($listingId);
-                    $tokens    = EmailTemplateRepo::buildTokens(
-                        listingName:    $listing->title,
-                        listingUrl:     $listing->url,
-                        siteName:       (string) $cfg->get('site_name', 'Luster'),
-                        listingSubject: $listing->subject,
-                        ownerName:      (string) $cfg->get('owner_name', ''),
-                        ownerEmail:     (string) $cfg->get('owner_email', ''),
-                        fanName:        $member->name,
-                        fanEmail:       $member->email,
-                        listingEmail:   $listing->email,
-                        formUrlJoin:    (string) $_es['form_url_join'],
-                        formUrlUpdate:  (string) $_es['form_url_update'],
-                        formUrlReset:   (string) $_es['form_url_reset'],
-                        listingType:    $_lsr->getListingType($listingId),
-                    );
-                    [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
-                    if ($subject !== '') { $mailer->send($member->email, $member->name, $subject, $body); }
-                } catch (\Throwable $e) {
-                    error_log('[Luster] Approve email failed: ' . $e->getMessage());
-                }
+                $this->sendApprovalEmail($listing, $member);
             }
         }
 
@@ -1357,6 +1639,107 @@ final class MemberController extends AdminController
         $remaining      = $memberRepo->countPending($listing->dbprefix) + $pendingUpdateRepo->countByListing($listingId);
         $redirectStatus = $remaining > 0 ? 'pending' : 'all';
         return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=' . $redirectStatus);
+    }
+
+    /**
+     * Sends one member the approval email (the Approve button and Add Member)
+     * and says how it went: 'sent', 'disabled' (the template is turned off, so
+     * nothing went out) or 'failed' (logged). Best-effort: never throws.
+     */
+    private function sendApprovalEmail(Listing $listing, Member $member): string
+    {
+        try {
+            $db       = $this->app->getDatabase();
+            $cfg      = $this->app->getConfig();
+            $settings = new ListingSettingsRepo($db);
+            $embed    = $settings->getResolvedEmbedSettings($listing->id);
+            $tokens   = EmailTemplateRepo::buildTokens(
+                listingName:    $listing->title,
+                listingUrl:     $listing->url,
+                siteName:       (string) $cfg->get('site_name', 'Luster'),
+                listingSubject: $listing->subject,
+                ownerName:      (string) $cfg->get('owner_name', ''),
+                ownerEmail:     (string) $cfg->get('owner_email', ''),
+                fanName:        $member->name,
+                fanEmail:       $member->email,
+                fanUrl:         $member->url,
+                fanCountry:     $member->country,
+                resetUrl:       $this->resetPageUrl($listing, $settings, $embed),
+                listingEmail:   $listing->email,
+                formUrlJoin:    (string) $embed['form_url_join'],
+                formUrlUpdate:  (string) $embed['form_url_update'],
+                formUrlReset:   (string) $embed['form_url_reset'],
+                listingType:    $settings->getListingType($listing->id),
+            );
+            [$subject, $body] = (new EmailTemplateRepo($db))->resolveForListing($listing->id, EmailTemplateRepo::TYPE_APPROVE, $tokens);
+            if ($subject === '') {
+                return 'disabled';
+            }
+            (new Mailer($cfg))->send($member->email, $member->name, $subject, $body);
+            return 'sent';
+        } catch (\Throwable $e) {
+            error_log('[Luster] Approve email failed: ' . $e->getMessage());
+            return 'failed';
+        }
+    }
+
+    /**
+     * Sends a member Add Member saved as Pending the join email, the same one
+     * the public join form sends, password included. Returns 'sent',
+     * 'disabled' or 'failed' like sendApprovalEmail().
+     */
+    private function sendJoinEmail(Listing $listing, Member $member, string $rawPassword): string
+    {
+        try {
+            $db       = $this->app->getDatabase();
+            $cfg      = $this->app->getConfig();
+            $settings = new ListingSettingsRepo($db);
+            $embed    = $settings->getResolvedEmbedSettings($listing->id);
+            $globals  = $settings->getGlobalFormUrlDefaults();
+            $tokens   = EmailTemplateRepo::buildTokens(
+                listingName:    $listing->title,
+                listingUrl:     $listing->url,
+                siteName:       (string) $cfg->get('site_name', 'Luster'),
+                listingSubject: $listing->subject,
+                ownerName:      (string) $cfg->get('owner_name', ''),
+                ownerEmail:     (string) $cfg->get('owner_email', ''),
+                fanName:        $member->name,
+                fanEmail:       $member->email,
+                fanUrl:         $member->url,
+                fanCountry:     $member->country,
+                resetUrl:       $this->resetPageUrl($listing, $settings, $embed),
+                fanPassword:    $rawPassword,
+                listingEmail:   $listing->email,
+                formUrlJoin:    (string) ($embed['form_url_join']   ?: $globals['form_url_join']),
+                formUrlUpdate:  (string) ($embed['form_url_update'] ?: $globals['form_url_update']),
+                formUrlReset:   (string) ($embed['form_url_reset']  ?: $globals['form_url_reset']),
+                listingType:    $settings->getListingType($listing->id),
+            );
+            [$subject, $body] = (new EmailTemplateRepo($db))->resolveForListing($listing->id, EmailTemplateRepo::TYPE_JOIN, $tokens);
+            if ($subject === '') {
+                return 'disabled';
+            }
+            (new Mailer($cfg))->send($member->email, $member->name, $subject, $body);
+            return 'sent';
+        } catch (\Throwable $e) {
+            error_log('[Luster] Join email failed: ' . $e->getMessage());
+            return 'failed';
+        }
+    }
+
+    /**
+     * The listing's Reset Password page for {reset_url}, found the way the
+     * join form finds it. The member asks for a link there once approved.
+     *
+     * @param array<string, mixed> $embed getResolvedEmbedSettings() for the listing
+     */
+    private function resetPageUrl(Listing $listing, ListingSettingsRepo $settings, array $embed): string
+    {
+        return ListingFormUrlResolver::resolve(
+            (string) ($embed['form_url_reset'] ?? ''),
+            $listing->url,
+            $settings->getGlobalFormUrlDefaults()['form_url_reset'],
+        );
     }
 
     // -----------------------------------------------------------------------

@@ -52,4 +52,35 @@ final class AdditionalField
         public readonly bool   $required,
         public readonly string $options = '',
     ) {}
+
+    /**
+     * The field's choices: $options split on commas, trimmed, blanks dropped
+     * (the same parsing as FormFieldBuilder::descriptorsFromAdditionalFields()).
+     *
+     * @return list<string>
+     */
+    public function optionList(): array
+    {
+        return array_values(array_filter(
+            array_map('trim', explode(',', $this->options)),
+            static fn(string $o): bool => $o !== '',
+        ));
+    }
+
+    /**
+     * The control the admin Add Member form gives this field, which its save
+     * checks against: 'select' (dropdown, or select as Enthusiast imports call
+     * it), 'radio', 'checkboxes' (a checkbox field with options: pick any),
+     * 'checkbox' (one without options: a single yes box), 'textarea' or 'text'.
+     */
+    public function controlKind(): string
+    {
+        return match ($this->type) {
+            'dropdown', 'select' => 'select',
+            'radio'              => 'radio',
+            'checkbox'           => $this->optionList() !== [] ? 'checkboxes' : 'checkbox',
+            'textarea'           => 'textarea',
+            default              => 'text',
+        };
+    }
 }
