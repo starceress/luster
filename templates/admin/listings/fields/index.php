@@ -53,7 +53,13 @@ $id = (int) $listing->id;
           <?php foreach ($fields as $field): ?>
             <?php $safeName = View::e($field->name); ?>
             <tr>
-              <td><?= View::e($field->label) ?></td>
+              <td>
+                <?= View::e($field->label) ?>
+                <?php if (in_array((string) $field->name, $unsavable_fields ?? [], true)): ?>
+                  <span class="badge badge-error badge-inline">Can't save answers</span>
+                  <p class="form-hint">Delete this field and add it again under another name.</p>
+                <?php endif; ?>
+              </td>
               <td><code><?= $safeName ?></code></td>
               <td class="text-muted"><?= View::e($field->type) ?></td>
               <td>

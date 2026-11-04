@@ -315,12 +315,13 @@ if (!$_lusterSignedIn) {
     $_lusterUrlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="' . $_lusterUrlVal . '" maxlength="500" placeholder="https://">'
                    . '<div class="fl-field-hint"><label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label></div>';
 
-    $_lusterUpdOld = [];
+    $_lusterUpdOld     = [];
+    $_lusterAnswersNow = $_lusterMember->answers($_lusterFields);
     foreach ($_lusterFields as $_lusterField) {
         $_lusterOldVal = $_lusterOld['field_' . $_lusterField->name] ?? null;
         $_lusterUpdOld['field_' . $_lusterField->name] = $_lusterOldVal !== null
             ? (is_array($_lusterOldVal) ? implode(',', array_map('strval', $_lusterOldVal)) : (string) $_lusterOldVal)
-            : (string) ($_lusterMember->additionalFields[$_lusterField->name] ?? '');
+            : ($_lusterAnswersNow[$_lusterField->name] ?? '');
     }
 
     $_lusterDescriptors = [

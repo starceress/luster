@@ -65,7 +65,7 @@ final class FieldControllerNumericNameTest extends TestCase
 
         // The new field takes a member's answer like any other.
         $memberRepo->insert('fl_moon', ['email' => 'ann@example.com', 'name' => 'Ann', '123' => '42'] + $memberRepo->approvedColumns());
-        self::assertSame('42', $memberRepo->getByEmail('fl_moon', 'ann@example.com')?->additionalFields['123']);
+        self::assertSame('42', $memberRepo->getByEmail('fl_moon', 'ann@example.com')?->extraColumns['123']);
 
         $deleted = $controller->delete(new Request([], [], ['REQUEST_METHOD' => 'POST'], [], []), ['fid' => '1', 'name' => '123']);
         self::assertSame(self::FIELDS_URL . '?success=' . urlencode('Field deleted successfully.'), $deleted->getRedirectUrl());

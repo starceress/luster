@@ -184,6 +184,25 @@ final class FieldRepo
     }
 
     /**
+     * The fields that can't save answers, for the Fields lists. It's only a label,
+     * so a failed read gives none and never breaks the page. Saves do their own
+     * strict check with fieldColumns().
+     *
+     * @param AdditionalField[] $fields Every definition on the listing.
+     * @return list<string> Field names.
+     */
+    public function fieldsWithoutColumn(string $dbprefix, array $fields): array
+    {
+        try {
+            $columns = $this->fieldColumns($dbprefix, $fields);
+        } catch (RuntimeException | \InvalidArgumentException) {
+            return [];
+        }
+
+        return array_map('strval', array_keys(array_filter($columns, static fn(?string $column): bool => $column === null)));
+    }
+
+    /**
      * Adds the column for a new field to the listing's member table: the bare
      * name on the unprefixed schema, additional_{$fieldName} on the standard one.
      *

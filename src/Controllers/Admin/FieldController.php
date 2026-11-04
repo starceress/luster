@@ -56,6 +56,7 @@ final class FieldController extends AdminController
         return $this->adminLayout('admin/listings/fields/index.php', 'Fields', 'listings', [
             'listing' => $listing,
             'fields'     => $fields,
+            'unsavable_fields' => $fieldRepo->fieldsWithoutColumn($listing->dbprefix, $fields),
             'success'    => $success,
             'error'      => $error,
         ], '', [

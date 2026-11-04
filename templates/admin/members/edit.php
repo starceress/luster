@@ -158,9 +158,11 @@ $id = (int) $listing->id;
     <div class="card-body">
       <div class="section-label">Additional Fields</div>
 
+      <?php $_answers = $member->answers($fields); ?>
       <?php foreach ($fields as $field):
         $fKey     = 'field_' . $field->name;
-        $fieldVal = $old[$fKey] ?? ($member->additionalFields[$field->name] ?? '');
+        // A malformed post (an array) isn't shown back: these inputs only post text.
+        $fieldVal = is_string($old[$fKey] ?? null) ? $old[$fKey] : ($_answers[$field->name] ?? '');
       ?>
         <div class="field-row<?= !empty($fe[$fKey]) ? ' has-error' : '' ?>">
           <label class="field-label" for="field-<?= View::e($field->name) ?>">

@@ -32,7 +32,7 @@ final class MemberRepoNumericFieldTest extends TestCase
 
         $member = $repo->getByEmail('fl_moon', 'ann@example.com');
         self::assertNotNull($member);
-        self::assertSame('42', $member->additionalFields['123'] ?? null);
+        self::assertSame('42', $member->extraColumns['123'] ?? null);
         self::assertTrue($member->approved);
         self::assertCount(1, $repo->getApproved('fl_moon'));
     }
@@ -41,7 +41,11 @@ final class MemberRepoNumericFieldTest extends TestCase
     {
         $member = Member::fromRow(['email' => 'ann@example.com', 'name' => 'Ann', 'pending' => '0', 123 => '42', 'additional_456' => '7']);
 
-        self::assertSame(['123' => '42', '456' => '7'], $member->additionalFields);
+        self::assertSame(['123' => '42', 'additional_456' => '7'], $member->extraColumns);
+        self::assertSame(['123' => '42', '456' => '7'], $member->answers([
+            new \Luster\Models\AdditionalField('123', 'Lucky number', 'text', false),
+            new \Luster\Models\AdditionalField('456', 'Other number', 'text', false),
+        ]));
         self::assertTrue($member->approved);
     }
 

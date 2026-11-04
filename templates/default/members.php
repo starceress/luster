@@ -94,8 +94,9 @@ use Luster\Support\DateFormatter;
             <?= View::e($_addedText) ?>
           </span>
           <?php endif; ?>
+          <?php $_answers = $member->answers($fields); ?>
           <?php foreach ($fields as $field): ?>
-            <?php $val = $member->additionalFields[$field->name] ?? ''; ?>
+            <?php $val = $_answers[$field->name] ?? ''; ?>
             <span class="fl-member-table-cell"><?= $val !== '' ? View::e($val) : '&ndash;' ?></span>
           <?php endforeach; ?>
         </div>

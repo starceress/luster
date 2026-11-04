@@ -419,7 +419,6 @@ final class EmbedCodesController
             $fields    = $fieldRepo->getFieldsForListing($listingId);
 
             $member = Member::fromRow([
-                'id'      => 0,
                 'name'    => 'Usagi',
                 'email'   => 'usagi@example.com',
                 'url'     => 'https://example.com/usagi',

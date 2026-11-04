@@ -232,8 +232,9 @@ $pendingNewCnt = count($pendingNew);
             </td>
             <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
             <td class="text-muted" data-label="Country"><?= View::e($m->country) ?></td>
+            <?php $_answers = $m->answers($fields); ?>
             <?php foreach ($fields as $field): ?>
-              <td class="text-muted" data-label="<?= View::e($field->label) ?>"><?= View::e($m->additionalFields[$field->name] ?? '') ?></td>
+              <td class="text-muted" data-label="<?= View::e($field->label) ?>"><?= View::e($_answers[$field->name] ?? '') ?></td>
             <?php endforeach; ?>
             <td class="actions-col" data-label="">
               <div class="actions-row">
@@ -318,7 +319,7 @@ $pendingNewCnt = count($pendingNew);
         </thead>
         <tbody>
           <?php foreach ($pendingPUs as $pu):
-            $puMember = $puMemberMap[$pu->member_email] ?? null;
+            $puMember = $puMemberMap[(int) $pu->fanlisting_id . ':' . $pu->member_email] ?? null;
           ?>
           <tr>
             <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
@@ -333,14 +334,17 @@ $pendingNewCnt = count($pendingNew);
               <?php else: ?>
                 <div class="diff-changes">
                   <?php foreach ($pu->changes as $field => $newVal):
-                    $newVal = (string) $newVal;
+                    // A queued request's keys are real column names.
+                    $newVal = is_scalar($newVal) ? (string) $newVal : '(not valid)';
                     $oldVal = '';
                     if ($puMember !== null) {
-                        $oldVal = match ($field) {
+                        $oldVal = match ((string) $field) {
                             'name'    => $puMember->name,
+                            'email'   => $puMember->email,
                             'url'     => $puMember->url,
                             'country' => $puMember->country,
-                            default   => $puMember->additionalFields[$field] ?? '',
+                            'showurl' => $puMember->showurl ? '1' : '0',
+                            default   => $puMember->extraColumns[$field] ?? '',
                         };
                     }
                     $isClearing = $newVal === '' && $oldVal !== '';
@@ -495,8 +499,9 @@ endif;
             <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
             <td class="text-muted" data-label="Country"><?= View::e($m->country) ?></td>
             <td class="text-muted nowrap" data-label="Date Joined"><?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?></td>
+            <?php $_answers = $m->answers($fields); ?>
             <?php foreach ($fields as $field): ?>
-              <td class="text-muted" data-label="<?= View::e($field->label) ?>"><?= View::e($m->additionalFields[$field->name] ?? '') ?></td>
+              <td class="text-muted" data-label="<?= View::e($field->label) ?>"><?= View::e($_answers[$field->name] ?? '') ?></td>
             <?php endforeach; ?>
             <?php if ($status === 'all'): ?>
               <td data-label="Status">
@@ -864,7 +869,7 @@ endif;
             $puListing = ($fl_by_id ?? [])[(int) $pu->fanlisting_id] ?? null;
             $puFlId    = (int) $pu->fanlisting_id;
             $puCount   = is_array($pu->changes) ? count($pu->changes) : 0;
-            $puMember  = ($pending_member_data ?? [])[$pu->member_email] ?? null;
+            $puMember  = ($pending_member_data ?? [])[$puFlId . ':' . $pu->member_email] ?? null;
           ?>
           <tr>
             <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
@@ -898,7 +903,7 @@ endif;
                   <summary class="changes-toggle-summary"><?= $puCount ?> field<?= $puCount !== 1 ? 's' : '' ?> <?= View::icon('chevrondown') ?></summary>
                   <div class="changes-list">
                     <?php foreach ($pu->changes as $field => $val): ?>
-                      <div class="changes-list-item"><span class="changes-list-label"><?= View::e(ucfirst((string) $field)) ?>:</span> <?= $field === 'password' ? '<em>Password change requested</em>' : View::e((string) $val) ?></div>
+                      <div class="changes-list-item"><span class="changes-list-label"><?= View::e(ucfirst((string) $field)) ?>:</span> <?= $field === 'password' ? '<em>Password change requested</em>' : View::e(is_scalar($val) ? (string) $val : '(not valid)') ?></div>
                     <?php endforeach; ?>
                   </div>
                 </details>

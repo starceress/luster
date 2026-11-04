@@ -32,6 +32,7 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
+use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
 
 /**
@@ -192,11 +193,11 @@ final class MemberController extends AdminController
                 $puTotal               = $puResult['total'];
                 $puPages               = $puResult['pages'];
                 foreach ($listingPendingUpdates as $pu) {
-                    $email = $pu->member_email;
-                    if (!isset($pendingMemberData[$email])) {
-                        $m = $memberRepo->getByEmail($listing->dbprefix, $email);
+                    $key = $listingId . ':' . $pu->member_email;
+                    if (!isset($pendingMemberData[$key])) {
+                        $m = $memberRepo->getByEmail($listing->dbprefix, $pu->member_email);
                         if ($m !== null) {
-                            $pendingMemberData[$email] = $m;
+                            $pendingMemberData[$key] = $m;
                         }
                     }
                 }
@@ -254,10 +255,12 @@ final class MemberController extends AdminController
                 // Build member-data map for pending updates (name/url/country lookup)
                 foreach ($pendingUpdates as $pu) {
                     $puFl = $flById[(int) $pu->fanlisting_id] ?? null;
-                    if ($puFl !== null && $puFl->dbprefix !== '' && !isset($pendingMemberData[$pu->member_email])) {
+                    // By listing too: one address can be a different fan's name in each.
+                    $key = (int) $pu->fanlisting_id . ':' . $pu->member_email;
+                    if ($puFl !== null && $puFl->dbprefix !== '' && !isset($pendingMemberData[$key])) {
                         $m = $memberRepo->getByEmail($puFl->dbprefix, $pu->member_email);
                         if ($m !== null) {
-                            $pendingMemberData[$pu->member_email] = $m;
+                            $pendingMemberData[$key] = $m;
                         }
                     }
                 }
@@ -416,20 +419,34 @@ final class MemberController extends AdminController
         // Each is posted as field_{listing id}_{field name}: two listings' radios
         // with the same name would be one radio group in the browser, even while
         // hidden and disabled, so picking one would untick the other.
-        $extra = [];
+        $dbError = "Couldn't save this member because of a database error. Nothing was added.";
+        $extra   = [];
         if ($listing !== null) {
-            $bareNames = (string) $config->get('enth_table_prefix', '') === '';
-            foreach ((new FieldRepo($db, $config))->getFieldsForListing($listingId) as $field) {
+            $fieldRepo = new FieldRepo($db, $config);
+            $fields    = $fieldRepo->getFieldsForListing($listingId);
+            $answers   = [];
+            foreach ($fields as $field) {
                 $key   = 'field_' . $listingId . '_' . $field->name;
                 $value = self::addFieldValue($field, $key, $post[$key] ?? '', $v);
                 if ($value !== null) {
-                    $extra[$bareNames ? $field->name : 'additional_' . $field->name] = $value;
+                    $answers[$field->name] = $value;
+                }
+            }
+            if ($fields !== []) {
+                try {
+                    $placed = FieldAnswers::place($fields, $fieldRepo->fieldColumns($listing->dbprefix, $fields), $answers);
+                } catch (\RuntimeException | \InvalidArgumentException $e) {
+                    error_log('[Luster] Add Member: reading the member table for listing #' . $listingId . ' failed: ' . $e->getMessage());
+                    return $this->renderAddForm($listings, $listingId, $post, $v->errors(), $dbError);
+                }
+                $extra = $placed['values'];
+                foreach ($placed['unplaceable'] as $field) {
+                    $v->addFieldError('field_' . $listingId . '_' . $field->name, FieldAnswers::adminRefusal($field));
                 }
             }
         }
 
         $memberRepo = new MemberRepo($db, $config);
-        $dbError    = "Couldn't save this member because of a database error. Nothing was added.";
 
         // Already in this listing, in any status (pending and rejected too).
         if ($listing !== null && !$v->hasFieldErrors('email')) {
@@ -451,7 +468,6 @@ final class MemberController extends AdminController
 
         $isApproved  = $input['status'] === 'approved';
         $rawPassword = bin2hex(random_bytes(8));
-        // Core columns first: + keeps them if an extra field shares a name.
         $row = [
             'name'     => $input['name'],
             'email'    => $input['email'],
@@ -699,6 +715,31 @@ final class MemberController extends AdminController
                 $v->addFieldError('email', 'Another member in this listing already uses that email.');
             }
 
+            // Where each extra answer goes, worked out before anything is written.
+            // These inputs only ever post text, so anything else is an error.
+            $answers = [];
+            foreach ($fields as $field) {
+                $raw = $request->post('field_' . $field->name, '');
+                if (is_string($raw)) {
+                    $answers[$field->name] = trim($raw);
+                } else {
+                    $v->addFieldError('field_' . $field->name, $field->displayName() . ": that answer isn't valid.");
+                }
+            }
+            $extraValues = [];
+            if ($fields !== []) {
+                try {
+                    $placed      = FieldAnswers::place($fields, $fieldRepo->fieldColumns($listing->dbprefix, $fields), $answers);
+                    $extraValues = $placed['values'];
+                    foreach ($placed['unplaceable'] as $field) {
+                        $v->addFieldError('field_' . $field->name, FieldAnswers::adminRefusal($field));
+                    }
+                } catch (\RuntimeException | \InvalidArgumentException $e) {
+                    error_log('[Luster] Edit Member: reading the member table for listing #' . $listingId . ' failed: ' . $e->getMessage());
+                    $v->addFieldError('fields', "Couldn't check this listing's member table because of a database error. Nothing was changed.");
+                }
+            }
+
             if ($v->fails()) {
                 return $this->adminLayout('admin/members/edit.php', 'Edit Member', 'members', [
                     'listing'      => $listing,
@@ -721,10 +762,8 @@ final class MemberController extends AdminController
                 'showurl' => (int) $showurl,
             ];
 
-            foreach ($fields as $field) {
-                $col   = $field->name; // bare name for unprefixed schema
-                $value = trim((string) $request->post('field_' . $field->name, ''));
-                $updateData[$col] = $value;
+            foreach ($extraValues as $column => $value) {
+                $updateData[$column] = $value;
             }
 
             $memberRepo->update($listing->dbprefix, $email, $updateData);
@@ -1491,8 +1530,9 @@ final class MemberController extends AdminController
                 $m->country,
                 $m->added,
             ];
+            $answers = $m->answers($fields);
             foreach ($fields as $field) {
-                $row[] = $m->additionalFields[$field->name] ?? '';
+                $row[] = $answers[$field->name] ?? '';
             }
             fputcsv($handle, $row);
         }

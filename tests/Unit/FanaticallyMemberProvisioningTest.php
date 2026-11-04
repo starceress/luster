@@ -79,7 +79,7 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         ));
         $pending = $members->getPending($table);
         self::assertCount(1, $pending);
-        self::assertSame('Golden', $pending[0]->additionalFields['favorite_song']);
+        self::assertSame('Golden', $pending[0]->extraColumns['favorite_song']);
     }
 
     // (The standard enth_ layout is refused before any write; see
@@ -107,9 +107,9 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         $approved = $members->getApproved($prefix);
         self::assertCount(1, $approved);
         self::assertSame('one@example.com', $approved[0]->email, 'The member keeps their own email');
-        self::assertSame('dash', $approved[0]->additionalFields['a_b']);
-        self::assertSame('space', $approved[0]->additionalFields['a_b_2'], 'Two fields that clean up the same stay apart');
-        self::assertSame('second@example.com', $approved[0]->additionalFields['email_2']);
+        self::assertSame('dash', $approved[0]->extraColumns['a_b']);
+        self::assertSame('space', $approved[0]->extraColumns['a_b_2'], 'Two fields that clean up the same stay apart');
+        self::assertSame('second@example.com', $approved[0]->extraColumns['email_2']);
         self::assertSame(1, $members->countPending($prefix), 'An unapproved Fanatically member stays pending');
     }
 
@@ -205,7 +205,7 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         $fields = (new FieldRepo($this->database($tgt), $this->config()))->getFieldsForListing(1);
         self::assertSame(['favorite_song'], array_map(static fn($f) => $f->name, $fields));
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved('old_moon')[0];
-        self::assertSame('Golden', $member->additionalFields['favorite_song']);
+        self::assertSame('Golden', $member->extraColumns['favorite_song']);
     }
 
     public function testSkippedListingWithNoMemberTableSkipsItsMembersAndKeepsGoing(): void
@@ -355,8 +355,8 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         $this->importFields($src, $tgt, [$space, $dash], $values, 'overwrite');
 
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved($this->dbtableOf($tgt, true))[0];
-        self::assertSame('DASH', $member->additionalFields['a_b']);
-        self::assertSame('SPACE', $member->additionalFields['a_b_2']);
+        self::assertSame('DASH', $member->extraColumns['a_b']);
+        self::assertSame('SPACE', $member->extraColumns['a_b_2']);
         self::assertSame(['a_b' => 'Dash', 'a_b_2' => 'Space'], $this->fieldLabels($tgt), 'Labels and values still agree');
     }
 
@@ -371,8 +371,8 @@ final class FanaticallyMemberProvisioningTest extends TestCase
             ['a-b' => 'DASH', 'a b' => 'SPACE'], 'overwrite');
 
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved($this->dbtableOf($tgt, true))[0];
-        self::assertSame('DASH', $member->additionalFields['a_b'], 'The original field keeps its column');
-        self::assertSame('SPACE', $member->additionalFields['a_b_2']);
+        self::assertSame('DASH', $member->extraColumns['a_b'], 'The original field keeps its column');
+        self::assertSame('SPACE', $member->extraColumns['a_b_2']);
         self::assertSame(['a_b' => 'Dash', 'a_b_2' => 'Space'], $this->fieldLabels($tgt));
     }
 
@@ -411,7 +411,7 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         self::assertSomeWarningContains($this->resultRow($result, 'Owned Listings')['warnings'], 'the field "additional_color" is saved as "color"');
         self::assertSame(['color' => 'Colour'], $this->fieldLabels($tgt));
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved($this->dbtableOf($tgt, true))[0];
-        self::assertSame('blue', $member->additionalFields['color'], 'The value is read back under the field\'s name');
+        self::assertSame('blue', $member->extraColumns['color'], 'The value is read back under the field\'s name');
     }
 
     public function testUnreadableFieldEntriesAndListsAreReported(): void
@@ -455,8 +455,8 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         self::assertSomeWarningContains($this->resultRow($result, 'Owned Listings')['warnings'],
             'the field "a b" is saved as "a_b_2" because an earlier import used "a_b" for a field that\'s no longer in Fanatically');
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved($this->dbtableOf($tgt, true))[0];
-        self::assertSame('DASH', $member->additionalFields['a_b'], 'The old field keeps its value');
-        self::assertSame('SPACE', $member->additionalFields['a_b_2']);
+        self::assertSame('DASH', $member->extraColumns['a_b'], 'The old field keeps its value');
+        self::assertSame('SPACE', $member->extraColumns['a_b_2']);
         self::assertSame(['a_b' => 'Dash', 'a_b_2' => 'Space'], $this->fieldLabels($tgt), 'Labels and values still agree');
         self::assertSame(['a-b' => 'a_b', 'a b' => 'a_b_2'], $this->fieldMap($tgt), 'The removed field keeps its name for later imports');
     }
@@ -501,8 +501,8 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         self::assertSomeWarningContains($this->resultRow($result, 'Owned Listings')['warnings'],
             'the field "Color" is saved as "color_2" because the listing in Luster already has a field called "color"');
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved($table)[0];
-        self::assertSame('red', $member->additionalFields['color'], "The owner's value stays");
-        self::assertSame('blue', $member->additionalFields['color_2']);
+        self::assertSame('red', $member->extraColumns['color'], "The owner's value stays");
+        self::assertSame('blue', $member->extraColumns['color_2']);
         self::assertSame(['song' => 'Song', 'color' => 'Colour (mine)', 'color_2' => 'Colour'], $this->fieldLabels($tgt));
     }
 
@@ -529,8 +529,8 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         self::assertSomeWarningContains($this->resultRow($result, 'Owned Listings')['warnings'],
             'the field "fave" is saved as "fave_2" because the listing in Luster already has a field called "fave"');
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved('old_moon')[0];
-        self::assertSame('from before', $member->additionalFields['fave'], "The listing's own value stays");
-        self::assertSame('from Fanatically', $member->additionalFields['fave_2']);
+        self::assertSame('from before', $member->extraColumns['fave'], "The listing's own value stays");
+        self::assertSame('from Fanatically', $member->extraColumns['fave_2']);
     }
 
     public function testAColumnTheListingAlreadyHadIsLeftAloneOnSkip(): void
@@ -616,7 +616,7 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         self::assertSame($labels, $this->fieldLabels($tgt), "Both listings' fields are defined");
         $members = [];
         foreach ((new MemberRepo($this->database($tgt), $this->config()))->getApproved($table) as $member) {
-            $members[$member->email] = $member->additionalFields;
+            $members[$member->email] = $member->extraColumns;
         }
         self::assertSame(['one@example.com', 'two@example.com'], array_keys($members), 'Both members are in the listing');
         self::assertSame(['Golden', 'pink'], [$members['one@example.com']['song'], $members['one@example.com']['color']]);
@@ -748,7 +748,7 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         $table = $this->dbtableOf($tgt, true);
         self::assertSame(['f_123' => 'Lucky number', 'f_0' => 'Zero'], $this->fieldLabels($tgt));
         $fan = (new MemberRepo($this->database($tgt), $this->config()))->getByEmail($table, 'fan@example.com');
-        self::assertSame(['7', 'none'], [$fan->additionalFields['f_123'], $fan->additionalFields['f_0']]);
+        self::assertSame(['7', 'none'], [$fan->extraColumns['f_123'], $fan->extraColumns['f_0']]);
         $changes = json_decode((string) $tgt->query('SELECT changes FROM lstr_pending_updates')->fetchColumn(), true);
         self::assertSame(['f_123' => '8'], $changes, 'A queued update reaches the column too');
 
@@ -809,8 +809,8 @@ final class FanaticallyMemberProvisioningTest extends TestCase
             $members = new MemberRepo($this->database($tgt), $this->config());
             $moon    = $members->getApproved($listings[0]['dbtable']);
             $sun     = $members->getApproved($listings[1]['dbtable']);
-            self::assertSame([['moon@example.com', 'blue']], array_map(static fn($m) => [$m->email, $m->additionalFields['color']], $moon), $pass);
-            self::assertSame([['sun@example.com', 'yellow']], array_map(static fn($m) => [$m->email, $m->additionalFields['color']], $sun), $pass);
+            self::assertSame([['moon@example.com', 'blue']], array_map(static fn($m) => [$m->email, $m->extraColumns['color']], $moon), $pass);
+            self::assertSame([['sun@example.com', 'yellow']], array_map(static fn($m) => [$m->email, $m->extraColumns['color']], $sun), $pass);
         }
     }
 
@@ -926,7 +926,7 @@ final class FanaticallyMemberProvisioningTest extends TestCase
 
         $members = [];
         foreach ((new MemberRepo($this->database($tgt), $this->config()))->getApproved($this->dbtableOf($tgt, true)) as $member) {
-            $members[$member->email] = [$member->additionalFields['a_b'] ?? '', $member->additionalFields['a_b_2'] ?? ''];
+            $members[$member->email] = [$member->extraColumns['a_b'] ?? '', $member->extraColumns['a_b_2'] ?? ''];
         }
         self::assertSame(['DASH again', ''], $members['fan@example.com'], 'The old answer stays in the old field');
         self::assertSame(['OLD', 'NEW'], $members['both@example.com'], 'Each answer goes to its own field');
@@ -945,8 +945,8 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         $result = $this->importFields($src, $tgt, [['name' => 'a b', 'label' => 'Space']], ['A-B' => 'WHOSE?'], 'overwrite');
 
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved($this->dbtableOf($tgt, true))[0];
-        self::assertSame('DASH', $member->additionalFields['a_b'] ?? '');
-        self::assertSame('', $member->additionalFields['a_b_2'] ?? '', 'It isn\'t guessed into the new field');
+        self::assertSame('DASH', $member->extraColumns['a_b'] ?? '');
+        self::assertSame('', $member->extraColumns['a_b_2'] ?? '', 'It isn\'t guessed into the new field');
         self::assertSomeWarningContains($this->resultRow($result, 'Members')['warnings'], "custom field value(s) weren't imported");
     }
 
@@ -960,7 +960,7 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         $result = $this->importFields($src, $tgt, [['name' => 'a b', 'label' => 'Space']], ['a-b' => 'DASH again'], 'overwrite');
 
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved($this->dbtableOf($tgt, true))[0];
-        self::assertSame('', $member->additionalFields['a_b_2'] ?? '', 'The old answer never lands in the new field');
+        self::assertSame('', $member->extraColumns['a_b_2'] ?? '', 'The old answer never lands in the new field');
         self::assertSomeWarningContains($this->resultRow($result, 'Members')['warnings'], "custom field value(s) weren't imported");
     }
 
@@ -992,7 +992,7 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         $table = $this->dbtableOf($tgt, true);
         self::assertContains('color', $this->columnsOf($tgt, $table));
         self::assertNotContains('color_2', $this->columnsOf($tgt, $table));
-        self::assertSame('blue', (new MemberRepo($this->database($tgt), $this->config()))->getApproved($table)[0]->additionalFields['color']);
+        self::assertSame('blue', (new MemberRepo($this->database($tgt), $this->config()))->getApproved($table)[0]->extraColumns['color']);
         self::assertSame(['Color' => 'color'], $this->fieldMap($tgt));
     }
 
@@ -1240,7 +1240,7 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         $again = $this->runImport($src, $tgt, $opts);
         self::assertSame([], $this->resultRow($again, 'Members')['errors']);
         $member = (new MemberRepo($this->database($tgt), $this->config()))->getApproved($this->dbtableOf($tgt, true))[0];
-        self::assertSame('blue', $member->additionalFields['color'], 'The listing comes with its fields and answers');
+        self::assertSame('blue', $member->extraColumns['color'], 'The listing comes with its fields and answers');
     }
 
     public function testCustomFieldsWaitForMigration91(): void
@@ -1300,6 +1300,6 @@ final class FanaticallyMemberProvisioningTest extends TestCase
         self::assertSame(['Song' => 'song', 'Color' => 'color_2'], $this->fieldMap($tgt, 1));
         self::assertSame(['Color' => 'color'], $this->fieldMap($tgt, 2), 'The second listing still owns "color"');
         $one = (new MemberRepo($this->database($tgt), $this->config()))->getByEmail($table, 'one@example.com');
-        self::assertSame('pink', $one->additionalFields['color_2']);
+        self::assertSame('pink', $one->extraColumns['color_2']);
     }
 }

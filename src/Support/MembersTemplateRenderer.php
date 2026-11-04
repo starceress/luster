@@ -64,9 +64,9 @@ final class MembersTemplateRenderer
                     ? DateFormatter::format($member->added ?? '')
                     : DateFormatter::formatWith($member->added ?? '', $dateFormat)),
             ];
+            $answers = $member->answers($fields);
             foreach ($fields as $field) {
-                $val = (string) ($member->additionalFields[$field->name] ?? '');
-                $tokens['{fan_' . $field->name . '}'] = $e($val);
+                $tokens['{fan_' . $field->name . '}'] = $e($answers[$field->name] ?? '');
             }
             // These aggregate tokens always take the key, even for the rare
             // pre-existing/imported field literally named "additional_fields" or
@@ -219,9 +219,10 @@ final class MembersTemplateRenderer
      */
     private static function renderAdditionalFieldsBlock(Member $member, array $fields, callable $e): string
     {
-        $blocks = [];
+        $blocks  = [];
+        $answers = $member->answers($fields);
         foreach ($fields as $field) {
-            $val = (string) ($member->additionalFields[$field->name] ?? '');
+            $val = $answers[$field->name] ?? '';
             if ($val === '') {
                 continue;
             }
@@ -244,9 +245,10 @@ final class MembersTemplateRenderer
      */
     private static function renderAdditionalFieldCells(Member $member, array $fields, callable $e): string
     {
-        $cells = [];
+        $cells   = [];
+        $answers = $member->answers($fields);
         foreach ($fields as $field) {
-            $val     = (string) ($member->additionalFields[$field->name] ?? '');
+            $val     = $answers[$field->name] ?? '';
             $cells[] = '<span class="fl-member-table-cell">' . ($val !== '' ? $e($val) : '&ndash;') . '</span>';
         }
         return implode("\n", $cells);
@@ -293,9 +295,11 @@ final class MembersTemplateRenderer
             $row = str_replace(['{if_no_fan_country}', '{/if_no_fan_country}'], '', $row);
         }
 
+        $answers = $member->answers($fields);
+
         $hasAdditionalFields = false;
         foreach ($fields as $field) {
-            if (($member->additionalFields[$field->name] ?? '') !== '') {
+            if (($answers[$field->name] ?? '') !== '') {
                 $hasAdditionalFields = true;
                 break;
             }
@@ -310,7 +314,7 @@ final class MembersTemplateRenderer
         }
 
         foreach ($fields as $field) {
-            $val = (string) ($member->additionalFields[$field->name] ?? '');
+            $val = $answers[$field->name] ?? '';
             $tag = preg_quote($field->name, '/');
             if ($val !== '') {
                 $row = preg_replace('/\{if_no_fan_' . $tag . '\}.*?\{\/if_no_fan_' . $tag . '\}/s', '', $row) ?? $row;

@@ -75,7 +75,7 @@ final class SampleTemplateData
                 rejected: false,
                 added: $row['added'],
                 updated: '',
-                additionalFields: ['favorite_character' => $row['fave']],
+                extraColumns: ['favorite_character' => $row['fave']],
             );
         }
 

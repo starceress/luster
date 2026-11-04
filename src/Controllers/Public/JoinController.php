@@ -33,6 +33,7 @@ use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\SuccessRenderer;
 
@@ -166,7 +167,12 @@ final class JoinController
         }
 
         foreach ($fields as $field) {
-            $vf = $v->field('field_' . $field->name)->maxLength(255);
+            $fieldKey = 'field_' . $field->name;
+            if ($field->flatAnswer($postData[$fieldKey] ?? '') === null) {
+                $v->addFieldError($fieldKey, $field->displayName() . ": that answer isn't valid.");
+                continue;
+            }
+            $vf = $v->field($fieldKey)->maxLength(255);
             if ($field->required) {
                 $vf->required();
             }
@@ -202,6 +208,31 @@ final class JoinController
         // Duplicate email check
         if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
             $session->set('lstr_flash_error:' . $marker, 'That email address is already registered for this listing.');
+            $session->set('lstr_flash_old:' . $marker, [
+                'name'      => $name,
+                'email'     => $email,
+                'url'       => $url,
+                'country'   => $country,
+                'send_info' => (string) $request->post('send_info', ''),
+            ]);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        // Additional fields — names from FieldRepo only, never raw user input.
+        // Checkbox fields post as arrays; flatAnswer() joins them.
+        $answers = [];
+        foreach ($fields as $field) {
+            $answers[$field->name] = (string) $field->flatAnswer($postData['field_' . $field->name] ?? '');
+        }
+        $extraValues = FieldAnswers::forPublicForm(
+            new FieldRepo($this->app->getDatabase(), $this->app->getConfig()),
+            $listing,
+            $fields,
+            $answers,
+            'Join',
+        );
+        if ($extraValues === null) {
+            $session->set('lstr_flash_error:' . $marker, FieldAnswers::PUBLIC_REFUSAL);
             $session->set('lstr_flash_old:' . $marker, [
                 'name'      => $name,
                 'email'     => $email,
@@ -263,16 +294,8 @@ final class JoinController
         // Every new join waits for approval: pending=1 or approved=0, depending on schema.
         $insertData = array_merge($insertData, $memberRepo->pendingJoinColumns());
 
-        $prefix = (string) $this->app->getConfig()->get('enth_table_prefix', '');
-
-        // Additional fields — names from FieldRepo only, never raw user input.
-        // Checkbox fields post as arrays; implode to a comma-separated string.
-        foreach ($fields as $field) {
-            $colName   = ($prefix === '') ? $field->name : 'additional_' . $field->name;
-            $raw       = $postData['field_' . $field->name] ?? '';
-            $insertData[$colName] = is_array($raw)
-                ? implode(', ', array_map('trim', $raw))
-                : trim((string) $raw);
+        foreach ($extraValues as $column => $value) {
+            $insertData[$column] = $value;
         }
 
         $memberRepo->insert($listing->dbprefix, $insertData);

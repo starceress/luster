@@ -32,6 +32,7 @@ use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberFormSessionRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
+use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\SuccessRenderer;
 
@@ -330,7 +331,12 @@ final class UpdateController
         }
 
         foreach ($fields as $field) {
-            $vf = $v->field('field_' . $field->name)->maxLength(255);
+            $fieldKey = 'field_' . $field->name;
+            if ($field->flatAnswer($postData[$fieldKey] ?? '') === null) {
+                $v->addFieldError($fieldKey, $field->displayName() . ": that answer isn't valid.");
+                continue;
+            }
+            $vf = $v->field($fieldKey)->maxLength(255);
             if ($field->required) {
                 $vf->required();
             }
@@ -381,6 +387,23 @@ final class UpdateController
             }
         }
 
+        // Where each extra answer goes, worked out before anything is written,
+        // the immediate password change below included.
+        $answers = [];
+        foreach ($fields as $field) {
+            $answers[$field->name] = (string) $field->flatAnswer($postData['field_' . $field->name] ?? '');
+        }
+        $extraValues = FieldAnswers::forPublicForm($fieldRepo, $listing, $fields, $answers, 'Update');
+        if ($extraValues === null) {
+            $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
+            foreach ($fields as $field) {
+                $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
+            }
+            $session->set('lstr_flash_error:' . $marker, FieldAnswers::PUBLIC_REFUSAL);
+            $session->set('lstr_flash_old:' . $marker, $old);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
         // Resolve final values
         $finalName    = $newName  !== '' ? $newName  : $member->name;
         $finalEmail   = $newEmail !== '' ? $newEmail : $email;
@@ -408,13 +431,8 @@ final class UpdateController
             $updateData['password'] = password_hash($newPassword, PASSWORD_ARGON2ID);
         }
 
-        $prefix = (string) $this->app->getConfig()->get('enth_table_prefix', '');
-        foreach ($fields as $field) {
-            $colName = ($prefix === '') ? $field->name : 'additional_' . $field->name;
-            $raw     = $postData['field_' . $field->name] ?? '';
-            $updateData[$colName] = is_array($raw)
-                ? implode(', ', array_map('trim', $raw))
-                : trim((string) $raw);
+        foreach ($extraValues as $column => $value) {
+            $updateData[$column] = $value;
         }
 
         // Password changes always apply immediately (never queued)

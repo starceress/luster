@@ -1591,7 +1591,13 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
             <?php foreach ($fields as $field): ?>
             <?php $_typeLabels = ['text' => 'Text Field', 'dropdown' => 'Dropdown', 'checkbox' => 'Checkbox', 'radio' => 'Radio Button']; ?>
             <tr>
-              <td class="text-strong"><?= View::e($field->label) ?></td>
+              <td class="text-strong">
+                <?= View::e($field->label) ?>
+                <?php if (in_array((string) $field->name, $unsavable_fields ?? [], true)): ?>
+                  <span class="badge badge-error badge-inline">Can't save answers</span>
+                  <p class="form-hint">Delete this field and add it again under another name.</p>
+                <?php endif; ?>
+              </td>
               <td><code><?= View::e($field->name) ?></code></td>
               <td class="text-muted"><?= View::e($_typeLabels[$field->type] ?? ucfirst($field->type)) ?></td>
               <td>

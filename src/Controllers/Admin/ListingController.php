@@ -2480,6 +2480,7 @@ final class ListingController extends AdminController
             'custom_cats'         => $customCats,
             'affiliates'          => $affiliates,
             'fields'              => $fields,
+            'unsavable_fields'    => $fieldRepo->fieldsWithoutColumn($listing->dbprefix, $fields),
             'templates'           => $templates,
             'global_templates'    => $globalTemplates,
             'global_form_urls'    => $globalFormUrls,

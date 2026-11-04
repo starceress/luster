@@ -89,6 +89,41 @@ final class AdditionalField
         ));
     }
 
+    /** What to call this field in a message: its label, or its name if it has none. */
+    public function displayName(): string
+    {
+        return $this->label !== '' ? $this->label : $this->name;
+    }
+
+    /**
+     * One posted answer as the text that gets stored, or null when it's malformed.
+     * A string is trimmed. A flat list is only accepted for a checkbox field, whose
+     * controls post field_x[]: trimmed, blanks dropped, joined with ", ". Anything
+     * else is null, an array posted to a text, radio or dropdown field included.
+     */
+    public function flatAnswer(mixed $raw): ?string
+    {
+        if (is_string($raw)) {
+            return trim($raw);
+        }
+        if ($this->type !== 'checkbox' || !is_array($raw) || !array_is_list($raw)) {
+            return null;
+        }
+
+        $picks = [];
+        foreach ($raw as $pick) {
+            if (!is_string($pick)) {
+                return null;
+            }
+            $pick = trim($pick);
+            if ($pick !== '') {
+                $picks[] = $pick;
+            }
+        }
+
+        return implode(', ', $picks);
+    }
+
     /**
      * The control the admin Add Member form gives this field, which its save
      * checks against: 'select' (dropdown, or select as Enthusiast imports call

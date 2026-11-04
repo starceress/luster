@@ -427,7 +427,7 @@ final class MembersTemplateRendererTest extends TestCase
             new AdditionalField('fave_song', 'Favorite Song', 'text', false),
             new AdditionalField('fave_band', 'Favorite Band', 'text', false),
         ];
-        $member = $this->makeMember(additionalFields: [
+        $member = $this->makeMember(extraColumns: [
             'fave_song' => 'Bohemian Rhapsody',
             'fave_band' => 'Queen',
         ]);
@@ -454,7 +454,7 @@ final class MembersTemplateRendererTest extends TestCase
             new AdditionalField('fave_song', 'Favorite Song', 'text', false),
             new AdditionalField('fave_band', 'Favorite Band', 'text', false),
         ];
-        $member = $this->makeMember(additionalFields: ['fave_song' => 'Bohemian Rhapsody']);
+        $member = $this->makeMember(extraColumns: ['fave_song' => 'Bohemian Rhapsody']);
 
         $html = MembersTemplateRenderer::render(
             '{each_member}{fan_additional_fields}{/each_member}',
@@ -498,7 +498,7 @@ final class MembersTemplateRendererTest extends TestCase
             new AdditionalField('additional_fields', 'Additional Fields', 'text', false),
             new AdditionalField('fave_song', 'Favorite Song', 'text', false),
         ];
-        $member = $this->makeMember(additionalFields: [
+        $member = $this->makeMember(extraColumns: [
             'additional_fields' => 'Collides On Purpose',
             'fave_song'         => 'Bohemian Rhapsody',
         ]);
@@ -518,7 +518,7 @@ final class MembersTemplateRendererTest extends TestCase
     public function testFanAdditionalFieldsEscapesLabelAndValue(): void
     {
         $fields = [new AdditionalField('fave', '<b>Fave</b>', 'text', false)];
-        $member = $this->makeMember(additionalFields: ['fave' => '<script>alert(1)</script>']);
+        $member = $this->makeMember(extraColumns: ['fave' => '<script>alert(1)</script>']);
 
         $html = MembersTemplateRenderer::render(
             '{each_member}{fan_additional_fields}{/each_member}',
@@ -536,7 +536,7 @@ final class MembersTemplateRendererTest extends TestCase
     public function testFanAdditionalFieldsWorksInLegacyModeWithoutEachMemberBlock(): void
     {
         $fields = [new AdditionalField('fave_song', 'Favorite Song', 'text', false)];
-        $member = $this->makeMember(name: 'Star', additionalFields: ['fave_song' => 'Bohemian Rhapsody']);
+        $member = $this->makeMember(name: 'Star', extraColumns: ['fave_song' => 'Bohemian Rhapsody']);
 
         $html = MembersTemplateRenderer::render(
             '{fan_name}: {fan_additional_fields}',
@@ -558,7 +558,7 @@ final class MembersTemplateRendererTest extends TestCase
     public function testIfFanAdditionalFieldsKeepsContentWhenMemberHasAValue(): void
     {
         $fields = [new AdditionalField('fave_song', 'Favorite Song', 'text', false)];
-        $member = $this->makeMember(name: 'Star', additionalFields: ['fave_song' => 'Bohemian Rhapsody']);
+        $member = $this->makeMember(name: 'Star', extraColumns: ['fave_song' => 'Bohemian Rhapsody']);
 
         $html = MembersTemplateRenderer::render(
             '{each_member}{fan_name}{if_fan_additional_fields}, {fan_additional_fields}{/if_fan_additional_fields}{if_no_fan_additional_fields} (no fields){/if_no_fan_additional_fields}{/each_member}',
@@ -610,7 +610,7 @@ final class MembersTemplateRendererTest extends TestCase
     public function testDefaultMembersTemplateAddsCommaSeparatorBeforeFieldsWhenPresent(): void
     {
         $fields = [new AdditionalField('fave_song', 'Favorite Song', 'text', false)];
-        $member = $this->makeMember(name: 'Star', country: 'Canada', additionalFields: ['fave_song' => 'Bohemian Rhapsody']);
+        $member = $this->makeMember(name: 'Star', country: 'Canada', extraColumns: ['fave_song' => 'Bohemian Rhapsody']);
 
         $html = MembersTemplateRenderer::render(
             ListingSettingsRepo::defaultMembersListTemplate(),
@@ -634,7 +634,7 @@ final class MembersTemplateRendererTest extends TestCase
             new AdditionalField('fave_song', 'Favorite Song', 'text', false),
             new AdditionalField('fave_band', 'Favorite Band', 'text', false),
         ];
-        $member = $this->makeMember(additionalFields: ['fave_song' => 'Bohemian Rhapsody']);
+        $member = $this->makeMember(extraColumns: ['fave_song' => 'Bohemian Rhapsody']);
 
         $html = MembersTemplateRenderer::render(
             '{each_member}{fan_name}{/each_member}{additional_field_headers}',
@@ -658,7 +658,7 @@ final class MembersTemplateRendererTest extends TestCase
             new AdditionalField('fave_song', 'Favorite Song', 'text', false),
             new AdditionalField('fave_band', 'Favorite Band', 'text', false),
         ];
-        $member = $this->makeMember(additionalFields: ['fave_song' => 'Bohemian Rhapsody']);
+        $member = $this->makeMember(extraColumns: ['fave_song' => 'Bohemian Rhapsody']);
 
         $html = MembersTemplateRenderer::render(
             '{each_member}{fan_additional_field_cells}{/each_member}',
@@ -710,7 +710,7 @@ final class MembersTemplateRendererTest extends TestCase
     public function testDefaultMembersTemplateRendersAdditionalFieldsForARealMember(): void
     {
         $fields = [new AdditionalField('fave_song', 'Favorite Song', 'text', false)];
-        $member = $this->makeMember(name: 'Star', additionalFields: ['fave_song' => 'Bohemian Rhapsody']);
+        $member = $this->makeMember(name: 'Star', extraColumns: ['fave_song' => 'Bohemian Rhapsody']);
 
         $html = MembersTemplateRenderer::render(
             ListingSettingsRepo::defaultMembersTemplate(),
@@ -728,8 +728,8 @@ final class MembersTemplateRendererTest extends TestCase
     // Helpers
     // -----------------------------------------------------------------------
 
-    /** @param array<string,string> $additionalFields */
-    private function makeMember(string $name = 'Fan', string $country = '', array $additionalFields = [], string $url = '', bool $showurl = true, string $added = '2026-01-01'): Member
+    /** @param array<string,string> $extraColumns */
+    private function makeMember(string $name = 'Fan', string $country = '', array $extraColumns = [], string $url = '', bool $showurl = true, string $added = '2026-01-01'): Member
     {
         return new Member(
             id: 1,
@@ -743,7 +743,7 @@ final class MembersTemplateRendererTest extends TestCase
             rejected: false,
             added: $added,
             updated: '2026-01-01',
-            additionalFields: $additionalFields,
+            extraColumns: $extraColumns,
         );
     }
 }

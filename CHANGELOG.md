@@ -102,6 +102,28 @@ below), and the migration page tells you if any of your listings were affected.
   end on an error page, and others saved fine and then misbehaved. Your existing
   fields aren't touched by this. If the listing's table already has a leftover
   column with the name you picked, Luster says so and asks you to try another.
+- **An extra field's answer can't overwrite a member's real details anymore.**
+  If a listing had an extra field named like one of Luster's own member details
+  (say, `name` or `password`, which an import could leave behind), a form could
+  save the answer right over the real thing. A fan could end up with a password
+  saved in plain text, a blank address, or could approve themselves. Now every
+  form saves an answer only to that field's own column. If a field doesn't have
+  one, a blank answer is simply skipped, and a real answer stops the whole save
+  with a message, so nothing gets half-saved. The Fields page labels those fields
+  so you can see which ones to delete and add again under another name.
+- **Edit Member keeps your extra-field changes on the `enth_` table layout.** It
+  said "Member updated" and kept the old answers.
+- **Every page shows the right answer under the right field.** Sign-up forms, the
+  member list on your site, the Members page and the CSV export all read an answer
+  the same way forms save it, so a field whose table column is named a little
+  differently (like `Fave` and `fave`) shows its answer instead of a blank. Saving
+  a blank over it can't happen by accident anymore either.
+- **The update queue shows what's really changing.** Email and show-URL changes now
+  show their old value next to the new one, and when one address is in two of your
+  listings, each request shows that listing's member instead of the other one's.
+- **Public forms refuse an answer they can't make sense of.** Sending a list of
+  answers to a field that only takes one is an error now, instead of being joined
+  together and saved. Tick-box groups work like they always did.
 - **Extra fields named with only numbers don't break things anymore.**
   Enthusiast let you name an extra field something like `123`. On the table
   layout without `enth_` in front, a listing with a field like that crashed

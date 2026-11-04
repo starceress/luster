@@ -5,16 +5,17 @@
 
  Value object for a fan/member from a per-listing member table. Each
  listing has its own member table, and this model normalizes the two
- Enthusiast schema variants into one object. The additionalFields map
- holds any custom field values (like "Favorite song") keyed by bare
- field name, regardless of whether the DB column uses an additional_
- prefix or not. Approval status is derived from either the "approved"
- column (standard schema) or the inverted "pending" column (unprefixed).
+ Enthusiast schema variants into one object. Custom field answers (like
+ "Favorite song") come from answers(), which works out which column belongs
+ to which field. Approval status is derived from either the inverted
+ "pending" column (unprefixed) or the "approved" column (standard schema).
 */
 
 declare(strict_types=1);
 
 namespace Luster\Models;
+
+use Luster\Support\FieldColumnMap;
 
 /**
  * Represents a single fan from a member table.
@@ -32,17 +33,12 @@ namespace Luster\Models;
  *     No id column (email is effective PK); no updated column
  *     Approved: pending = 0
  *
- * fromRow() handles both transparently.
- * The $additionalFields map is always keyed by bare field name regardless of schema.
+ * fromRow() handles both transparently. A row with a pending column is the
+ * unprefixed schema, so there id, approved and updated can only be custom columns.
  */
 final class Member
 {
-    /**
-     * Column names that belong to the standard member table schema in both
-     * schema variants. Any column NOT in this list is treated as an additional
-     * field (used for the unprefixed schema where extras lack the additional_
-     * prefix).
-     */
+    /** The built-in columns of the standard schema. Anything else is an extra column. */
     private const STANDARD_COLS = [
         'id', 'email', 'name', 'country', 'url',
         'pending', 'approved',
@@ -51,13 +47,15 @@ final class Member
     ];
 
     /**
-     * @param bool                 $approved         True when the member is publicly visible (approved=1
-     *                                               in enth_ schema, pending=0 in unprefixed schema).
-     * @param bool                 $rejected         True when the member was explicitly rejected
-     *                                               (pending=2 in the unprefixed schema; always false
-     *                                               in the standard enth_ schema which has no rejected state).
-     * @param array<string,string> $additionalFields Dynamic field values keyed by bare field name
-     *                                               (without the "additional_" prefix).
+     * @param bool                 $approved     True when the member is publicly visible (approved=1
+     *                                           in enth_ schema, pending=0 in unprefixed schema).
+     * @param bool                 $rejected     True when the member was explicitly rejected
+     *                                           (pending=2 in the unprefixed schema; always false
+     *                                           in the standard enth_ schema which has no rejected state).
+     * @param array<string,string> $extraColumns Every non-built-in column, under its real name and
+     *                                           untouched. For a field's answer, use answers().
+     * @param bool                 $bareLayout   True on the unprefixed schema, where a field's column
+     *                                           can be its bare name.
      */
     public function __construct(
         public readonly int    $id,
@@ -72,63 +70,77 @@ final class Member
         public readonly bool   $rejected,
         public readonly string $added,
         public readonly string $updated,
-        public readonly array  $additionalFields,
+        public readonly array  $extraColumns,
+        public readonly bool   $bareLayout = true,
     ) {}
 
     /**
      * Hydrates a Member from a PDO FETCH_ASSOC row.
      *
-     * Standard schema: additional fields have the 'additional_' prefix.
-     * Unprefixed schema: additional fields are bare column names; any column
-     * not in STANDARD_COLS is treated as an additional field.
+     * Nothing here guesses what an extra column means: answers() does that, from
+     * the listing's field definitions.
      */
     public static function fromRow(array $row): self
     {
-        $additionalFields = [];
+        $hasPending  = array_key_exists('pending', $row);
+        $hasApproved = array_key_exists('approved', $row);
+        $builtIn     = $hasPending ? FieldColumnMap::CORE_COLUMNS : self::STANDARD_COLS;
 
+        $extraColumns = [];
         foreach ($row as $key => $value) {
             // A column named like "123" (Enthusiast allows it) is an int key here.
             $key = (string) $key;
-
-            // Standard enth_ schema: additional_ prefix
-            if (str_starts_with($key, 'additional_')) {
-                $additionalFields[substr($key, strlen('additional_'))] = (string) $value;
-                continue;
-            }
-
-            // Unprefixed schema: bare column names for additional fields
-            if (!in_array($key, self::STANDARD_COLS, true)) {
-                $additionalFields[$key] = (string) $value;
+            if (!in_array(strtolower($key), $builtIn, true)) {
+                $extraColumns[$key] = (string) $value;
             }
         }
 
         // Approved status:
-        //   Standard enth_: approved = 1  → approved
         //   Unprefixed:     pending  = 0  → approved (inverted semantics)
+        //   Standard enth_: approved = 1  → approved
         $rejected = false;
-        if (array_key_exists('approved', $row)) {
-            $approved = (bool) $row['approved'];
-        } elseif (array_key_exists('pending', $row)) {
+        if ($hasPending) {
             $pendingVal = (int) $row['pending'];
             $rejected   = $pendingVal === 2;
             $approved   = $pendingVal === 0;
+        } elseif ($hasApproved) {
+            $approved = (bool) $row['approved'];
         } else {
             $approved = false;
         }
 
         return new self(
-            id:               (int)    ($row['id']       ?? 0),
-            name:             (string) ($row['name']     ?? ''),
-            email:            (string) ($row['email']    ?? ''),
-            url:              (string) ($row['url']      ?? ''),
-            country:          (string) ($row['country']  ?? ''),
-            showurl:          (bool)   ($row['showurl']  ?? false),
-            password:         (string) ($row['password'] ?? ''),
-            approved:         $approved,
-            rejected:         $rejected,
-            added:            (string) ($row['added']    ?? ''),
-            updated:          (string) ($row['updated']  ?? ''),
-            additionalFields: $additionalFields,
+            id:           $hasPending ? 0 : (int) ($row['id'] ?? 0),
+            name:         (string) ($row['name']     ?? ''),
+            email:        (string) ($row['email']    ?? ''),
+            url:          (string) ($row['url']      ?? ''),
+            country:      (string) ($row['country']  ?? ''),
+            showurl:      (bool)   ($row['showurl']  ?? false),
+            password:     (string) ($row['password'] ?? ''),
+            approved:     $approved,
+            rejected:     $rejected,
+            added:        (string) ($row['added']    ?? ''),
+            updated:      $hasPending ? '' : (string) ($row['updated'] ?? ''),
+            extraColumns: $extraColumns,
+            bareLayout:   $hasPending || !$hasApproved,
         );
+    }
+
+    /**
+     * This member's answer to each field, blank for a field with no column of its
+     * own. It uses the same rules as saving (FieldColumnMap), from the row's own
+     * columns, so it needs no query and can't fail.
+     *
+     * @param AdditionalField[] $fields Every definition on the listing.
+     * @return array<string, string> Field name => answer.
+     */
+    public function answers(array $fields): array
+    {
+        $answers = [];
+        foreach (FieldColumnMap::resolve($fields, array_keys($this->extraColumns), $this->bareLayout) as $name => $column) {
+            $answers[$name] = $column !== null ? ($this->extraColumns[$column] ?? '') : '';
+        }
+
+        return $answers;
     }
 }
