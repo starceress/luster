@@ -83,8 +83,8 @@ below), and the migration page tells you if any of your listings were affected.
   Enthusiast let you name an extra field something like `123`. On the table
   layout without `enth_` in front, a listing with a field like that crashed
   its Members page, Edit Member, the member list on your site and the join
-  form. They all work now. (Making a brand-new field with a numbers-only name
-  from Additional Fields still fails, so give new fields a letter for now.)
+  form. They all work now, and you can add and delete a field like that from
+  Additional Fields too (that used to stop with a database error).
 - **Joined listings brought over from Fanatically show up in your Random and
   Latest Joined boxes.** The import saved them with an old status name those
   two boxes don't look for. The import uses the right one now, and the

@@ -184,8 +184,10 @@ final class FieldRepo
         // Standard (enth_) schema: column is additional_{fieldName}.
         $colName = $this->isOwnedSchema ? $fieldName : 'additional_' . $fieldName;
 
+        // Backticked: MySQL only accepts a digits-only name (Enthusiast allows a
+        // field called "123") as a quoted identifier.
         $this->db->pdo()->exec(
-            "ALTER TABLE {$prefix} ADD COLUMN {$colName} TEXT NULL"
+            "ALTER TABLE `{$prefix}` ADD COLUMN `{$colName}` TEXT NULL"
         );
     }
 
@@ -215,25 +217,40 @@ final class FieldRepo
             // Unprefixed schema: bare column name.
             // For backwards compatibility also try the legacy additional_{name} form
             // in case the column was created before this bug was fixed.
-            $pdo = $this->db->pdo();
-            $stmt = $pdo->prepare(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-                 WHERE TABLE_SCHEMA = DATABASE()
-                   AND TABLE_NAME   = :tbl
-                   AND COLUMN_NAME  = :col"
-            );
-            $stmt->execute(['tbl' => $prefix, 'col' => $fieldName]);
-            if ((int) $stmt->fetchColumn() > 0) {
-                $pdo->exec("ALTER TABLE {$prefix} DROP COLUMN {$fieldName}");
-            } else {
-                // Fall back to the old bugged name so pre-fix columns can still be removed
-                $pdo->exec("ALTER TABLE {$prefix} DROP COLUMN additional_{$fieldName}");
-            }
+            $column = $this->tableHasColumn($prefix, $fieldName) ? $fieldName : 'additional_' . $fieldName;
         } else {
-            $this->db->pdo()->exec(
-                "ALTER TABLE {$prefix} DROP COLUMN additional_{$fieldName}"
-            );
+            $column = 'additional_' . $fieldName;
         }
+
+        // Backticked, like addColumn(): a digits-only name must be quoted.
+        $this->db->pdo()->exec("ALTER TABLE `{$prefix}` DROP COLUMN `{$column}`");
+    }
+
+    /**
+     * Whether $table has a column named $column. SQLite (the tests) has no
+     * INFORMATION_SCHEMA, so it reads PRAGMA table_info instead.
+     */
+    private function tableHasColumn(string $table, string $column): bool
+    {
+        $pdo = $this->db->pdo();
+        if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $stmt = $pdo->query("PRAGMA table_info(`{$table}`)");
+            foreach ($stmt !== false ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [] as $row) {
+                if ((string) ($row['name'] ?? '') === $column) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        $stmt = $pdo->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME   = :tbl
+               AND COLUMN_NAME  = :col"
+        );
+        $stmt->execute(['tbl' => $table, 'col' => $column]);
+        return (int) $stmt->fetchColumn() > 0;
     }
 
     // -----------------------------------------------------------------------
