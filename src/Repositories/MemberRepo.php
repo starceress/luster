@@ -878,11 +878,7 @@ final class MemberRepo
      */
     private function getTableColumns(string $table): array
     {
-        $stmt = $this->db->pdo()->query("DESCRIBE `{$table}`");
-        if ($stmt === false) {
-            return [];
-        }
-        return array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'Field');
+        return array_column($this->db->tableColumns($table), 'name');
     }
 
     /**

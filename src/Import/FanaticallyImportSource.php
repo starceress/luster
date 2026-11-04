@@ -19,6 +19,7 @@ namespace Luster\Import;
 use Luster\Addons\Adoption\AdoptionAddon;
 use Luster\Addons\Kim\KimAddon;
 use Luster\Addons\Wishlist\WishlistAddon;
+use Luster\Models\AdditionalField;
 use PDO;
 
 /**
@@ -46,14 +47,10 @@ final class FanaticallyImportSource implements ImportSourceInterface
     ];
 
     /**
-     * Names a custom field can't keep: the standard member columns (so it can't
-     * clash with one) and the member-template tokens built from them ({fan_email},
-     * {fan_additional_fields}...). A clashing field gets a _2/_3 suffix instead.
+     * Names a custom field can't keep (see AdditionalField::RESERVED_NAMES).
+     * A clashing field gets a _2/_3 suffix instead.
      */
-    private const RESERVED_FIELD_NAMES = [
-        'id', 'email', 'name', 'country', 'url', 'pending', 'approved', 'password',
-        'showemail', 'showurl', 'added', 'updated', 'additional_fields', 'additional_field_cells',
-    ];
+    private const RESERVED_FIELD_NAMES = AdditionalField::RESERVED_NAMES;
 
     /** Same limit as the admin Fields form, so an imported field can be edited there. */
     private const FIELD_NAME_MAX = 30;

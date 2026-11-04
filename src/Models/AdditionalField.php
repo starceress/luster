@@ -32,6 +32,28 @@ namespace Luster\Models;
 final class AdditionalField
 {
     /**
+     * Names a new field can't have: the standard member columns (so it can't clash
+     * with one) and the member-template tokens built from them ({fan_email},
+     * {fan_additional_fields}...). Lowercase, see isReservedName().
+     */
+    public const RESERVED_NAMES = [
+        'id', 'email', 'name', 'country', 'url', 'pending', 'approved', 'password',
+        'showemail', 'showurl', 'added', 'updated', 'additional_fields', 'additional_field_cells',
+    ];
+
+    /**
+     * True when a new field can't be called $name: anything in RESERVED_NAMES,
+     * and anything starting with additional_, which is how a field's column is
+     * named on the standard schema. Ignores case, as MySQL column names do.
+     */
+    public static function isReservedName(string $name): bool
+    {
+        $lower = strtolower($name);
+
+        return in_array($lower, self::RESERVED_NAMES, true) || str_starts_with($lower, 'additional_');
+    }
+
+    /**
      * @param string $name     Bare field identifier used as the DB column suffix and
      *                         template token name (e.g. "fave_song").
      * @param string $label    Human-readable label shown in forms and admin views.

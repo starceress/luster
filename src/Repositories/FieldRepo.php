@@ -18,6 +18,7 @@ namespace Luster\Repositories;
 use Luster\Core\Config;
 use Luster\Core\Database;
 use Luster\Models\AdditionalField;
+use Luster\Support\FieldColumnMap;
 use RuntimeException;
 
 /**
@@ -159,20 +160,41 @@ final class FieldRepo
     }
 
     /**
-     * Adds an additional_{$fieldName} TEXT NULL column to the member table.
+     * Which column of the listing's member table holds each field's answers, read
+     * fresh from the database. See FieldColumnMap for the rules.
      *
-     * Both $prefix and $fieldName are validated against /^[a-zA-Z0-9_]+$/
+     * @param AdditionalField[] $fields Every definition on the listing.
+     * @return array<string, ?string> Field name => its column, or null when there's nowhere safe.
+     * @throws \InvalidArgumentException if $dbprefix fails validation.
+     * @throws RuntimeException if the table's columns can't be read.
+     */
+    public function fieldColumns(string $dbprefix, array $fields): array
+    {
+        $table = $this->memberTable($dbprefix);
+
+        if ($fields === []) {
+            return [];
+        }
+
+        return FieldColumnMap::resolve(
+            $fields,
+            array_column($this->db->tableColumns($table), 'name'),
+            $this->isOwnedSchema,
+        );
+    }
+
+    /**
+     * Adds the column for a new field to the listing's member table: the bare
+     * name on the unprefixed schema, additional_{$fieldName} on the standard one.
+     *
+     * Both $dbprefix and $fieldName are validated against /^[a-zA-Z0-9_]+$/
      * before being interpolated into the DDL statement.
      *
      * @throws \InvalidArgumentException if either argument fails validation.
      */
-    public function addColumn(string $prefix, string $fieldName, string $options = ''): void
+    public function addColumn(string $dbprefix, string $fieldName, string $options = ''): void
     {
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
-            throw new \InvalidArgumentException(
-                "Invalid prefix '{$prefix}': only [a-zA-Z0-9_] allowed."
-            );
-        }
+        $table = $this->memberTable($dbprefix);
 
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $fieldName)) {
             throw new \InvalidArgumentException(
@@ -187,70 +209,62 @@ final class FieldRepo
         // Backticked: MySQL only accepts a digits-only name (Enthusiast allows a
         // field called "123") as a quoted identifier.
         $this->db->pdo()->exec(
-            "ALTER TABLE `{$prefix}` ADD COLUMN `{$colName}` TEXT NULL"
+            "ALTER TABLE `{$table}` ADD COLUMN `{$colName}` TEXT NULL"
         );
     }
 
     /**
-     * Drops the additional_{$fieldName} column from the member table.
+     * Drops a field's column from the member table. $column is the real column,
+     * from fieldColumns(), which is what decides that a column belongs to a field.
      *
-     * Both $prefix and $fieldName are validated against /^[a-zA-Z0-9_]+$/
-     * before being interpolated into the DDL statement.
+     * This refuses by itself too, whoever calls it: never a built-in column on the
+     * unprefixed schema, and never anything without the additional_ prefix on the
+     * standard one, where every other column is a built-in.
      *
-     * @throws \InvalidArgumentException if either argument fails validation.
+     * Both $dbprefix and $column are validated against /^[a-zA-Z0-9_]+$/ before
+     * being interpolated into the DDL statement.
+     *
+     * @throws \InvalidArgumentException if either fails validation, or $column is a built-in.
      */
-    public function dropColumn(string $prefix, string $fieldName): void
+    public function dropColumn(string $dbprefix, string $column): void
     {
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+        $table = $this->memberTable($dbprefix);
+
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
             throw new \InvalidArgumentException(
-                "Invalid prefix '{$prefix}': only [a-zA-Z0-9_] allowed."
+                "Invalid column name '{$column}': only [a-zA-Z0-9_] allowed."
             );
         }
 
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $fieldName)) {
-            throw new \InvalidArgumentException(
-                "Invalid field name '{$fieldName}': only [a-zA-Z0-9_] allowed."
-            );
-        }
-
-        if ($this->isOwnedSchema) {
-            // Unprefixed schema: bare column name.
-            // For backwards compatibility also try the legacy additional_{name} form
-            // in case the column was created before this bug was fixed.
-            $column = $this->tableHasColumn($prefix, $fieldName) ? $fieldName : 'additional_' . $fieldName;
-        } else {
-            $column = 'additional_' . $fieldName;
+        $lower   = strtolower($column);
+        $builtIn = $this->isOwnedSchema
+            ? in_array($lower, FieldColumnMap::CORE_COLUMNS, true)
+            : !str_starts_with($lower, 'additional_');
+        if ($builtIn) {
+            throw new \InvalidArgumentException("'{$column}' is a built-in column, so it can't be dropped.");
         }
 
         // Backticked, like addColumn(): a digits-only name must be quoted.
-        $this->db->pdo()->exec("ALTER TABLE `{$prefix}` DROP COLUMN `{$column}`");
+        $this->db->pdo()->exec("ALTER TABLE `{$table}` DROP COLUMN `{$column}`");
     }
 
     /**
-     * Whether $table has a column named $column. SQLite (the tests) has no
-     * INFORMATION_SCHEMA, so it reads PRAGMA table_info instead.
+     * The real member table for a listing's dbprefix, the same way
+     * MemberRepo::resolveTable() works it out: the value itself on the unprefixed
+     * schema, {dbprefix}members on the standard one. An empty dbprefix is refused
+     * before "members" is added, so it can't name a table called just "members".
+     *
+     * @throws \InvalidArgumentException if $dbprefix fails validation.
      */
-    private function tableHasColumn(string $table, string $column): bool
+    private function memberTable(string $dbprefix): string
     {
-        $pdo = $this->db->pdo();
-        if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-            $stmt = $pdo->query("PRAGMA table_info(`{$table}`)");
-            foreach ($stmt !== false ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [] as $row) {
-                if ((string) ($row['name'] ?? '') === $column) {
-                    return true;
-                }
-            }
-            return false;
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $dbprefix)) {
+            throw new \InvalidArgumentException(
+                "Invalid prefix '{$dbprefix}': only [a-zA-Z0-9_] allowed."
+            );
         }
 
-        $stmt = $pdo->prepare(
-            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-             WHERE TABLE_SCHEMA = DATABASE()
-               AND TABLE_NAME   = :tbl
-               AND COLUMN_NAME  = :col"
-        );
-        $stmt->execute(['tbl' => $table, 'col' => $column]);
-        return (int) $stmt->fetchColumn() > 0;
+        return $this->isOwnedSchema ? $dbprefix : $dbprefix . 'members';
     }
 
     // -----------------------------------------------------------------------

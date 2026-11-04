@@ -79,6 +79,29 @@ below), and the migration page tells you if any of your listings were affected.
   approving one member with the Approve button left those blank. They're filled
   in now, the same as in the join email. (Approve All and the bulk Approve
   still leave them blank for now.)
+- **Deleting an extra field can't delete the wrong thing anymore.** If a listing
+  had an extra field named like one of Luster's own member details (say, `name`,
+  which an import could leave behind), deleting that field also deleted every
+  member's real name. And a field with no column of its own could take another
+  field's answers with it. Now deleting a field only ever removes that field's
+  own column. If it doesn't have one, Luster removes the field, leaves the column
+  alone, and tells you. If Luster can't check, it changes nothing and says so.
+- **Deleting an extra field keeps the choices on your other fields.** Deleting
+  one field quietly emptied the choices on every other dropdown, radio and
+  checkbox field on that listing. If one of those was required, nobody could join
+  afterwards. That's fixed, but Luster can't get back choices that were already
+  lost, so check your fields and type them in again if any look empty.
+- **A field whose column has gone missing can be deleted.** It used to stop with
+  an error every time, so you were stuck with it.
+- **Adding and deleting extra fields works on the `enth_` table layout.** Both
+  stopped with a database error, because they looked for the wrong table.
+- **Luster stops you naming a field something that would clash.** That covers
+  names like `email`, `added` or `approved` in any mix of capitals, anything
+  starting with `additional_`, and a name that only differs in capitals from a
+  field you already have (like `Fave` when you have `fave`). Some of these used to
+  end on an error page, and others saved fine and then misbehaved. Your existing
+  fields aren't touched by this. If the listing's table already has a leftover
+  column with the name you picked, Luster says so and asks you to try another.
 - **Extra fields named with only numbers don't break things anymore.**
   Enthusiast let you name an extra field something like `123`. On the table
   layout without `enth_` in front, a listing with a field like that crashed

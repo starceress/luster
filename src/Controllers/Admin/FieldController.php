@@ -32,12 +32,6 @@ use Luster\Support\LegacyFieldTemplateScanner;
  */
 final class FieldController extends AdminController
 {
-    /**
-     * Field names that would collide with MembersTemplateRenderer's aggregate
-     * tokens (`{fan_additional_fields}`, `{fan_additional_field_cells}`).
-     */
-    private const RESERVED_FIELD_NAMES = ['additional_fields', 'additional_field_cells'];
-
     // -----------------------------------------------------------------------
     // GET /admin/listings/{fid}/fields
     // -----------------------------------------------------------------------
@@ -113,10 +107,9 @@ final class FieldController extends AdminController
             $v->addFieldError('name', 'The name field may only contain letters, numbers, and underscores.');
         }
 
-        // These exact names would collide with MembersTemplateRenderer's aggregate
-        // {fan_additional_fields} / {fan_additional_field_cells} tokens, silently
-        // shadowing the field's own {fan_<name>} value in member templates.
-        if (self::isReservedFieldName($name)) {
+        // A built-in column's name, a {fan_...} template token's name, or the
+        // additional_ prefix that a field's column can have.
+        if (AdditionalField::isReservedName($name)) {
             $v->addFieldError('name', "'{$name}' is a reserved name and can't be used for a field.");
         }
 
@@ -130,9 +123,10 @@ final class FieldController extends AdminController
 
         $existingFields = $fieldRepo->getFieldsForListing($listingId);
 
+        // MySQL column names ignore case, so "Fave" and "fave" would be one column.
         foreach ($existingFields as $f) {
-            if ($f->name === $name) {
-                return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', "A field named '{$name}' already exists.");
+            if (strcasecmp($f->name, $name) === 0) {
+                return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', "A field named '{$f->name}' already exists.");
             }
         }
 
@@ -151,6 +145,15 @@ final class FieldController extends AdminController
             $fieldRepo->addColumn($listing->dbprefix, $name, $options);
         } catch (InvalidArgumentException $e) {
             return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', $e->getMessage());
+        } catch (\PDOException $e) {
+            // Only MySQL/MariaDB's duplicate-column error means "a column is
+            // already there"; anything else isn't guessed at.
+            $info = $e->errorInfo;
+            if (is_array($info) && ($info[0] ?? null) === '42S21' && (int) ($info[1] ?? 0) === 1060) {
+                return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', "This listing's member table already has a column for a field called '{$name}'. Try another name.");
+            }
+            error_log("[Luster] Add Field: adding '{$name}' to listing #{$listingId} failed: " . $e->getMessage());
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', "Couldn't add this field because of a database error. Nothing was changed.");
         }
 
         $fieldRepo->saveFields($listingId, $fieldsArray);
@@ -266,8 +269,11 @@ final class FieldController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * Drops the field column from the member table via ALTER TABLE and removes
-     * the field definition from the listing registry row.
+     * Drops the field's column from the member table via ALTER TABLE and removes
+     * the field definition from the listing registry row. A column is only dropped
+     * when FieldRepo::fieldColumns() says it's this field's own. When it says
+     * there isn't one (the column's gone, or it belongs to something else), only
+     * the definition goes. If the columns can't be read, nothing changes.
      */
     public function delete(Request $req, array $params): Response
     {
@@ -290,38 +296,43 @@ final class FieldController extends AdminController
             return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', 'No field specified.');
         }
 
-        $fields      = $fieldRepo->getFieldsForListing($listingId);
-        $found       = false;
-        $fieldsArray = [];
+        $fields    = $fieldRepo->getFieldsForListing($listingId);
+        $remaining = array_values(array_filter($fields, static fn(AdditionalField $f): bool => $f->name !== $fieldName));
 
-        foreach ($fields as $f) {
-            if ($f->name === $fieldName) {
-                $found = true;
-                // Omit from rebuilt array — this is the field being deleted
-            } else {
-                $fieldsArray[] = [
-                    'name'     => $f->name,
-                    'label'    => $f->label,
-                    'type'     => $f->type,
-                    'required' => $f->required,
-                ];
-            }
-        }
-
-        if (!$found) {
+        if (count($remaining) === count($fields)) {
             return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', 'Field not found.');
         }
 
         try {
             // Drop column first; if it fails, definition is unchanged
-            $fieldRepo->dropColumn($listing->dbprefix, $fieldName);
+            $column = $fieldRepo->fieldColumns($listing->dbprefix, $fields)[$fieldName] ?? null;
+            if ($column !== null) {
+                $fieldRepo->dropColumn($listing->dbprefix, $column);
+            }
         } catch (InvalidArgumentException $e) {
             return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            error_log("[Luster] Delete Field: '{$fieldName}' on listing #{$listingId} failed: " . $e->getMessage());
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', "Couldn't delete this field because of a database error. Nothing was changed.");
         }
 
-        $fieldRepo->saveFields($listingId, $fieldsArray);
+        try {
+            $fieldRepo->saveFields($listingId, $this->toArray($remaining));
+        } catch (\RuntimeException $e) {
+            // Not "nothing changed": the column may be gone. Deleting again finishes
+            // the job, because a field with no column has nothing left to drop.
+            error_log("[Luster] Delete Field: removing the definition of '{$fieldName}' on listing #{$listingId} failed: " . $e->getMessage());
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', "This field's definition couldn't be removed because of a database error. Try deleting it again.");
+        }
 
-        return $this->redirectAfterFieldAction($listingId, $fromEdit, 'success', 'Field deleted successfully.');
+        return $this->redirectAfterFieldAction(
+            $listingId,
+            $fromEdit,
+            'success',
+            $column !== null
+                ? 'Field deleted successfully.'
+                : "Field removed. Its column wasn't dropped because it's missing or belongs to another field.",
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -479,16 +490,6 @@ final class FieldController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * True when $name would collide with one of MembersTemplateRenderer's
-     * aggregate additional-field tokens (case-sensitive exact match, matching
-     * how field names are compared/stored elsewhere in this controller).
-     */
-    private static function isReservedFieldName(string $name): bool
-    {
-        return in_array($name, self::RESERVED_FIELD_NAMES, true);
-    }
-
-    /**
      * Loads the listing and a FieldRepo instance together.
      *
      * @return array{0: \Luster\Models\Listing|null, 1: FieldRepo}
@@ -547,7 +548,7 @@ final class FieldController extends AdminController
      * for serialization by FieldRepo::saveFields().
      *
      * @param \Luster\Models\AdditionalField[] $fields
-     * @return array<int, array{name: string, label: string, type: string, required: bool}>
+     * @return array<int, array{name: string, label: string, type: string, required: bool, options: string}>
      */
     private function toArray(array $fields): array
     {
