@@ -29,6 +29,7 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Support\ListingFormUrlResolver;
+use Luster\Support\MemberAddressBusy;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -263,36 +264,53 @@ final class ResetController
             return Response::redirect($confirmReturnUrl);
         }
 
-        // Confirm the member the token was issued to still exists under that
-        // email before touching anything — PDO's execute() returns true even
-        // when an UPDATE matches zero rows, so without this check a token
-        // pointing at a since-renamed or deleted member would silently do
-        // nothing yet still report success and consume the token.
-        $memberRepo   = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
-        $targetMember = $memberRepo->getByEmail($listing->dbprefix, (string) $tokenRow['email']);
+        // Under the address's lock: a fresh look at the member, then the token is used
+        // and the password written. If the address is busy, the token and the password
+        // stay as they were.
+        $tokenHash = hash('sha256', $rawToken);
+        $email     = (string) $tokenRow['email'];
+        try {
+            $applied = $this->app->getMemberAddressLock()->run(
+                [[$listingId, $email]],
+                function () use ($resetRepo, $tokenHash, $listing, $email, $newPassword): bool {
+                    // Confirm the member the token was issued to still exists under that
+                    // email before touching anything — PDO's execute() returns true even
+                    // when an UPDATE matches zero rows, so without this check a token
+                    // pointing at a since-renamed or deleted member would silently do
+                    // nothing yet still report success and consume the token.
+                    $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
+                    if ($memberRepo->getByEmail($listing->dbprefix, $email) === null) {
+                        $resetRepo->deleteByToken($tokenHash);
+                        return false;
+                    }
 
-        if ($targetMember === null) {
-            $resetRepo->deleteByToken(hash('sha256', $rawToken));
+                    // Atomically claim the token right before applying the password
+                    // change - closes the race where two concurrent requests with the
+                    // same raw token both pass the findValidByToken() check above before
+                    // either has consumed it.
+                    if ($resetRepo->verifyAndConsume($tokenHash) === null) {
+                        return false;
+                    }
+
+                    // Update the member's password
+                    $memberRepo->update(
+                        $listing->dbprefix,
+                        $email,
+                        ['password' => password_hash($newPassword, PASSWORD_ARGON2ID)],
+                    );
+
+                    return true;
+                },
+            );
+        } catch (MemberAddressBusy) {
+            $session->set('lstr_flash_error:' . $marker, MemberAddressBusy::MESSAGE);
+            return Response::redirect($confirmReturnUrl);
+        }
+
+        if (!$applied) {
             $session->set('lstr_flash_error:' . $marker, 'This reset link has expired or is invalid. Please request a new one.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $resetPageUrl);
         }
-
-        // Atomically claim the token right before applying the password
-        // change - closes the race where two concurrent requests with the
-        // same raw token both pass the findValidByToken() check above before
-        // either has consumed it.
-        $tokenRow = $resetRepo->verifyAndConsume(hash('sha256', $rawToken));
-        if ($tokenRow === null) {
-            $session->set('lstr_flash_error:' . $marker, 'This reset link has expired or is invalid. Please request a new one.');
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $resetPageUrl);
-        }
-
-        // Update the member's password
-        $memberRepo->update(
-            $listing->dbprefix,
-            (string) $tokenRow['email'],
-            ['password' => password_hash($newPassword, PASSWORD_ARGON2ID)],
-        );
 
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_RESET);
 

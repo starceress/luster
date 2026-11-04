@@ -34,6 +34,8 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
+use Luster\Support\MemberAddressBusy;
+use Luster\Support\MemberRemoval;
 
 /**
  * Handles collective-level cross-listing membership updates.
@@ -207,13 +209,7 @@ final class CollectiveUpdateController
         // Permanently delete membership instead of updating it — skips every
         // other field entirely, matching the single-listing update form.
         if ($deleteMembership) {
-            if ($tokenRepo->verifyAndConsume($rawToken) === null) {
-                $session->set('lstr_flash_error:' . $marker, 'That update link is invalid or has expired. Please request a new one.');
-                return Response::redirect($embedReturnTo);
-            }
-
-            $session->remove('lstr_embed_return_to');
-            return $this->deleteMemberships($selectedIds, $validMap, $email, $embedReturnTo);
+            return $this->deleteMemberships($selectedIds, $validMap, $email, $embedReturnTo, $tokenRepo, $rawToken, $tokenUrl);
         }
 
         $v = new Validator(['name' => $newName, 'new_email' => $newEmail, 'url' => $newUrl, 'country' => $newCountry, 'new_password' => $newPassword]);
@@ -251,21 +247,10 @@ final class CollectiveUpdateController
             return Response::redirect($tokenUrl);
         }
 
-        // All validation passed — atomically consume the token now.
-        // verifyAndConsume() returning null here means a race beat us to it;
-        // treat it as an expired token rather than applying updates twice.
-        if ($tokenRepo->verifyAndConsume($rawToken) === null) {
-            $session->set('lstr_flash_error:' . $marker, 'That update link is invalid or has expired. Please request a new one.');
-            return Response::redirect($embedReturnTo);
-        }
-
         $memberRepo    = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $lifecycleRepo = new ListingLifecycleRepo($this->app->getDatabase());
         $results       = ['updated' => [], 'queued' => [], 'skipped' => [], 'email_conflict' => []];
-
-        // Hash once; applied immediately to every selected listing (never queued)
-        $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
 
         // Tracks the address the confirmation email should go to. Starts as the
         // verified (old) address; switches to the new one the moment an
@@ -273,69 +258,111 @@ final class CollectiveUpdateController
         // that point the old address may no longer reach the member.
         $confirmationEmail = $email;
 
+        // Every address in every selected listing is locked before the token is used
+        // or anything is written, so a busy one can't leave this half done.
+        $addresses = [];
         foreach ($selectedIds as $listingId) {
-            $entry   = $validMap[$listingId];
-            $listing = $entry['listing'];
-            $member  = $entry['member'];
-
-            // Skip if archived since the memberships were loaded
-            if ($lifecycleRepo->getByListingId($listingId) !== null) {
-                $results['skipped'][] = ['title' => $listing->title, 'subject' => $listing->subject];
-                continue;
-            }
-
-            // Password always applied immediately — never queued
-            $passwordChanged = false;
-            if ($passwordHash !== null) {
-                $memberRepo->update($listing->dbprefix, $email, ['password' => $passwordHash]);
-                $passwordChanged = true;
-            }
-
-            $updateData = [];
-            if ($newName !== '' && $newName !== $member->name) {
-                $updateData['name'] = $newName;
-            }
-            if ($deleteUrl) {
-                $updateData['url']     = '';
-                $updateData['showurl'] = 0;
-            } elseif ($newUrl !== '' && $newUrl !== $member->url) {
-                $updateData['url']     = $newUrl;
-                $updateData['showurl'] = 1;
-            }
-            if ($newCountry !== '' && $newCountry !== $member->country) {
-                $updateData['country'] = $newCountry;
-            }
+            $addresses[] = [$listingId, $email];
             if ($newEmail !== '' && $newEmail !== $email) {
-                // Email is unique per-listing (it's the member table's key), so a
-                // match elsewhere doesn't block this listing — only a conflict
-                // within this specific listing's own member table does.
-                if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
-                    $results['email_conflict'][] = ['title' => $listing->title, 'subject' => $listing->subject];
-                } else {
-                    $updateData['email'] = $newEmail;
-                }
+                $addresses[] = [$listingId, $newEmail];
             }
+        }
 
-            if ($updateData === []) {
-                if (!$passwordChanged) {
-                    $results['skipped'][] = ['title' => $listing->title, 'subject' => $listing->subject];
-                } else {
-                    $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
-                }
-                continue;
-            }
+        try {
+            $tokenWasGood = $this->app->getMemberAddressLock()->run(
+                $addresses,
+                function () use (
+                    $tokenRepo, $rawToken, $email, $selectedIds, $validMap, $lifecycleRepo, $memberRepo, $settingsRepo,
+                    $newPassword, $newName, $deleteUrl, $newUrl, $newCountry, $newEmail, &$results, &$confirmationEmail
+                ): bool {
+                    // All validation passed — atomically consume the token now.
+                    // verifyAndConsume() returning null here means a race beat us to it;
+                    // treat it as an expired token rather than applying updates twice.
+                    if ($tokenRepo->verifyAndConsume($rawToken) === null) {
+                        return false;
+                    }
 
-            if ($settingsRepo->getQueueUpdates($listingId)) {
-                (new PendingUpdateRepo($this->app->getDatabase()))->insert($listingId, $email, $updateData);
-                $results['queued'][] = ['title' => $listing->title, 'subject' => $listing->subject];
-            } else {
-                $memberRepo->update($listing->dbprefix, $email, $updateData);
-                self::rekeyOnEmailChange($this->app->getDatabase(), $this->app->getConfig(), $listingId, $email, $updateData);
-                $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
-                if (isset($updateData['email'])) {
-                    $confirmationEmail = $updateData['email'];
-                }
-            }
+                    // Hash once; applied immediately to every selected listing (never queued)
+                    $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
+
+                    // Read again now it's locked: who's at this address may have changed.
+                    $current = self::membershipsByListing($email, $this->app);
+
+                    foreach ($selectedIds as $listingId) {
+                        $listing = $validMap[$listingId]['listing'];
+                        $member  = $current[$listingId]['member'] ?? null;
+
+                        // Skip if removed or archived since the memberships were loaded
+                        if ($member === null || $lifecycleRepo->getByListingId($listingId) !== null) {
+                            $results['skipped'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            continue;
+                        }
+
+                        // Password always applied immediately — never queued
+                        $passwordChanged = false;
+                        if ($passwordHash !== null) {
+                            $memberRepo->update($listing->dbprefix, $email, ['password' => $passwordHash]);
+                            $passwordChanged = true;
+                        }
+
+                        $updateData = [];
+                        if ($newName !== '' && $newName !== $member->name) {
+                            $updateData['name'] = $newName;
+                        }
+                        if ($deleteUrl) {
+                            $updateData['url']     = '';
+                            $updateData['showurl'] = 0;
+                        } elseif ($newUrl !== '' && $newUrl !== $member->url) {
+                            $updateData['url']     = $newUrl;
+                            $updateData['showurl'] = 1;
+                        }
+                        if ($newCountry !== '' && $newCountry !== $member->country) {
+                            $updateData['country'] = $newCountry;
+                        }
+                        if ($newEmail !== '' && $newEmail !== $email) {
+                            // Email is unique per-listing (it's the member table's key), so a
+                            // match elsewhere doesn't block this listing — only a conflict
+                            // within this specific listing's own member table does.
+                            if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
+                                $results['email_conflict'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            } else {
+                                $updateData['email'] = $newEmail;
+                            }
+                        }
+
+                        if ($updateData === []) {
+                            if (!$passwordChanged) {
+                                $results['skipped'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            } else {
+                                $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            }
+                            continue;
+                        }
+
+                        if ($settingsRepo->getQueueUpdates($listingId)) {
+                            (new PendingUpdateRepo($this->app->getDatabase()))->insert($listingId, $email, $updateData);
+                            $results['queued'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                        } else {
+                            $memberRepo->update($listing->dbprefix, $email, $updateData);
+                            self::rekeyOnEmailChange($this->app->getDatabase(), $this->app->getConfig(), $listingId, $email, $updateData);
+                            $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            if (isset($updateData['email'])) {
+                                $confirmationEmail = $updateData['email'];
+                            }
+                        }
+                    }
+
+                    return true;
+                },
+            );
+        } catch (MemberAddressBusy) {
+            $session->set('lstr_flash_error:' . $marker, MemberAddressBusy::MESSAGE);
+            return Response::redirect($tokenUrl);
+        }
+
+        if (!$tokenWasGood) {
+            $session->set('lstr_flash_error:' . $marker, 'That update link is invalid or has expired. Please request a new one.');
+            return Response::redirect($embedReturnTo);
         }
 
         if ($results['updated'] !== []) {
@@ -393,37 +420,69 @@ final class CollectiveUpdateController
      * @param int[] $selectedIds
      * @param array<int, array{listing: Listing, member: Member}> $validMap
      */
-    private function deleteMemberships(array $selectedIds, array $validMap, string $email, string $embedReturnTo): Response
-    {
+    private function deleteMemberships(
+        array $selectedIds,
+        array $validMap,
+        string $email,
+        string $embedReturnTo,
+        CollectiveUpdateTokenRepo $tokenRepo,
+        string $rawToken,
+        string $tokenUrl,
+    ): Response {
         $db            = $this->app->getDatabase();
         $config        = $this->app->getConfig();
         $session       = $this->app->getSession();
-        $memberRepo    = new MemberRepo($db, $config);
         $lifecycleRepo = new ListingLifecycleRepo($db);
-        $pendingRepo   = new PendingUpdateRepo($db);
-        $mailer        = new Mailer($config);
+        $marker        = 'collective_update';
 
-        $deleted = [];
-        $skipped = [];
+        $deleted   = [];
+        $skipped   = [];
+        $farewells = [];
 
-        foreach ($selectedIds as $listingId) {
-            $entry   = $validMap[$listingId];
-            $listing = $entry['listing'];
-            $member  = $entry['member'];
+        try {
+            $tokenWasGood = $this->app->getMemberAddressLock()->run(
+                array_map(static fn(int $listingId): array => [$listingId, $email], $selectedIds),
+                function () use ($tokenRepo, $rawToken, $email, $selectedIds, $validMap, $lifecycleRepo, &$deleted, &$skipped, &$farewells): bool {
+                    if ($tokenRepo->verifyAndConsume($rawToken) === null) {
+                        return false;
+                    }
 
-            // Skip if archived since the memberships were loaded
-            if ($lifecycleRepo->getByListingId($listingId) !== null) {
-                $skipped[] = $listing->title;
-                continue;
-            }
+                    // Read again now it's locked: who's at this address may have changed.
+                    $current = self::membershipsByListing($email, $this->app);
 
-            $memberRepo->deleteByEmail($listing->dbprefix, $email);
-            $pendingRepo->deleteByListingAndEmail($listingId, $email);
-            (new FanPasswordResetRepo($db))->deleteByEmail($listingId, $email);
-            try {
-                (new MemberLinkCheckRepo($db, $config))->removeMember($listingId, $email);
-            } catch (\Throwable) {}
+                    foreach ($selectedIds as $listingId) {
+                        $listing = $validMap[$listingId]['listing'];
+                        $member  = $current[$listingId]['member'] ?? null;
 
+                        // Skip if removed or archived since the memberships were loaded
+                        if ($member === null || $lifecycleRepo->getByListingId($listingId) !== null) {
+                            $skipped[] = $listing->title;
+                            continue;
+                        }
+
+                        MemberRemoval::for($this->app)->remove($listingId, $listing->dbprefix, $email);
+
+                        $deleted[]   = $listing->title;
+                        $farewells[] = [$listingId, $listing, $member];
+                    }
+
+                    return true;
+                },
+            );
+        } catch (MemberAddressBusy) {
+            $session->set('lstr_flash_error:' . $marker, MemberAddressBusy::MESSAGE);
+            return Response::redirect($tokenUrl);
+        }
+
+        if (!$tokenWasGood) {
+            $session->set('lstr_flash_error:' . $marker, 'That update link is invalid or has expired. Please request a new one.');
+            return Response::redirect($embedReturnTo);
+        }
+
+        $session->remove('lstr_embed_return_to');
+        $mailer = new Mailer($config);
+
+        foreach ($farewells as [$listingId, $listing, $member]) {
             // Farewell email (best-effort)
             try {
                 $emailRepo = new EmailTemplateRepo($db);
@@ -450,8 +509,6 @@ final class CollectiveUpdateController
             } catch (\Throwable $e) {
                 error_log('[Luster] Collective update removal email failed: ' . $e->getMessage());
             }
-
-            $deleted[] = $listing->title;
         }
 
         $parts = [];
@@ -464,6 +521,21 @@ final class CollectiveUpdateController
 
         $session->set('lstr_flash_success_html:collective_update', '<p class="fl-success">Done! ' . implode('. ', $parts) . '.</p>');
         return Response::redirect($embedReturnTo);
+    }
+
+    /**
+     * findMembershipsForEmail(), keyed by listing id.
+     *
+     * @return array<int, array{listing: Listing, member: Member}>
+     */
+    private static function membershipsByListing(string $email, Application $app): array
+    {
+        $byListing = [];
+        foreach (self::findMembershipsForEmail($email, $app) as $membership) {
+            $byListing[$membership['listing']->id] = $membership;
+        }
+
+        return $byListing;
     }
 
     /**

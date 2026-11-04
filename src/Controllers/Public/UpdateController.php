@@ -34,6 +34,9 @@ use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
+use Luster\Support\MemberAddressBusy;
+use Luster\Support\MemberRemoval;
+use Luster\Support\MemberSignIn;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -48,22 +51,11 @@ use Luster\Support\SuccessRenderer;
  *  - Rate-limited per IP via lstr_rate_limits
  *  - Password verified via MemberRepo::verifyAndUpgrade()
  *  - MD5 and non-Argon2id hashes (bcrypt, legacy) silently upgraded to Argon2id on success
- *  - Session key lstr_update_authed_{id} stores the authenticated member's email
+ *  - A sign-in remembers which member it verified, not just their address (MemberSignIn)
+ *  - Everything that depends on who's at an address holds its lock (MemberAddressLock)
  */
 final class UpdateController
 {
-    /** Session key prefix for the authenticated member email. */
-    private const AUTH_KEY = 'lstr_update_authed_';
-
-    /**
-     * Session key prefixes for the fallback single-use form tokens, issued
-     * alongside AUTH_KEY at sign-in and embedded as hidden form fields so the
-     * update form can still be submitted if the session is lost between
-     * sign-in and submit (e.g. cross-subdomain cookie issues, session GC).
-     */
-    private const FORM_TOKEN_UPDATE_KEY = 'lstr_update_formtoken_update_';
-    private const FORM_TOKEN_DELETE_KEY = 'lstr_update_formtoken_delete_';
-
     public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
@@ -127,42 +119,60 @@ final class UpdateController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
-        $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
-        $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
+        // Locked from the first read of the member to the sign-in being set. Someone
+        // else getting this address in that gap would otherwise stamp this session with
+        // their hash, and verifyAndUpgrade() writes by address.
+        try {
+            return $this->app->getMemberAddressLock()->run(
+                [[$listingId, $email]],
+                function () use ($listing, $listingId, $email, $password, $session, $rateLimit, $ip, $marker, $embedReturnTo, $formUrl): Response {
+                    $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
+                    $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
 
-        if ($member === null) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $session->set('lstr_flash_error:' . $marker, 'No membership found for that email address.');
+                    if ($member === null) {
+                        $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
+                        $session->set('lstr_flash_error:' . $marker, 'No membership found for that email address.');
+                        $session->set('lstr_flash_old:' . $marker, ['email' => $email]);
+                        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+                    }
+
+                    // Verify password; silently upgrade MD5/bcrypt hashes to Argon2id on success.
+                    $verified = $memberRepo->verifyAndUpgrade($listing->dbprefix, $email, $password, $member->password);
+
+                    // Read back, because an upgrade has just replaced the hash the stamp is made from.
+                    $verifiedMember = $verified ? $memberRepo->getByEmail($listing->dbprefix, $email) : null;
+
+                    if ($verifiedMember === null) {
+                        $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
+                        $session->set('lstr_flash_error:' . $marker, 'Incorrect password. Please try again.');
+                        $session->set('lstr_flash_old:' . $marker, ['email' => $email]);
+                        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+                    }
+
+                    $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_UPDATE);
+                    MemberSignIn::remember($session, $listingId, $email, $verifiedMember->password);
+
+                    // Issue fallback form-session tokens so the update form still works if
+                    // the session is lost before the member submits step 2.
+                    $formSessionService = new MemberFormSessionService(new MemberFormSessionRepo($this->app->getDatabase()));
+                    $stamp       = MemberSignIn::stamp($verifiedMember->password);
+                    $updateToken = $formSessionService->issue($listingId, $email, 'update', $stamp);
+                    $deleteToken = $formSessionService->issue($listingId, $email, 'delete', $stamp);
+                    if ($updateToken !== null) {
+                        $session->set(MemberSignIn::FORM_TOKEN_UPDATE . $listingId, $updateToken);
+                    }
+                    if ($deleteToken !== null) {
+                        $session->set(MemberSignIn::FORM_TOKEN_DELETE . $listingId, $deleteToken);
+                    }
+
+                    return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+                },
+            );
+        } catch (MemberAddressBusy) {
+            $session->set('lstr_flash_error:' . $marker, MemberAddressBusy::MESSAGE);
             $session->set('lstr_flash_old:' . $marker, ['email' => $email]);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
-
-        // Verify password; silently upgrade MD5/bcrypt hashes to Argon2id on success.
-        $verified = $memberRepo->verifyAndUpgrade($listing->dbprefix, $email, $password, $member->password);
-
-        if (!$verified) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $session->set('lstr_flash_error:' . $marker, 'Incorrect password. Please try again.');
-            $session->set('lstr_flash_old:' . $marker, ['email' => $email]);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
-        }
-
-        $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-        $session->set(self::AUTH_KEY . $listingId, $email);
-
-        // Issue fallback form-session tokens so the update form still works if
-        // the session is lost before the member submits step 2.
-        $formSessionService = new MemberFormSessionService(new MemberFormSessionRepo($this->app->getDatabase()));
-        $updateToken = $formSessionService->issue($listingId, $email, 'update');
-        $deleteToken = $formSessionService->issue($listingId, $email, 'delete');
-        if ($updateToken !== null) {
-            $session->set(self::FORM_TOKEN_UPDATE_KEY . $listingId, $updateToken);
-        }
-        if ($deleteToken !== null) {
-            $session->set(self::FORM_TOKEN_DELETE_KEY . $listingId, $deleteToken);
-        }
-
-        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -228,27 +238,99 @@ final class UpdateController
         // Must be authenticated before reaching the update form. If the session
         // auth key is missing (e.g. lost between sign-in and submit), fall back
         // to the single-use form token embedded as a hidden field — bound to
-        // this listing and to the specific action being attempted.
-        $email = (string) $session->get(self::AUTH_KEY . $listingId, '');
+        // this listing and to the specific action being attempted. It's only looked
+        // at here, and gets used once the locks are held.
+        $email     = MemberSignIn::email($session, $listingId);
+        $action    = ((string) $request->post('delete_membership', '') === '1') ? 'delete' : 'update';
+        $formToken = '';
         if ($email === '') {
-            $action    = ((string) $request->post('delete_membership', '') === '1') ? 'delete' : 'update';
             $formToken = (string) $request->post('_form_token_' . $action, '');
-            if ($formToken !== '') {
-                $formSessionService = new MemberFormSessionService(new MemberFormSessionRepo($this->app->getDatabase()));
-                $email = (string) ($formSessionService->consume($listingId, $formToken, $action) ?? '');
-            }
+            $peeked    = (new MemberFormSessionService(new MemberFormSessionRepo($this->app->getDatabase())))
+                ->peek($listingId, $formToken, $action);
+            $email     = (string) ($peeked['email'] ?? '');
         }
         if ($email === '') {
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        // Every address this could touch is locked before anything else, so a busy new
+        // address can't leave the password changed or the token used.
+        $addresses = [[$listingId, $email]];
+        $newEmail  = trim((string) $request->post('new_email', ''));
+        if ($action === 'update' && $newEmail !== '') {
+            $addresses[] = [$listingId, $newEmail];
+        }
+
+        $afterRelease = null;
+        try {
+            $response = $this->app->getMemberAddressLock()->run(
+                $addresses,
+                function () use ($request, $listing, $listingId, $fields, $fieldRepo, $settingsRepo, $embedSettings, $globalDefaults, $formUrl, $embedReturnTo, $marker, $ip, $email, $formToken, $action, &$afterRelease): Response {
+                    return $this->applySubmission($request, $listing, $listingId, $fields, $fieldRepo, $settingsRepo, $embedSettings, $globalDefaults, $formUrl, $embedReturnTo, $marker, $ip, $email, $formToken, $action, $afterRelease);
+                },
+            );
+        } catch (MemberAddressBusy) {
+            $session->set('lstr_flash_error:' . $marker, MemberAddressBusy::MESSAGE);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        // Mail waits until the locks are released.
+        if ($afterRelease !== null) {
+            $afterRelease();
+        }
+
+        return $response;
+    }
+
+    /**
+     * The rest of submit(), with the address locks held. The member at this address
+     * has to be the one who signed in before anything else happens.
+     *
+     * @param array<int, object>  $fields
+     * @param array<string,mixed> $embedSettings
+     * @param array<string,mixed> $globalDefaults
+     * @param ?callable           $afterRelease Set to whatever has to wait for the locks to go.
+     */
+    private function applySubmission(
+        Request $request,
+        Listing $listing,
+        int $listingId,
+        array $fields,
+        FieldRepo $fieldRepo,
+        ListingSettingsRepo $settingsRepo,
+        array $embedSettings,
+        array $globalDefaults,
+        string $formUrl,
+        string $embedReturnTo,
+        string $marker,
+        string $ip,
+        string $email,
+        string $formToken,
+        string $action,
+        ?callable &$afterRelease,
+    ): Response {
+        $session   = $this->app->getSession();
+        $rateLimit = $this->app->getRateLimit();
+
+        if ($formToken !== '') {
+            $consumed = (new MemberFormSessionService(new MemberFormSessionRepo($this->app->getDatabase())))
+                ->consume($listingId, $formToken, $action);
+            $stamp = (string) ($consumed['stamp'] ?? '');
+        } else {
+            $stamp = MemberSignIn::sessionStamp($session, $listingId);
         }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
 
         if ($member === null) {
-            $session->remove(self::AUTH_KEY . $listingId);
-            $session->remove(self::FORM_TOKEN_UPDATE_KEY . $listingId);
-            $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
+            MemberSignIn::forget($session, $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        if (!MemberSignIn::matches($stamp, $member)) {
+            MemberSignIn::forget($session, $listingId);
+            $session->set('lstr_flash_error:' . $marker, MemberSignIn::SIGN_IN_AGAIN);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -267,42 +349,39 @@ final class UpdateController
         // Permanently delete membership instead of updating it
         if ((string) $request->post('delete_membership', '') === '1') {
             $memberName = $member->name;
-            $memberRepo->deleteByEmail($listing->dbprefix, $email);
-
-            $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
-            $pendingRepo->deleteByListingAndEmail($listingId, $email);
+            MemberRemoval::for($this->app)->remove($listingId, $listing->dbprefix, $email);
 
             // Farewell email (best-effort)
-            try {
-                $cfg       = $this->app->getConfig();
-                $mailer    = new Mailer($cfg);
-                $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-                $tokens    = EmailTemplateRepo::buildTokens(
-                    listingName:    $listing->title,
-                    listingUrl:     $listing->url,
-                    siteName:       (string) $cfg->get('site_name', 'Luster'),
-                    listingSubject: $listing->subject,
-                    ownerName:      (string) $cfg->get('owner_name', ''),
-                    ownerEmail:     (string) $cfg->get('owner_email', ''),
-                    fanName:        $memberName,
-                    fanEmail:       $email,
-                    listingEmail:   $listing->email,
-                    formUrlJoin:    (string) ($embedSettings['form_url_join']   ?: $globalDefaults['form_url_join']),
-                    formUrlUpdate:  (string) ($embedSettings['form_url_update'] ?: $globalDefaults['form_url_update']),
-                    formUrlReset:   (string) ($embedSettings['form_url_reset']  ?: $globalDefaults['form_url_reset']),
-                    listingType:    $settingsRepo->getListingType($listingId),
-                );
-                [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_REMOVE, $tokens);
-                if ($subject !== '') {
-                    $mailer->send($email, $memberName, $subject, $body);
+            $afterRelease = function () use ($listing, $listingId, $email, $memberName, $embedSettings, $globalDefaults, $settingsRepo): void {
+                try {
+                    $cfg       = $this->app->getConfig();
+                    $mailer    = new Mailer($cfg);
+                    $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+                    $tokens    = EmailTemplateRepo::buildTokens(
+                        listingName:    $listing->title,
+                        listingUrl:     $listing->url,
+                        siteName:       (string) $cfg->get('site_name', 'Luster'),
+                        listingSubject: $listing->subject,
+                        ownerName:      (string) $cfg->get('owner_name', ''),
+                        ownerEmail:     (string) $cfg->get('owner_email', ''),
+                        fanName:        $memberName,
+                        fanEmail:       $email,
+                        listingEmail:   $listing->email,
+                        formUrlJoin:    (string) ($embedSettings['form_url_join']   ?: $globalDefaults['form_url_join']),
+                        formUrlUpdate:  (string) ($embedSettings['form_url_update'] ?: $globalDefaults['form_url_update']),
+                        formUrlReset:   (string) ($embedSettings['form_url_reset']  ?: $globalDefaults['form_url_reset']),
+                        listingType:    $settingsRepo->getListingType($listingId),
+                    );
+                    [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_REMOVE, $tokens);
+                    if ($subject !== '') {
+                        $mailer->send($email, $memberName, $subject, $body);
+                    }
+                } catch (\Throwable $e) {
+                    error_log('[Luster] Remove email failed: ' . $e->getMessage());
                 }
-            } catch (\Throwable $e) {
-                error_log('[Luster] Remove email failed: ' . $e->getMessage());
-            }
+            };
 
-            $session->remove(self::AUTH_KEY . $listingId);
-            $session->remove(self::FORM_TOKEN_UPDATE_KEY . $listingId);
-            $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
+            MemberSignIn::forget($session, $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
             $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'removed', [
@@ -457,9 +536,7 @@ final class UpdateController
             $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
             $pendingRepo->insert($listingId, $email, $updateData);
 
-            $session->remove(self::AUTH_KEY . $listingId);
-            $session->remove(self::FORM_TOKEN_UPDATE_KEY . $listingId);
-            $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
+            MemberSignIn::forget($session, $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
             $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'updated-pending', [
@@ -471,9 +548,7 @@ final class UpdateController
                 $memberRepo->update($listing->dbprefix, $email, $updateData);
             }
 
-            $session->remove(self::AUTH_KEY . $listingId);
-            $session->remove(self::FORM_TOKEN_UPDATE_KEY . $listingId);
-            $session->remove(self::FORM_TOKEN_DELETE_KEY . $listingId);
+            MemberSignIn::forget($session, $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
             $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'updated', [

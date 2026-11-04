@@ -3496,6 +3496,24 @@ try {
     $errors[] = 'Migration 108 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 109: a fallback update-form token remembers which member signed in.
+// lstr_member_form_sessions.member_stamp. Someone else can get an address while a
+// token for it is still alive, and it mustn't work for them. Tokens already out have
+// no stamp and stop working, which just means signing in again. Safe to run again.
+try {
+    $chkStamp = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_member_form_sessions' AND COLUMN_NAME = 'member_stamp'"
+    );
+    if ($chkStamp !== false && (int) $chkStamp->fetchColumn() === 0) {
+        $pdo->exec('ALTER TABLE `lstr_member_form_sessions` ADD COLUMN `member_stamp` CHAR(64) NULL');
+        $done[] = 'Migration 109: update-form sign-ins now remember which member signed in';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (109)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 109 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

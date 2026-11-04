@@ -110,15 +110,10 @@ final class KimResetController
                     continue;
                 }
 
-                $resetRepo->deleteByMember($member->id);
-
-                $rawToken  = bin2hex(random_bytes(32));
-                $tokenHash = hash('sha256', $rawToken);
-                $expiresAt = (new \DateTimeImmutable())
-                    ->modify('+' . self::TOKEN_TTL_SECONDS . ' seconds')
-                    ->format('Y-m-d H:i:s');
-
-                $resetRepo->create($member->id, $tokenHash, $expiresAt);
+                $rawToken = $resetRepo->issueLocked($member->id, $email, self::TOKEN_TTL_SECONDS);
+                if ($rawToken === null) {
+                    continue;
+                }
 
                 $sep      = str_contains($kimResetPage, '?') ? '&' : '?';
                 $resetUrl = $kimResetPage . $sep . 'token=' . urlencode($rawToken);
@@ -249,22 +244,39 @@ final class KimResetController
             return Response::redirect($confirmReturnUrl);
         }
 
-        // Atomically claim the token right before applying the password
-        // change - closes the race where two concurrent requests with the
-        // same raw token both pass the findValidByToken() check above before
-        // either has consumed it.
-        $tokenRow = $resetRepo->verifyAndConsume(hash('sha256', $rawToken));
-        if ($tokenRow === null) {
-            $session->set('lstr_flash_error:kim_reset', 'This reset link has expired or is invalid. Please request a new one.');
-            return Response::redirect($fallbackUrl);
-        }
-
         $kimMemberId = (int) $tokenRow['kim_member_id'];
         $kimRepo     = new KimMemberRepo($this->app->getDatabase());
+        $db          = $this->app->getDatabase();
+        $newHash     = password_hash($newPassword, PASSWORD_ARGON2ID);
 
-        $kimRepo->update($kimMemberId, [
-            'password' => password_hash($newPassword, PASSWORD_ARGON2ID),
-        ]);
+        // The entry is locked first, the same order moving it uses, so either this link is
+        // used before the move or the move has already revoked it. A failed write rolls
+        // the token back, so the link still works.
+        $db->beginTransaction();
+        try {
+            $entry = $kimRepo->lockById($kimMemberId);
+
+            // Atomically claim the token right before applying the password
+            // change - closes the race where two concurrent requests with the
+            // same raw token both pass the findValidByToken() check above before
+            // either has consumed it.
+            $claimed = $entry !== null ? $resetRepo->verifyAndConsume(hash('sha256', $rawToken)) : null;
+            if ($claimed === null || (int) $claimed['kim_member_id'] !== $kimMemberId) {
+                $db->rollBack();
+                $session->set('lstr_flash_error:kim_reset', 'This reset link has expired or is invalid. Please request a new one.');
+                return Response::redirect($fallbackUrl);
+            }
+
+            $kimRepo->update($kimMemberId, ['password' => $newHash]);
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->pdo()->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('[KIM] Applying a password reset failed: ' . $e->getMessage());
+            $session->set('lstr_flash_error:kim_reset', "Couldn't save your new password because of a database error. Your link still works, so please try again.");
+            return Response::redirect($confirmReturnUrl);
+        }
 
         $rateLimit->clear($ip, 'kim_reset');
 

@@ -22,7 +22,7 @@ release page.
 ### [Unreleased]
 
 **After updating:** go to **Settings → System & Updates** and click **Run
-migrations** once. This update makes four small changes to your database (see
+migrations** once. This update makes five small changes to your database (see
 below), and the migration page tells you if any of your listings were affected.
 
 **Added:**
@@ -79,6 +79,36 @@ below), and the migration page tells you if any of your listings were affected.
   approving one member with the Approve button left those blank. They're filled
   in now, the same as in the join email. (Approve All and the bulk Approve
   still leave them blank for now.)
+- **An old sign-in can't touch someone else's membership anymore.** If a fan was
+  signed in to the update form, got removed, and someone else then ended up with
+  that same email address, the old sign-in could change the new member's details or
+  password, or even delete them. Now a sign-in only works for the member who signed
+  in. If anything about that member has changed, they're just asked to sign in
+  again. Anyone signed in when you update will have to sign in once more too. Until
+  you run the migration step above, a fan whose browser loses its session partway
+  through the form also has to sign in again.
+- **On Keep In Mind, a password only unlocks the entries that use it.** KIM sign-ups
+  don't check the email address belongs to whoever typed it, so someone could sign
+  up with a fan's address and, once approved, use their own password to change or
+  delete that fan's other entries. Now you only see the entries that use the
+  password you signed in with. If you've used different passwords on different
+  entries, sign in with each one, or use Forgot Password, which emails a link for
+  each approved entry at your address.
+- **A KIM reset link stops working when its entry moves to a new email address.**
+  The old address's link could still set the moved entry's password.
+- **Removing a member takes their waiting update requests and reset links with
+  them.** Delete, Merge and Reject all left them behind, so someone new joining at
+  that address could have the old request applied to them when you approved it.
+  This covers every way of removing a member, and a new member joining at an address
+  clears anything left there too.
+- **Two saves for the same member wait their turn.** Sign-ins, resets, approvals and
+  edits for one email address now happen one at a time, so one can't land halfway
+  through another. If one has to wait too long, you get "Please try again in a
+  moment" and nothing changes. Emails go out once the save is finished.
+- **Approve All on the Members overview checks what the other Approve buttons
+  check.** A requested address that was already taken used to end on an error page
+  and lose the rest of the batch. It's skipped now, and a changed address brings the
+  member's other waiting requests and link check along with it.
 - **Deleting an extra field can't delete the wrong thing anymore.** If a listing
   had an extra field named like one of Luster's own member details (say, `name`,
   which an import could leave behind), deleting that field also deleted every

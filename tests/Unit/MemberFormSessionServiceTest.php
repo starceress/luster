@@ -19,6 +19,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class MemberFormSessionServiceTest extends TestCase
 {
+    private const STAMP = 'a-members-stamp';
+
     private const DDL = <<<SQL
 CREATE TABLE lstr_member_form_sessions (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,7 +30,8 @@ CREATE TABLE lstr_member_form_sessions (
     allowed_action TEXT    NOT NULL,
     expires_at     TEXT    NOT NULL,
     used_at        TEXT    NULL,
-    created_at     TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at     TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    member_stamp   TEXT    NULL
 )
 SQL;
 
@@ -53,7 +56,7 @@ SQL;
     {
         [$service] = $this->make();
 
-        $token = $service->issue(1, 'fan@example.com', 'update');
+        $token = $service->issue(1, 'fan@example.com', 'update', self::STAMP);
 
         self::assertNotNull($token);
         self::assertSame(64, strlen($token), 'Raw token should be 32 bytes hex-encoded (64 chars)');
@@ -63,22 +66,22 @@ SQL;
     {
         [$service] = $this->make();
 
-        self::assertNotNull($service->issue(1, 'fan@example.com', 'delete'));
+        self::assertNotNull($service->issue(1, 'fan@example.com', 'delete', self::STAMP));
     }
 
     public function testIssueRejectsActionNotInAllowlist(): void
     {
         [$service] = $this->make();
 
-        self::assertNull($service->issue(1, 'fan@example.com', 'kim_update'));
-        self::assertNull($service->issue(1, 'fan@example.com', 'anything'));
+        self::assertNull($service->issue(1, 'fan@example.com', 'kim_update', self::STAMP));
+        self::assertNull($service->issue(1, 'fan@example.com', 'anything', self::STAMP));
     }
 
     public function testIssueDoesNotPersistRawTokenOnlyItsHash(): void
     {
         [$service, , $pdo] = $this->make();
 
-        $token = $service->issue(1, 'fan@example.com', 'update');
+        $token = $service->issue(1, 'fan@example.com', 'update', self::STAMP);
         $row   = $pdo->query('SELECT token_hash FROM lstr_member_form_sessions LIMIT 1')->fetch();
 
         self::assertNotSame($token, $row['token_hash']);
@@ -93,17 +96,53 @@ SQL;
     {
         [$service] = $this->make();
 
-        $token = $service->issue(5, 'fan@example.com', 'update');
-        $email = $service->consume(5, (string) $token, 'update');
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
 
-        self::assertSame('fan@example.com', $email);
+        self::assertSame(['email' => 'fan@example.com', 'stamp' => self::STAMP], $service->consume(5, (string) $token, 'update'));
+    }
+
+    public function testPeekSaysWhatATokenWouldGiveWithoutUsingIt(): void
+    {
+        [$service] = $this->make();
+
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
+
+        self::assertSame(['email' => 'fan@example.com', 'stamp' => self::STAMP], $service->peek(5, (string) $token, 'update'));
+        self::assertSame(['email' => 'fan@example.com', 'stamp' => self::STAMP], $service->peek(5, (string) $token, 'update'));
+        self::assertNull($service->peek(99, (string) $token, 'update'), 'another listing');
+        self::assertNull($service->peek(5, (string) $token, 'delete'), 'another action');
+        self::assertNull($service->peek(5, '', 'update'));
+        self::assertNotNull($service->consume(5, (string) $token, 'update'), 'peeking used nothing up');
+        self::assertNull($service->peek(5, (string) $token, 'update'), 'and a used token is gone');
+    }
+
+    public function testATokenFromBeforeTheMigrationHasNoStamp(): void
+    {
+        [$service, , $pdo] = $this->make();
+
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
+        $pdo->exec('UPDATE lstr_member_form_sessions SET member_stamp = NULL');
+
+        self::assertSame(['email' => 'fan@example.com', 'stamp' => ''], $service->consume(5, (string) $token, 'update'));
+    }
+
+    public function testBeforeTheMigrationNoTokensAreIssuedOrAccepted(): void
+    {
+        $db   = SqliteDatabase::make(str_replace(",\n    member_stamp   TEXT    NULL", '', self::DDL));
+        $repo = new MemberFormSessionRepo($db);
+        $service = new MemberFormSessionService($repo);
+
+        self::assertFalse($repo->supportsStamps());
+        self::assertNull($service->issue(5, 'fan@example.com', 'update', self::STAMP));
+        self::assertNull($service->peek(5, str_repeat('a', 64), 'update'));
+        self::assertNull($service->consume(5, str_repeat('a', 64), 'update'));
     }
 
     public function testConsumeMarksTokenUsed(): void
     {
         [$service, , $pdo] = $this->make();
 
-        $token = $service->issue(5, 'fan@example.com', 'update');
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
         $service->consume(5, (string) $token, 'update');
 
         $row = $pdo->query('SELECT used_at FROM lstr_member_form_sessions LIMIT 1')->fetch();
@@ -118,7 +157,7 @@ SQL;
     {
         [$service] = $this->make();
 
-        $token = $service->issue(5, 'fan@example.com', 'update');
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
         self::assertNotNull($service->consume(5, (string) $token, 'update'));
 
         // Second consume of the exact same raw token must fail.
@@ -129,7 +168,7 @@ SQL;
     {
         [$service] = $this->make();
 
-        $token = $service->issue(5, 'fan@example.com', 'update');
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
 
         self::assertNull($service->consume(99, (string) $token, 'update'));
     }
@@ -138,7 +177,7 @@ SQL;
     {
         [$service] = $this->make();
 
-        $token = $service->issue(5, 'fan@example.com', 'update');
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
 
         self::assertNull($service->consume(5, (string) $token, 'delete'));
     }
@@ -147,7 +186,7 @@ SQL;
     {
         [$service] = $this->make();
 
-        $token = $service->issue(5, 'fan@example.com', 'update');
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
 
         self::assertNull($service->consume(5, (string) $token, 'kim_update'));
     }
@@ -170,7 +209,7 @@ SQL;
     {
         [$service, , $pdo] = $this->make();
 
-        $token = $service->issue(5, 'fan@example.com', 'update');
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
         // Force the row into the past.
         $pdo->exec("UPDATE lstr_member_form_sessions SET expires_at = datetime('now', '-1 hour')");
 
@@ -181,13 +220,13 @@ SQL;
     {
         [$service] = $this->make();
 
-        $token = $service->issue(5, 'fan@example.com', 'update');
+        $token = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
 
         // A mismatched attempt must not burn the token...
         self::assertNull($service->consume(99, (string) $token, 'update'));
 
         // ...so the legitimate listing can still consume it afterward.
-        self::assertSame('fan@example.com', $service->consume(5, (string) $token, 'update'));
+        self::assertSame('fan@example.com', $service->consume(5, (string) $token, 'update')['email'] ?? null);
     }
 
     // -----------------------------------------------------------------------
@@ -198,13 +237,13 @@ SQL;
     {
         [$service] = $this->make();
 
-        $updateToken = $service->issue(5, 'fan@example.com', 'update');
-        $deleteToken = $service->issue(5, 'fan@example.com', 'delete');
+        $updateToken = $service->issue(5, 'fan@example.com', 'update', self::STAMP);
+        $deleteToken = $service->issue(5, 'fan@example.com', 'delete', self::STAMP);
 
         self::assertNotSame($updateToken, $deleteToken);
-        self::assertSame('fan@example.com', $service->consume(5, (string) $deleteToken, 'delete'));
+        self::assertSame('fan@example.com', $service->consume(5, (string) $deleteToken, 'delete')['email'] ?? null);
         // The update token must remain valid and unaffected by consuming the delete token.
-        self::assertSame('fan@example.com', $service->consume(5, (string) $updateToken, 'update'));
+        self::assertSame('fan@example.com', $service->consume(5, (string) $updateToken, 'update')['email'] ?? null);
     }
 
     // -----------------------------------------------------------------------
@@ -215,9 +254,9 @@ SQL;
     {
         [$service, $repo, $pdo] = $this->make();
 
-        $service->issue(5, 'fan@example.com', 'update');
+        $service->issue(5, 'fan@example.com', 'update', self::STAMP);
         $pdo->exec("UPDATE lstr_member_form_sessions SET expires_at = datetime('now', '-1 hour')");
-        $service->issue(5, 'other@example.com', 'update');
+        $service->issue(5, 'other@example.com', 'update', self::STAMP);
 
         $repo->deleteExpired();
 

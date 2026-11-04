@@ -32,9 +32,11 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\PendingUpdateRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
+use Luster\Support\MemberAddressBusy;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -298,7 +300,37 @@ final class JoinController
             $insertData[$column] = $value;
         }
 
-        $memberRepo->insert($listing->dbprefix, $insertData);
+        // Checked again under the address's lock, which also keeps a save still in
+        // progress for whoever had this address before from landing on this member.
+        $oldForm = [
+            'name'      => $name,
+            'email'     => $email,
+            'url'       => $url,
+            'country'   => $country,
+            'send_info' => (string) $request->post('send_info', ''),
+        ];
+        try {
+            $inserted = $this->app->getMemberAddressLock()->run(
+                [[$listingId, $email]],
+                function () use ($memberRepo, $listing, $listingId, $email, $insertData): bool {
+                    if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
+                        return false;
+                    }
+                    (new PendingUpdateRepo($this->app->getDatabase()))->deleteStale($listingId, $email);
+                    $memberRepo->insert($listing->dbprefix, $insertData);
+                    return true;
+                },
+            );
+        } catch (MemberAddressBusy) {
+            $session->set('lstr_flash_error:' . $marker, MemberAddressBusy::MESSAGE);
+            $session->set('lstr_flash_old:' . $marker, $oldForm);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+        if (!$inserted) {
+            $session->set('lstr_flash_error:' . $marker, 'That email address is already registered for this listing.');
+            $session->set('lstr_flash_old:' . $marker, $oldForm);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
         // Last Updated and the member link-check snapshot are handled when an
         // admin approves the member (MemberController), not here.
 

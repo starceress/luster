@@ -4,8 +4,8 @@
  Copyright (c) 2026 Star (https://dreamesque.net)
 
  Public controller for the KIM update flow. Fans sign in with their email
- and password to reach a dashboard showing all their KIM entries across
- every fanlisting. From there they can update their details, change their
+ and password to reach a dashboard showing the KIM entries that use that
+ password, across every fanlisting. From there they can update their details, change their
  password, or remove individual entries. Session-based authentication
  persists across requests until the fan signs out.
 */
@@ -15,6 +15,8 @@ declare(strict_types=1);
 namespace Luster\Addons\Kim\Controllers;
 
 use Luster\Addons\Kim\KimMemberRepo;
+use Luster\Addons\Kim\KimPasswordResetRepo;
+use Luster\Addons\Kim\KimSignIn;
 use Luster\Core\Application;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
@@ -36,7 +38,7 @@ use Luster\Support\SuccessRenderer;
  */
 final class KimUpdateController
 {
-    private const SESSION_AUTH_KEY = 'lstr_kim_update_authed';
+    private const CHANGED_MESSAGE = 'Something about these entries changed, so nothing was saved. Please check them and try again.';
 
     public function __construct(private readonly Application $app) {}
 
@@ -46,7 +48,8 @@ final class KimUpdateController
 
     /**
      * Authenticates a KIM fan by checking their email and password against
-     * all their approved member rows. Sets the auth session key on success.
+     * every entry at that address. It needs an approved match, as it always has,
+     * and the sign-in only reaches the entries the password matched (KimSignIn).
      */
     public function submitSignIn(Request $request, array $params): Response
     {
@@ -90,12 +93,15 @@ final class KimUpdateController
         $kimRepo = new KimMemberRepo($this->app->getDatabase());
         $members = $kimRepo->findAllByEmail($email);
 
-        // Find any approved member with a matching password
+        // Entries sharing one hash are only checked once.
+        $matched       = [];
+        $checked       = [];
         $authenticated = false;
         foreach ($members as $member) {
-            if (!$member->pending && password_verify($password, $member->password)) {
-                $authenticated = true;
-                break;
+            $checked[$member->password] ??= password_verify($password, $member->password);
+            if ($checked[$member->password]) {
+                $matched[]     = $member;
+                $authenticated = $authenticated || !$member->pending;
             }
         }
 
@@ -107,7 +113,7 @@ final class KimUpdateController
         }
 
         $rateLimit->clear($ip, 'kim_update');
-        $session->set(self::SESSION_AUTH_KEY, $email);
+        KimSignIn::remember($session, $email, $matched);
 
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
@@ -119,15 +125,17 @@ final class KimUpdateController
     /**
      * Applies bulk updates and removals submitted from the dashboard.
      *
-     * Guards every operation against the authenticated email so fans can only
-     * modify their own entries. Sends a per-entry confirmation email and, when
-     * the email address changes, clears the auth session to force re-authentication.
+     * Every submitted id has to be an entry this sign-in can reach, and if any isn't,
+     * nothing is saved. The entries being written are locked and checked again before
+     * the writes and stay locked through them, because an entry's id staying the same
+     * doesn't stop it changing hands mid-save. Mail goes after the commit. When the
+     * email address changes, the auth session is cleared to force re-authentication.
      */
     public function submitSave(Request $request, array $params): Response
     {
         $baseUrl       = $this->app->getBaseUrl();
         $session       = $this->app->getSession();
-        $authedEmail   = (string) $session->get(self::SESSION_AUTH_KEY, '');
+        $authedEmail   = KimSignIn::email($session);
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
         $siteUrl       = (string) $this->app->getConfig()->get('site_url', '');
         $kimUpdateUrl  = CollectiveFormUrlResolver::resolve(
@@ -146,20 +154,31 @@ final class KimUpdateController
             return Response::redirect($dashboardUrl);
         }
 
-        $kimRepo     = new KimMemberRepo($this->app->getDatabase());
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $db          = $this->app->getDatabase();
+        $kimRepo     = new KimMemberRepo($db);
+        $listingRepo = new ListingRepo($db, $this->app->getConfig());
 
-        // Collect IDs owned by this authenticated email (security guard)
-        $ownedMembers = $kimRepo->findAllByEmail($authedEmail);
-        $ownedIds     = array_map(static fn($m) => $m->id, $ownedMembers);
+        // The entries this sign-in can still reach (security guard)
+        $reachable = KimSignIn::currentEntries($kimRepo, $session);
+        if ($reachable === []) {
+            $session->set('lstr_flash_error:kim_update', KimSignIn::SIGN_IN_AGAIN);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
+        }
+        $reachableIds = array_map(static fn($m) => $m->id, $reachable);
 
         // Removals (Remove? column in the merged form)
-        $submittedRemoveIds = array_map('intval', (array) $request->post('remove_ids', []));
-        $deleteIds          = array_values(array_intersect($submittedRemoveIds, $ownedIds));
+        $deleteIds = array_values(array_unique(array_map('intval', (array) $request->post('remove_ids', []))));
 
         // Updates — exclude entries that are also marked for removal
-        $submittedIds = array_map('intval', (array) $request->post('entry_ids', []));
-        $targetIds    = array_values(array_diff(array_intersect($submittedIds, $ownedIds), $deleteIds));
+        $submittedIds = array_values(array_unique(array_map('intval', (array) $request->post('entry_ids', []))));
+        $targetIds    = array_values(array_diff($submittedIds, $deleteIds));
+
+        // The ids as submitted. One that can't be reached refuses the whole save,
+        // rather than quietly saving the rest.
+        if (array_diff(array_merge($deleteIds, $submittedIds), $reachableIds) !== []) {
+            $session->set('lstr_flash_error:kim_update', self::CHANGED_MESSAGE);
+            return Response::redirect($dashboardUrl);
+        }
 
         $newName            = trim((string) $request->post('new_name',             ''));
         $newUrl             = trim((string) $request->post('new_url',              ''));
@@ -208,76 +227,79 @@ final class KimUpdateController
             }
         }
 
-        // Delete entries marked for removal first
-        if ($deleteIds !== []) {
-            $kimRepo->deleteByIds($deleteIds);
-        }
+        $updateTargets = $hasFieldChanges ? $targetIds : [];
+        $newHash       = ($updateTargets !== [] && $newPassword !== '') ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
+        $locked        = [];
 
-        // If no entries remain to update, check whether we're already done
-        if ($targetIds === [] || !$hasFieldChanges) {
-            $remaining = $kimRepo->findAllByEmail($authedEmail);
-            if ($remaining === []) {
-                $session->remove(self::SESSION_AUTH_KEY);
-                $session->remove('lstr_embed_return_to');
-                $session->set('lstr_flash_success_html:kim_update', SuccessRenderer::render('', 'kim-removed'));
-                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
+        $db->beginTransaction();
+        try {
+            $locked = $kimRepo->lockByIds(array_merge($deleteIds, $updateTargets));
+
+            foreach (array_merge($deleteIds, $updateTargets) as $id) {
+                if (!isset($locked[$id]) || !KimSignIn::canReach($locked[$id], $session)) {
+                    $db->rollBack();
+                    KimSignIn::currentEntries($kimRepo, $session);
+                    $session->set('lstr_flash_error:kim_update', self::CHANGED_MESSAGE);
+                    return Response::redirect($dashboardUrl);
+                }
             }
-            $session->set('lstr_flash_success_html:kim_update', SuccessRenderer::render('', 'kim-updated'));
-            return Response::redirect($dashboardUrl);
-        }
 
-        // For email changes: check for conflicts across all target entries
-        $emailConflict = false;
-        if ($newEmail !== '' && $newEmail !== $authedEmail) {
-            foreach ($targetIds as $tid) {
-                // Find this member to get its fanlisting_id
-                foreach ($ownedMembers as $m) {
-                    if ($m->id === $tid) {
-                        if ($kimRepo->findByEmailAndFanlisting($newEmail, $m->fanlistingId) !== null) {
-                            $emailConflict = true;
-                        }
+            // For email changes: check for conflicts across all target entries
+            if ($newEmail !== '' && $newEmail !== $authedEmail) {
+                foreach ($updateTargets as $tid) {
+                    $holder = $kimRepo->findByEmailAndFanlisting($newEmail, $locked[$tid]->fanlistingId);
+                    if ($holder !== null && $holder->id !== $tid) {
+                        $session->set('lstr_flash_error:kim_update', 'That email address is already registered for one or more of the selected fanlistings. Email not changed.');
+                        // Clear newEmail so the rest of the update still proceeds
+                        $newEmail = '';
                         break;
                     }
                 }
-                if ($emailConflict) {
-                    break;
+            }
+
+            // Delete entries marked for removal first
+            $kimRepo->deleteByIds($deleteIds);
+
+            // Apply updates
+            $resetRepo = new KimPasswordResetRepo($db);
+            foreach ($updateTargets as $tid) {
+                $fields = [];
+                if ($newName !== '')    $fields['name']     = $newName;
+                if ($newUrl !== '')     $fields['url']       = $newUrl;
+                if ($newEmail !== '')   $fields['email']     = $newEmail;
+                if ($newHash !== null)  $fields['password'] = $newHash;
+
+                if ($fields !== []) {
+                    $kimRepo->update($tid, $fields);
+                }
+
+                // A link for the old address mustn't work once the entry has moved.
+                if ($newEmail !== '' && mb_strtolower($newEmail, 'UTF-8') !== mb_strtolower($locked[$tid]->email, 'UTF-8')) {
+                    $resetRepo->deleteByMember($tid);
                 }
             }
-            if ($emailConflict) {
-                $session->set('lstr_flash_error:kim_update', 'That email address is already registered for one or more of the selected fanlistings. Email not changed.');
-                // Clear newEmail so the rest of the update still proceeds
-                $newEmail = '';
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->pdo()->inTransaction()) {
+                $db->rollBack();
             }
+            error_log('[KIM] Saving a fan\'s entries failed: ' . $e->getMessage());
+            $session->set('lstr_flash_error:kim_update', "Couldn't save your changes because of a database error. Nothing was changed.");
+            return Response::redirect($dashboardUrl);
         }
 
-        // Apply updates
+        $stillReaches = KimSignIn::afterSave($session, $deleteIds, $updateTargets, $newHash);
+
+        // Send the confirmation emails now the changes are saved
         $config    = $this->app->getConfig();
         $siteName  = (string) $config->get('site_name', '');
         $ownerName  = (string) $config->get('owner_name',  '');
         $ownerEmail = (string) $config->get('owner_email', '');
-        $emailRepo  = new EmailTemplateRepo($this->app->getDatabase());
+        $emailRepo  = new EmailTemplateRepo($db);
 
-        foreach ($targetIds as $tid) {
-            $member = null;
-            foreach ($ownedMembers as $m) {
-                if ($m->id === $tid) {
-                    $member = $m;
-                    break;
-                }
-            }
-            if ($member === null) {
-                continue;
-            }
-
-            $fields = [];
-            if ($newName !== '')    $fields['name']     = $newName;
-            if ($newUrl !== '')     $fields['url']       = $newUrl;
-            if ($newEmail !== '')   $fields['email']     = $newEmail;
-            if ($newPassword !== '') $fields['password'] = password_hash($newPassword, PASSWORD_ARGON2ID);
-
-            if ($fields !== []) {
-                $kimRepo->update($tid, $fields);
-            }
+        foreach ($updateTargets as $tid) {
+            $member = $locked[$tid];
 
             // Send update confirmation email
             try {
@@ -316,8 +338,8 @@ final class KimUpdateController
         }
 
         // If email changed, the auth session is now stale — clear it so the user re-authenticates
-        if ($newEmail !== '' && $newEmail !== $authedEmail) {
-            $session->remove(self::SESSION_AUTH_KEY);
+        if ($updateTargets !== [] && $newEmail !== '' && $newEmail !== $authedEmail) {
+            KimSignIn::forget($session);
             $session->set(
                 'lstr_flash_success_html:kim_update',
                 SuccessRenderer::render('Your entries were updated. Please sign in again with your new email address.', 'kim-updated'),
@@ -325,11 +347,9 @@ final class KimUpdateController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);
         }
 
-        // Check whether all entries are now gone (updates may not have deleted any,
-        // but deletions earlier in this request may have cleared the last ones)
-        $remaining = $kimRepo->findAllByEmail($authedEmail);
-        if ($remaining === []) {
-            $session->remove(self::SESSION_AUTH_KEY);
+        // Check whether every entry this sign-in reached is now gone
+        if (!$stillReaches) {
+            KimSignIn::forget($session);
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html:kim_update', SuccessRenderer::render('', 'kim-removed'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $kimUpdateUrl);

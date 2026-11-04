@@ -309,7 +309,8 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
     [$app, $pdo, $table] = memberSaveFixture($root, $s, $passwordHash);
     $_SESSION = [
         'lstr_admin_id' => 1, 'lstr_admin_username' => 'admin',
-        'lstr_update_authed_1' => 'ann@example.com', 'captcha_join_answer' => 7,
+        'lstr_update_authed_1' => 'ann@example.com', 'lstr_update_authed_stamp_1' => \Luster\Support\MemberSignIn::stamp($passwordHash),
+        'captcha_join_answer' => 7,
     ];
 
     $get  = static fn(array $query): Request => new Request($query, [], ['REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'luster.test'], [], []);

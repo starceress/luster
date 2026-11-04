@@ -15,6 +15,7 @@ use Luster\Controllers\Public\JoinController;
 use Luster\Core\Application;
 use Luster\Core\Database;
 use Luster\Core\Request;
+use Luster\Tests\Unit\Support\TracingPdo;
 
 $root = dirname(__DIR__, 3);
 require $root . '/vendor/autoload.php';
@@ -50,9 +51,7 @@ file_put_contents($cfgPath, '<?php return ' . var_export([
 $app = new Application($root, $cfgPath);
 unlink($cfgPath);
 
-$pdo = new PDO('sqlite::memory:');
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$pdo = TracingPdo::memory();
 $pdo->sqliteCreateFunction('NOW', static fn(): string => date('Y-m-d H:i:s'));
 $pdo->sqliteCreateFunction('CURDATE', static fn(): string => date('Y-m-d'));
 $prop = new ReflectionProperty(Database::class, 'pdo');
@@ -92,6 +91,7 @@ $pdo->exec("CREATE TABLE lstr_site_settings (setting_key TEXT PRIMARY KEY, setti
 $pdo->exec("CREATE TABLE lstr_rate_limits (
     id INTEGER PRIMARY KEY AUTOINCREMENT, identifier TEXT NOT NULL, action TEXT NOT NULL,
     attempts INTEGER NOT NULL DEFAULT 1, last_attempt TEXT NULL, blocked_until TEXT NULL)");
+$pdo->exec("CREATE TABLE lstr_pending_updates (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, member_email TEXT NOT NULL, changes TEXT NOT NULL DEFAULT '', submitted_at TEXT NULL)");
 $pdo->exec("CREATE TABLE lstr_blacklist (id INTEGER PRIMARY KEY AUTOINCREMENT, pattern TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created_at TEXT NULL)");
 $pdo->exec("CREATE TABLE lstr_email_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, type TEXT NOT NULL,

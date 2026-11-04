@@ -289,6 +289,15 @@ final class PendingUpdateRepo
     }
 
     /**
+     * Clears whatever's left at an address that's about to get a new member. It was
+     * free, so a request there can't be theirs. Call this while holding the address lock.
+     */
+    public function deleteStale(int $listingId, string $email): void
+    {
+        $this->deleteByListingAndEmail($listingId, $email);
+    }
+
+    /**
      * Re-keys any outstanding pending updates to a member's new email address.
      * Called when an admin changes a member's email from the Edit Member page,
      * so queued changes stay attached to the right person instead of becoming

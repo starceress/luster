@@ -182,6 +182,66 @@ final class KimMemberRepo
     }
 
     /**
+     * Fresh entries by id, in the order the dashboard lists them.
+     *
+     * @param int[] $ids
+     * @return KimMember[]
+     */
+    public function findByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT * FROM lstr_kim_members WHERE id IN ({$placeholders}) ORDER BY fanlisting_id ASC"
+        );
+        $stmt->execute(array_values($ids));
+
+        return array_map(
+            static fn(array $row) => KimMember::fromRow($row),
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
+     * Locks entries for the rest of the transaction, and returns them as they are now,
+     * for checking who owns them before writing. Locked in id order, so two saves can't
+     * wait on each other. A plain read in the same transaction can miss a change the
+     * lock waited for, so check what this returns.
+     *
+     * @param int[] $ids
+     * @return array<int, KimMember> Keyed by id.
+     */
+    public function lockByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT * FROM lstr_kim_members WHERE id IN ({$placeholders}) ORDER BY id ASC" . $this->db->forUpdate()
+        );
+        $stmt->execute(array_values($ids));
+
+        $locked = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $entry              = KimMember::fromRow($row);
+            $locked[$entry->id] = $entry;
+        }
+
+        return $locked;
+    }
+
+    /**
+     * lockByIds() for one entry.
+     */
+    public function lockById(int $id): ?KimMember
+    {
+        return $this->lockByIds([$id])[$id] ?? null;
+    }
+
+    /**
      * Finds a KIM member by primary key.
      */
     public function findById(int $id): ?KimMember

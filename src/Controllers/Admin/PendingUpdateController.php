@@ -29,6 +29,7 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
+use Luster\Support\MemberAddressBusy;
 
 /**
  * Handles approve and reject actions for pending member update requests.
@@ -42,7 +43,92 @@ use Luster\Repositories\PendingUpdateRepo;
  */
 final class PendingUpdateController
 {
+    private const MOVED_MESSAGE = 'That update changed while it was being approved. Try again.';
+
     public function __construct(private readonly Application $app) {}
+
+    /**
+     * Applies one queued request with its addresses locked, the same way for every
+     * approval path. The row is read again under the lock, and an earlier row in a
+     * batch may have renamed its member, so a row that now needs an address that
+     * isn't held is left alone. Mail is the caller's job, after this returns.
+     *
+     * @return array{outcome: string, pending: ?object, listing: ?object, member: ?object}
+     *         outcome is applied, gone, busy, moved, no_listing, no_member or conflict.
+     */
+    public function applyQueued(int $id): array
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+        $lock   = $this->app->getMemberAddressLock();
+
+        $pendingRepo = new PendingUpdateRepo($db);
+        $listingRepo = new ListingRepo($db, $config);
+        $memberRepo  = new MemberRepo($db, $config);
+
+        $result = static fn(string $outcome, ?object $pending = null, ?object $listing = null, ?object $member = null): array =>
+            ['outcome' => $outcome, 'pending' => $pending, 'listing' => $listing, 'member' => $member];
+
+        $firstLook = $pendingRepo->getById($id);
+        if ($firstLook === null) {
+            return $result('gone');
+        }
+
+        try {
+            return $lock->run(self::addressesOf($firstLook), function () use ($id, $db, $config, $lock, $pendingRepo, $listingRepo, $memberRepo, $result): array {
+                $pending = $pendingRepo->getById($id);
+                if ($pending === null) {
+                    return $result('gone');
+                }
+                if (!$lock->holds(self::addressesOf($pending))) {
+                    return $result('moved', $pending);
+                }
+
+                $listing = $listingRepo->getById($pending->fanlisting_id);
+                if ($listing === null) {
+                    $pendingRepo->delete($id);
+                    return $result('no_listing', $pending);
+                }
+
+                // Verify the member still exists
+                $member = $memberRepo->getByEmail($listing->dbprefix, $pending->member_email);
+                if ($member === null) {
+                    $pendingRepo->delete($id);
+                    return $result('no_member', $pending, $listing);
+                }
+
+                if (self::hasEmailConflict($pending, $listing, $memberRepo)) {
+                    $pendingRepo->delete($id);
+                    return $result('conflict', $pending, $listing, $member);
+                }
+
+                // Apply the queued changes
+                $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
+                self::rekeyOnEmailChange($db, $config, $pending);
+                $pendingRepo->delete($id);
+
+                return $result('applied', $pending, $listing, $member);
+            });
+        } catch (MemberAddressBusy) {
+            return $result('busy', $firstLook);
+        }
+    }
+
+    /**
+     * The address a queued request is at, and the one it asks for.
+     *
+     * @return list<array{0: int, 1: string}>
+     */
+    private static function addressesOf(object $pending): array
+    {
+        $addresses = [[$pending->fanlisting_id, $pending->member_email]];
+        $requested = $pending->changes['email'] ?? '';
+        if (is_string($requested) && $requested !== '') {
+            $addresses[] = [$pending->fanlisting_id, $requested];
+        }
+
+        return $addresses;
+    }
 
     // -----------------------------------------------------------------------
     // POST /admin/pending-updates/{id}/approve
@@ -65,46 +151,27 @@ final class PendingUpdateController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $pendingRepo  = new PendingUpdateRepo($db);
-        $listingRepo  = new ListingRepo($db, $config);
-        $memberRepo   = new MemberRepo($db, $config);
         $activityRepo = new ActivityRepo($db);
 
-        $pending = $pendingRepo->getById($id);
+        $applied = $this->applyQueued($id);
 
-        if ($pending === null) {
-            $session->set('lstr_flash_error', 'Pending update not found.');
+        $problem = match ($applied['outcome']) {
+            'applied'    => null,
+            'gone'       => 'Pending update not found.',
+            'busy'       => MemberAddressBusy::MESSAGE,
+            'moved'      => self::MOVED_MESSAGE,
+            'no_listing' => 'Associated listing no longer exists.',
+            'no_member'  => 'Member no longer exists — update discarded.',
+            'conflict'   => 'Cannot apply update — the requested email is already taken by another member. Update discarded.',
+        };
+        if ($problem !== null) {
+            $session->set('lstr_flash_error', $problem);
             return Response::redirect($baseUrl . '/admin/members');
         }
 
-        $listing = $listingRepo->getById($pending->fanlisting_id);
-
-        if ($listing === null) {
-            $session->set('lstr_flash_error', 'Associated listing no longer exists.');
-            $pendingRepo->delete($id);
-            return Response::redirect($baseUrl . '/admin/members');
-        }
-
-        // Verify the member still exists
-        $member = $memberRepo->getByEmail($listing->dbprefix, $pending->member_email);
-
-        if ($member === null) {
-            $session->set('lstr_flash_error', 'Member no longer exists — update discarded.');
-            $pendingRepo->delete($id);
-            return Response::redirect($baseUrl . '/admin/members');
-        }
-
-        if (self::hasEmailConflict($pending, $listing, $memberRepo)) {
-            $session->set('lstr_flash_error', 'Cannot apply update — the requested email is already taken by another member. Update discarded.');
-            $pendingRepo->delete($id);
-            return Response::redirect($baseUrl . '/admin/members');
-        }
-
-        // Apply the queued changes
-        $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
-        self::rekeyOnEmailChange($db, $config, $pending);
-
-        $pendingRepo->delete($id);
+        $pending = $applied['pending'];
+        $listing = $applied['listing'];
+        $member  = $applied['member'];
 
         $finalEmail = (string) ($pending->changes['email'] ?? $pending->member_email);
         $finalName  = (string) ($pending->changes['name']  ?? $member->name);
@@ -183,8 +250,6 @@ final class PendingUpdateController
 
         $listingId    = (int) $request->post('_listing_id', 0);
         $pendingRepo  = new PendingUpdateRepo($db);
-        $listingRepo  = new ListingRepo($db, $config);
-        $memberRepo   = new MemberRepo($db, $config);
         $activityRepo = new ActivityRepo($db);
         $mailer       = new Mailer($config);
 
@@ -194,39 +259,27 @@ final class PendingUpdateController
 
         $count    = 0;
         $skipped  = 0;
+        $busy     = 0;
 
         foreach ($pendings as $pendingStale) {
-            // Re-fetch by ID: an earlier row in this same batch may have
-            // renamed this row's member_email via rekeyOnEmailChange()
+            // applyQueued() re-fetches by ID: an earlier row in this same batch may
+            // have renamed this row's member_email via rekeyOnEmailChange()
             // (renameMemberEmail() re-keys every sibling row for that
             // listing+old-email, not just the one being approved), so the
             // copy loaded before the loop started can be stale.
-            $pending = $pendingRepo->getById($pendingStale->id);
-            if ($pending === null) {
-                continue;
-            }
-
-            $listing = $listingRepo->getById($pending->fanlisting_id);
-            if ($listing === null) {
-                $pendingRepo->delete($pending->id);
-                continue;
-            }
-
-            $member = $memberRepo->getByEmail($listing->dbprefix, $pending->member_email);
-            if ($member === null) {
-                $pendingRepo->delete($pending->id);
-                continue;
-            }
-
-            if (self::hasEmailConflict($pending, $listing, $memberRepo)) {
-                $pendingRepo->delete($pending->id);
+            $applied = $this->applyQueued($pendingStale->id);
+            if ($applied['outcome'] === 'conflict') {
                 $skipped++;
+            } elseif (in_array($applied['outcome'], ['busy', 'moved'], true)) {
+                $busy++;
+            }
+            if ($applied['outcome'] !== 'applied') {
                 continue;
             }
 
-            $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
-            self::rekeyOnEmailChange($db, $config, $pending);
-            $pendingRepo->delete($pending->id);
+            $pending = $applied['pending'];
+            $listing = $applied['listing'];
+            $member  = $applied['member'];
 
             $finalEmail = (string) ($pending->changes['email'] ?? $pending->member_email);
             $finalName  = (string) ($pending->changes['name']  ?? $member->name);
@@ -279,6 +332,9 @@ final class PendingUpdateController
         if ($skipped > 0) {
             $msg .= " Skipped {$skipped} because the requested email was already taken.";
         }
+        if ($busy > 0) {
+            $msg .= " {$busy} couldn't be applied just now, so they're still in the queue. Try again in a moment.";
+        }
         $session->set('lstr_flash_success', $msg);
 
         $redirect = $listingId > 0
@@ -315,13 +371,12 @@ final class PendingUpdateController
         }
 
         $pendingRepo  = new PendingUpdateRepo($db);
-        $listingRepo  = new ListingRepo($db, $config);
-        $memberRepo   = new MemberRepo($db, $config);
         $activityRepo = new ActivityRepo($db);
 
         $pendings = $pendingRepo->getByIds($ids);
         $count    = 0;
         $skipped  = 0;
+        $busy     = 0;
 
         foreach ($pendings as $pendingStale) {
             if ($action === 'reject') {
@@ -330,37 +385,23 @@ final class PendingUpdateController
                 continue;
             }
 
-            // approve — re-fetch by ID: an earlier row in this same batch may
-            // have renamed this row's member_email via rekeyOnEmailChange()
+            // approve — applyQueued() re-fetches by ID: an earlier row in this same
+            // batch may have renamed this row's member_email via rekeyOnEmailChange()
             // (renameMemberEmail() re-keys every sibling row for that
             // listing+old-email, not just the one being approved), so the
             // copy loaded before the loop started can be stale.
-            $pending = $pendingRepo->getById($pendingStale->id);
-            if ($pending === null) {
-                continue;
-            }
-
-            $listing = $listingRepo->getById($pending->fanlisting_id);
-            if ($listing === null) {
-                $pendingRepo->delete($pending->id);
-                continue;
-            }
-
-            $member = $memberRepo->getByEmail($listing->dbprefix, $pending->member_email);
-            if ($member === null) {
-                $pendingRepo->delete($pending->id);
-                continue;
-            }
-
-            if (self::hasEmailConflict($pending, $listing, $memberRepo)) {
-                $pendingRepo->delete($pending->id);
+            $applied = $this->applyQueued($pendingStale->id);
+            if ($applied['outcome'] === 'conflict') {
                 $skipped++;
+            } elseif (in_array($applied['outcome'], ['busy', 'moved'], true)) {
+                $busy++;
+            }
+            if ($applied['outcome'] !== 'applied') {
                 continue;
             }
 
-            $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
-            self::rekeyOnEmailChange($db, $config, $pending);
-            $pendingRepo->delete($pending->id);
+            $pending = $applied['pending'];
+            $member  = $applied['member'];
 
             $finalEmail = (string) ($pending->changes['email'] ?? $pending->member_email);
             $finalName  = (string) ($pending->changes['name']  ?? $member->name);
@@ -390,6 +431,9 @@ final class PendingUpdateController
         $msg = "{$actionPastTense} {$count} pending update" . ($count !== 1 ? 's' : '') . '.';
         if ($skipped > 0) {
             $msg .= " Skipped {$skipped} because the requested email was already taken.";
+        }
+        if ($busy > 0) {
+            $msg .= " {$busy} couldn't be applied just now, so they're still in the queue. Try again in a moment.";
         }
         $session->set('lstr_flash_success', $msg);
 

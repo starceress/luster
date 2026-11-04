@@ -15,6 +15,7 @@ namespace Luster\Addons\Kim\Controllers;
 
 use Luster\Addons\Kim\KimMember;
 use Luster\Addons\Kim\KimMemberRepo;
+use Luster\Addons\Kim\KimPasswordResetRepo;
 use Luster\Controllers\Admin\AdminController;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
@@ -399,7 +400,24 @@ final class KimAdminController extends AdminController
             $updateFields['password'] = password_hash($newPassword, PASSWORD_ARGON2ID);
         }
 
-        $kimRepo->update($memberId, $updateFields);
+        // Moving an entry revokes its reset links, with the entry locked, so a link for
+        // the old address can't be issued or used around the move.
+        $db->beginTransaction();
+        try {
+            $locked = $kimRepo->lockById($memberId);
+            if ($locked !== null && mb_strtolower($locked->email, 'UTF-8') !== mb_strtolower($email, 'UTF-8')) {
+                (new KimPasswordResetRepo($db))->deleteByMember($memberId);
+            }
+            $kimRepo->update($memberId, $updateFields);
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->pdo()->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('[KIM] Saving member #' . $memberId . ' failed: ' . $e->getMessage());
+            $session->set('lstr_flash_error', "Couldn't save this member because of a database error. Nothing was changed.");
+            return Response::redirect($baseUrl . '/admin/kim/' . $memberId . '/edit');
+        }
 
         $activityRepo = new ActivityRepo($db);
         $activityRepo->log(

@@ -23,6 +23,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\MemberAddressLock;
 use Throwable;
 
 /**
@@ -61,6 +62,7 @@ final class Application
     private CSRF            $csrf;
     private RateLimit       $rateLimit;
     private FormFieldBuilder $formFieldBuilder;
+    private ?MemberAddressLock $memberAddressLock = null;
 
     /** Addon keys that are currently installed (populated at boot or on first use). */
     private array $installedAddonKeys = [];
@@ -140,6 +142,12 @@ final class Application
     public function getRateLimit(): RateLimit
     {
         return $this->rateLimit;
+    }
+
+    /** Returns the address lock, one per request so it can track what this request holds. */
+    public function getMemberAddressLock(): MemberAddressLock
+    {
+        return $this->memberAddressLock ??= new MemberAddressLock($this->database, (string) $this->config->get('db_name', ''));
     }
 
     /** Returns the public form field builder (FieldRenderer + FieldWrapper). */

@@ -24,7 +24,9 @@ use Luster\Repositories\MemberFormSessionRepo;
  * A token is bound to one listing, one member email, and one allowed action
  * ('update' or 'delete'). It expires after a short TTL and is marked used
  * immediately on a successful, fully-matching consume() — a second attempt
- * with the same raw token always fails, even within the TTL window.
+ * with the same raw token always fails, even within the TTL window. It also
+ * carries the stamp of the member who signed in (see MemberSignIn), because
+ * someone else can get that address while the token is still alive.
  */
 final class MemberFormSessionService
 {
@@ -38,9 +40,9 @@ final class MemberFormSessionService
      * raw token (only its hash is persisted). Returns null when $action is
      * not in the allowlist.
      */
-    public function issue(int $listingId, string $email, string $action): ?string
+    public function issue(int $listingId, string $email, string $action, string $memberStamp): ?string
     {
-        if (!in_array($action, self::ALLOWED_ACTIONS, true)) {
+        if (!in_array($action, self::ALLOWED_ACTIONS, true) || !$this->repo->supportsStamps()) {
             return null;
         }
 
@@ -50,34 +52,40 @@ final class MemberFormSessionService
             ->modify('+' . self::TTL_SECONDS . ' seconds')
             ->format('Y-m-d H:i:s');
 
-        $this->repo->create($listingId, $email, $action, $tokenHash, $expiresAt);
+        $this->repo->create($listingId, $email, $action, $tokenHash, $expiresAt, $memberStamp);
 
         return $rawToken;
     }
 
     /**
+     * What a token would give, without using it, so a caller can learn its address
+     * and take that address's lock before consume(). Null on the same failures.
+     *
+     * @return array{email: string, stamp: string}|null
+     */
+    public function peek(int $listingId, string $rawToken, string $action): ?array
+    {
+        $row = $this->findMatching($listingId, $rawToken, $action);
+
+        return $row !== null ? self::binding($row) : null;
+    }
+
+    /**
      * Validates $rawToken against $listingId and $action. On a full match
      * (not expired, not already used, correct listing, correct action),
-     * marks the token used and returns the bound member email. Returns null
+     * marks the token used and returns what it's bound to. Returns null
      * on any failure — the token is left untouched (not consumed) so a
      * legitimate retry within the TTL is still possible.
+     *
+     * @return array{email: string, stamp: string}|null
      */
-    public function consume(int $listingId, string $rawToken, string $action): ?string
+    public function consume(int $listingId, string $rawToken, string $action): ?array
     {
-        if ($rawToken === '' || !in_array($action, self::ALLOWED_ACTIONS, true)) {
+        if ($this->findMatching($listingId, $rawToken, $action) === null) {
             return null;
         }
 
         $tokenHash = hash('sha256', $rawToken);
-
-        $row = $this->repo->findValidByTokenHash($tokenHash);
-        if ($row === null) {
-            return null;
-        }
-
-        if ((int) $row['fanlisting_id'] !== $listingId || (string) $row['allowed_action'] !== $action) {
-            return null;
-        }
 
         // Atomically claim the token - closes the race where two concurrent
         // requests presenting the same raw token both pass the checks above
@@ -86,6 +94,34 @@ final class MemberFormSessionService
         // reaches this consuming call.
         $consumed = $this->repo->verifyAndConsume($tokenHash);
 
-        return $consumed !== null ? (string) $consumed['member_email'] : null;
+        return $consumed !== null ? self::binding($consumed) : null;
+    }
+
+    /** @return array<string, mixed>|null The token's row, if it's usable for this listing and action. */
+    private function findMatching(int $listingId, string $rawToken, string $action): ?array
+    {
+        if ($rawToken === '' || !in_array($action, self::ALLOWED_ACTIONS, true) || !$this->repo->supportsStamps()) {
+            return null;
+        }
+
+        $row = $this->repo->findValidByTokenHash(hash('sha256', $rawToken));
+        if ($row === null) {
+            return null;
+        }
+
+        if ((int) $row['fanlisting_id'] !== $listingId || (string) $row['allowed_action'] !== $action) {
+            return null;
+        }
+
+        return $row;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array{email: string, stamp: string}
+     */
+    private static function binding(array $row): array
+    {
+        return ['email' => (string) $row['member_email'], 'stamp' => (string) ($row['member_stamp'] ?? '')];
     }
 }

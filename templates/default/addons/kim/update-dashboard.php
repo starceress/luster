@@ -44,6 +44,11 @@ if (($success_html ?? '') !== '') {
     and click <strong>Save Changes</strong>. Leave fields blank to keep the current value.
     Check <strong>Remove?</strong> on any row to delete that entry instead.
   </p>
+  <p class="fl-hint">
+    Only entries that use the password you signed in with are shown here. To manage any
+    others, sign in with that entry's password, or use Forgot password, which emails a
+    link for each approved entry at your address.
+  </p>
 
   <form class="fl-form fl-form-kim-save" method="POST" action="<?= View::e($save_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">

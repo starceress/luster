@@ -13,6 +13,7 @@
 declare(strict_types=1);
 
 use Luster\Addons\Kim\KimMemberRepo;
+use Luster\Addons\Kim\KimSignIn;
 use Luster\Core\Request;
 use Luster\Core\TemplateEngine;
 use Luster\Core\View;
@@ -72,7 +73,7 @@ $_lusterFlashMarker = 'kim_update';
 // ---------------------------------------------------------------------------
 
 if (isset($_GET['kim_signout'])) {
-    $_lusterApp->getSession()->remove('lstr_kim_update_authed');
+    KimSignIn::forget($_lusterApp->getSession());
     if (!headers_sent()) {
         header('Location: ' . $_lusterRedirectTo, true, 302);
         exit;
@@ -158,7 +159,7 @@ $_lusterLinkReset = $luster_kim_reset_url ?? $_toKimLink($_lusterKimUrls['kim_ur
 $_lusterLinkList  = $luster_kim_list_url  ?? $_toKimLink($_lusterKimUrls['kim_url_list']  ?: null);
 
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
-$_lusterAuthedEmail = (string) $_lusterSession->get('lstr_kim_update_authed', '');
+$_lusterAuthedEmail = KimSignIn::email($_lusterSession);
 
 // ---------------------------------------------------------------------------
 // 5a. Dashboard — authenticated user
@@ -167,12 +168,12 @@ $_lusterAuthedEmail = (string) $_lusterSession->get('lstr_kim_update_authed', ''
 if ($_lusterAuthedEmail !== '') {
     $_lusterKimRepo     = new KimMemberRepo($_lusterApp->getDatabase());
     $_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-    $_lusterMembers     = $_lusterKimRepo->findAllByEmail($_lusterAuthedEmail);
+    $_lusterMembers     = KimSignIn::currentEntries($_lusterKimRepo, $_lusterSession);
 
-    // If no entries remain (all removed, or email changed), auto-sign-out
+    // If none of the entries this sign-in covers are left as they were, it has ended
     if ($_lusterMembers === []) {
-        $_lusterSession->remove('lstr_kim_update_authed');
         $_lusterAuthedEmail = '';
+        $_lusterError       = $_lusterError !== '' ? $_lusterError : KimSignIn::SIGN_IN_AGAIN;
     } else {
         $_lusterEntries = [];
         foreach ($_lusterMembers as $_lusterMember) {

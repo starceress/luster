@@ -24,6 +24,7 @@ use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
+use Luster\Support\MemberSignIn;
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable
@@ -91,9 +92,7 @@ $_lusterMarker = 'update:' . $_lusterListingId;
 // ---------------------------------------------------------------------------
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['_luster_update_sign_out'] ?? '') === '1') {
-    $_lusterApp->getSession()->remove('lstr_update_authed_' . $_lusterListingId);
-    $_lusterApp->getSession()->remove('lstr_update_formtoken_update_' . $_lusterListingId);
-    $_lusterApp->getSession()->remove('lstr_update_formtoken_delete_' . $_lusterListingId);
+    MemberSignIn::forget($_lusterApp->getSession(), $_lusterListingId);
     if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
     echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
     return;
@@ -128,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $hasFallbackToken = false;
     }
-    $_lusterAuthedNow = $_lusterApp->getSession()->get('lstr_update_authed_' . $_lusterListingId, '') !== '';
+    $_lusterAuthedNow = MemberSignIn::email($_lusterApp->getSession(), $_lusterListingId) !== '';
     if ($_lusterAuthedNow || $hasFallbackToken) {
         $response = (new \Luster\Controllers\Public\UpdateController($_lusterApp))
             ->submit(new \Luster\Core\Request(), ['id' => $_lusterListingId]);
@@ -186,16 +185,17 @@ if ($_lusterSuccess !== '') {
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterAuthKey    = 'lstr_update_authed_' . $_lusterListingId;
-$_lusterAuthedEmail = (string) $_lusterSession->get($_lusterAuthKey, '');
+$_lusterAuthedEmail = MemberSignIn::email($_lusterSession, $_lusterListingId);
 $_lusterSignedIn   = $_lusterAuthedEmail !== '';
 
-// Validate the session email still exists in the DB
+// The member at this address has to be the one who signed in, before step 2 shows
+// their details. Someone else can have got this address since.
 if ($_lusterSignedIn) {
     $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
     $_lusterMember     = $_lusterMemberRepo->getByEmail($_lusterListing->dbprefix, $_lusterAuthedEmail);
-    if ($_lusterMember === null) {
-        $_lusterSession->remove($_lusterAuthKey);
+    if ($_lusterMember === null || !MemberSignIn::matches(MemberSignIn::sessionStamp($_lusterSession, $_lusterListingId), $_lusterMember)) {
+        $_lusterError = $_lusterMember !== null && $_lusterError === '' ? MemberSignIn::SIGN_IN_AGAIN : $_lusterError;
+        MemberSignIn::forget($_lusterSession, $_lusterListingId);
         $_lusterSignedIn = false;
     }
 }
@@ -304,8 +304,8 @@ if (!$_lusterSignedIn) {
 
     // Fallback form-session tokens issued at sign-in, embedded as hidden
     // fields so the form still submits if the session is lost before step 2.
-    $_lusterFormTokenUpdate = (string) $_lusterSession->get('lstr_update_formtoken_update_' . $_lusterListingId, '');
-    $_lusterFormTokenDelete = (string) $_lusterSession->get('lstr_update_formtoken_delete_' . $_lusterListingId, '');
+    $_lusterFormTokenUpdate = (string) $_lusterSession->get(MemberSignIn::FORM_TOKEN_UPDATE . $_lusterListingId, '');
+    $_lusterFormTokenDelete = (string) $_lusterSession->get(MemberSignIn::FORM_TOKEN_DELETE . $_lusterListingId, '');
 
     $_lusterUrlVal = htmlspecialchars(
         (string) (($_lusterOld['url'] ?? '') !== '' ? ($_lusterOld['url'] ?? '') : $_lusterMember->url),

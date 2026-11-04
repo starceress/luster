@@ -48,12 +48,59 @@ final class TracingPdo extends PDO
      */
     public ?array $failErrorInfo = null;
 
+    /**
+     * Lock name => what GET_LOCK answers for it: 0 a timeout, null an error. Any
+     * other name gets the lock.
+     *
+     * @var array<string, int|null>
+     */
+    public array $lockAnswers = [];
+
+    /** True: behave like older MySQL, where taking a lock silently drops the last one. */
+    public bool $oneLockAtATime = false;
+
+    /** @var list<string> The named locks currently held. */
+    public array $locksHeld = [];
+
+    /**
+     * Called with each statement just before it runs, to make something happen at an
+     * exact point in the code being tested. Use quiet() for its own SQL.
+     */
+    public ?\Closure $beforeStatement = null;
+
     public static function memory(): self
     {
         $pdo = new self('sqlite::memory:');
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+        // MySQL's named locks, scripted through $lockAnswers and $oneLockAtATime.
+        $pdo->sqliteCreateFunction('GET_LOCK', static function (string $name, $timeout) use ($pdo): ?int {
+            if (array_key_exists($name, $pdo->lockAnswers)) {
+                return $pdo->lockAnswers[$name];
+            }
+            $pdo->locksHeld = $pdo->oneLockAtATime ? [$name] : [...$pdo->locksHeld, $name];
+            return 1;
+        });
+        $pdo->sqliteCreateFunction('RELEASE_LOCK', static function (string $name) use ($pdo): ?int {
+            $at = array_search($name, $pdo->locksHeld, true);
+            if ($at === false) {
+                return null;
+            }
+            unset($pdo->locksHeld[$at]);
+            $pdo->locksHeld = array_values($pdo->locksHeld);
+            return 1;
+        });
+        $pdo->sqliteCreateFunction('IS_USED_LOCK', static fn(string $name): ?int => in_array($name, $pdo->locksHeld, true) ? 1 : null);
+        $pdo->sqliteCreateFunction('CONNECTION_ID', static fn(): int => 1);
+
         return $pdo;
+    }
+
+    /** Runs SQL without recording it or triggering anything, for a hook's own changes. */
+    public function quiet(string $sql): void
+    {
+        parent::exec($sql);
     }
 
     public function prepare(string $query, array $options = []): PDOStatement|false
@@ -110,6 +157,9 @@ final class TracingPdo extends PDO
     private function trace(string $sql): void
     {
         $this->statements[] = $sql;
+        if ($this->beforeStatement !== null) {
+            ($this->beforeStatement)($sql);
+        }
         if ($this->failWhen !== null && ($this->failWhen)($sql) === true) {
             throw $this->failure($sql);
         }

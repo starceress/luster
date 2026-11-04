@@ -34,6 +34,8 @@ use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
+use Luster\Support\MemberAddressBusy;
+use Luster\Support\MemberRemoval;
 
 /**
  * Unified member management controller.
@@ -479,7 +481,25 @@ final class MemberController extends AdminController
         ] + ($isApproved ? $memberRepo->approvedColumns() : $memberRepo->pendingJoinColumns()) + $extra;
 
         try {
-            $memberRepo->insert($listing->dbprefix, $row);
+            // Checked again under the address's lock, which also keeps a save still in
+            // progress for whoever had this address before from landing on this member.
+            $inserted = $this->app->getMemberAddressLock()->run(
+                [[$listingId, $input['email']]],
+                static function () use ($db, $memberRepo, $listing, $listingId, $input, $row): bool {
+                    if ($memberRepo->getByEmail($listing->dbprefix, $input['email']) !== null) {
+                        return false;
+                    }
+                    (new PendingUpdateRepo($db))->deleteStale($listingId, $input['email']);
+                    $memberRepo->insert($listing->dbprefix, $row);
+                    return true;
+                },
+            );
+            if (!$inserted) {
+                $v->addFieldError('email', 'This email is already in this listing.');
+                return $this->renderAddForm($listings, $listingId, $post, $v->errors(), implode(' ', $v->allErrors()));
+            }
+        } catch (MemberAddressBusy) {
+            return $this->renderAddForm($listings, $listingId, $post, [], MemberAddressBusy::MESSAGE);
         } catch (\RuntimeException $e) {
             // Only MySQL/MariaDB's duplicate-entry error means "already here";
             // anything else isn't guessed at.
@@ -685,143 +705,15 @@ final class MemberController extends AdminController
                 return Response::notFound('Member email not provided.');
             }
 
-            $member = $memberRepo->getByEmail($listing->dbprefix, $email);
-
-            if ($member === null) {
-                return Response::notFound('Member not found.');
+            try {
+                return $this->app->getMemberAddressLock()->run(
+                    [[$listingId, $email], [$listingId, trim((string) $request->post('email', $email))]],
+                    fn(): Response => $this->saveEdit($request, $listing, $listingId, $email, $fields, $allListings),
+                );
+            } catch (MemberAddressBusy) {
+                $session->set('lstr_flash_error', MemberAddressBusy::MESSAGE);
+                return Response::redirect($baseUrl . '/admin/members/' . $listingId . '/edit?email=' . urlencode($email));
             }
-
-            $newEmail = trim((string) $request->post('email', $email));
-            $name     = trim((string) $request->post('name', ''));
-            $url      = trim((string) $request->post('url', ''));
-            $country  = trim((string) $request->post('country', ''));
-            $showurl  = $request->post('showurl') === '1';
-
-            $currentStatus = $member->approved ? 'approved' : ($member->rejected ? 'rejected' : 'pending');
-            $status        = (string) $request->post('status', $currentStatus);
-            if (!in_array($status, ['approved', 'pending', 'rejected'], true)) {
-                $status = $currentStatus;
-            }
-
-            $v = new Validator(['name' => $name, 'url' => $url, 'email' => $newEmail]);
-            $v->field('name')->required()->maxLength(255);
-            $v->field('email')->required()->email()->maxLength(255);
-            if ($url !== '') {
-                $v->field('url')->httpUrl()->maxLength(500);
-            }
-
-            $emailChanged = strtolower($newEmail) !== strtolower($email);
-            if (!$v->fails() && $emailChanged && $memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
-                $v->addFieldError('email', 'Another member in this listing already uses that email.');
-            }
-
-            // Where each extra answer goes, worked out before anything is written.
-            // These inputs only ever post text, so anything else is an error.
-            $answers = [];
-            foreach ($fields as $field) {
-                $raw = $request->post('field_' . $field->name, '');
-                if (is_string($raw)) {
-                    $answers[$field->name] = trim($raw);
-                } else {
-                    $v->addFieldError('field_' . $field->name, $field->displayName() . ": that answer isn't valid.");
-                }
-            }
-            $extraValues = [];
-            if ($fields !== []) {
-                try {
-                    $placed      = FieldAnswers::place($fields, $fieldRepo->fieldColumns($listing->dbprefix, $fields), $answers);
-                    $extraValues = $placed['values'];
-                    foreach ($placed['unplaceable'] as $field) {
-                        $v->addFieldError('field_' . $field->name, FieldAnswers::adminRefusal($field));
-                    }
-                } catch (\RuntimeException | \InvalidArgumentException $e) {
-                    error_log('[Luster] Edit Member: reading the member table for listing #' . $listingId . ' failed: ' . $e->getMessage());
-                    $v->addFieldError('fields', "Couldn't check this listing's member table because of a database error. Nothing was changed.");
-                }
-            }
-
-            if ($v->fails()) {
-                return $this->adminLayout('admin/members/edit.php', 'Edit Member', 'members', [
-                    'listing'      => $listing,
-                    'member'          => $member,
-                    'fields'          => $fields,
-                    'error'           => implode(' ', $v->allErrors()),
-                    'field_errors'    => $v->errors(),
-                    'success'         => '',
-                    'old'             => $request->postAll(),
-                    'all_listings' => $allListings,
-                    'supports_rejected_state' => $memberRepo->supportsRejectedState(),
-                ], '', $this->memberBreadcrumbs($listing, $member->name));
-            }
-
-            $updateData = [
-                'email'   => $newEmail,
-                'name'    => $name,
-                'url'     => $url,
-                'country' => $country,
-                'showurl' => (int) $showurl,
-            ];
-
-            foreach ($extraValues as $column => $value) {
-                $updateData[$column] = $value;
-            }
-
-            $memberRepo->update($listing->dbprefix, $email, $updateData);
-            if ($emailChanged) {
-                // Re-key side tables that reference the member by email string
-                // (no FK) so queued updates and link-check history follow the
-                // rename instead of being orphaned under the old address.
-                (new PendingUpdateRepo($db))->renameMemberEmail($listingId, $email, $newEmail);
-                try {
-                    (new MemberLinkCheckRepo($db, $config))->renameMemberEmail($listingId, $email, $newEmail);
-                } catch (\Throwable) {}
-                // Any outstanding password-reset token was issued to the old
-                // address and can't meaningfully be "renamed" (ResetController
-                // now safely rejects it either way) — just invalidate it so a
-                // stale link doesn't linger.
-                (new FanPasswordResetRepo($db))->deleteByEmail($listingId, $email);
-                $email = $newEmail;
-            }
-            if ($url !== '') {
-                try {
-                    (new MemberLinkCheckRepo($db, $config))->upsertMember($listingId, $email, $name, $url);
-                } catch (\Throwable) {}
-            }
-
-            // Status change, applied last since a 'rejected' choice deletes the
-            // member outright on schemas with no separate rejected state (see
-            // MemberRepo::supportsRejectedState()) — everything else above must
-            // already be saved by the time that can happen.
-            $deleted = false;
-            if ($status !== $currentStatus) {
-                if ($status === 'approved') {
-                    $memberRepo->approve($listing->dbprefix, $email);
-                } elseif ($status === 'pending') {
-                    $memberRepo->setPending($listing->dbprefix, $email);
-                } else { // 'rejected'
-                    $deleted = !$memberRepo->supportsRejectedState();
-                    $memberRepo->reject($listing->dbprefix, $email);
-                    if ($deleted) {
-                        try {
-                            (new MemberLinkCheckRepo($db, $config))->removeMember($listingId, $email);
-                        } catch (\Throwable) {}
-                    }
-                }
-            }
-
-            (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
-
-            $activityRepo->log(
-                (int) $session->get('lstr_admin_id'),
-                'member.edit',
-                $deleted
-                    ? "Edited member {$email} in listing #{$listingId} and rejected (removed, no rejected state on this schema)"
-                    : "Edited member {$email} in listing #{$listingId}",
-                $request->ip(),
-            );
-
-            $session->set('lstr_flash_success', $deleted ? 'Member updated and rejected (removed).' : 'Member updated.');
-            return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
         }
 
         // ---- GET: show form ----
@@ -852,6 +744,156 @@ final class MemberController extends AdminController
             'all_listings' => $allListings,
             'supports_rejected_state' => $memberRepo->supportsRejectedState(),
         ], '', $this->memberBreadcrumbs($listing, $member->name));
+    }
+
+    /**
+     * Saves Edit Member, with the member's old and new addresses locked.
+     *
+     * @param array<int, object> $fields
+     * @param array<int, object> $allListings
+     */
+    private function saveEdit(Request $request, Listing $listing, int $listingId, string $email, array $fields, array $allListings): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $memberRepo   = new MemberRepo($db, $config);
+        $fieldRepo    = new FieldRepo($db, $config);
+        $activityRepo = new ActivityRepo($db);
+
+        $member = $memberRepo->getByEmail($listing->dbprefix, $email);
+
+        if ($member === null) {
+            return Response::notFound('Member not found.');
+        }
+
+        $newEmail = trim((string) $request->post('email', $email));
+        $name     = trim((string) $request->post('name', ''));
+        $url      = trim((string) $request->post('url', ''));
+        $country  = trim((string) $request->post('country', ''));
+        $showurl  = $request->post('showurl') === '1';
+
+        $currentStatus = $member->approved ? 'approved' : ($member->rejected ? 'rejected' : 'pending');
+        $status        = (string) $request->post('status', $currentStatus);
+        if (!in_array($status, ['approved', 'pending', 'rejected'], true)) {
+            $status = $currentStatus;
+        }
+
+        $v = new Validator(['name' => $name, 'url' => $url, 'email' => $newEmail]);
+        $v->field('name')->required()->maxLength(255);
+        $v->field('email')->required()->email()->maxLength(255);
+        if ($url !== '') {
+            $v->field('url')->httpUrl()->maxLength(500);
+        }
+
+        $emailChanged = strtolower($newEmail) !== strtolower($email);
+        if (!$v->fails() && $emailChanged && $memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
+            $v->addFieldError('email', 'Another member in this listing already uses that email.');
+        }
+
+        // Where each extra answer goes, worked out before anything is written.
+        // These inputs only ever post text, so anything else is an error.
+        $answers = [];
+        foreach ($fields as $field) {
+            $raw = $request->post('field_' . $field->name, '');
+            if (is_string($raw)) {
+                $answers[$field->name] = trim($raw);
+            } else {
+                $v->addFieldError('field_' . $field->name, $field->displayName() . ": that answer isn't valid.");
+            }
+        }
+        $extraValues = [];
+        if ($fields !== []) {
+            try {
+                $placed      = FieldAnswers::place($fields, $fieldRepo->fieldColumns($listing->dbprefix, $fields), $answers);
+                $extraValues = $placed['values'];
+                foreach ($placed['unplaceable'] as $field) {
+                    $v->addFieldError('field_' . $field->name, FieldAnswers::adminRefusal($field));
+                }
+            } catch (\RuntimeException | \InvalidArgumentException $e) {
+                error_log('[Luster] Edit Member: reading the member table for listing #' . $listingId . ' failed: ' . $e->getMessage());
+                $v->addFieldError('fields', "Couldn't check this listing's member table because of a database error. Nothing was changed.");
+            }
+        }
+
+        if ($v->fails()) {
+            return $this->adminLayout('admin/members/edit.php', 'Edit Member', 'members', [
+                'listing'      => $listing,
+                'member'          => $member,
+                'fields'          => $fields,
+                'error'           => implode(' ', $v->allErrors()),
+                'field_errors'    => $v->errors(),
+                'success'         => '',
+                'old'             => $request->postAll(),
+                'all_listings' => $allListings,
+                'supports_rejected_state' => $memberRepo->supportsRejectedState(),
+            ], '', $this->memberBreadcrumbs($listing, $member->name));
+        }
+
+        $updateData = [
+            'email'   => $newEmail,
+            'name'    => $name,
+            'url'     => $url,
+            'country' => $country,
+            'showurl' => (int) $showurl,
+        ];
+
+        foreach ($extraValues as $column => $value) {
+            $updateData[$column] = $value;
+        }
+
+        $memberRepo->update($listing->dbprefix, $email, $updateData);
+        if ($emailChanged) {
+            // Re-key side tables that reference the member by email string
+            // (no FK) so queued updates and link-check history follow the
+            // rename instead of being orphaned under the old address.
+            (new PendingUpdateRepo($db))->renameMemberEmail($listingId, $email, $newEmail);
+            try {
+                (new MemberLinkCheckRepo($db, $config))->renameMemberEmail($listingId, $email, $newEmail);
+            } catch (\Throwable) {}
+            // Any outstanding password-reset token was issued to the old
+            // address and can't meaningfully be "renamed" (ResetController
+            // now safely rejects it either way) — just invalidate it so a
+            // stale link doesn't linger.
+            (new FanPasswordResetRepo($db))->deleteByEmail($listingId, $email);
+            $email = $newEmail;
+        }
+        if ($url !== '') {
+            try {
+                (new MemberLinkCheckRepo($db, $config))->upsertMember($listingId, $email, $name, $url);
+            } catch (\Throwable) {}
+        }
+
+        // Status change, applied last since a 'rejected' choice deletes the
+        // member outright on schemas with no separate rejected state (see
+        // MemberRepo::supportsRejectedState()) — everything else above must
+        // already be saved by the time that can happen.
+        $deleted = false;
+        if ($status !== $currentStatus) {
+            if ($status === 'approved') {
+                $memberRepo->approve($listing->dbprefix, $email);
+            } elseif ($status === 'pending') {
+                $memberRepo->setPending($listing->dbprefix, $email);
+            } else { // 'rejected'
+                $deleted = MemberRemoval::for($this->app)->reject($listingId, $listing->dbprefix, $email);
+            }
+        }
+
+        (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'member.edit',
+            $deleted
+                ? "Edited member {$email} in listing #{$listingId} and rejected (removed, no rejected state on this schema)"
+                : "Edited member {$email} in listing #{$listingId}",
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', $deleted ? 'Member updated and rejected (removed).' : 'Member updated.');
+        return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
     }
 
     // -----------------------------------------------------------------------
@@ -941,28 +983,41 @@ final class MemberController extends AdminController
             return Response::redirect($redirectEdit);
         }
 
-        // Verify both members exist
-        $primary = $memberRepo->getByEmail($listing->dbprefix, $primaryEmail);
-        if ($primary === null) {
-            $session->set('lstr_flash_error', 'Primary member not found.');
+        try {
+            $problem = $this->app->getMemberAddressLock()->run(
+                [[$listingId, $primaryEmail], [$listingId, $dupeEmail]],
+                function () use ($memberRepo, $listing, $listingId, $primaryEmail, $dupeEmail): ?string {
+                    // Verify both members exist
+                    $primary = $memberRepo->getByEmail($listing->dbprefix, $primaryEmail);
+                    if ($primary === null) {
+                        return 'Primary member not found.';
+                    }
+
+                    $duplicate = $memberRepo->getByEmail($listing->dbprefix, $dupeEmail);
+                    if ($duplicate === null) {
+                        return 'Duplicate member "' . $dupeEmail . '" not found in this listing.';
+                    }
+
+                    // Carry over the earlier join date before deleting — otherwise a
+                    // duplicate that actually joined first would silently lose its date
+                    // the moment its row is discarded.
+                    if ($duplicate->added !== '' && ($primary->added === '' || $duplicate->added < $primary->added)) {
+                        $memberRepo->update($listing->dbprefix, $primaryEmail, ['added' => $duplicate->added]);
+                    }
+
+                    // Delete the duplicate, along with anything it had queued
+                    MemberRemoval::for($this->app)->remove($listingId, $listing->dbprefix, $dupeEmail);
+
+                    return null;
+                },
+            );
+        } catch (MemberAddressBusy) {
+            $problem = MemberAddressBusy::MESSAGE;
+        }
+        if ($problem !== null) {
+            $session->set('lstr_flash_error', $problem);
             return Response::redirect($redirectEdit);
         }
-
-        $duplicate = $memberRepo->getByEmail($listing->dbprefix, $dupeEmail);
-        if ($duplicate === null) {
-            $session->set('lstr_flash_error', 'Duplicate member "' . $dupeEmail . '" not found in this listing.');
-            return Response::redirect($redirectEdit);
-        }
-
-        // Carry over the earlier join date before deleting — otherwise a
-        // duplicate that actually joined first would silently lose its date
-        // the moment its row is discarded.
-        if ($duplicate->added !== '' && ($primary->added === '' || $duplicate->added < $primary->added)) {
-            $memberRepo->update($listing->dbprefix, $primaryEmail, ['added' => $duplicate->added]);
-        }
-
-        // Delete the duplicate
-        $memberRepo->deleteByEmail($listing->dbprefix, $dupeEmail);
 
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
@@ -974,7 +1029,7 @@ final class MemberController extends AdminController
 
         $session->set(
             'lstr_flash_success',
-            'Duplicate member "' . $dupeEmail . '" removed. "' . $primaryEmail . '" retained.',
+            'Duplicate member "' . $dupeEmail . '" removed. "' . $primaryEmail . '" retained. Any update requests it had queued were removed too.',
         );
         return Response::redirect($baseUrl . '/admin/members/' . $listingId
             . '/edit?email=' . urlencode($primaryEmail));
@@ -1035,17 +1090,23 @@ final class MemberController extends AdminController
         $siteName = (string) $config->get('site_name', 'Luster');
 
         $count = 0;
+        $busy  = 0;
         foreach ($emails as $email) {
             if ($email === '') {
                 continue;
             }
 
-            match ($action) {
-                'approve' => $memberRepo->approve($listing->dbprefix, $email),
-                'pending' => $memberRepo->setPending($listing->dbprefix, $email),
-                'reject'  => $memberRepo->reject($listing->dbprefix, $email),
-                'delete'  => $memberRepo->deleteByEmail($listing->dbprefix, $email),
-            };
+            try {
+                match ($action) {
+                    'approve' => $memberRepo->approve($listing->dbprefix, $email),
+                    'pending' => $memberRepo->setPending($listing->dbprefix, $email),
+                    'reject'  => MemberRemoval::for($this->app)->reject($listingId, $listing->dbprefix, $email),
+                    'delete'  => MemberRemoval::for($this->app)->remove($listingId, $listing->dbprefix, $email),
+                };
+            } catch (MemberAddressBusy) {
+                $busy++;
+                continue;
+            }
 
             // Sync member link check snapshot (best-effort)
             if (in_array($action, ['reject', 'delete'], true)) {
@@ -1106,7 +1167,7 @@ final class MemberController extends AdminController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', "Bulk {$action}: {$count} member(s) processed.");
+        $session->set('lstr_flash_success', "Bulk {$action}: {$count} member(s) processed." . ($busy > 0 ? " {$busy} couldn't be done just now. Try them again in a moment." : ''));
 
         $pendingUpdateRepo = new PendingUpdateRepo($db);
         $from = (string) $request->post('from', '');
@@ -1301,23 +1362,18 @@ final class MemberController extends AdminController
         }
 
         // --- 2. Approve all pending member updates
+        $busyUpdates = 0;
         foreach ($pendingUpdateRepo->getAll() as $pu) {
-            $listing = $listingRepo->getById($pu->fanlisting_id);
-
-            if ($listing === null) {
-                $pendingUpdateRepo->delete($pu->id);
+            $applied = (new PendingUpdateController($this->app))->applyQueued($pu->id);
+            if (in_array($applied['outcome'], ['busy', 'moved'], true)) {
+                $busyUpdates++;
+            }
+            if ($applied['outcome'] !== 'applied') {
                 continue;
             }
 
-            $member = $memberRepo->getByEmail($listing->dbprefix, $pu->member_email);
-
-            if ($member === null) {
-                $pendingUpdateRepo->delete($pu->id);
-                continue;
-            }
-
-            $memberRepo->update($listing->dbprefix, $pu->member_email, $pu->changes);
-            $pendingUpdateRepo->delete($pu->id);
+            $listing = $applied['listing'];
+            $member  = $applied['member'];
 
             try {
                 $_es    = $settingsRepo->getResolvedEmbedSettings($pu->fanlisting_id);
@@ -1364,6 +1420,9 @@ final class MemberController extends AdminController
             $parts[] = "{$approvedUpdates} pending update" . ($approvedUpdates !== 1 ? 's' : '');
         }
         $msg = empty($parts) ? 'Nothing pending to approve.' : 'Approved: ' . implode(' and ', $parts) . '.';
+        if ($busyUpdates > 0) {
+            $msg .= " {$busyUpdates} update(s) couldn't be applied just now, so they're still in the queue. Try again in a moment.";
+        }
 
         $session->set('lstr_flash_success', $msg);
         return Response::redirect($baseUrl . '/admin/members');
@@ -1415,6 +1474,7 @@ final class MemberController extends AdminController
         }
 
         $count = 0;
+        $busy  = 0;
         foreach ($byListing as $listingId => $emails) {
             $listing = $listingRepo->getById($listingId);
             if ($listing === null) { continue; }
@@ -1448,7 +1508,12 @@ final class MemberController extends AdminController
                         } catch (\Throwable) {}
                     }
                 } else {
-                    $memberRepo->deleteByEmail($listing->dbprefix, $email);
+                    try {
+                        MemberRemoval::for($this->app)->remove($listingId, $listing->dbprefix, $email);
+                    } catch (MemberAddressBusy) {
+                        $busy++;
+                        continue;
+                    }
                 }
                 $count++;
             }
@@ -1466,6 +1531,9 @@ final class MemberController extends AdminController
         );
 
         $label = $action === 'approve' ? "Approved {$count} member(s)." : "Rejected {$count} member(s).";
+        if ($busy > 0) {
+            $label .= " {$busy} couldn't be done just now. Try them again in a moment.";
+        }
         $session->set('lstr_flash_success', $label);
 
         $allListings   = $listingRepo->getAll();
@@ -1610,12 +1678,17 @@ final class MemberController extends AdminController
             return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
         }
 
-        match ($action) {
-            'approve' => $memberRepo->approve($listing->dbprefix, $email),
-            'pending' => $memberRepo->setPending($listing->dbprefix, $email),
-            'reject'  => $memberRepo->reject($listing->dbprefix, $email),
-            'delete'  => $memberRepo->deleteByEmail($listing->dbprefix, $email),
-        };
+        try {
+            match ($action) {
+                'approve' => $memberRepo->approve($listing->dbprefix, $email),
+                'pending' => $memberRepo->setPending($listing->dbprefix, $email),
+                'reject'  => MemberRemoval::for($this->app)->reject($listingId, $listing->dbprefix, $email),
+                'delete'  => MemberRemoval::for($this->app)->remove($listingId, $listing->dbprefix, $email),
+            };
+        } catch (MemberAddressBusy) {
+            $session->set('lstr_flash_error', MemberAddressBusy::MESSAGE);
+            return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
+        }
 
         // Sync member link check snapshot (best-effort)
         if (in_array($action, ['reject', 'delete'], true)) {

@@ -930,6 +930,7 @@ function installTables(PDO $pdo): void
             `expires_at`     DATETIME      NOT NULL,
             `used_at`        DATETIME      NULL,
             `created_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `member_stamp`   CHAR(64)      NULL,
             PRIMARY KEY (`id`),
             INDEX `idx_token`    (`token_hash`),
             INDEX `idx_email_fl` (`fanlisting_id`, `member_email`)
@@ -1185,7 +1186,7 @@ function installTables(PDO $pdo): void
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
          (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93),
-         (94),(95),(96),(97),(98),(99),(100),(101),(102),(103),(104),(105),(106),(107),(108)'
+         (94),(95),(96),(97),(98),(99),(100),(101),(102),(103),(104),(105),(106),(107),(108),(109)'
     );
 }
 

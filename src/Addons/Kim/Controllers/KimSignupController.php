@@ -174,7 +174,7 @@ final class KimSignupController
 
         $passwordHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
 
-        $kimRepo->create($fanlistingId, $name, $email, $url, $passwordHash);
+        $newEntryId = $kimRepo->create($fanlistingId, $name, $email, $url, $passwordHash);
         $rateLimit->hit($ip, 'kim_signup', 10, 3600);
 
         // Find the fanlisting subject for the email
@@ -199,7 +199,7 @@ final class KimSignupController
             // Always issue a setup URL so the fan can access their account.
             // URL points to the KIM reset page (configured) or the Luster reset route —
             // never to the signup page, even in embed context.
-            $setupUrl  = $this->issuePasswordSetupUrl($kimRepo, $email, $fanlistingId);
+            $setupUrl  = $this->issuePasswordSetupUrl($newEntryId, $email);
             $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
             $_kimSiteRepo = new SiteSettingsRepo($this->app->getDatabase());
             $_kimSiteUrl  = (string) $config->get('app_url', '');
@@ -225,7 +225,10 @@ final class KimSignupController
                 ),
             );
             [$subject, $body] = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_KIM_SIGNUP, $tokens);
-            if ($subject !== '') {
+            // No setup link means the entry moved or went away before this could be sent.
+            // The signup still stands, but this mail has the password in it, and that
+            // address doesn't own the entry any more.
+            if ($subject !== '' && $setupUrl !== '') {
                 (new Mailer($config))->send($email, $name, $subject, $body);
             }
         } catch (\Throwable $e) {
@@ -292,28 +295,16 @@ final class KimSignupController
      *
      * Prefers the admin-configured KIM reset page URL (kim_url_reset) so the
      * link lands on the correct host-page embed, not Luster's own routes.
-     * Returns an empty string if the member cannot be found.
+     * Returns an empty string if the entry has been moved or removed since it was
+     * created, because this link is going to the address it was created with. The
+     * welcome mail isn't sent then either.
      */
-    private function issuePasswordSetupUrl(
-        KimMemberRepo $kimRepo,
-        string        $email,
-        int           $fanlistingId,
-    ): string {
-        $member = $kimRepo->findByEmailAndFanlisting($email, $fanlistingId);
-        if ($member === null) {
+    private function issuePasswordSetupUrl(int $memberId, string $email): string
+    {
+        $rawToken = (new KimPasswordResetRepo($this->app->getDatabase()))->issueLocked($memberId, $email, 3600);
+        if ($rawToken === null) {
             return '';
         }
-
-        $resetRepo = new KimPasswordResetRepo($this->app->getDatabase());
-        $resetRepo->deleteByMember($member->id);
-
-        $rawToken  = bin2hex(random_bytes(32));
-        $tokenHash = hash('sha256', $rawToken);
-        $expiresAt = (new \DateTimeImmutable())
-            ->modify('+3600 seconds')
-            ->format('Y-m-d H:i:s');
-
-        $resetRepo->create($member->id, $tokenHash, $expiresAt);
 
         $siteRepo       = new SiteSettingsRepo($this->app->getDatabase());
         $siteUrl        = (string) $this->app->getConfig()->get('site_url', '');

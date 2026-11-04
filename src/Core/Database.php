@@ -147,6 +147,15 @@ final class Database
     }
 
     /**
+     * " FOR UPDATE" for a locking read. Empty on SQLite (the tests), which has
+     * no such thing.
+     */
+    public function forUpdate(): string
+    {
+        return $this->pdo()->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite' ? '' : ' FOR UPDATE';
+    }
+
+    /**
      * Returns the last inserted row ID.
      */
     public function lastInsertId(): string

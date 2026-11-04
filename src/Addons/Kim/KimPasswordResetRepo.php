@@ -68,6 +68,43 @@ final class KimPasswordResetRepo
     }
 
     /**
+     * Replaces an entry's reset token, in its own transaction with the entry locked, and
+     * only if it's still at the address the link is about to be emailed to. Moving an
+     * entry revokes its tokens under the same lock, so a move can't slip in between and
+     * leave the old address holding a working link.
+     *
+     * @return ?string The raw token, or null if the entry has moved or something failed.
+     */
+    public function issueLocked(int $kimMemberId, string $expectedEmail, int $ttlSeconds): ?string
+    {
+        $this->db->beginTransaction();
+        try {
+            $entry = (new KimMemberRepo($this->db))->lockById($kimMemberId);
+            if ($entry === null || mb_strtolower($entry->email, 'UTF-8') !== mb_strtolower($expectedEmail, 'UTF-8')) {
+                $this->db->rollBack();
+                return null;
+            }
+
+            $rawToken  = bin2hex(random_bytes(32));
+            $expiresAt = (new \DateTimeImmutable())
+                ->modify('+' . $ttlSeconds . ' seconds')
+                ->format('Y-m-d H:i:s');
+
+            $this->deleteByMember($kimMemberId);
+            $this->create($kimMemberId, hash('sha256', $rawToken), $expiresAt);
+
+            $this->db->commit();
+            return $rawToken;
+        } catch (\Throwable $e) {
+            if ($this->db->pdo()->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('[KIM] Issuing a reset link failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Deletes all existing reset tokens for this KIM member.
      * Call before creating a new token to enforce one-at-a-time.
      */

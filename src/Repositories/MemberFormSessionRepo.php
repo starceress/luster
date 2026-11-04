@@ -30,17 +30,31 @@ final class MemberFormSessionRepo
 {
     public function __construct(private readonly Database $db) {}
 
+    /**
+     * True once Migration 109 has added member_stamp. Without it a token can't say
+     * which member it was issued for, so none are issued or accepted.
+     */
+    public function supportsStamps(): bool
+    {
+        try {
+            return in_array('member_stamp', array_column($this->db->tableColumns('lstr_member_form_sessions'), 'name'), true);
+        } catch (\RuntimeException) {
+            return false;
+        }
+    }
+
     public function create(
         int    $listingId,
         string $email,
         string $allowedAction,
         string $tokenHash,
         string $expiresAt,
+        string $memberStamp,
     ): void {
         $stmt = $this->db->prepare(
             'INSERT INTO lstr_member_form_sessions
-                (fanlisting_id, member_email, allowed_action, token_hash, expires_at)
-             VALUES (:fanlisting_id, :member_email, :allowed_action, :token_hash, :expires_at)'
+                (fanlisting_id, member_email, allowed_action, token_hash, expires_at, member_stamp)
+             VALUES (:fanlisting_id, :member_email, :allowed_action, :token_hash, :expires_at, :member_stamp)'
         );
         $stmt->execute([
             'fanlisting_id'  => $listingId,
@@ -48,6 +62,7 @@ final class MemberFormSessionRepo
             'allowed_action' => $allowedAction,
             'token_hash'     => $tokenHash,
             'expires_at'     => $expiresAt,
+            'member_stamp'   => $memberStamp,
         ]);
     }
 
@@ -55,14 +70,14 @@ final class MemberFormSessionRepo
      * Returns the token row if found, not expired, and not yet used — null
      * otherwise. Also opportunistically deletes expired rows as a side effect.
      *
-     * @return array{id:int, fanlisting_id:int, member_email:string, allowed_action:string}|null
+     * @return array{id:int, fanlisting_id:int, member_email:string, allowed_action:string, member_stamp:?string}|null
      */
     public function findValidByTokenHash(string $tokenHash): ?array
     {
         $this->deleteExpired();
 
         $stmt = $this->db->prepare(
-            'SELECT id, fanlisting_id, member_email, allowed_action
+            'SELECT id, fanlisting_id, member_email, allowed_action, member_stamp
              FROM lstr_member_form_sessions
              WHERE token_hash = :token_hash
                AND used_at IS NULL
@@ -92,7 +107,7 @@ final class MemberFormSessionRepo
      * the token as valid, so two concurrent requests presenting the same raw
      * token can never both succeed.
      *
-     * @return array{id:int, fanlisting_id:int, member_email:string, allowed_action:string}|null
+     * @return array{id:int, fanlisting_id:int, member_email:string, allowed_action:string, member_stamp:?string}|null
      */
     public function verifyAndConsume(string $tokenHash): ?array
     {
@@ -110,7 +125,7 @@ final class MemberFormSessionRepo
         }
 
         $sel = $this->db->prepare(
-            'SELECT id, fanlisting_id, member_email, allowed_action
+            'SELECT id, fanlisting_id, member_email, allowed_action, member_stamp
              FROM lstr_member_form_sessions
              WHERE token_hash = :token_hash'
         );
