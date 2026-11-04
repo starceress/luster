@@ -19,7 +19,9 @@ panel will let you know that a manual update is needed and link you to the
 release page.
 
 
-### [Unreleased]
+### [1.0.0-4] — 2026-11-04
+
+This one has important security fixes, so it's worth updating soon.
 
 **After updating:** go to **Settings → System & Updates** and click **Run
 migrations** once. This update makes five small changes to your database (see
