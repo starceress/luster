@@ -111,21 +111,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // between sign-in and submit (broken cookie, GC, etc.), CSRF fails — but a
     // DB-backed form session token in POST is equivalent CSRF proof: it is a
     // 32-byte cryptographic random embedded by Luster's own form renderer, bound
-    // to this listing + action, and single-use. Only bypass CSRF when it actually
-    // fails AND a non-empty form token is present; the token is still validated by
-    // consume() in submit() before any action is taken.
-    $csrfOk = $_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''));
-    if (!$csrfOk) {
-        $hasFallbackToken = ($_POST['_form_token_update'] ?? '') !== ''
-                         || ($_POST['_form_token_delete'] ?? '') !== '';
+    // to this listing + action, and single-use. That only holds with no sign-in,
+    // because submit() doesn't look at the token otherwise, so a signed-in request
+    // always needs a valid CSRF token. submit() still checks the token itself
+    // before any action is taken.
+    $hasFallbackToken = false;
+    if (!$_lusterApp->getCSRF()->validate((string) ($_POST['_csrf'] ?? ''))) {
+        $hasFallbackToken = MemberSignIn::formTokenExcusesCsrf($_lusterApp->getSession(), $_lusterListingId, $_POST);
         if (!$hasFallbackToken) {
             $_lusterApp->getSession()->set('lstr_flash_error:' . $_lusterMarker, 'Security check failed. Please reload the page and try again.');
             if (!headers_sent()) { header('Location: ' . $_lusterRedirectTo, true, 302); exit; }
             echo '<script>window.location.replace(' . json_encode($_lusterRedirectTo) . ');</script>';
             return;
         }
-    } else {
-        $hasFallbackToken = false;
     }
     $_lusterAuthedNow = MemberSignIn::email($_lusterApp->getSession(), $_lusterListingId) !== '';
     if ($_lusterAuthedNow || $hasFallbackToken) {

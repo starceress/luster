@@ -63,6 +63,33 @@ final class MemberSignIn
         return $stamp !== '' && hash_equals($stamp, self::stamp($member->password));
     }
 
+    /**
+     * Can a fallback token stand in for a failed CSRF check? Only with no sign-in,
+     * because that's the only time UpdateController::submit() looks at the token. With
+     * a sign-in nothing would check it, so any text in the field would get through.
+     *
+     * This asks what submit() asks: is there an address in the session? A stale or
+     * missing stamp doesn't change the answer, or the two could disagree. Saying yes
+     * doesn't prove the token is real. submit() still checks it for this listing and action.
+     *
+     * @param array<string, mixed> $post
+     */
+    public static function formTokenExcusesCsrf(Session $session, int $listingId, array $post): bool
+    {
+        if (self::email($session, $listingId) !== '') {
+            return false;
+        }
+
+        foreach (['_form_token_update', '_form_token_delete'] as $field) {
+            $token = $post[$field] ?? '';
+            if (is_string($token) && $token !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** Ends the sign-in, fallback tokens included. */
     public static function forget(Session $session, int $listingId): void
     {

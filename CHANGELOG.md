@@ -87,6 +87,12 @@ below), and the migration page tells you if any of your listings were affected.
   again. Anyone signed in when you update will have to sign in once more too. Until
   you run the migration step above, a fan whose browser loses its session partway
   through the form also has to sign in again.
+- **A faked update form can't skip the security check anymore.** The update form has
+  a backup for when a browser loses its session, but just having that backup field
+  filled in, with anything at all, let a faked form past the security check. If a
+  signed-in fan got tricked into sending one, it could change their details or remove
+  them from the listing. Browsers already stop most of these coming from other sites.
+  The backup only counts now when there's no sign-in, and it still has to be a real one.
 - **On Keep In Mind, a password only unlocks the entries that use it.** KIM sign-ups
   don't check the email address belongs to whoever typed it, so someone could sign
   up with a fan's address and, once approved, use their own password to change or

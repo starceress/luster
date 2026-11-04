@@ -338,6 +338,10 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                         $action = ($body['delete_membership'] ?? '') === '1' ? 'delete' : 'update';
                         $body['_form_token_' . $action] = (string) $tokens[$action];
                     }
+                    // Field name => which real token to put in it, for tokens in the wrong place.
+                    foreach ($step['tokens_in'] ?? [] as $field => $kind) {
+                        $body[$field] = (string) $tokens[$kind];
+                    }
                     (new UpdateController($app))->submit($post($body + ['_luster_embed_form' => 'm1']), ['id' => (string) $listing]);
                     break;
 
