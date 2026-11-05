@@ -65,7 +65,7 @@ $id = (int) $listing->id;
         </label>
         <div>
           <input id="m-name" type="text" name="name" class="form"
-                 maxlength="255" required
+                 maxlength="100" required
                  value="<?= View::e($old['name'] ?? $member->name) ?>">
           <?php if (!empty($fe['name'])): ?>
             <p class="field-error"><?= View::e($fe['name'][0]) ?></p>

@@ -38,6 +38,7 @@ use Luster\Support\MemberAddressBusy;
 use Luster\Support\MemberEmailRekey;
 use Luster\Support\MemberRemoval;
 use Luster\Support\MemberSignIn;
+use Luster\Support\MemberWidths;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -317,11 +318,13 @@ final class UpdateController
     ): Response {
         $session   = $this->app->getSession();
         $rateLimit = $this->app->getRateLimit();
+        $backTo    = $embedReturnTo !== '' ? $embedReturnTo : $formUrl;
 
+        // A form token is only looked at here. It gets used just before the first write,
+        // so a save that's refused can't cost the fan their token.
+        $tokens = new MemberFormSessionService(new MemberFormSessionRepo($this->app->getDatabase()));
         if ($formToken !== '') {
-            $consumed = (new MemberFormSessionService(new MemberFormSessionRepo($this->app->getDatabase())))
-                ->consume($listingId, $formToken, $action);
-            $stamp = (string) ($consumed['stamp'] ?? '');
+            $stamp = (string) ($tokens->peek($listingId, $formToken, $action)['stamp'] ?? '');
         } else {
             $stamp = MemberSignIn::sessionStamp($session, $listingId);
         }
@@ -331,13 +334,11 @@ final class UpdateController
 
         if ($member === null) {
             MemberSignIn::forget($session, $listingId);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return Response::redirect($backTo);
         }
 
         if (!MemberSignIn::matches($stamp, $member)) {
-            MemberSignIn::forget($session, $listingId);
-            $session->set('lstr_flash_error:' . $marker, MemberSignIn::SIGN_IN_AGAIN);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->signInAgain($listingId, $marker, $backTo);
         }
 
         // Update fields (all optional; blank = keep existing)
@@ -354,6 +355,10 @@ final class UpdateController
 
         // Permanently delete membership instead of updating it
         if ((string) $request->post('delete_membership', '') === '1') {
+            if ($formToken !== '' && $tokens->consume($listingId, $formToken, $action) === null) {
+                return $this->signInAgain($listingId, $marker, $backTo);
+            }
+
             $memberName = $member->name;
             MemberRemoval::for($this->app)->remove($listingId, $listing->dbprefix, $email);
 
@@ -418,7 +423,6 @@ final class UpdateController
         // These answers are what's checked here and what gets saved below. A saved answer
         // that's no longer a choice is still allowed, because the form still offers it.
         $answers = FieldAnswers::fromPost($fields, $postData, $v, $member->answers($fields));
-        $backTo  = $embedReturnTo !== '' ? $embedReturnTo : $formUrl;
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
@@ -486,6 +490,24 @@ final class UpdateController
             }
         }
 
+        // Everything about to be written has to fit, the new password's hash included,
+        // before the token is used or anything changes. Real member tables are often
+        // narrower than this form's own limits.
+        $problem = MemberWidths::publicProblem(
+            $memberRepo,
+            $listing,
+            $updateData + ($passwordHash !== null ? ['password' => $passwordHash] : []),
+            $fields,
+            'Update',
+        );
+        if ($problem !== null) {
+            return $this->refuse($marker, $problem, $old, $backTo);
+        }
+
+        if ($formToken !== '' && $tokens->consume($listingId, $formToken, $action) === null) {
+            return $this->signInAgain($listingId, $marker, $backTo);
+        }
+
         $shouldQueue = $settingsRepo->getQueueUpdates($listingId);
 
         // Password changes always apply immediately (never queued). A change of address
@@ -531,6 +553,11 @@ final class UpdateController
                 $memberRepo->update($listing->dbprefix, $email, $updateData);
             }
 
+            // A change of password alone isn't in $updateData, so it doesn't count.
+            if (ListingSettingsRepo::changesCountAsUpdate($updateData)) {
+                $settingsRepo->touchLastUpdated($listingId);
+            }
+
             MemberSignIn::forget($session, $listingId);
             $session->remove('lstr_embed_return_to');
             $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
@@ -541,6 +568,16 @@ final class UpdateController
         }
 
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+    }
+
+    /** Ends this sign-in and sends the fan back to sign in again. */
+    private function signInAgain(int $listingId, string $marker, string $backTo): Response
+    {
+        $session = $this->app->getSession();
+        MemberSignIn::forget($session, $listingId);
+        $session->set('lstr_flash_error:' . $marker, MemberSignIn::SIGN_IN_AGAIN);
+
+        return Response::redirect($backTo);
     }
 
     /**

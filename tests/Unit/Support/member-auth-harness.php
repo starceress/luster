@@ -120,22 +120,26 @@ function authFixture(string $root, array $s): array
 
     // case_insensitive makes addresses compare the way they do in MySQL, ignoring capitals.
     $emailCollation = !empty($s['case_insensitive']) ? ' COLLATE NOCASE' : '';
-    $emailType      = (string) ($s['email_column_type'] ?? 'TEXT') . $emailCollation;
     foreach ([1 => ['Moon FL', 'fl_moon'], 2 => ['Sun FL', 'fl_sun']] as $id => [$title, $table]) {
+        // column_types narrows one listing's columns: {"2": {"email": "VARCHAR(64)"}}.
+        $narrow    = $s['column_types'][$id] ?? [];
+        $emailType = (string) ($narrow['email'] ?? $s['email_column_type'] ?? 'TEXT') . $emailCollation;
+        $cName     = (string) ($narrow['name'] ?? 'TEXT');
+        $cPassword = (string) ($narrow['password'] ?? 'TEXT');
         if ($isOwned) {
             $pdo->prepare('INSERT INTO owned (listingid, title, url, subject, dbtable) VALUES (?, ?, ?, ?, ?)')
                 ->execute([$id, $title, 'https://fans.test/' . $table . '/', 'The ' . $title, $table]);
             $pdo->exec("CREATE TABLE {$table} (
-                email {$emailType} NOT NULL PRIMARY KEY, name TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '',
-                url TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, password TEXT NOT NULL DEFAULT '',
+                email {$emailType} NOT NULL PRIMARY KEY, name {$cName} NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '',
+                url TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, password {$cPassword} NOT NULL DEFAULT '',
                 showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL)");
         } else {
             $pdo->prepare('INSERT INTO enth_fanlistings (id, name, url, subject, dbprefix) VALUES (?, ?, ?, ?, ?)')
                 ->execute([$id, $title, 'https://fans.test/' . $table . '/', 'The ' . $title, $table . '_']);
             $pdo->exec("CREATE TABLE {$table}_members (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, email {$emailType} NOT NULL DEFAULT '', name TEXT NOT NULL DEFAULT '',
+                id INTEGER PRIMARY KEY AUTOINCREMENT, email {$emailType} NOT NULL DEFAULT '', name {$cName} NOT NULL DEFAULT '',
                 country TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', approved INTEGER NOT NULL DEFAULT 1,
-                password TEXT NOT NULL DEFAULT '', showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1,
+                password {$cPassword} NOT NULL DEFAULT '', showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1,
                 added TEXT NULL, updated TEXT NULL)");
         }
     }
@@ -227,6 +231,7 @@ function insertMember(TracingPdo $pdo, string $layout, array $m): void
         'url'      => $m['url'] ?? '',
         'password' => !empty($m['md5']) ? md5($m['password']) : cheapHash($m['password'] ?? 'a-password-1'),
         'added'    => $m['added'] ?? date('Y-m-d'),
+        'showurl'  => $m['showurl'] ?? 1,
     ] + ($layout === 'owned'
         ? ['pending' => ['approved' => 0, 'pending' => 1, 'rejected' => 2][$status]]
         : ['approved' => $status === 'approved' ? 1 : 0]);
@@ -379,6 +384,9 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                     if (isset($step['review_state'])) {
                         $pdo->prepare('UPDATE lstr_pending_updates SET review_state = ? WHERE id = ?')->execute([$step['review_state'], $ids[$step['as'] ?? 'queued']]);
                     }
+                    break;
+                case 'touch':
+                    (new \Luster\Repositories\ListingSettingsRepo($app->getDatabase()))->touchLastUpdated($listing);
                     break;
                 case 'fail_commit':
                     $pdo->failCommit = true;
@@ -636,6 +644,8 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
     $results[] = [
         'error'          => $error,
         'members'        => $members,
+        'last_updated'   => array_column($read('SELECT fanlisting_id, last_updated FROM lstr_fanlisting_settings ORDER BY fanlisting_id'), 'last_updated', 'fanlisting_id'),
+        'today'          => date('Y-m-d'),
         'kim'            => $kim,
         'kim_tokens'     => (int) $pdo->query('SELECT COUNT(*) FROM lstr_kim_password_resets')->fetchColumn(),
         'queue'          => $read('SELECT * FROM lstr_pending_updates ORDER BY id'),

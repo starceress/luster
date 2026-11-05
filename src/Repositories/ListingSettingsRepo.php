@@ -72,15 +72,39 @@ final class ListingSettingsRepo
     public function touchLastUpdated(int $listingId): void
     {
         try {
+            $whenThere = $this->db->isSqlite()
+                ? 'ON CONFLICT(fanlisting_id) DO UPDATE SET last_updated = CURDATE()'
+                : 'ON DUPLICATE KEY UPDATE last_updated = CURDATE()';
+
             $stmt = $this->db->prepare(
-                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
+                "INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
                  VALUES (:id, CURDATE())
-                 ON DUPLICATE KEY UPDATE last_updated = CURDATE()'
+                 {$whenThere}"
             );
             $stmt->execute(['id' => $listingId]);
         } catch (\Exception) {
             // Column not yet present — Migration 20 not run; silently ignore
         }
+    }
+
+    /**
+     * Whether these member changes count as the listing being updated, whether they're
+     * applied straight away or approved from the queue. showurl by itself doesn't count:
+     * the update form sets it from whether there's a website, so a member from an older
+     * script can change it just by changing their password.
+     *
+     * @param array<string, mixed> $changes Column => new value. A table's column can have
+     *                                      capitals, so they're ignored here.
+     */
+    public static function changesCountAsUpdate(array $changes): bool
+    {
+        foreach (array_keys($changes) as $column) {
+            if (strtolower((string) $column) !== 'showurl') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

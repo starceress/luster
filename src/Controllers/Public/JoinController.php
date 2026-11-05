@@ -23,6 +23,7 @@ use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\SiteClock;
 use Luster\Core\Validator;
 use Luster\Core\View;
 use Luster\Models\Listing;
@@ -37,6 +38,7 @@ use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\MemberAddressBusy;
 use Luster\Support\MemberAddressHandover;
+use Luster\Support\MemberWidths;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -223,7 +225,7 @@ final class JoinController
             'country'  => $country,
             'showurl'  => $url !== '' ? 1 : 0,
             'password' => $passwordHash,
-            'added'    => date('Y-m-d H:i:s'),
+            'added'    => SiteClock::now($this->app->getConfig()),
         ];
 
         // Every new join waits for approval: pending=1 or approved=0, depending on schema.
@@ -231,6 +233,12 @@ final class JoinController
 
         foreach ($extraValues as $column => $value) {
             $insertData[$column] = $value;
+        }
+
+        // Real member tables are often narrower than this form's own limits.
+        $problem = MemberWidths::publicProblem($memberRepo, $listing, $insertData, $fields, 'Join');
+        if ($problem !== null) {
+            return $this->refuse($marker, $problem, $old, $backTo);
         }
 
         // Checked again under the address's lock, which also keeps a save still in

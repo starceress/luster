@@ -287,6 +287,8 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
         'flash_success' => $_SESSION['lstr_flash_success'] ?? null,
         'flash_error'   => $_SESSION['lstr_flash_error'] ?? null,
         'members'       => $members,
+        'last_updated'  => $pdo->query('SELECT last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 1')->fetchColumn(),
+        'today'         => date('Y-m-d'),
         'statements'    => $pdo->statements,
         'activity'      => $pdo->query('SELECT action, description FROM lstr_activity_log')->fetchAll(),
         'link_checks'   => $pdo->query('SELECT listing_id, member_email, member_name, member_url FROM lstr_member_link_checks')->fetchAll(),

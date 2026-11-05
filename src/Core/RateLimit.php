@@ -218,13 +218,16 @@ final class RateLimit
 
     /**
      * The same moment as a time on the database's clock, on PHP's. What's left of the
-     * block is the same on both clocks, so it's PHP's now plus that.
+     * block is the same on both clocks, so it's PHP's now plus that. It's added to the
+     * timestamp because modify() counts wall-clock time, which reads an hour late across
+     * the night the clocks go back.
      */
-    private static function onPhpClock(DateTimeImmutable $stored, DateTimeImmutable $databaseNow): DateTimeImmutable
+    private static function onPhpClock(DateTimeImmutable $stored, DateTimeImmutable $databaseNow, ?DateTimeImmutable $phpNow = null): DateTimeImmutable
     {
         $secondsLeft = $stored->getTimestamp() - $databaseNow->getTimestamp();
+        $phpNow    ??= new DateTimeImmutable();
 
-        return (new DateTimeImmutable())->modify($secondsLeft . ' seconds');
+        return $phpNow->setTimestamp($phpNow->getTimestamp() + $secondsLeft);
     }
 
     /**

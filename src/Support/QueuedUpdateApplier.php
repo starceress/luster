@@ -88,6 +88,10 @@ final class QueuedUpdateApplier
     private readonly MemberRepo $memberRepo;
     private readonly FieldRepo $fieldRepo;
     private readonly MemberEmailRekey $rekey;
+    private readonly ListingSettingsRepo $settingsRepo;
+
+    /** @var array<int, true> Listings whose Last Updated this has already moved. */
+    private array $touched = [];
 
     public function __construct(
         private readonly Database $db,
@@ -99,6 +103,7 @@ final class QueuedUpdateApplier
         $this->memberRepo  = new MemberRepo($db, $config);
         $this->fieldRepo   = new FieldRepo($db, $config);
         $this->rekey       = new MemberEmailRekey($db, $config);
+        $this->settingsRepo = new ListingSettingsRepo($db);
     }
 
     public static function for(Application $app): self
@@ -109,9 +114,10 @@ final class QueuedUpdateApplier
     /**
      * @return array{
      *     outcome: string, gone: ?string, reason: ?string, hold: ?string, held: int,
-     *     pending: ?object, listing: ?Listing, member: ?Member, final: ?Member
+     *     pending: ?object, listing: ?Listing, member: ?Member, final: ?Member, moves_date: bool
      * } gone is handled, listing or member. reason says what's wrong with a value.
      *   hold is the reason a row is stopped, and held is how many rows a write marked.
+     *   moves_date says what was applied counts towards the listing's Last Updated.
      */
     public function apply(int $id): array
     {
@@ -138,6 +144,13 @@ final class QueuedUpdateApplier
 
         if ($this->rekey->transactionIsOpen()) {
             return ['outcome' => 'unresolved', 'hold' => null, 'held' => 0, 'final' => null] + $result;
+        }
+
+        // Only a change that really landed counts as the listing being updated, and a
+        // batch only has to say so once per listing.
+        if ($result['moves_date'] && !isset($this->touched[$result['pending']->fanlisting_id])) {
+            $this->touched[$result['pending']->fanlisting_id] = true;
+            $this->settingsRepo->touchLastUpdated($result['pending']->fanlisting_id);
         }
 
         return $result;
@@ -179,7 +192,7 @@ final class QueuedUpdateApplier
     /**
      * @param bool $wayIsClear True on the second pass, once an address change has passed
      *                         the checks and its links are gone.
-     * @return array{outcome: string, gone: ?string, reason: ?string, hold: ?string, held: int, pending: ?object, listing: ?Listing, member: ?Member, final: ?Member}
+     * @return array{outcome: string, gone: ?string, reason: ?string, hold: ?string, held: int, pending: ?object, listing: ?Listing, member: ?Member, final: ?Member, moves_date: bool}
      */
     private function applyLocked(int $id, bool $wayIsClear = false): array
     {
@@ -287,7 +300,13 @@ final class QueuedUpdateApplier
         $final = Member::fromRow($finalRow);
         $this->syncLinkCheck($pending, $changes, $final);
 
-        return self::result('applied', ['pending' => $pending, 'listing' => $listing, 'member' => Member::fromRow($before), 'final' => $final]);
+        return self::result('applied', [
+            'pending'    => $pending,
+            'listing'    => $listing,
+            'member'     => Member::fromRow($before),
+            'final'      => $final,
+            'moves_date' => ListingSettingsRepo::changesCountAsUpdate($changes),
+        ]);
     }
 
     /**
@@ -652,6 +671,7 @@ final class QueuedUpdateApplier
             'listing' => null,
             'member'  => null,
             'final'   => null,
+            'moves_date' => false,
         ];
     }
 

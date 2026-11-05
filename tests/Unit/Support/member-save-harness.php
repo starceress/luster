@@ -17,6 +17,7 @@ declare(strict_types=1);
    "extra_columns": ["fave", ...], "member": {"fave": "value", ...} (null for no member),
    "post": {...}, "queue_updates": bool, "fail_on": "regex", "seed_sql": ["..."],
    "lock_refused": ["address"], "before": {"match": "regex", "sql": "..."},
+   "column_types": {"email": "VARCHAR(64)"}, "timezone": "the setting", "php_zone": "php.ini's",
    "render": "join"|"update" (then draw the real embed), "read_definitions": bool}
 
  Actions: join, add, edit, edit_get, update, roundtrip_edit, roundtrip_update,
@@ -73,7 +74,7 @@ function memberSaveFixture(string $root, array $s, string $passwordHash): array
         'site_name'         => 'Test Collective',
         'owner_name'        => 'Owner',
         'owner_email'       => 'owner@example.com',
-    ], true) . ';');
+    ] + (isset($s['timezone']) ? ['timezone' => $s['timezone']] : []), true) . ';');
     $app = new Application($root, $cfgPath);
     unlink($cfgPath);
 
@@ -90,10 +91,18 @@ function memberSaveFixture(string $root, array $s, string $passwordHash): array
     }
     $stored = $s['stored_raw'] ?? ($definitions !== [] ? serialize($definitions) : '');
 
+    // column_types narrows a column, the way real member tables are narrower than the forms allow.
+    $type = static fn(string $column): string => (string) ($s['column_types'][$column] ?? 'TEXT');
+    $cEmail    = $type('email');
+    $cName     = $type('name');
+    $cCountry  = $type('country');
+    $cUrl      = $type('url');
+    $cPassword = $type('password');
+
     $extraCols = '';
     foreach ($s['extra_columns'] ?? [] as $column) {
         // Quoted: SQLite won't take a bare "123" as a column name.
-        $extraCols .= ', "' . $column . "\" TEXT NOT NULL DEFAULT ''";
+        $extraCols .= ', "' . $column . '" ' . $type((string) $column) . " NOT NULL DEFAULT ''";
     }
 
     if ($isOwned) {
@@ -106,9 +115,9 @@ function memberSaveFixture(string $root, array $s, string $passwordHash): array
             ->execute([$stored]);
         $table = 'fl_moon';
         $pdo->exec("CREATE TABLE fl_moon (
-            email TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '',
-            url TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, password TEXT NOT NULL DEFAULT '',
-            showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL{$extraCols})");
+            email {$cEmail} NOT NULL PRIMARY KEY, name {$cName} NOT NULL DEFAULT '', country {$cCountry} NOT NULL DEFAULT '',
+            url {$cUrl} NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, password {$cPassword} NOT NULL DEFAULT '',
+            showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added {$type('added')} NULL{$extraCols})");
     } else {
         $pdo->exec("CREATE TABLE enth_fanlistings (
             id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',
@@ -119,10 +128,10 @@ function memberSaveFixture(string $root, array $s, string $passwordHash): array
             ->execute([$stored]);
         $table = 'fl_moon_members';
         $pdo->exec("CREATE TABLE fl_moon_members (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL DEFAULT '', name TEXT NOT NULL DEFAULT '',
-            country TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', approved INTEGER NOT NULL DEFAULT 1,
-            password TEXT NOT NULL DEFAULT '', showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1,
-            added TEXT NULL, updated TEXT NULL{$extraCols})");
+            id INTEGER PRIMARY KEY AUTOINCREMENT, email {$cEmail} NOT NULL DEFAULT '', name {$cName} NOT NULL DEFAULT '',
+            country {$cCountry} NOT NULL DEFAULT '', url {$cUrl} NOT NULL DEFAULT '', approved INTEGER NOT NULL DEFAULT 1,
+            password {$cPassword} NOT NULL DEFAULT '', showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1,
+            added {$type('added')} NULL, updated {$type('updated')} NULL{$extraCols})");
     }
 
     $pdo->exec("CREATE TABLE lstr_listing_lifecycle (
@@ -338,6 +347,7 @@ function joinPost(array $post): array
         'captcha_answer' => '7', 'password' => '', 'password_confirm' => ''];
 }
 
+$startingZone = date_default_timezone_get();
 $results      = [];
 // A cheap hash: this one is only ever compared, and the default cost takes about a second.
 $passwordHash = password_hash(EXISTING_PASSWORD, PASSWORD_ARGON2ID, ['memory_cost' => 1024, 'time_cost' => 1, 'threads' => 1]);
@@ -346,6 +356,8 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
     $mailStart = is_file($mailFile) ? filesize($mailFile) : 0;
     $logStart  = is_file($logFile) ? filesize($logFile) : 0;
 
+    // php_zone stands for php.ini's zone on the page an embed is included from.
+    date_default_timezone_set((string) ($s['php_zone'] ?? $startingZone));
     [$app, $pdo, $table] = memberSaveFixture($root, $s, $passwordHash);
     $_SESSION = [
         'lstr_admin_id' => 1, 'lstr_admin_username' => 'admin',
@@ -365,6 +377,7 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
     $rowBefore = $rawRow();
     if (isset($s['fail_on'])) {
         $pdo->failOn = $s['fail_on'];
+        $pdo->failTimes = $s['fail_times'] ?? null;
     }
     foreach ($s['lock_refused'] ?? [] as $address) {
         $pdo->lockAnswers[$app->getMemberAddressLock()->nameFor(1, (string) $address)] = 0;
@@ -506,6 +519,7 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
     }
 
     $results[] = [
+        'php_zone_after' => date_default_timezone_get(),
         'rendered'   => $rendered,
         'form'       => $form,
         'fields'     => $storedFields,

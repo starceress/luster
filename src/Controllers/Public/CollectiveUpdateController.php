@@ -33,6 +33,7 @@ use Luster\Repositories\PendingUpdateRepo;
 use Luster\Support\MemberAddressBusy;
 use Luster\Support\MemberEmailRekey;
 use Luster\Support\MemberRemoval;
+use Luster\Support\MemberWidths;
 
 /**
  * Handles collective-level cross-listing membership updates.
@@ -268,25 +269,52 @@ final class CollectiveUpdateController
             }
         }
 
+        // Set if a value won't fit one of the listings. Nothing has changed anywhere then.
+        $tooLong = null;
+
         try {
             $tokenWasGood = $this->app->getMemberAddressLock()->run(
                 $addresses,
                 function () use (
                     $tokenRepo, $rawToken, $email, $selectedIds, $validMap, $lifecycleRepo, $memberRepo, $settingsRepo,
-                    $newPassword, $newName, $deleteUrl, $newUrl, $newCountry, $newEmail, &$results, &$confirmationEmail, &$stopped
+                    $newPassword, $newName, $deleteUrl, $newUrl, $newCountry, $newEmail, &$results, &$confirmationEmail, &$stopped, &$tooLong
                 ): bool {
+                    // Hash once; applied immediately to every selected listing (never queued)
+                    $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
+
+                    // Read again now it's locked: who's at this address may have changed.
+                    $current = self::membershipsByListing($email, $this->app);
+
+                    // Every selected listing has to be able to hold this before the token is
+                    // used or anything is written, so one narrow table can't leave the others
+                    // changed, and the same link still works once the fan has fixed it.
+                    foreach ($selectedIds as $listingId) {
+                        $listing = $validMap[$listingId]['listing'];
+                        $member  = $current[$listingId]['member'] ?? null;
+                        if ($member === null || $lifecycleRepo->getByListingId($listingId) !== null) {
+                            continue;
+                        }
+
+                        $planned = self::changesFor($member, $listing, $email, $memberRepo, $newName, $deleteUrl, $newUrl, $newCountry, $newEmail);
+                        $tooLong = MemberWidths::publicProblem(
+                            $memberRepo,
+                            $listing,
+                            $planned['changes'] + ($passwordHash !== null ? ['password' => $passwordHash] : []),
+                            [],
+                            'Collective Update',
+                            $listing->title,
+                        );
+                        if ($tooLong !== null) {
+                            return true;
+                        }
+                    }
+
                     // All validation passed — atomically consume the token now.
                     // verifyAndConsume() returning null here means a race beat us to it;
                     // treat it as an expired token rather than applying updates twice.
                     if ($tokenRepo->verifyAndConsume($rawToken) === null) {
                         return false;
                     }
-
-                    // Hash once; applied immediately to every selected listing (never queued)
-                    $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
-
-                    // Read again now it's locked: who's at this address may have changed.
-                    $current = self::membershipsByListing($email, $this->app);
 
                     foreach ($selectedIds as $listingId) {
                         $listing = $validMap[$listingId]['listing'];
@@ -303,29 +331,10 @@ final class CollectiveUpdateController
                             continue;
                         }
 
-                        $updateData = [];
-                        if ($newName !== '' && $newName !== $member->name) {
-                            $updateData['name'] = $newName;
-                        }
-                        if ($deleteUrl) {
-                            $updateData['url']     = '';
-                            $updateData['showurl'] = 0;
-                        } elseif ($newUrl !== '' && $newUrl !== $member->url) {
-                            $updateData['url']     = $newUrl;
-                            $updateData['showurl'] = 1;
-                        }
-                        if ($newCountry !== '' && $newCountry !== $member->country) {
-                            $updateData['country'] = $newCountry;
-                        }
-                        if ($newEmail !== '' && $newEmail !== $email) {
-                            // Email is unique per-listing (it's the member table's key), so a
-                            // match elsewhere doesn't block this listing — only a conflict
-                            // within this specific listing's own member table does.
-                            if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
-                                $results['email_conflict'][] = ['title' => $listing->title, 'subject' => $listing->subject];
-                            } else {
-                                $updateData['email'] = $newEmail;
-                            }
+                        $planned    = self::changesFor($member, $listing, $email, $memberRepo, $newName, $deleteUrl, $newUrl, $newCountry, $newEmail);
+                        $updateData = $planned['changes'];
+                        if ($planned['email_taken']) {
+                            $results['email_conflict'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                         }
 
                         $shouldQueue = $settingsRepo->getQueueUpdates($listingId);
@@ -362,6 +371,7 @@ final class CollectiveUpdateController
                             if ($rekey['outcome'] === MemberEmailRekey::DONE) {
                                 $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                                 $confirmationEmail    = $updateData['email'];
+                                $settingsRepo->touchLastUpdated($listingId);
                             } elseif ($rekey['outcome'] === MemberEmailRekey::FAILED) {
                                 $results['failed'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                             } else {
@@ -371,6 +381,9 @@ final class CollectiveUpdateController
                         } else {
                             $memberRepo->update($listing->dbprefix, $email, $updateData);
                             $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            if (ListingSettingsRepo::changesCountAsUpdate($updateData)) {
+                                $settingsRepo->touchLastUpdated($listingId);
+                            }
                         }
                     }
 
@@ -379,6 +392,12 @@ final class CollectiveUpdateController
             );
         } catch (MemberAddressBusy) {
             $session->set('lstr_flash_error:' . $marker, MemberAddressBusy::MESSAGE);
+            return Response::redirect($tokenUrl);
+        }
+
+        if ($tooLong !== null) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
+            $session->set('lstr_flash_error:' . $marker, $tooLong);
             return Response::redirect($tokenUrl);
         }
 
@@ -568,6 +587,60 @@ final class CollectiveUpdateController
 
         $session->set('lstr_flash_success_html:collective_update', '<p class="fl-success">Done! ' . implode('. ', $parts) . '.</p>');
         return Response::redirect($embedReturnTo);
+    }
+
+    /**
+     * What this form would change for one membership, leaving out anything that already
+     * matches. Worked out the same way for the check before the token is used and for the
+     * write after it, so what's checked is what's saved.
+     *
+     * @return array{changes: array<string, mixed>, email_taken: bool}
+     */
+    private static function changesFor(
+        Member $member,
+        Listing $listing,
+        string $email,
+        MemberRepo $memberRepo,
+        string $newName,
+        bool $deleteUrl,
+        string $newUrl,
+        string $newCountry,
+        string $newEmail,
+    ): array {
+        $changes = [];
+        if ($newName !== '' && $newName !== $member->name) {
+            $changes['name'] = $newName;
+        }
+        if ($deleteUrl) {
+            if ($member->url !== '') {
+                $changes['url'] = '';
+            }
+            if ($member->showurl) {
+                $changes['showurl'] = 0;
+            }
+        } elseif ($newUrl !== '' && $newUrl !== $member->url) {
+            $changes['url'] = $newUrl;
+            if (!$member->showurl) {
+                $changes['showurl'] = 1;
+            }
+        }
+        if ($newCountry !== '' && $newCountry !== $member->country) {
+            $changes['country'] = $newCountry;
+        }
+
+        $emailTaken = false;
+        if ($newEmail !== '' && $newEmail !== $email) {
+            // Email is unique per-listing (it's the member table's key), so a
+            // match elsewhere doesn't block this listing — only a conflict
+            // within this specific listing's own member table does.
+            if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
+                $emailTaken = true;
+            } else {
+                $changes['email'] = $newEmail;
+            }
+        }
+
+        return ['changes' => $changes, 'email_taken' => $emailTaken];
     }
 
     /**

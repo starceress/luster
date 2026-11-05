@@ -207,6 +207,31 @@ SQL;
         self::assertEqualsWithDelta(time() + 900, $until->getTimestamp(), 5, '15 minutes left, whatever the clocks say');
     }
 
+    public function testTheTimeLeftIsRealSecondsAcrossTheAutumnClockChange(): void
+    {
+        $onPhpClock = new \ReflectionMethod(RateLimit::class, 'onPhpClock');
+        $utc        = new \DateTimeZone('UTC');
+        $newYork    = new \DateTimeZone('America/New_York');
+
+        // 01:30 EDT, half an hour before New York's clocks go back. An hour is left.
+        $phpNow = (new \DateTimeImmutable('2026-11-01 05:30:00', $utc))->setTimezone($newYork);
+        self::assertSame('01:30 EDT', $phpNow->format('H:i T'));
+        $until = $onPhpClock->invoke(null, new \DateTimeImmutable('2026-06-15 13:00:00', $utc), new \DateTimeImmutable('2026-06-15 12:00:00', $utc), $phpNow);
+
+        self::assertSame(3600, $until->getTimestamp() - $phpNow->getTimestamp(), 'it used to read 7,200 seconds, an hour late');
+        self::assertSame('01:30 EST', $until->format('H:i T'));
+    }
+
+    public function testTheTimeLeftUsesPhpsRealNowWhenNoneIsGiven(): void
+    {
+        $onPhpClock = new \ReflectionMethod(RateLimit::class, 'onPhpClock');
+        $utc        = new \DateTimeZone('UTC');
+
+        $until = $onPhpClock->invoke(null, new \DateTimeImmutable('2026-06-15 13:00:00', $utc), new \DateTimeImmutable('2026-06-15 12:00:00', $utc));
+
+        self::assertEqualsWithDelta(time() + 3600, $until->getTimestamp(), 5);
+    }
+
     public function testTheAdminPanelGetsTheRightTimeOnPhpsClock(): void
     {
         for ($i = 0; $i < self::MAX; $i++) {

@@ -104,6 +104,24 @@ can stop a fan's update request for you to look at.
   belongs is refused now.
 - **Edit Field leaves a text area alone.** Saving one used to quietly turn it into a
   one-line text field.
+- **Approving a fan's update moves Last Updated.** So does a change that goes straight
+  through on a listing with no queue, from the update form or Collective Update. Changing
+  only a password or whether a website shows doesn't count, and neither does a request that
+  didn't go through.
+- **Nothing gets saved that your member table can't hold.** Older tables can be narrower
+  than the forms allow, and some servers cut a long value short without saying a word,
+  which is how an email address ends up with its end missing. The join, update, Collective
+  Update, Add Member and Edit Member forms now say it's too long and change nothing. With
+  Collective Update, one narrow listing means none of them change, and the same link
+  still works once it's fixed.
+- **Edit Member has the same name and country limits as the other forms.** That's 100
+  characters, and only when you change them, so a long name from an old import won't stop
+  you fixing someone's website.
+- **A join through an embed gets the right date.** It used your server's time zone instead
+  of your Timezone setting, so if the two differ, a fan joining late in the evening could
+  show up as joining tomorrow. Joins already saved stay as they are.
+- **"Blocked until" is right on the night the clocks go back.** The admin panel could show
+  it an hour late. The block itself always ended on time.
 
 
 ### [1.0.0-4] — 2026-11-04

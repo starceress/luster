@@ -42,6 +42,15 @@ final class MemberRepoWidthsTest extends TestCase
         self::assertSame(['code'], MemberRepo::tooLong(self::WIDTHS, ['code' => 'ééééé']));
     }
 
+    public function testAColumnIsFoundWhateverCapitalsTheTableUses(): void
+    {
+        $widths = ['Email' => ['type' => 'varchar', 'chars' => 5, 'bytes' => 20]];
+
+        self::assertSame(['email'], MemberRepo::tooLong($widths, ['email' => 'too long']), 'MySQL column names ignore case');
+        self::assertSame(['EMAIL'], MemberRepo::tooLong($widths, ['EMAIL' => 'too long']));
+        self::assertSame([], MemberRepo::tooLong($widths, ['email' => 'fits']));
+    }
+
     public function testTextLimitsAreInBytes(): void
     {
         self::assertSame([], MemberRepo::tooLong(self::WIDTHS, ['bio' => str_repeat('x', 255)]));

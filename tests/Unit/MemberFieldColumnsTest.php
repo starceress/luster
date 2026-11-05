@@ -484,7 +484,7 @@ final class MemberFieldColumnsTest extends TestCase
         self::assertNull($r['error']);
         self::assertSame('Changed', $r['row']['name']);
         $reads = array_filter($r['statements'], static fn(string $sql): bool => str_starts_with($sql, 'PRAGMA table_info'));
-        self::assertCount(1, $reads, "only MemberRepo::update()'s own read");
+        self::assertCount(2, $reads, "only the width check's read and MemberRepo::update()'s own");
     }
 
     // ------------------------------------------------------------------

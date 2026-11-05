@@ -716,11 +716,7 @@ final class Application
     /** Sets the PHP default timezone from config, falling back to UTC on an invalid value. */
     private function applyTimezone(): void
     {
-        $tz = (string) $this->config->get('timezone', 'UTC');
-
-        if (!date_default_timezone_set($tz)) {
-            date_default_timezone_set('UTC');
-        }
+        date_default_timezone_set(SiteClock::zoneName((string) $this->config->get('timezone', 'UTC')));
     }
 
     /**

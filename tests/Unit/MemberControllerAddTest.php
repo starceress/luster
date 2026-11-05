@@ -67,9 +67,9 @@ final class MemberControllerAddTest extends TestCase
         return $schema === 'owned' ? $field : 'additional_' . $field;
     }
 
-    private static function lastUpdatedTouches(array $r): int
+    private static function lastUpdatedMoved(array $r): bool
     {
-        return count(array_filter($r['statements'], static fn(string $sql): bool => str_contains($sql, 'ON DUPLICATE KEY UPDATE last_updated')));
+        return $r['last_updated'] === $r['today'];
     }
 
     private static function memberInserts(array $r): int
@@ -113,7 +113,7 @@ final class MemberControllerAddTest extends TestCase
             self::assertNotSame('', (string) $m['added'], $schema);
 
             self::assertSame([], $r['mails'], $schema . ': email off sends nothing');
-            self::assertSame(1, self::lastUpdatedTouches($r), $schema . ': Last Updated moves for an approved member');
+            self::assertTrue(self::lastUpdatedMoved($r), $schema . ': Last Updated moves for an approved member');
             self::assertSame([['action' => 'member.add', 'description' => 'Added member ann@example.com to listing #1 as approved']],
                 $r['activity'], $schema);
             self::assertSame([['listing_id' => 1, 'member_email' => 'ann@example.com', 'member_name' => 'Ann Example', 'member_url' => 'https://ann.test/']],
@@ -159,7 +159,7 @@ final class MemberControllerAddTest extends TestCase
             self::assertSame('Member added.', $r['flash_success'], $schema);
             self::assertSame('pending', self::statusOf($r['members'][1][0]), $schema);
             self::assertSame([], $r['mails'], $schema);
-            self::assertSame(0, self::lastUpdatedTouches($r), $schema . ': a pending member is not listing activity');
+            self::assertFalse(self::lastUpdatedMoved($r), $schema . ': a pending member is not listing activity');
             self::assertSame([], $r['link_checks'], $schema . ': no link check until approved');
             self::assertSame('Added member ann@example.com to listing #1 as pending', $r['activity'][0]['description'], $schema);
         }
@@ -224,7 +224,7 @@ final class MemberControllerAddTest extends TestCase
             self::assertNull($r['error'], $case);
             self::assertSame('Member approved.', $r['flash_success'], $case);
             self::assertSame('approved', self::statusOf($r['members'][1][0]), $case);
-            self::assertSame(1, self::lastUpdatedTouches($r), $case);
+            self::assertTrue(self::lastUpdatedMoved($r), $case);
             self::assertCount(1, $r['mails'], $case);
         }
         foreach (['owned default', 'enth default'] as $case) {
@@ -512,7 +512,7 @@ final class MemberControllerAddTest extends TestCase
             self::assertNull($r['flash_success'], $case . ': nothing reported as added');
             self::assertSame([], $r['activity'], $case);
             self::assertSame([], $r['mails'], $case);
-            self::assertSame(0, self::lastUpdatedTouches($r), $case);
+            self::assertFalse(self::lastUpdatedMoved($r), $case);
         }
         foreach (['duplicate owned', 'duplicate enth'] as $case) {
             self::assertStringContainsString('This email is already in this listing.', $results[$case]['body'], $case);

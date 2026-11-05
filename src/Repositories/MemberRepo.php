@@ -17,6 +17,7 @@ namespace Luster\Repositories;
 
 use Luster\Core\Config;
 use Luster\Core\Database;
+use Luster\Core\SiteClock;
 use Luster\Models\Member;
 use PDO;
 use RuntimeException;
@@ -252,10 +253,12 @@ final class MemberRepo
      */
     public static function tooLong(array $widths, array $values): array
     {
+        // MySQL column names ignore case, so a table's "Email" is still the email column.
+        $widths  = array_change_key_case($widths, CASE_LOWER);
         $tooLong = [];
         foreach ($values as $column => $value) {
             $column = (string) $column;
-            $width  = $widths[$column] ?? null;
+            $width  = $widths[strtolower($column)] ?? null;
             if ($width === null) {
                 continue;
             }
@@ -757,7 +760,7 @@ final class MemberRepo
             return ['pending' => 1];
         }
 
-        return ['approved' => 0, 'updated' => date('Y-m-d H:i:s')];
+        return ['approved' => 0, 'updated' => SiteClock::now($this->config)];
     }
 
     /**
@@ -775,7 +778,7 @@ final class MemberRepo
             return ['pending' => 0];
         }
 
-        return ['approved' => 1, 'updated' => date('Y-m-d H:i:s')];
+        return ['approved' => 1, 'updated' => SiteClock::now($this->config)];
     }
 
     /**

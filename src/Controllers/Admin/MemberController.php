@@ -37,6 +37,7 @@ use Luster\Support\MemberAddressBusy;
 use Luster\Support\MemberAddressHandover;
 use Luster\Support\MemberEmailRekey;
 use Luster\Support\MemberRemoval;
+use Luster\Support\MemberWidths;
 use Luster\Support\QueuedUpdateApplier;
 
 /**
@@ -491,6 +492,19 @@ final class MemberController extends AdminController
             'added'    => date('Y-m-d H:i:s'),
         ] + ($isApproved ? $memberRepo->approvedColumns() : $memberRepo->pendingJoinColumns()) + $extra;
 
+        // Real member tables are often narrower than this form's own limits.
+        $tooLong = MemberWidths::tooLong($memberRepo, $listing, $row, 'Add Member');
+        if ($tooLong === null) {
+            return $this->renderAddForm($listings, $listingId, $post, $v->errors(), $dbError);
+        }
+        if ($tooLong !== []) {
+            foreach ($tooLong as $column) {
+                $field = MemberWidths::fieldFor($column, $fields);
+                $v->addFieldError($field !== null ? 'field_' . $listingId . '_' . $field->name : $column, MemberWidths::adminProblem($column, $fields));
+            }
+            return $this->renderAddForm($listings, $listingId, $post, $v->errors(), implode(' ', $v->allErrors()));
+        }
+
         try {
             // Checked again under the address's lock, which also keeps a save still in
             // progress for whoever had this address before from landing on this member.
@@ -749,8 +763,16 @@ final class MemberController extends AdminController
             $status = $currentStatus;
         }
 
-        $v = new Validator(['name' => $name, 'url' => $url, 'email' => $newEmail]);
-        $v->field('name')->required()->maxLength(255);
+        $v = new Validator(['name' => $name, 'url' => $url, 'email' => $newEmail, 'country' => $country]);
+        // The same limits as the other forms, but only on what's being changed, so editing
+        // a website doesn't force shortening a long name that came in with an import.
+        $nameRules = $v->field('name')->required();
+        if ($name !== (string) $member->name) {
+            $nameRules->maxLength(100);
+        }
+        if ($country !== (string) $member->country) {
+            $v->field('country')->maxLength(100);
+        }
         $v->field('email')->required()->email()->maxLength(255);
         if ($url !== '') {
             $v->field('url')->httpUrl()->maxLength(500);
@@ -786,6 +808,30 @@ final class MemberController extends AdminController
             }
         }
 
+        $updateData = [
+            'email'   => $newEmail,
+            'name'    => $name,
+            'url'     => $url,
+            'country' => $country,
+            'showurl' => (int) $showurl,
+        ];
+
+        foreach ($extraValues as $column => $value) {
+            $updateData[$column] = $value;
+        }
+
+        // Real member tables are often narrower than this form's own limits.
+        if (!$v->fails()) {
+            $tooLong = MemberWidths::tooLong($memberRepo, $listing, $updateData, 'Edit Member');
+            if ($tooLong === null) {
+                $v->addFieldError('fields', "Couldn't check this listing's member table because of a database error. Nothing was changed.");
+            }
+            foreach ($tooLong ?? [] as $column) {
+                $field = MemberWidths::fieldFor($column, $fields);
+                $v->addFieldError($field !== null ? 'field_' . $field->name : $column, MemberWidths::adminProblem($column, $fields));
+            }
+        }
+
         if ($v->fails()) {
             return $this->adminLayout('admin/members/edit.php', 'Edit Member', 'members', [
                 'listing'      => $listing,
@@ -798,18 +844,6 @@ final class MemberController extends AdminController
                 'all_listings' => $allListings,
                 'supports_rejected_state' => $memberRepo->supportsRejectedState(),
             ], '', $this->memberBreadcrumbs($listing, $member->name));
-        }
-
-        $updateData = [
-            'email'   => $newEmail,
-            'name'    => $name,
-            'url'     => $url,
-            'country' => $country,
-            'showurl' => (int) $showurl,
-        ];
-
-        foreach ($extraValues as $column => $value) {
-            $updateData[$column] = $value;
         }
 
         if ($newEmail !== $email) {
