@@ -341,6 +341,90 @@ final class ListingAdminImportTest extends TestCase
         $this->assertSame(0, (int) $stmt->fetchColumn(), 'trouble=1 should map to status 0');
     }
 
+    public function testANewListingSavesOnAnOwnedTableFromEnthusiast(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->seedTarget($tgt);
+        $this->useOldOwnedTable($tgt);
+        $this->insertSourceListing($src, 'http://old-table.com');
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $messages = [];
+        foreach ($result->rows as $row) {
+            // This fixture has no bridge table, which is a different step's business.
+            if ($row['type'] !== 'Bridge listing links') {
+                $messages = array_merge($messages, $row['errors'] ?? []);
+            }
+        }
+        $this->assertSame([], $messages);
+        $owned = $tgt->query("SELECT * FROM owned WHERE url = 'http://old-table.com'")->fetch();
+        $this->assertNotFalse($owned, 'A strict server used to refuse this');
+        foreach (['emailsignup', 'emailapproved', 'emailupdate', 'emaillostpass', 'listtemplate'] as $column) {
+            $this->assertSame('', $owned[$column], $column);
+        }
+    }
+
+    public function testANewListingFillsInWhatAnEnthFanlistingsTableRequiresToo(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedLaSource($src);
+        $this->seedTarget($tgt);
+        $tgt->exec('DROP TABLE owned');
+        $tgt->exec("CREATE TABLE enth_fanlistings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',
+            dbprefix TEXT NOT NULL DEFAULT '', category INTEGER NOT NULL DEFAULT 0, category_id INTEGER NULL, opened TEXT NULL,
+            upcoming INTEGER NOT NULL DEFAULT 0, trouble INTEGER NOT NULL DEFAULT 0, imagefile TEXT NULL, email TEXT NOT NULL DEFAULT '',
+            dbserver TEXT NOT NULL DEFAULT '', dbuser TEXT NOT NULL DEFAULT '', dbpassword TEXT NOT NULL DEFAULT '', dbdatabase TEXT NOT NULL DEFAULT '',
+            additional_info TEXT NULL, an_old_requirement TEXT NOT NULL)");
+        $this->insertSourceListing($src, 'http://enth-table.com');
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $row = $tgt->query("SELECT * FROM enth_fanlistings WHERE url = 'http://enth-table.com'")->fetch();
+        $this->assertNotFalse($row, 'A strict server, or SQLite, would refuse it otherwise');
+        $this->assertSame('', $row['an_old_requirement']);
+    }
+
+    public function testAFailedReadOfAnOldOwnedTableCostsThatListing(): void
+    {
+        $src = $this->makePdo();
+        $tgt = TracingPdo::memory();
+        $tgt->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $this->seedLaSource($src);
+        $this->seedTarget($tgt);
+        $this->useOldOwnedTable($tgt);
+        $this->insertSourceListing($src, 'http://old-table.com');
+        $tgt->failOn = '/PRAGMA table_info\(`owned`\)/';
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+        $tgt->failOn = null;
+
+        $errors = [];
+        foreach ($result->rows as $row) {
+            $errors = array_merge($errors, $row['errors'] ?? []);
+        }
+        $this->assertStringContainsString('Test Fanlisting', implode(' ', $errors));
+        $this->assertSame(0, (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn());
+    }
+
+    /** Swaps the fixture's `owned` for one with Enthusiast's required columns. */
+    private function useOldOwnedTable(PDO $tgt): void
+    {
+        $tgt->exec('DROP TABLE owned');
+        $tgt->exec("CREATE TABLE owned (
+            listingid INTEGER PRIMARY KEY AUTOINCREMENT, dbtable TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '',
+            subject TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',
+            catid TEXT NOT NULL DEFAULT '', category_id INTEGER NULL, opened TEXT NULL, status INTEGER NOT NULL DEFAULT 2,
+            imagefile TEXT NOT NULL DEFAULT '', additional TEXT NOT NULL DEFAULT '', dbserver TEXT NOT NULL DEFAULT '',
+            dbuser TEXT NOT NULL DEFAULT '', dbpassword TEXT NOT NULL DEFAULT '', dbdatabase TEXT NOT NULL DEFAULT '',
+            emailsignup TEXT NOT NULL, emailapproved TEXT NOT NULL, emailupdate TEXT NOT NULL,
+            emaillostpass TEXT NOT NULL, listtemplate TEXT NOT NULL)");
+    }
+
     public function testListingWithUpcomingOneImportsWithStatusOne(): void
     {
         $src = $this->makePdo();

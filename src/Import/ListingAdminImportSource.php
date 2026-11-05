@@ -19,6 +19,7 @@ use Luster\Addons\Kim\KimAddon;
 use Luster\Addons\Rules\RulesAddon;
 use Luster\Addons\Newsfeed\NewsfeedAddon;
 use Luster\Addons\Wishlist\WishlistAddon;
+use Luster\Support\RequiredColumns;
 use PDO;
 
 /**
@@ -2141,12 +2142,16 @@ final class ListingAdminImportSource implements ImportSourceInterface
         string $additional = ''
     ): int {
         if ($isOwned) {
+            $fill = RequiredColumns::forInsert($target, $regTable, [
+                'title', 'subject', 'url', 'dbtable', 'catid', 'category_id', 'opened', 'status', 'imagefile',
+                'email', 'dbserver', 'dbuser', 'dbpassword', 'dbdatabase', 'additional',
+            ]);
             $stmt = $target->prepare(
                 "INSERT INTO `{$regTable}`
                  (title, subject, url, dbtable, catid, category_id, opened, status, imagefile,
-                  email, dbserver, dbuser, dbpassword, dbdatabase, additional)
+                  email, dbserver, dbuser, dbpassword, dbdatabase, additional{$fill['columns']})
                  VALUES (:title, :subject, :url, :dbtable, '', :catid, :opened, :status,
-                         COALESCE(:image, ''), '', '', '', '', '', :additional)"
+                         COALESCE(:image, ''), '', '', '', '', '', :additional{$fill['values']})"
             );
             $stmt->execute([
                 'title'      => $title,
@@ -2163,12 +2168,16 @@ final class ListingAdminImportSource implements ImportSourceInterface
             // enth_fanlistings schema: derive trouble/upcoming from the unified $status value.
             $enthTrouble  = $status === 0 ? 1 : 0;
             $enthUpcoming = $status === 1 ? 1 : 0;
+            $fill = RequiredColumns::forInsert($target, $regTable, [
+                'name', 'subject', 'url', 'dbprefix', 'category', 'category_id', 'opened', 'upcoming', 'trouble',
+                'imagefile', 'email', 'dbserver', 'dbuser', 'dbpassword', 'dbdatabase', 'additional_info',
+            ]);
             $stmt = $target->prepare(
                 "INSERT INTO `{$regTable}`
                  (name, subject, url, dbprefix, category, category_id, opened, upcoming, trouble,
-                  imagefile, email, dbserver, dbuser, dbpassword, dbdatabase, additional_info)
+                  imagefile, email, dbserver, dbuser, dbpassword, dbdatabase, additional_info{$fill['columns']})
                  VALUES (:name, :subject, :url, :dbprefix, :catid, :catid2, :opened, :upcoming, :trouble,
-                         :image, '', '', '', '', '', :additional)"
+                         :image, '', '', '', '', '', :additional{$fill['values']})"
             );
             $stmt->execute([
                 'name'       => $title,

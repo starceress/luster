@@ -9,6 +9,7 @@ use Luster\Core\Application;
 use Luster\Core\Database;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Tests\Unit\Support\TracingPdo;
 use PDO;
 use PHPUnit\Framework\TestCase;
 
@@ -45,6 +46,86 @@ final class ListingControllerArchiveSaveTest extends TestCase
         self::assertFalse($response->isRedirect(), 'The form comes back with an error');
         self::assertStringContainsString('Luster needs Migration 108', $response->getBody());
         self::assertSame($before, $this->snapshot(), 'No listing, lifecycle row, category or network');
+    }
+
+    public function testAddWithAListingTableThatCantBeReadWritesNothingAtAll(): void
+    {
+        $this->boot(migrated: true, pdo: TracingPdo::memory());
+        $this->logToAFile();
+        $before = $this->snapshot();
+        $this->pdo->failOn = '/PRAGMA table_info\(`owned`\)/';
+
+        $response = $this->call('add', $this->closedUnknownWithNewCategory());
+        $this->pdo->failOn = null;
+
+        self::assertFalse($response->isRedirect(), 'The form comes back with an error');
+        self::assertStringContainsString("Couldn&#039;t check the listing table", $response->getBody());
+        self::assertSame($before, $this->snapshot(), 'No listing, lifecycle row, category or network');
+    }
+
+    /** @return array<string,string> */
+    private function newListing(): array
+    {
+        return ['title' => 'Moon FL', 'subject' => 'Moon', 'url' => 'https://fans.test/moon', 'email' => 'owner@example.com', 'status' => 'upcoming'];
+    }
+
+    public function testAddThatTheDatabaseRefusesShowsTheFormRatherThanAnErrorPage(): void
+    {
+        $this->boot(migrated: true, pdo: TracingPdo::memory());
+        $this->logToAFile();
+        $existing = $this->existingListing();
+        $this->pdo->failOn = '/INSERT INTO owned/';
+
+        $response = $this->call('add', $this->newListing());
+        $this->pdo->failOn = null;
+
+        self::assertFalse($response->isRedirect());
+        self::assertStringContainsString('so it wasn&#039;t added', $response->getBody());
+        self::assertSame([(string) $existing], array_map('strval', $this->pdo->query('SELECT listingid FROM owned')->fetchAll(PDO::FETCH_COLUMN)));
+    }
+
+    public function testAddThatFailsAfterTheRowIsStoredNeverSaysItWasntAdded(): void
+    {
+        $this->boot(migrated: true, pdo: TracingPdo::memory());
+        $this->logToAFile();
+        // RAISE(FAIL) keeps what the statement already did, like MyISAM failing partway.
+        $this->pdo->exec("CREATE TRIGGER owned_boom AFTER INSERT ON owned BEGIN SELECT RAISE(FAIL, 'boom'); END");
+
+        $response = $this->call('add', $this->newListing());
+
+        self::assertSame(1, (int) $this->pdo->query('SELECT COUNT(*) FROM owned')->fetchColumn(), 'The row really is still there');
+        self::assertTrue($response->isRedirect(), 'Off to the list, where they can see it');
+        self::assertStringEndsWith('/admin/listings', (string) $response->getRedirectUrl());
+        self::assertStringContainsString("can't be sure whether it was added", (string) $this->app->getSession()->get('lstr_flash_error'));
+    }
+
+    public function testAddThatCantReadTheTableBackDoesntAssumeAnything(): void
+    {
+        $this->boot(migrated: true, pdo: TracingPdo::memory());
+        $this->logToAFile();
+        $this->pdo->failOn = '/INSERT INTO owned|SELECT COUNT\(\*\) FROM owned WHERE listingid >/';
+
+        $response = $this->call('add', $this->newListing());
+        $this->pdo->failOn = null;
+
+        self::assertTrue($response->isRedirect());
+        self::assertStringContainsString("can't be sure whether it was added", (string) $this->app->getSession()->get('lstr_flash_error'));
+    }
+
+    public function testAddThatCantReadTheTableFirstNeverReachesTheInsert(): void
+    {
+        $this->boot(migrated: true, pdo: TracingPdo::memory());
+        $this->logToAFile();
+        $this->existingListing();
+        $this->pdo->statements = [];
+        $this->pdo->failOn = '/COALESCE\(MAX\(listingid\)/';
+
+        $response = $this->call('add', $this->newListing());
+        $this->pdo->failOn = null;
+
+        self::assertFalse($response->isRedirect());
+        self::assertStringContainsString('so it wasn&#039;t added', $response->getBody());
+        self::assertSame([], $this->pdo->statementsMatching('/INSERT INTO owned/'));
     }
 
     public function testAddWithAnyOtherErrorLeavesNoNewCategoryEither(): void
@@ -143,7 +224,15 @@ final class ListingControllerArchiveSaveTest extends TestCase
         return $snap;
     }
 
-    private function boot(bool $migrated): void
+    /** These tests run in their own process, and anything it logs to the screen fails them. */
+    private function logToAFile(): void
+    {
+        $log = tempnam(sys_get_temp_dir(), 'lstr_listing_log_');
+        ini_set('error_log', (string) $log);
+        register_shutdown_function(static fn() => is_file((string) $log) && unlink((string) $log));
+    }
+
+    private function boot(bool $migrated, ?PDO $pdo = null): void
     {
         $root = dirname(__DIR__, 2);
         if (!defined('LUSTER_BASE')) {
@@ -160,7 +249,7 @@ final class ListingControllerArchiveSaveTest extends TestCase
         $this->app = new Application($root, $cfgPath);
         unlink($cfgPath);
 
-        $pdo = new PDO('sqlite::memory:');
+        $pdo ??= new PDO('sqlite::memory:');
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         $pdo->sqliteCreateFunction('NOW', static fn(): string => date('Y-m-d H:i:s'));
@@ -180,7 +269,7 @@ final class ListingControllerArchiveSaveTest extends TestCase
     /** @return list<string> */
     private function schema(string $archivedAtNull): array
     {
-        $intSettings  = ['members_per_page', 'country_field_enabled', 'queue_updates', 'contact_enabled', 'join_confirmation_email',
+        $intSettings  = ['members_per_page', 'country_field_enabled', 'queue_updates', 'contact_enabled',
             'affiliate_apply_enabled', 'codes_submit_enabled', 'code_approval_email', 'stat_newmembers_limit'];
         $textSettings = ['description', 'stats_template', 'members_template', 'affiliates_section_template', 'image', 'listing_type',
             'redirect_url_join', 'redirect_url_update', 'form_url_join', 'form_url_update', 'form_url_reset', 'form_url_contact',

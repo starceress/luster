@@ -7,6 +7,7 @@ namespace Luster\Tests\Unit;
 use Luster\Import\EnthusiastImportSource;
 use Luster\Import\ImportOptions;
 use Luster\Core\NetworkAddressGuard;
+use Luster\Tests\Unit\Support\TracingPdo;
 use PDO;
 use PHPUnit\Framework\TestCase;
 
@@ -876,6 +877,70 @@ final class EnthusiastMemberImportTest extends TestCase
     }
 
     /** Creates the owned table in $pdo (target). */
+    public function testNewListingsSaveOnAnOwnedTableFromEnthusiastWithOrWithoutTheirOldId(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedUnprefixedSource($src, 't1');
+        $src->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (7, 't1', 'http://free-id.com'), (8, 't1', 'http://taken-id.com')");
+        $this->useOldOwnedTable($tgt);
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, url, emailsignup, emailapproved, emailupdate, emaillostpass, listtemplate)
+                    VALUES (8, 'other', 'http://other.com', '', '', '', '', '')");
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_members' => '', 'import_owned_listings' => '1']));
+
+        $row = $this->findRow($result->rows, 'Owned listings');
+        $this->assertSame([], $row['errors'] ?? null, 'A strict server used to refuse both');
+        foreach (['http://free-id.com', 'http://taken-id.com'] as $url) {
+            $owned = $tgt->query("SELECT * FROM owned WHERE url = '{$url}'")->fetch();
+            $this->assertNotFalse($owned, $url);
+            foreach (['emailsignup', 'emailapproved', 'emailupdate', 'emaillostpass', 'listtemplate'] as $column) {
+                $this->assertSame('', $owned[$column], "{$url}, {$column}");
+            }
+        }
+        $this->assertSame('7', (string) $tgt->query("SELECT listingid FROM owned WHERE url = 'http://free-id.com'")->fetchColumn());
+    }
+
+    public function testAFailedReadOfAnOldOwnedTableStopsTheStep(): void
+    {
+        $src = $this->makePdo();
+        $tgt = TracingPdo::memory();
+        $tgt->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $this->seedUnprefixedSource($src, 't1');
+        $src->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (7, 't1', 'http://free-id.com')");
+        $this->useOldOwnedTable($tgt);
+        $tgt->failOn = '/PRAGMA table_info\(`owned`\)/';
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions(['import_members' => '', 'import_owned_listings' => '1']));
+        $tgt->failOn = null;
+
+        $row = $this->findRow($result->rows, 'Owned listings');
+        $this->assertStringContainsString("Could not read Luster's listing table", implode(' ', $row['errors'] ?? []));
+        $this->assertSame(0, (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn());
+    }
+
+    /** @param list<array<string,mixed>> $rows */
+    private function findRow(array $rows, string $type): array
+    {
+        foreach ($rows as $row) {
+            if ($row['type'] === $type) {
+                return $row;
+            }
+        }
+        $this->fail("No '{$type}' row");
+    }
+
+    /** An `owned` table with Enthusiast's required columns. */
+    private function useOldOwnedTable(PDO $pdo): void
+    {
+        $pdo->exec("CREATE TABLE owned (
+            listingid INTEGER PRIMARY KEY AUTOINCREMENT, dbtable TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '',
+            subject TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',
+            catid TEXT NOT NULL DEFAULT '', additional TEXT NOT NULL DEFAULT '', status INTEGER NOT NULL DEFAULT 2,
+            emailsignup TEXT NOT NULL, emailapproved TEXT NOT NULL, emailupdate TEXT NOT NULL,
+            emaillostpass TEXT NOT NULL, listtemplate TEXT NOT NULL)");
+    }
+
     private function createOwnedTable(PDO $pdo): void
     {
         $pdo->exec(

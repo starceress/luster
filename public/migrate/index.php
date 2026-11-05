@@ -3540,6 +3540,24 @@ try {
     $errors[] = 'Migration 110 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 111: remove the unused join-email setting.
+// lstr_fanlisting_settings.join_confirmation_email stopped doing anything long ago: whether
+// a join email goes out is decided by its template on the Emails page. The column is only
+// dropped if it's there, and the number goes in last. Safe to run again.
+try {
+    $chkJoinEmail = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_fanlisting_settings' AND COLUMN_NAME = 'join_confirmation_email'"
+    );
+    if ($chkJoinEmail !== false && (int) $chkJoinEmail->fetchColumn() > 0) {
+        $pdo->exec('ALTER TABLE `lstr_fanlisting_settings` DROP COLUMN `join_confirmation_email`');
+        $done[] = 'Migration 111: removed the unused <code>join_confirmation_email</code> column from <code>lstr_fanlisting_settings</code>';
+    }
+    $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (111)');
+} catch (PDOException $e) {
+    $errors[] = 'Migration 111 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

@@ -192,13 +192,13 @@ final class LastUpdatedTest extends TestCase
         }
     }
 
-    public function testShowurlSettlingForAMemberWithNoWebsiteDoesNotCount(): void
+    public function testShowurlChangingForAMemberWithNoWebsiteDoesNotCount(): void
     {
-        // Older scripts left showurl at 1 with no website. This form sets it to 0 on save.
+        // Older scripts left showurl at 1 with no website. Ticking the box sets it to 0.
         $noWebsite = ['url' => ''] + self::MOON;
         $r = $this->runOne(['layout' => 'owned', 'members' => [$noWebsite], 'steps' => [
             ['do' => 'signed_in'],
-            ['do' => 'submit', 'post' => ['new_password' => self::PASSWORD, 'new_password_confirm' => self::PASSWORD]],
+            ['do' => 'submit', 'post' => ['delete_url' => '1']],
         ]]);
 
         self::assertSame('0', (string) $r['members'][1][0]['showurl']);
@@ -207,13 +207,13 @@ final class LastUpdatedTest extends TestCase
 
     public function testShowurlAloneDoesNotCountWhenItIsApprovedEither(): void
     {
-        // The same password-only save as above, on a listing with a queue: what's queued
-        // is only showurl, and a queue setting shouldn't change whether that counts.
+        // The same save as above, on a listing with a queue: what's queued is only
+        // showurl, and a queue setting shouldn't change whether that counts.
         $noWebsite = ['url' => ''] + self::MOON;
         foreach (['owned', 'enth'] as $layout) {
             $r = $this->runOne(['layout' => $layout, 'queue_updates' => true, 'members' => [$noWebsite], 'steps' => [
                 ['do' => 'signed_in'],
-                ['do' => 'submit', 'post' => ['new_password' => self::PASSWORD, 'new_password_confirm' => self::PASSWORD]],
+                ['do' => 'submit', 'post' => ['delete_url' => '1']],
                 ['do' => 'approve_all'],
             ]]);
 

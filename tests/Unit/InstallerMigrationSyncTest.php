@@ -159,6 +159,15 @@ final class InstallerMigrationSyncTest extends TestCase
         }
     }
 
+    public function testInstallerSettingsHaveNoJoinEmailColumnAfterMigration111(): void
+    {
+        preg_match('/CREATE TABLE IF NOT EXISTS `lstr_fanlisting_settings` \((.*?)\) ENGINE=/s', $this->installer, $table);
+        self::assertNotEmpty($table, 'Could not find the lstr_fanlisting_settings CREATE TABLE in install/index.php');
+
+        self::assertStringNotContainsString('`join_confirmation_email`', $table[1], 'A fresh install has no such column');
+        self::assertStringContainsString('DROP COLUMN `join_confirmation_email`', $this->runner, 'Migration 111 drops it');
+    }
+
     /**
      * Numbers from real migration headings only. Headings always have a colon
      * after the number ("// Migration 54: ..."); other comments in the runner

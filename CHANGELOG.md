@@ -138,6 +138,22 @@ can stop a fan's update request for you to look at.
   its own size too, and a label too long for Luster gets reported instead of cut short.
 - **A bad read during a code import costs that one code.** It used to be able to add a
   copy, or put the code under no size. Now that code gets an error and the rest carry on.
+- **A hidden website stays hidden.** If you'd hidden a member's website, it came back the
+  next time they changed something on the update form, like their name. Now it only changes
+  if they remove their website or give a different one. A request from before this update
+  might still be in your queue, showing as a change to Showurl, so reject it if you want the
+  website kept hidden.
+- **Edit Member keeps a country that isn't on the list.** A country from an old import
+  showed as "Select Country", and saving the form for any reason erased it. It's offered in
+  the dropdown now.
+- **You can add a listing on a stricter server.** If your site started on Enthusiast and
+  your host uses strict database settings, which is the default on newer servers, Add
+  Listing failed with an error page. So did importing a new listing from Fanatically,
+  Enthusiast or Listing Admin.
+- **A Fanatically import tells you about join emails.** If Fanatically was set not to email
+  new members, the import now says Luster still will, and where to turn that off.
+- **A little database tidying.** Run the migration page after updating. It removes an old
+  setting nothing was using.
 
 
 ### [1.0.0-4] — 2026-11-04

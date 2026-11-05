@@ -90,8 +90,8 @@ final class ListingSettingsRepo
     /**
      * Whether these member changes count as the listing being updated, whether they're
      * applied straight away or approved from the queue. showurl by itself doesn't count:
-     * the update form sets it from whether there's a website, so a member from an older
-     * script can change it just by changing their password.
+     * it only says whether a website shows, like a fan removing a website that's already
+     * gone, or an older request still in the queue that only asks for that.
      *
      * @param array<string, mixed> $changes Column => new value. A table's column can have
      *                                      capitals, so they're ignored here.
@@ -1803,63 +1803,6 @@ final class ListingSettingsRepo
             return $result;
         } catch (\Exception) {
             return [];
-        }
-    }
-
-    /**
-     * Returns per-listing join settings.
-     *
-     * confirmation_email: null = inherit (follow fan's send_info preference),
-     *                     true = always send optional confirmation,
-     *                     false = suppress optional confirmation.
-     *
-     * (There's no auto-approve setting: every new join waits for approval.
-     * Migration 106 removed the old auto_approve_joins column.)
-     *
-     * Requires Migration 50.
-     *
-     * @return array{confirmation_email: bool|null}
-     */
-    public function getJoinSettings(int $listingId): array
-    {
-        try {
-            $stmt = $this->db->prepare(
-                'SELECT join_confirmation_email
-                 FROM lstr_fanlisting_settings
-                 WHERE fanlisting_id = :id'
-            );
-            $stmt->execute(['id' => $listingId]);
-            $row = $stmt->fetch();
-        } catch (\Exception) {
-            return ['confirmation_email' => null];
-        }
-
-        if ($row === false) {
-            return ['confirmation_email' => null];
-        }
-
-        $confirmEmail = $row['join_confirmation_email'] !== null
-            ? (bool) $row['join_confirmation_email']
-            : null;
-
-        return ['confirmation_email' => $confirmEmail];
-    }
-
-    public function saveJoinSettings(int $listingId, ?bool $confirmEmail): void
-    {
-        try {
-            $stmt = $this->db->prepare(
-                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email)
-                 VALUES (:id, :confirm)
-                 ON DUPLICATE KEY UPDATE
-                     join_confirmation_email = VALUES(join_confirmation_email)'
-            );
-            $stmt->execute([
-                'id'      => $listingId,
-                'confirm' => $confirmEmail !== null ? (int) $confirmEmail : null,
-            ]);
-        } catch (\Exception) {
-            // Migration 50 not run yet
         }
     }
 

@@ -784,7 +784,6 @@ function installTables(PDO $pdo): void
             `contact_recipient`            VARCHAR(255)          NULL DEFAULT NULL,
             `form_url_codes_submit`        VARCHAR(200)          NOT NULL DEFAULT '',
             `approved_by`                  ENUM('','tfl','tafl') NOT NULL DEFAULT '',
-            `join_confirmation_email`      TINYINT(1)            NULL DEFAULT NULL,
             `affiliate_apply_enabled`      TINYINT(1)            NOT NULL DEFAULT 1,
             `form_url_affiliate_apply`     VARCHAR(500)          NOT NULL DEFAULT '',
             `redirect_url_affiliate_apply` VARCHAR(500)          NOT NULL DEFAULT '',
@@ -1187,7 +1186,7 @@ function installTables(PDO $pdo): void
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
          (69),(70),(71),(72),(73),(74),(75),(76),(77),(78),
          (79),(80),(81),(82),(83),(84),(85),(86),(87),(88),(89),(90),(91),(92),(93),
-         (94),(95),(96),(97),(98),(99),(100),(101),(102),(103),(104),(105),(106),(107),(108),(109),(110)'
+         (94),(95),(96),(97),(98),(99),(100),(101),(102),(103),(104),(105),(106),(107),(108),(109),(110),(111)'
     );
 }
 

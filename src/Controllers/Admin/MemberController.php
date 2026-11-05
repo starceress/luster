@@ -766,11 +766,12 @@ final class MemberController extends AdminController
         $v = new Validator(['name' => $name, 'url' => $url, 'email' => $newEmail, 'country' => $country]);
         // The same limits as the other forms, but only on what's being changed, so editing
         // a website doesn't force shortening a long name that came in with an import.
+        // Tidying stray spaces off a saved value isn't changing it.
         $nameRules = $v->field('name')->required();
-        if ($name !== (string) $member->name) {
+        if ($name !== trim((string) $member->name)) {
             $nameRules->maxLength(100);
         }
-        if ($country !== (string) $member->country) {
+        if ($country !== trim((string) $member->country)) {
             $v->field('country')->maxLength(100);
         }
         $v->field('email')->required()->email()->maxLength(255);

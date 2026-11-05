@@ -18,6 +18,7 @@ namespace Luster\Repositories;
 use Luster\Core\Config;
 use Luster\Core\Database;
 use Luster\Models\Listing;
+use Luster\Support\RequiredColumns;
 use RuntimeException;
 
 /**
@@ -38,6 +39,12 @@ use RuntimeException;
  */
 final class ListingRepo
 {
+    /** What insert() gives a new row itself. See RequiredColumns. */
+    private const INSERT_COLUMNS = [
+        'title', 'subject', 'url', 'email', 'status', 'imagefile', 'category_id', 'opened', 'catid',
+        'additional', 'dbtable', 'dbserver', 'dbuser', 'dbpassword', 'dbdatabase',
+    ];
+
     private string $table;
     private string $pkCol;
     private bool   $isOwnedSchema;
@@ -490,10 +497,12 @@ final class ListingRepo
             throw new RuntimeException("Adding a listing isn't supported on the enth_ table layout.");
         }
 
+        $fill = RequiredColumns::forInsert($this->db->pdo(), $this->table, self::INSERT_COLUMNS);
+
         $stmt = $this->db->prepare(
             "INSERT INTO {$this->table}
-             (title,subject,url,email,status,imagefile,category_id,opened,catid,additional,dbtable,dbserver,dbuser,dbpassword,dbdatabase)
-             VALUES (:title,:subject,:url,:email,:status,:img,:cid,:opened,:catid,'','','','','','')"
+             (title,subject,url,email,status,imagefile,category_id,opened,catid,additional,dbtable,dbserver,dbuser,dbpassword,dbdatabase{$fill['columns']})
+             VALUES (:title,:subject,:url,:email,:status,:img,:cid,:opened,:catid,'','','','','',''{$fill['values']})"
         );
         $stmt->execute([
             'title'   => $title,
@@ -517,6 +526,55 @@ final class ListingRepo
         }
 
         return $newId;
+    }
+
+    /**
+     * The newest listing's id, or 0 if there are none. Read before an insert, so
+     * nothingAddedSince() can tell afterwards whether it left a row behind.
+     *
+     * @throws RuntimeException If it can't be read.
+     */
+    public function highestId(): int
+    {
+        $stmt = $this->db->prepare("SELECT COALESCE(MAX({$this->pkCol}), 0) FROM {$this->table}");
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Whether it's certain that no listing has been added since this id. An insert that
+     * threw doesn't prove that by itself, because a MyISAM table can't undo a write. False
+     * means there is one, or that it couldn't be read, so it's never a guess in the
+     * direction of "nothing happened".
+     */
+    public function nothingAddedSince(int $id): bool
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM {$this->table} WHERE {$this->pkCol} > :id");
+            $stmt->execute(['id' => $id]);
+
+            return (int) $stmt->fetchColumn() === 0;
+        } catch (RuntimeException $e) {
+            error_log('[Luster] Add Listing: reading the listing table back failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Why a listing can't be added right now, or null if it can. Ask before saving an
+     * image or a new category, so a table that can't be read leaves nothing behind.
+     */
+    public function insertProblem(): ?string
+    {
+        try {
+            RequiredColumns::forInsert($this->db->pdo(), $this->table, self::INSERT_COLUMNS);
+        } catch (RuntimeException $e) {
+            error_log('[Luster] Add Listing: reading the listing table failed: ' . $e->getMessage());
+            return "Couldn't check the listing table because of a database error, so nothing was added.";
+        }
+
+        return null;
     }
 
     /**

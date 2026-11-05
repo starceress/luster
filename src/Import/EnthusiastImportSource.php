@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace Luster\Import;
 
+use Luster\Support\RequiredColumns;
 use PDO;
 use RuntimeException;
 
@@ -1756,13 +1757,28 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $catIdCol     = $hasCategoryId ? ', category_id'   : '';
         $catIdVal     = $hasCategoryId ? ', :category_id'  : '';
         $catIdUpdate  = $hasCategoryId ? ', category_id = :category_id' : '';
+        // Required text columns an older `owned` has that this doesn't list. A failed read
+        // stops the step: it's never taken to mean there are none.
+        try {
+            $fill = RequiredColumns::forInsert($target, 'owned', [
+                'listingid', 'dbtable', 'title', 'subject', 'email', 'url', 'catid', 'additional', 'status', 'opened', 'category_id',
+            ]);
+        } catch (\RuntimeException $e) {
+            return [
+                'row' => ['type' => 'Owned listings', 'imported' => 0, 'skipped' => 0,
+                          'warnings' => [], 'errors' => ["Could not read Luster's listing table: " . $e->getMessage()],
+                          'skipped_items' => []],
+                'listingIdMap' => [],
+            ];
+        }
+
         $insertWithIdStmt = $target->prepare(
-            "INSERT INTO owned (listingid, dbtable, title, subject, email, url, catid, additional, status{$openedCol}{$catIdCol})
-             VALUES (:listingid, :dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal}{$catIdVal})"
+            "INSERT INTO owned (listingid, dbtable, title, subject, email, url, catid, additional, status{$openedCol}{$catIdCol}{$fill['columns']})
+             VALUES (:listingid, :dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal}{$catIdVal}{$fill['values']})"
         );
         $insertAutoStmt = $target->prepare(
-            "INSERT INTO owned (dbtable, title, subject, email, url, catid, additional, status{$openedCol}{$catIdCol})
-             VALUES (:dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal}{$catIdVal})"
+            "INSERT INTO owned (dbtable, title, subject, email, url, catid, additional, status{$openedCol}{$catIdCol}{$fill['columns']})
+             VALUES (:dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal}{$catIdVal}{$fill['values']})"
         );
         $updateStmt = $target->prepare(
             "UPDATE owned SET title = :title, subject = :subject, email = :email,

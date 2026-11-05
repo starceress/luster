@@ -20,8 +20,8 @@ use PHPUnit\Framework\TestCase;
  * Tests for FanaticallyImportSource:
  *
  *   Fix 1 — approved_by stored as '' not null for unapproved listings
- *   Fix 2 — notify_member_on_join=1 → join_confirmation_email IS NULL;
- *            notify_member_on_join=0 → join_confirmation_email=0
+ *   Fix 2 — notify_member_on_join=0 → a note that Luster still sends the join email,
+ *            and where to turn it off. It isn't copied.
  *   Fix 3 — hold_for_approval off or absent (Fanatically approves joins automatically)
  *            → a note that Luster holds every new join for approval
  *   Fix 4 — for_adoption value imported into lstr_fanlisting_settings
@@ -157,7 +157,6 @@ final class FanaticallyImportSourceTest extends TestCase
                 last_updated           DATE    NULL,
                 approved_by            TEXT    NOT NULL DEFAULT \'\',
                 queue_updates          INTEGER NOT NULL DEFAULT 0,
-                join_confirmation_email INTEGER NULL,
                 for_adoption           INTEGER NOT NULL DEFAULT 0,
                 members_per_page       INTEGER NOT NULL DEFAULT 25,
                 members_template       TEXT    NULL,
@@ -380,55 +379,67 @@ final class FanaticallyImportSourceTest extends TestCase
     // Fix 2 — notify_member_on_join mapping
     // -----------------------------------------------------------------------
 
-    public function testNotifyMemberOnJoinOneYieldsNullConfirmationEmail(): void
-    {
-        $src = $this->makePdo();
-        $tgt = $this->makePdo();
-        $this->seedFanaticallySource($src, ['notify_member_on_join' => '1']);
-        $this->seedTarget($tgt);
-
-        $this->insertListing($src, 'https://example.com/fl/');
-
-        $opts = $this->makeOptions(['import_listings' => '1']);
-        $this->adapter()->run($src, $tgt, $opts);
-
-        $row = $tgt->query('SELECT join_confirmation_email FROM lstr_fanlisting_settings LIMIT 1')->fetch();
-        self::assertNull($row['join_confirmation_email'],
-            'notify_member_on_join=1 (Fanatically default: send) should map to NULL in Luster');
-    }
-
-    public function testNotifyMemberOnJoinZeroYieldsZeroConfirmationEmail(): void
+    public function testNotifyMemberOnJoinZeroGetsANoteOnThePreviewAndTheResults(): void
     {
         $src = $this->makePdo();
         $tgt = $this->makePdo();
         $this->seedFanaticallySource($src, ['notify_member_on_join' => '0']);
         $this->seedTarget($tgt);
-
         $this->insertListing($src, 'https://example.com/fl/');
-
         $opts = $this->makeOptions(['import_listings' => '1']);
-        $this->adapter()->run($src, $tgt, $opts);
 
-        $row = $tgt->query('SELECT join_confirmation_email FROM lstr_fanlisting_settings LIMIT 1')->fetch();
-        self::assertSame('0', (string) $row['join_confirmation_email'],
-            'notify_member_on_join=0 (disable) should map to 0 in Luster');
+        $previewNotes = [];
+        foreach ($this->adapter()->preview($src, $tgt, $opts)->rows as $row) {
+            $previewNotes = array_merge($previewNotes, $row['warnings'] ?? []);
+        }
+        self::assertStringContainsString('on the Emails page', implode("\n", $previewNotes));
+
+        $resultNotes = [];
+        foreach ($this->adapter()->run($src, $tgt, $opts)->rows as $row) {
+            $resultNotes = array_merge($resultNotes, $row['warnings'] ?? []);
+        }
+        self::assertStringContainsString('on the Emails page', implode("\n", $resultNotes));
     }
 
-    public function testNotifyMemberOnJoinAbsentYieldsNullConfirmationEmail(): void
+    public function testNotifyMemberOnJoinOnOrAbsentGetsNoNote(): void
     {
-        $src = $this->makePdo();
-        $tgt = $this->makePdo();
-        $this->seedFanaticallySource($src); // no notify_member_on_join setting
-        $this->seedTarget($tgt);
+        foreach ([['notify_member_on_join' => '1'], []] as $settings) {
+            $src = $this->makePdo();
+            $tgt = $this->makePdo();
+            $this->seedFanaticallySource($src, $settings);
+            $this->seedTarget($tgt);
+            $this->insertListing($src, 'https://example.com/fl/');
 
-        $this->insertListing($src, 'https://example.com/fl/');
+            $notes = [];
+            foreach ($this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']))->rows as $row) {
+                $notes = array_merge($notes, $row['warnings'] ?? []);
+            }
+            self::assertStringNotContainsString('on the Emails page', implode("\n", $notes));
+        }
+    }
 
-        $opts = $this->makeOptions(['import_listings' => '1']);
-        $this->adapter()->run($src, $tgt, $opts);
+    public function testTheImportWorksBeforeAndAfterMigration111(): void
+    {
+        foreach ([false, true] as $stillHasTheColumn) {
+            $src = $this->makePdo();
+            $tgt = $this->makePdo();
+            $this->seedFanaticallySource($src, ['notify_member_on_join' => '0']);
+            $this->seedTarget($tgt);
+            if ($stillHasTheColumn) {
+                $tgt->exec('ALTER TABLE lstr_fanlisting_settings ADD COLUMN join_confirmation_email INTEGER NULL');
+            }
+            $this->insertListing($src, 'https://example.com/fl/');
+            $opts = $this->makeOptions(['import_listings' => '1']);
 
-        $row = $tgt->query('SELECT join_confirmation_email FROM lstr_fanlisting_settings LIMIT 1')->fetch();
-        self::assertNull($row['join_confirmation_email'],
-            'Absent notify_member_on_join should default to NULL (Luster default behaviour)');
+            // Twice, so both the insert and the update of the settings row run.
+            $this->adapter()->run($src, $tgt, $opts);
+            $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1', 'conflict_strategy' => 'overwrite']));
+
+            self::assertSame(1, (int) $tgt->query('SELECT COUNT(*) FROM lstr_fanlisting_settings')->fetchColumn());
+            if ($stillHasTheColumn) {
+                self::assertNull($tgt->query('SELECT join_confirmation_email FROM lstr_fanlisting_settings')->fetchColumn() ?: null, 'Nothing writes it anymore');
+            }
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -2185,7 +2196,6 @@ final class FanaticallyImportSourceTest extends TestCase
                 last_updated           DATE    NULL,
                 approved_by            TEXT    NOT NULL DEFAULT \'\',
                 queue_updates          INTEGER NOT NULL DEFAULT 0,
-                join_confirmation_email INTEGER NULL,
                 for_adoption           INTEGER NOT NULL DEFAULT 0,
                 members_per_page       INTEGER NOT NULL DEFAULT 25,
                 members_template       TEXT    NULL,

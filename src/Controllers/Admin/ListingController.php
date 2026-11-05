@@ -558,28 +558,30 @@ final class ListingController extends AdminController
         $image     = null;
         $imageFile = $request->file('image') ?? [];
         $uploadErr = (int) ($imageFile['error'] ?? UPLOAD_ERR_NO_FILE);
-        $imageErr  = '';
+        // Asked before an image or a new category is saved, so a listing table that can't be
+        // read leaves nothing behind.
+        $formError = $listingRepo->insertProblem() ?? '';
 
-        if ($uploadErr !== UPLOAD_ERR_NO_FILE) {
+        if ($formError === '' && $uploadErr !== UPLOAD_ERR_NO_FILE) {
             if ($uploadErr !== UPLOAD_ERR_OK) {
-                $imageErr = 'Image upload failed (error code ' . $uploadErr . ').';
+                $formError = 'Image upload failed (error code ' . $uploadErr . ').';
             } else {
                 $tmp      = (string) ($imageFile['tmp_name'] ?? '');
                 $fileSize = (int) ($imageFile['size'] ?? 0);
 
                 if ($tmp === '' || !is_uploaded_file($tmp)) {
-                    $imageErr = 'Invalid image upload. Please try again.';
+                    $formError = 'Invalid image upload. Please try again.';
                 } elseif ($fileSize <= 0) {
-                    $imageErr = 'Image file is empty.';
+                    $formError = 'Image file is empty.';
                 } elseif ($fileSize > 2 * 1024 * 1024) {
-                    $imageErr = 'Image must be 2 MB or smaller.';
+                    $formError = 'Image must be 2 MB or smaller.';
                 } else {
                     $mime     = (string) (new \finfo(FILEINFO_MIME_TYPE))->file($tmp);
                     $allowed  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
                     if (!in_array($mime, $allowed, true)) {
-                        $imageErr = 'Image must be JPEG, PNG, GIF, or WebP.';
+                        $formError = 'Image must be JPEG, PNG, GIF, or WebP.';
                     } elseif (@getimagesize($tmp) === false) {
-                        $imageErr = 'The uploaded file is not a valid image.';
+                        $formError = 'The uploaded file is not a valid image.';
                     } else {
                         $extMap   = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
                         $dir      = dirname(__DIR__, 3) . '/public/uploads/listings/';
@@ -588,7 +590,7 @@ final class ListingController extends AdminController
                         }
                         $filename = 'fl_' . bin2hex(random_bytes(8)) . '.' . $extMap[$mime];
                         if (!move_uploaded_file($tmp, $dir . $filename)) {
-                            $imageErr = 'Could not save uploaded image. Please try again.';
+                            $formError = 'Could not save uploaded image. Please try again.';
                         } else {
                             $image = $filename;
                         }
@@ -597,14 +599,14 @@ final class ListingController extends AdminController
             }
         }
 
-        if ($imageErr !== '') {
+        if ($formError !== '') {
             return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
                 'tfl_cats'        => $tflCats,
                 'tafl_cats'       => $taflCats,
                 'custom_networks' => $customNetworks,
                 'custom_cats'     => $customCats,
                 'old'             => $request->postAll(),
-                'error'           => $imageErr,
+                'error'           => $formError,
                 'default_date'    => date('Y-m-d'),
             ], '', [
                 $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
@@ -620,7 +622,38 @@ final class ListingController extends AdminController
         $catIds   = self::createCategories($categoryRepo, $catPicks);
         $catidStr = $catIds ? '|' . implode('|', $catIds) . '|' : '';
 
-        $newId = $listingRepo->insert($title, $subject, $url, $email, $statusInt, $image, !empty($catIds) ? $catIds[0] : null, $opened, $catidStr, $catIds);
+        $highestBefore = null;
+        try {
+            $highestBefore = $listingRepo->highestId();
+            $newId = $listingRepo->insert($title, $subject, $url, $email, $statusInt, $image, !empty($catIds) ? $catIds[0] : null, $opened, $catidStr, $catIds);
+        } catch (\RuntimeException $e) {
+            error_log('[Luster] Add Listing: saving the listing failed: ' . $e->getMessage());
+
+            // An error doesn't prove nothing was saved: a MyISAM table can't undo a write.
+            // Only reading the table back can say. If it can't, the image stays, because
+            // the listing may be using it, and a retry could add a second listing.
+            if ($highestBefore !== null && !$listingRepo->nothingAddedSince($highestBefore)) {
+                $this->app->getSession()->set('lstr_flash_error',
+                    "Something went wrong while saving this listing, and Luster can't be sure whether it was added. If it's in the list below, it isn't finished: delete it, then add it again.");
+                return Response::redirect($this->app->getBaseUrl() . '/admin/listings');
+            }
+
+            if ($image !== null && is_file(dirname(__DIR__, 3) . '/public/uploads/listings/' . $image)) {
+                unlink(dirname(__DIR__, 3) . '/public/uploads/listings/' . $image);
+            }
+
+            return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
+                'tfl_cats'        => $tflCats,
+                'tafl_cats'       => $taflCats,
+                'custom_networks' => $customNetworks,
+                'custom_cats'     => $customCats,
+                'old'             => $request->postAll(),
+                'error'           => "Couldn't save this listing because of a database error, so it wasn't added. Please try again.",
+                'default_date'    => date('Y-m-d'),
+            ], '', [
+                $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
+            ]);
+        }
 
         // Unprefixed schema only: a fresh listing has nowhere to store members
         // until it has its own physical member table (dbtable was left blank

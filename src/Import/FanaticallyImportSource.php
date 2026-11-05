@@ -20,6 +20,7 @@ use Luster\Addons\Adoption\AdoptionAddon;
 use Luster\Addons\Kim\KimAddon;
 use Luster\Addons\Wishlist\WishlistAddon;
 use Luster\Models\AdditionalField;
+use Luster\Support\RequiredColumns;
 use PDO;
 
 /**
@@ -130,6 +131,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
     /** The largest width or height the code tables can hold (SMALLINT UNSIGNED). */
     private const CODE_DIMENSION_LIMIT = 65535;
+
+    /** What runListings() gives a new `owned` row itself. See RequiredColumns. */
+    private const OWNED_INSERT_COLUMNS = ['dbtable', 'title', 'subject', 'url', 'catid', 'category_id', 'status', 'opened', 'additional'];
 
     /** How a code's size is told apart: see planListingCodes(). */
     private const CODE_NO_SIZE     = 'none';
@@ -348,9 +352,11 @@ final class FanaticallyImportSource implements ImportSourceInterface
         }
 
         if ($options->importListings) {
-            $joinNote = $this->joinApprovalNote($this->readGlobalSettings($source, $p));
-            if ($joinNote !== null) {
-                $transformedNotes[] = 'Data transformed — ' . $joinNote;
+            $globalSettings = $this->readGlobalSettings($source, $p);
+            foreach ([$this->joinApprovalNote($globalSettings), $this->joinEmailNote($globalSettings)] as $joinNote) {
+                if ($joinNote !== null) {
+                    $transformedNotes[] = 'Data transformed — ' . $joinNote;
+                }
             }
             // Same custom-field renames the import will report.
             foreach ($fieldNotes as $fieldNote) {
@@ -935,7 +941,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
         // Load global Fanatically settings that apply to all listings.
         // Fanatically does not store these per-listing; they are site-wide.
         $globalSettings = $this->readGlobalSettings($source, $p);
-        $joinNote       = $this->joinApprovalNote($globalSettings);
+        $joinNotes      = array_values(array_filter([$this->joinApprovalNote($globalSettings), $this->joinEmailNote($globalSettings)]));
 
         // Build category assignment junction for all listings at once
         $lcJunction = []; // listing_id → [category_id, ...]
@@ -1077,8 +1083,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
                         $newId = $existingId;
                     } else {
                         $target->prepare(
-                            "INSERT INTO `owned` (dbtable, title, subject, url, catid, category_id, status, opened, additional)
-                             VALUES (:dbtable, :title, :subject, :url, :catid, :category_id, :status, :opened, '')"
+                            "INSERT INTO `owned` (dbtable, title, subject, url, catid, category_id, status, opened, additional{$state['ownedFill']['columns']})
+                             VALUES (:dbtable, :title, :subject, :url, :catid, :category_id, :status, :opened, ''{$state['ownedFill']['values']})"
                         )->execute([
                             'dbtable' => $dbtable, 'title' => $title, 'subject' => $subject,
                             'url' => $url, 'catid' => $catidList, 'category_id' => $primaryCatId,
@@ -1222,7 +1228,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
 
         return [
             ['type' => 'Owned Listings', 'imported' => $imported, 'skipped' => $skipped,
-             'warnings' => array_merge($joinNote !== null ? [$joinNote] : [], $listingNotes), 'errors' => $errors, 'skipped_items' => $skippedItems,
+             'warnings' => array_merge($joinNotes, $listingNotes), 'errors' => $errors, 'skipped_items' => $skippedItems,
              'image_copied' => $imgCopied, 'image_skipped' => $imgSkipped, 'image_errors' => $imgErrors],
             $listingIdMap,
             $listingDbtables,
@@ -4470,6 +4476,9 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 'tables'    => $withTables ? $this->physicalTableNames($target) : [],
                 'lifecycle' => $this->lifecycleTableState($target),
                 'previousOwners' => $this->previousOwnersTableState($target),
+                'ownedFill' => $isOwned
+                    ? RequiredColumns::forInsert($target, 'owned', self::OWNED_INSERT_COLUMNS)
+                    : ['columns' => '', 'values' => ''],
             ];
         } catch (\Throwable) {
             return null;
@@ -5688,6 +5697,24 @@ final class FanaticallyImportSource implements ImportSourceInterface
     }
 
     /**
+     * Fanatically can be set not to email new members. That isn't copied: Luster's join
+     * email can carry their password and a reset link, so switching it off for them could
+     * leave a fan with no way in. The owner is told, and told where to turn it off.
+     *
+     * @param array<string,string> $globalSettings
+     */
+    private function joinEmailNote(array $globalSettings): ?string
+    {
+        $sendsNothing = isset($globalSettings['notify_member_on_join'])
+            && (int) $globalSettings['notify_member_on_join'] === 0;
+
+        return $sendsNothing
+            ? 'Fanatically was set not to email new members when they joined. Luster sends them a join email, '
+                . 'which can include their password and a reset link. You can turn it off on the Emails page.'
+            : null;
+    }
+
+    /**
      * @param array<string,string> $globalSettings  Key/value rows from {p}settings (all listings share these)
      */
     private function upsertListingSettings(
@@ -5708,14 +5735,6 @@ final class FanaticallyImportSource implements ImportSourceInterface
             ? ((int) $globalSettings['hold_update_for_approval'] ? 1 : 0)
             : 0;
 
-        // notify_member_on_join=1 means "send the email" which is Luster's default (NULL).
-        // notify_member_on_join=0 means "never send" → join_confirmation_email=0.
-        // Absent or 1 → NULL (let Luster decide per its own defaults).
-        $joinEmail = (isset($globalSettings['notify_member_on_join'])
-            && (int) $globalSettings['notify_member_on_join'] === 0)
-            ? 0
-            : null;
-
         // approved_by is ENUM('','tfl','tafl') NOT NULL DEFAULT '' — never store null
         $lstrApprovedBy = in_array($approvedBy, ['tfl', 'tafl'], true) ? $approvedBy : '';
 
@@ -5728,13 +5747,11 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $target->prepare(
                     'UPDATE lstr_fanlisting_settings
                      SET last_updated=:lu, approved_by=:ab, queue_updates=:qu,
-                         join_confirmation_email=:je,
                          description=COALESCE(NULLIF(:description, \'\'), description)
                      WHERE fanlisting_id=:id'
                 )->execute([
                     'lu' => $lu,  'ab' => $lstrApprovedBy,
-                    'qu' => $queueUpdates,
-                    'je' => $joinEmail,   'id' => $listingId,
+                    'qu' => $queueUpdates, 'id' => $listingId,
                     'description' => $description,
                 ]);
             } else {
@@ -5743,11 +5760,11 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 $affVal = $hasAffApply ? ', 1'                       : '';
                 $target->prepare(
                     "INSERT INTO lstr_fanlisting_settings
-                       (fanlisting_id, last_updated, approved_by, queue_updates, join_confirmation_email, description{$affCol})
-                     VALUES (:id, :lu, :ab, :qu, :je, :description{$affVal})"
+                       (fanlisting_id, last_updated, approved_by, queue_updates, description{$affCol})
+                     VALUES (:id, :lu, :ab, :qu, :description{$affVal})"
                 )->execute([
                     'id' => $listingId, 'lu' => $lu,    'ab' => $lstrApprovedBy,
-                    'qu' => $queueUpdates, 'je' => $joinEmail,
+                    'qu' => $queueUpdates,
                     'description' => $description ?: null,
                 ]);
             }

@@ -468,8 +468,15 @@ final class UpdateController
             'name'    => $finalName,
             'url'     => $finalUrl,
             'country' => $finalCountry,
-            'showurl' => $finalUrl !== '' ? 1 : 0,
         ];
+
+        // Whether a website shows only changes when the website does, so changing a name
+        // can't bring back a website the owner has hidden.
+        if ($deleteUrl) {
+            $updateData['showurl'] = 0;
+        } elseif (trim($finalUrl) !== trim($member->url)) {
+            $updateData['showurl'] = 1;
+        }
 
         if ($newEmail !== '' && $newEmail !== $email) {
             $updateData['email'] = $finalEmail;

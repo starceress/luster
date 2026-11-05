@@ -85,14 +85,27 @@ $id = (int) $listing->id;
         </div>
       </div>
 
+      <?php
+        // A country that isn't on the list, like one from an old import, is offered too.
+        // Otherwise it would show as "Select Country", and saving would blank it.
+        $_countries    = \Luster\Core\Countries::list();
+        $_savedCountry = trim((string) ($member->country ?? ''));
+        $_country      = is_string($old['country'] ?? null) ? trim($old['country']) : $_savedCountry;
+      ?>
       <div class="field-row">
         <label class="field-label" for="m-country">Country</label>
         <div class="select-wrap">
           <select id="m-country" name="country" >
             <option value="">&mdash; Select Country &mdash;</option>
-            <?php foreach (\Luster\Core\Countries::list() as $c): ?>
+            <?php if ($_savedCountry !== '' && !in_array($_savedCountry, $_countries, true)): ?>
+              <option value="<?= View::e($_savedCountry) ?>"
+                      <?= $_savedCountry === $_country ? 'selected' : '' ?>>
+                <?= View::e($_savedCountry) ?>
+              </option>
+            <?php endif; ?>
+            <?php foreach ($_countries as $c): ?>
               <option value="<?= View::e($c) ?>"
-                      <?= $c === ($old['country'] ?? ($member->country ?? '')) ? 'selected' : '' ?>>
+                      <?= $c === $_country ? 'selected' : '' ?>>
                 <?= View::e($c) ?>
               </option>
             <?php endforeach; ?>

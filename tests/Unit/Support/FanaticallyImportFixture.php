@@ -98,7 +98,7 @@ trait FanaticallyImportFixture
     {
         $pdo->exec("CREATE TABLE lstr_fanlisting_settings (
             fanlisting_id INTEGER PRIMARY KEY, last_updated DATE NULL, approved_by TEXT NOT NULL DEFAULT '',
-            queue_updates INTEGER NOT NULL DEFAULT 0, join_confirmation_email INTEGER NULL,
+            queue_updates INTEGER NOT NULL DEFAULT 0,
             description TEXT NULL, image TEXT NULL, for_adoption INTEGER NOT NULL DEFAULT 0)");
         $pdo->exec('CREATE TABLE lstr_listing_categories (fanlisting_id INTEGER NOT NULL, category_id INTEGER NOT NULL,
             PRIMARY KEY (fanlisting_id, category_id))');

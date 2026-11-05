@@ -76,6 +76,47 @@ SQL;
         self::assertGreaterThan(0, $newId);
     }
 
+    public function testInsertFillsInWhatAnOwnedTableFromEnthusiastRequires(): void
+    {
+        $old = str_replace(
+            'additional  TEXT    NOT NULL',
+            'additional  TEXT    NOT NULL, emailsignup TEXT NOT NULL, emailapproved TEXT NOT NULL,
+             emailupdate TEXT NOT NULL, emaillostpass TEXT NOT NULL, listtemplate TEXT NOT NULL',
+            self::DDL,
+        );
+        $db   = SqliteDatabase::make($old);
+        $repo = new ListingRepo($db, $this->makeConfig([]));
+
+        self::assertNull($repo->insertProblem());
+        $newId = $repo->insert('Moon', 'Moon', 'https://example.com', 'demo@example.com', 2, null, null, null);
+
+        $row = $db->pdo()->query("SELECT * FROM owned WHERE listingid = {$newId}")->fetch();
+        self::assertSame('Moon', $row['title']);
+        foreach (['emailsignup', 'emailapproved', 'emailupdate', 'emaillostpass', 'listtemplate'] as $column) {
+            self::assertSame('', $row[$column], $column);
+        }
+    }
+
+    public function testInsertProblemSaysSoWhenTheTableCantBeRead(): void
+    {
+        $db   = SqliteDatabase::make('CREATE TABLE something_else (id INTEGER PRIMARY KEY)');
+        $repo = new ListingRepo($db, $this->makeConfig([]));
+
+        // The reason goes to the log, not to whoever's looking at the form.
+        $log      = (string) tempnam(sys_get_temp_dir(), 'lstr_listing_log_');
+        $previous = ini_set('error_log', $log);
+        try {
+            $problem = (string) $repo->insertProblem();
+        } finally {
+            ini_set('error_log', (string) $previous);
+        }
+        $logged = (string) file_get_contents($log);
+        unlink($log);
+
+        self::assertStringContainsString("Couldn't check the listing table", $problem);
+        self::assertStringContainsString('reading the listing table failed', $logged);
+    }
+
     // -----------------------------------------------------------------------
     // provisionMemberTable() — a fresh listing has nowhere to store members
     // until it has its own physical table; insert() alone leaves dbtable
