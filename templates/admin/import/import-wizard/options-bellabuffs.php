@@ -158,6 +158,31 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
       </div>
     </div>
 
+    <?php if ($bb_mode === 'path' && $has_buttons): ?>
+    <!-- ── If a fan code is already there ──────────────────────────── -->
+    <div class="card-body">
+      <div class="section-label">If a fan code already exists in Luster</div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+        <label class="surface import-choice-item">
+          <input type="radio" name="conflict_strategy" value="skip"
+                 <?= ($old['conflict_strategy'] ?? 'skip') !== 'overwrite' ? 'checked' : '' ?>>
+          <div>
+            <strong>Keep existing (recommended)</strong>
+            <span class="form-hint" style="margin:2px 0 0">Leave codes already in Luster alone and add the ones that are missing.</span>
+          </div>
+        </label>
+        <label class="surface import-choice-item">
+          <input type="radio" name="conflict_strategy" value="overwrite"
+                 <?= ($old['conflict_strategy'] ?? 'skip') === 'overwrite' ? 'checked' : '' ?>>
+          <div>
+            <strong>Update matching codes</strong>
+            <span class="form-hint" style="margin:2px 0 0">Replace a matching code's image and donor with what's in BellaBuffs. Its name, status and position stay as they are in Luster. Members and affiliates that already exist are always kept.</span>
+          </div>
+        </label>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <div class="composer-footer">
       <a href="<?= $b ?>/admin/import/bellabuffs/connect" class="btn btn-quaternary">&#8592; Back</a>
       <button type="submit" class="btn btn-primary">Preview Import &#8594;</button>

@@ -130,8 +130,9 @@ trait FanaticallyImportFixture
             submitter_name TEXT NULL, submitter_email TEXT NULL, submitter_url TEXT NULL,
             sort_order INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             import_ref TEXT NULL UNIQUE, import_source_file TEXT NULL COLLATE NOCASE)");
+        // The installer's shape: a label is required, and it ignores case when compared.
         $pdo->exec('CREATE TABLE lstr_code_sizes (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL,
-            label TEXT NULL, width INTEGER NOT NULL DEFAULT 0, height INTEGER NOT NULL DEFAULT 0)');
+            label TEXT NOT NULL COLLATE NOCASE, width INTEGER NULL, height INTEGER NULL)');
         $pdo->exec("CREATE TABLE lstr_code_donors (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL,
             name TEXT NOT NULL DEFAULT '', url TEXT NULL, email TEXT NULL)");
         $pdo->exec("CREATE TABLE lstr_affiliates (

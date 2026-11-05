@@ -122,6 +122,22 @@ can stop a fan's update request for you to look at.
   show up as joining tomorrow. Joins already saved stay as they are.
 - **"Blocked until" is right on the night the clocks go back.** The admin panel could show
   it an hour late. The block itself always ended on time.
+- **Codes with long filenames stop piling up.** A code's name only has room for 150
+  characters, so a longer filename got cut short, and every time you re-ran a Fanatically
+  or BellaBuffs import you got another copy. Codes remember their full filename now, so an
+  import finds them again, even if you've renamed them since. If Luster really can't tell
+  which code is which, it leaves them alone and tells you why.
+- **BellaBuffs imports can update your codes.** There's a new choice on the options page.
+  Keeping what's there is still the default, and members and affiliates that already exist
+  are always kept.
+- **The preview's code numbers match what the import does.** Fanatically and BellaBuffs
+  previews now count codes the way the import will, including the ones it'll skip, and say
+  why. For BellaBuffs, that includes codes with a missing image.
+- **Size labels stay separate in a Fanatically import.** `Small` and `small` used to land
+  on one size, which could make two different codes look like one. A label of `0` stays
+  its own size too, and a label too long for Luster gets reported instead of cut short.
+- **A bad read during a code import costs that one code.** It used to be able to add a
+  copy, or put the code under no size. Now that code gets an error and the rest carry on.
 
 
 ### [1.0.0-4] — 2026-11-04

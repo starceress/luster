@@ -100,6 +100,12 @@ final class ImageMigrator
         return $newFilename;
     }
 
+    /** Whether copyFromPath() would accept this file, without copying it. For previews. */
+    public function canCopyFromPath(string $sourcePath): bool
+    {
+        return is_file($sourcePath) && $this->detectMime($sourcePath) !== null;
+    }
+
     // -----------------------------------------------------------------------
     // Mode 2 — Remote URL fetch
     // -----------------------------------------------------------------------

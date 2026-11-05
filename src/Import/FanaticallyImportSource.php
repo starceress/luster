@@ -122,6 +122,20 @@ final class FanaticallyImportSource implements ImportSourceInterface
     private const SOURCE_LISTINGS_UNREADABLE =
         "Luster couldn't read your Fanatically listings, so it couldn't work out their custom fields. Check the connection details and try the import again.";
 
+    /** Shown when Migration 104's column couldn't be checked, which isn't the same as it being missing. */
+    private const CODES_CHECK_FAILED = "Couldn't check how Luster keeps track of imported codes, so no codes were imported.";
+
+    /** lstr_code_sizes.label, in characters. */
+    private const CODE_SIZE_LABEL_LIMIT = 100;
+
+    /** The largest width or height the code tables can hold (SMALLINT UNSIGNED). */
+    private const CODE_DIMENSION_LIMIT = 65535;
+
+    /** How a code's size is told apart: see planListingCodes(). */
+    private const CODE_NO_SIZE     = 'none';
+    private const CODE_STORED_SIZE = 'id:';
+    private const CODE_NEW_SIZE    = 'new:';
+
     private ?\ZipArchive $activeZip = null;
 
     /** See refsHaveMetadata(). */
@@ -450,51 +464,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
             $rows[] = $affRow;
         }
         if ($options->importCodes) {
-            $codesRow = $this->previewTable($source, "{$p}codes", 'Codes', [
-                'Fanatically stores codes in a flat table. Size labels and donor fields will be normalized into lstr_code_sizes and lstr_code_donors.',
-            ]);
-            // Collective codes: counted with the same skip rule the import applies.
-            $hasCodeIdentity  = $this->tableHasColumn($target, 'lstr_codes', 'import_source_file');
-            $storedCollective = $hasCodeIdentity ? $this->storedCollectiveCodes($target) : [];
-            $ambiguous        = $this->ambiguousCollectiveCodes($source, $p, $storedCollective);
-            $collectiveCodes = 0;
-            $collectiveSkips = 0;
-            try {
-                $st = $source->query("SELECT file_name, size_label FROM `{$p}codes` WHERE listing_id = 0");
-                foreach ($st ? $st->fetchAll() : [] as $row) {
-                    $collectiveCodes++;
-                    $fileName = trim((string) ($row['file_name'] ?? ''));
-                    if ($fileName === ''
-                        || $this->collectiveCodeSkipReason($fileName, trim((string) ($row['size_label'] ?? '')), $ambiguous, $hasCodeIdentity, $storedCollective) !== null
-                    ) {
-                        $collectiveSkips++;
-                    }
-                }
-            } catch (\Throwable) {}
-
-            if ($collectiveCodes > 0) {
-                $codesRow['warnings'][] = "{$collectiveCodes} collective code(s) (Fanatically's \"Collective\") will be imported as collective codes, "
-                    . 'with any donor credited on the code itself.';
-            }
-            if ($collectiveCodes > 0 && !$hasCodeIdentity) {
-                $codesRow['warnings'][] = "Needs decision — collective codes can't be imported yet: run the migration page first (Luster needs Migration 104).";
-            }
-            if (!$options->importListings) {
-                // Without Listings only collective codes have somewhere to go.
-                $codesRow['skip']   = $codesRow['found'] - $collectiveCodes;
-                $codesRow['import'] = $collectiveCodes;
-            }
-            $codesRow['import'] -= $collectiveSkips;
-            $codesRow['skip']   += $collectiveSkips;
-
-            foreach ($ambiguous as $name => $info) {
-                $codesRow['warnings'][] = $info['existing']
-                    ? "Needs decision — collective code \"{$name}\" comes in sizes Luster can't read as width x height ("
-                        . implode(', ', $info['labels']) . ') and is already in Luster, so those copies will be skipped. Update them on the collective codes page.'
-                    : "Collective code \"{$name}\" comes in sizes Luster can't read as width x height (" . implode(', ', $info['labels'])
-                        . '). Every copy is imported now, but importing again later will skip those copies, because Luster can\'t tell them apart.';
-            }
-            $rows[] = $codesRow;
+            $rows[] = $this->previewCodes($source, $target, $p, $options, $fieldPlans);
         }
         if ($options->importJoined) {
             $rows[] = $this->previewTable($source, "{$p}joined", 'Joined Listings');
@@ -1664,11 +1634,30 @@ final class FanaticallyImportSource implements ImportSourceInterface
         $codeSizeIdMap  = [];
         $codeDonorIdMap = [];
 
-        // Collective codes are tracked by their full filename (Migration 104's column).
+        // Codes are tracked by their full filename (Migration 104's column). If that
+        // can't be checked, or the source can't be read up front, the step stops rather
+        // than falling back to weaker matching that could add copies.
+        try {
+            $hasCodeIdentity = $this->tableHasColumn($target, 'lstr_codes', 'import_source_file', true);
+        } catch (\Throwable $e) {
+            return $this->codesStepStopped(self::CODES_CHECK_FAILED . ' ' . $e->getMessage());
+        }
+        try {
+            $codesByDestination = $this->codesByDestination($this->readSourceCodes($source, $p), $listingIdMap);
+        } catch (\Throwable $e) {
+            return $this->codesStepStopped('Could not read codes: ' . $e->getMessage());
+        }
+
+        // How each listing's codes line up with its sizes, worked out when first needed.
+        $listingPlans = [];
+
+        // Each listing and size's stored codes, read once when first needed, and kept
+        // up to date as this import writes. Keyed [listing][size identity].
+        $knownCodes = [];
+
         // Luster's collective codes are loaded once and matched in PHP, byte for
         // byte (the database compares filenames ignoring case); codes this import
         // adds are appended as it goes.
-        $hasCodeIdentity  = $this->tableHasColumn($target, 'lstr_codes', 'import_source_file');
         $storedCollective = $hasCodeIdentity ? $this->storedCollectiveCodes($target) : [];
         // Collective codes (Fanatically listing 0) whose name comes under more than
         // one size label that isn't WxH can't be told apart once stored. Worked out
@@ -1731,34 +1720,40 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     continue;
                 }
 
-                // Upsert code size first — the size_id is part of the dedup key.
-                $sizeId = $this->upsertCodeSize($target, $newListingId, $sizeLabel, $codeSizeIdMap);
+                $cantImport = CodeIdentity::cantTrack($fileName, $hasCodeIdentity) ?? $this->codeSizeProblem($sizeLabel);
+                if ($cantImport !== null) {
+                    $skippedItems[] = ['label' => $fileName, 'reason' => $cantImport];
+                    $skipped++;
+                    continue;
+                }
 
-                // Dedup by (fanlisting_id, name, size_id): same filename under a different
-                // size label is a distinct code row and must not be collapsed. The
-                // database compares names ignoring case, so every candidate is fetched
-                // and the name is matched exactly here: Code.png and code.png are two files.
-                $existingCodeId = null;
+                // The same filename under a different size is a different code. A failed
+                // read here costs this code and nothing else, and it never counts as
+                // "not found", which would add a copy.
                 try {
-                    if ($sizeId !== null) {
-                        $ck = $target->prepare(
-                            'SELECT id, name FROM lstr_codes WHERE fanlisting_id=:fid AND name=:name AND size_id=:sid ORDER BY id'
-                        );
-                        $ck->execute(['fid' => $newListingId, 'name' => $fileName, 'sid' => $sizeId]);
-                    } else {
-                        $ck = $target->prepare(
-                            'SELECT id, name FROM lstr_codes WHERE fanlisting_id=:fid AND name=:name AND size_id IS NULL ORDER BY id'
-                        );
-                        $ck->execute(['fid' => $newListingId, 'name' => $fileName]);
-                    }
-                    foreach ($ck->fetchAll() as $ckRow) {
-                        if ((string) $ckRow['name'] === $fileName) {
-                            $existingCodeId = (int) $ckRow['id'];
-                            break;
-                        }
-                    }
-                } catch (\Throwable) {}
+                    $listingPlans[$newListingId] ??= $this->planListingCodes($target, $newListingId, $codesByDestination[$newListingId] ?? []);
+                    $sizeKey = $listingPlans[$newListingId]['sizes'][$sizeLabel]
+                        ?? throw new \RuntimeException('This code was added to Fanatically during the import.');
+                    $sizeId = $this->upsertCodeSize($target, $newListingId, $sizeLabel, $codeSizeIdMap);
+                    $knownCodes[$newListingId][$sizeKey] ??= $this->codesForSize($target, $newListingId, $sizeId, $hasCodeIdentity);
+                } catch (\Throwable $e) {
+                    $errors[] = "Code '{$fileName}': " . $e->getMessage();
+                    continue;
+                }
 
+                $decision = CodeIdentity::decide(
+                    $fileName,
+                    $hasCodeIdentity,
+                    isset($listingPlans[$newListingId]['colliding'][$sizeKey][$fileName]),
+                    $knownCodes[$newListingId][$sizeKey],
+                );
+                if ($decision['action'] === CodeIdentity::SKIP) {
+                    $skippedItems[] = ['label' => $fileName, 'reason' => (string) $decision['reason']];
+                    $skipped++;
+                    continue;
+                }
+
+                $existingCodeId = $decision['id'];
                 if ($existingCodeId !== null && $options->conflictStrategy === 'skip') {
                     $skipped++;
                     continue;
@@ -1788,8 +1783,7 @@ final class FanaticallyImportSource implements ImportSourceInterface
                 }
 
                 $codeStatus = (int) ($code['is_approved'] ?? 1) === 1 ? 'approved' : 'pending';
-                $codeW      = $codeSizeIdMap[$newListingId]['__dims'][$sizeLabel]['w'] ?? 0;
-                $codeH      = $codeSizeIdMap[$newListingId]['__dims'][$sizeLabel]['h'] ?? 0;
+                [$codeW, $codeH] = $this->parseSize($sizeLabel);
 
                 try {
                     if ($existingCodeId !== null) {
@@ -1803,18 +1797,28 @@ final class FanaticallyImportSource implements ImportSourceInterface
                         if ($copiedFile !== null) {
                             $update['filename'] = $copiedFile;
                         }
+                        // A code that wasn't tracked yet is from now on.
+                        if ($decision['tag']) {
+                            $update['import_source_file'] = $fileName;
+                        }
                         $set = implode(', ', array_map(static fn(string $col): string => "{$col}=:{$col}", array_keys($update)));
                         $target->prepare("UPDATE lstr_codes SET {$set} WHERE id=:id")->execute($update + ['id' => $existingCodeId]);
+                        if ($decision['tag']) {
+                            $knownCodes[$newListingId][$sizeKey] = CodeIdentity::afterTagging($knownCodes[$newListingId][$sizeKey], $existingCodeId, $fileName);
+                        }
                     } else {
-                        $target->prepare(
-                            'INSERT INTO lstr_codes
-                               (fanlisting_id, size_id, donor_id, name, filename, status, width, height)
-                             VALUES (:fid, :sid, :did, :name, :filename, :status, :w, :h)'
-                        )->execute([
-                            'fid' => $newListingId, 'sid' => $sizeId, 'did' => $donorId,
-                            'name' => $fileName,    'filename' => $newImageFile,
-                            'status' => $codeStatus, 'w' => $codeW, 'h' => $codeH,
-                        ]);
+                        $fields = [
+                            'fanlisting_id' => $newListingId, 'size_id' => $sizeId, 'donor_id' => $donorId,
+                            'name'          => CodeIdentity::cappedName($fileName), 'filename' => $newImageFile,
+                            'status'        => $codeStatus, 'width' => $codeW, 'height' => $codeH,
+                        ];
+                        if ($hasCodeIdentity) {
+                            $fields['import_source_file'] = $fileName;
+                        }
+                        $cols = implode(', ', array_keys($fields));
+                        $vals = implode(', ', array_map(static fn(string $col): string => ':' . $col, array_keys($fields)));
+                        $target->prepare("INSERT INTO lstr_codes ({$cols}) VALUES ({$vals})")->execute($fields);
+                        $knownCodes[$newListingId][$sizeKey] = CodeIdentity::afterInsert($knownCodes[$newListingId][$sizeKey], (int) $target->lastInsertId(), $fileName, $hasCodeIdentity);
                     }
                     $imported++;
                 } catch (\Throwable $e) {
@@ -1830,6 +1834,334 @@ final class FanaticallyImportSource implements ImportSourceInterface
              'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems],
             ['copied' => $imgCopied, 'skipped' => $imgSkipped, 'errors' => $imgErrors],
         ];
+    }
+
+    /** runCodes()'s result when the step can't start, with nothing written. */
+    private function codesStepStopped(string $error): array
+    {
+        return [
+            ['type' => 'Codes', 'imported' => 0, 'skipped' => 0, 'warnings' => [], 'errors' => [$error], 'skipped_items' => []],
+            ['copied' => 0, 'skipped' => 0, 'errors' => []],
+        ];
+    }
+
+    /**
+     * The preview's Codes row. Collective and listing codes are each counted with the
+     * same rules the import applies.
+     *
+     * @param array<int,array<string,mixed>> $fieldPlans From readCustomFieldPlans().
+     * @return array<string,mixed>
+     */
+    private function previewCodes(PDO $source, PDO $target, string $p, ImportOptions $options, array $fieldPlans): array
+    {
+        $codesRow = $this->previewTable($source, "{$p}codes", 'Codes', [
+            'Fanatically stores codes in a flat table. Size labels and donor fields will be normalized into lstr_code_sizes and lstr_code_donors.',
+        ]);
+
+        // A failed check isn't a missing column, so it doesn't get that advice.
+        try {
+            $hasCodeIdentity = $this->tableHasColumn($target, 'lstr_codes', 'import_source_file', true);
+        } catch (\Throwable) {
+            $codesRow['warnings'][] = self::CODES_CHECK_FAILED . ' These numbers may be off, and the import will stop at this step.';
+            return $codesRow;
+        }
+
+        // Collective codes: counted with the same skip rule the import applies.
+        $storedCollective = $hasCodeIdentity ? $this->storedCollectiveCodes($target) : [];
+        $ambiguous        = $this->ambiguousCollectiveCodes($source, $p, $storedCollective);
+        $collectiveCodes = 0;
+        $collectiveSkips = 0;
+        try {
+            $st = $source->query("SELECT file_name, size_label FROM `{$p}codes` WHERE listing_id = 0");
+            foreach ($st ? $st->fetchAll() : [] as $row) {
+                $collectiveCodes++;
+                $fileName = trim((string) ($row['file_name'] ?? ''));
+                if ($fileName === ''
+                    || $this->collectiveCodeSkipReason($fileName, trim((string) ($row['size_label'] ?? '')), $ambiguous, $hasCodeIdentity, $storedCollective) !== null
+                ) {
+                    $collectiveSkips++;
+                }
+            }
+        } catch (\Throwable) {}
+
+        if ($collectiveCodes > 0) {
+            $codesRow['warnings'][] = "{$collectiveCodes} collective code(s) (Fanatically's \"Collective\") will be imported as collective codes, "
+                . 'with any donor credited on the code itself.';
+        }
+        if ($collectiveCodes > 0 && !$hasCodeIdentity) {
+            $codesRow['warnings'][] = "Needs decision — collective codes can't be imported yet: run the migration page first (Luster needs Migration 104).";
+        }
+        if (!$options->importListings) {
+            // Without Listings only collective codes have somewhere to go.
+            $codesRow['skip']   = $codesRow['found'] - $collectiveCodes;
+            $codesRow['import'] = $collectiveCodes;
+        } else {
+            try {
+                $listingCodes = $this->previewListingCodes($source, $target, $p, $options, $fieldPlans, $hasCodeIdentity);
+                $codesRow['import'] -= $listingCodes['skipped'];
+                $codesRow['skip']   += $listingCodes['skipped'];
+                array_push($codesRow['warnings'], ...$listingCodes['warnings']);
+            } catch (\Throwable) {
+                $codesRow['warnings'][] = "Couldn't read the codes to compare them with Luster's, so these numbers may be off.";
+            }
+        }
+        $codesRow['import'] -= $collectiveSkips;
+        $codesRow['skip']   += $collectiveSkips;
+
+        foreach ($ambiguous as $name => $info) {
+            $codesRow['warnings'][] = $info['existing']
+                ? "Needs decision — collective code \"{$name}\" comes in sizes Luster can't read as width x height ("
+                    . implode(', ', $info['labels']) . ') and is already in Luster, so those copies will be skipped. Update them on the collective codes page.'
+                : "Collective code \"{$name}\" comes in sizes Luster can't read as width x height (" . implode(', ', $info['labels'])
+                    . '). Every copy is imported now, but importing again later will skip those copies, because Luster can\'t tell them apart.';
+        }
+
+        return $codesRow;
+    }
+
+    /**
+     * How many listing codes the import will skip, walking them the same way runCodes()
+     * does but writing nothing. Listings and sizes that don't exist yet have no stored
+     * codes. What an earlier code in this import would add or tag is tracked as it goes,
+     * so a repeated file counts the way the import counts it.
+     *
+     * @param array<int,array<string,mixed>> $plans From readCustomFieldPlans().
+     * @return array{skipped: int, warnings: list<string>}
+     * @throws \Throwable If the source or Luster's codes can't be read.
+     */
+    private function previewListingCodes(PDO $source, PDO $target, string $p, ImportOptions $options, array $plans, bool $hasCodeIdentity): array
+    {
+        $destinations = [];
+        foreach ($plans as $srcId => $plan) {
+            $destinations[(int) $srcId] = (int) ($plan['destination'] ?? 0);
+        }
+
+        $sourceCodes   = $this->readSourceCodes($source, $p);
+        $byDestination = $this->codesByDestination($sourceCodes, $destinations);
+
+        $plans    = [];
+        $known    = [];
+        $skipped  = 0;
+        $orphans  = 0;
+        $newId    = 0;
+        $warnings = [];
+        foreach ($sourceCodes as $code) {
+            if ($code['listing'] === 0) {
+                continue;
+            }
+            $destination = $destinations[$code['listing']] ?? null;
+            if ($destination === null) {
+                $orphans++;
+                continue;
+            }
+            $file = $code['file'];
+            if ($file === '') {
+                $skipped++;
+                continue;
+            }
+
+            $cantImport = CodeIdentity::cantTrack($file, $hasCodeIdentity) ?? $this->codeSizeProblem($code['label']);
+            if ($cantImport !== null) {
+                $skipped++;
+                $warnings[] = "Code \"{$file}\" will be skipped. {$cantImport}";
+                continue;
+            }
+
+            $plans[$destination] ??= $this->planListingCodes($target, $destination, $byDestination[$destination] ?? []);
+            $sizeKey = $plans[$destination]['sizes'][$code['label']];
+            $known[$destination][$sizeKey] ??= $this->storedCodesForPreview($target, $destination, $sizeKey, $hasCodeIdentity);
+
+            $decision = CodeIdentity::decide($file, $hasCodeIdentity, isset($plans[$destination]['colliding'][$sizeKey][$file]), $known[$destination][$sizeKey]);
+            if ($decision['action'] === CodeIdentity::SKIP) {
+                $skipped++;
+                $warnings[] = "Code \"{$file}\" will be skipped. {$decision['reason']}";
+            } elseif ($decision['action'] === CodeIdentity::INSERT) {
+                $known[$destination][$sizeKey] = CodeIdentity::afterInsert($known[$destination][$sizeKey], --$newId, $file, $hasCodeIdentity);
+            } elseif ($options->conflictStrategy === 'skip') {
+                $skipped++;
+            } elseif ($decision['tag']) {
+                $known[$destination][$sizeKey] = CodeIdentity::afterTagging($known[$destination][$sizeKey], (int) $decision['id'], $file);
+            }
+        }
+
+        if ($orphans > 0) {
+            $skipped += $orphans;
+            $warnings[] = "{$orphans} code(s) belong to a listing that isn't being imported, so they'll be skipped.";
+        }
+
+        return ['skipped' => $skipped, 'warnings' => $warnings];
+    }
+
+    /**
+     * The stored codes for a listing and size identity, without creating anything. A
+     * destination below 0 is a listing this import will create, and a size that doesn't
+     * exist yet has no codes.
+     *
+     * @return list<array{id: int, name: ?string, src: ?string}>
+     * @throws \Throwable If they can't be read.
+     */
+    private function storedCodesForPreview(PDO $target, int $destination, string $sizeKey, bool $hasCodeIdentity): array
+    {
+        if ($destination <= 0) {
+            return [];
+        }
+        if ($sizeKey === self::CODE_NO_SIZE) {
+            return $this->codesForSize($target, $destination, null, $hasCodeIdentity);
+        }
+        if (str_starts_with($sizeKey, self::CODE_STORED_SIZE)) {
+            return $this->codesForSize($target, $destination, (int) substr($sizeKey, strlen(self::CODE_STORED_SIZE)), $hasCodeIdentity);
+        }
+
+        return [];
+    }
+
+    /**
+     * Every code in the source, read up front so a preview and a run see the same list.
+     *
+     * @return list<array{listing: int, label: string, file: string}>
+     * @throws \Throwable If it can't be read.
+     */
+    private function readSourceCodes(PDO $source, string $p): array
+    {
+        $st = $source->query("SELECT listing_id, file_name, size_label FROM `{$p}codes`");
+        if ($st === false) {
+            throw new \RuntimeException("Couldn't read {$p}codes.");
+        }
+
+        $codes = [];
+        foreach ($st->fetchAll() as $row) {
+            $codes[] = [
+                'listing' => (int) ($row['listing_id'] ?? 0),
+                'label'   => trim((string) ($row['size_label'] ?? '')),
+                'file'    => trim((string) ($row['file_name'] ?? '')),
+            ];
+        }
+
+        return $codes;
+    }
+
+    /**
+     * The source's listing codes, grouped by the Luster listing they go into. Source
+     * listings that share a Luster listing go together, because their codes end up together.
+     *
+     * @param list<array{listing: int, label: string, file: string}> $sourceCodes
+     * @param array<int,int>                                         $destinations Source listing id => Luster listing id.
+     * @return array<int, list<array{listing: int, label: string, file: string}>>
+     */
+    private function codesByDestination(array $sourceCodes, array $destinations): array
+    {
+        $grouped = [];
+        foreach ($sourceCodes as $code) {
+            $destination = $destinations[$code['listing']] ?? null;
+            if ($code['listing'] !== 0 && $destination !== null) {
+                $grouped[$destination][] = $code;
+            }
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * How one Luster listing's incoming codes line up with its sizes, for the run and the
+     * preview alike. Different labels can mean the same stored size: "Small" by its name
+     * and "88x31" by its measurements can both be one row. So everything about a code's
+     * size goes by which size it really is, never by the label it arrived with.
+     *
+     * @param list<array{listing: int, label: string, file: string}> $codes
+     * @return array{sizes: array<string, string>, colliding: array<string, array<string, true>>}
+     *         sizes is label => size identity, and colliding is [size identity][file] => true.
+     * @throws \Throwable If the listing's sizes can't be read.
+     */
+    private function planListingCodes(PDO $target, int $destination, array $codes): array
+    {
+        $stored = $destination > 0 ? $this->codeSizesOf($target, $destination) : [];
+
+        $sizes = [];
+        $files = [];
+        foreach ($codes as $code) {
+            $sizes[$code['label']] ??= $this->codeSizeIdentity($stored, $code['label']);
+            if ($code['file'] !== '') {
+                $files[$sizes[$code['label']]][] = $code['file'];
+            }
+        }
+
+        $colliding = [];
+        foreach ($files as $sizeKey => $names) {
+            $colliding[$sizeKey] = CodeIdentity::colliding($names);
+        }
+
+        return ['sizes' => $sizes, 'colliding' => $colliding];
+    }
+
+    /**
+     * Which size a label really is: no size for a blank, the stored row if it has one, or
+     * the size this import will add. Adding one can't change the answer for another label,
+     * because a new row is only ever found again by the same measurements or exact label.
+     *
+     * @param list<array{id: int, label: string, width: ?int, height: ?int}> $stored
+     */
+    private function codeSizeIdentity(array $stored, string $label): string
+    {
+        if ($label === '') {
+            return self::CODE_NO_SIZE;
+        }
+
+        $id = $this->resolveCodeSize($stored, $label);
+
+        return $id !== null ? self::CODE_STORED_SIZE . $id : self::CODE_NEW_SIZE . $this->newCodeSizeKey($label);
+    }
+
+    /** What a size that doesn't exist yet goes by. WxH labels are one size whatever their capitals. */
+    private function newCodeSizeKey(string $label): string
+    {
+        [$w, $h] = $this->parseSize($label);
+
+        return $w > 0 || $h > 0 ? "{$w}x{$h}" : 'label:' . $label;
+    }
+
+    /**
+     * Why a size label can't be stored as it is, or null if it can. A value that doesn't
+     * fit is cut short on a server that isn't strict, so it would never match again and
+     * every repeat import would add a new size and a copy of the code.
+     */
+    private function codeSizeProblem(string $label): ?string
+    {
+        if (mb_strlen($label) > self::CODE_SIZE_LABEL_LIMIT) {
+            return "Its size label is longer than 100 characters, so Luster can't keep track of it between imports.";
+        }
+        [$w, $h] = $this->parseSize($label);
+        if ($w > self::CODE_DIMENSION_LIMIT || $h > self::CODE_DIMENSION_LIMIT) {
+            return "Its size is too big for Luster to store, so it can't keep track of it between imports.";
+        }
+
+        return null;
+    }
+
+    /**
+     * The stored codes for a listing and size. A null size means codes with no size.
+     *
+     * @return list<array{id: int, name: ?string, src: ?string}>
+     * @throws \Throwable If they can't be read.
+     */
+    private function codesForSize(PDO $target, int $listingId, ?int $sizeId, bool $hasCodeIdentity): array
+    {
+        $columns = $hasCodeIdentity ? 'id, name, import_source_file' : 'id, name';
+        $size    = $sizeId !== null ? 'size_id = :sid' : 'size_id IS NULL';
+        $params  = ['fid' => $listingId] + ($sizeId !== null ? ['sid' => $sizeId] : []);
+
+        $st = $target->prepare("SELECT {$columns} FROM lstr_codes WHERE fanlisting_id = :fid AND {$size} ORDER BY id");
+        $st->execute($params);
+
+        $rows = [];
+        foreach ($st->fetchAll() as $row) {
+            $rows[] = [
+                'id'   => (int) $row['id'],
+                'name' => $row['name'] !== null ? (string) $row['name'] : null,
+                'src'  => isset($row['import_source_file']) ? (string) $row['import_source_file'] : null,
+            ];
+        }
+
+        return $rows;
     }
 
     /**
@@ -2914,54 +3246,83 @@ final class FanaticallyImportSource implements ImportSourceInterface
     }
 
     /**
-     * Upserts lstr_code_sizes for a given listing + size label.
-     * Parseable labels key by (fanlisting_id, width, height).
-     * Non-parseable labels key by (fanlisting_id, label) with width=height=0.
+     * Finds or adds the lstr_code_sizes row for a listing and label, and returns its id.
+     * A blank label means the code has no size, so it returns null with no row: a size's
+     * label is required, so a blank one can't be stored. Anything else that fails throws,
+     * because a code landing with no size would be a different code on the next import.
      *
-     * @param array<int,array<string,mixed>> $idMap  In/out map for caching
+     * @param array<int,array<string,int>> $idMap In/out cache: [listing][label] => id
+     * @throws \Throwable If the size can't be read or added.
      */
     private function upsertCodeSize(PDO $target, int $listingId, string $label, array &$idMap): ?int
     {
-        [$w, $h] = $this->parseSize($label);
-        $cacheKey = $label !== '' ? $label : '__blank__';
-
-        if (isset($idMap[$listingId][$cacheKey])) {
-            return $idMap[$listingId][$cacheKey];
+        if ($label === '') {
+            return null;
+        }
+        if (isset($idMap[$listingId][$label])) {
+            return $idMap[$listingId][$label];
         }
 
-        // Store dims for codes insert
-        $idMap[$listingId]['__dims'][$label] = ['w' => $w, 'h' => $h];
-
-        try {
-            // Try to find existing
-            if ($w > 0 || $h > 0) {
-                $st = $target->prepare(
-                    'SELECT id FROM lstr_code_sizes WHERE fanlisting_id=:fid AND width=:w AND height=:h LIMIT 1'
-                );
-                $st->execute(['fid' => $listingId, 'w' => $w, 'h' => $h]);
-            } else {
-                $st = $target->prepare(
-                    'SELECT id FROM lstr_code_sizes WHERE fanlisting_id=:fid AND label=:label LIMIT 1'
-                );
-                $st->execute(['fid' => $listingId, 'label' => $label]);
-            }
-            $existing = $st->fetchColumn();
-
-            if ($existing !== false) {
-                $idMap[$listingId][$cacheKey] = (int) $existing;
-                return (int) $existing;
-            }
-
+        $id = $this->resolveCodeSize($this->codeSizesOf($target, $listingId), $label);
+        if ($id === null) {
+            [$w, $h] = $this->parseSize($label);
             $target->prepare(
                 'INSERT INTO lstr_code_sizes (fanlisting_id, label, width, height)
                  VALUES (:fid, :label, :w, :h)'
-            )->execute(['fid' => $listingId, 'label' => ($label ?: null), 'w' => $w, 'h' => $h]);
-            $newId = (int) $target->lastInsertId();
-            $idMap[$listingId][$cacheKey] = $newId;
-            return $newId;
-        } catch (\Throwable) {
-            return null;
+            )->execute(['fid' => $listingId, 'label' => $label, 'w' => $w, 'h' => $h]);
+            $id = (int) $target->lastInsertId();
         }
+
+        $idMap[$listingId][$label] = $id;
+
+        return $id;
+    }
+
+    /**
+     * A listing's stored sizes, oldest first.
+     *
+     * @return list<array{id: int, label: string, width: ?int, height: ?int}>
+     * @throws \Throwable If they can't be read.
+     */
+    private function codeSizesOf(PDO $target, int $listingId): array
+    {
+        $st = $target->prepare('SELECT id, label, width, height FROM lstr_code_sizes WHERE fanlisting_id = :fid ORDER BY id');
+        $st->execute(['fid' => $listingId]);
+
+        $sizes = [];
+        foreach ($st->fetchAll() as $row) {
+            $sizes[] = [
+                'id'     => (int) $row['id'],
+                'label'  => (string) $row['label'],
+                'width'  => $row['width'] !== null ? (int) $row['width'] : null,
+                'height' => $row['height'] !== null ? (int) $row['height'] : null,
+            ];
+        }
+
+        return $sizes;
+    }
+
+    /**
+     * The stored size a non-blank label means, or null if there isn't one yet. WxH labels
+     * match by their numbers, so 100x35 and 100X35 are one size on purpose, and they take
+     * the oldest row with those measurements. Any other label has to match exactly here,
+     * because Small and small are two sizes.
+     *
+     * @param list<array{id: int, label: string, width: ?int, height: ?int}> $stored
+     */
+    private function resolveCodeSize(array $stored, string $label): ?int
+    {
+        [$w, $h] = $this->parseSize($label);
+        foreach ($stored as $size) {
+            $matches = $w > 0 || $h > 0
+                ? $size['width'] === $w && $size['height'] === $h
+                : $size['label'] === $label;
+            if ($matches) {
+                return $size['id'];
+            }
+        }
+
+        return null;
     }
 
     /**

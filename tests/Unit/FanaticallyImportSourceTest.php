@@ -239,9 +239,9 @@ final class FanaticallyImportSourceTest extends TestCase
             'CREATE TABLE IF NOT EXISTS lstr_code_sizes (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
                 fanlisting_id INTEGER NOT NULL,
-                label         TEXT    NULL,
-                width         INTEGER NOT NULL DEFAULT 0,
-                height        INTEGER NOT NULL DEFAULT 0
+                label         TEXT    NOT NULL COLLATE NOCASE,
+                width         INTEGER NULL,
+                height        INTEGER NULL
             )'
         );
         $pdo->exec(
@@ -2267,9 +2267,9 @@ final class FanaticallyImportSourceTest extends TestCase
             'CREATE TABLE IF NOT EXISTS lstr_code_sizes (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
                 fanlisting_id INTEGER NOT NULL,
-                label         TEXT    NULL,
-                width         INTEGER NOT NULL DEFAULT 0,
-                height        INTEGER NOT NULL DEFAULT 0
+                label         TEXT    NOT NULL COLLATE NOCASE,
+                width         INTEGER NULL,
+                height        INTEGER NULL
             )'
         );
         $pdo->exec(

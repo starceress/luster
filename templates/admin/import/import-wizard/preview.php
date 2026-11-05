@@ -121,7 +121,7 @@ $src = View::e($source);
       <div class="stat-value"><?= number_format($totalSkip) ?></div>
       <div class="stat-pills">
         <?php if ($totalSkip > 0): ?>
-          <span class="badge badge-pending">Already in Luster</span>
+          <span class="badge badge-pending">Already in Luster, or see notes</span>
         <?php else: ?>
           <span class="badge badge-current">None</span>
         <?php endif; ?>
@@ -165,8 +165,17 @@ $src = View::e($source);
         </div>
       <?php endif; ?>
 
+      <?php
+        // BellaBuffs can only update its codes. Its members and affiliates are always kept.
+        $conflictText = 'Skip existing records';
+        if ($options->conflictStrategy === 'overwrite') {
+            $conflictText = $options->source === 'bellabuffs'
+                ? 'Update matching fan codes. Existing members and affiliates are kept'
+                : 'Overwrite existing records';
+        }
+      ?>
       <div class="field-label">Conflicts</div>
-      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;color:var(--text);font-size:var(--fs-md)"><?= $options->conflictStrategy === 'overwrite' ? 'Overwrite existing records' : 'Skip existing records' ?></div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;color:var(--text);font-size:var(--fs-md)"><?= View::e($conflictText) ?></div>
 
       <div class="field-label">Images</div>
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;color:var(--text);font-size:var(--fs-md)">

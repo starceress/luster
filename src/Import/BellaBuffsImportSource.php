@@ -37,6 +37,9 @@ final class BellaBuffsImportSource implements ImportSourceInterface
     private const EMAIL_SEARCH  = ['ATTIE', 'DOTTY', 'DASHY', 'UNDERSCORE', 'SCORE', '[at]', '[dot]', 'DASH'];
     private const EMAIL_REPLACE = ['@',     '.',     '-',     '_',          '_',     '@',    '.',     '-'    ];
 
+    private const CODE_ALREADY_EXISTS = 'Code already exists (same filename and dimensions)';
+    private const CODE_IMAGE_MISSING  = 'Image file not found or failed MIME check';
+
     // -----------------------------------------------------------------------
     // ImportSourceInterface — identification and connection
     // -----------------------------------------------------------------------
@@ -187,16 +190,22 @@ final class BellaBuffsImportSource implements ImportSourceInterface
             $btnPath = $options->bbButtonsPath;
             if ($btnPath !== '' && is_readable($btnPath)) {
                 $buttons   = $this->parseButtonFile($btnPath);
-                $dupes     = $this->countCodeDupes($targetPdo, $fanlistingId, $buttons);
                 $codeWarns = [];
                 if ($options->bbButtonsDir === '') {
-                    $codeWarns[] = 'buttons/ directory not found — code images will not be copied.';
+                    $codeWarns[] = "buttons/ directory not found, and a code can't be imported without its image, so these will be skipped.";
+                }
+                try {
+                    $plan = $this->previewCodes($targetPdo, $fanlistingId, $buttons, $options);
+                    array_push($codeWarns, ...$plan['warnings']);
+                } catch (\Throwable) {
+                    $plan = ['import' => count($buttons), 'skip' => 0];
+                    $codeWarns[] = "Couldn't read Luster's existing codes to compare them, so these numbers may be off.";
                 }
                 $rows[] = [
                     'type'     => 'Codes / Buttons',
                     'found'    => count($buttons),
-                    'import'   => max(0, count($buttons) - $dupes),
-                    'skip'     => $dupes,
+                    'import'   => $plan['import'],
+                    'skip'     => $plan['skip'],
                     'warnings' => $codeWarns,
                 ];
             } else {
@@ -469,6 +478,26 @@ final class BellaBuffsImportSource implements ImportSourceInterface
         $sizeCache    = [];
         $donorCache   = [];
 
+        // Codes are tracked by their full filename (Migration 104's column). If that can't
+        // be checked, the step stops rather than falling back to weaker matching.
+        try {
+            $hasSourceColumn = $this->codesHaveSourceColumn($pdo);
+        } catch (\Throwable $e) {
+            return [[
+                'type'          => 'Codes / Buttons',
+                'imported'      => 0,
+                'skipped'       => 0,
+                'warnings'      => [],
+                'errors'        => ["Couldn't check how Luster keeps track of imported codes, so no codes were imported. " . $e->getMessage()],
+                'skipped_items' => [],
+            ], []];
+        }
+
+        $colliding = $this->collidingButtons($buttons);
+        // Each size's stored codes, read once when first needed, and kept up to date as
+        // this import writes.
+        $known = [];
+
         $sortBase = (int) $pdo->query(
             'SELECT COALESCE(MAX(sort_order), 0) FROM lstr_codes WHERE fanlisting_id = ' . $fanlistingId
         )->fetchColumn();
@@ -485,22 +514,36 @@ final class BellaBuffsImportSource implements ImportSourceInterface
                     continue;
                 }
 
-                // Deduplication: original filename + dimensions stored in lstr_codes.name
-                $check = $pdo->prepare(
-                    'SELECT id FROM lstr_codes
-                     WHERE fanlisting_id = :fid AND name = :name AND width = :w AND height = :h'
-                );
-                $check->execute(['fid' => $fanlistingId, 'name' => $origName, 'w' => $w, 'h' => $h]);
-                if ($check->fetchColumn() !== false) {
+                $cantTrack = CodeIdentity::cantTrack($origName, $hasSourceColumn);
+                if ($cantTrack !== null) {
                     $skipped++;
-                    $skippedItems[] = ['label' => $origName, 'reason' => 'Code already exists (same filename and dimensions)'];
+                    $skippedItems[] = ['label' => $origName, 'reason' => $cantTrack];
                     continue;
                 }
 
-                // Image copy — required; skip code if image cannot be copied
+                // A code is its source filename and dimensions. A failed read lands in
+                // the catch below: it costs this code, and never counts as "not found".
+                $dimensions = "{$w}x{$h}";
+                $known[$dimensions] ??= $this->codesAtDimensions($pdo, $fanlistingId, $w, $h, $hasSourceColumn);
+                $decision = CodeIdentity::decide($origName, $hasSourceColumn, isset($colliding[$dimensions][$origName]), $known[$dimensions]);
+                if ($decision['action'] === CodeIdentity::SKIP) {
+                    $skipped++;
+                    $skippedItems[] = ['label' => $origName, 'reason' => (string) $decision['reason']];
+                    continue;
+                }
+
+                $existingId = $decision['id'];
+                if ($existingId !== null && $options->conflictStrategy !== 'overwrite') {
+                    $skipped++;
+                    $skippedItems[] = ['label' => $origName, 'reason' => self::CODE_ALREADY_EXISTS];
+                    continue;
+                }
+
+                // Image copy — required; skip code if image cannot be copied. Under
+                // Overwrite that leaves the code already there as it is.
                 $newFilename = null;
                 if ($migrator !== null && $options->bbButtonsDir !== '') {
-                    $srcPath     = rtrim($options->bbButtonsDir, '/\\') . '/' . $origName;
+                    $srcPath     = $this->buttonImagePath($options, $origName);
                     $newFilename = $migrator->copyFromPath($srcPath, 'codes', 'bb_code_');
                     if ($newFilename !== null) {
                         $imgCopied++;
@@ -512,7 +555,7 @@ final class BellaBuffsImportSource implements ImportSourceInterface
 
                 if ($newFilename === null) {
                     $skipped++;
-                    $skippedItems[] = ['label' => $origName, 'reason' => 'Image file not found or failed MIME check'];
+                    $skippedItems[] = ['label' => $origName, 'reason' => self::CODE_IMAGE_MISSING];
                     continue;
                 }
 
@@ -535,27 +578,42 @@ final class BellaBuffsImportSource implements ImportSourceInterface
                     $donorId = $donorCache[$donorKey];
                 }
 
-                $stmt = $pdo->prepare(
-                    'INSERT INTO lstr_codes
-                     (fanlisting_id, name, filename, width, height, size_id, donor_id,
-                      sort_order, status, submitter_name, submitter_url)
-                     VALUES
-                     (:fid, :name, :filename, :w, :h, :sid, :did,
-                      :sort, :status, :sname, :surl)'
-                );
-                $stmt->execute([
-                    'fid'      => $fanlistingId,
-                    'name'     => $origName,
-                    'filename' => $newFilename,
-                    'w'        => $w,
-                    'h'        => $h,
-                    'sid'      => $sizeId,
-                    'did'      => $donorId,
-                    'sort'     => ++$sortBase,
-                    'status'   => 'approved',
-                    'sname'    => $btn['donated'] ? $btn['donator'] : null,
-                    'surl'     => $btn['donated'] ? $btn['donatorUrl'] : null,
-                ]);
+                $fromFile = [
+                    'filename'       => $newFilename,
+                    'size_id'        => $sizeId,
+                    'donor_id'       => $donorId,
+                    'submitter_name' => $btn['donated'] ? $btn['donator'] : null,
+                    'submitter_url'  => $btn['donated'] ? $btn['donatorUrl'] : null,
+                ];
+
+                if ($existingId !== null) {
+                    // Overwrite: what the file says. The name, status and position belong
+                    // to the code in Luster, so an admin's changes to those stay.
+                    if ($decision['tag']) {
+                        $fromFile['import_source_file'] = $origName;
+                    }
+                    $set = implode(', ', array_map(static fn(string $col): string => "{$col} = :{$col}", array_keys($fromFile)));
+                    $pdo->prepare("UPDATE lstr_codes SET {$set} WHERE id = :id")->execute($fromFile + ['id' => $existingId]);
+                    if ($decision['tag']) {
+                        $known[$dimensions] = CodeIdentity::afterTagging($known[$dimensions], $existingId, $origName);
+                    }
+                } else {
+                    $fields = $fromFile + [
+                        'fanlisting_id' => $fanlistingId,
+                        'name'          => CodeIdentity::cappedName($origName),
+                        'width'         => $w,
+                        'height'        => $h,
+                        'sort_order'    => ++$sortBase,
+                        'status'        => 'approved',
+                    ];
+                    if ($hasSourceColumn) {
+                        $fields['import_source_file'] = $origName;
+                    }
+                    $cols = implode(', ', array_keys($fields));
+                    $vals = implode(', ', array_map(static fn(string $col): string => ':' . $col, array_keys($fields)));
+                    $pdo->prepare("INSERT INTO lstr_codes ({$cols}) VALUES ({$vals})")->execute($fields);
+                    $known[$dimensions] = CodeIdentity::afterInsert($known[$dimensions], (int) $pdo->lastInsertId(), $origName, $hasSourceColumn);
+                }
                 $imported++;
             } catch (\Throwable $e) {
                 $errors[] = ($btn['filename'] ?: '?') . ': ' . $e->getMessage();
@@ -648,28 +706,159 @@ final class BellaBuffsImportSource implements ImportSourceInterface
         return $dupes;
     }
 
-    private function countCodeDupes(PDO $pdo, int $fanlistingId, array $buttons): int
+    /**
+     * What insertCodes() will do with these buttons, walking them the same way but
+     * writing nothing and copying nothing. What an earlier button would add or tag is
+     * tracked as it goes, so a repeated one counts the way the import counts it.
+     *
+     * @param list<array<string,mixed>> $buttons From parseButtonFile().
+     * @return array{import: int, skip: int, warnings: list<string>}
+     * @throws \Throwable If Luster's codes can't be read.
+     */
+    private function previewCodes(PDO $pdo, int $fanlistingId, array $buttons, ImportOptions $options): array
     {
-        $dupes = 0;
+        $hasSourceColumn = $this->codesHaveSourceColumn($pdo);
+        $migrator        = $options->bbButtonsDir !== '' ? new ImageMigrator(dirname(__DIR__, 2) . '/public') : null;
+        $colliding       = $this->collidingButtons($buttons);
+
+        $known         = [];
+        $newId         = 0;
+        $import        = 0;
+        $skip          = 0;
+        $missingImages = 0;
+        $warnings      = [];
         foreach ($buttons as $btn) {
-            if ($btn['filename'] === '') {
+            $file = $btn['filename'];
+            if ($file === '') {
+                $skip++;
                 continue;
             }
-            $stmt = $pdo->prepare(
-                'SELECT COUNT(*) FROM lstr_codes
-                 WHERE fanlisting_id = :fid AND name = :name AND width = :w AND height = :h'
-            );
-            $stmt->execute([
-                'fid'  => $fanlistingId,
-                'name' => $btn['filename'],
-                'w'    => $btn['width'],
-                'h'    => $btn['height'],
-            ]);
-            if ((int) $stmt->fetchColumn() > 0) {
-                $dupes++;
+
+            $cantTrack = CodeIdentity::cantTrack($file, $hasSourceColumn);
+            if ($cantTrack !== null) {
+                $skip++;
+                $warnings[] = "Code \"{$file}\" will be skipped. {$cantTrack}";
+                continue;
+            }
+
+            $dimensions = "{$btn['width']}x{$btn['height']}";
+            $known[$dimensions] ??= $this->codesAtDimensions($pdo, $fanlistingId, $btn['width'], $btn['height'], $hasSourceColumn);
+            $decision = CodeIdentity::decide($file, $hasSourceColumn, isset($colliding[$dimensions][$file]), $known[$dimensions]);
+            if ($decision['action'] === CodeIdentity::SKIP) {
+                $skip++;
+                $warnings[] = "Code \"{$file}\" will be skipped. {$decision['reason']}";
+                continue;
+            }
+            if ($decision['id'] !== null && $options->conflictStrategy !== 'overwrite') {
+                $skip++;
+                continue;
+            }
+
+            if ($migrator === null) {
+                $skip++;
+                continue;
+            }
+            if (!$migrator->canCopyFromPath($this->buttonImagePath($options, $file))) {
+                $skip++;
+                $missingImages++;
+                continue;
+            }
+
+            $import++;
+            if ($decision['id'] === null) {
+                $known[$dimensions] = CodeIdentity::afterInsert($known[$dimensions], --$newId, $file, $hasSourceColumn);
+            } elseif ($decision['tag']) {
+                $known[$dimensions] = CodeIdentity::afterTagging($known[$dimensions], $decision['id'], $file);
             }
         }
-        return $dupes;
+
+        if ($missingImages > 0) {
+            $warnings[] = "{$missingImages} code(s) will be skipped because their image file is missing or isn't an image.";
+        }
+
+        return ['import' => $import, 'skip' => $skip, 'warnings' => $warnings];
+    }
+
+    /** Where a button's image should be. */
+    private function buttonImagePath(ImportOptions $options, string $file): string
+    {
+        return rtrim($options->bbButtonsDir, '/\\') . '/' . $file;
+    }
+
+    /**
+     * Which buttons share their first 150 characters with a different one at the same
+     * dimensions.
+     *
+     * @param list<array<string,mixed>> $buttons
+     * @return array<string, array<string, true>> [WxH][file] => true
+     */
+    private function collidingButtons(array $buttons): array
+    {
+        $files = [];
+        foreach ($buttons as $btn) {
+            if ($btn['filename'] !== '') {
+                $files["{$btn['width']}x{$btn['height']}"][] = $btn['filename'];
+            }
+        }
+
+        $colliding = [];
+        foreach ($files as $dimensions => $names) {
+            $colliding[$dimensions] = CodeIdentity::colliding($names);
+        }
+
+        return $colliding;
+    }
+
+    /**
+     * The stored codes at these dimensions.
+     *
+     * @return list<array{id: int, name: ?string, src: ?string}>
+     * @throws \Throwable If they can't be read.
+     */
+    private function codesAtDimensions(PDO $pdo, int $fanlistingId, int $w, int $h, bool $hasSourceColumn): array
+    {
+        $columns = $hasSourceColumn ? 'id, name, import_source_file' : 'id, name';
+        $stmt    = $pdo->prepare("SELECT {$columns} FROM lstr_codes WHERE fanlisting_id = :fid AND width = :w AND height = :h ORDER BY id");
+        $stmt->execute(['fid' => $fanlistingId, 'w' => $w, 'h' => $h]);
+
+        $rows = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $rows[] = [
+                'id'   => (int) $row['id'],
+                'name' => $row['name'] !== null ? (string) $row['name'] : null,
+                'src'  => isset($row['import_source_file']) ? (string) $row['import_source_file'] : null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Whether lstr_codes has Migration 104's import_source_file column.
+     *
+     * @throws \Throwable If that can't be checked, which isn't the same as it being missing.
+     */
+    private function codesHaveSourceColumn(PDO $pdo): bool
+    {
+        if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $stmt = $pdo->query('PRAGMA table_info(`lstr_codes`)');
+            if ($stmt === false) {
+                throw new RuntimeException("Couldn't read the columns of lstr_codes.");
+            }
+
+            return in_array('import_source_file', array_column($stmt->fetchAll(), 'name'), true);
+        }
+
+        $stmt = $pdo->prepare(
+            "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_codes' AND COLUMN_NAME = 'import_source_file'
+             LIMIT 1"
+        );
+        if ($stmt === false || !$stmt->execute()) {
+            throw new RuntimeException("Couldn't read the columns of lstr_codes.");
+        }
+
+        return $stmt->fetchColumn() !== false;
     }
 
     private function upsertSize(PDO $pdo, int $fanlistingId, int $w, int $h): int
