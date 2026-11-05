@@ -61,7 +61,7 @@ $id = (int) $listing->id;
                 <?php endif; ?>
               </td>
               <td><code><?= $safeName ?></code></td>
-              <td class="text-muted"><?= View::e($field->type) ?></td>
+              <td class="text-muted"><?= View::e($field->typeLabel()) ?></td>
               <td>
                 <?php if ($field->required): ?>
                   <span class="badge badge-current">Yes</span>

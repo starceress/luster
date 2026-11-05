@@ -13,11 +13,15 @@ declare(strict_types=1);
             member-save-harness.php <scenarios.json> <mail file> <log file>
 
  A scenario: {"layout": "owned"|"enth", "action": "...", "definitions": [...],
+   "stored_raw": "the listing's field column as it's stored, instead of definitions",
    "extra_columns": ["fave", ...], "member": {"fave": "value", ...} (null for no member),
-   "post": {...}, "queue_updates": bool, "fail_on": "regex"}
+   "post": {...}, "queue_updates": bool, "fail_on": "regex", "seed_sql": ["..."],
+   "lock_refused": ["address"], "before": {"match": "regex", "sql": "..."},
+   "render": "join"|"update" (then draw the real embed), "read_definitions": bool}
 
  Actions: join, add, edit, edit_get, update, roundtrip_edit, roundtrip_update,
- update_and_approve, display, queue_page, queue_overview, fields_page.
+ update_and_approve, display, queue_page, queue_overview, fields_page, none,
+ field_edit_get, field_edit, field_add.
 */
 
 use Luster\Controllers\Admin\FieldController;
@@ -26,7 +30,6 @@ use Luster\Controllers\Admin\PendingUpdateController;
 use Luster\Controllers\Public\JoinController;
 use Luster\Controllers\Public\UpdateController;
 use Luster\Core\Application;
-use Luster\Core\Countries;
 use Luster\Core\Database;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -85,7 +88,7 @@ function memberSaveFixture(string $root, array $s, string $passwordHash): array
     foreach ($definitions as $i => $d) {
         $definitions[$i] += ['label' => ucfirst((string) $d['name']), 'type' => 'text', 'required' => 0, 'options' => ''];
     }
-    $stored = $definitions !== [] ? serialize($definitions) : '';
+    $stored = $s['stored_raw'] ?? ($definitions !== [] ? serialize($definitions) : '');
 
     $extraCols = '';
     foreach ($s['extra_columns'] ?? [] as $column) {
@@ -193,6 +196,9 @@ function memberSaveFixture(string $root, array $s, string $passwordHash): array
         $pdo->prepare('INSERT INTO lstr_pending_updates (fanlisting_id, member_email, changes, submitted_at, review_state) VALUES (?, ?, ?, ?, ?)')
             ->execute([$q['listing'] ?? 1, $q['email'] ?? 'ann@example.com', $q['changes_raw'] ?? json_encode($q['changes']), $q['submitted_at'] ?? '2026-01-01 00:00:00', $q['review_state'] ?? null]);
     }
+    foreach ($s['seed_sql'] ?? [] as $sql) {
+        $pdo->exec($sql);
+    }
 
     // Only what the controller does is traced, never the fixture.
     $pdo->statements = [];
@@ -262,31 +268,62 @@ function postedFrom(string $html, string $xpath): array
     return $post;
 }
 
-/** The real signed-in Update form, built the way public/embed/update.php builds it. */
-function renderUpdateForm(Application $app, Member $member, array $fields): string
+/**
+ * Runs the real public/embed/{join,update}.php as a site owner's page would, on this
+ * fixture's database. An embed boots from the live config/app.php beside it, so these
+ * are copies in a temp folder whose bootstrap.php hands back this fixture's Application.
+ * The session has to really be running, because the embed starts one.
+ */
+function renderEmbed(Application $app, string $root, string $embed): string
 {
-    $old     = [];
-    $answers = $member->answers($fields);
-    foreach ($fields as $field) {
-        $old['field_' . $field->name] = $answers[$field->name] ?? '';
-    }
-    $urlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="' . htmlspecialchars($member->url, ENT_QUOTES) . '">';
-    $fb     = $app->getFormFieldBuilder();
-    $f      = $fb->build([
-        ['type' => 'text',     'name' => 'new_name',             'id' => 'upd-name',         'label' => 'New Name',     'required' => false, 'value' => ''],
-        ['type' => 'email',    'name' => 'new_email',            'id' => 'upd-new-email',    'label' => 'New Email',    'required' => false, 'value' => ''],
-        ['type' => 'url',      'name' => 'url',                  'id' => 'upd-url',          'label' => 'Website',      'required' => false, 'raw_input' => $urlRaw],
-        ['type' => 'text',     'name' => 'country',              'id' => '',                 'label' => 'New Country',  'required' => false, 'raw_input' => Countries::buildSelect($member->country)],
-        ...$fb->descriptorsFromAdditionalFields($fields, $old),
-        ['type' => 'password', 'name' => 'new_password',         'id' => 'upd-new-pass',     'label' => 'New Password', 'required' => false],
-        ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'upd-confirm-pass', 'label' => 'Confirm',      'required' => false],
-    ], '');
+    static $tree = null;
+    if ($tree === null) {
+        $tree = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lstr_embed_' . uniqid('', true);
+        mkdir($tree . '/public/embed', 0777, true);
+        mkdir($tree . '/vendor');
+        mkdir($tree . '/config');
+        mkdir($tree . '/sessions');
+        file_put_contents($tree . '/vendor/autoload.php', "<?php\n");
+        file_put_contents($tree . '/config/app.php', "<?php\nreturn [];\n");
+        file_put_contents($tree . '/bootstrap.php', "<?php\nreturn \$GLOBALS['lusterHarnessApp'];\n");
+        foreach (['join.php', 'update.php'] as $file) {
+            copy($root . '/public/embed/' . $file, $tree . '/public/embed/' . $file);
+        }
 
-    return $app->getView()->renderFragment('update.php', [
-        'signed_in' => true, 'sign_out_url' => '#', 'form_action' => '#', 'csrf_token' => 'token', 'errors' => '',
-        'field_email' => $member->email, 'fields' => $fields, 'f' => $f, 'form_html' => null, 'form_marker' => 'm1',
-        'base_url' => 'https://luster.test',
-    ]);
+        $keep = $_SESSION ?? [];
+        session_name('luster_session');
+        session_save_path($tree . '/sessions');
+        session_start();
+        $_SESSION = $keep;
+
+        register_shutdown_function(static function () use ($tree): void {
+            session_write_close();
+            foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tree, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $path) {
+                $path->isDir() ? rmdir((string) $path) : unlink((string) $path);
+            }
+            rmdir($tree);
+        });
+    }
+
+    $GLOBALS['lusterHarnessApp'] = $app;
+    $_SERVER['REQUEST_METHOD']   = 'GET';
+    $_SERVER['REQUEST_URI']      = '/' . $embed;
+
+    return (static function (string $lusterHarnessFile): string {
+        $luster_fanlisting_id = 1;
+        $luster_return        = true;
+        return (string) require $lusterHarnessFile;
+    })($tree . '/public/embed/' . $embed . '.php');
+}
+
+/** The form an embed drew, as a browser would post it, or null if it didn't draw one. */
+function formIn(string $html, string $embed): ?array
+{
+    try {
+        return postedFrom($html, '//form[contains(@class, "fl-form-' . $embed . '")]');
+    } catch (RuntimeException) {
+        return null;
+    }
 }
 
 function addPost(array $post): array
@@ -329,6 +366,19 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
     if (isset($s['fail_on'])) {
         $pdo->failOn = $s['fail_on'];
     }
+    foreach ($s['lock_refused'] ?? [] as $address) {
+        $pdo->lockAnswers[$app->getMemberAddressLock()->nameFor(1, (string) $address)] = 0;
+    }
+    if (isset($s['before'])) {
+        // Something happens once, at an exact point in what the controller does.
+        $pdo->beforeStatement = static function (string $sql) use ($pdo, $s): void {
+            static $done = false;
+            if (!$done && preg_match($s['before']['match'], $sql) === 1) {
+                $done = true;
+                $pdo->quiet($s['before']['sql']);
+            }
+        };
+    }
 
     $error    = null;
     $response = null;
@@ -358,10 +408,20 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                 $response = $members->edit($post($posted), ['id' => '1']);
                 break;
             case 'roundtrip_update':
-                $fields   = (new FieldRepo($app->getDatabase(), $app->getConfig()))->getFieldsForListing(1);
-                $html     = renderUpdateForm($app, Member::fromRow($rowBefore), $fields);
-                $posted   = postedFrom($html, '//form[contains(@class, "fl-form-update")]');
+                $posted   = formIn(renderEmbed($app, $root, 'update'), 'update') ?? throw new RuntimeException('The update embed drew no form.');
                 $response = (new UpdateController($app))->submit($post($posted), ['id' => '1']);
+                break;
+            case 'none':
+                // Nothing happens first: only the form is drawn.
+                break;
+            case 'field_edit_get':
+                $response = (new FieldController($app))->edit($get([]), ['fid' => '1', 'name' => $s['field']]);
+                break;
+            case 'field_edit':
+                $response = (new FieldController($app))->edit($post($s['post'] ?? []), ['fid' => '1', 'name' => $s['field']]);
+                break;
+            case 'field_add':
+                $response = (new FieldController($app))->add($post($s['post'] ?? []), ['fid' => '1']);
                 break;
             case 'update_and_approve':
                 $response = (new UpdateController($app))->submit($post(($s['post'] ?? []) + ['_luster_embed_form' => 'm1']), ['id' => '1']);
@@ -409,21 +469,46 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
     }
 
     // Simulated failures were for the controller; reading the results mustn't hit them.
-    $pdo->failOn = null;
+    $pdo->failOn         = null;
+    $pdo->beforeStatement = null;
+    $pdo->lockAnswers    = [];
 
     $queue = [];
     foreach ($pdo->query('SELECT member_email, changes FROM lstr_pending_updates')->fetchAll(PDO::FETCH_ASSOC) as $q) {
         $queue[] = ['email' => $q['member_email'], 'changes' => json_decode((string) $q['changes'], true)];
     }
 
+    // Before the form is drawn, because drawing it uses them up.
     $flashes = [];
     foreach ($_SESSION as $key => $value) {
         if (str_starts_with((string) $key, 'lstr_flash_')) {
             $flashes[(string) $key] = $value;
         }
     }
+    $statements = $pdo->statements;
+
+    $rendered = null;
+    $form     = null;
+    if (isset($s['render'])) {
+        try {
+            $rendered = renderEmbed($app, $root, $s['render']);
+            $form     = formIn($rendered, $s['render']);
+        } catch (\Throwable $e) {
+            $error ??= 'Drawing the form: ' . get_class($e) . ': ' . $e->getMessage();
+        }
+    }
+
+    $storedFields = [];
+    if (!empty($s['read_definitions'])) {
+        foreach ((new FieldRepo($app->getDatabase(), $app->getConfig()))->getFieldsForListing(1) as $field) {
+            $storedFields[$field->name] = ['type' => $field->type, 'options' => $field->options, 'required' => $field->required, 'label' => $field->label, 'type_label' => $field->typeLabel(), 'kind' => $field->controlKind()];
+        }
+    }
 
     $results[] = [
+        'rendered'   => $rendered,
+        'form'       => $form,
+        'fields'     => $storedFields,
         'error'      => $error,
         'status'     => $response?->getStatus(),
         'redirect'   => $response?->isRedirect() ? $response->getRedirectUrl() : null,
@@ -436,7 +521,7 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
         'queue'      => $queue,
         'posted'     => $posted,
         'display'    => $display,
-        'statements' => $pdo->statements,
+        'statements' => $statements,
         'mail'       => fileFrom($mailFile, $mailStart),
         'log'        => fileFrom($logFile, $logStart),
     ];

@@ -620,55 +620,12 @@ final class MemberController extends AdminController
      */
     private static function addFieldValue(AdditionalField $field, string $key, mixed $raw, Validator $v): ?string
     {
-        $label   = $field->label !== '' ? $field->label : $field->name;
-        $kind    = $field->controlKind();
-        $options = $field->optionList();
-
-        if ($kind === 'checkboxes') {
-            // A flat list of picks, saved joined the way the join form saves them.
-            $raw = is_string($raw) ? ($raw === '' ? [] : [$raw]) : $raw;
-            if (!is_array($raw)) {
-                $v->addFieldError($key, "{$label}: that answer isn't valid.");
-                return null;
-            }
-            $picks = [];
-            foreach ($raw as $pick) {
-                if (!is_string($pick)) {
-                    $v->addFieldError($key, "{$label}: that answer isn't valid.");
-                    return null;
-                }
-                $pick = trim($pick);
-                if ($pick === '') {
-                    continue;
-                }
-                if (!in_array($pick, $options, true)) {
-                    $v->addFieldError($key, "{$label}: pick from the listed options.");
-                    return null;
-                }
-                $picks[] = $pick;
-            }
-            $value = implode(', ', array_values(array_unique($picks)));
-        } else {
-            if (!is_string($raw)) {
-                $v->addFieldError($key, "{$label}: that answer isn't valid.");
-                return null;
-            }
-            $value = trim($raw);
-            if ($value !== '' && in_array($kind, ['select', 'radio'], true) && !in_array($value, $options, true)) {
-                $v->addFieldError($key, "{$label}: pick one of the listed options.");
-                return null;
-            }
-            if ($kind === 'checkbox' && !in_array($value, ['', '1'], true)) {
-                $v->addFieldError($key, "{$label}: that answer isn't valid.");
-                return null;
-            }
-        }
-
-        if (mb_strlen($value, 'UTF-8') > 255) {
-            $v->addFieldError($key, "{$label} can be at most 255 characters.");
+        $answer = $field->answerFrom($raw);
+        if ($answer['error'] !== null) {
+            $v->addFieldError($key, $answer['error']);
             return null;
         }
-        return $value;
+        return $answer['value'];
     }
 
     /** A posted or query id: digits only, anything else (an array included) is 0. */

@@ -1589,7 +1589,6 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
           </thead>
           <tbody>
             <?php foreach ($fields as $field): ?>
-            <?php $_typeLabels = ['text' => 'Text Field', 'dropdown' => 'Dropdown', 'checkbox' => 'Checkbox', 'radio' => 'Radio Button']; ?>
             <tr>
               <td class="text-strong">
                 <?= View::e($field->label) ?>
@@ -1599,7 +1598,7 @@ unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $
                 <?php endif; ?>
               </td>
               <td><code><?= View::e($field->name) ?></code></td>
-              <td class="text-muted"><?= View::e($_typeLabels[$field->type] ?? ucfirst($field->type)) ?></td>
+              <td class="text-muted"><?= View::e($field->typeLabel()) ?></td>
               <td>
                 <?php if ($field->required): ?>
                   <span class="badge badge-current">Yes</span>

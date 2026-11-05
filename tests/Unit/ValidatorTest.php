@@ -25,6 +25,40 @@ final class ValidatorTest extends TestCase
         $this->assertFalse($v->fails());
     }
 
+    public function testAListIsRefusedOnceInsteadOfBeingCheckedAsTheWordArray(): void
+    {
+        $v = new Validator(['name' => ['x']]);
+        $v->field('name')->required()->maxLength(100)->email()->url()->httpUrl()->minLength(50)->alphaNumericSpaces()->in(['y']);
+        $v->field('name')->maxLength(100);
+
+        $this->assertSame(['name' => ["That value isn't valid."]], $v->errors());
+    }
+
+    public function testAnEmptyListIsRefusedToo(): void
+    {
+        $v = new Validator(['name' => []]);
+        $v->field('name');
+
+        $this->assertSame("That value isn't valid.", $v->firstError('name'));
+    }
+
+    public function testARuleAfterAStopAddsNothing(): void
+    {
+        $v = new Validator(['name' => '']);
+        $v->field('name')->required('Needed.')->required('Again.')->maxLength(0, 'Too long.');
+
+        $this->assertSame(['name' => ['Needed.']], $v->errors());
+    }
+
+    public function testZeroStillCountsAsAnAnswer(): void
+    {
+        $v = new Validator(['a' => '0', 'b' => 0]);
+        $v->field('a')->required();
+        $v->field('b')->required();
+
+        $this->assertTrue($v->passes());
+    }
+
     public function testFailsWhenRuleViolated(): void
     {
         $v = new Validator(['name' => '']);

@@ -4,8 +4,8 @@
  Copyright (c) 2026 Star (https://dreamesque.net)
 
  Edit a single additional field for a listing. Allows changing the field's label,
- type (text, textarea, select), required status, and select options. The field name
- itself cannot be changed because it corresponds to a database column.
+ type, required status, and choices. The field name itself cannot be changed because
+ it corresponds to a database column.
 */
 
 declare(strict_types=1);
@@ -70,6 +70,9 @@ $encName = urlencode($field->name);
               <option value="dropdown" <?= $field->type === 'dropdown' ? 'selected' : '' ?>>Dropdown</option>
               <option value="checkbox" <?= $field->type === 'checkbox' ? 'selected' : '' ?>>Checkbox</option>
               <option value="radio"    <?= $field->type === 'radio' ? 'selected' : '' ?>>Radio Button</option>
+              <?php if ($field->type === 'textarea'): ?>
+                <option value="textarea" selected>Text Area</option>
+              <?php endif; ?>
             </select>
           </div>
           <p class="form-hint">Choose how members answer this field.</p>

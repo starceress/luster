@@ -37,12 +37,23 @@ final class Validator
     /**
      * Returns a fluent field validator for the named field.
      * Each call creates a fresh ValidatorField bound to this Validator.
+     *
+     * A list isn't a value any of the rules can check (casting it gives the word
+     * "Array", which passes most of them), so it's refused here, once, and the
+     * rules chained after it do nothing.
      */
     public function field(string $name): ValidatorField
     {
-        $value = isset($this->data[$name]) ? (string) $this->data[$name] : '';
+        $raw = $this->data[$name] ?? '';
 
-        return new ValidatorField($name, $value, $this);
+        if (is_array($raw)) {
+            if (!$this->hasFieldErrors($name)) {
+                $this->addFieldError($name, "That value isn't valid.");
+            }
+            return new ValidatorField($name, '', $this, true);
+        }
+
+        return new ValidatorField($name, (string) $raw, $this);
     }
 
     /**

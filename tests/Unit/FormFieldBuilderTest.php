@@ -333,6 +333,91 @@ final class FormFieldBuilderTest extends TestCase
         $this->assertSame('Blue', $descs[0]['value']);
     }
 
+    public function testASelectWithChoicesGetsADropdown(): void
+    {
+        $descs = $this->fb->descriptorsFromAdditionalFields([new AdditionalField('c', 'C', 'select', false, 'Red, Blue')], ['field_c' => 'Blue']);
+
+        $this->assertSame('select', $descs[0]['type']);
+        $this->assertSame(['' => '', 'Red' => 'Red', 'Blue' => 'Blue'], $descs[0]['options']);
+        $this->assertSame('Blue', $descs[0]['value']);
+    }
+
+    public function testAChoiceFieldWithNoChoicesGetsATextBox(): void
+    {
+        foreach (['select', 'dropdown', 'radio'] as $type) {
+            $descs = $this->fb->descriptorsFromAdditionalFields([new AdditionalField('c', 'C', $type, true)], ['field_c' => 'Typed']);
+
+            $this->assertSame('text', $descs[0]['type'], $type);
+            $this->assertSame('f-c', $descs[0]['id'], $type);
+            $this->assertSame([], $descs[0]['options'], $type);
+            $this->assertSame('Typed', $descs[0]['value'], $type);
+            $this->assertSame(['maxlength' => '255'], $descs[0]['attrs'], $type);
+            $this->assertTrue($descs[0]['required'], $type);
+        }
+    }
+
+    public function testASavedAnswerThatIsNoLongerAChoiceIsOfferedAndShown(): void
+    {
+        $fields = [
+            new AdditionalField('d', 'D', 'dropdown', false, 'Red'),
+            new AdditionalField('r', 'R', 'radio', false, 'Red'),
+            new AdditionalField('g', 'G', 'checkbox', false, 'Red'),
+        ];
+        $saved = ['d' => 'Old', 'r' => 'Old', 'g' => 'Red, Old'];
+        $old   = ['field_d' => 'Old', 'field_r' => 'Old', 'field_g' => 'Red, Old'];
+
+        $descs = $this->fb->descriptorsFromAdditionalFields($fields, $old, $saved);
+
+        $this->assertSame(['' => '', 'Red' => 'Red', 'Old' => 'Old'], $descs[0]['options']);
+        $this->assertSame(['Red' => 'Red', 'Old' => 'Old'], $descs[1]['options']);
+        $this->assertSame(['Red' => 'Red', 'Old' => 'Old'], $descs[2]['options']);
+        $this->assertSame(['Red', 'Old'], $descs[2]['selected']);
+    }
+
+    public function testASavedAnswerWithSpacesMatchesTheChoiceOfferedForIt(): void
+    {
+        $fields = [
+            new AdditionalField('d', 'D', 'dropdown', false, 'Red'),
+            new AdditionalField('r', 'R', 'radio', false, 'Red'),
+            new AdditionalField('y', 'Y', 'checkbox', false),
+        ];
+        $saved = ['d' => ' Old ', 'r' => ' Red ', 'y' => ' Old '];
+        $old   = ['field_d' => ' Old ', 'field_r' => ' Red ', 'field_y' => ' Old '];
+
+        $descs = $this->fb->descriptorsFromAdditionalFields($fields, $old, $saved);
+
+        $this->assertSame(['' => '', 'Red' => 'Red', 'Old' => 'Old'], $descs[0]['options']);
+        $this->assertSame('Old', $descs[0]['value']);
+        $this->assertSame(['Red' => 'Red'], $descs[1]['options']);
+        $this->assertSame('Red', $descs[1]['value']);
+        $this->assertSame(['Old' => 'Y'], $descs[2]['options']);
+        $this->assertSame(['Old'], $descs[2]['selected']);
+    }
+
+    public function testAYesBoxKeepsASavedAnswerThatIsNotOne(): void
+    {
+        $field = new AdditionalField('y', 'Y', 'checkbox', false);
+
+        $saved = $this->fb->descriptorsFromAdditionalFields([$field], ['field_y' => 'Red, Blue'], ['y' => 'Red, Blue']);
+        $this->assertSame(['Red, Blue' => 'Y'], $saved[0]['options']);
+        $this->assertSame(['Red, Blue'], $saved[0]['selected']);
+
+        $unticked = $this->fb->descriptorsFromAdditionalFields([$field], ['field_y' => ''], ['y' => 'Red, Blue']);
+        $this->assertSame([], $unticked[0]['selected']);
+
+        $plain = $this->fb->descriptorsFromAdditionalFields([$field], ['field_y' => '1'], ['y' => '1']);
+        $this->assertSame(['1' => 'Y'], $plain[0]['options']);
+        $this->assertSame(['1'], $plain[0]['selected']);
+    }
+
+    public function testNestedOldValuesAreIgnoredWithoutAWarning(): void
+    {
+        $field = new AdditionalField('g', 'G', 'checkbox', false, 'Red');
+        $descs = $this->fb->descriptorsFromAdditionalFields([$field], ['field_g' => ['Red', ['nested']]]);
+
+        $this->assertSame(['Red'], $descs[0]['selected']);
+    }
+
     public function testBooleanCheckboxAdditionalField(): void
     {
         $field = new AdditionalField('agree', 'I agree', 'checkbox', false);

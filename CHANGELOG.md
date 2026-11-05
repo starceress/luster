@@ -80,6 +80,30 @@ can stop a fan's update request for you to look at.
   still get a cautious count, so a long answer that would just fit can still be refused.
 - **Rejecting a request an approval already handled says so,** instead of claiming it
   was rejected.
+- **Dropdowns from older scripts work like dropdowns.** Some showed up on your join and
+  update forms as a plain text box, with their choices ignored.
+- **A dropdown or radio field with no choices can't stop people joining.** If one was
+  required, nobody could get past it, because there was nothing to pick. It's a text box
+  now until you add choices, and your Fields list says **no choices yet** next to it. If
+  a field lost its choices to the old bug where deleting a different field wiped them,
+  this is where you'll spot it.
+- **Public forms only accept the choices you listed.** If a fan had the form open while
+  you changed the choices, they're asked to pick again, and the rest of what they typed
+  is still there.
+- **Saving the update form can't wipe an old answer.** If a fan's saved answer isn't one
+  of your choices anymore, or had stray spaces around it, nothing showed as selected, and
+  saving the form erased it. Now it stays on their form until they pick something else,
+  and any stray spaces get tidied away when they save.
+- **Tick-box answers get checked properly.** A long list of ticks could get past the
+  length limit, because only the word "Array" was being measured. If a required group has
+  nothing ticked, the error now uses the field's name too.
+- **Forms keep your answers after an error.** If the join or update form sends a fan back
+  for any reason, like a wrong captcha answer or a taken email, their extra field answers
+  are still filled in. Passwords are never kept.
+- **Odd form data can't save a member called "Array".** A list sent where one answer
+  belongs is refused now.
+- **Edit Field leaves a text area alone.** Saving one used to quietly turn it into a
+  one-line text field.
 
 
 ### [1.0.0-4] — 2026-11-04

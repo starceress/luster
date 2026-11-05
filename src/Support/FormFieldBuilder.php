@@ -125,32 +125,37 @@ final class FormFieldBuilder
      * Converts AdditionalField[] into descriptor arrays that can be merged with
      * a form's built-in descriptor list and passed to build() in one call.
      *
-     * Additional-field types are normalised to the shared vocabulary:
-     *   dropdown → select (with a leading blank option)
-     *   checkbox → checkboxGroup (boolean when no options defined; multi otherwise)
-     *   radio    → radioGroup
+     * Each field gets the control AdditionalField::controlKind() says, the same one
+     * Add Member draws and the same one its answer is checked against:
+     *   select     → select (with a leading blank option)
+     *   checkboxes → checkboxGroup, one box per choice
+     *   checkbox   → checkboxGroup, a single yes box
+     *   radio      → radioGroup
      *
-     * @param  AdditionalField[] $fields
-     * @param  array             $old    repopulation values keyed 'field_{name}'
+     * @param  AdditionalField[]     $fields
+     * @param  array                 $old    repopulation values keyed 'field_{name}'
+     * @param  array<string, string> $saved  the member's current answers by field name, on a
+     *                                       form that has them. A saved answer that's no longer
+     *                                       a choice is still offered, so it isn't lost by saving.
      * @return array<int, array>
      */
-    public function descriptorsFromAdditionalFields(array $fields, array $old): array
+    public function descriptorsFromAdditionalFields(array $fields, array $old, array $saved = []): array
     {
         $descriptors = [];
 
         foreach ($fields as $field) {
-            $optsList   = array_values(array_filter(
-                array_map('trim', explode(',', $field->options)),
-                static fn(string $o): bool => $o !== '',
-            ));
+            $savedVal   = trim((string) ($saved[$field->name] ?? ''));
+            $optsList   = $field->choicesFor($savedVal);
             $optionsMap = $optsList !== [] ? array_combine($optsList, $optsList) : [];
+            // Trimmed like the choices above and the answer when it's saved. Otherwise a
+            // saved " Cat " matches no choice, shows as nothing, and saving erases it.
             $rawOldVal = $old['field_' . $field->name] ?? '';
-            $oldVal    = is_array($rawOldVal)
-                ? implode(',', array_map('strval', $rawOldVal))
-                : (string) $rawOldVal;
+            $oldVal    = trim(is_array($rawOldVal)
+                ? implode(',', array_filter($rawOldVal, 'is_string'))
+                : (string) $rawOldVal);
 
-            switch ($field->type) {
-                case 'dropdown':
+            switch ($field->controlKind()) {
+                case 'select':
                     $type     = 'select';
                     $id       = 'f-' . $field->name;
                     $options  = ['' => ''] + $optionsMap;
@@ -159,20 +164,25 @@ final class FormFieldBuilder
                     break;
 
                 case 'checkbox':
-                    $type = 'checkboxGroup';
-                    $id   = '';
-                    if ($optionsMap === []) {
-                        // Boolean single-checkbox
-                        $options  = ['1' => $field->label];
-                        $selected = $oldVal === '1' ? ['1'] : [];
-                    } else {
-                        $options  = $optionsMap;
-                        $selected = array_values(array_filter(
-                            array_map('trim', explode(',', $oldVal)),
-                            static fn(string $v): bool => $v !== '',
-                        ));
-                    }
-                    $attrs = [];
+                    // A single yes box posts "1". A saved answer that's anything else
+                    // stays as the box's value, so leaving it ticked keeps it.
+                    $yes      = $savedVal !== '' ? $savedVal : '1';
+                    $type     = 'checkboxGroup';
+                    $id       = '';
+                    $options  = [$yes => $field->label];
+                    $selected = $oldVal === $yes ? [$yes] : [];
+                    $attrs    = [];
+                    break;
+
+                case 'checkboxes':
+                    $type     = 'checkboxGroup';
+                    $id       = '';
+                    $options  = $optionsMap;
+                    $selected = array_values(array_filter(
+                        array_map('trim', explode(',', $oldVal)),
+                        static fn(string $v): bool => $v !== '',
+                    ));
+                    $attrs    = [];
                     break;
 
                 case 'radio':

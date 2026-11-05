@@ -327,7 +327,7 @@ if (!$_lusterSignedIn) {
         ['type' => 'email',    'name' => 'new_email',           'id' => 'upd-new-email',    'label' => 'New Email',            'required' => false, 'value' => (string) ($_lusterOld['new_email'] ?? ''), 'attrs' => ['maxlength' => '255',                                    'placeholder' => $_lusterMember->email]],
         ['type' => 'url',      'name' => 'url',                 'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $_lusterUrlRaw],
         ['type' => 'text',     'name' => 'country',             'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $_lusterCountrySel],
-        ...$_lusterFb->descriptorsFromAdditionalFields($_lusterFields, $_lusterUpdOld),
+        ...$_lusterFb->descriptorsFromAdditionalFields($_lusterFields, $_lusterUpdOld, $_lusterAnswersNow),
         ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Minimum 12 characters. Leave blank to keep current.'],
         ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Repeat new password']],
     ];

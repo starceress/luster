@@ -111,10 +111,15 @@ final class JoinController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
+        // Everything below that sends the fan back to the form goes through refuse(), with
+        // this, so what they typed is still there. Passwords aren't in it.
+        $postData = $request->postAll();
+        $old      = FieldAnswers::oldForm($postData, ['name', 'email', 'url', 'country', 'send_info'], $fields);
+        $backTo   = $embedReturnTo !== '' ? $embedReturnTo : $formUrl;
+
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_JOIN)) {
-            $session->set('lstr_flash_error:' . $marker, 'Too many join attempts. Please try again later.');
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, 'Too many join attempts. Please try again later.', $old, $backTo);
         }
 
         // Honeypot — silent reject; fake success so bots see no difference
@@ -139,15 +144,7 @@ final class JoinController
 
         // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'join')) {
-            $session->set('lstr_flash_error:' . $marker, 'Incorrect answer — please try again.');
-            $session->set('lstr_flash_old:' . $marker, [
-                'name'      => trim((string) $request->post('name',    '')),
-                'email'     => trim((string) $request->post('email',   '')),
-                'url'       => trim((string) $request->post('url',     '')),
-                'country'   => trim((string) $request->post('country', '')),
-                'send_info' => (string) $request->post('send_info', ''),
-            ]);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, 'Incorrect answer — please try again.', $old, $backTo);
         }
 
         // Collect and validate posted data
@@ -155,8 +152,6 @@ final class JoinController
         $email   = trim((string) $request->post('email',   ''));
         $url     = trim((string) $request->post('url',     ''));
         $country = trim((string) $request->post('country', ''));
-
-        $postData = $request->postAll();
 
         $v = new Validator($postData);
         $v->field('name')->required()->maxLength(100);
@@ -168,64 +163,26 @@ final class JoinController
             $countryField->required();
         }
 
-        foreach ($fields as $field) {
-            $fieldKey = 'field_' . $field->name;
-            if ($field->flatAnswer($postData[$fieldKey] ?? '') === null) {
-                $v->addFieldError($fieldKey, $field->displayName() . ": that answer isn't valid.");
-                continue;
-            }
-            $vf = $v->field($fieldKey)->maxLength(255);
-            if ($field->required) {
-                $vf->required();
-            }
-        }
+        // Additional fields — names from FieldRepo only, never raw user input. These
+        // answers are what's checked here and what gets saved below.
+        $answers = FieldAnswers::fromPost($fields, $postData, $v);
 
         if ($v->fails()) {
-            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old:' . $marker, [
-                'name'      => $name,
-                'email'     => $email,
-                'url'       => $url,
-                'country'   => $country,
-                'send_info' => (string) $request->post('send_info', ''),
-            ]);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, implode(' ', $v->allErrors()), $old, $backTo);
         }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
 
         // Blacklist check
         if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
-            $session->set('lstr_flash_error:' . $marker, 'That email address cannot be used to join.');
-            $session->set('lstr_flash_old:' . $marker, [
-                'name'      => $name,
-                'email'     => $email,
-                'url'       => $url,
-                'country'   => $country,
-                'send_info' => (string) $request->post('send_info', ''),
-            ]);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, 'That email address cannot be used to join.', $old, $backTo);
         }
 
         // Duplicate email check
         if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
-            $session->set('lstr_flash_error:' . $marker, 'That email address is already registered for this listing.');
-            $session->set('lstr_flash_old:' . $marker, [
-                'name'      => $name,
-                'email'     => $email,
-                'url'       => $url,
-                'country'   => $country,
-                'send_info' => (string) $request->post('send_info', ''),
-            ]);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, 'That email address is already registered for this listing.', $old, $backTo);
         }
 
-        // Additional fields — names from FieldRepo only, never raw user input.
-        // Checkbox fields post as arrays; flatAnswer() joins them.
-        $answers = [];
-        foreach ($fields as $field) {
-            $answers[$field->name] = (string) $field->flatAnswer($postData['field_' . $field->name] ?? '');
-        }
         $extraValues = FieldAnswers::forPublicForm(
             new FieldRepo($this->app->getDatabase(), $this->app->getConfig()),
             $listing,
@@ -234,15 +191,7 @@ final class JoinController
             'Join',
         );
         if ($extraValues === null) {
-            $session->set('lstr_flash_error:' . $marker, FieldAnswers::PUBLIC_REFUSAL);
-            $session->set('lstr_flash_old:' . $marker, [
-                'name'      => $name,
-                'email'     => $email,
-                'url'       => $url,
-                'country'   => $country,
-                'send_info' => (string) $request->post('send_info', ''),
-            ]);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, FieldAnswers::PUBLIC_REFUSAL, $old, $backTo);
         }
 
         // Password — use the supplied value or auto-generate a secure one
@@ -250,30 +199,14 @@ final class JoinController
         $passwordConfirm = (string) $request->post('password_confirm', '');
 
         if ($rawPassword !== '' && $rawPassword !== $passwordConfirm) {
-            $session->set('lstr_flash_error:' . $marker, 'Passwords do not match. Please try again.');
-            $session->set('lstr_flash_old:' . $marker, [
-                'name'      => $name,
-                'email'     => $email,
-                'url'       => $url,
-                'country'   => $country,
-                'send_info' => (string) $request->post('send_info', ''),
-            ]);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, 'Passwords do not match. Please try again.', $old, $backTo);
         }
 
         if ($rawPassword !== '') {
             $passwordValidator = new Validator(['password' => $rawPassword]);
             PasswordPolicy::apply($passwordValidator->field('password'));
             if ($passwordValidator->fails()) {
-                $session->set('lstr_flash_error:' . $marker, implode(' ', $passwordValidator->allErrors()));
-                $session->set('lstr_flash_old:' . $marker, [
-                    'name'      => $name,
-                    'email'     => $email,
-                    'url'       => $url,
-                    'country'   => $country,
-                    'send_info' => (string) $request->post('send_info', ''),
-                ]);
-                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+                return $this->refuse($marker, implode(' ', $passwordValidator->allErrors()), $old, $backTo);
             }
         }
 
@@ -302,13 +235,6 @@ final class JoinController
 
         // Checked again under the address's lock, which also keeps a save still in
         // progress for whoever had this address before from landing on this member.
-        $oldForm = [
-            'name'      => $name,
-            'email'     => $email,
-            'url'       => $url,
-            'country'   => $country,
-            'send_info' => (string) $request->post('send_info', ''),
-        ];
         try {
             $inserted = $this->app->getMemberAddressLock()->run(
                 [[$listingId, $email]],
@@ -322,14 +248,10 @@ final class JoinController
                 },
             );
         } catch (MemberAddressBusy) {
-            $session->set('lstr_flash_error:' . $marker, MemberAddressBusy::MESSAGE);
-            $session->set('lstr_flash_old:' . $marker, $oldForm);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, MemberAddressBusy::MESSAGE, $old, $backTo);
         }
         if (!$inserted) {
-            $session->set('lstr_flash_error:' . $marker, 'That email address is already registered for this listing.');
-            $session->set('lstr_flash_old:' . $marker, $oldForm);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, 'That email address is already registered for this listing.', $old, $backTo);
         }
         // Last Updated and the member link-check snapshot are handled when an
         // admin approves the member (MemberController), not here.
@@ -421,6 +343,20 @@ final class JoinController
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    /**
+     * Back to the form with an error, and what the fan typed filled back in.
+     *
+     * @param array<string, string|list<string>> $old From FieldAnswers::oldForm().
+     */
+    private function refuse(string $marker, string $error, array $old, string $backTo): Response
+    {
+        $session = $this->app->getSession();
+        $session->set('lstr_flash_error:' . $marker, $error);
+        $session->set('lstr_flash_old:' . $marker, $old);
+
+        return Response::redirect($backTo);
+    }
 
     /**
      * Returns true if the fan has agreed to the current rules version for this

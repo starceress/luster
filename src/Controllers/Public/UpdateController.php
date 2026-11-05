@@ -224,9 +224,13 @@ final class UpdateController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
+        // Anything that sends the fan back to the form goes through refuse(), with this,
+        // so what they typed is still there. Passwords aren't in it.
+        $old    = FieldAnswers::oldForm($request->postAll(), ['new_name', 'new_email', 'url', 'country'], $fields);
+        $backTo = $embedReturnTo !== '' ? $embedReturnTo : $formUrl;
+
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
-            $session->set('lstr_flash_error:' . $marker, 'Too many attempts. Please try again later.');
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, 'Too many attempts. Please try again later.', $old, $backTo);
         }
 
         // Honeypot — silent reject; fake success so bots see no difference
@@ -266,13 +270,12 @@ final class UpdateController
         try {
             $response = $this->app->getMemberAddressLock()->run(
                 $addresses,
-                function () use ($request, $listing, $listingId, $fields, $fieldRepo, $settingsRepo, $embedSettings, $globalDefaults, $formUrl, $embedReturnTo, $marker, $ip, $email, $formToken, $action, &$afterRelease): Response {
-                    return $this->applySubmission($request, $listing, $listingId, $fields, $fieldRepo, $settingsRepo, $embedSettings, $globalDefaults, $formUrl, $embedReturnTo, $marker, $ip, $email, $formToken, $action, $afterRelease);
+                function () use ($request, $listing, $listingId, $fields, $fieldRepo, $settingsRepo, $embedSettings, $globalDefaults, $formUrl, $embedReturnTo, $marker, $ip, $email, $formToken, $action, $old, &$afterRelease): Response {
+                    return $this->applySubmission($request, $listing, $listingId, $fields, $fieldRepo, $settingsRepo, $embedSettings, $globalDefaults, $formUrl, $embedReturnTo, $marker, $ip, $email, $formToken, $action, $old, $afterRelease);
                 },
             );
         } catch (MemberAddressBusy) {
-            $session->set('lstr_flash_error:' . $marker, MemberAddressBusy::MESSAGE);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, MemberAddressBusy::MESSAGE, $old, $backTo);
         }
 
         // Mail waits until the locks are released.
@@ -290,6 +293,7 @@ final class UpdateController
      * @param array<int, object>  $fields
      * @param array<string,mixed> $embedSettings
      * @param array<string,mixed> $globalDefaults
+     * @param array<string,mixed> $old          What the form shows again if this is refused.
      * @param ?callable           $afterRelease Set to whatever has to wait for the locks to go.
      */
     private function applySubmission(
@@ -308,6 +312,7 @@ final class UpdateController
         string $email,
         string $formToken,
         string $action,
+        array $old,
         ?callable &$afterRelease,
     ): Response {
         $session   = $this->app->getSession();
@@ -410,78 +415,36 @@ final class UpdateController
             PasswordPolicy::applyOptional($v->field('new_password'), $newPassword);
         }
 
-        foreach ($fields as $field) {
-            $fieldKey = 'field_' . $field->name;
-            if ($field->flatAnswer($postData[$fieldKey] ?? '') === null) {
-                $v->addFieldError($fieldKey, $field->displayName() . ": that answer isn't valid.");
-                continue;
-            }
-            $vf = $v->field($fieldKey)->maxLength(255);
-            if ($field->required) {
-                $vf->required();
-            }
-        }
+        // These answers are what's checked here and what gets saved below. A saved answer
+        // that's no longer a choice is still allowed, because the form still offers it.
+        $answers = FieldAnswers::fromPost($fields, $postData, $v, $member->answers($fields));
+        $backTo  = $embedReturnTo !== '' ? $embedReturnTo : $formUrl;
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $old = [
-                'new_name'  => $newName,
-                'new_email' => $newEmail,
-                'url'       => $url,
-                'country'   => $country,
-            ];
-            foreach ($fields as $field) {
-                $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
-            }
-            $session->set('lstr_flash_error:' . $marker, implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old:' . $marker, $old);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, implode(' ', $v->allErrors()), $old, $backTo);
         }
 
         // New password confirmation
         if ($newPassword !== '' && $newPassword !== $newPasswordConfirm) {
-            $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
-            foreach ($fields as $field) {
-                $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
-            }
-            $session->set('lstr_flash_error:' . $marker, 'New passwords do not match. Please try again.');
-            $session->set('lstr_flash_old:' . $marker, $old);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, 'New passwords do not match. Please try again.', $old, $backTo);
         }
 
         // New email blacklist + uniqueness check
         if ($newEmail !== '' && $newEmail !== $email) {
-            $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
-            foreach ($fields as $field) {
-                $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
-            }
             if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($newEmail)) {
-                $session->set('lstr_flash_error:' . $marker, 'That email address cannot be used.');
-                $session->set('lstr_flash_old:' . $marker, $old);
-                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+                return $this->refuse($marker, 'That email address cannot be used.', $old, $backTo);
             }
             if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
-                $session->set('lstr_flash_error:' . $marker, 'That email address is already registered for this listing.');
-                $session->set('lstr_flash_old:' . $marker, $old);
-                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+                return $this->refuse($marker, 'That email address is already registered for this listing.', $old, $backTo);
             }
         }
 
         // Where each extra answer goes, worked out before anything is written,
         // the immediate password change below included.
-        $answers = [];
-        foreach ($fields as $field) {
-            $answers[$field->name] = (string) $field->flatAnswer($postData['field_' . $field->name] ?? '');
-        }
         $extraValues = FieldAnswers::forPublicForm($fieldRepo, $listing, $fields, $answers, 'Update');
         if ($extraValues === null) {
-            $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
-            foreach ($fields as $field) {
-                $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
-            }
-            $session->set('lstr_flash_error:' . $marker, FieldAnswers::PUBLIC_REFUSAL);
-            $session->set('lstr_flash_old:' . $marker, $old);
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+            return $this->refuse($marker, FieldAnswers::PUBLIC_REFUSAL, $old, $backTo);
         }
 
         // Resolve final values
@@ -556,21 +519,13 @@ final class UpdateController
                 );
 
                 if ($rekey['outcome'] !== MemberEmailRekey::DONE) {
-                    $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
-                    foreach ($fields as $field) {
-                        $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
-                    }
-                    $session->set('lstr_flash_old:' . $marker, $old);
-
                     if ($rekey['outcome'] === MemberEmailRekey::FAILED) {
-                        $session->set('lstr_flash_error:' . $marker, "We couldn't save your changes because of a database error." . ($passwordHash !== null ? ' Your old password still works.' : '') . ' Please try again.');
-                    } else {
-                        // Their address may have changed, so this sign-in can't be trusted.
-                        MemberSignIn::forget($session, $listingId);
-                        $session->set('lstr_flash_error:' . $marker, "We couldn't confirm your changes were saved. Please check your details before trying again, or contact the listing owner." . ($passwordHash !== null ? " Also, if your new password doesn't work, try your old one." : ''));
+                        return $this->refuse($marker, "We couldn't save your changes because of a database error." . ($passwordHash !== null ? ' Your old password still works.' : '') . ' Please try again.', $old, $backTo);
                     }
 
-                    return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+                    // Their address may have changed, so this sign-in can't be trusted.
+                    MemberSignIn::forget($session, $listingId);
+                    return $this->refuse($marker, "We couldn't confirm your changes were saved. Please check your details before trying again, or contact the listing owner." . ($passwordHash !== null ? " Also, if your new password doesn't work, try your old one." : ''), $old, $backTo);
                 }
             } elseif ($updateData !== []) {
                 $memberRepo->update($listing->dbprefix, $email, $updateData);
@@ -586,6 +541,20 @@ final class UpdateController
         }
 
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+    }
+
+    /**
+     * Back to the form with an error, and what the fan typed filled back in.
+     *
+     * @param array<string, string|list<string>> $old From FieldAnswers::oldForm().
+     */
+    private function refuse(string $marker, string $error, array $old, string $backTo): Response
+    {
+        $session = $this->app->getSession();
+        $session->set('lstr_flash_error:' . $marker, $error);
+        $session->set('lstr_flash_old:' . $marker, $old);
+
+        return Response::redirect($backTo);
     }
 
     /**

@@ -125,19 +125,104 @@ final class AdditionalField
     }
 
     /**
-     * The control the admin Add Member form gives this field, which its save
-     * checks against: 'select' (dropdown, or select as Enthusiast imports call
-     * it), 'radio', 'checkboxes' (a checkbox field with options: pick any),
-     * 'checkbox' (one without options: a single yes box), 'textarea' or 'text'.
+     * The control every form gives this field, which its save checks against: 'select'
+     * (dropdown, or select as Enthusiast imports call it), 'radio', 'checkboxes' (a
+     * checkbox field with options: pick any), 'checkbox' (one without options: a single
+     * yes box), 'textarea' or 'text'. A dropdown or radio with no choices is 'text', since
+     * otherwise a required one could never be answered and nobody could join.
      */
     public function controlKind(): string
     {
+        $hasChoices = $this->optionList() !== [];
+
         return match ($this->type) {
-            'dropdown', 'select' => 'select',
-            'radio'              => 'radio',
-            'checkbox'           => $this->optionList() !== [] ? 'checkboxes' : 'checkbox',
+            'dropdown', 'select' => $hasChoices ? 'select' : 'text',
+            'radio'              => $hasChoices ? 'radio' : 'text',
+            'checkbox'           => $hasChoices ? 'checkboxes' : 'checkbox',
             'textarea'           => 'textarea',
             default              => 'text',
         };
+    }
+
+    /** What to call this field's type in the Fields lists. */
+    public function typeLabel(): string
+    {
+        $missingChoices = $this->optionList() === [] ? ' (no choices yet)' : '';
+
+        return match ($this->type) {
+            'dropdown', 'select' => 'Dropdown' . $missingChoices,
+            'radio'              => 'Radio Button' . $missingChoices,
+            'checkbox'           => 'Checkbox',
+            'textarea'           => 'Text Area',
+            default              => 'Text Field',
+        };
+    }
+
+    /**
+     * The choices to offer someone whose saved answer is $saved: the field's own, plus
+     * any part of that answer that's no longer on the list. A control can't show what it
+     * doesn't offer, so without this, saving the form unchanged would quietly lose it.
+     *
+     * @return list<string>
+     */
+    public function choicesFor(string $saved = ''): array
+    {
+        $choices = $this->optionList();
+        if ($choices === []) {
+            return [];
+        }
+
+        // Only a checkbox group's answer is several picks. Anything else is one answer,
+        // whatever's in it.
+        $picks = $this->controlKind() === 'checkboxes' ? explode(',', $saved) : [$saved];
+        foreach ($picks as $pick) {
+            $pick = trim($pick);
+            if ($pick !== '' && !in_array($pick, $choices, true)) {
+                $choices[] = $pick;
+            }
+        }
+
+        return $choices;
+    }
+
+    /**
+     * One posted answer, checked the way this field's control works. 'value' is the text
+     * to store and is '' when there's an 'error'. $saved is the member's current answer
+     * on a form that has one, which is accepted even if it's no longer a choice.
+     *
+     * @return array{value: string, error: ?string}
+     */
+    public function answerFrom(mixed $raw, string $saved = ''): array
+    {
+        $label = $this->displayName();
+        $kind  = $this->controlKind();
+        $flat  = $this->flatAnswer($raw);
+
+        if ($flat === null || ($kind === 'checkbox' && !is_string($raw))) {
+            return ['value' => '', 'error' => "{$label}: that answer isn't valid."];
+        }
+
+        if ($kind === 'checkboxes') {
+            // flatAnswer() has checked these, so they're all strings.
+            $picks = $flat === '' ? [] : array_map('trim', explode(', ', $flat));
+            foreach ($picks as $pick) {
+                if (!in_array($pick, $this->choicesFor($saved), true)) {
+                    return ['value' => '', 'error' => "{$label}: pick from the listed options."];
+                }
+            }
+            $flat = implode(', ', array_values(array_unique($picks)));
+        } elseif (in_array($kind, ['select', 'radio'], true)) {
+            if ($flat !== '' && !in_array($flat, $this->choicesFor($saved), true)) {
+                return ['value' => '', 'error' => "{$label}: pick one of the listed options."];
+            }
+        } elseif ($kind === 'checkbox' && !in_array($flat, ['', '1', trim($saved)], true)) {
+            return ['value' => '', 'error' => "{$label}: that answer isn't valid."];
+        }
+
+        if (mb_strlen($flat, 'UTF-8') > 255) {
+            return ['value' => '', 'error' => "{$label} can be at most 255 characters."];
+        }
+
+        return ['value' => $flat, 'error' => null];
     }
 }

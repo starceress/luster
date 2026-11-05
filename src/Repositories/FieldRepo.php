@@ -399,7 +399,7 @@ final class FieldRepo
             $fields[] = new AdditionalField(
                 name:     $name,
                 label:    $label,
-                type:     in_array($type, ['text', 'textarea', 'select', 'radio'], true) ? $type : 'text',
+                type:     self::typeAsRead($type, ['text', 'textarea', 'select', 'radio']),
                 required: $required,
             );
         }
@@ -444,12 +444,28 @@ final class FieldRepo
             $fields[] = new AdditionalField(
                 name:     $name,
                 label:    $label,
-                type:     in_array($type, ['text', 'dropdown', 'checkbox', 'textarea', 'select', 'radio'], true) ? $type : 'text',
+                type:     self::typeAsRead($type, ['text', 'dropdown', 'checkbox', 'textarea', 'select', 'radio']),
                 required: $required,
                 options:  $options,
             );
         }
 
         return $fields;
+    }
+
+    /**
+     * A stored type as the rest of the code knows it. Enthusiast calls a dropdown
+     * "select", so that's turned into "dropdown" here and only one word gets any
+     * further. What's stored isn't rewritten by reading it.
+     *
+     * @param list<string> $known
+     */
+    private static function typeAsRead(string $type, array $known): string
+    {
+        if (!in_array($type, $known, true)) {
+            return 'text';
+        }
+
+        return $type === 'select' ? 'dropdown' : $type;
     }
 }

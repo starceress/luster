@@ -26,12 +26,11 @@ namespace Luster\Core;
  */
 final class ValidatorField
 {
-    private bool $stopped = false;
-
     public function __construct(
         private readonly string    $name,
         private readonly string    $value,
         private readonly Validator $validator,
+        private bool               $stopped = false,
     ) {}
 
     // -----------------------------------------------------------------------
@@ -46,6 +45,10 @@ final class ValidatorField
      */
     public function required(string $message = ''): static
     {
+        if ($this->stopped) {
+            return $this;
+        }
+
         if (trim($this->value) === '') {
             $this->addError($message ?: "The {$this->name} field is required.");
             $this->stopped = true;

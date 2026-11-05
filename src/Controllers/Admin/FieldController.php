@@ -198,7 +198,9 @@ final class FieldController extends AdminController
             ]);
 
             $v->field('label')->required()->maxLength(100);
-            $v->field('type')->required()->in(['text', 'dropdown', 'checkbox', 'radio']);
+            // Text Area isn't on the Add Field form, but one that came in with an import
+            // has to be able to stay what it is.
+            $v->field('type')->required()->in(['text', 'dropdown', 'checkbox', 'radio', 'textarea']);
             $v->field('required')->in(['0', '1']);
 
             if ($v->fails()) {

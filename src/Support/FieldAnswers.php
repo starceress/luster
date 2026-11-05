@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Luster\Support;
 
+use Luster\Core\Validator;
 use Luster\Models\AdditionalField;
 use Luster\Models\Listing;
 use Luster\Repositories\FieldRepo;
@@ -29,6 +30,68 @@ final class FieldAnswers
     public const PUBLIC_REFUSAL = "We couldn't save this because of a problem with the form. Nothing was changed. Please let the listing's owner know.";
 
     private function __construct() {}
+
+    /**
+     * Every field's posted answer on a public form, normalized. This one result is what
+     * gets checked and what gets saved, so the two can't disagree. Anything wrong goes on
+     * the validator, under the field's form key.
+     *
+     * @param AdditionalField[]        $fields
+     * @param array<int|string, mixed> $post
+     * @param array<string, string>    $saved  The member's current answers, on a form that has them.
+     * @return array<string, string> Field name => answer.
+     */
+    public static function fromPost(array $fields, array $post, Validator $v, array $saved = []): array
+    {
+        $answers = [];
+        foreach ($fields as $field) {
+            $key    = 'field_' . $field->name;
+            $answer = $field->answerFrom($post[$key] ?? '', $saved[$field->name] ?? '');
+
+            $answers[$field->name] = $answer['value'];
+            if ($answer['error'] !== null) {
+                $v->addFieldError($key, $answer['error']);
+            } elseif ($field->required && $answer['value'] === '') {
+                $v->addFieldError($key, $field->displayName() . ' is required.');
+            }
+        }
+
+        return $answers;
+    }
+
+    /**
+     * What a public form shows again after it's refused: these keys from the post, and
+     * every field's answer. Text and flat lists of text are kept, and anything else is
+     * dropped rather than turning into the word "Array". A field the post doesn't mention
+     * comes back blank, because that's what an unticked box looks like. Callers name the
+     * keys, so a password can't end up in here by accident.
+     *
+     * @param array<int|string, mixed> $post
+     * @param list<string>             $keys
+     * @param AdditionalField[]        $fields
+     * @return array<string, string|list<string>>
+     */
+    public static function oldForm(array $post, array $keys, array $fields): array
+    {
+        $old = [];
+        foreach ($keys as $key) {
+            if (is_string($post[$key] ?? null)) {
+                $old[$key] = trim($post[$key]);
+            }
+        }
+
+        foreach ($fields as $field) {
+            $key = 'field_' . $field->name;
+            $raw = $post[$key] ?? '';
+            if (is_string($raw)) {
+                $old[$key] = trim($raw);
+            } elseif (is_array($raw) && array_is_list($raw) && array_filter($raw, 'is_string') === $raw) {
+                $old[$key] = array_map('trim', $raw);
+            }
+        }
+
+        return $old;
+    }
 
     /**
      * @param AdditionalField[]      $fields  Every definition on the listing.
