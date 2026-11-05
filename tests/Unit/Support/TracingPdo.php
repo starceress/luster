@@ -33,6 +33,17 @@ final class TracingPdo extends PDO
      */
     public bool $noTransactions = false;
 
+    /**
+     * SQL put back straight after the first rollback that follows a write to a member
+     * table, for one table behaving like MyISAM while the rest behave like InnoDB: the
+     * rollback undoes the queue, and this member change stays. A rollback before any
+     * member write has nothing to keep. noTransactions is the same thing for every table.
+     */
+    public ?string $survivesRollback = null;
+
+    /** True once a member table has been written to, so survivesRollback has something to keep. */
+    private bool $memberWritten = false;
+
     /** True: the next commit() throws and commits nothing (the transaction stays open). */
     public bool $failCommit = false;
 
@@ -123,6 +134,7 @@ final class TracingPdo extends PDO
 
     public function beginTransaction(): bool
     {
+        $this->statements[] = 'BEGIN';
         return $this->noTransactions ? true : parent::beginTransaction();
     }
 
@@ -132,6 +144,7 @@ final class TracingPdo extends PDO
             $this->failCommit = false;
             throw new PDOException('Simulated failure for: COMMIT');
         }
+        $this->statements[] = 'COMMIT';
         return $this->noTransactions ? true : parent::commit();
     }
 
@@ -140,7 +153,13 @@ final class TracingPdo extends PDO
         if ($this->failRollBack) {
             throw new PDOException('Simulated failure for: ROLLBACK');
         }
-        return $this->noTransactions ? true : parent::rollBack();
+        $this->statements[] = 'ROLLBACK';
+        $result = $this->noTransactions ? true : parent::rollBack();
+        if ($this->survivesRollback !== null && $this->memberWritten) {
+            parent::exec($this->survivesRollback);
+            $this->survivesRollback = null;
+        }
+        return $result;
     }
 
     public function inTransaction(): bool
@@ -157,6 +176,9 @@ final class TracingPdo extends PDO
     private function trace(string $sql): void
     {
         $this->statements[] = $sql;
+        if (preg_match('/^\s*UPDATE fl_/', $sql) === 1) {
+            $this->memberWritten = true;
+        }
         if ($this->beforeStatement !== null) {
             ($this->beforeStatement)($sql);
         }

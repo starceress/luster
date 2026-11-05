@@ -19,6 +19,69 @@ panel will let you know that a manual update is needed and link you to the
 release page.
 
 
+### [Unreleased]
+
+**After updating:** go to **Settings → System & Updates** and click **Run
+migrations** once. This update adds one small thing to your database, so Luster
+can stop a fan's update request for you to look at.
+
+**Added:**
+- **A fan's update request can be stopped for you to check.** If something doesn't
+  add up, like a request sent before its member even joined, the request stays in
+  the queue marked **Needs review**, with the reason, and there's no Approve button
+  on it. Look over the member, make any changes you still want by hand, and reject
+  the request to clear it. Rejecting only removes the request. If a request was
+  already in your queue when you update and its member joined around the same time
+  or later, it'll stop like this too, because Luster can't tell it's the same person.
+
+**Fixed:**
+- **Every Approve button follows the same rules now.** Approve, Approve All, bulk
+  Approve and the Approve All on the Members overview each did things their own way,
+  so the same queue could turn out differently depending on which one you clicked.
+  Now requests always go oldest first, so the newest one wins, one bad request never
+  stops the rest, and the message tells you what happened to each.
+- **A bad update request can't damage a member anymore.** A blank email or name, or
+  a `javascript:` website address, used to be saved just as it was. Now it isn't
+  applied. It stays in the queue with a message saying what's wrong, so you can
+  reject it.
+- **A request can only change what it's allowed to.** Only a member's name, email,
+  website, country, show-website setting and extra fields can come from a request.
+- **A request that doesn't change anything doesn't email the fan.** It's just removed.
+- **Changing only the capitals of your own email works.** `Fan@example.com` for
+  `fan@example.com` used to count as someone else's address, and the whole request
+  was thrown away, along with anything else in it.
+- **An email address too long for your member table isn't cut short.** On many older
+  tables, a long address was saved with the end missing and the fan could no longer
+  be found by it. Now the request stays in the queue and tells you why.
+- **Saving a new email address takes everything with it.** The public update form
+  left waiting requests, link checks and reset links behind under the old address.
+- **An old reset link can't work on the wrong person.** When a fan's email changes,
+  any reset link for the old or new address stops working straight away, even if the
+  save goes wrong partway. The same goes for someone new getting an address, by joining,
+  being added or changing to it: any old reset or Collective Update link for that address
+  stops working. If a save fails, the worst it costs a fan is asking for a new link.
+- **A new email and a new password go in one save now.** If a fan changes both on the
+  same form and the save fails, Luster tells them which password to use. Usually nothing
+  changed, so their old password still works and they can just try again. If Luster can't
+  be sure, mostly on older MyISAM tables that can't undo a save, it tells them either
+  password might be the right one.
+- **If saving fails, Luster says what really happened.** Usually nothing changed and
+  you can just try again. If Luster can't be sure, mostly on older MyISAM tables that
+  can't undo a save, it tells you, sends no email, and stops the requests for that
+  member so you can check.
+- **Approve All stops if the database has a serious problem.** It used to carry on and
+  could get confused about what was already done. Now it stops, tells you, and leaves
+  the rest in the queue.
+- **Extra spaces around a requested email can't lock a fan out.** They used to get saved,
+  and then the fan couldn't sign in with their own address.
+- **Long answers in older tables aren't refused by mistake.** Luster counted accented
+  letters as two bytes even in tables that store them as one, so some answers that
+  would have fit were called too long. Tables using a rarer character set, like UTF-16,
+  still get a cautious count, so a long answer that would just fit can still be refused.
+- **Rejecting a request an approval already handled says so,** instead of claiming it
+  was rejected.
+
+
 ### [1.0.0-4] — 2026-11-04
 
 This one has important security fixes, so it's worth updating soon.

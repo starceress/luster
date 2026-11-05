@@ -80,13 +80,14 @@ final class Database
     }
 
     /**
-     * The columns of a table, each with its type and its text limits (null when
-     * the type has none). A failed read throws, and so does a table with no
-     * columns: INFORMATION_SCHEMA answers a missing table with no rows, and
-     * "couldn't read" must never look like "that column isn't there". SQLite
-     * (the tests) has no INFORMATION_SCHEMA, so it reads PRAGMA table_info.
+     * The columns of a table, each with its type, its text limits, its character set and
+     * the most bytes that set can use for one character (null when the type has none).
+     * A failed read throws, and so does a table with no columns: INFORMATION_SCHEMA
+     * answers a missing table with no rows, and "couldn't read" must never look like
+     * "that column isn't there". SQLite (the tests) has no INFORMATION_SCHEMA, so it
+     * reads PRAGMA table_info.
      *
-     * @return list<array{name: string, type: string, chars: ?int, bytes: ?int}>
+     * @return list<array{name: string, type: string, chars: ?int, bytes: ?int, charset: ?string, charset_bytes: ?int}>
      * @throws RuntimeException
      */
     public function tableColumns(string $table): array
@@ -98,19 +99,23 @@ final class Database
             $columns = self::sqliteColumns($pdo, $table);
         } else {
             $stmt = $pdo->prepare(
-                'SELECT COLUMN_NAME AS name, DATA_TYPE AS type,
-                        CHARACTER_MAXIMUM_LENGTH AS chars, CHARACTER_OCTET_LENGTH AS bytes
-                 FROM INFORMATION_SCHEMA.COLUMNS
-                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :tbl
-                 ORDER BY ORDINAL_POSITION'
+                'SELECT c.COLUMN_NAME AS name, c.DATA_TYPE AS type,
+                        c.CHARACTER_MAXIMUM_LENGTH AS chars, c.CHARACTER_OCTET_LENGTH AS bytes,
+                        c.CHARACTER_SET_NAME AS charset, s.MAXLEN AS charset_bytes
+                 FROM INFORMATION_SCHEMA.COLUMNS c
+                 LEFT JOIN INFORMATION_SCHEMA.CHARACTER_SETS s ON s.CHARACTER_SET_NAME = c.CHARACTER_SET_NAME
+                 WHERE c.TABLE_SCHEMA = DATABASE() AND c.TABLE_NAME = :tbl
+                 ORDER BY c.ORDINAL_POSITION'
             );
             $stmt->execute(['tbl' => $table]);
 
             $columns = array_map(static fn(array $row): array => [
-                'name'  => (string) $row['name'],
-                'type'  => strtolower((string) $row['type']),
-                'chars' => $row['chars'] !== null ? (int) $row['chars'] : null,
-                'bytes' => $row['bytes'] !== null ? (int) $row['bytes'] : null,
+                'name'          => (string) $row['name'],
+                'type'          => strtolower((string) $row['type']),
+                'chars'         => $row['chars'] !== null ? (int) $row['chars'] : null,
+                'bytes'         => $row['bytes'] !== null ? (int) $row['bytes'] : null,
+                'charset'       => $row['charset'] !== null ? strtolower((string) $row['charset']) : null,
+                'charset_bytes' => $row['charset_bytes'] !== null ? (int) $row['charset_bytes'] : null,
             ], $stmt->fetchAll(PDO::FETCH_ASSOC));
         }
 
@@ -123,9 +128,9 @@ final class Database
 
     /**
      * tableColumns() on SQLite: a declared VARCHAR(64) or CHAR(64) gives a
-     * character limit, and every other type has none.
+     * character limit, and every other type has none. Everything is UTF-8 there.
      *
-     * @return list<array{name: string, type: string, chars: ?int, bytes: ?int}>
+     * @return list<array{name: string, type: string, chars: ?int, bytes: ?int, charset: ?string, charset_bytes: ?int}>
      */
     private static function sqliteColumns(PDO $pdo, string $table): array
     {
@@ -142,6 +147,8 @@ final class Database
                 'type'  => (string) preg_replace('/\s*\(.*$/', '', $declared),
                 'chars' => preg_match('/^(?:var)?char\s*\((\d+)\)/', $declared, $width) === 1 ? (int) $width[1] : null,
                 'bytes' => null,
+                'charset'       => null,
+                'charset_bytes' => null,
             ];
         }
 

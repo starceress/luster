@@ -92,6 +92,8 @@ $pdo->exec("CREATE TABLE lstr_rate_limits (
     id INTEGER PRIMARY KEY AUTOINCREMENT, identifier TEXT NOT NULL, action TEXT NOT NULL,
     attempts INTEGER NOT NULL DEFAULT 1, last_attempt TEXT NULL, blocked_until TEXT NULL)");
 $pdo->exec("CREATE TABLE lstr_pending_updates (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, member_email TEXT NOT NULL, changes TEXT NOT NULL DEFAULT '', submitted_at TEXT NULL)");
+$pdo->exec("CREATE TABLE lstr_fan_password_resets (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, email TEXT NOT NULL, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NULL)");
+$pdo->exec("CREATE TABLE lstr_collective_update_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL, email TEXT NOT NULL, expires_at TEXT NOT NULL, used_at TEXT NULL, created_at TEXT NULL)");
 $pdo->exec("CREATE TABLE lstr_blacklist (id INTEGER PRIMARY KEY AUTOINCREMENT, pattern TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created_at TEXT NULL)");
 $pdo->exec("CREATE TABLE lstr_email_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, type TEXT NOT NULL,

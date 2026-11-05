@@ -153,9 +153,12 @@ function memberSaveFixture(string $root, array $s, string $passwordHash): array
     $pdo->exec("CREATE TABLE lstr_fan_password_resets (
         id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, email TEXT NOT NULL,
         token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NULL)");
+    $pdo->exec("CREATE TABLE lstr_collective_update_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL, email TEXT NOT NULL,
+        expires_at TEXT NOT NULL, used_at TEXT NULL, created_at TEXT NULL)");
     $pdo->exec("CREATE TABLE lstr_pending_updates (
         id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, member_email TEXT NOT NULL,
-        changes TEXT NOT NULL DEFAULT '', submitted_at TEXT NOT NULL DEFAULT '2026-01-01 00:00:00')");
+        changes TEXT NOT NULL DEFAULT '', submitted_at TEXT NOT NULL DEFAULT '2026-01-01 00:00:00', review_state TEXT NULL)");
 
     if (array_key_exists('member', $s) ? $s['member'] !== null : true) {
         $status = $s['status'] ?? 'approved';
@@ -187,8 +190,8 @@ function memberSaveFixture(string $root, array $s, string $passwordHash): array
             ->execute(['ann@example.com', json_encode(['country' => 'Peru'])]);
     }
     foreach ($s['queued'] ?? [] as $q) {
-        $pdo->prepare('INSERT INTO lstr_pending_updates (fanlisting_id, member_email, changes) VALUES (1, ?, ?)')
-            ->execute([$q['email'] ?? 'ann@example.com', json_encode($q['changes'])]);
+        $pdo->prepare('INSERT INTO lstr_pending_updates (fanlisting_id, member_email, changes, submitted_at, review_state) VALUES (?, ?, ?, ?, ?)')
+            ->execute([$q['listing'] ?? 1, $q['email'] ?? 'ann@example.com', $q['changes_raw'] ?? json_encode($q['changes']), $q['submitted_at'] ?? '2026-01-01 00:00:00', $q['review_state'] ?? null]);
     }
 
     // Only what the controller does is traced, never the fixture.

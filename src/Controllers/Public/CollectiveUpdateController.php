@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
-use Luster\Core\Config;
-use Luster\Core\Database;
 use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
@@ -27,14 +25,13 @@ use Luster\Models\Member;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\CollectiveUpdateTokenRepo;
 use Luster\Repositories\EmailTemplateRepo;
-use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
-use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 use Luster\Support\MemberAddressBusy;
+use Luster\Support\MemberEmailRekey;
 use Luster\Support\MemberRemoval;
 
 /**
@@ -250,7 +247,10 @@ final class CollectiveUpdateController
         $memberRepo    = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $lifecycleRepo = new ListingLifecycleRepo($this->app->getDatabase());
-        $results       = ['updated' => [], 'queued' => [], 'skipped' => [], 'email_conflict' => []];
+        $results       = ['updated' => [], 'queued' => [], 'skipped' => [], 'email_conflict' => [], 'failed' => [], 'unconfirmed' => []];
+
+        // Set if a transaction can't be closed. Nothing more goes near the database after that.
+        $stopped = false;
 
         // Tracks the address the confirmation email should go to. Starts as the
         // verified (old) address; switches to the new one the moment an
@@ -273,7 +273,7 @@ final class CollectiveUpdateController
                 $addresses,
                 function () use (
                     $tokenRepo, $rawToken, $email, $selectedIds, $validMap, $lifecycleRepo, $memberRepo, $settingsRepo,
-                    $newPassword, $newName, $deleteUrl, $newUrl, $newCountry, $newEmail, &$results, &$confirmationEmail
+                    $newPassword, $newName, $deleteUrl, $newUrl, $newCountry, $newEmail, &$results, &$confirmationEmail, &$stopped
                 ): bool {
                     // All validation passed — atomically consume the token now.
                     // verifyAndConsume() returning null here means a race beat us to it;
@@ -292,17 +292,15 @@ final class CollectiveUpdateController
                         $listing = $validMap[$listingId]['listing'];
                         $member  = $current[$listingId]['member'] ?? null;
 
+                        if ($stopped) {
+                            $results['failed'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            continue;
+                        }
+
                         // Skip if removed or archived since the memberships were loaded
                         if ($member === null || $lifecycleRepo->getByListingId($listingId) !== null) {
                             $results['skipped'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                             continue;
-                        }
-
-                        // Password always applied immediately — never queued
-                        $passwordChanged = false;
-                        if ($passwordHash !== null) {
-                            $memberRepo->update($listing->dbprefix, $email, ['password' => $passwordHash]);
-                            $passwordChanged = true;
                         }
 
                         $updateData = [];
@@ -330,8 +328,20 @@ final class CollectiveUpdateController
                             }
                         }
 
+                        $shouldQueue = $settingsRepo->getQueueUpdates($listingId);
+
+                        // Password always applied immediately — never queued. A change of
+                        // address sends it in the same UPDATE. If that reports failed,
+                        // nothing changed on this listing and the old password still
+                        // works. MyISAM can't undo a write, so an unconfirmed result is
+                        // still possible, and it's handled below.
+                        $renaming = !$shouldQueue && isset($updateData['email']);
+                        if ($passwordHash !== null && !$renaming) {
+                            $memberRepo->update($listing->dbprefix, $email, ['password' => $passwordHash]);
+                        }
+
                         if ($updateData === []) {
-                            if (!$passwordChanged) {
+                            if ($passwordHash === null) {
                                 $results['skipped'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                             } else {
                                 $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
@@ -339,16 +349,28 @@ final class CollectiveUpdateController
                             continue;
                         }
 
-                        if ($settingsRepo->getQueueUpdates($listingId)) {
+                        if ($shouldQueue) {
                             (new PendingUpdateRepo($this->app->getDatabase()))->insert($listingId, $email, $updateData);
                             $results['queued'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                        } elseif ($renaming) {
+                            $rekey = MemberEmailRekey::for($this->app)->run(
+                                $listingId,
+                                $listing->dbprefix,
+                                $email,
+                                $updateData + ($passwordHash !== null ? ['password' => $passwordHash] : []),
+                            );
+                            if ($rekey['outcome'] === MemberEmailRekey::DONE) {
+                                $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                                $confirmationEmail    = $updateData['email'];
+                            } elseif ($rekey['outcome'] === MemberEmailRekey::FAILED) {
+                                $results['failed'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            } else {
+                                $results['unconfirmed'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                                $stopped = $rekey['outcome'] === MemberEmailRekey::UNRESOLVED;
+                            }
                         } else {
                             $memberRepo->update($listing->dbprefix, $email, $updateData);
-                            self::rekeyOnEmailChange($this->app->getDatabase(), $this->app->getConfig(), $listingId, $email, $updateData);
                             $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
-                            if (isset($updateData['email'])) {
-                                $confirmationEmail = $updateData['email'];
-                            }
                         }
                     }
 
@@ -365,8 +387,19 @@ final class CollectiveUpdateController
             return Response::redirect($embedReturnTo);
         }
 
-        if ($results['updated'] !== []) {
+        if ($results['updated'] !== [] && !$stopped) {
             self::sendUpdateConfirmationEmail($this->app, $confirmationEmail, $results['updated']);
+        }
+
+        $unconfirmedPassword = $newPassword !== '' ? " Also, if your new password doesn't work, try your old one." : '';
+
+        // Nothing went through, so this isn't a success with a footnote.
+        if ($results['updated'] === [] && $results['queued'] === [] && ($results['failed'] !== [] || $results['unconfirmed'] !== [])) {
+            $session->set('lstr_flash_error:' . $marker, $results['unconfirmed'] !== []
+                ? "We couldn't confirm your changes were saved. Please check your details before trying again, or contact the listing owner." . $unconfirmedPassword
+                : "We couldn't save your changes because of a database error, and nothing was changed." . ($newPassword !== '' ? ' Your old password still works.' : '') . ' Please request a new link and try again.');
+            $session->remove('lstr_embed_return_to');
+            return Response::redirect($embedReturnTo);
         }
 
         $sections = [];
@@ -396,6 +429,20 @@ final class CollectiveUpdateController
                 'intro' => 'That email address is already in use, so it was not changed for the following listing(s):',
                 'items' => $results['email_conflict'],
                 'outro' => '',
+            ];
+        }
+        if ($results['failed'] !== []) {
+            $sections[] = [
+                'intro' => "We couldn't save your changes on the following listing(s) because of a database error, and nothing was changed there:",
+                'items' => $results['failed'],
+                'outro' => ($newPassword !== '' ? 'Your old password still works there. ' : '') . 'Please request a new link and try again.',
+            ];
+        }
+        if ($results['unconfirmed'] !== []) {
+            $sections[] = [
+                'intro' => "We couldn't confirm your changes were saved on the following listing(s):",
+                'items' => $results['unconfirmed'],
+                'outro' => 'Please check your details there before trying again, or contact the listing owner.' . $unconfirmedPassword,
             ];
         }
 
@@ -536,31 +583,6 @@ final class CollectiveUpdateController
         }
 
         return $byListing;
-    }
-
-    /**
-     * Re-keys side tables that reference the member by email string (no FK) so
-     * queued updates and link-check history follow an email rename instead of
-     * being orphaned under the old address, and invalidates any outstanding
-     * password-reset token issued to the old address. Mirrors the same
-     * re-keying MemberController::edit() does for admin-initiated email changes.
-     *
-     * No-op when $updateData doesn't actually change the email.
-     *
-     * @param array<string, mixed> $updateData
-     */
-    private static function rekeyOnEmailChange(Database $db, Config $config, int $listingId, string $oldEmail, array $updateData): void
-    {
-        $newEmail = (string) ($updateData['email'] ?? '');
-        if ($newEmail === '' || $newEmail === $oldEmail) {
-            return;
-        }
-
-        (new PendingUpdateRepo($db))->renameMemberEmail($listingId, $oldEmail, $newEmail);
-        try {
-            (new MemberLinkCheckRepo($db, $config))->renameMemberEmail($listingId, $oldEmail, $newEmail);
-        } catch (\Throwable) {}
-        (new FanPasswordResetRepo($db))->deleteByEmail($listingId, $oldEmail);
     }
 
     /**

@@ -35,6 +35,7 @@ use Luster\Repositories\PendingUpdateRepo;
 use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\MemberAddressBusy;
+use Luster\Support\MemberEmailRekey;
 use Luster\Support\MemberRemoval;
 use Luster\Support\MemberSignIn;
 use Luster\Support\SuccessRenderer;
@@ -506,18 +507,10 @@ final class UpdateController
         if ($newEmail !== '' && $newEmail !== $email) {
             $updateData['email'] = $finalEmail;
         }
-        if ($newPassword !== '') {
-            $updateData['password'] = password_hash($newPassword, PASSWORD_ARGON2ID);
-        }
+        $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
 
         foreach ($extraValues as $column => $value) {
             $updateData[$column] = $value;
-        }
-
-        // Password changes always apply immediately (never queued)
-        if (isset($updateData['password'])) {
-            $memberRepo->update($listing->dbprefix, $email, ['password' => $updateData['password']]);
-            unset($updateData['password']);
         }
 
         // Strip unchanged fields so password-only submissions don't create no-op queue entries
@@ -532,6 +525,16 @@ final class UpdateController
 
         $shouldQueue = $settingsRepo->getQueueUpdates($listingId);
 
+        // Password changes always apply immediately (never queued). A change of address
+        // sends the password in the same UPDATE, so there's no half-saved password to
+        // explain. If that reports failed, nothing changed: the old password still works
+        // and this sign-in can try again. MyISAM can't undo a write, so an unconfirmed
+        // result is still possible, and it's handled below.
+        $renaming = !$shouldQueue && isset($updateData['email']);
+        if ($passwordHash !== null && !$renaming) {
+            $memberRepo->update($listing->dbprefix, $email, ['password' => $passwordHash]);
+        }
+
         if ($shouldQueue && $updateData !== []) {
             $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
             $pendingRepo->insert($listingId, $email, $updateData);
@@ -544,7 +547,32 @@ final class UpdateController
                 'listing_url'   => $listing->url,
             ]));
         } else {
-            if ($updateData !== []) {
+            if ($renaming) {
+                $rekey = MemberEmailRekey::for($this->app)->run(
+                    $listingId,
+                    $listing->dbprefix,
+                    $email,
+                    $updateData + ($passwordHash !== null ? ['password' => $passwordHash] : []),
+                );
+
+                if ($rekey['outcome'] !== MemberEmailRekey::DONE) {
+                    $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
+                    foreach ($fields as $field) {
+                        $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
+                    }
+                    $session->set('lstr_flash_old:' . $marker, $old);
+
+                    if ($rekey['outcome'] === MemberEmailRekey::FAILED) {
+                        $session->set('lstr_flash_error:' . $marker, "We couldn't save your changes because of a database error." . ($passwordHash !== null ? ' Your old password still works.' : '') . ' Please try again.');
+                    } else {
+                        // Their address may have changed, so this sign-in can't be trusted.
+                        MemberSignIn::forget($session, $listingId);
+                        $session->set('lstr_flash_error:' . $marker, "We couldn't confirm your changes were saved. Please check your details before trying again, or contact the listing owner." . ($passwordHash !== null ? " Also, if your new password doesn't work, try your old one." : ''));
+                    }
+
+                    return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+                }
+            } elseif ($updateData !== []) {
                 $memberRepo->update($listing->dbprefix, $email, $updateData);
             }
 

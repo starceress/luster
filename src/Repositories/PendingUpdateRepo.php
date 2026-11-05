@@ -21,10 +21,102 @@ use Luster\Core\Database;
  *
  * Stores member update requests that are awaiting admin approval.
  * Requires Migration 21 (public/migrate.php) to have been run.
+ *
+ * review_state (Migration 110) says whether a request has been stopped for the owner
+ * to look at. A hold proves nothing about who's who: it stops an approval and shows a
+ * reason, and rejecting the request is the only way to clear it.
  */
 final class PendingUpdateRepo
 {
+    /** Not a hold. Queued before removals took requests with them, so the date check is stricter. */
+    public const QUEUED_BEFORE_CHECKS = 'queued_before_checks';
+
+    public const WRITE_UNCONFIRMED    = 'write_unconfirmed';
+    public const ADDRESS_MOVED        = 'address_moved';
+    public const MAY_BE_OTHER_MEMBER  = 'may_be_other_member';
+    public const JOINED_AFTER_REQUEST = 'joined_after_request';
+
+    /** The review_state values that stop an approval. */
+    public const HOLDS = [
+        self::WRITE_UNCONFIRMED,
+        self::ADDRESS_MOVED,
+        self::MAY_BE_OTHER_MEMBER,
+        self::JOINED_AFTER_REQUEST,
+    ];
+
+    /** The only core member columns a queued request can change. */
+    public const CORE_KEYS = ['name', 'email', 'url', 'country', 'showurl'];
+
+    /** Remembered once it's true. A failed read isn't remembered, and never counts as "no". */
+    private bool $reviewStateExists = false;
+
     public function __construct(private readonly Database $db) {}
+
+    /**
+     * One row as the rest of the code sees it.
+     *
+     * Bad JSON isn't turned into "no changes": malformed says so, and the row is
+     * kept for the owner to reject. A table with no review_state yet (Migration 110
+     * hasn't run) gives every row the stricter date check.
+     *
+     * @param array<string, mixed> $r
+     */
+    private static function hydrate(array $r): object
+    {
+        $changes = json_decode((string) $r['changes'], true);
+
+        $reviewState = self::QUEUED_BEFORE_CHECKS;
+        if (array_key_exists('review_state', $r)) {
+            $reviewState = $r['review_state'] !== null ? (string) $r['review_state'] : null;
+        }
+
+        return (object) [
+            'id'            => (int)    $r['id'],
+            'fanlisting_id' => (int)    $r['fanlisting_id'],
+            'member_email'  => (string) $r['member_email'],
+            'changes'       => is_array($changes) ? self::tidied($changes) : [],
+            'malformed'     => !is_array($changes),
+            'submitted_at'  => (string) $r['submitted_at'],
+            'review_state'  => $reviewState,
+        ];
+    }
+
+    /**
+     * The core values with their keys in lower case and no spaces round them, tidied here
+     * once so the address that's locked, the text that's checked, the screen and the saved
+     * value can't disagree. The forms trim these already, so only an older or imported
+     * row has any to tidy. A field answer has no rules to pass, so it stays as written.
+     *
+     * @param array<int|string, mixed> $changes
+     * @return array<int|string, mixed>
+     */
+    private static function tidied(array $changes): array
+    {
+        foreach ($changes as $key => $value) {
+            $core = strtolower((string) $key);
+            if (in_array($core, self::CORE_KEYS, true)) {
+                unset($changes[$key]);
+                $changes[$core] = is_string($value) ? trim($value) : $value;
+            }
+        }
+
+        return $changes;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<object>
+     */
+    private static function hydrateAll(array $rows): array
+    {
+        return array_map(self::hydrate(...), $rows);
+    }
+
+    /** True when this request has been stopped for the owner to look at. */
+    public static function isHeld(object $row): bool
+    {
+        return in_array($row->review_state ?? null, self::HOLDS, true);
+    }
 
     // -----------------------------------------------------------------------
     // Reads
@@ -33,7 +125,7 @@ final class PendingUpdateRepo
     /**
      * Returns all pending updates, newest first.
      *
-     * @return array<int, object{id:int, fanlisting_id:int, member_email:string, changes:array, submitted_at:string}>
+     * @return list<object>
      */
     public function getAll(): array
     {
@@ -42,22 +134,13 @@ final class PendingUpdateRepo
         );
         $stmt->execute();
 
-        return array_map(
-            static fn(array $r) => (object) [
-                'id'            => (int)    $r['id'],
-                'fanlisting_id' => (int)    $r['fanlisting_id'],
-                'member_email'  => (string) $r['member_email'],
-                'changes'       => (array)  (json_decode((string) $r['changes'], true) ?? []),
-                'submitted_at'  => (string) $r['submitted_at'],
-            ],
-            $stmt->fetchAll(),
-        );
+        return self::hydrateAll($stmt->fetchAll());
     }
 
     /**
      * Returns all pending updates for a specific fanlisting, newest first.
      *
-     * @return array<int, object>
+     * @return list<object>
      */
     public function getByListing(int $listingId): array
     {
@@ -68,16 +151,7 @@ final class PendingUpdateRepo
         );
         $stmt->execute(['fid' => $listingId]);
 
-        return array_map(
-            static fn(array $r) => (object) [
-                'id'            => (int)    $r['id'],
-                'fanlisting_id' => (int)    $r['fanlisting_id'],
-                'member_email'  => (string) $r['member_email'],
-                'changes'       => (array)  (json_decode((string) $r['changes'], true) ?? []),
-                'submitted_at'  => (string) $r['submitted_at'],
-            ],
-            $stmt->fetchAll(),
-        );
+        return self::hydrateAll($stmt->fetchAll());
     }
 
     /**
@@ -91,17 +165,83 @@ final class PendingUpdateRepo
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
 
-        if ($row === false) {
-            return null;
+        return $row !== false ? self::hydrate($row) : null;
+    }
+
+    /**
+     * getById() with the row locked, for use inside a transaction. A plain read in a
+     * transaction can still find a row another approval has just used up, because it
+     * reads the transaction's older snapshot. A locking read waits, then sees the truth.
+     */
+    public function lockById(int $id): ?object
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_pending_updates WHERE id = :id' . $this->db->forUpdate()
+        );
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch();
+
+        return $row !== false ? self::hydrate($row) : null;
+    }
+
+    /**
+     * Every request for this address in this listing, locked, for use inside a transaction.
+     *
+     * @return list<object>
+     */
+    public function lockAtAddress(int $listingId, string $email): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_pending_updates
+             WHERE fanlisting_id = :fid AND member_email = :email' . $this->db->forUpdate()
+        );
+        $stmt->execute(['fid' => $listingId, 'email' => $email]);
+
+        return self::hydrateAll($stmt->fetchAll());
+    }
+
+    /**
+     * Every request for this address in this listing.
+     *
+     * @return list<object>
+     */
+    public function getAtAddress(int $listingId, string $email): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_pending_updates WHERE fanlisting_id = :fid AND member_email = :email'
+        );
+        $stmt->execute(['fid' => $listingId, 'email' => $email]);
+
+        return self::hydrateAll($stmt->fetchAll());
+    }
+
+    /**
+     * Request ids in the order a batch should apply them, oldest first, so the newest
+     * valid request wins. For one listing, for chosen ids, or for everything.
+     *
+     * @param int[]|null $ids
+     * @return list<int>
+     */
+    public function idsOldestFirst(?int $listingId = null, ?array $ids = null): array
+    {
+        $where  = '';
+        $params = [];
+
+        if ($ids !== null) {
+            if ($ids === []) {
+                return [];
+            }
+            $where  = ' WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')';
+            $params = array_values(array_map('intval', $ids));
+        } elseif ($listingId !== null) {
+            $where  = ' WHERE fanlisting_id = ?';
+            $params = [$listingId];
         }
 
-        return (object) [
-            'id'            => (int)    $row['id'],
-            'fanlisting_id' => (int)    $row['fanlisting_id'],
-            'member_email'  => (string) $row['member_email'],
-            'changes'       => (array)  (json_decode((string) $row['changes'], true) ?? []),
-            'submitted_at'  => (string) $row['submitted_at'],
-        ];
+        $stmt = $this->db->prepare('SELECT id FROM lstr_pending_updates' . $where . ' ORDER BY submitted_at ASC, id ASC');
+        $stmt->execute($params);
+
+        return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
     }
 
     /**
@@ -152,18 +292,7 @@ final class PendingUpdateRepo
         $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
         $stmt->execute();
 
-        $updates = array_map(
-            static fn(array $r) => (object) [
-                'id'            => (int)    $r['id'],
-                'fanlisting_id' => (int)    $r['fanlisting_id'],
-                'member_email'  => (string) $r['member_email'],
-                'changes'       => (array)  (json_decode((string) $r['changes'], true) ?? []),
-                'submitted_at'  => (string) $r['submitted_at'],
-            ],
-            $stmt->fetchAll(),
-        );
-
-        return ['updates' => $updates, 'total' => $total, 'pages' => $pages];
+        return ['updates' => self::hydrateAll($stmt->fetchAll()), 'total' => $total, 'pages' => $pages];
     }
 
     /**
@@ -189,18 +318,7 @@ final class PendingUpdateRepo
         $stmt->bindValue(':offset', $offset,    \PDO::PARAM_INT);
         $stmt->execute();
 
-        $updates = array_map(
-            static fn(array $r) => (object) [
-                'id'            => (int)    $r['id'],
-                'fanlisting_id' => (int)    $r['fanlisting_id'],
-                'member_email'  => (string) $r['member_email'],
-                'changes'       => (array)  (json_decode((string) $r['changes'], true) ?? []),
-                'submitted_at'  => (string) $r['submitted_at'],
-            ],
-            $stmt->fetchAll(),
-        );
-
-        return ['updates' => $updates, 'total' => $total, 'pages' => $pages];
+        return ['updates' => self::hydrateAll($stmt->fetchAll()), 'total' => $total, 'pages' => $pages];
     }
 
     // -----------------------------------------------------------------------
@@ -249,14 +367,7 @@ final class PendingUpdateRepo
 
         $result = [];
         foreach ($stmt->fetchAll() as $r) {
-            $id          = (int) $r['id'];
-            $result[$id] = (object) [
-                'id'            => $id,
-                'fanlisting_id' => (int)    $r['fanlisting_id'],
-                'member_email'  => (string) $r['member_email'],
-                'changes'       => (array)  (json_decode((string) $r['changes'], true) ?? []),
-                'submitted_at'  => (string) $r['submitted_at'],
-            ];
+            $result[(int) $r['id']] = self::hydrate($r);
         }
 
         return $result;
@@ -265,15 +376,17 @@ final class PendingUpdateRepo
     /**
      * Deletes a pending update by primary key.
      *
-     * Called by both the approve and reject workflows to discard the request
-     * after the admin action has been taken.
+     * @return bool True when this call removed the row. False means something else
+     *              got there first, so a rejection can say so instead of claiming it.
      */
-    public function delete(int $id): void
+    public function delete(int $id): bool
     {
         $stmt = $this->db->prepare(
             'DELETE FROM lstr_pending_updates WHERE id = :id'
         );
         $stmt->execute(['id' => $id]);
+
+        return $stmt->rowCount() > 0;
     }
 
     /**
@@ -290,11 +403,24 @@ final class PendingUpdateRepo
 
     /**
      * Clears whatever's left at an address that's about to get a new member. It was
-     * free, so a request there can't be theirs. Call this while holding the address lock.
+     * free, so a request there can't be theirs. A held request stays, because the
+     * owner has been told to look at it. Call this while holding the address lock.
      */
     public function deleteStale(int $listingId, string $email): void
     {
-        $this->deleteByListingAndEmail($listingId, $email);
+        if (!$this->hasReviewState()) {
+            // No column yet, so nothing can be held.
+            $this->deleteByListingAndEmail($listingId, $email);
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count(self::HOLDS), '?'));
+        $stmt = $this->db->prepare(
+            "DELETE FROM lstr_pending_updates
+             WHERE fanlisting_id = ? AND member_email = ?
+               AND (review_state IS NULL OR review_state NOT IN ({$placeholders}))"
+        );
+        $stmt->execute([$listingId, $email, ...self::HOLDS]);
     }
 
     /**
@@ -309,5 +435,57 @@ final class PendingUpdateRepo
             'UPDATE lstr_pending_updates SET member_email = :new WHERE fanlisting_id = :fid AND member_email = :old'
         );
         $stmt->execute(['new' => $newEmail, 'fid' => $listingId, 'old' => $oldEmail]);
+    }
+
+    /**
+     * Stops one request for the owner to look at. A request that's already held keeps
+     * its first reason.
+     *
+     * @return int How many requests this marked, which is what the admin gets told.
+     *             If the write fails or there's no column yet, it's logged and counts as none.
+     */
+    public function holdRow(int $id, string $state): int
+    {
+        return $this->mark('id = ?', [$id], $state);
+    }
+
+    /**
+     * Stops every request at an address. See holdRow().
+     */
+    public function holdAddress(int $listingId, string $email, string $state): int
+    {
+        return $this->mark('fanlisting_id = ? AND member_email = ?', [$listingId, $email], $state);
+    }
+
+    /** @param list<int|string> $whereParams */
+    private function mark(string $where, array $whereParams, string $state): int
+    {
+        try {
+            $stmt = $this->db->prepare(
+                "UPDATE lstr_pending_updates SET review_state = ?
+                 WHERE {$where} AND (review_state IS NULL OR review_state = ?)"
+            );
+            $stmt->execute([$state, ...$whereParams, self::QUEUED_BEFORE_CHECKS]);
+
+            return $stmt->rowCount();
+        } catch (\Throwable $e) {
+            error_log('[Luster] Could not hold a queued update: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Whether Migration 110 has added review_state yet.
+     *
+     * @throws \RuntimeException if the columns can't be read. That's never taken as "no".
+     */
+    private function hasReviewState(): bool
+    {
+        if (!$this->reviewStateExists) {
+            $columns = array_column($this->db->tableColumns('lstr_pending_updates'), 'name');
+            $this->reviewStateExists = in_array('review_state', $columns, true);
+        }
+
+        return $this->reviewStateExists;
     }
 }

@@ -24,7 +24,6 @@ use Luster\Models\Listing;
 use Luster\Models\Member;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
-use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
@@ -35,7 +34,10 @@ use Luster\Repositories\PendingUpdateRepo;
 use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\MemberAddressBusy;
+use Luster\Support\MemberAddressHandover;
+use Luster\Support\MemberEmailRekey;
 use Luster\Support\MemberRemoval;
+use Luster\Support\QueuedUpdateApplier;
 
 /**
  * Unified member management controller.
@@ -162,6 +164,9 @@ final class MemberController extends AdminController
         $pages                 = 1;
         $listingPendingUpdates = [];
         $pendingMemberData     = [];
+        // Request id => why it's stopped, the same answer an approval would give.
+        $pendingHolds          = [];
+        $applier               = QueuedUpdateApplier::for($this->app);
         $grouped               = [];
         $pendingUpdates        = [];
         $crossListingSearch    = [];
@@ -202,6 +207,7 @@ final class MemberController extends AdminController
                             $pendingMemberData[$key] = $m;
                         }
                     }
+                    $pendingHolds[$pu->id] = $applier->holdForScreen($pu, $pendingMemberData[$key] ?? null, $listing->dbprefix);
                 }
             } else {
                 // All or Approved — paginated member table
@@ -265,6 +271,10 @@ final class MemberController extends AdminController
                             $pendingMemberData[$key] = $m;
                         }
                     }
+                    // With no listing left, a stored hold still shows. There's nothing else to look up.
+                    $pendingHolds[$pu->id] = $puFl !== null && $puFl->dbprefix !== ''
+                        ? $applier->holdForScreen($pu, $pendingMemberData[$key] ?? null, $puFl->dbprefix)
+                        : QueuedUpdateApplier::holdReason($pu, null);
                 }
 
                 $flatPending = [];
@@ -310,6 +320,7 @@ final class MemberController extends AdminController
             'pages'                   => $pages,
             'listing_pending_updates' => $listingPendingUpdates,
             'pending_member_data'     => $pendingMemberData,
+            'pending_holds'           => $pendingHolds,
             // Cross-listing data
             'pending_updates'         => $pendingUpdates,
             'pending_updates_total'   => $puTotal,
@@ -489,7 +500,7 @@ final class MemberController extends AdminController
                     if ($memberRepo->getByEmail($listing->dbprefix, $input['email']) !== null) {
                         return false;
                     }
-                    (new PendingUpdateRepo($db))->deleteStale($listingId, $input['email']);
+                    (new MemberAddressHandover($db))->clear($listingId, $input['email']);
                     $memberRepo->insert($listing->dbprefix, $row);
                     return true;
                 },
@@ -844,21 +855,25 @@ final class MemberController extends AdminController
             $updateData[$column] = $value;
         }
 
-        $memberRepo->update($listing->dbprefix, $email, $updateData);
-        if ($emailChanged) {
-            // Re-key side tables that reference the member by email string
-            // (no FK) so queued updates and link-check history follow the
-            // rename instead of being orphaned under the old address.
-            (new PendingUpdateRepo($db))->renameMemberEmail($listingId, $email, $newEmail);
-            try {
-                (new MemberLinkCheckRepo($db, $config))->renameMemberEmail($listingId, $email, $newEmail);
-            } catch (\Throwable) {}
-            // Any outstanding password-reset token was issued to the old
-            // address and can't meaningfully be "renamed" (ResetController
-            // now safely rejects it either way) — just invalidate it so a
-            // stale link doesn't linger.
-            (new FanPasswordResetRepo($db))->deleteByEmail($listingId, $email);
+        if ($newEmail !== $email) {
+            // Queued updates, link checks and reset links point at the member by
+            // address, so they move with it. Other capitals count too, so they all match.
+            $rekey = MemberEmailRekey::for($this->app)->run($listingId, $listing->dbprefix, $email, $updateData);
+
+            if ($rekey['outcome'] === MemberEmailRekey::FAILED) {
+                $session->set('lstr_flash_error', "Couldn't save this member because of a database error. Nothing was changed, so you can try again.");
+                return Response::redirect($baseUrl . '/admin/members/' . $listingId . '/edit?email=' . urlencode($email));
+            }
+            if ($rekey['outcome'] === MemberEmailRekey::UNCONFIRMED || $rekey['outcome'] === MemberEmailRekey::UNRESOLVED) {
+                $session->set('lstr_flash_error', $rekey['held'] > 0
+                    ? "Luster couldn't confirm this save finished, so the member may already have some of these changes. Their queued requests are being held for you to check."
+                    : "Luster couldn't confirm this save finished. Check this member's details, and make any changes you still want by hand.");
+                return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
+            }
+
             $email = $newEmail;
+        } else {
+            $memberRepo->update($listing->dbprefix, $email, $updateData);
         }
         if ($url !== '') {
             try {
@@ -1361,56 +1376,20 @@ final class MemberController extends AdminController
             }
         }
 
-        // --- 2. Approve all pending member updates
-        $busyUpdates = 0;
-        foreach ($pendingUpdateRepo->getAll() as $pu) {
-            $applied = (new PendingUpdateController($this->app))->applyQueued($pu->id);
-            if (in_array($applied['outcome'], ['busy', 'moved'], true)) {
-                $busyUpdates++;
-            }
-            if ($applied['outcome'] !== 'applied') {
-                continue;
-            }
+        // --- 2. Approve all pending member updates, oldest first
+        $updateTally     = QueuedUpdateApplier::for($this->app)->applyAll($pendingUpdateRepo->idsOldestFirst(), true);
+        $approvedUpdates = $updateTally['applied'] ?? 0;
+        $stopped         = isset($updateTally['unresolved']);
 
-            $listing = $applied['listing'];
-            $member  = $applied['member'];
-
-            try {
-                $_es    = $settingsRepo->getResolvedEmbedSettings($pu->fanlisting_id);
-                $tokens = EmailTemplateRepo::buildTokens(
-                    listingName:    $listing->title,
-                    listingUrl:     $listing->url,
-                    siteName:       (string) $config->get('site_name', 'Luster'),
-                    listingSubject: $listing->subject,
-                    ownerName:      (string) $config->get('owner_name', ''),
-                    ownerEmail:     (string) $config->get('owner_email', ''),
-                    fanName:        $member->name,
-                    fanEmail:       $member->email,
-                    listingEmail:   $listing->email,
-                    formUrlJoin:    (string) $_es['form_url_join'],
-                    formUrlUpdate:  (string) $_es['form_url_update'],
-                    formUrlReset:   (string) $_es['form_url_reset'],
-                    listingType:    $settingsRepo->getListingType($pu->fanlisting_id),
-                );
-                [$subject, $body] = $emailTemplateRepo->resolveForListing(
-                    $pu->fanlisting_id,
-                    EmailTemplateRepo::TYPE_UPDATE,
-                    $tokens,
-                );
-                if ($subject !== '') { $mailer->send($member->email, $member->name, $subject, $body); }
-            } catch (\Throwable $e) {
-                error_log('[Luster] approve-all-overview update email failed for ' . $pu->member_email . ': ' . $e->getMessage());
-            }
-
-            $approvedUpdates++;
+        // After a transaction that can't be closed, nothing more goes near the database.
+        if (!$stopped) {
+            $activityRepo->log(
+                (int) $session->get('lstr_admin_id'),
+                'member.approve_all_overview',
+                "Approved all pending across all listings: {$approvedMembers} new member(s), {$approvedUpdates} update(s)",
+                $request->ip(),
+            );
         }
-
-        $activityRepo->log(
-            (int) $session->get('lstr_admin_id'),
-            'member.approve_all_overview',
-            "Approved all pending across all listings: {$approvedMembers} new member(s), {$approvedUpdates} update(s)",
-            $request->ip(),
-        );
 
         $parts = [];
         if ($approvedMembers > 0) {
@@ -1419,12 +1398,19 @@ final class MemberController extends AdminController
         if ($approvedUpdates > 0) {
             $parts[] = "{$approvedUpdates} pending update" . ($approvedUpdates !== 1 ? 's' : '');
         }
-        $msg = empty($parts) ? 'Nothing pending to approve.' : 'Approved: ' . implode(' and ', $parts) . '.';
-        if ($busyUpdates > 0) {
-            $msg .= " {$busyUpdates} update(s) couldn't be applied just now, so they're still in the queue. Try again in a moment.";
+        $notes = QueuedUpdateApplier::batchNotes($updateTally);
+
+        if (empty($parts) && $notes !== '') {
+            $session->set('lstr_flash_error', 'Pending updates: ' . $notes);
+            return Response::redirect($baseUrl . '/admin/members');
         }
 
-        $session->set('lstr_flash_success', $msg);
+        $msg = empty($parts) ? 'Nothing pending to approve.' : 'Approved: ' . implode(' and ', $parts) . '.';
+        if ($notes !== '') {
+            $msg .= ' Pending updates: ' . $notes;
+        }
+
+        $session->set($stopped ? 'lstr_flash_error' : 'lstr_flash_success', $msg);
         return Response::redirect($baseUrl . '/admin/members');
     }
 

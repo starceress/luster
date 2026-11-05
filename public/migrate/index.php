@@ -3514,6 +3514,32 @@ try {
     $errors[] = 'Migration 109 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// --- Migration 110: a queued update can be stopped for the owner to look at.
+// lstr_pending_updates.review_state. Requests already in the queue are stamped
+// queued_before_checks, which isn't a hold: they were queued when removing a member
+// still left their requests behind, so the approval's date check is stricter with them.
+// They're only stamped until 110 is recorded, and only where nothing is set, so a retry
+// after a failure can't overwrite a real hold or stamp a request made since. The number
+// goes in last. Safe to run again.
+try {
+    $chkReviewState = $pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_pending_updates' AND COLUMN_NAME = 'review_state'"
+    );
+    if ($chkReviewState !== false && (int) $chkReviewState->fetchColumn() === 0) {
+        $pdo->exec('ALTER TABLE `lstr_pending_updates` ADD COLUMN `review_state` VARCHAR(32) NULL');
+    }
+    $chkRecorded110 = $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 110');
+    if ($chkRecorded110 !== false && (int) $chkRecorded110->fetchColumn() === 0) {
+        $stamped = $pdo->exec("UPDATE `lstr_pending_updates` SET `review_state` = 'queued_before_checks' WHERE `review_state` IS NULL");
+        $pdo->exec('INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES (110)');
+        $done[] = 'Migration 110: queued updates can now be stopped for you to review'
+            . ((int) $stamped > 0 ? ' (' . (int) $stamped . ' already in the queue get an extra check when you approve them)' : '');
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 110 &mdash; ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // Build results HTML
 
 echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

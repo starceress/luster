@@ -21,6 +21,7 @@ $puPage = (int) ($pu_page ?? 1);
 $tabCounts      = $tab_counts   ?? ['all' => 0, 'pending' => 0, 'approved' => 0];
 $pendingPUs     = $listing_pending_updates ?? [];
 $puMemberMap    = $pending_member_data     ?? [];
+$puHolds        = $pending_holds           ?? [];
 $pendingPUTotal = (int) ($pending_updates_total ?? count($pendingPUs));
 $pendingPUPages = (int) ($pending_updates_pages ?? 1);
 
@@ -320,6 +321,7 @@ $pendingNewCnt = count($pendingNew);
         <tbody>
           <?php foreach ($pendingPUs as $pu):
             $puMember = $puMemberMap[(int) $pu->fanlisting_id . ':' . $pu->member_email] ?? null;
+            $puHold   = $puHolds[(int) $pu->id] ?? null;
           ?>
           <tr>
             <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
@@ -329,7 +331,10 @@ $pendingNewCnt = count($pendingNew);
               <span class="text-dim" style="font-size:var(--fs-xs)"><?= View::e(date($admin_date_format, strtotime($pu->submitted_at))) ?></span>
             </td>
             <td data-label="Changes">
-              <?php if (empty($pu->changes)): ?>
+              <?php if ($puHold !== null) { include LUSTER_BASE . '/templates/admin/members/_pending-hold.php'; } ?>
+              <?php if (!empty($pu->malformed)): ?>
+                <span class="text-dim">Couldn&rsquo;t read this request.</span>
+              <?php elseif (empty($pu->changes)): ?>
                 <span class="text-dim">&mdash;</span>
               <?php else: ?>
                 <div class="diff-changes">
@@ -369,7 +374,9 @@ $pendingNewCnt = count($pendingNew);
             </td>
             <td class="actions-col" data-label="">
               <div class="actions-row">
-                <button type="submit" form="approve-update-<?= (int) $pu->id ?>" class="btn btn-success btn-xs">Approve</button>
+                <?php if ($puHold === null): ?>
+                  <button type="submit" form="approve-update-<?= (int) $pu->id ?>" class="btn btn-success btn-xs">Approve</button>
+                <?php endif; ?>
                 <a href="<?= $b ?>/admin/members/<?= $lid ?>/edit?email=<?= urlencode($pu->member_email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
                 <button type="submit" form="reject-update-<?= (int) $pu->id ?>" class="btn btn-danger btn-xs">Reject</button>
               </div>
@@ -856,8 +863,8 @@ endif;
             if (in_array($sort, ['name', 'country'], true) && !empty($_puSlice)) {
                 $_puMmap = $pending_member_data ?? [];
                 usort($_puSlice, static function ($a, $b) use ($sort, $dir, $_puMmap): int {
-                    $ma = $_puMmap[$a->member_email] ?? null;
-                    $mb = $_puMmap[$b->member_email] ?? null;
+                    $ma = $_puMmap[(int) $a->fanlisting_id . ':' . $a->member_email] ?? null;
+                    $mb = $_puMmap[(int) $b->fanlisting_id . ':' . $b->member_email] ?? null;
                     $av = $sort === 'country' ? ($ma?->country ?? '') : ($ma?->name ?? $a->member_email);
                     $bv = $sort === 'country' ? ($mb?->country ?? '') : ($mb?->name ?? $b->member_email);
                     $cmp = strcasecmp($av, $bv);
@@ -870,6 +877,7 @@ endif;
             $puFlId    = (int) $pu->fanlisting_id;
             $puCount   = is_array($pu->changes) ? count($pu->changes) : 0;
             $puMember  = ($pending_member_data ?? [])[$puFlId . ':' . $pu->member_email] ?? null;
+            $puHold    = $puHolds[(int) $pu->id] ?? null;
           ?>
           <tr>
             <td class="checkbox-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
@@ -896,7 +904,10 @@ endif;
             </td>
             <td data-label="Email"><?= View::e($pu->member_email) ?></td>
             <td data-label="Changes">
-              <?php if ($puCount === 0): ?>
+              <?php if ($puHold !== null) { include LUSTER_BASE . '/templates/admin/members/_pending-hold.php'; } ?>
+              <?php if (!empty($pu->malformed)): ?>
+                <span class="text-dim">Couldn&rsquo;t read this request.</span>
+              <?php elseif ($puCount === 0): ?>
                 <span class="text-dim">-</span>
               <?php else: ?>
                 <details class="changes-toggle">
@@ -912,7 +923,9 @@ endif;
             <td data-label="Submitted" class="text-muted nowrap"><?= View::e($pu->submitted_at) ?></td>
             <td class="actions-col" data-label="">
               <div class="actions-row">
-                <button type="submit" form="approve-update-overview-<?= (int) $pu->id ?>" class="btn btn-success btn-xs">Approve</button>
+                <?php if ($puHold === null): ?>
+                  <button type="submit" form="approve-update-overview-<?= (int) $pu->id ?>" class="btn btn-success btn-xs">Approve</button>
+                <?php endif; ?>
                 <a href="<?= $b ?>/admin/members/<?= $puFlId ?>/edit?email=<?= urlencode($pu->member_email) ?>" class="btn btn-tertiary btn-xs">Edit</a>
                 <button type="submit" form="reject-update-overview-<?= (int) $pu->id ?>" class="btn btn-danger btn-xs">Reject</button>
               </div>

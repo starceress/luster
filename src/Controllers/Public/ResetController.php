@@ -129,23 +129,38 @@ final class ResetController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
-        // Look up the member — only send email if they exist AND are approved
-        $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
-        $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
+        // Look up the member — only send email if they exist AND are approved. Under the
+        // address's lock, so a link can't appear while this address is changing hands.
+        // If it's busy the answer is the same as ever, and the fan can just ask again.
+        $member   = null;
+        $rawToken = null;
+        try {
+            [$member, $rawToken] = $this->app->getMemberAddressLock()->run(
+                [[$listingId, $email]],
+                function () use ($listing, $listingId, $email): array {
+                    $db     = $this->app->getDatabase();
+                    $member = (new MemberRepo($db, $this->app->getConfig()))->getByEmail($listing->dbprefix, $email);
+                    if ($member === null || !$member->approved) {
+                        return [null, null];
+                    }
 
-        if ($member !== null && $member->approved) {
-            $resetRepo = new FanPasswordResetRepo($this->app->getDatabase());
+                    $resetRepo = new FanPasswordResetRepo($db);
 
-            // One token at a time — delete any existing token for this email+fanlisting
-            $resetRepo->deleteByEmail($listingId, $email);
+                    // One token at a time — delete any existing token for this email+fanlisting
+                    $resetRepo->deleteByEmail($listingId, $email);
 
-            // Generate token
-            $rawToken  = bin2hex(random_bytes(32));
-            $tokenHash = hash('sha256', $rawToken);
-            $expiresAt = $this->app->getDatabase()->expiresIn(self::TOKEN_TTL_SECONDS);
+                    // Generate token
+                    $rawToken = bin2hex(random_bytes(32));
+                    $resetRepo->create($listingId, $email, hash('sha256', $rawToken), $db->expiresIn(self::TOKEN_TTL_SECONDS));
 
-            $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
+                    return [$member, $rawToken];
+                },
+            );
+        } catch (MemberAddressBusy) {
+            error_log('[Luster] Fan password reset: the address was busy, so no link was sent.');
+        }
 
+        if ($member !== null && $rawToken !== null) {
             $sep      = str_contains($formUrl, '?') ? '&' : '?';
             $resetUrl = $formUrl . $sep . 'token=' . urlencode($rawToken);
 

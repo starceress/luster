@@ -53,6 +53,9 @@ final class MemberRepo
      */
     private bool $appendMembers;
 
+    /** @var array<string, array<string, array{type: string, chars: ?int, bytes: ?int}>> */
+    private array $columnWidthCache = [];
+
     public function __construct(
         private readonly Database $db,
         private readonly Config   $config,
@@ -190,6 +193,101 @@ final class MemberRepo
         $stmt->execute(['email' => $email]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $row !== false ? $row : null;
+    }
+
+    /**
+     * getRawRow() with the row locked, for use inside a transaction. A MyISAM table
+     * takes no row lock from this, so there it's the address lock that keeps other
+     * writers out.
+     */
+    public function lockRawRow(string $prefix, string $email): ?array
+    {
+        $p    = $this->resolveTable($prefix);
+        $stmt = $this->db->prepare("SELECT * FROM {$p} WHERE email = :email LIMIT 1" . $this->db->forUpdate());
+        $stmt->execute(['email' => $email]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * Each column of a listing's member table with its type and text limits, read from
+     * the database. Real member tables are often narrower than the forms allow, and on a
+     * non-strict server a longer value is silently cut. Kept for this object's life. A
+     * failed read throws and isn't kept, and callers must refuse the write rather than
+     * fall back to anything.
+     *
+     * @return array<string, array{type: string, chars: ?int, bytes: ?int, charset: ?string, charset_bytes: ?int}> By real column name.
+     * @throws \RuntimeException if the columns can't be read.
+     */
+    public function columnWidths(string $prefix): array
+    {
+        $table = $this->resolveTable($prefix);
+
+        if (!isset($this->columnWidthCache[$table])) {
+            $widths = [];
+            foreach ($this->db->tableColumns($table) as $column) {
+                $widths[$column['name']] = [
+                    'type'          => $column['type'],
+                    'chars'         => $column['chars'],
+                    'bytes'         => $column['bytes'],
+                    'charset'       => $column['charset'],
+                    'charset_bytes' => $column['charset_bytes'],
+                ];
+            }
+            $this->columnWidthCache[$table] = $widths;
+        }
+
+        return $this->columnWidthCache[$table];
+    }
+
+    /**
+     * Which of these values won't fit their column. CHAR and VARCHAR limits are in
+     * characters and TEXT limits are in bytes, as the column stores them, which isn't
+     * always how PHP holds them. Any other type, and a column that isn't listed, has no
+     * text limit to check.
+     *
+     * @param array<string, array{type: string, chars: ?int, bytes: ?int, charset?: ?string, charset_bytes?: ?int}> $widths From columnWidths().
+     * @param array<int|string, mixed> $values Column => value.
+     * @return list<string> The columns that are too long.
+     */
+    public static function tooLong(array $widths, array $values): array
+    {
+        $tooLong = [];
+        foreach ($values as $column => $value) {
+            $column = (string) $column;
+            $width  = $widths[$column] ?? null;
+            if ($width === null) {
+                continue;
+            }
+
+            $text = (string) $value;
+            if (in_array($width['type'], ['char', 'varchar'], true)) {
+                if ($width['chars'] !== null && mb_strlen($text, 'UTF-8') > $width['chars']) {
+                    $tooLong[] = $column;
+                }
+            } elseif (str_ends_with($width['type'], 'text')) {
+                if ($width['bytes'] !== null && self::storedBytes($text, $width['charset'] ?? null, $width['charset_bytes'] ?? null) > $width['bytes']) {
+                    $tooLong[] = $column;
+                }
+            }
+        }
+
+        return $tooLong;
+    }
+
+    /**
+     * How many bytes this text takes in a column with this character set. PHP's text is
+     * UTF-8, so that's exact, and so is a set with one byte a character, like latin1,
+     * whatever each one converts to. For any other set it's the most it could take, so
+     * a value it can't be sure of is refused rather than cut short.
+     */
+    private static function storedBytes(string $text, ?string $charset, ?int $charsetBytes): int
+    {
+        if ($charset === null || $charsetBytes === null || str_starts_with($charset, 'utf8')) {
+            return strlen($text);
+        }
+
+        return mb_strlen($text, 'UTF-8') * $charsetBytes;
     }
 
     /**
@@ -756,6 +854,10 @@ final class MemberRepo
      * Updates arbitrary columns on an existing member row identified by email.
      *
      * $data keys must be valid SQL column names (validated).
+     *
+     * True only means the statement ran: a member who isn't there affects no rows and
+     * still returns true. Read the row back if it matters. False means nothing was left
+     * to write, and no SQL ran.
      */
     public function update(string $prefix, string $email, array $data): bool
     {
@@ -765,6 +867,10 @@ final class MemberRepo
         // additional-field definitions in owned.additional never cause a crash.
         $existing = $this->getTableColumns($p);
         $data     = array_intersect_key($data, array_flip($existing));
+
+        if ($data === []) {
+            return false;
+        }
 
         $setParts = [];
         $params   = [];

@@ -25,11 +25,11 @@ final class DatabaseTableColumnsTest extends TestCase
         $db = SqliteDatabase::make('CREATE TABLE fl_moon (email VARCHAR(64) NOT NULL PRIMARY KEY, code CHAR(5), fave TEXT NULL, pending INTEGER, `123` TEXT)');
 
         self::assertSame([
-            ['name' => 'email',   'type' => 'varchar', 'chars' => 64,   'bytes' => null],
-            ['name' => 'code',    'type' => 'char',    'chars' => 5,    'bytes' => null],
-            ['name' => 'fave',    'type' => 'text',    'chars' => null, 'bytes' => null],
-            ['name' => 'pending', 'type' => 'integer', 'chars' => null, 'bytes' => null],
-            ['name' => '123',     'type' => 'text',    'chars' => null, 'bytes' => null],
+            ['name' => 'email',   'type' => 'varchar', 'chars' => 64,   'bytes' => null, 'charset' => null, 'charset_bytes' => null],
+            ['name' => 'code',    'type' => 'char',    'chars' => 5,    'bytes' => null, 'charset' => null, 'charset_bytes' => null],
+            ['name' => 'fave',    'type' => 'text',    'chars' => null, 'bytes' => null, 'charset' => null, 'charset_bytes' => null],
+            ['name' => 'pending', 'type' => 'integer', 'chars' => null, 'bytes' => null, 'charset' => null, 'charset_bytes' => null],
+            ['name' => '123',     'type' => 'text',    'chars' => null, 'bytes' => null, 'charset' => null, 'charset_bytes' => null],
         ], $db->tableColumns('fl_moon'));
     }
 

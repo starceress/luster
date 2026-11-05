@@ -2103,6 +2103,8 @@ div:has(> .mem-table) { overflow-x: visible !important; }
 .mem-table td::before { content: attr(data-label); font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; min-width: 7rem; flex-shrink: 0; }
 .mem-table td.checkbox-col, .mem-table td[data-label=""]:not(.actions-col) { display: none; }
 .mem-table td[data-label="Image"] { align-items: flex-start; }
+.mem-table td:has(> .callout) { flex-wrap: wrap; }
+.mem-table td > .callout { flex: 1 0 100%; margin-bottom: 0.25rem; }
 .subject-title-stack { display: flex; flex-direction: column; gap: 0.1rem; }
 .mem-table td.actions-col { align-items: center; }
 .mem-table td.actions-col::before { content: "Actions"; }

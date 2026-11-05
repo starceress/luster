@@ -51,6 +51,7 @@ use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\MemberFormSessionRepo;
 use Luster\Support\MemberRemoval;
 use Luster\Support\MemberSignIn;
+use Luster\Support\QueuedUpdateApplier;
 use Luster\Tests\Unit\Support\TracingPdo;
 
 $root = dirname(__DIR__, 3);
@@ -117,19 +118,22 @@ function authFixture(string $root, array $s): array
             upcoming INTEGER NOT NULL DEFAULT 0, trouble INTEGER NOT NULL DEFAULT 0, opened TEXT NULL)");
     }
 
+    // case_insensitive makes addresses compare the way they do in MySQL, ignoring capitals.
+    $emailCollation = !empty($s['case_insensitive']) ? ' COLLATE NOCASE' : '';
+    $emailType      = (string) ($s['email_column_type'] ?? 'TEXT') . $emailCollation;
     foreach ([1 => ['Moon FL', 'fl_moon'], 2 => ['Sun FL', 'fl_sun']] as $id => [$title, $table]) {
         if ($isOwned) {
             $pdo->prepare('INSERT INTO owned (listingid, title, url, subject, dbtable) VALUES (?, ?, ?, ?, ?)')
                 ->execute([$id, $title, 'https://fans.test/' . $table . '/', 'The ' . $title, $table]);
             $pdo->exec("CREATE TABLE {$table} (
-                email TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '',
+                email {$emailType} NOT NULL PRIMARY KEY, name TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '',
                 url TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, password TEXT NOT NULL DEFAULT '',
                 showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL)");
         } else {
             $pdo->prepare('INSERT INTO enth_fanlistings (id, name, url, subject, dbprefix) VALUES (?, ?, ?, ?, ?)')
                 ->execute([$id, $title, 'https://fans.test/' . $table . '/', 'The ' . $title, $table . '_']);
             $pdo->exec("CREATE TABLE {$table}_members (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL DEFAULT '', name TEXT NOT NULL DEFAULT '',
+                id INTEGER PRIMARY KEY AUTOINCREMENT, email {$emailType} NOT NULL DEFAULT '', name TEXT NOT NULL DEFAULT '',
                 country TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', approved INTEGER NOT NULL DEFAULT 1,
                 password TEXT NOT NULL DEFAULT '', showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1,
                 added TEXT NULL, updated TEXT NULL)");
@@ -173,9 +177,10 @@ function authFixture(string $root, array $s): array
     $pdo->exec("CREATE TABLE lstr_fan_password_resets (
         id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, email TEXT NOT NULL,
         token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NULL)");
+    $reviewStateColumn = !empty($s['no_review_state']) ? '' : ', review_state TEXT NULL';
     $pdo->exec("CREATE TABLE lstr_pending_updates (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, member_email TEXT NOT NULL,
-        changes TEXT NOT NULL DEFAULT '', submitted_at TEXT NOT NULL DEFAULT '2026-01-01 00:00:00')");
+        id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, member_email TEXT NOT NULL{$emailCollation},
+        changes TEXT NOT NULL DEFAULT '', submitted_at TEXT NOT NULL DEFAULT '2026-01-01 00:00:00'{$reviewStateColumn})");
     $pdo->exec("CREATE TABLE lstr_collective_update_tokens (
         id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL, email TEXT NOT NULL,
         expires_at TEXT NOT NULL, used_at TEXT NULL, created_at TEXT NULL)");
@@ -270,6 +275,7 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
 
     $post = static fn(array $body): Request => new Request([], $body, ['REQUEST_METHOD' => 'POST', 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'luster.test'], [], []);
     $error = null;
+    $tallies = [];
     $stepFlashes = [];
     $maxId = static fn(string $table): int => (int) $pdo->query("SELECT MAX(id) FROM {$table}")->fetchColumn();
     $kimIds = static function (array $names) use (&$ids): array {
@@ -322,14 +328,36 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                     $pdo->failOn = $step['regex'] ?? null;
                     break;
                 case 'fail_on_after':
-                    // Lets this many matching statements through, then fails the next one.
+                    // Lets this many matching statements through, then fails the next one,
+                    // or every one after that with keep_failing.
                     $pattern   = (string) $step['regex'];
                     $letThrough = (int) $step['let_through'];
-                    $pdo->failWhen = static function (string $sql) use ($pattern, &$letThrough): bool {
+                    $keepFailing = !empty($step['keep_failing']);
+                    $pdo->failWhen = static function (string $sql) use ($pattern, &$letThrough, $keepFailing): bool {
                         if (preg_match($pattern, $sql) !== 1) {
                             return false;
                         }
-                        return $letThrough-- === 0;
+                        return $keepFailing ? $letThrough-- <= 0 : $letThrough-- === 0;
+                    };
+                    break;
+                case 'fail_after':
+                    // Fails the next statement matching regex once one matching seen has run,
+                    // or every one after that with keep_failing.
+                    $seenPattern = (string) $step['seen'];
+                    $failPattern = (string) $step['regex'];
+                    $keepGoing   = !empty($step['keep_failing']);
+                    $seen        = false;
+                    $failedOnce  = false;
+                    $pdo->failWhen = static function (string $sql) use ($seenPattern, $failPattern, $keepGoing, &$seen, &$failedOnce): bool {
+                        if (!$seen) {
+                            $seen = preg_match($seenPattern, $sql) === 1;
+                            return false;
+                        }
+                        if (preg_match($failPattern, $sql) !== 1 || ($failedOnce && !$keepGoing)) {
+                            return false;
+                        }
+                        $failedOnce = true;
+                        return true;
                     };
                     break;
                 case 'db_clock':
@@ -344,9 +372,37 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                     insertMember($pdo, $layout, $step['member']);
                     break;
                 case 'queue':
-                    $pdo->prepare('INSERT INTO lstr_pending_updates (fanlisting_id, member_email, changes) VALUES (?, ?, ?)')
-                        ->execute([$listing, $email, json_encode($step['changes'])]);
+                    // Sent just now unless a step says otherwise. changes_raw is for what isn't good JSON.
+                    $pdo->prepare('INSERT INTO lstr_pending_updates (fanlisting_id, member_email, changes, submitted_at) VALUES (?, ?, ?, ?)')
+                        ->execute([$listing, $email, $step['changes_raw'] ?? json_encode($step['changes']), $step['submitted_at'] ?? date('Y-m-d H:i:s')]);
                     $ids[$step['as'] ?? 'queued'] = $maxId('lstr_pending_updates');
+                    if (isset($step['review_state'])) {
+                        $pdo->prepare('UPDATE lstr_pending_updates SET review_state = ? WHERE id = ?')->execute([$step['review_state'], $ids[$step['as'] ?? 'queued']]);
+                    }
+                    break;
+                case 'fail_commit':
+                    $pdo->failCommit = true;
+                    break;
+                case 'survives_rollback':
+                    $pdo->survivesRollback = (string) $step['sql'];
+                    break;
+                case 'no_transactions':
+                    // Behaves like a MyISAM member table: every statement saves at once, and nothing rolls back.
+                    $pdo->noTransactions = true;
+                    break;
+                case 'fail_rollback':
+                    // rollBack() throws and takes nothing back, so the transaction stays open.
+                    $pdo->failRollBack = true;
+                    break;
+                case 'open_transaction':
+                    $pdo->beginTransaction();
+                    break;
+                case 'connection_ends':
+                    // What the server does when a request ends with a transaction still open.
+                    $pdo->failRollBack = false;
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
                     break;
 
                 // ---- A session as sign-in leaves it, without the slow hash ----
@@ -425,6 +481,16 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                     break;
                 case 'approve_overview':
                     (new MemberController($app))->approveAllOverview($post([]), []);
+                    break;
+                case 'apply_all':
+                    // The routine itself, for what it counts, which the controllers only summarise.
+                    $tallies[] = QueuedUpdateApplier::for($app)->applyAll(array_map(static fn($n): int => (int) $ids[$n], $step['ids']), false);
+                    break;
+                case 'reject':
+                    (new PendingUpdateController($app))->reject($post([]), ['id' => (string) ($ids[$step['id'] ?? 'queued'] ?? 0)]);
+                    break;
+                case 'bulk_reject':
+                    (new PendingUpdateController($app))->bulk($post(['bulk_action' => 'reject', 'ids' => array_map(static fn($n): string => (string) $ids[$n], $step['ids'])]), []);
                     break;
 
                 // ---- Admin sign-ins and resets ----
@@ -535,7 +601,7 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
         }
 
         // A simulated failure is for the step after it, and only that one.
-        if ($step['do'] !== 'fail_on' && $step['do'] !== 'fail_on_after') {
+        if (!in_array($step['do'], ['fail_on', 'fail_on_after', 'fail_after'], true)) {
             $pdo->failOn   = null;
             $pdo->failWhen = null;
         }
@@ -572,7 +638,10 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
         'members'        => $members,
         'kim'            => $kim,
         'kim_tokens'     => (int) $pdo->query('SELECT COUNT(*) FROM lstr_kim_password_resets')->fetchColumn(),
-        'queue'          => $read('SELECT id, fanlisting_id, member_email, changes FROM lstr_pending_updates ORDER BY id'),
+        'queue'          => $read('SELECT * FROM lstr_pending_updates ORDER BY id'),
+        'link_checks'    => $read('SELECT listing_id, member_email, member_name, member_url FROM lstr_member_link_checks ORDER BY id'),
+        'activity'       => array_column($read('SELECT action FROM lstr_activity_log ORDER BY id'), 'action'),
+        'tallies'        => $tallies,
         'form_tokens'    => $read('SELECT member_email, allowed_action, used_at FROM lstr_member_form_sessions ORDER BY id'),
         'resets'         => $read('SELECT fanlisting_id, email FROM lstr_fan_password_resets ORDER BY id'),
         'collective_tokens' => $read('SELECT email, used_at FROM lstr_collective_update_tokens ORDER BY id'),

@@ -32,11 +32,11 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
-use Luster\Repositories\PendingUpdateRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\MemberAddressBusy;
+use Luster\Support\MemberAddressHandover;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -316,7 +316,7 @@ final class JoinController
                     if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
                         return false;
                     }
-                    (new PendingUpdateRepo($this->app->getDatabase()))->deleteStale($listingId, $email);
+                    MemberAddressHandover::for($this->app)->clear($listingId, $email);
                     $memberRepo->insert($listing->dbprefix, $insertData);
                     return true;
                 },

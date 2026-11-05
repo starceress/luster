@@ -199,6 +199,12 @@ function memberAddFixture(string $root, array $s): array
     $pdo->exec("CREATE TABLE lstr_pending_updates (
         id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, member_email TEXT NOT NULL,
         changes TEXT NOT NULL DEFAULT '', submitted_at TEXT NULL)");
+    $pdo->exec("CREATE TABLE lstr_fan_password_resets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, email TEXT NOT NULL,
+        token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NULL)");
+    $pdo->exec("CREATE TABLE lstr_collective_update_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL, email TEXT NOT NULL,
+        expires_at TEXT NOT NULL, used_at TEXT NULL, created_at TEXT NULL)");
 
     foreach ($s['templates'] ?? [] as $t) {
         $pdo->prepare('INSERT INTO lstr_email_templates (fanlisting_id, type, enabled, subject, body) VALUES (?, ?, ?, ?, ?)')
