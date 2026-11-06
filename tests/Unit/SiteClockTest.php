@@ -50,7 +50,7 @@ final class SiteClockTest extends TestCase
     {
         $values = [];
         foreach (['UTC', 'utc', 'America/New_York', 'america/new_york', 'AMERICA/NEW_YORK', 'US/Eastern', 'Asia/Calcutta', 'Etc/GMT+1', 'GMT', 'GMT0', 'EST', 'EST5EDT', 'CET', 'Z',
-            '+02:00', '-05:00', '+0200', 'GMT+1', 'UTC+1', 'Nope/Nope', 'America/New_York ', ' UTC', 'America', '', ' ', '0', 'a', 'localtime', 'posixrules', 'Factory'] as $value) {
+            '+02:00', '-05:00', '+0200', 'GMT+1', 'UTC+1', 'Nope/Nope', 'America/New_York ', ' UTC', 'America', '', ' ', '0', 'a', 'localtime', 'Factory'] as $value) {
             $values["'{$value}'"] = [$value];
         }
 
@@ -63,6 +63,17 @@ final class SiteClockTest extends TestCase
         $accepted = self::setterAccepts($value);
 
         self::assertSame($accepted ? $value : 'UTC', SiteClock::zoneName($value), 'admin pages use the setter, so this has to match it exactly');
+    }
+
+    /**
+     * A PHP that reads the server's own zone files, like Debian's and Ubuntu's, lets the
+     * setter take this name, and one with its own zone list doesn't. So it can't be part of
+     * the test above. Luster only ever calls the setter with zoneName()'s answer, so this
+     * means UTC on every server.
+     */
+    public function testANameOnlySomeServersKnowMeansUtcOnAllOfThem(): void
+    {
+        self::assertSame('UTC', SiteClock::zoneName('posixrules'));
     }
 
     public function testItAgreesWithPhpsOwnSetterAboutEveryZonePhpKnows(): void

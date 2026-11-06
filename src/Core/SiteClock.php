@@ -34,6 +34,10 @@ final class SiteClock
      * This is the same test date_default_timezone_set() makes: a name from PHP's zone
      * list, ignoring capitals. new DateTimeZone() isn't, because it also takes offsets
      * like "+02:00", so trying that instead would disagree with the admin pages.
+     *
+     * A PHP that reads the server's own zone files, like Debian's and Ubuntu's, also lets
+     * the setter take a few names it doesn't list, such as "posixrules". Those mean UTC
+     * here, and so everywhere, because Luster only calls the setter with this answer.
      */
     public static function zoneName(string $configured): string
     {
