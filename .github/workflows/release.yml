@@ -46,6 +46,10 @@ jobs:
       - name: Run PHPUnit
         run: vendor/bin/phpunit
 
+      # The tests upload files while they run, and this is the folder that gets packaged.
+      - name: Remove what the tests left behind
+        run: git clean -ffdx -- public/uploads storage
+
       - name: Install production dependencies only
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
@@ -87,6 +91,14 @@ jobs:
 
           # Ensure empty directories survive without .gitkeep
           mkdir -p "dist/${PKG}/storage/logs" "dist/${PKG}/storage/cache"
+
+          # A new install starts with no uploads, only the files that protect those folders.
+          LEFTOVERS=$(find "dist/${PKG}/public/uploads" -type f ! -name '.htaccess')
+          if [ -n "$LEFTOVERS" ]; then
+            echo "::error::These uploads would end up in the release ZIP:"
+            echo "$LEFTOVERS"
+            exit 1
+          fi
 
           echo "PKG=${PKG}" >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
