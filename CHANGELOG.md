@@ -35,6 +35,22 @@ can stop a fan's update request for you to look at.
   or later, it'll stop like this too, because Luster can't tell it's the same person.
 
 **Fixed:**
+- **An email problem can't freeze your admin panel anymore.** When a new version of
+  Luster came out and your email settings weren't working, every admin page tried to
+  email you about it and sat there waiting for the email to fail. It could look like
+  your login was broken or your database was down. Now a failed update email waits a
+  day before trying again, so it slows down one page a day instead of all of them.
+  This doesn't fix the email settings themselves, so if you haven't been getting
+  emails, check **Settings → SMTP & Email** and send yourself a test.
+- **Luster doesn't wait as long on a mail server that isn't answering.** One email could
+  hold a page up for 5 minutes or more. Most waits now use 15 seconds. In
+  testing, Luster gave up on a mail server it couldn't reach after 15 seconds, and on one
+  that stopped answering partway through after up to a minute. This helps anywhere Luster
+  sends an email while someone waits, like your join and contact forms.
+- **Leaving the SMTP Port box empty doesn't save it as port 1 anymore.** Port 1 isn't a
+  standard SMTP port, so your emails would most likely fail, and nothing on the page told
+  you why. Now an empty box uses the usual port for your encryption setting: 465 for SMTPS and 587
+  otherwise. If your Port already says 1, change it to the one your email provider lists.
 - **Fans' email addresses don't go on public pages anymore.** The `{fan_email}` token
   printed a fan's address on your member list, even if they'd chosen to hide it, and
   importing from Enthusiast or Listing Admin could put that token in your template

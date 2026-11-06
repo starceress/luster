@@ -28,12 +28,17 @@ use Luster\Repositories\SiteSettingsRepo;
  *   update_release_title   — release name/title from GitHub
  *   update_checked_at      — unix timestamp of last check attempt (string)
  *   update_check_failed    — "1" if the last attempt failed, "0" otherwise
+ *
+ * The update email keeps two more:
+ *   update_notified_version    — the version the owner has been emailed about
+ *   update_notify_last_attempt — unix timestamp of a try that hasn't succeeded yet
  */
 final class UpdateChecker
 {
     private const CACHE_TTL    = 3600; // 1 hour
     private const GITHUB_API   = 'https://api.github.com/repos/' . Version::GITHUB_REPO . '/releases/latest';
     private const FETCH_TIMEOUT = 10;
+    private const NOTIFY_RETRY_SECONDS = 86400; // 24 hours
 
     /** @var callable(string): string|false */
     private $httpFetcher;
@@ -126,7 +131,9 @@ final class UpdateChecker
      * Returns true when an update notification email should be sent.
      *
      * Gated by: email notifications enabled, update available, not already
-     * notified for this specific version.
+     * notified for this specific version, and no failed try in the last 24 hours.
+     * That wait covers every version, because a mail server that's down for one
+     * version is down for the next one too.
      */
     public function shouldSendNotification(UpdateStatus $status): bool
     {
@@ -140,16 +147,44 @@ final class UpdateChecker
         if ($notifiedVersion !== null && $notifiedVersion === $status->latest) {
             return false;
         }
+        $lastAttempt = (int) $this->repo->get('update_notify_last_attempt', '0');
+        if ((time() - $lastAttempt) < self::NOTIFY_RETRY_SECONDS) {
+            return false;
+        }
         return true;
     }
 
     /**
+     * Sends the update email through $send, which must throw if the email fails.
+     *
+     * The try is saved before $send runs, not after. These checks run while someone
+     * waits for a page, and a server can kill a request stuck on a mail server. When
+     * that happens nothing after $send runs, not even a catch block, so saving it
+     * afterwards would let the very next page load try again. If the try can't be
+     * saved, this throws and sends nothing, for the same reason.
+     *
+     * @param callable(): void $send
+     */
+    public function sendNotification(string $version, callable $send): void
+    {
+        $this->repo->setStrict('update_notify_last_attempt', (string) time());
+        $send();
+        $this->markNotified($version);
+    }
+
+    /**
      * Records that the admin has been notified about $version so that
-     * shouldSendNotification() returns false for the same version.
+     * shouldSendNotification() returns false for the same version. Also clears any
+     * failed try, so the 24-hour wait can't hold up the email for a newer version.
+     *
+     * The version is saved with setStrict(), and the try is only cleared once that
+     * works. If a failed save went unnoticed and the try was cleared anyway, nothing
+     * would remember the email, and the next page load would send it again.
      */
     public function markNotified(string $version): void
     {
-        $this->repo->set('update_notified_version', $version);
+        $this->repo->setStrict('update_notified_version', $version);
+        $this->repo->set('update_notify_last_attempt', null);
     }
 
     /**

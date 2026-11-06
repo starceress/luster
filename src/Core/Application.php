@@ -575,7 +575,9 @@ final class Application
     /**
      * Sends a one-per-version email when a newer Luster release is detected.
      * Gated by update_email_notify setting and whether this version was already
-     * notified. Fires silently — exceptions are swallowed and logged.
+     * notified. A failed send waits 24 hours before trying again, so a broken mail
+     * server can't slow down every admin page. Fires silently — exceptions are
+     * swallowed and logged.
      */
     private function runUpdateNotificationCheck(bool $force = false): void
     {
@@ -610,14 +612,12 @@ final class Application
                 . ($status->releaseUrl !== null ? "Release: " . $status->releaseUrl . "\n\n" : '')
                 . "Log in to update: " . $adminUrl;
 
-            (new Mailer($this->config))->send(
-                $ownerEmail,
-                '',
-                '[' . $siteName . '] Luster ' . $status->latest . ' is available',
-                $body,
-            );
+            $subject = '[' . $siteName . '] Luster ' . $status->latest . ' is available';
 
-            $checker->markNotified((string) $status->latest);
+            $checker->sendNotification(
+                (string) $status->latest,
+                fn() => (new Mailer($this->config))->send($ownerEmail, '', $subject, $body),
+            );
 
             $adminId = (int) $this->session->get('lstr_admin_id', 0);
             (new ActivityRepo($this->database))->log(

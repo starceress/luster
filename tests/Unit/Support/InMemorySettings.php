@@ -9,7 +9,7 @@ use Luster\Repositories\SiteSettingsRepo;
 /**
  * In-memory stub for SiteSettingsRepo.
  *
- * Overrides get/set to use a PHP array so tests don't need a database
+ * Overrides get/set/setStrict to use a PHP array so tests don't need a database
  * connection. All other methods inherited from SiteSettingsRepo are unused
  * in UpdateChecker and are not overridden.
  */
@@ -29,6 +29,11 @@ final class InMemorySettings extends SiteSettingsRepo
     }
 
     public function set(string $key, ?string $value): void
+    {
+        $this->store[$key] = $value;
+    }
+
+    public function setStrict(string $key, ?string $value): void
     {
         $this->store[$key] = $value;
     }

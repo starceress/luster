@@ -1945,7 +1945,6 @@ final class SettingsController extends AdminController
 
         $updated['smtp_enabled']   = $request->post('smtp_enabled') === '1' ? '1' : '';
         $updated['smtp_host']      = trim((string) $request->post('smtp_host',      ''));
-        $updated['smtp_port']      = max(1, min(65535, (int) $request->post('smtp_port', 587)));
         $updated['smtp_user']      = trim((string) $request->post('smtp_user',      ''));
         $updated['smtp_from']      = trim((string) $request->post('smtp_from',      ''));
         $updated['smtp_from_name'] = trim((string) $request->post('smtp_from_name', ''));
@@ -1953,6 +1952,15 @@ final class SettingsController extends AdminController
         $allowedSecure = ['tls', 'ssl', 'none'];
         $smtpSecure = trim((string) $request->post('smtp_secure', 'tls'));
         $updated['smtp_secure'] = in_array($smtpSecure, $allowedSecure, true) ? $smtpSecure : 'tls';
+
+        // An empty or impossible Port uses the standard port for the chosen encryption.
+        // Don't clamp it into the 1-65535 range: an empty box counts as 0, which would
+        // save as port 1, which isn't a standard SMTP port.
+        $smtpPort = (int) $request->post('smtp_port', 0);
+        if ($smtpPort < 1 || $smtpPort > 65535) {
+            $smtpPort = $updated['smtp_secure'] === 'ssl' ? 465 : 587;
+        }
+        $updated['smtp_port'] = $smtpPort;
 
         // Blank password on save keeps the existing stored value
         $smtpPass = (string) $request->post('smtp_pass', '');

@@ -25,7 +25,8 @@ declare(strict_types=1);
       requests, code submissions, etc. Throttled to at most once every 7 days
       (pending_digest_last_sent), and only sent when the queue is non-empty.
    3. Luster update availability — emails once per new release version when a
-      newer Luster version is detected on GitHub (update_notified_version).
+      newer Luster version is detected on GitHub (update_notified_version). A
+      failed send waits 24 hours before trying again (update_notify_last_attempt).
 
  All three checks respect their admin-panel on/off toggles
  (overdue_notify_enabled, pending_digest_enabled, update_email_notify) and

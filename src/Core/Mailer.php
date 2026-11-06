@@ -33,6 +33,16 @@ use RuntimeException;
  */
 final class Mailer
 {
+    /**
+     * How long to wait for most steps with a mail server, in seconds. PHPMailer's
+     * default is 5 minutes, and Luster sends email while someone waits for a page
+     * to load, so a dead mail server made the page look frozen. This limits the
+     * waits, not the whole send, because PHPMailer tries more commands after a stall.
+     * In testing, a server that couldn't be reached took 15 seconds, and one that
+     * went quiet partway through took up to 60.
+     */
+    private const SMTP_WAIT_SECONDS = 15;
+
     private string $fromEmail;
     private string $fromName;
 
@@ -150,6 +160,14 @@ final class Mailer
         $mail->Username = (string) $this->config->get('smtp_user', '');
         $mail->Password = (string) $this->config->get('smtp_pass', '');
         $mail->SMTPAuth = $mail->Username !== '' || $mail->Password !== '';
+
+        // PHPMailer has two separate waits, and both need lowering. Timeout covers
+        // connecting. Timelimit covers waiting for a reply, so with only Timeout
+        // lowered, a server that connects and then goes quiet still takes 5 minutes.
+        // PHPMailer doubles Timelimit for the reply to the message itself, which gives
+        // a mail server that scans messages before accepting them a little longer.
+        $mail->Timeout = self::SMTP_WAIT_SECONDS;
+        $mail->getSMTPInstance()->Timelimit = self::SMTP_WAIT_SECONDS;
 
         $secure          = $this->resolveSmtpSecure((string) $this->config->get('smtp_secure', 'tls'));
         $mail->SMTPSecure = $secure;

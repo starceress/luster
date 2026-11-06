@@ -20,6 +20,7 @@ use ReflectionMethod;
  *  4. From-address fallback chain (smtp_from → owner_email)
  *  5. SMTPAutoTLS disabled when secure = 'none'
  *  6. SMTPAuth conditional on username/password presence
+ *  7. Both of PHPMailer's waits are shortened, so a dead mail server can't freeze a page
  */
 final class MailerTest extends TestCase
 {
@@ -227,6 +228,21 @@ final class MailerTest extends TestCase
         $m = new ReflectionMethod(Mailer::class, 'configureSMTP');
         $m->invoke($mailer, $mail);
         self::assertFalse($mail->SMTPAuth);
+    }
+
+    // -----------------------------------------------------------------------
+    // Waiting on the mail server
+    // -----------------------------------------------------------------------
+
+    public function testSmtpConnectAndReplyWaitsAreBothShortened(): void
+    {
+        $mailer = $this->makeMailer(['smtp_enabled' => '1']);
+        $mail = new PHPMailer();
+        $m = new ReflectionMethod(Mailer::class, 'configureSMTP');
+        $m->invoke($mailer, $mail);
+
+        self::assertSame(15, $mail->Timeout, 'wait for the connection');
+        self::assertSame(15, $mail->getSMTPInstance()->Timelimit, 'wait for a reply');
     }
 
     // -----------------------------------------------------------------------
