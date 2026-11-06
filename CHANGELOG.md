@@ -61,6 +61,58 @@ can stop a fan's update request for you to look at.
   you. Addresses that were already public may still be saved by search engines, and
   Luster can't undo that. New fans are also saved with their email marked as hidden,
   unless an import brings over a choice they really made.
+- **Importing from Enthusiast can't mix up your listings anymore.** A listing now only
+  goes to the one with the same web address, or to itself if Luster shares Enthusiast's
+  database. Before, it could land on an unrelated listing that happened to have the
+  same number, make a second listing on one member table, add its fans to another
+  listing's list, or change two listings at once if they shared an address. It could
+  even copy from a table that isn't a member table at all, like Luster's own admin
+  logins, and add it as fans, if an old listing named that table. Anything Luster can't
+  place safely is now left alone and listed at the top of the report, with the reason
+  and what to do about it. That includes a listing whose member table another listing
+  here also uses, because importing into one would change the other.
+- **"You can now safely delete the old Enthusiast database" is gone.** It could show up
+  when only your fans had come across, with your settings and templates still back
+  there, and even after fans were copied from the wrong table. Luster can't know the
+  old database is safe to throw away, so now it just asks you to check your listings
+  first. If Luster reads your member tables right where they are, it tells you to keep
+  that database.
+- **Luster checks where a listing's fans really are before copying them.** Enthusiast
+  saves a database for each listing. If that's not the one you picked, Luster won't
+  copy a table that just happens to have the same name. This includes every `.sql`
+  upload, restored backups and most imports from another server, because those still
+  name the old place. The Preview lists those listings with a box to tick if the fans
+  really are there. The tick only covers the listings it shows, for that one run. If
+  anything changes in between, Luster sends you back to look again.
+- **Importing again works when a listing has gained a field.** New fans used to be
+  refused, and on Overwrite every update was too. Now new fields get their own column,
+  and Skip brings fans in without that one answer and tells you.
+- **Overwrite keeps the fields you've set up.** It used to replace a listing's fields
+  with the old list, so a dropdown turned back into a text box and lost its choices, and
+  a field you added in Luster vanished. Now your labels, choices and fields stay, and
+  only what the old script really has can change them. A field missing from the old
+  table can't blank an answer either.
+- **Every imported listing gets a member table.** A listing without one breaks its
+  public member list. Importing only Owned Listings left you with exactly that, so now
+  those listings get an empty table until their fans come over. If you restore an
+  export by hand afterward, one without `DROP TABLE IF EXISTS` can collide with the
+  empty table.
+- **Deleting a listing can't take another listing's fans with it.** If two listings
+  share a member table, the table stays until the last one goes. If a listing's table
+  name is really one of Luster's or Enthusiast's own, or Luster can't check who else
+  uses it, nothing gets deleted and you're told why.
+- **Importing with extra fields works on strict MySQL servers.** The member table was
+  refused, so those fans didn't come across. This fixes the Listing Admin import too.
+- **A field name Luster can't use gets a note.** Its answers used to be left behind
+  without a word. A field listed twice doesn't stop the whole member table anymore, and
+  `$$fan_url_plain$$` and `$$fan_email_plain$$` don't print as plain text.
+- **Fans waiting for approval stay waiting** when an import source tracks that with an
+  `approved` column. They used to arrive approved, and showed up publicly.
+- **What this can't undo:** if you've already imported from Enthusiast more than once,
+  check your listings. Luster has no way to spot settings that landed on the wrong
+  listing, two listings overwritten from one, fans copied from the wrong table, or
+  waiting fans who were approved by mistake. Tables left unused by an earlier import
+  are harmless, and you can drop them once you're happy.
 - **Every Approve button follows the same rules now.** Approve, Approve All, bulk
   Approve and the Approve All on the Members overview each did things their own way,
   so the same queue could turn out differently depending on which one you clicked.

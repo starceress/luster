@@ -271,7 +271,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
             <input type="checkbox" name="import_members" value="1" id="ck-members" <?= scopeChecked($old, 'import_members') ?>>
             <div class="import-chk-body">
               <label class="import-chk-lbl" for="ck-members">Members</label>
-              <div class="import-chk-sub">Copies all fan members into Luster&rsquo;s database. After a successful copy you can delete the old Enthusiast database. If both databases are the same, Luster already reads the tables directly &mdash; nothing is copied.</div>
+              <div class="import-chk-sub">Copies fan members into Luster&rsquo;s database. Review the import report and check your listings before you retire Enthusiast. If both databases are the same, Luster reads the tables directly, so nothing is copied and that database has to stay.</div>
             </div>
           </div>
           <div class="import-chk">

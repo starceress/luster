@@ -32,6 +32,7 @@ use Luster\Import\ListingAdminSourceKey;
 use Luster\Import\ImportOptions;
 use Luster\Import\ImportSourceInterface;
 use Luster\Import\LegacyConfigReader;
+use Luster\Import\MemberConfirmationChanged;
 use Luster\Import\SqlDumpLoader;
 use Luster\Import\ZipTemplateReader;
 use Luster\Repositories\ActivityRepo;
@@ -62,6 +63,7 @@ final class ImportController extends AdminController
 {
     private const SESSION_CREDS       = 'lstr_import_credentials';
     private const SESSION_SCOPE       = 'lstr_import_scope';
+    private const SESSION_BACK_TO_PREVIEW = 'lstr_import_back_to_preview';
     private const SESSION_RESULT      = 'lstr_import_result';
     private const SESSION_ZIP_PATH    = 'lstr_import_zip_path';
     private const SESSION_DUMP_PREFIX = 'lstr_import_dump_prefix';
@@ -541,7 +543,8 @@ final class ImportController extends AdminController
             $scopePost['source'] = $source;
             // Never accept _zip_path from POST — derive it exclusively from session so a
             // crafted request cannot point the importer at an arbitrary server path.
-            unset($scopePost['_zip_path']);
+            // The source host and a member location yes are never accepted here either.
+            unset($scopePost['_zip_path'], $scopePost['_source_host'], $scopePost['_member_consent']);
 
             // Carry over dump metadata so ImportOptions can find it
             if ($hasDump) {
@@ -724,6 +727,11 @@ final class ImportController extends AdminController
         $error       = '';
         $targetPdo   = $this->app->getDatabase()->pdo();
 
+        // Why the owner was sent back here, if they were. It's shown above the preview.
+        $notice = (string) ($session->get('lstr_flash_error') ?? '');
+        $session->remove('lstr_flash_error');
+        $session->remove(self::SESSION_BACK_TO_PREVIEW);
+
         // BellaBuffs: no SQL source — use target PDO, inject session file paths
         if ($source === 'bellabuffs') {
             $approvedPath = (string) ($session->get(self::SESSION_BB_APPROVED) ?? '');
@@ -735,6 +743,9 @@ final class ImportController extends AdminController
                 $scopePost['_bb_pending_path'] = $pendingPath;
             }
         }
+
+        $scopePost['_source_host'] = (string) (is_array($credentials) ? ($credentials['host'] ?? '') : '');
+        unset($scopePost['_member_consent']);
 
         $options = ImportOptions::fromPost($scopePost);
 
@@ -788,6 +799,7 @@ final class ImportController extends AdminController
             'preview'     => $previewData,
             'options'     => $options,
             'error'       => $error,
+            'notice'      => $notice,
             'conn_type'   => $connType,
             'conn_host'   => $connHost,
             'conn_db'     => $connDb,
@@ -848,10 +860,20 @@ final class ImportController extends AdminController
             }
         }
 
+        // Set here, so neither can come from the Options step. A tick only counts with
+        // the fingerprint of the Preview it was ticked on: no fingerprint can't match.
+        $scopePost['_source_host'] = (string) (is_array($credentials) ? ($credentials['host'] ?? '') : '');
+        unset($scopePost['_member_consent']);
+        if ($source === 'enthusiast' && (string) $request->post('confirm_member_location', '') !== '') {
+            $fingerprint = trim((string) $request->post('member_location_fingerprint', ''));
+            $scopePost['_member_consent'] = $fingerprint !== '' ? $fingerprint : 'missing';
+        }
+
         $options = ImportOptions::fromPost($scopePost);
 
         $result = null;
         $error  = '';
+        $backToPreview = false;
 
         try {
             if ($source === 'bellabuffs') {
@@ -892,6 +914,10 @@ final class ImportController extends AdminController
             $session->remove(self::SESSION_SCOPE);
             $session->remove(self::SESSION_ZIP_PATH);
             $this->cleanupBbTempFiles();
+        } catch (MemberConfirmationChanged $e) {
+            // Nothing was written. An uploaded file's tables stay, to look at again.
+            $backToPreview = true;
+            $error = $e->getMessage();
         } catch (\Throwable $e) {
             $error = $e->getMessage();
 
@@ -906,11 +932,19 @@ final class ImportController extends AdminController
                 // Non-fatal: a logging failure must not mask the original import error.
             }
         } finally {
-            if ($dumpPrefix !== null && self::noSaveLeftOpen($this->app->getDatabase()->pdo())) {
+            if ($dumpPrefix !== null && !$backToPreview && self::noSaveLeftOpen($this->app->getDatabase()->pdo())) {
                 $this->cleanupDumpTables();
                 $session->remove(self::SESSION_DUMP_PREFIX);
                 $session->remove(self::SESSION_DUMP_TABLES);
             }
+        }
+
+        if ($backToPreview) {
+            $session->set('lstr_flash_error', $error);
+            // The wizard's script posts this form in the background, stops at this
+            // redirect and always loads /result next, so /result has to know too.
+            $session->set(self::SESSION_BACK_TO_PREVIEW, true);
+            return Response::redirect($baseUrl . "/admin/import/{$source}/preview");
         }
 
         if ($error !== '') {
@@ -941,6 +975,11 @@ final class ImportController extends AdminController
 
         if ($source === null) {
             return Response::redirect($baseUrl . '/admin/import');
+        }
+
+        if ($session->get(self::SESSION_BACK_TO_PREVIEW) !== null) {
+            $session->remove(self::SESSION_BACK_TO_PREVIEW);
+            return Response::redirect($baseUrl . "/admin/import/{$source}/preview");
         }
 
         $result = $session->get(self::SESSION_RESULT);
@@ -1386,6 +1425,7 @@ final class ImportController extends AdminController
         $session->remove(self::SESSION_DUMP_PREFIX);
         $session->remove(self::SESSION_DUMP_TABLES);
         $session->remove(self::SESSION_LA_INSTALLS);
+        $session->remove(self::SESSION_BACK_TO_PREVIEW);
         $this->cleanupBbTempFiles();
     }
 

@@ -41,6 +41,10 @@ $src = View::e($source);
   </div>
 </div>
 
+<?php if (($notice ?? '') !== ''): ?>
+  <div class="alert alert-error"><?= View::e($notice) ?></div>
+<?php endif; ?>
+
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
   <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-secondary">&#8592; Back to Options</a>
@@ -254,6 +258,23 @@ $src = View::e($source);
 
     <form id="js-import-run-form" method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/run">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+      <?php if ($preview->memberConfirmation !== null): ?>
+      <div class="card-body">
+        <input type="hidden" name="member_location_fingerprint" value="<?= View::e($preview->memberConfirmation['fingerprint']) ?>">
+        <div class="import-chk">
+          <input type="checkbox" name="confirm_member_location" value="1" id="ck-member-location">
+          <div class="import-chk-body">
+            <label class="import-chk-lbl" for="ck-member-location">These members really are in the database or file I picked (it's a moved copy or a backup).</label>
+            <div class="import-chk-sub">These listings say their members are saved somewhere else, so Luster won't touch them unless you tick this. It only covers this one run, and only these listings:</div>
+            <ul class="import-chk-sub">
+              <?php foreach ($preview->memberConfirmation['listings'] as $listing): ?>
+              <li>#<?= (int) $listing['id'] ?> <?= View::e($listing['title']) ?>: table <code><?= View::e($listing['table']) ?></code>, saved as <?= View::e($listing['database'] !== '' ? $listing['database'] : '(no database)') ?> on <?= View::e($listing['server'] !== '' ? $listing['server'] : '(no server)') ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
       <div class="composer-footer">
         <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-quaternary">&#8592; Back</a>
         <button type="submit" class="btn btn-primary">Run Import &#8594;</button>

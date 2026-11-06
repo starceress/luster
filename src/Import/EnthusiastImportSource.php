@@ -8,14 +8,16 @@
  from the live connection. Imports categories, affiliates, joined
  listings, per-listing settings, and email templates into Luster's
  lstr_* tables. Member tables are read natively when the source
- database is the same as Luster's; otherwise they are copied in
- chunks. Image migration is delegated to ImageMigrator.
+ database is proven to be Luster's own; otherwise they are copied in
+ chunks. EnthusiastListingPlan decides where each listing goes, and every
+ phase follows it. Image migration is delegated to ImageMigrator.
 */
 
 declare(strict_types=1);
 
 namespace Luster\Import;
 
+use Luster\Support\FieldColumnMap;
 use Luster\Support\RequiredColumns;
 use PDO;
 use RuntimeException;
@@ -36,6 +38,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
 {
     private const CHUNK    = 500;
     private const SKIP_CAP = 500;
+
+    /** The report row naming every source listing that has no destination, and why. */
+    private const NOT_IMPORTED_ROW = 'Listings not imported';
+
+    /** Said whenever Luster reads member tables where they are, instead of copying them. */
+    private const IN_PLACE_NOTE = 'These member tables are in this database, and Luster is already reading them directly, so keep this database and these tables. To stop using Enthusiast, remove only its PHP files.';
 
     private ?\ZipArchive $activeZip = null;
 
@@ -130,16 +138,21 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
     public function preview(PDO $source, PDO $target, ImportOptions $options): ImportPreview
     {
-        $schema     = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
-        $tp         = $options->tablePrefix;
-        $sameDb     = false; // determined by caller; passed through in run()
-        $rows       = [];
+        $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
+        $tp     = $options->tablePrefix;
+        $rows   = [];
+        $plan   = $this->planFor($source, $target, $schema, $options);
+
+        if ($plan !== null && $plan->notImported() !== []) {
+            $reasons = array_map(static fn(EnthusiastPlannedListing $l): string => $l->reason, $plan->notImported());
+            $rows[]  = ['type' => self::NOT_IMPORTED_ROW, 'found' => count($reasons), 'import' => 0, 'skip' => count($reasons), 'warnings' => $reasons];
+        }
 
         if ($options->importCategories) {
             $rows[] = $this->previewCategories($source, $schema, $options);
         }
         if ($options->importOwnedListings) {
-            $rows[] = $this->previewOwnedListings($source, $schema, $options);
+            $rows[] = $this->previewOwnedListings($source, $target, $schema, $options, $plan);
         }
         if ($options->importAffiliates) {
             $rows[] = $this->previewAffiliates($source, $schema, $options);
@@ -148,19 +161,42 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $rows[] = $this->previewJoined($source, $schema, $options);
         }
         if ($options->importMembers) {
-            $rows[] = $this->previewMembers($source, $schema, $options);
+            $rows[] = $this->previewMembers($source, $options, $plan);
         }
         if ($options->importSettings) {
-            $rows[] = $this->previewSettings($source, $schema, $options);
+            $rows[] = $this->previewSettings($plan);
         }
         if ($options->importTemplates) {
-            $rows[] = $this->previewTemplates($source, $schema, $options);
+            $rows[] = $this->previewTemplates($plan);
         }
         if ($options->importSavedTemplates) {
             $rows[] = $this->previewSavedTemplates($source, $tp);
         }
 
-        return new ImportPreview($rows, $schema, false);
+        return new ImportPreview($rows, $schema, $plan !== null && $plan->readsEverythingInPlace(), $plan?->confirmation());
+    }
+
+    /**
+     * The destination plan for a run or preview, or null when nothing in its scope cares.
+     * Anything that writes to a listing needs one, so a target registry it can't read
+     * refuses here, before a single write. Affiliates only care for the rare per-listing
+     * row, so for those a failed read just means those rows don't attach.
+     *
+     * @throws RuntimeException
+     */
+    private function planFor(PDO $source, PDO $target, string $schema, ImportOptions $options): ?EnthusiastListingPlan
+    {
+        if ($options->importOwnedListings || $options->importMembers || $options->importSettings || $options->importTemplates) {
+            return EnthusiastListingPlan::build($source, $target, $schema, $options);
+        }
+        if (!$options->importAffiliates) {
+            return null;
+        }
+        try {
+            return EnthusiastListingPlan::build($source, $target, $schema, $options);
+        } catch (RuntimeException) {
+            return null;
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -178,11 +214,14 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $rows     = [];
         $imageRows = [];
 
-        // Determine if source and target are the same physical database.
-        // We compare DSN strings extracted from PDO attributes.
-        // Exception: SQL dump mode uses prefixed temp tables in Luster's own database,
-        // so even though PDOs are identical, the data still needs to be copied.
-        $sameDb = $tp === '' && $this->isSameDatabase($source, $target);
+        // Decided before anything is written, and followed by every phase below. A yes
+        // from the Preview step that no longer matches stops here too.
+        $plan = $this->planFor($source, $target, $schema, $options);
+        if ($plan !== null) {
+            $plan->applyConsent($options->memberConsent);
+        } elseif ($options->memberConsent !== '') {
+            throw new MemberConfirmationChanged();
+        }
 
         // Build image migrator if needed
         $migrator = $options->imageMode !== ''
@@ -221,14 +260,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         // Owned listings run before affiliates and joined so their inserted IDs are
         // available when per-listing affiliate/joined rows need to resolve fanlisting_id.
-        // $listingIdMap maps source listingid → target listingid for use by settings and
-        // templates phases, which reference listing rows by FK.
-        $listingIdMap = [];
         if ($options->importOwnedListings) {
-            ['row' => $ownedRow, 'listingIdMap' => $listingIdMap] = $this->runOwnedListings(
-                $source, $target, $schema, $options, $sameDb, $catIdMap
-            );
-            $rows[] = $ownedRow;
+            $rows[] = $this->runOwnedListings($source, $target, $schema, $options, $plan, $catIdMap);
         }
 
         // Build category name→new-id map for joined listings (after listings are settled).
@@ -237,7 +270,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         if ($options->importAffiliates) {
             ['row' => $affRow, 'imageMap' => $affMap] = $this->runAffiliates(
-                $source, $target, $schema, $options, $migrator, $imageSettings
+                $source, $target, $schema, $options, $migrator, $imageSettings, $plan
             );
             $rows[]   = $affRow;
             $imageMap = array_merge($imageMap, $affMap);
@@ -268,12 +301,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         if ($options->importMembers) {
-            $rows[] = $this->runMembers($source, $target, $schema, $options, $sameDb);
+            $rows[] = $this->runMembers($source, $target, $options, $plan);
         }
 
         if ($options->importSettings) {
             ['row' => $settRow, 'imageMap' => $settMap] = $this->runSettings(
-                $source, $target, $schema, $options, $migrator, $imageSettings, $listingIdMap
+                $source, $target, $schema, $options, $migrator, $imageSettings, $plan
             );
             $rows[]   = $settRow;
             $imageMap = array_merge($imageMap, $settMap);
@@ -288,7 +321,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         if ($options->importTemplates) {
-            $rows[] = $this->runTemplates($source, $target, $schema, $options, $listingIdMap);
+            $rows[] = $this->runTemplates($source, $target, $schema, $options, $plan);
         }
 
         if ($options->importSavedTemplates) {
@@ -302,6 +335,13 @@ final class EnthusiastImportSource implements ImportSourceInterface
             if ($options->zipPath !== '') {
                 @unlink($options->zipPath);
             }
+        }
+
+        // Listed first, and only now, so a save that failed along the way is in it too.
+        if ($plan !== null && $plan->notImported() !== []) {
+            $reasons = array_map(static fn(EnthusiastPlannedListing $l): string => $l->reason, $plan->notImported());
+            array_unshift($rows, ['type' => self::NOT_IMPORTED_ROW, 'imported' => 0, 'skipped' => count($reasons),
+                                  'warnings' => [], 'errors' => $reasons, 'skipped_items' => []]);
         }
 
         return new ImportResult(
@@ -363,68 +403,90 @@ final class EnthusiastImportSource implements ImportSourceInterface
     }
 
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
-    private function previewSettings(PDO $source, string $schema, ImportOptions $options): array
+    private function previewSettings(?EnthusiastListingPlan $plan): array
     {
-        $tp    = $options->tablePrefix;
-        $table = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
-        try {
-            $stmt  = $source->query("SELECT COUNT(*) FROM `{$table}`");
-            $found = (int) $stmt->fetchColumn();
-        } catch (\Throwable) {
-            $found = 0;
-        }
-        $warnings = [];
-        // Check for external per-listing databases
-        $extCol = $schema === 'enthusiast_enth' ? 'dbserver' : 'dbserver';
-        try {
-            $stmt = $source->query(
-                "SELECT COUNT(*) FROM `{$table}` WHERE `dbserver` != '' AND `dbserver` != 'localhost'"
-            );
-            $extCount = (int) $stmt->fetchColumn();
-            if ($extCount > 0) {
-                $warnings[] = "{$extCount} listing(s) use external databases — their members must be migrated manually.";
-            }
-        } catch (\Throwable) {}
-        return ['type' => 'Listing settings', 'found' => $found, 'import' => $found, 'skip' => 0, 'warnings' => $warnings];
+        $found  = $plan !== null ? count($plan->listings()) : 0;
+        $import = $found - ($plan !== null ? count($plan->notImported()) : 0);
+
+        return ['type' => 'Listing settings', 'found' => $found, 'import' => $import, 'skip' => $found - $import, 'warnings' => []];
     }
 
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
-    private function previewOwnedListings(PDO $source, string $schema, ImportOptions $options): array
+    private function previewOwnedListings(PDO $source, PDO $target, string $schema, ImportOptions $options, ?EnthusiastListingPlan $plan): array
     {
         $tp       = $options->tablePrefix;
         $srcTable = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         $warnings = [];
         try {
-            $stmt  = $source->query("SELECT COUNT(*) FROM `{$srcTable}`");
-            $found = (int) $stmt->fetchColumn();
+            $source->query("SELECT COUNT(*) FROM `{$srcTable}`")->fetchColumn();
         } catch (\Throwable) {
-            $found      = 0;
             $warnings[] = "Table `{$srcTable}` not found — you may be connected to the wrong database, or the schema variant was mis-detected.";
         }
-        if (!$options->importMembers) {
-            $warnings[] = 'Member tables are not copied — also check "Members" below, or migrate per-listing member tables separately (e.g. via mysqldump).';
+
+        $found = 0;
+        $new   = 0;
+        $kept  = 0;
+        foreach ($plan?->listings() ?? [] as $entry) {
+            $found++;
+            if (!$entry->isImported()) {
+                continue;
+            }
+            if ($entry->note !== '') {
+                $warnings[] = $entry->note;
+            }
+            array_push($warnings, ...$entry->fields->notes);
+            if ($entry->result === EnthusiastPlannedListing::NEW) {
+                $new++;
+                continue;
+            }
+            $kept++;
+            if ($entry->result === EnthusiastPlannedListing::EXISTING && $options->conflictStrategy === 'overwrite' && $entry->targetTable !== null) {
+                array_push($warnings, ...$this->mergePreviewNotes($target, $entry));
+            }
+        }
+
+        $overwrite = $options->conflictStrategy === 'overwrite';
+        if (!$options->importMembers && $plan !== null && !$plan->sameRegistry) {
+            $warnings[] = 'Members aren\'t ticked, so these listings will come across without copying their members. Each gets an empty member table, so its pages work. Tick Members and import again to bring them over. If you restore an export by hand instead, one without DROP TABLE IF EXISTS can collide with the empty table.';
         }
         if ($schema === 'enthusiast_enth') {
             $warnings[] = 'enth_ schema: dbtable is derived as {dbprefix}members. Verify member table names after import.';
         }
-        return ['type' => 'Owned listings', 'found' => $found, 'import' => $found, 'skip' => 0, 'warnings' => $warnings];
+        return [
+            'type'     => 'Owned listings',
+            'found'    => $found,
+            'import'   => $new + ($overwrite ? $kept : 0),
+            'skip'     => $found - $new - ($overwrite ? $kept : 0),
+            'warnings' => array_values(array_unique($warnings)),
+        ];
+    }
+
+    /**
+     * What an Overwrite would say about this listing's fields. Only reads.
+     *
+     * @return list<string>
+     */
+    private function mergePreviewNotes(PDO $target, EnthusiastPlannedListing $entry): array
+    {
+        try {
+            $columns = $entry->targetTableExists
+                ? EnthusiastListingPlan::columnsOf($target, (string) $entry->targetTable)
+                : [];
+            return EnthusiastFieldMerge::merge($this->storedDefinitions($target, (int) $entry->targetId), $entry->fields, $columns)['notes'];
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
-    private function previewTemplates(PDO $source, string $schema, ImportOptions $options): array
+    private function previewTemplates(?EnthusiastListingPlan $plan): array
     {
-        $tp    = $options->tablePrefix;
-        $table = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
-        try {
-            $stmt  = $source->query("SELECT COUNT(*) FROM `{$table}`");
-            $listingCount = (int) $stmt->fetchColumn();
-        } catch (\Throwable) {
-            $listingCount = 0;
-        }
-        $templateCount = $listingCount * 4; // 4 types per listing
+        // 4 types per listing.
+        $found    = ($plan !== null ? count($plan->listings()) : 0) * 4;
+        $import   = $found - ($plan !== null ? count($plan->notImported()) * 4 : 0);
         $warnings = [];
         $warnings[] = 'Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, $$site_owner$$, $$site_name$$, etc.) will be translated to Luster\'s token format ({fan_name}, {listing_title}, {owner_name}, {site_name}, etc.).';
-        return ['type' => 'Email templates', 'found' => $templateCount, 'import' => $templateCount, 'skip' => 0, 'warnings' => $warnings];
+        return ['type' => 'Email templates', 'found' => $found, 'import' => $import, 'skip' => $found - $import, 'warnings' => $warnings];
     }
 
     // -----------------------------------------------------------------------
@@ -620,7 +682,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
      */
     private function runAffiliates(
         PDO $source, PDO $target, string $schema, ImportOptions $options,
-        ?ImageMigrator $migrator, array $imageSettings
+        ?ImageMigrator $migrator, array $imageSettings, ?EnthusiastListingPlan $plan = null
     ): array {
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_affiliates' : 'affiliates');
@@ -701,8 +763,17 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $imageFilename = trim((string) ($row['imagefile'] ?? ''));
 
             // Determine fanlisting_id: 0 / missing means collective (NULL in Luster).
+            // A listing id only means something through the plan.
             $srcFid   = (int) ($row['listingid'] ?? ($row['aListingId'] ?? 0));
-            $fid      = $srcFid > 0 ? $srcFid : null;
+            $fid      = null;
+            if ($srcFid > 0) {
+                $planned = $plan?->forSource($srcFid);
+                if ($planned === null || !$planned->hasTarget()) {
+                    $unlinked++;
+                    continue;
+                }
+                $fid = $planned->targetId;
+            }
             $scopeStr = $fid !== null ? (string) $fid : 'null';
 
             // Skip affiliates whose source listing ID has no corresponding owned row.
@@ -1074,14 +1145,14 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /**
-     * @param array<int,int> $listingIdMap  Source listingid → target listingid, from runOwnedListings().
-     *                                       Used to attach settings rows to the correct target FK when
-     *                                       source and target IDs diverged due to a collision.
+     * Settings only go to the listing the plan names. A source listing with no destination
+     * is skipped, and the report's first row says why.
+     *
      * @return array{row: array, imageMap: array}
      */
     private function runSettings(
         PDO $source, PDO $target, string $schema, ImportOptions $options,
-        ?ImageMigrator $migrator, array $imageSettings, array $listingIdMap = []
+        ?ImageMigrator $migrator, array $imageSettings, ?EnthusiastListingPlan $plan
     ): array {
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
@@ -1160,8 +1231,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
             if ($listingId === 0) {
                 continue;
             }
-            // Translate source ID → target ID in case runOwnedListings() had to reassign it.
-            $targetListingId = $listingIdMap[$listingId] ?? $listingId;
+            $planned = $plan?->forSource($listingId);
+            if ($planned === null || !$planned->hasTarget()) {
+                continue;
+            }
+            $targetListingId = (int) $planned->targetId;
 
             $perPage      = max(1, min(200, (int) ($row['perpage'] ?? 25)));
             $holdUpdate   = (int) ($row['holdupdate'] ?? 0);
@@ -1195,17 +1269,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
             // only shows name/email/url — Luster's PHP loop renders Name → URL, Country, and
             // additional fields natively and is always better for that case.
             if ($membersTpl !== '') {
-                // enth_ schema: additional_info is pipe/serialised → parseAdditionalInfo() extracts names.
-                // Unprefixed schema: additional is already a bare comma-separated list of names.
-                if ($schema === 'enthusiast_enth') {
-                    $rawAdditional = trim((string) ($row['additional_info'] ?? ''));
-                    $fieldNames = array_filter(array_map('trim',
-                        explode(',', $this->parseAdditionalInfo($rawAdditional))
-                    ));
-                } else {
-                    $rawAdditional = trim((string) ($row['additional'] ?? ''));
-                    $fieldNames = array_filter(array_map('trim', explode(',', $rawAdditional)));
-                }
+                $fieldNames = $planned->fields->names();
                 if ($fieldNames === []) {
                     // No additional fields — Enthusiast's standard template (name/email/url) is
                     // inferior to Luster's native loop. Always clear so the loop takes over.
@@ -1225,11 +1289,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
             }
 
             // Derive last_updated: try explicit source columns first, fall back to MAX(member.added).
-            // Never invent today's date when no real source date exists.
+            // Never invent today's date when no real source date exists. A member table
+            // that may not be this listing's isn't read for it.
             $lastUpdated = self::normalizeImportDate(
                 $row['date_updated'] ?? ($row['last_updated'] ?? ($row['updated'] ?? null))
             );
-            if ($lastUpdated === null && $hasLastUpdated) {
+            if ($lastUpdated === null && $hasLastUpdated && $planned->membersAreHere()) {
                 $dbtable = $schema === 'enthusiast_enth'
                     ? $tp . trim((string) ($row['dbprefix'] ?? '')) . 'members'
                     : $tp . trim((string) ($row['dbtable'] ?? ''));
@@ -1370,11 +1435,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /**
-     * @param array<int,int> $listingIdMap  Source listingid → target listingid, from runOwnedListings().
+     * Templates only go to the listing the plan names.
+     *
      * @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]}
      */
     private function runTemplates(
-        PDO $source, PDO $target, string $schema, ImportOptions $options, array $listingIdMap = []
+        PDO $source, PDO $target, string $schema, ImportOptions $options, ?EnthusiastListingPlan $plan
     ): array {
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
@@ -1482,8 +1548,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
             if ($listingId === 0) {
                 continue;
             }
-            // Translate source ID → target ID in case runOwnedListings() had to reassign it.
-            $targetListingId = $listingIdMap[$listingId] ?? $listingId;
+            $planned = $plan?->forSource($listingId);
+            if ($planned === null || !$planned->hasTarget()) {
+                continue;
+            }
+            $targetListingId = (int) $planned->targetId;
 
             foreach ($typeMap as $srcCol => $lstrType) {
                 $body = trim((string) ($row[$srcCol] ?? ''));
@@ -1653,15 +1722,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
      *
      * Preserves the source listingid when the target slot is free; auto-assigns a new ID on collision.
      * Resolves and writes multi-category assignments to lstr_listing_categories when the junction
-     * table exists. Returns a listingIdMap (source id → target id) so downstream phases (settings,
-     * templates) can attach rows to the correct target FK even when IDs diverged.
+     * table exists. Goes by the plan: a listing already here is updated by its id, never by its
+     * address, and a new one's id goes back into the plan for the later phases.
      *
      * @param array<int,int> $catIdMap  Source catid → Luster lstr_categories.id from runCategories().
      *                                   Pass [] when categories were not imported in this run.
-     * @return array{row: array, listingIdMap: array<int,int>}
+     * @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<int,array{label:string,reason:string}>}
      */
     private function runOwnedListings(
-        PDO $source, PDO $target, string $schema, ImportOptions $options, bool $sameDb,
+        PDO $source, PDO $target, string $schema, ImportOptions $options, EnthusiastListingPlan $plan,
         array $catIdMap = []
     ): array {
         $tp           = $options->tablePrefix;
@@ -1673,10 +1742,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $skippedItems = [];
         $warnings     = [];
         $touchedIds   = [];
-        // Maps source listingid → target listingid for all processed listings.
-        $listingIdMap = [];
 
-        if ($sameDb && $schema === 'enthusiast_unprefixed') {
+        if ($plan->sameRegistry) {
             $warnings[] = 'Same database - owned listings already exist; checked existing rows for category/date backfills.';
         }
 
@@ -1734,17 +1801,6 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $openedFoundInSource  = 0; // rows where source had a real date
         $openedMissingInSource = 0; // rows where source had no date at all
 
-        // Load existing URLs for conflict detection.
-        $existUrlStmt = $target->prepare('SELECT listingid, url FROM owned');
-        $existUrlStmt->execute();
-        $existingUrls = [];
-        foreach ($existUrlStmt->fetchAll() as $existingRow) {
-            $existingUrl = (string) ($existingRow['url'] ?? '');
-            if ($existingUrl !== '') {
-                $existingUrls[$existingUrl] = (int) ($existingRow['listingid'] ?? 0);
-            }
-        }
-
         // Load existing listingids so we know whether to preserve the source ID.
         $existIdStmt = $target->prepare('SELECT listingid FROM owned');
         $existIdStmt->execute();
@@ -1765,10 +1821,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ]);
         } catch (\RuntimeException $e) {
             return [
-                'row' => ['type' => 'Owned listings', 'imported' => 0, 'skipped' => 0,
-                          'warnings' => [], 'errors' => ["Could not read Luster's listing table: " . $e->getMessage()],
-                          'skipped_items' => []],
-                'listingIdMap' => [],
+                'type' => 'Owned listings', 'imported' => 0, 'skipped' => 0,
+                'warnings' => [], 'errors' => ["Could not read Luster's listing table: " . $e->getMessage()],
+                'skipped_items' => [],
             ];
         }
 
@@ -1784,15 +1839,22 @@ final class EnthusiastImportSource implements ImportSourceInterface
             "UPDATE owned SET title = :title, subject = :subject, email = :email,
                               catid = :catid, additional = :additional, status = :status
                               {$openedUpdate}{$catIdUpdate}
-             WHERE url = :url"
+             WHERE listingid = :listingid"
         );
 
         foreach ($srcRows as $row) {
-            $srcId = (int) ($row[$idCol] ?? 0);
-            $url   = trim((string) ($row['url'] ?? ''));
-            if ($url === '') {
+            $srcId   = (int) ($row[$idCol] ?? 0);
+            $planned = $plan->forSource($srcId);
+            if ($planned === null || !$planned->isImported()) {
+                // The report's first row says why.
                 continue;
             }
+            $url = $planned->url;
+
+            if ($planned->note !== '') {
+                $warnings[] = $planned->note;
+            }
+            array_push($warnings, ...$planned->fields->notes);
 
             // Map columns from whichever schema variant we're reading.
             if ($schema === 'enthusiast_enth') {
@@ -1802,11 +1864,6 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $subject    = trim(self::decodeEnth((string) ($row['subject'] ?? '')));
                 $email      = trim((string) ($row['email'] ?? ''));
                 $catid      = trim((string) ($row['catid'] ?? ''));
-                // Serialize full field definitions (name/label/type/required) rather than
-                // bare names — owned.additional supports the same format FieldRepo::saveFields()
-                // writes, so this preserves e.g. a dropdown field instead of importing it as text.
-                $additionalDefs = $this->parseAdditionalFieldDefinitions((string) ($row['additional_info'] ?? ''));
-                $additional     = $additionalDefs !== [] ? serialize($additionalDefs) : '';
                 $trouble    = (int) ($row['trouble']  ?? 0);
                 $upcoming   = (int) ($row['upcoming'] ?? 0);
                 $status     = $trouble ? 0 : ($upcoming ? 1 : 2);
@@ -1816,9 +1873,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $subject    = trim(self::decodeEnth((string) ($row['subject'] ?? '')));
                 $email      = trim((string) ($row['email'] ?? ''));
                 $catid      = trim((string) ($row['catid'] ?? ''));
-                $additional = trim((string) ($row['additional'] ?? ''));
                 $status     = (int) ($row['status'] ?? 2);
             }
+            // Full definitions on the enth_ layout, so a dropdown stays a dropdown. A real
+            // Enthusiast comma list goes in as it was.
+            $additional = $planned->fields->forNewListing();
 
             // opened date — column name varies by Enthusiast fork.
             // Standard Erin's fork: 'opened'. Fanatically fork: 'opened_date'. Older: 'date'.
@@ -1860,53 +1919,51 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $params['category_id'] = $primaryCategoryId;
             }
 
-            // URL conflict → skip or overwrite.
-            if (isset($existingUrls[$url])) {
-                $targetId = (int) $existingUrls[$url];
+            // The same row in a shared registry, or the one listing with this address.
+            // Everything from here goes by that listing's id, never by address.
+            if ($planned->result !== EnthusiastPlannedListing::NEW) {
+                $targetId = (int) $planned->targetId;
                 if ($options->conflictStrategy === 'skip') {
-                    if ($srcId > 0) {
-                        $listingIdMap[$srcId] = $targetId;
-                    }
                     // Backfill opened date only when source has one and target is still blank.
                     // CAST(opened AS CHAR) avoids MySQL strict mode rejecting the '' /
                     // '0000-00-00' literals as invalid dates when comparing a DATE column.
                     if ($hasOpened && $opened !== null) {
                         $target->prepare(
-                            "UPDATE owned SET opened = :opened WHERE url = :url AND (opened IS NULL OR CAST(opened AS CHAR) IN ('', '0000-00-00'))"
-                        )->execute(['opened' => $opened, 'url' => $url]);
+                            "UPDATE owned SET opened = :opened WHERE listingid = :id AND (opened IS NULL OR CAST(opened AS CHAR) IN ('', '0000-00-00'))"
+                        )->execute(['opened' => $opened, 'id' => $targetId]);
                     }
                     // Backfill catid / category_id / junction when the existing row has an
                     // unmapped or invalid value (pipe-/bang-delimited from a prior failed import).
                     if ($resolvedCategoryIds !== []) {
                         try {
                             $curCatStmt = $target->prepare(
-                                'SELECT listingid, catid' . ($hasCategoryId ? ', category_id' : '') . ' FROM owned WHERE url = :url LIMIT 1'
+                                'SELECT listingid, catid' . ($hasCategoryId ? ', category_id' : '') . ' FROM owned WHERE listingid = :id LIMIT 1'
                             );
-                            $curCatStmt->execute(['url' => $url]);
+                            $curCatStmt->execute(['id' => $targetId]);
                             $curRow = $curCatStmt->fetch(PDO::FETCH_ASSOC);
-                            $jFid = (int) ($curRow['listingid'] ?? 0);
                             $currentPrimary = null;
                             if ($hasCategoryId && $curRow !== false && array_key_exists('category_id', $curRow) && $curRow['category_id'] !== null) {
                                 $currentPrimary = (int) $curRow['category_id'];
                             }
                             if ($this->categoryBackfillNeeded(
                                 $target,
-                                $jFid,
+                                $targetId,
                                 $currentPrimary,
                                 (string) ($curRow['catid'] ?? ''),
                                 $resolvedCategoryIds,
                                 $hasJunction
                             )) {
-                                $updateSql = 'UPDATE owned SET catid = :catid' . ($hasCategoryId ? ', category_id = :category_id' : '') . ' WHERE url = :url';
-                                $updateP   = ['catid' => self::formatLusterCatid($resolvedCategoryIds), 'url' => $url];
+                                $updateSql = 'UPDATE owned SET catid = :catid' . ($hasCategoryId ? ', category_id = :category_id' : '') . ' WHERE listingid = :id';
+                                $updateP   = ['catid' => self::formatLusterCatid($resolvedCategoryIds), 'id' => $targetId];
                                 if ($hasCategoryId) {
                                     $updateP['category_id'] = $primaryCategoryId;
                                 }
                                 $target->prepare($updateSql)->execute($updateP);
-                                $this->replaceListingCategories($target, $jFid, $resolvedCategoryIds, $hasJunction);
+                                $this->replaceListingCategories($target, $targetId, $resolvedCategoryIds, $hasJunction);
                             }
                         } catch (\Throwable) {}
                     }
+                    $this->prepareMemberTable($target, $planned, [], $errors, $warnings);
                     $skipped++;
                     if (count($skippedItems) < self::SKIP_CAP) {
                         $skippedItems[] = ['label' => ($title !== '' ? $title : $url), 'reason' => 'Already exists (same URL)'];
@@ -1916,29 +1973,30 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 try {
                     // dbtable is not updated (renaming member tables could break existing data).
                     $updateParams = $params;
-                    unset($updateParams['dbtable']);
+                    unset($updateParams['dbtable'], $updateParams['url']);
+                    $updateParams['listingid']  = $targetId;
+                    $updateParams['additional'] = $this->definitionsAfterOverwrite($target, $planned, $errors, $warnings);
                     $updateStmt->execute($updateParams);
                     if ($targetId > 0 && !$options->importSettings) {
                         $touchedIds[] = $targetId;
-                    }
-                    if ($srcId > 0) {
-                        $listingIdMap[$srcId] = $targetId;
                     }
                     // Overwrite: replace junction row for this listing.
                     if ($resolvedCategoryIds !== []) {
                         $this->replaceListingCategories($target, $targetId, $resolvedCategoryIds, $hasJunction);
                     }
+                    $this->prepareMemberTable($target, $planned, [], $errors, $warnings);
                     $skipped++;
                 } catch (\Throwable $e) {
-                    $errors[] = "Listing '{$url}': " . $e->getMessage();
+                    $errors[] = "Listing '" . ($url !== '' ? $url : $planned->label()) . "': " . $e->getMessage();
+                    $plan->markFailed($srcId, '"' . $planned->label() . '" wasn\'t imported: saving it failed, and the error is in the Owned listings row.');
                 }
                 continue;
             }
 
             // Try to preserve the source listingid so that linked settings/templates
             // rows keep their fanlisting_id references intact.  If the ID is already
-            // taken in the target, fall back to auto-increment; the listingIdMap will
-            // carry the correct source→target translation to downstream phases.
+            // taken in the target, fall back to auto-increment; the plan carries the
+            // real id to the later phases.
             $idTaken = $srcId > 0 && isset($existingIds[$srcId]);
             if ($idTaken) {
                 $warnings[] = "Listing #{$srcId} ({$url}): ID already in use in target — auto-assigned a new ID.";
@@ -1954,10 +2012,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     $newListingId = (int) $target->lastInsertId();
                     $existingIds[$newListingId] = true;
                 }
-                $existingUrls[$url] = $newListingId;
-                if ($srcId > 0) {
-                    $listingIdMap[$srcId] = $newListingId;
-                }
+                $planned->targetId = $newListingId;
                 // Write junction rows so the admin UI and public filters can see every category.
                 if ($resolvedCategoryIds !== []) {
                     $this->replaceListingCategories($target, $newListingId, $resolvedCategoryIds, $hasJunction);
@@ -1965,14 +2020,16 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 if (!$options->importSettings) {
                     $touchedIds[] = $newListingId;
                 }
+                $this->prepareMemberTable($target, $planned, $planned->fields->columns(), $errors, $warnings);
                 $imported++;
             } catch (\Throwable $e) {
                 $errors[] = "Listing '{$url}': " . $e->getMessage();
+                $plan->markFailed($srcId, $this->failedSaveReason($target, $planned));
             }
         }
 
-        if (!$options->importMembers) {
-            $warnings[] = 'Member tables are not copied — also check "Members" in the import options, or migrate per-listing member tables separately (e.g. via mysqldump).';
+        if (!$options->importMembers && !$plan->sameRegistry) {
+            $warnings[] = 'Members weren\'t ticked, so these listings came across without copying their members. Each has an empty member table for now, so its pages work. Tick Members and import again to bring them over. If you restore an export by hand instead, one without DROP TABLE IF EXISTS can collide with the empty table.';
         }
 
         // Diagnostic: tell the admin whether opened dates were found and stored.
@@ -1997,11 +2054,196 @@ final class EnthusiastImportSource implements ImportSourceInterface
             } catch (\Throwable) {}
         }
 
-        return [
-            'row' => ['type' => 'Owned listings', 'imported' => $imported, 'skipped' => $skipped,
-                      'warnings' => array_unique($warnings), 'errors' => $errors, 'skipped_items' => $skippedItems],
-            'listingIdMap' => $listingIdMap,
-        ];
+        return ['type' => 'Owned listings', 'imported' => $imported, 'skipped' => $skipped,
+                'warnings' => array_values(array_unique($warnings)), 'errors' => $errors, 'skipped_items' => $skippedItems];
+    }
+
+    /**
+     * What to say about a new listing whose save failed. An error doesn't prove nothing was
+     * written, since MyISAM keeps a row through a failed statement, so it looks.
+     */
+    private function failedSaveReason(PDO $target, EnthusiastPlannedListing $planned): string
+    {
+        $reason = '"' . $planned->label() . '" wasn\'t imported: saving it failed, and the error is in the Owned listings row.';
+        try {
+            $stmt = $target->prepare('SELECT COUNT(*) FROM owned WHERE url = :url');
+            $stmt->execute(['url' => $planned->url]);
+            if ((int) $stmt->fetchColumn() > 0) {
+                $reason .= ' Its row was saved anyway, so importing again will pick it up.';
+            }
+        } catch (\Throwable) {
+        }
+        return $reason;
+    }
+
+    /** owned.additional as it's stored now. @throws RuntimeException */
+    private function storedDefinitions(PDO $target, int $listingId): string
+    {
+        $stmt = $target->prepare('SELECT additional FROM owned WHERE listingid = :id');
+        $stmt->execute(['id' => $listingId]);
+        $value = $stmt->fetchColumn();
+        if ($value === false) {
+            throw new RuntimeException("Listing #{$listingId} couldn't be read.");
+        }
+        return (string) $value;
+    }
+
+    /**
+     * What owned.additional should hold after an Overwrite (see EnthusiastFieldMerge). A new
+     * field's column goes in first, and a field whose column can't be added isn't added, so
+     * definitions can't end up ahead of the table. A shared registry's row is its own
+     * source, so it's left as it is.
+     *
+     * @param string[] $errors
+     * @param string[] $warnings
+     * @throws \Throwable If the listing or its table can't be read.
+     */
+    private function definitionsAfterOverwrite(PDO $target, EnthusiastPlannedListing $planned, array &$errors, array &$warnings): string
+    {
+        $stored = $this->storedDefinitions($target, (int) $planned->targetId);
+
+        if ($planned->sameTable || $planned->targetTable === null) {
+            return $stored;
+        }
+        if (!$this->ensureMemberTable($target, $planned, [], $errors)) {
+            return $stored;
+        }
+
+        $columns = EnthusiastListingPlan::columnsOf($target, $planned->targetTable);
+        $merged  = EnthusiastFieldMerge::merge($stored, $planned->fields, $columns);
+        array_push($warnings, ...$merged['notes']);
+
+        $failed = [];
+        foreach ($merged['added'] as $new) {
+            if (self::hasColumn($columns, $new['column'])) {
+                continue;
+            }
+            try {
+                $this->addMemberColumn($target, $planned->targetTable, $new['column']);
+                $columns[] = $new['column'];
+            } catch (\Throwable $e) {
+                $errors[]         = "Field \"{$new['name']}\" wasn't added to \"{$planned->label()}\": its column couldn't be created. " . $e->getMessage();
+                $failed[$new['name']] = true;
+            }
+        }
+
+        $definitions = array_values(array_filter(
+            $merged['definitions'],
+            static fn(array $definition): bool => !isset($failed[(string) $definition['name']]),
+        ));
+
+        // If nothing really changed, what's stored stays exactly as it was.
+        return $definitions == EnthusiastFieldMerge::parseStored($stored) ? $stored : serialize($definitions);
+    }
+
+    /**
+     * Makes sure a listing has its table and its fields have their columns. A shared
+     * registry's table is the owner's real Enthusiast table and is never touched.
+     *
+     * @param list<string> $newTableColumns Extra columns for a table made now.
+     * @param string[] $errors
+     * @param string[] $warnings
+     */
+    private function prepareMemberTable(PDO $target, EnthusiastPlannedListing $planned, array $newTableColumns, array &$errors, array &$warnings): void
+    {
+        if ($planned->result === EnthusiastPlannedListing::SAME_ROW || $planned->sameTable || $planned->targetTable === null) {
+            return;
+        }
+        if ($this->ensureMemberTable($target, $planned, $newTableColumns, $errors)) {
+            $this->fillMissingColumns($target, $planned, $errors, $warnings);
+        }
+    }
+
+    /**
+     * Every listing the import keeps ends up with a member table, because a listing without
+     * one throws on every public member list. This only fills a gap: IF NOT EXISTS never
+     * replaces or empties a table that's there.
+     *
+     * @param list<string> $columns
+     * @param string[] $errors
+     */
+    private function ensureMemberTable(PDO $target, EnthusiastPlannedListing $planned, array $columns, array &$errors): bool
+    {
+        try {
+            $this->createMemberTable($target, (string) $planned->targetTable, $columns);
+            return true;
+        } catch (\Throwable $e) {
+            $errors[] = "\"{$planned->label()}\": its member table `{$planned->targetTable}` couldn't be created, so its public page won't work until that table exists. " . $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
+     * Adds a column for any definition that has none, as long as that doesn't change what
+     * another field reads.
+     *
+     * @param string[] $errors
+     * @param string[] $warnings
+     */
+    private function fillMissingColumns(PDO $target, EnthusiastPlannedListing $planned, array &$errors, array &$warnings): void
+    {
+        try {
+            $definitions = EnthusiastFieldMerge::parseStored($this->storedDefinitions($target, (int) $planned->targetId));
+            if ($definitions === []) {
+                return;
+            }
+            $columns = EnthusiastListingPlan::columnsOf($target, (string) $planned->targetTable);
+        } catch (\Throwable $e) {
+            $errors[] = "\"{$planned->label()}\": its fields couldn't be checked. " . $e->getMessage();
+            return;
+        }
+
+        foreach (EnthusiastFieldMerge::map($definitions, $columns) as $name => $column) {
+            if ($column !== null) {
+                continue;
+            }
+            $name      = (string) $name;
+            $newColumn = self::plannedColumn($planned, $name);
+            if (!EnthusiastFieldMerge::bindsCleanly($definitions, $columns, $name, $newColumn)) {
+                $warnings[] = "Field \"{$name}\" on \"{$planned->label()}\" has nowhere to save answers, and giving it a column would change what another field shows. It's labelled on the Fields page.";
+                continue;
+            }
+            if (self::hasColumn($columns, $newColumn)) {
+                continue;
+            }
+            try {
+                $this->addMemberColumn($target, (string) $planned->targetTable, $newColumn);
+                $columns[] = $newColumn;
+            } catch (\Throwable $e) {
+                $errors[] = "Field \"{$name}\" on \"{$planned->label()}\" has no column, and one couldn't be added. " . $e->getMessage();
+            }
+        }
+    }
+
+    /** The column a definition with none should get: the source's if it has one, else its own name unless that's a built-in. */
+    private static function plannedColumn(EnthusiastPlannedListing $planned, string $name): string
+    {
+        foreach ($planned->fields->fields as $field) {
+            if (strcasecmp($field['name'], $name) === 0) {
+                return $field['column'];
+            }
+        }
+        return in_array(strtolower($name), FieldColumnMap::CORE_COLUMNS, true) ? 'additional_' . $name : $name;
+    }
+
+    /** @param list<string> $columns */
+    private static function hasColumn(array $columns, string $column): bool
+    {
+        foreach ($columns as $existing) {
+            if (strcasecmp($existing, $column) === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The same column FieldRepo::addColumn() makes. Both names have been validated. */
+    private function addMemberColumn(PDO $target, string $table, string $column): void
+    {
+        if (preg_match('/^[a-zA-Z0-9_]+$/', $table) !== 1 || preg_match('/^[a-zA-Z0-9_]+$/', $column) !== 1) {
+            throw new RuntimeException("`{$table}`.`{$column}` isn't a valid column name.");
+        }
+        $target->exec("ALTER TABLE `{$table}` ADD COLUMN `{$column}` TEXT NULL");
     }
 
     /**
@@ -2199,9 +2441,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 '$$stat_pending$$',
                 '$$stat_newmembers$$',
                 '$$stat_growth$$',
-                // Member row tokens (generic variants first — longest match wins)
+                // Member row tokens (generic and plain variants first — longest match wins)
                 '$$fan_email_generic$$',
                 '$$fan_url_generic$$',
+                '$$fan_email_plain$$',
+                '$$fan_url_plain$$',
                 '$$fan_name$$',
                 '$$fan_email$$',
                 '$$fan_url$$',
@@ -2226,6 +2470,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 '{stat_pending}',
                 '{stat_newmembers}',
                 '{stat_growth}',
+                '{fan_email}',
+                '{fan_url}',
                 '{fan_email}',
                 '{fan_url}',
                 '{fan_name}',
@@ -2283,116 +2529,14 @@ final class EnthusiastImportSource implements ImportSourceInterface
     }
 
     /**
-     * Converts an enth_fanlistings.additional_info value (pipe-separated field definitions
-     * or PHP-serialized array) to the bare comma-separated field-name format used by
-     * the unprefixed `owned.additional` column.
+     * A source's field definitions in stored form, through the one reader. Kept for what
+     * reads a definition list directly.
      *
-     * Examples:
-     *   'fave_song,Favourite Song,text,0|fave_band,Favourite Band,text,0'
-     *     → 'fave_song,fave_band'
-     *   PHP-serialized array of field definitions → extracted names, comma-joined
-     */
-    private function parseAdditionalInfo(string $raw): string
-    {
-        $raw = trim($raw);
-        if ($raw === '') {
-            return '';
-        }
-
-        $names = [];
-
-        // PHP-serialized format (legacy Enthusiast)
-        if (str_starts_with($raw, 'a:') || str_starts_with($raw, 's:')) {
-            $data = @unserialize($raw, ['allowed_classes' => false]);
-            if (is_array($data)) {
-                foreach ($data as $item) {
-                    $name = is_array($item) ? (string) ($item[0] ?? '') : (string) $item;
-                    $name = trim($name);
-                    if ($name !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-                        $names[] = $name;
-                    }
-                }
-                return implode(',', $names);
-            }
-        }
-
-        // Pipe-delimited: name,Label,type,required|name2,...
-        foreach (explode('|', $raw) as $fieldStr) {
-            $parts = explode(',', trim($fieldStr), 4);
-            $name  = trim($parts[0]);
-            if ($name !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-                $names[] = $name;
-            }
-        }
-
-        return implode(',', $names);
-    }
-
-    /**
-     * Parses an enth_fanlistings.additional_info value into full field
-     * definitions — name, label, type, and required — instead of collapsing
-     * to bare names like parseAdditionalInfo() does.
-     *
-     * Used only for the runOwnedListings() write path: `owned.additional`
-     * supports the same PHP-serialized-array format FieldRepo::saveFields()
-     * writes (FieldRepo::getFieldsForListing() already detects and parses it
-     * via unserialize() before falling back to bare-name parsing), so there's
-     * no reason to discard field type on import — a field configured as a
-     * dropdown on the source Enthusiast install would otherwise silently
-     * import as a plain text field, since FieldRepo defaults untyped bare
-     * names to 'text'.
-     *
-     * @return array<int, array{name: string, label: string, type: string, required: bool}>
+     * @return list<array<string, mixed>>
      */
     private function parseAdditionalFieldDefinitions(string $raw): array
     {
-        $raw = trim($raw);
-        if ($raw === '') {
-            return [];
-        }
-
-        $fields = [];
-
-        // PHP-serialized format (legacy Enthusiast)
-        if (str_starts_with($raw, 'a:') || str_starts_with($raw, 's:')) {
-            $data = @unserialize($raw, ['allowed_classes' => false]);
-            if (is_array($data)) {
-                foreach ($data as $item) {
-                    if (is_array($item)) {
-                        $name     = trim((string) ($item['name']  ?? $item[0] ?? ''));
-                        $label    = trim((string) ($item['label'] ?? $item[1] ?? ''));
-                        $type     = trim((string) ($item['type']  ?? $item[2] ?? 'text'));
-                        $required = (bool) (int) ($item['required'] ?? $item[3] ?? 0);
-                    } else {
-                        $name     = trim((string) $item);
-                        $label    = '';
-                        $type     = 'text';
-                        $required = false;
-                    }
-                    if ($name !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-                        $fields[] = ['name' => $name, 'label' => $label, 'type' => $type ?: 'text', 'required' => $required];
-                    }
-                }
-                return $fields;
-            }
-        }
-
-        // Pipe-delimited: name,Label,type,required|name2,...
-        foreach (explode('|', $raw) as $fieldStr) {
-            $parts = explode(',', trim($fieldStr), 4);
-            $name  = trim($parts[0] ?? '');
-            if ($name === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-                continue;
-            }
-            $fields[] = [
-                'name'     => $name,
-                'label'    => trim($parts[1] ?? ''),
-                'type'     => trim($parts[2] ?? '') ?: 'text',
-                'required' => (bool) (int) trim($parts[3] ?? '0'),
-            ];
-        }
-
-        return $fields;
+        return EnthusiastSourceFields::read($raw, 'enthusiast_enth')->definitions();
     }
 
     // -----------------------------------------------------------------------
@@ -2400,271 +2544,359 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
-    private function previewMembers(PDO $source, string $schema, ImportOptions $options): array
+    private function previewMembers(PDO $source, ImportOptions $options, ?EnthusiastListingPlan $plan): array
     {
         $tp       = $options->tablePrefix;
-        $regTable = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
-        $dbCol    = $schema === 'enthusiast_enth' ? 'dbprefix'         : 'dbtable';
-
         $warnings = [];
+        $found    = 0;
+        $import   = 0;
+        $skip     = 0;
+        $missing  = 0;
+        $inPlace  = false;
 
-        try {
-            $regStmt  = $source->query("SELECT `{$dbCol}` FROM `{$regTable}`");
-            $listings = $regStmt->fetchAll(PDO::FETCH_COLUMN);
-        } catch (\Throwable $e) {
-            return ['type' => 'Members', 'found' => 0, 'import' => 0, 'skip' => 0,
-                    'warnings' => ['Could not read listing registry: ' . $e->getMessage()]];
+        if ($plan !== null && $plan->sourceError !== '') {
+            $warnings[] = 'Could not read listing registry: ' . $plan->sourceError;
         }
 
-        $totalFound    = 0;
-        $tablesMissing = 0;
-
-        foreach ($listings as $rawPrefix) {
-            $dbtable    = $schema === 'enthusiast_enth'
-                ? trim((string) $rawPrefix) . 'members'
-                : trim((string) $rawPrefix);
-
-            if ($dbtable === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $dbtable)) {
+        foreach ($plan?->listings() ?? [] as $entry) {
+            if (!$entry->isImported()) {
+                continue;
+            }
+            if (!$options->importOwnedListings) {
+                array_push($warnings, ...$entry->fields->notes);
+            }
+            if (!$entry->membersAreHere()) {
+                $warnings[] = self::locationNote($entry, true);
+                continue;
+            }
+            if ($entry->sameTable) {
+                $inPlace = true;
+            } elseif ($entry->targetTable === null) {
+                $warnings[] = "\"{$entry->label()}\": the listing here has no member table name, so its members can't be copied.";
+                continue;
+            }
+            // Only true for a valid name, so this is what lets it go in the query below.
+            if (!$entry->sourceTableExists) {
+                $missing++;
                 continue;
             }
 
-            $srcDbtable = $tp . $dbtable;
-
             try {
-                $cnt = $source->query("SELECT COUNT(*) FROM `{$srcDbtable}`");
-                $totalFound += (int) $cnt->fetchColumn();
+                $count = (int) $source->query("SELECT COUNT(*) FROM `{$tp}{$entry->sourceTable}`")->fetchColumn();
             } catch (\Throwable) {
-                $tablesMissing++;
+                $missing++;
+                continue;
+            }
+            $found += $count;
+            if ($entry->sameTable) {
+                $skip += $count;
+            } else {
+                $import += $count;
             }
         }
 
-        if ($tablesMissing > 0) {
-            $warnings[] = "{$tablesMissing} member table(s) not found in source database — they will be skipped.";
+        if ($inPlace) {
+            $warnings[] = self::IN_PLACE_NOTE;
+        }
+        if ($missing > 0) {
+            $warnings[] = "{$missing} member table(s) not found in source database — they will be skipped.";
         }
 
-        return ['type' => 'Members', 'found' => $totalFound, 'import' => $totalFound, 'skip' => 0,
-                'warnings' => $warnings];
+        return ['type' => 'Members', 'found' => $found, 'import' => $import, 'skip' => $skip,
+                'warnings' => array_values(array_unique($warnings))];
     }
 
-    /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]} */
-    private function runMembers(
-        PDO $source, PDO $target, string $schema, ImportOptions $options, bool $sameDb
-    ): array {
-        if ($sameDb) {
-            return ['type' => 'Members', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => [
-                        'Member tables are in this database and Luster is already reading them directly.',
-                        'To decommission Enthusiast, remove the Enthusiast PHP files — keep the database and these tables.',
-                    ],
-                    'errors'   => [], 'skipped_items' => []];
-        }
-
+    /**
+     * Copies members for each listing the plan says can have them, into that listing's own
+     * table, through the columns it really has.
+     *
+     * @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<int,array{label:string,reason:string}>}
+     */
+    private function runMembers(PDO $source, PDO $target, ImportOptions $options, ?EnthusiastListingPlan $plan): array
+    {
         $tp           = $options->tablePrefix;
-        $regTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
-        $idCol        = $schema === 'enthusiast_enth' ? 'id'               : 'listingid';
-        $dbCol        = $schema === 'enthusiast_enth' ? 'dbprefix'         : 'dbtable';
-        $addCol       = $schema === 'enthusiast_enth' ? 'additional_info'  : 'additional';
-
         $imported     = 0;
         $skipped      = 0;
         $errors       = [];
         $skippedItems = [];
         $warnings     = [];
+        $copiedAny    = false;
+        $inPlace      = false;
 
-        // Load all listings from the source registry.
-        try {
-            $regStmt  = $source->query(
-                "SELECT `{$idCol}`, `{$dbCol}`, `{$addCol}` FROM `{$regTable}`"
-            );
-            $listings = $regStmt->fetchAll();
-        } catch (\Throwable $e) {
-            return ['type' => 'Members', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => [], 'errors' => ['Could not read listing registry: ' . $e->getMessage()],
-                    'skipped_items' => []];
+        if ($plan !== null && $plan->sourceError !== '') {
+            $errors[] = 'Could not read listing registry: ' . $plan->sourceError;
         }
 
-        foreach ($listings as $listing) {
-            $rawPrefix  = trim((string) ($listing[$dbCol] ?? ''));
-            $dbtable    = $schema === 'enthusiast_enth' ? $rawPrefix . 'members' : $rawPrefix;
+        foreach ($plan?->listings() ?? [] as $entry) {
+            if (!$entry->isImported()) {
+                continue;
+            }
+            if (!$options->importOwnedListings) {
+                array_push($warnings, ...$entry->fields->notes);
+            }
 
-            if ($dbtable === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $dbtable)) {
-                $errors[] = "Listing has invalid or empty dbtable '{$dbtable}' — skipped.";
+            // Every listing the import keeps gets a table, whether or not it gets members.
+            $this->prepareMemberTable($target, $entry, [], $errors, $warnings);
+
+            if (!$entry->membersAreHere()) {
+                $warnings[] = self::locationNote($entry, false);
+                continue;
+            }
+            if ($entry->sameTable) {
+                $inPlace = true;
+                continue;
+            }
+            if ($entry->targetTable === null) {
+                $warnings[] = "\"{$entry->label()}\": the listing here has no member table name, so its members can't be copied.";
+                continue;
+            }
+            if ($entry->sourceTable === '') {
+                $errors[] = "\"{$entry->label()}\" has no member table name in the source, so no members were copied.";
+                continue;
+            }
+            if (!$entry->sourceTableExists) {
+                $errors[] = "Could not read `{$tp}{$entry->sourceTable}` for \"{$entry->label()}\": that table isn't in the source.";
                 continue;
             }
 
-            $srcDbtable = $tp . $dbtable;
+            $copiedAny = true;
+            $this->copyMembers($source, $target, $entry, $options, $imported, $skipped, $skippedItems, $errors, $warnings);
+        }
 
-            // Derive additional field column names for this listing.
-            $addRaw     = (string) ($listing[$addCol] ?? '');
-            $fieldNames = $this->parseAdditionalFieldNames($addRaw, $schema);
+        if ($inPlace) {
+            $warnings[] = self::IN_PLACE_NOTE;
+        }
+        if ($copiedAny) {
+            $warnings[] = 'Selected data imported. Review this report and check your listings before you retire Enthusiast.';
+        }
 
-            // Ensure the target member table exists (create if absent).
-            try {
-                $this->createMemberTable($target, $dbtable, $fieldNames);
-            } catch (\Throwable $e) {
-                $errors[] = "Could not create table `{$dbtable}`: " . $e->getMessage();
-                continue;
-            }
+        return ['type' => 'Members', 'imported' => $imported, 'skipped' => $skipped,
+                'warnings' => array_values(array_unique($warnings)), 'errors' => $errors, 'skipped_items' => $skippedItems];
+    }
 
-            // Copy members in chunks of CHUNK rows.
-            $offset = 0;
-            do {
-                try {
-                    $stmt = $source->prepare(
-                        "SELECT * FROM `{$srcDbtable}` LIMIT :lim OFFSET :off"
-                    );
-                    $stmt->bindValue(':lim', self::CHUNK, PDO::PARAM_INT);
-                    $stmt->bindValue(':off', $offset,     PDO::PARAM_INT);
-                    $stmt->execute();
-                    $chunk = $stmt->fetchAll();
-                } catch (\Throwable $e) {
-                    $errors[] = "Could not read `{$srcDbtable}` at offset {$offset}: " . $e->getMessage();
+    /**
+     * @param array<int,array{label:string,reason:string}> $skippedItems
+     * @param string[] $errors
+     * @param string[] $warnings
+     */
+    private function copyMembers(
+        PDO $source, PDO $target, EnthusiastPlannedListing $entry, ImportOptions $options,
+        int &$imported, int &$skipped, array &$skippedItems, array &$errors, array &$warnings
+    ): void {
+        $dbtable    = (string) $entry->targetTable;
+        $srcDbtable = $options->tablePrefix . $entry->sourceTable;
+
+        try {
+            $columns = EnthusiastListingPlan::columnsOf($target, $dbtable);
+            $map     = EnthusiastFieldMerge::map(
+                EnthusiastFieldMerge::parseStored($this->storedDefinitions($target, (int) $entry->targetId)),
+                $columns,
+            );
+        } catch (\Throwable $e) {
+            $errors[] = "\"{$entry->label()}\": its member table couldn't be read, so no members were copied. " . $e->getMessage();
+            return;
+        }
+
+        // Only built-ins this table really has are written.
+        $lowerColumns = array_map('strtolower', $columns);
+        $hasCore      = static fn(string $column): bool => in_array($column, $lowerColumns, true);
+
+        // Source field => the column of the field it matches here. A field this listing
+        // doesn't have isn't written anywhere.
+        $fieldTargets = [];
+        foreach ($entry->fields->fields as $field) {
+            $column = null;
+            foreach ($map as $name => $bound) {
+                if (strcasecmp((string) $name, $field['name']) === 0) {
+                    $column = $bound;
                     break;
                 }
+            }
+            if ($column === null) {
+                $warnings[] = "Field \"{$field['name']}\" isn't on \"{$entry->label()}\" here, so its answers weren't copied. An import with Owned listings ticked and Overwrite adds it, if it can have a column of its own.";
+                continue;
+            }
+            $fieldTargets[strtolower($field['column'])] = $column;
+        }
 
-                foreach ($chunk as $row) {
-                    $email = strtolower(trim((string) ($row['email'] ?? '')));
-                    if ($email === '') {
-                        continue;
+        $offset = 0;
+        do {
+            try {
+                $stmt = $source->prepare("SELECT * FROM `{$srcDbtable}` LIMIT :lim OFFSET :off");
+                $stmt->bindValue(':lim', self::CHUNK, PDO::PARAM_INT);
+                $stmt->bindValue(':off', $offset,     PDO::PARAM_INT);
+                $stmt->execute();
+                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\Throwable $e) {
+                $errors[] = "Could not read `{$srcDbtable}` at offset {$offset}: " . $e->getMessage();
+                break;
+            }
+
+            foreach ($chunk as $row) {
+                $row   = array_change_key_case($row, CASE_LOWER);
+                $email = strtolower(trim((string) ($row['email'] ?? '')));
+                if ($email === '') {
+                    continue;
+                }
+
+                // Only fields really in this row get written, so a field the source's table
+                // doesn't have can't blank an answer here.
+                $fieldValues = [];
+                foreach ($fieldTargets as $sourceColumn => $targetColumn) {
+                    if (array_key_exists($sourceColumn, $row)) {
+                        $fieldValues[$targetColumn] = (string) ($row[$sourceColumn] ?? '');
                     }
+                }
 
-                    // Check for an existing row in the target table.
-                    $exists = false;
-                    try {
-                        $chk = $target->prepare(
-                            "SELECT email FROM `{$dbtable}` WHERE email = :email LIMIT 1"
-                        );
-                        $chk->execute(['email' => $email]);
-                        $exists = $chk->fetchColumn() !== false;
-                    } catch (\Throwable) {
-                        // Table confirmed to exist (we just created it), so treat as not found.
-                    }
+                $exists = false;
+                try {
+                    $chk = $target->prepare("SELECT email FROM `{$dbtable}` WHERE email = :email LIMIT 1");
+                    $chk->execute(['email' => $email]);
+                    $exists = $chk->fetchColumn() !== false;
+                } catch (\Throwable) {
+                    // The table's columns were just read, so treat as not found.
+                }
 
-                    if ($exists) {
-                        if ($options->conflictStrategy === 'skip') {
-                            $skipped++;
-                            if (count($skippedItems) < self::SKIP_CAP) {
-                                $skippedItems[] = ['label' => $email, 'reason' => 'Already exists'];
-                            }
-                            continue;
-                        }
-
-                        // Overwrite — UPDATE all member fields.
-                        $updCols = [
-                            'name = :name', 'country = :country', 'url = :url',
-                            'pending = :pending', 'password = :password',
-                            'showurl = :showurl',
-                        ];
-                        $updVals = [
-                            'email'     => $email,
-                            'name'      => trim((string) ($row['name']      ?? '')),
-                            'country'   => trim((string) ($row['country']   ?? '')),
-                            'url'       => trim((string) ($row['url']       ?? '')),
-                            'pending'   => (int)         ($row['pending']   ?? 0),
-                            'password'  => (string)      ($row['password']  ?? ''),
-                            'showurl'   => (int)         ($row['showurl']   ?? 1),
-                        ];
-                        // Only a real choice in the source replaces the one saved here.
-                        if (isset($row['showemail'])) {
-                            $updCols[]            = 'showemail = :showemail';
-                            $updVals['showemail'] = (int) $row['showemail'];
-                        }
-                        foreach ($fieldNames as $field) {
-                            $updCols[]       = "`{$field}` = :{$field}";
-                            $updVals[$field] = (string) ($row[$field] ?? '');
-                        }
-
-                        try {
-                            $upd = $target->prepare(
-                                "UPDATE `{$dbtable}` SET " . implode(', ', $updCols) . " WHERE email = :email"
-                            );
-                            $upd->execute($updVals);
-                            $imported++;
-                        } catch (\Throwable $e) {
-                            $errors[] = "Member {$email} in `{$dbtable}`: " . $e->getMessage();
+                if ($exists) {
+                    if ($options->conflictStrategy === 'skip') {
+                        $skipped++;
+                        if (count($skippedItems) < self::SKIP_CAP) {
+                            $skippedItems[] = ['label' => $email, 'reason' => 'Already exists'];
                         }
                         continue;
                     }
 
-                    // New member — INSERT.
-                    $cols = ['email', 'name', 'country', 'url', 'pending', 'password', 'showemail', 'showurl', 'added'];
-                    $vals = [
-                        'email'     => $email,
-                        'name'      => trim((string) ($row['name']      ?? '')),
-                        'country'   => trim((string) ($row['country']   ?? '')),
-                        'url'       => trim((string) ($row['url']       ?? '')),
-                        'pending'   => (int)         ($row['pending']   ?? 0),
-                        'password'  => (string)      ($row['password']  ?? ''),
-                        // No choice in the source means nobody agreed to show it.
-                        'showemail' => (int)         ($row['showemail'] ?? 0),
-                        'showurl'   => (int)         ($row['showurl']   ?? 1),
-                        'added'     => !empty($row['added']) ? $row['added'] : null,
+                    // Overwrite — UPDATE all member fields.
+                    $core = [
+                        'name'     => trim((string) ($row['name']     ?? '')),
+                        'country'  => trim((string) ($row['country']  ?? '')),
+                        'url'      => trim((string) ($row['url']      ?? '')),
+                        'pending'  => self::memberPending($row),
+                        'password' => (string)      ($row['password'] ?? ''),
+                        'showurl'  => (int)         ($row['showurl']  ?? 1),
                     ];
-                    foreach ($fieldNames as $field) {
-                        $cols[] = $field;
-                        $vals[$field] = (string) ($row[$field] ?? '');
+                    // Only a real choice in the source replaces the one saved here.
+                    if (isset($row['showemail'])) {
+                        $core['showemail'] = (int) $row['showemail'];
                     }
 
-                    $placeholders = implode(', ', array_map(fn(string $c) => ':' . $c, $cols));
-                    $colList      = implode(', ', array_map(fn(string $c) => "`{$c}`", $cols));
+                    $assignments = [];
+                    $values      = ['email' => $email];
+                    foreach ($core as $column => $value) {
+                        if ($hasCore($column)) {
+                            $assignments[]   = "`{$column}` = :{$column}";
+                            $values[$column] = $value;
+                        }
+                    }
+                    $n = 0;
+                    foreach ($fieldValues as $column => $value) {
+                        $assignments[]    = "`{$column}` = :f{$n}";
+                        $values['f' . $n] = $value;
+                        $n++;
+                    }
 
                     try {
-                        $ins = $target->prepare(
-                            "INSERT INTO `{$dbtable}` ({$colList}) VALUES ({$placeholders})"
-                        );
-                        $ins->execute($vals);
+                        $upd = $target->prepare("UPDATE `{$dbtable}` SET " . implode(', ', $assignments) . ' WHERE email = :email');
+                        $upd->execute($values);
                         $imported++;
                     } catch (\Throwable $e) {
                         $errors[] = "Member {$email} in `{$dbtable}`: " . $e->getMessage();
                     }
+                    continue;
                 }
 
-                $offset += self::CHUNK;
-            } while (count($chunk) === self::CHUNK);
-        }
+                // New member — INSERT.
+                $core = [
+                    'name'      => trim((string) ($row['name']      ?? '')),
+                    'country'   => trim((string) ($row['country']   ?? '')),
+                    'url'       => trim((string) ($row['url']       ?? '')),
+                    'pending'   => self::memberPending($row),
+                    'password'  => (string)      ($row['password']  ?? ''),
+                    // No choice in the source means nobody agreed to show it.
+                    'showemail' => (int)         ($row['showemail'] ?? 0),
+                    'showurl'   => (int)         ($row['showurl']   ?? 1),
+                    'added'     => !empty($row['added']) ? $row['added'] : null,
+                ];
 
-        if ($imported > 0 && $errors === []) {
-            $warnings[] = 'Member data copied — you can now safely delete the old Enthusiast database.';
-        }
+                $cols   = ['`email`'];
+                $places = [':email'];
+                $values = ['email' => $email];
+                foreach ($core as $column => $value) {
+                    if ($hasCore($column)) {
+                        $cols[]          = "`{$column}`";
+                        $places[]        = ':' . $column;
+                        $values[$column] = $value;
+                    }
+                }
+                $n = 0;
+                foreach ($fieldValues as $column => $value) {
+                    $cols[]           = "`{$column}`";
+                    $places[]         = ':f' . $n;
+                    $values['f' . $n] = $value;
+                    $n++;
+                }
 
-        return ['type' => 'Members', 'imported' => $imported, 'skipped' => $skipped,
-                'warnings' => $warnings, 'errors' => $errors, 'skipped_items' => $skippedItems];
+                try {
+                    $ins = $target->prepare(
+                        "INSERT INTO `{$dbtable}` (" . implode(', ', $cols) . ') VALUES (' . implode(', ', $places) . ')'
+                    );
+                    $ins->execute($values);
+                    $imported++;
+                } catch (\Throwable $e) {
+                    $errors[] = "Member {$email} in `{$dbtable}`: " . $e->getMessage();
+                }
+            }
+
+            $offset += self::CHUNK;
+        } while (count($chunk) === self::CHUNK);
     }
 
     /**
-     * Returns validated additional field column names for a member table.
+     * A member's waiting status. A source with no pending column has approved instead, the
+     * opposite way round, so a fan who was never approved doesn't go public.
      *
-     * For unprefixed schema, `$raw` is the `owned.additional` value —
-     * a comma-separated list of bare field names (e.g. "favorite,country2").
-     *
-     * For enth_ schema, `$raw` is `enth_fanlistings.additional_info` — a
-     * pipe-delimited or serialised definition string. Field names are extracted
-     * via parseAdditionalInfo(), then prefixed with `additional_` to match the
-     * actual member table column names.
-     *
-     * @return string[]
+     * @param array<string, mixed> $row With lowercase keys.
      */
-    private function parseAdditionalFieldNames(string $raw, string $schema): array
+    private static function memberPending(array $row): int
     {
-        if ($schema === 'enthusiast_enth') {
-            // enth_ schema: additional_info is pipe-delimited "name,Label,type,required|..."
-            // parseAdditionalInfo() returns a bare comma-separated name list.
-            $bare = array_values(array_filter(
-                array_map('trim', explode(',', $this->parseAdditionalInfo($raw)))
-            ));
-            return array_values(array_map(fn(string $n) => 'additional_' . $n, $bare));
+        if (array_key_exists('pending', $row)) {
+            return (int) $row['pending'];
+        }
+        if (array_key_exists('approved', $row)) {
+            return (int) $row['approved'] === 0 ? 1 : 0;
+        }
+        return 0;
+    }
+
+    /** What to say about a listing whose members may be somewhere else. Never mentions a saved user or password. */
+    private static function locationNote(EnthusiastPlannedListing $entry, bool $isPreview): string
+    {
+        $where = $entry->savedDatabase === '' ? 'another database' : 'database "' . $entry->savedDatabase . '"';
+        if ($entry->savedServer !== '') {
+            $where .= ' on "' . $entry->savedServer . '"';
+        }
+        $says = '"' . $entry->label() . '" says its members are in ' . $where;
+
+        if ($entry->sameTable || $entry->result === EnthusiastPlannedListing::SAME_ROW) {
+            $text = $says . ', but Luster only reads this database, so those members won\'t show until the table is here.';
+            if ($entry->offered) {
+                $text .= $isPreview
+                    ? ' If this is a restored backup and they really are here, tick the box below.'
+                    : ' If this is a restored backup and they really are here, tick the box on the Preview step.';
+            }
+            return $text;
         }
 
-        // Unprefixed schema: `owned.additional` is already a bare comma-separated list
-        // of field names (e.g. "favorite,country2"). Do not pass through parseAdditionalInfo()
-        // which would treat the whole string as a single pipe-segment and return only the
-        // first token.
-        return array_values(array_filter(
-            array_map(
-                static fn(string $n) => preg_match('/^[a-zA-Z0-9_]+$/', $n) ? $n : '',
-                array_map('trim', explode(',', $raw))
-            )
-        ));
+        if (!$entry->offered) {
+            return $says . ', and its table `' . $entry->sourceTable . '` isn\'t in what you picked, so its members '
+                . ($isPreview ? 'won\'t be' : 'weren\'t') . ' copied. Export that table from where it lives and use Import Members.';
+        }
+
+        if ($isPreview) {
+            return $says . ', and Luster can\'t confirm that\'s what you picked, so they won\'t be copied unless you tick the box below.';
+        }
+
+        return $says . ', and Luster can\'t confirm that\'s what you picked, so they weren\'t copied. If this is a moved copy or a backup, tick the box on the Preview step and run the import again. If they really are elsewhere, export that table and use Import Members.';
     }
 
     /**
@@ -2677,12 +2909,18 @@ final class EnthusiastImportSource implements ImportSourceInterface
      */
     private function createMemberTable(PDO $target, string $dbtable, array $fieldNames): void
     {
+        if (preg_match('/^[a-zA-Z0-9_]+$/', $dbtable) !== 1) {
+            throw new RuntimeException("`{$dbtable}` isn't a valid table name.");
+        }
+
         $extraCols = '';
         foreach ($fieldNames as $field) {
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $field)) {
                 continue;
             }
-            $extraCols .= "  `{$field}` TEXT NOT NULL DEFAULT '',\n";
+            // The same column FieldRepo::addColumn() makes. MySQL in strict mode refuses a
+            // default on a TEXT column.
+            $extraCols .= "  `{$field}` TEXT NULL,\n";
         }
 
         $driver = $target->getAttribute(PDO::ATTR_DRIVER_NAME);
@@ -2797,26 +3035,6 @@ final class EnthusiastImportSource implements ImportSourceInterface
             return $map;
         } catch (\PDOException) {
             return [];
-        }
-    }
-
-    /**
-     * Checks whether two PDO connections point to the same database.
-     * Used to decide whether to show the "same DB — members already accessible" note.
-     */
-    private function isSameDatabase(PDO $a, PDO $b): bool
-    {
-        // If they are literally the same object, definitely same DB
-        if ($a === $b) {
-            return true;
-        }
-
-        try {
-            $stmtA = $a->query('SELECT DATABASE()');
-            $stmtB = $b->query('SELECT DATABASE()');
-            return $stmtA && $stmtB && $stmtA->fetchColumn() === $stmtB->fetchColumn();
-        } catch (\Throwable) {
-            return false;
         }
     }
 

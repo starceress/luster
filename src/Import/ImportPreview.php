@@ -25,11 +25,16 @@ namespace Luster\Import;
  */
 final class ImportPreview
 {
-    /** @param list<array{type:string,found:int,import:int,skip:int,warnings:string[]}> $rows */
+    /**
+     * @param list<array{type:string,found:int,import:int,skip:int,warnings:string[]}> $rows
+     * @param array{fingerprint: string, listings: list<array{id: int, title: string, table: string, server: string, database: string}>}|null $memberConfirmation
+     *        What the Preview asks the owner to confirm about where members are, if anything.
+     */
     public function __construct(
         public readonly array  $rows,
         public readonly string $schemaVariant,
         public readonly bool   $sameDatabase,
+        public readonly ?array $memberConfirmation = null,
     ) {}
 
     /**

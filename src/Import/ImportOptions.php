@@ -139,6 +139,14 @@ final class ImportOptions
         public readonly bool   $fnImportAdoption        = false,
         /** Import non-sensitive site settings into lstr_site_settings. */
         public readonly bool   $fnImportSiteSettings    = false,
+        // --- Enthusiast-specific
+        /** The host typed in the wizard, set by the controller. A POST can't supply it. */
+        public readonly string $sourceHost              = '',
+        /**
+         * The Preview step's fingerprint, when the owner ticked its member location box.
+         * '' means no tick. Comes only from the Run form, and isn't kept for another run.
+         */
+        public readonly string $memberConsent           = '',
     ) {}
 
     /**
@@ -290,6 +298,8 @@ final class ImportOptions
             fnKimStatus:          $fnKimStatus,
             fnImportAdoption:     $fnImportAdoption,
             fnImportSiteSettings: $fnImportSiteSettings,
+            sourceHost:           trim((string) ($post['_source_host'] ?? '')),
+            memberConsent:        trim((string) ($post['_member_consent'] ?? '')),
         );
     }
 

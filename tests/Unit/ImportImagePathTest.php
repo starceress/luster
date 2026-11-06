@@ -258,6 +258,7 @@ final class ImportImagePathTest extends TestCase
         $src->exec("CREATE TABLE `category` (catid INTEGER PRIMARY KEY)");
 
         $tgt = $this->makeTarget();
+        $tgt->exec("INSERT INTO owned (listingid, url, dbtable) VALUES (1, 'http://test.example.com', 'testfl')");
 
         $opts = ImportOptions::fromPost([
             'source'               => 'enthusiast',

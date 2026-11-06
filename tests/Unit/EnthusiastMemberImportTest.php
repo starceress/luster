@@ -47,6 +47,7 @@ final class EnthusiastMemberImportTest extends TestCase
         return ImportOptions::fromPost(array_merge([
             'source'           => 'enthusiast',
             'conflict_strategy' => 'skip',
+            'import_owned_listings' => '1',
             'import_members'   => '1',
         ], $overrides));
     }
@@ -54,6 +55,21 @@ final class EnthusiastMemberImportTest extends TestCase
     private function adapter(): EnthusiastImportSource
     {
         return new EnthusiastImportSource();
+    }
+
+    /** A Luster database with no listings yet, for members to arrive with their listing. */
+    private function memberTarget(): PDO
+    {
+        $pdo = $this->makePdo();
+        $pdo->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY AUTOINCREMENT, dbtable TEXT NOT NULL DEFAULT '',
+                title TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '',
+                url TEXT NOT NULL DEFAULT '', catid TEXT NOT NULL DEFAULT '', additional TEXT NOT NULL DEFAULT '',
+                status INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        return $pdo;
     }
 
     public function testNetworkAddressGuardRejectsLoopbackAndPrivateHosts(): void
@@ -202,7 +218,7 @@ final class EnthusiastMemberImportTest extends TestCase
             showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL)");
         $this->insertMember($src, 'gachia', ['email' => 'c@test.com']);
 
-        $preview = $this->adapter()->preview($src, $src, $this->makeOptions());
+        $preview = $this->adapter()->preview($src, $this->memberTarget(), $this->makeOptions());
 
         $membersRow = null;
         foreach ($preview->rows as $row) {
@@ -253,7 +269,7 @@ final class EnthusiastMemberImportTest extends TestCase
         $this->insertMember($src, 'fl_hunt_members', ['email' => 'fan@test.com']);
         $this->insertMember($src, 'fl_hunt_members', ['email' => 'fan2@test.com']);
 
-        $preview = $this->adapter()->preview($src, $src, $this->makeOptions());
+        $preview = $this->adapter()->preview($src, $this->memberTarget(), $this->makeOptions());
 
         $membersRow = null;
         foreach ($preview->rows as $row) {
@@ -300,7 +316,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersCopiesAllMembersUnprefixed(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedUnprefixedSource($src, 'huntrix');
         $this->insertMember($src, 'huntrix', ['email' => 'alice@test.com', 'name' => 'Alice', 'country' => 'GB']);
@@ -335,7 +351,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersCopiesAllMembersEnthSchema(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedEnthSource($src, 'fl_hunt_');
         $this->insertMember($src, 'fl_hunt_members', ['email' => 'fan@test.com', 'name' => 'Fan']);
@@ -365,7 +381,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersSkipsExistingEmailWhenStrategyIsSkip(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedUnprefixedSource($src, 'huntrix');
         $this->insertMember($src, 'huntrix', ['email' => 'alice@test.com', 'name' => 'Alice']);
@@ -401,7 +417,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersOverwritesExistingEmail(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedUnprefixedSource($src, 'huntrix');
         $this->insertMember($src, 'huntrix', ['email' => 'alice@test.com', 'name' => 'Alice New', 'country' => 'DE']);
@@ -437,7 +453,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersCopiesAdditionalFieldsUnprefixed(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedUnprefixedSource($src, 'huntrix', ['favorite']);
         $this->insertMember($src, 'huntrix', ['email' => 'fan@test.com', 'favorite' => 'Hunters']);
@@ -465,7 +481,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersCopiesAdditionalFieldsEnthSchema(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedEnthSource($src, 'fl_hunt_', [['name' => 'fave_song', 'label' => 'Favourite Song']]);
         $this->insertMember($src, 'fl_hunt_members', [
@@ -496,7 +512,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersSkipsListingWithInvalidDbtable(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $src->exec("CREATE TABLE IF NOT EXISTS `categories` (catid INTEGER PRIMARY KEY, catname TEXT)");
         $src->exec(
@@ -513,15 +529,12 @@ final class EnthusiastMemberImportTest extends TestCase
 
         $result = $this->adapter()->run($src, $tgt, $this->makeOptions());
 
-        $membersRow = null;
-        foreach ($result->rows as $row) {
-            if ($row['type'] === 'Members') { $membersRow = $row; break; }
-        }
-
-        $this->assertNotNull($membersRow);
+        $membersRow = $this->findRow($result->rows, 'Members');
         $this->assertSame(0, $membersRow['imported']);
-        $this->assertNotEmpty($membersRow['errors']);
-        $this->assertStringContainsString('invalid', $membersRow['errors'][0]);
+
+        $refused = $this->findRow($result->rows, 'Listings not imported');
+        $this->assertStringContainsString("isn't valid", $refused['errors'][0]);
+        $this->assertSame(0, (int) $tgt->query('SELECT COUNT(*) FROM owned')->fetchColumn());
     }
 
     // -----------------------------------------------------------------------
@@ -531,7 +544,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersHandlesMoreThanOneChunk(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedUnprefixedSource($src, 'huntrix');
 
@@ -563,7 +576,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testUnprefixedAdditionalFieldsAreUsedBareInTargetTable(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         // Two additional fields
         $this->seedUnprefixedSource($src, 'huntrix', ['fave', 'country2']);
@@ -584,7 +597,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testEnthAdditionalFieldsAreStoredWithAdditionalPrefix(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedEnthSource($src, 'fl_g_', [
             ['name' => 'fave_char', 'label' => 'Fave Character'],
@@ -611,7 +624,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersPreservesPendingFlag(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedUnprefixedSource($src, 'huntrix');
         $this->insertMember($src, 'huntrix', ['email' => 'pending@test.com', 'pending' => 1]);
@@ -636,7 +649,7 @@ final class EnthusiastMemberImportTest extends TestCase
     public function testRunMembersCopiesAcrossMultipleListings(): void
     {
         $src = $this->makePdo();
-        $tgt = $this->makePdo();
+        $tgt = $this->memberTarget();
 
         $this->seedUnprefixedSource($src, 'huntrix');
         $this->insertMember($src, 'huntrix', ['email' => 'a@test.com']);
@@ -882,7 +895,7 @@ final class EnthusiastMemberImportTest extends TestCase
         $src = $this->makePdo();
         $tgt = $this->makePdo();
         $this->seedUnprefixedSource($src, 't1');
-        $src->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (7, 't1', 'http://free-id.com'), (8, 't1', 'http://taken-id.com')");
+        $src->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (7, 't7', 'http://free-id.com'), (8, 't8', 'http://taken-id.com')");
         $this->useOldOwnedTable($tgt);
         $tgt->exec("INSERT INTO owned (listingid, dbtable, url, emailsignup, emailapproved, emailupdate, emaillostpass, listtemplate)
                     VALUES (8, 'other', 'http://other.com', '', '', '', '', '')");

@@ -311,6 +311,41 @@ final class ListingRepo
     }
 
     /**
+     * The real member table for a listing's dbprefix, the same way MemberRepo works it
+     * out: the value itself on the unprefixed schema, {dbprefix}members on the standard one.
+     */
+    public function physicalMemberTable(string $dbprefix): string
+    {
+        return $this->isOwnedSchema ? $dbprefix : $dbprefix . 'members';
+    }
+
+    /**
+     * The other listings whose member table is $table, ignoring case. A failed read
+     * throws: it's never taken to mean nobody else uses it.
+     *
+     * @return list<int>
+     * @throws \Throwable
+     */
+    public function otherListingsUsingMemberTable(int $listingId, string $table): array
+    {
+        $dbCol = $this->isOwnedSchema ? 'dbtable' : 'dbprefix';
+        $stmt  = $this->db->prepare(
+            "SELECT {$this->pkCol} AS listing_id, `{$dbCol}` AS prefix FROM {$this->table} WHERE {$this->pkCol} <> :id"
+        );
+        $stmt->execute(['id' => $listingId]);
+
+        $others = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $prefix = trim((string) ($row['prefix'] ?? ''));
+            if ($prefix !== '' && strcasecmp($this->physicalMemberTable($prefix), $table) === 0) {
+                $others[] = (int) $row['listing_id'];
+            }
+        }
+
+        return $others;
+    }
+
+    /**
      * Renames the member table and updates the registry row to match.
      *
      * Validates $newPrefix before touching anything. If the registry UPDATE

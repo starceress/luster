@@ -2092,7 +2092,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $field)) {
                 continue;
             }
-            $extraCols .= "  `{$field}` TEXT NOT NULL DEFAULT '',\n";
+            // MySQL in strict mode refuses a default on a TEXT column.
+            $extraCols .= "  `{$field}` TEXT NULL,\n";
         }
 
         $driver = $target->getAttribute(PDO::ATTR_DRIVER_NAME);

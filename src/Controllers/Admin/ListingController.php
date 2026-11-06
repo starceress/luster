@@ -33,6 +33,7 @@ use Luster\Repositories\FieldRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingLifecycleRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Support\MemberTableRemoval;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PreviousOwnersRepo;
@@ -846,6 +847,8 @@ final class ListingController extends AdminController
             $listingRepo  = new ListingRepo($db, $config);
             $activityRepo = new ActivityRepo($db);
             $deleted      = 0;
+            $notes        = '';
+            $refused      = [];
 
             foreach ($selected as $id) {
                 $listing = $listingRepo->getById($id);
@@ -853,9 +856,17 @@ final class ListingController extends AdminController
                     continue;
                 }
 
-                $this->purgeListingData($id, $listing->dbprefix);
+                try {
+                    $removal = MemberTableRemoval::decide($listingRepo, $id, $listing->dbprefix);
+                } catch (\RuntimeException $e) {
+                    $refused[] = "{$listing->title}: " . $e->getMessage();
+                    continue;
+                }
+
+                $this->purgeListingData($id, $removal);
 
                 $listingRepo->delete($id);
+                $notes .= $removal->note();
 
                 $activityRepo->log(
                     (int) $session->get('lstr_admin_id'),
@@ -867,7 +878,12 @@ final class ListingController extends AdminController
                 $deleted++;
             }
 
-            $session->set('lstr_flash_success', "Deleted {$deleted} listing(s).");
+            if ($deleted > 0 || $refused === []) {
+                $session->set('lstr_flash_success', "Deleted {$deleted} listing(s)." . $notes);
+            }
+            if ($refused !== []) {
+                $session->set('lstr_flash_error', implode(' ', $refused));
+            }
         }
 
         return Response::redirect($baseUrl . '/admin/listings');
@@ -1393,7 +1409,15 @@ final class ListingController extends AdminController
         $baseUrl = $this->app->getBaseUrl();
         $name    = $listing->title;
 
-        $this->purgeListingData($id, $prefix);
+        // Decided before anything goes. A refusal leaves the whole listing as it is.
+        try {
+            $removal = MemberTableRemoval::decide($listingRepo, $id, $prefix);
+        } catch (\RuntimeException $e) {
+            $session->set('lstr_flash_error', $e->getMessage());
+            return Response::redirect($baseUrl . '/admin/listings');
+        }
+
+        $this->purgeListingData($id, $removal);
 
         // Delete the listing registry row
         $listingRepo->delete($id);
@@ -1406,7 +1430,7 @@ final class ListingController extends AdminController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', "Listing \"{$name}\" deleted successfully.");
+        $session->set('lstr_flash_success', "Listing \"{$name}\" deleted successfully." . $removal->note());
         return Response::redirect($baseUrl . '/admin/listings');
     }
 
@@ -1424,14 +1448,14 @@ final class ListingController extends AdminController
      * ListingSettingsRepo::getImage() reads from that row, so deleting it first
      * would make every image lookup return null and leave the file on disk forever.
      */
-    private function purgeListingData(int $id, string $prefix): void
+    private function purgeListingData(int $id, MemberTableRemoval $removal): void
     {
         $db           = $this->app->getDatabase();
         $settingsRepo = new ListingSettingsRepo($db);
 
-        // Drop the member table (only if a table name exists and is safe)
-        if ($prefix !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
-            $db->prepare("DROP TABLE IF EXISTS `{$prefix}`")->execute();
+        // Only when nobody else uses it. The caller has already worked that out.
+        if ($removal->action === MemberTableRemoval::DROP) {
+            $db->prepare("DROP TABLE IF EXISTS `{$removal->table}`")->execute();
         }
 
         $imageFilename = $settingsRepo->getImage($id);

@@ -106,18 +106,28 @@ final class NewMemberEmailVisibilityTest extends TestCase
     {
         $src = $this->pdo();
         $src->exec('CREATE TABLE category (catid INTEGER PRIMARY KEY, catname TEXT)');
-        $src->exec("CREATE TABLE owned (listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL, additional TEXT NOT NULL DEFAULT '')");
-        $src->exec("INSERT INTO owned (listingid, dbtable) VALUES (1, 'moon')");
+        $src->exec("CREATE TABLE owned (listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL, url TEXT NOT NULL DEFAULT '', additional TEXT NOT NULL DEFAULT '')");
+        $src->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (1, 'moon', 'http://a.test/moon')");
         $column = $showEmailDdl === '' ? '' : ', ' . $showEmailDdl;
         $src->exec("CREATE TABLE moon (email TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL DEFAULT '',
             pending INTEGER NOT NULL DEFAULT 0, password TEXT NOT NULL DEFAULT ''{$column})");
         return $src;
     }
 
+    /** A Luster database with no listings yet. */
+    private function target(): PDO
+    {
+        $tgt = $this->pdo();
+        $tgt->exec("CREATE TABLE owned (listingid INTEGER PRIMARY KEY AUTOINCREMENT, dbtable TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '',
+            subject TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', catid TEXT NOT NULL DEFAULT '',
+            additional TEXT NOT NULL DEFAULT '', status INTEGER NOT NULL DEFAULT 2)");
+        return $tgt;
+    }
+
     private function import(PDO $src, PDO $tgt, string $strategy = 'skip'): void
     {
         $result = (new EnthusiastImportSource())->run($src, $tgt, ImportOptions::fromPost([
-            'source' => 'enthusiast', 'conflict_strategy' => $strategy, 'import_members' => '1',
+            'source' => 'enthusiast', 'conflict_strategy' => $strategy, 'import_owned_listings' => '1', 'import_members' => '1',
         ]));
         foreach ($result->rows as $row) {
             self::assertSame([], $row['errors'] ?? [], (string) ($row['type'] ?? ''));
@@ -140,7 +150,7 @@ final class NewMemberEmailVisibilityTest extends TestCase
     {
         $src = $this->source($ddl);
         $src->exec('INSERT INTO moon (email' . ($ddl === '' ? '' : ', showemail') . ") VALUES ({$values})");
-        $tgt = $this->pdo();
+        $tgt = $this->target();
 
         $this->import($src, $tgt);
 
@@ -158,7 +168,7 @@ final class NewMemberEmailVisibilityTest extends TestCase
     {
         $src = $this->source('');
         $src->exec("INSERT INTO moon (email, name) VALUES ('a@example.test', 'New name')");
-        $tgt = $this->pdo();
+        $tgt = $this->target();
         $tgt->exec("CREATE TABLE moon (email TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '',
             url TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, password TEXT NOT NULL DEFAULT '',
             showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL)");
@@ -175,7 +185,7 @@ final class NewMemberEmailVisibilityTest extends TestCase
     {
         $src = $this->source('showemail INTEGER');
         $src->exec("INSERT INTO moon (email, showemail) VALUES ('a@example.test', 0)");
-        $tgt = $this->pdo();
+        $tgt = $this->target();
         $tgt->exec("CREATE TABLE moon (email TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '',
             url TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, password TEXT NOT NULL DEFAULT '',
             showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL)");

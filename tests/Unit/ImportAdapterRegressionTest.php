@@ -370,8 +370,9 @@ final class ImportAdapterRegressionTest extends TestCase
     public function testPreviewMembersUsesTablePrefixInDumpMode(): void
     {
         $src = $this->makePdo();
-        $src->exec("CREATE TABLE `tmp_z_owned` (listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL, additional TEXT NOT NULL DEFAULT '')");
-        $src->exec("INSERT INTO `tmp_z_owned` VALUES (1, 'huntrix', '')");
+        $src->exec("CREATE TABLE `tmp_z_owned` (listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL, url TEXT NOT NULL DEFAULT '', additional TEXT NOT NULL DEFAULT '')");
+        $src->exec("INSERT INTO `tmp_z_owned` VALUES (1, 'huntrix', 'http://a.test/huntrix', '')");
+        $this->seedOwnedTarget($src);
         $src->exec("CREATE TABLE `tmp_z_huntrix` (email TEXT PRIMARY KEY)");
         $src->exec("INSERT INTO `tmp_z_huntrix` VALUES ('fan@test.com')");
         $src->exec("INSERT INTO `tmp_z_huntrix` VALUES ('fan2@test.com')");
@@ -379,6 +380,7 @@ final class ImportAdapterRegressionTest extends TestCase
         $opts = ImportOptions::fromPost([
             'source'               => 'enthusiast',
             'conflict_strategy'    => 'skip',
+            'import_owned_listings' => '1',
             'import_members'       => '1',
             '_dump_table_prefix'   => 'tmp_z_',
             '_dump_schema_variant' => 'enthusiast_unprefixed',
