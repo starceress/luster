@@ -109,6 +109,7 @@ final class MemberControllerAddTest extends TestCase
             self::assertSame('approved', self::statusOf($m), $schema);
             self::assertSame(['ann@example.com', 'Ann Example', 'https://ann.test/', 'Canada', 1],
                 [$m['email'], $m['name'], $m['url'], $m['country'], (int) $m['showurl']], $schema);
+            self::assertSame(0, (int) $m['showemail'], $schema . ': nobody agreed to show this address');
             self::assertSame('argon2id', password_get_info((string) $m['password'])['algoName'], $schema);
             self::assertNotSame('', (string) $m['added'], $schema);
 

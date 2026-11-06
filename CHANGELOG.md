@@ -35,6 +35,16 @@ can stop a fan's update request for you to look at.
   or later, it'll stop like this too, because Luster can't tell it's the same person.
 
 **Fixed:**
+- **Fans' email addresses don't go on public pages anymore.** The `{fan_email}` token
+  printed a fan's address on your member list, even if they'd chosen to hide it, and
+  importing from Enthusiast or Listing Admin could put that token in your template
+  without you asking. Emails are only for you now: you can still see them in your
+  admin panel and send fans email, and your email templates still use `{fan_email}`
+  like before. In a Members template it just shows nothing, so you can take it out
+  whenever you like. If you were showing emails on purpose, this is what changes for
+  you. Addresses that were already public may still be saved by search engines, and
+  Luster can't undo that. New fans are also saved with their email marked as hidden,
+  unless an import brings over a choice they really made.
 - **Every Approve button follows the same rules now.** Approve, Approve All, bulk
   Approve and the Approve All on the Members overview each did things their own way,
   so the same queue could turn out differently depending on which one you clicked.

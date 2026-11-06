@@ -1352,7 +1352,8 @@ final class FanaticallyImportSource implements ImportSourceInterface
                     'country'   => (string) ($mem['country'] ?? ''),
                     'url'       => (string) ($mem['url']     ?? ''),
                     'password'  => (string) ($mem['password_hash'] ?? ''),
-                    'showemail' => 1,
+                    // Fanatically has no such setting, so nobody agreed to show it.
+                    'showemail' => 0,
                     'showurl'   => 1,
                     'added'     => (string) ($mem['joined_at'] ?? date('Y-m-d')),
                 ];

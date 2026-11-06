@@ -1176,7 +1176,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
                     'url'       => trim((string) ($row['mURL'] ?? '')),
                     'pending'   => (int) ($row['mPending'] ?? 0),
                     'password'  => (string) ($row['mPassword'] ?? ''),
-                    'showemail' => (int) ($row['mVisible'] ?? 1),
+                    // No choice in the source means nobody agreed to show it.
+                    'showemail' => (int) ($row['mVisible'] ?? 0),
                     'showurl'   => 1,
                     // A missing, zero or impossible join date stays blank: it's unknown,
                     // and "today" would make every such member look like the newest one.

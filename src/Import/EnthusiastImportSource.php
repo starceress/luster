@@ -2553,7 +2553,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         $updCols = [
                             'name = :name', 'country = :country', 'url = :url',
                             'pending = :pending', 'password = :password',
-                            'showemail = :showemail', 'showurl = :showurl',
+                            'showurl = :showurl',
                         ];
                         $updVals = [
                             'email'     => $email,
@@ -2562,9 +2562,13 @@ final class EnthusiastImportSource implements ImportSourceInterface
                             'url'       => trim((string) ($row['url']       ?? '')),
                             'pending'   => (int)         ($row['pending']   ?? 0),
                             'password'  => (string)      ($row['password']  ?? ''),
-                            'showemail' => (int)         ($row['showemail'] ?? 1),
                             'showurl'   => (int)         ($row['showurl']   ?? 1),
                         ];
+                        // Only a real choice in the source replaces the one saved here.
+                        if (isset($row['showemail'])) {
+                            $updCols[]            = 'showemail = :showemail';
+                            $updVals['showemail'] = (int) $row['showemail'];
+                        }
                         foreach ($fieldNames as $field) {
                             $updCols[]       = "`{$field}` = :{$field}";
                             $updVals[$field] = (string) ($row[$field] ?? '');
@@ -2591,7 +2595,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         'url'       => trim((string) ($row['url']       ?? '')),
                         'pending'   => (int)         ($row['pending']   ?? 0),
                         'password'  => (string)      ($row['password']  ?? ''),
-                        'showemail' => (int)         ($row['showemail'] ?? 1),
+                        // No choice in the source means nobody agreed to show it.
+                        'showemail' => (int)         ($row['showemail'] ?? 0),
                         'showurl'   => (int)         ($row['showurl']   ?? 1),
                         'added'     => !empty($row['added']) ? $row['added'] : null,
                     ];

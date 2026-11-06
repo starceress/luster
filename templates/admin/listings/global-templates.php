@@ -411,7 +411,6 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_members_template', '{each_member}{/each_member}',   '{each_member}...{/each_member}',   'Repeats the HTML inside it once for each approved member shown.') ?>
             <?= $tok('listing_default_members_template', '{fan_name}',    '{fan_name}',    'The member\'s display name.') ?>
-            <?= $tok('listing_default_members_template', '{fan_email}',   '{fan_email}',   'The member\'s email. Only use this if you want emails visible publicly.') ?>
             <?= $tok('listing_default_members_template', '{fan_url}',     '{fan_url}',     'The member\'s website URL.') ?>
             <?= $tok('listing_default_members_template', '{fan_country}', '{fan_country}', 'The member\'s country.') ?>
             <?= $tok('listing_default_members_template', '{fan_added}', '{fan_added}', 'The date the member joined, formatted using the Date Format set in Settings &rarr; General.') ?>

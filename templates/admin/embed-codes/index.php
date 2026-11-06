@@ -682,7 +682,6 @@ $epSafe = View::e($ep);
                             <tr><td class="actions-col"><code>{each_member}&hellip;{/each_member}</code></td><td>Repeat box for one member row. Luster repeats the text inside once for each approved member.</td></tr>
                             <tr><td class="actions-col"><code>{fan_name}</code></td><td>Member&rsquo;s name. <span class="text-dim ec-ex">e.g. <em>Alexia</em></span></td></tr>
                             <tr><td class="actions-col"><code>{fan_url}</code></td><td>Member&rsquo;s website link.</td></tr>
-                            <tr><td class="actions-col"><code>{fan_email}</code></td><td>Member&rsquo;s email address. Only use this if you really want emails visible on your site.</td></tr>
                             <tr><td class="actions-col"><code>{fan_country}</code></td><td>Member&rsquo;s country.</td></tr>
                             <tr><td class="actions-col"><code>{fan_<em>fieldname</em>}</code></td><td>A custom field answer from the member. Replace <em>fieldname</em> with your field name. <span class="text-dim ec-ex">e.g. <code>{fan_favorite}</code></span></td></tr>
                             <tr><td class="actions-col"><code>{if_fan_url}</code>, <code>{if_no_fan_url}</code></td><td>Shows link or no-link markup depending on whether the member has a URL.</td></tr>

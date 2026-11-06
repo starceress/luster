@@ -54,6 +54,7 @@ final class JoinControllerSubmitTest extends TestCase
         } else {
             self::assertSame(0, (int) $member['approved']);
         }
+        self::assertSame(0, (int) $member['showemail'], 'Nobody agreed to show this address');
 
         // One email, to the fan: the join email, with the password still filled in.
         self::assertCount(1, $mails, 'Only the join email should be sent');

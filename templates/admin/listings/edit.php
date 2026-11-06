@@ -1102,7 +1102,6 @@ $_tplCsrf = View::e($csrf_token ?? '');
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('members_template', '{each_member}{/each_member}',   '{each_member}...{/each_member}',   'Repeats the HTML inside it once for each approved member shown.') ?>
             <?= $ltok('members_template', '{fan_name}',    '{fan_name}',    'The member\'s display name.') ?>
-            <?= $ltok('members_template', '{fan_email}',   '{fan_email}',   'The member\'s email. Only use this if you want emails visible publicly.') ?>
             <?= $ltok('members_template', '{fan_url}',     '{fan_url}',     'The member\'s website URL.') ?>
             <?= $ltok('members_template', '{fan_country}', '{fan_country}', 'The member\'s country.') ?>
             <?= $ltok('members_template', '{fan_added}', '{fan_added}', 'The date the member joined, formatted using the Date Format set in Settings &rarr; General.') ?>

@@ -1553,6 +1553,11 @@ final class FanaticallyImportSourceTest extends TestCase
         $row = $tgt->query("SELECT email FROM my_existing_table")->fetch();
         self::assertNotFalse($row, 'Member should be imported into the existing dbtable (my_existing_table)');
         self::assertSame('fan@example.com', $row['email']);
+        self::assertSame(
+            '0',
+            (string) $tgt->query('SELECT showemail FROM my_existing_table')->fetchColumn(),
+            'Fanatically has no such setting, so a new member is hidden whatever the table defaults to',
+        );
 
         // dbtable in owned must still be the original slug
         $ownedRow = $tgt->query("SELECT dbtable FROM owned WHERE listingid={$existingId}")->fetch();
@@ -1606,10 +1611,10 @@ final class FanaticallyImportSourceTest extends TestCase
                 added   TEXT NULL
             )'
         );
-        // The member already exists and has chosen to hide their email and website.
+        // The member already exists, with their email showing and their website hidden.
         $tgt->exec(
             "INSERT INTO my_existing_table (email, name, country, url, pending, password, showemail, showurl)
-             VALUES ('fan@example.com', 'Old Name', 'US', 'https://old.example.com', 0, '', 0, 0)"
+             VALUES ('fan@example.com', 'Old Name', 'US', 'https://old.example.com', 0, '', 1, 0)"
         );
 
         $opts = $this->makeOptions([
@@ -1633,7 +1638,7 @@ final class FanaticallyImportSourceTest extends TestCase
         self::assertSame('Fan One', $rows[0]['name']);
         self::assertSame('AU', $rows[0]['country']);
         self::assertSame('https://fan.example.com', $rows[0]['url']);
-        self::assertSame('0', (string) $rows[0]['showemail'], 'Overwrite must keep the hidden-email choice');
+        self::assertSame('1', (string) $rows[0]['showemail'], 'Overwrite must leave what the member has alone');
         self::assertSame('0', (string) $rows[0]['showurl'], 'Overwrite must keep the hidden-website choice');
     }
 

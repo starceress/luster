@@ -712,10 +712,19 @@ final class MemberRepo
      * table has no auto-increment id, as in the unprefixed schema).
      *
      * $data keys must be valid SQL column names (validated against [a-zA-Z0-9_]).
+     *
+     * A new member's email is saved as hidden unless $data says otherwise, because
+     * an older table's own default says "show" and nobody agreed to that. Luster's
+     * public pages never print an address either way; this keeps the table honest
+     * for anything else that reads it.
      */
     public function insert(string $prefix, array $data): int
     {
         $p = $this->resolveTable($prefix);
+
+        if (!isset($data['showemail']) && $this->hasShowEmailColumn($p)) {
+            $data['showemail'] = 0;
+        }
 
         $columns      = [];
         $placeholders = [];
@@ -741,6 +750,17 @@ final class MemberRepo
         $stmt->execute($params);
 
         return (int) $this->db->lastInsertId();
+    }
+
+    private function hasShowEmailColumn(string $table): bool
+    {
+        foreach ($this->db->tableColumns($table) as $column) {
+            if (strtolower($column['name']) === 'showemail') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

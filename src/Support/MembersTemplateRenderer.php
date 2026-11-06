@@ -7,8 +7,9 @@
  Supports two modes: new-style templates with an {each_member} loop block and
  page-level tokens (member count, sort links, stats line), and legacy templates
  where the entire string is repeated per member for backward compatibility.
- Per-member tokens cover name, URL, email, country, and any dynamic additional
- fields. Shared by the public members embed and the admin Templates-tab preview.
+ Per-member tokens cover name, URL, country, and any dynamic additional fields.
+ A fan's email address is never printed. Shared by the public members embed and
+ the admin Templates-tab preview.
 */
 
 declare(strict_types=1);
@@ -44,6 +45,7 @@ final class MembersTemplateRenderer
     ): string {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
+        $template = self::withoutEmptyEmailMarkup($template, $fields);
         $template = self::applyShowSearchConditional($template, $showSearch);
         $template = self::applyDateSortConditional($template, $isDateSort);
 
@@ -55,7 +57,9 @@ final class MembersTemplateRenderer
             $tokens = [
                 '{fan_name}'    => $e($member->name),
                 '{fan_url}'     => $e($member->showurl ? ($member->url ?? '') : ''),
-                '{fan_email}'   => $e($member->email),
+                // Never the member's address, see withoutEmptyEmailMarkup(). A field
+                // named "email" replaces this below with what the fan typed into it.
+                '{fan_email}'   => '',
                 '{fan_country}' => $e($member->country ?? ''),
                 // No explicit format ("Automatic") falls back to the ordinal style
                 // (matching public/embed/stats.php's own no-override default) rather
@@ -165,6 +169,37 @@ final class MembersTemplateRenderer
         return str_replace(
             ['{join_url}', '{member_count}', '{stats_line}', '{sort_link_date}', '{sort_link_name}', '{sort_link_country}', '{additional_field_headers}'],
             [$e($joinUrl), (string) $total, $e($statsLine), $sortLinkDate, $sortLinkName, $sortLinkCountry, self::renderFieldHeaders($fields, $e)],
+            $template,
+        );
+    }
+
+    /**
+     * Luster collects a fan's address for the owner's correspondence and never prints
+     * it on a public page, so {fan_email} is blank whatever a stored or imported
+     * template asks for, and showemail doesn't come into it. This removes what only
+     * made sense around an address: Enthusiast's stock template and Listing Admin's
+     * translated one would otherwise leave a stray " - " or an empty link behind.
+     *
+     * A field named exactly "email" (only an import can make one) owns the token, so
+     * there's still something to separate and nothing is removed.
+     *
+     * @param AdditionalField[] $fields
+     */
+    private static function withoutEmptyEmailMarkup(string $template, array $fields): string
+    {
+        foreach ($fields as $field) {
+            if ($field->name === 'email') {
+                return $template;
+            }
+        }
+
+        return str_replace(
+            [
+                '<a href="mailto:{fan_email}">{fan_email}</a> &middot; ',
+                '<a href="mailto:{fan_email}">{fan_email}</a>',
+                '{fan_email} - ',
+            ],
+            '',
             $template,
         );
     }
