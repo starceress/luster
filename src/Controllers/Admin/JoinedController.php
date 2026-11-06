@@ -161,7 +161,8 @@ final class JoinedController extends AdminController
 
             // The form only has network/category rows, so the plain category
             // column is filled from the first of them.
-            $categoriesJson = $this->buildCategoriesJson($categoryRepo, $request);
+            $categoryRows   = self::categoryRows($request);
+            $categoriesJson = JoinedCategories::encode($categoryRows['entries']);
             $category       = JoinedCategories::primaryFor($categoriesJson);
 
             // --- Image upload ---
@@ -257,6 +258,7 @@ final class JoinedController extends AdminController
                 'description'     => $description !== '' ? $description : null,
                 'comments'        => $comments    !== '' ? $comments    : null,
             ]);
+            self::saveTypedCategories($categoryRepo, $categoryRows);
 
             $session->set('lstr_flash_success', 'Joined listing added.');
             return Response::redirect($baseUrl . '/admin/joined');
@@ -321,7 +323,8 @@ final class JoinedController extends AdminController
             // The form only has network/category rows, so the plain category
             // column is filled from the first of them. Passing $joined keeps an
             // old plain category the form had no row for (see JoinedCategories::primaryFor()).
-            $categoriesJson = $this->buildCategoriesJson($categoryRepo, $request);
+            $categoryRows   = self::categoryRows($request);
+            $categoriesJson = JoinedCategories::encode($categoryRows['entries']);
             $category       = JoinedCategories::primaryFor($categoriesJson, $joined);
 
             // --- Image upload ---
@@ -435,6 +438,7 @@ final class JoinedController extends AdminController
                 'description'     => $description !== '' ? $description : null,
                 'comments'        => $comments    !== '' ? $comments    : null,
             ]);
+            self::saveTypedCategories($categoryRepo, $categoryRows);
 
             $session->set('lstr_flash_success', 'Joined listing updated.');
             return Response::redirect($baseUrl . '/admin/joined');
@@ -734,26 +738,41 @@ final class JoinedController extends AdminController
     // -----------------------------------------------------------------------
 
     /**
-     * Assembles the JSON blob stored in lstr_joined.categories_json from the
-     * parallel cat_network[] / cat_name[] POST arrays (paired up by
-     * JoinedCategories::fromFormRows()); auto-registers any "other" network
-     * name via CategoryRepo::addCustomNetwork().
+     * The form's cat_network[] / cat_name[] rows, paired up. Nothing is written here:
+     * saveTypedCategories() does that once the save has passed validation.
      *
-     * @return string|null JSON string, or null when no valid entries are present
+     * @return array{entries: list<array{network: string, name: string}>, typed: list<array{network: string, name: string}>}
      */
-    private function buildCategoriesJson(CategoryRepo $categoryRepo, Request $request): ?string
+    private static function categoryRows(Request $request): array
     {
-        $rows = JoinedCategories::fromFormRows(
+        return JoinedCategories::fromFormRows(
             (array) $request->post('cat_network', []),
             (array) $request->post('cat_name', []),
             (array) $request->post('cat_network_other', []),
         );
+    }
 
-        foreach ($rows['new_networks'] as $network) {
-            $categoryRepo->addCustomNetwork($network);
+    /**
+     * Saves each category typed under "Other (add new)" as a real category under its
+     * network, so both are choices next time, the same as on the owned-listing form.
+     *
+     * Rows picked from the dropdowns aren't saved again, so re-saving an old listing
+     * can't bring back a category the owner deleted. A name too long for the category
+     * table stays on this listing only: categories_json has room for it, and strict
+     * MySQL refusing it here would cost the owner the whole save.
+     *
+     * @param array{entries: list<array{network: string, name: string}>, typed: list<array{network: string, name: string}>} $rows
+     */
+    private static function saveTypedCategories(CategoryRepo $categoryRepo, array $rows): void
+    {
+        foreach ($rows['typed'] as $entry) {
+            if (
+                mb_strlen($entry['network']) <= CategoryRepo::SOURCE_MAX_LENGTH
+                && mb_strlen($entry['name']) <= CategoryRepo::NAME_MAX_LENGTH
+            ) {
+                $categoryRepo->findOrCreate($entry['network'], $entry['name']);
+            }
         }
-
-        return JoinedCategories::encode($rows['entries']);
     }
 
     // -----------------------------------------------------------------------

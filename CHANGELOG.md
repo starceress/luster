@@ -35,6 +35,19 @@ can stop a fan's update request for you to look at.
   or later, it'll stop like this too, because Luster can't tell it's the same person.
 
 **Fixed:**
+- **You can pick your custom categories now.** A category made with "Use Custom", or one
+  that came from an import, showed up in Categories and on your public list, but the
+  Network dropdown never offered it. **Custom** is in the dropdown now, on Add and Edit
+  Listing, Add and Edit Joined, and the Wishlist, and in the filter on the Categories page.
+- **Saving a listing doesn't quietly remove its custom category anymore.** The Edit Listing
+  page didn't show custom categories, so saving it took them off the listing even if you
+  hadn't touched them. If this already happened to one of your listings, just pick the
+  category again.
+- **A new network typed on a joined listing is there next time.** Typing a network under
+  "Other (add new)" on a joined listing never added it to the dropdown. It made a category
+  named after the network under Custom instead. Now you get the real network and category,
+  same as on your own listings. A leftover one can show up under Custom now, like a category
+  called `Custom`. It's safe to delete it in Categories.
 - **An email problem can't freeze your admin panel anymore.** When a new version of
   Luster came out and your email settings weren't working, every admin page tried to
   email you about it and sat there waiting for the email to fail. It could look like

@@ -127,14 +127,17 @@ final class JoinedCategories
      * array belongs together (admin.js makes every row send one value for
      * each). Rows missing a network or a name are skipped, the same pair
      * picked twice is kept once, and "other" rows use the typed network name.
+     * Networks go through networkLabel(), so typing "custom" means Custom.
      *
-     * new_networks lists the typed "other" network names, so the caller can
-     * add them to the network list even when the row had no category name.
+     * typed lists the rows typed under "other", each pair once, so the caller
+     * can tell them apart from rows picked from the dropdowns. It goes by row
+     * and not by network, because a picked row on the same network can name a
+     * category that's since been deleted.
      *
      * @param array<mixed> $networks
      * @param array<mixed> $names
      * @param array<mixed> $others
-     * @return array{entries: array<int, array{network: string, name: string}>, new_networks: string[]}
+     * @return array{entries: list<array{network: string, name: string}>, typed: list<array{network: string, name: string}>}
      */
     public static function fromFormRows(array $networks, array $names, array $others): array
     {
@@ -142,24 +145,27 @@ final class JoinedCategories
         $names    = array_values($names);
         $others   = array_values($others);
 
-        $entries     = [];
-        $newNetworks = [];
-        $seen        = [];
+        $entries = [];
+        $typed   = [];
+        $seen    = [];
 
         foreach ($networks as $i => $rawNetwork) {
             $network = is_string($rawNetwork) ? trim($rawNetwork) : '';
             $name    = is_string($names[$i] ?? null) ? trim($names[$i]) : '';
 
-            if ($network === 'other') {
+            $isTyped = $network === 'other';
+            if ($isTyped) {
                 $network = is_string($others[$i] ?? null) ? trim($others[$i]) : '';
-                if ($network === '') {
-                    continue;
-                }
-                $newNetworks[] = $network;
             }
+            $network = self::networkLabel($network);
 
             if ($network === '' || $name === '') {
                 continue;
+            }
+
+            $entry = ['network' => $network, 'name' => $name];
+            if ($isTyped && !in_array($entry, $typed, true)) {
+                $typed[] = $entry;
             }
 
             $key = $network . "\0" . $name;
@@ -168,10 +174,10 @@ final class JoinedCategories
             }
             $seen[$key] = true;
 
-            $entries[] = ['network' => $network, 'name' => $name];
+            $entries[] = $entry;
         }
 
-        return ['entries' => $entries, 'new_networks' => array_values(array_unique($newNetworks))];
+        return ['entries' => $entries, 'typed' => $typed];
     }
 
     /**

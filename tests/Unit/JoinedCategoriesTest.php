@@ -164,7 +164,7 @@ final class JoinedCategoriesTest extends TestCase
             ['network' => 'TFL',  'name' => 'Comics'],
             ['network' => 'TAFL', 'name' => self::TAFL_CHARACTERS],
         ], $rows['entries']);
-        self::assertSame([], $rows['new_networks']);
+        self::assertSame([], $rows['typed']);
     }
 
     public function testOtherRowsUseTheTypedNetworkName(): void
@@ -179,8 +179,46 @@ final class JoinedCategoriesTest extends TestCase
             ['network' => 'My Network', 'name' => 'Huntrix'],
             ['network' => 'TFL',        'name' => 'Comics'],
         ], $rows['entries']);
-        // A typed network is still added to the list when its row had no category name.
-        self::assertSame(['My Network', 'Second Network'], $rows['new_networks']);
+        self::assertSame([['network' => 'My Network', 'name' => 'Huntrix']], $rows['typed'], 'Only the complete typed row');
+    }
+
+    public function testOnlyTheTypedRowCountsNotOthersOnTheSameNetwork(): void
+    {
+        $rows = JoinedCategories::fromFormRows(
+            ['Custom', 'other', 'other'],
+            ['Picked Earlier', 'Typed Now', 'Typed Now'],
+            ['', 'custom', 'Custom'],
+        );
+
+        self::assertSame([
+            ['network' => 'Custom', 'name' => 'Picked Earlier'],
+            ['network' => 'Custom', 'name' => 'Typed Now'],
+        ], $rows['entries']);
+        self::assertSame([['network' => 'Custom', 'name' => 'Typed Now']], $rows['typed'], 'Typed twice is once');
+    }
+
+    public function testARowTypedToMatchAPickedOneStillCountsAsTyped(): void
+    {
+        $rows = JoinedCategories::fromFormRows(['Custom', 'other'], ['Same Name', 'Same Name'], ['', 'Custom']);
+
+        self::assertSame([['network' => 'Custom', 'name' => 'Same Name']], $rows['entries'], 'Kept once');
+        self::assertSame([['network' => 'Custom', 'name' => 'Same Name']], $rows['typed']);
+    }
+
+    public function testATypedBuiltInNetworkUsesItsUsualName(): void
+    {
+        $rows = JoinedCategories::fromFormRows(
+            ['other', 'other', 'other'],
+            ['Games', 'Comics', 'Anime'],
+            ['custom', ' tfl ', 'TAFL'],
+        );
+
+        self::assertSame([
+            ['network' => 'Custom', 'name' => 'Games'],
+            ['network' => 'TFL',    'name' => 'Comics'],
+            ['network' => 'TAFL',   'name' => 'Anime'],
+        ], $rows['entries']);
+        self::assertSame($rows['entries'], $rows['typed']);
     }
 
     public function testTheSamePairPickedTwiceIsKeptOnce(): void

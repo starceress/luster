@@ -425,7 +425,7 @@ final class ListingController extends AdminController
 
         $tflCats        = $categoryRepo->getBySource('tfl');
         $taflCats       = $categoryRepo->getBySource('tafl');
-        $customNetworks = $categoryRepo->getCustomSources();
+        $customNetworks = $categoryRepo->getCustomNetworks();
         $customCats     = [];
         foreach ($customNetworks as $cn) {
             $customCats[$cn] = $categoryRepo->getBySource($cn);
@@ -503,7 +503,7 @@ final class ListingController extends AdminController
 
         $tflCats        = $categoryRepo->getBySource('tfl');
         $taflCats       = $categoryRepo->getBySource('tafl');
-        $customNetworks = $categoryRepo->getCustomSources();
+        $customNetworks = $categoryRepo->getCustomNetworks();
         $customCats     = [];
         foreach ($customNetworks as $cn) {
             $customCats[$cn] = $categoryRepo->getBySource($cn);
@@ -1139,7 +1139,7 @@ final class ListingController extends AdminController
 
                 $tflCatsErr     = $categoryRepo->getBySource('tfl');
                 $taflCatsErr    = $categoryRepo->getBySource('tafl');
-                $customNetsErr  = $categoryRepo->getCustomSources();
+                $customNetsErr  = $categoryRepo->getCustomNetworks();
                 $customCatsErr  = [];
                 foreach ($customNetsErr as $cn) {
                     $customCatsErr[$cn] = $categoryRepo->getBySource($cn);
@@ -2414,7 +2414,7 @@ final class ListingController extends AdminController
 
         $tflCats            = $categoryRepo->getBySource('tfl');
         $taflCats           = $categoryRepo->getBySource('tafl');
-        $customNetworks     = $categoryRepo->getCustomSources();
+        $customNetworks     = $categoryRepo->getCustomNetworks();
         $customCats         = [];
         foreach ($customNetworks as $cn) {
             $customCats[$cn] = $categoryRepo->getBySource($cn);

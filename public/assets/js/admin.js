@@ -555,9 +555,11 @@ document.addEventListener('click', function (e) {
   var customCats = JSON.parse(widget.dataset.customCats || '{}'); // { "NetworkName": [{id,name}, ...] }
   var existing   = JSON.parse(widget.dataset.existing);
 
-  // Saved rows can say "tfl"/"tafl" (older Fanatically imports); the list says TFL/TAFL.
+  // Saved rows can say "tfl"/"tafl" (older Fanatically imports) or "custom"; the list
+  // says TFL/TAFL/Custom.
   function normalizeNet(net) {
     var upper = String(net || '').toUpperCase();
+    if (upper === 'CUSTOM') return 'Custom';
     return (upper === 'TFL' || upper === 'TAFL') ? upper : (net || '');
   }
 
@@ -668,7 +670,7 @@ document.addEventListener('click', function (e) {
   }
 
   existing.forEach(function (entry) {
-    rowsEl.appendChild(makeRow(entry.network || '', entry.name || '', ''));
+    rowsEl.appendChild(makeRow(entry.network || '', entry.name || '', entry.other || ''));
   });
   if (rowsEl.children.length === 0) rowsEl.appendChild(makeRow('', '', ''));
 

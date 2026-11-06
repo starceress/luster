@@ -27,6 +27,12 @@ use Luster\Models\Category;
  */
 final class CategoryRepo
 {
+    /** lstr_categories.source is VARCHAR(50). */
+    public const SOURCE_MAX_LENGTH = 50;
+
+    /** lstr_categories.name is VARCHAR(150). */
+    public const NAME_MAX_LENGTH = 150;
+
     public function __construct(private readonly Database $db) {}
 
     // -----------------------------------------------------------------------
@@ -159,15 +165,22 @@ final class CategoryRepo
     }
 
     /**
-     * Returns the distinct custom network names (sources that are not 'tfl', 'tafl', or 'custom').
-     *
-     * Used by the admin categories filter to populate the source dropdown.
+     * Returns every source other than TFL and TAFL, including 'custom', exactly as
+     * stored. The admin categories filter matches on these values. The Add and Edit
+     * pickers use getCustomNetworks() instead, which gives the names they show.
      *
      * @return string[]
      */
     public function getCustomSources(): array
     {
-        return $this->getAllCustomNetworkNames();
+        $stmt = $this->db->prepare(
+            "SELECT DISTINCT source AS net FROM lstr_categories
+              WHERE source NOT IN ('tfl', 'tafl')
+              ORDER BY source ASC"
+        );
+        $stmt->execute();
+
+        return array_column($stmt->fetchAll(), 'net');
     }
 
     /**
@@ -251,7 +264,7 @@ final class CategoryRepo
              WHERE source = :source
              ORDER BY name ASC'
         );
-        $stmt->execute(['source' => $source]);
+        $stmt->execute(['source' => self::storedSource($source)]);
 
         return array_map(
             static fn(array $r) => ['id' => (int) $r['id'], 'name' => (string) $r['name']],
@@ -260,61 +273,34 @@ final class CategoryRepo
     }
 
     /**
-     * Returns all distinct custom network names, ordered alphabetically.
+     * Returns the network names the Add and Edit pickers offer besides TFL and TAFL,
+     * ordered alphabetically. Custom is one of them once a category is in it, because
+     * "use Custom" is what Add Category does by default and what the importers save.
+     *
+     * Getting a network's categories for one of these names goes through getBySource(),
+     * which finds Custom's under the lowercase name they're stored with.
      *
      * @return string[]
      */
     public function getCustomNetworks(): array
     {
-        return $this->getAllCustomNetworkNames();
-    }
-
-    /**
-     * Returns every custom network name regardless of how it was created.
-     *
-     * @return string[]
-     */
-    private function getAllCustomNetworkNames(): array
-    {
-        $stmt = $this->db->prepare(
-            "SELECT DISTINCT source AS net FROM lstr_categories
-              WHERE source NOT IN ('tfl', 'tafl', 'custom')
-              ORDER BY source ASC"
+        $networks = array_map(
+            static fn(string $source): string => self::storedSource($source) === 'custom' ? 'Custom' : $source,
+            $this->getCustomSources(),
         );
-        $stmt->execute();
 
-        return array_column($stmt->fetchAll(), 'net');
+        return array_values(array_unique($networks));
     }
 
     /**
-     * Returns all categories grouped by their custom network name.
-     *
-     * @return array<string, array<int, array{id: int, name: string}>>
+     * The forms say TFL, TAFL and Custom, and the table stores those three in lowercase.
+     * Any other network keeps the name it was given.
      */
-    public function getCustomCats(): array
+    private static function storedSource(string $source): string
     {
-        $stmt = $this->db->prepare(
-            "SELECT source, id, name FROM lstr_categories
-             WHERE source NOT IN ('tfl', 'tafl', 'custom')
-             ORDER BY source ASC, name ASC"
-        );
-        $stmt->execute();
+        $lower = strtolower(trim($source));
 
-        $result = [];
-        foreach ($stmt->fetchAll() as $row) {
-            $net = (string) $row['source'];
-            $result[$net][] = ['id' => (int) $row['id'], 'name' => (string) $row['name']];
-        }
-        return $result;
-    }
-
-    /**
-     * Inserts a custom network name if it does not already exist.
-     * Uses findOrCreate semantics so a slug is always generated.
-     */
-    public function addCustomNetwork(string $name): void
-    {
-        $this->findOrCreate('custom', $name);
+        return in_array($lower, ['tfl', 'tafl', 'custom'], true) ? $lower : $source;
     }
 
     /**
@@ -466,7 +452,7 @@ final class CategoryRepo
         $stmt = $this->db->prepare(
             'SELECT * FROM lstr_categories WHERE source = :source AND name = :name LIMIT 1'
         );
-        $stmt->execute(['source' => $source, 'name' => $name]);
+        $stmt->execute(['source' => self::storedSource($source), 'name' => $name]);
         $row = $stmt->fetch();
         return $row ? Category::fromRow((array) $row) : null;
     }
@@ -476,6 +462,7 @@ final class CategoryRepo
      */
     public function findOrCreate(string $source, string $name): int
     {
+        $source   = self::storedSource($source);
         $existing = $this->findBySourceAndName($source, $name);
         if ($existing !== null) {
             return $existing->id;

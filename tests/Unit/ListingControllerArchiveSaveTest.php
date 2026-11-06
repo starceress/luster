@@ -169,8 +169,105 @@ final class ListingControllerArchiveSaveTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Custom categories
+    // -----------------------------------------------------------------------
+
+    /** A custom category with no row on the page used to be wiped by the next save. */
+    public function testTheEditPageShowsACustomCategorySoSavingKeepsIt(): void
+    {
+        $this->boot(migrated: true);
+        $id = $this->existingListing();
+        $this->pdo->exec("INSERT INTO lstr_categories (id, name, slug, source) VALUES (7, 'Games: Characters 0-M', 'games', 'custom')");
+        $this->pdo->exec('INSERT INTO lstr_listing_categories (fanlisting_id, category_id) VALUES (1, 7)');
+
+        $page = $this->showPage('edit', ['id' => (string) $id]);
+
+        self::assertSame(
+            [['network' => 'TFL', 'name' => 'Comics'], ['network' => 'Custom', 'name' => 'Games: Characters 0-M']],
+            $this->attributeJson($page, 'data-existing'),
+        );
+    }
+
+    public function testTheEditPageShowsACustomCategoryKeptOnlyInTheOldColumn(): void
+    {
+        $this->boot(migrated: true);
+        $id = $this->existingListing();
+        $this->pdo->exec("INSERT INTO lstr_categories (id, name, slug, source) VALUES (7, 'Games: Characters 0-M', 'games', 'custom')");
+        $this->pdo->exec('DELETE FROM lstr_listing_categories');
+        $this->pdo->exec("UPDATE owned SET catid = '|7|', category_id = 7 WHERE listingid = 1");
+
+        self::assertSame(
+            [['network' => 'Custom', 'name' => 'Games: Characters 0-M']],
+            $this->attributeJson($this->showPage('edit', ['id' => (string) $id]), 'data-existing'),
+        );
+    }
+
+    /** @return array<string, array{0: string, 1: array<string,string>}> */
+    public static function pickerPages(): array
+    {
+        return [
+            'Add Listing'         => ['addForm', []],
+            'Add Listing refused' => ['add', []],
+            'Edit Listing'        => ['edit', ['id' => '1']],
+        ];
+    }
+
+    /**
+     * @dataProvider pickerPages
+     * @param array<string,string> $params
+     */
+    public function testThePickerOffersCustomAndItsCategories(string $action, array $params): void
+    {
+        $this->boot(migrated: true);
+        $this->existingListing();
+        $this->pdo->exec("INSERT INTO lstr_categories (id, name, slug, source) VALUES (7, 'Games: Characters 0-M', 'games', 'custom')");
+
+        $page = $this->showPage($action, $params);
+
+        self::assertSame(['Custom'], $this->attributeJson($page, 'data-custom'));
+        self::assertSame('Games: Characters 0-M', $this->attributeJson($page, 'data-custom-cats')['Custom'][0]['name'] ?? null);
+    }
+
+    public function testARefusedEditStillOffersCustomAndKeepsTheRowPicked(): void
+    {
+        $this->boot(migrated: true);
+        $id = $this->existingListing();
+        $this->pdo->exec("INSERT INTO lstr_categories (id, name, slug, source) VALUES (7, 'Games: Characters 0-M', 'games', 'custom')");
+
+        $page = $this->call('edit', [
+            'email'             => 'not an email',
+            'title'             => 'Moon FL',
+            'subject'           => 'Moon',
+            'url'               => 'https://fans.test/moon',
+            'status'            => 'current',
+            'cat_network'       => ['Custom'],
+            'cat_name'          => ['Games: Characters 0-M'],
+            'cat_network_other' => [''],
+        ], ['id' => (string) $id])->getBody();
+
+        self::assertSame(['Custom'], $this->attributeJson($page, 'data-custom'));
+        self::assertSame([['network' => 'Custom', 'name' => 'Games: Characters 0-M']], $this->attributeJson($page, 'data-existing'));
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
+
+    /** @param array<string,string> $params */
+    private function showPage(string $action, array $params): string
+    {
+        $request = new Request([], [], ['REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'luster.test'], [], []);
+
+        return (new ListingController($this->app))->{$action}($request, $params)->getBody();
+    }
+
+    /** @return array<mixed> */
+    private function attributeJson(string $page, string $attribute): array
+    {
+        self::assertSame(1, preg_match("/{$attribute}='([^']*)'/", $page, $match), "No {$attribute} on the page");
+
+        return json_decode(html_entity_decode($match[1], ENT_QUOTES), true, 512, JSON_THROW_ON_ERROR);
+    }
 
     /** @return array<string,mixed> */
     private function closedUnknownWithNewCategory(): array

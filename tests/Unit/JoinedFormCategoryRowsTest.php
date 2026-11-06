@@ -48,8 +48,8 @@ final class JoinedFormCategoryRowsTest extends TestCase
         );
 
         self::assertSame([
-            ['network' => 'TAFL',       'name' => 'Anime/Manga: Characters 0-M'],
-            ['network' => 'My Network', 'name' => 'Huntrix'],
+            ['network' => 'TAFL',  'name' => 'Anime/Manga: Characters 0-M'],
+            ['network' => 'other', 'name' => 'Huntrix', 'other' => 'My Network'],
         ], $this->widgetRows($this->savedListing(), $old));
     }
 

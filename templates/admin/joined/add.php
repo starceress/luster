@@ -44,9 +44,13 @@ if ($old !== []) {
         $net = trim((string) $net);
         $nm  = trim((string) ($oldNames[$i] ?? ''));
         if ($net === 'other') {
-            $net = trim((string) ($oldOther[$i] ?? ''));
-        }
-        if ($net !== '' && $nm !== '') {
+            // Comes back as an "Other" row, not a picked one, so the next save still
+            // knows this category was typed and adds it to the category list.
+            $typedNet = trim((string) ($oldOther[$i] ?? ''));
+            if ($typedNet !== '' && $nm !== '') {
+                $existingCats[] = ['network' => 'other', 'name' => $nm, 'other' => $typedNet];
+            }
+        } elseif ($net !== '' && $nm !== '') {
             $existingCats[] = ['network' => $net, 'name' => $nm];
         }
     }

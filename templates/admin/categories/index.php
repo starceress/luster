@@ -96,7 +96,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
         <?php $_csSrc = (int) ($_srcCounts[$cs] ?? 0); ?>
         <option value="<?= View::e($cs) ?>"
                 <?= ($source ?? '') === $cs ? 'selected' : '' ?>>
-          <?= View::e($cs) ?><?= $_csSrc > 0 ? ' (' . $_csSrc . ')' : '' ?>
+          <?= View::e($cs === 'custom' ? 'Custom' : $cs) ?><?= $_csSrc > 0 ? ' (' . $_csSrc . ')' : '' ?>
         </option>
       <?php endforeach; ?>
     </select>
