@@ -19,11 +19,17 @@ panel will let you know that a manual update is needed and link you to the
 release page.
 
 
-### [Unreleased]
+### [1.0.0-5] — 2026-11-06
+
+A big one. Importing from Enthusiast is a lot safer, custom categories work, and Luster
+now tells you when fans change things, so expect a few new emails. You can switch those
+off on the **Emails** page. If you were showing fans' email addresses on your member list
+on purpose, that stops with this update.
 
 **After updating:** go to **Settings → System & Updates** and click **Run
-migrations** once. This update adds one small thing to your database, so Luster
-can stop a fan's update request for you to look at.
+migrations** once. This update makes two small changes to your database: Luster can
+stop a fan's update request for you to look at, and an old setting nothing was using
+goes away.
 
 **Added:**
 - **Luster tells you when a fan changes something.** You now get an email when someone uses
