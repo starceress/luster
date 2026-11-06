@@ -1474,6 +1474,7 @@ function lstrTodayIso() {
     '{kim_update_url}':  'https://batmanfan.com/kim-update.php',
     '{verify_url}':      'https://waynetech.net/update?_luster_cu_token=abc123',
     '{membership_list}': '- The Dark Knight (Batman)\n- Justice League Watchtower (DC Heroes)',
+    '{changes}':         '  Name: Bruce -> Bruce Wayne\n  Website: (blank) -> https://waynetech.net',
   };
 
   function updatePreview(type) {

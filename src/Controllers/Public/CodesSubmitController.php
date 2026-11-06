@@ -20,12 +20,15 @@ use Luster\Core\Captcha;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Models\Listing;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\CodesRepo;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
+use Luster\Support\OwnerNotice;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -309,10 +312,64 @@ final class CodesSubmitController
 
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CODE_SUBMIT);
 
+        $this->notifyOwner($listing, $submitterName, $submitterEmail, $submitterUrl);
+
         $session->remove('lstr_embed_return_to');
         $successTpl = isset($settingsRepo) ? ($settingsRepo->getSuccessTemplate($listingId) ?? '') : '';
         $session->set('lstr_flash_success_html:' . $marker, SuccessRenderer::render($successTpl, 'code-submitted'));
         return Response::redirect($formUrl);
     }
 
+    /**
+     * Tells the owner there's a code to look at (best-effort: the donation is already
+     * saved). A null listing means the collective's own form.
+     */
+    private function notifyOwner(?Listing $listing, ?string $donorName, ?string $donorEmail, ?string $donorUrl): void
+    {
+        $notice = OwnerNotice::for($this->app);
+        $what   = 'code donation notice for ' . ($listing !== null ? $listing->title : 'the collective');
+
+        try {
+            $config   = $this->app->getConfig();
+            $siteName = (string) $config->get('site_name', '');
+            $notGiven = '(not given)';
+
+            if ($listing === null) {
+                $tokens = EmailTemplateRepo::buildTokens(
+                    listingName: $siteName,
+                    listingUrl:  ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                    siteName:    $siteName,
+                    ownerName:   (string) $config->get('owner_name', ''),
+                    ownerEmail:  (string) $config->get('owner_email', ''),
+                    fanName:     $donorName ?? $notGiven,
+                    fanEmail:    $donorEmail ?? $notGiven,
+                    fanUrl:      $donorUrl ?? $notGiven,
+                );
+                $notice->send(null, EmailTemplateRepo::TYPE_NOTIFY_CODE, $tokens, $notice->addressFor(null), $siteName, $what);
+                return;
+            }
+
+            $settingsRepo = new ListingSettingsRepo($this->app->getDatabase());
+            $forms        = $settingsRepo->getResolvedEmbedSettings($listing->id);
+            $tokens       = EmailTemplateRepo::buildTokens(
+                listingName:    $listing->title,
+                listingUrl:     $listing->url,
+                siteName:       $siteName,
+                listingSubject: $listing->subject,
+                ownerName:      (string) $config->get('owner_name', ''),
+                ownerEmail:     (string) $config->get('owner_email', ''),
+                fanName:        $donorName ?? $notGiven,
+                fanEmail:       $donorEmail ?? $notGiven,
+                fanUrl:         $donorUrl ?? $notGiven,
+                listingEmail:   $listing->email,
+                formUrlJoin:    (string) $forms['form_url_join'],
+                formUrlUpdate:  (string) $forms['form_url_update'],
+                formUrlReset:   (string) $forms['form_url_reset'],
+                listingType:    $settingsRepo->getListingType($listing->id),
+            );
+            $notice->send($listing->id, EmailTemplateRepo::TYPE_NOTIFY_CODE, $tokens, $notice->addressFor($listing), $listing->title, $what);
+        } catch (\Throwable $e) {
+            $notice->reportFailure($what, $e);
+        }
+    }
 }

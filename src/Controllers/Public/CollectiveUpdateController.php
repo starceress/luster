@@ -31,9 +31,11 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 use Luster\Support\MemberAddressBusy;
+use Luster\Support\MemberChangeList;
 use Luster\Support\MemberEmailRekey;
 use Luster\Support\MemberRemoval;
 use Luster\Support\MemberWidths;
+use Luster\Support\OwnerNotice;
 
 /**
  * Handles collective-level cross-listing membership updates.
@@ -250,6 +252,9 @@ final class CollectiveUpdateController
         $lifecycleRepo = new ListingLifecycleRepo($this->app->getDatabase());
         $results       = ['updated' => [], 'queued' => [], 'skipped' => [], 'email_conflict' => [], 'failed' => [], 'unconfirmed' => []];
 
+        // What the owner gets told, one entry per listing that really changed.
+        $ownerEntries = [];
+
         // Set if a transaction can't be closed. Nothing more goes near the database after that.
         $stopped = false;
 
@@ -277,7 +282,7 @@ final class CollectiveUpdateController
                 $addresses,
                 function () use (
                     $tokenRepo, $rawToken, $email, $selectedIds, $validMap, $lifecycleRepo, $memberRepo, $settingsRepo,
-                    $newPassword, $newName, $deleteUrl, $newUrl, $newCountry, $newEmail, &$results, &$confirmationEmail, &$stopped, &$tooLong
+                    $newPassword, $newName, $deleteUrl, $newUrl, $newCountry, $newEmail, &$results, &$confirmationEmail, &$stopped, &$tooLong, &$ownerEntries
                 ): bool {
                     // Hash once; applied immediately to every selected listing (never queued)
                     $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : null;
@@ -339,6 +344,14 @@ final class CollectiveUpdateController
 
                         $shouldQueue = $settingsRepo->getQueueUpdates($listingId);
 
+                        $ownerEntry = self::ownerEntry($listing, $member, MemberChangeList::lines(
+                            $updateData,
+                            ['name' => $member->name, 'email' => $email, 'url' => $member->url, 'country' => $member->country],
+                            [],
+                            $passwordHash !== null,
+                            $shouldQueue,
+                        ));
+
                         // Password always applied immediately — never queued. A change of
                         // address sends it in the same UPDATE. If that reports failed,
                         // nothing changed on this listing and the old password still
@@ -354,6 +367,7 @@ final class CollectiveUpdateController
                                 $results['skipped'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                             } else {
                                 $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                                $ownerEntries[] = $ownerEntry;
                             }
                             continue;
                         }
@@ -361,6 +375,7 @@ final class CollectiveUpdateController
                         if ($shouldQueue) {
                             (new PendingUpdateRepo($this->app->getDatabase()))->insert($listingId, $email, $updateData);
                             $results['queued'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            $ownerEntries[] = $ownerEntry;
                         } elseif ($renaming) {
                             $rekey = MemberEmailRekey::for($this->app)->run(
                                 $listingId,
@@ -371,6 +386,7 @@ final class CollectiveUpdateController
                             if ($rekey['outcome'] === MemberEmailRekey::DONE) {
                                 $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
                                 $confirmationEmail    = $updateData['email'];
+                                $ownerEntries[]       = $ownerEntry;
                                 $settingsRepo->touchLastUpdated($listingId);
                             } elseif ($rekey['outcome'] === MemberEmailRekey::FAILED) {
                                 $results['failed'][] = ['title' => $listing->title, 'subject' => $listing->subject];
@@ -381,6 +397,7 @@ final class CollectiveUpdateController
                         } else {
                             $memberRepo->update($listing->dbprefix, $email, $updateData);
                             $results['updated'][] = ['title' => $listing->title, 'subject' => $listing->subject];
+                            $ownerEntries[] = $ownerEntry;
                             if (ListingSettingsRepo::changesCountAsUpdate($updateData)) {
                                 $settingsRepo->touchLastUpdated($listingId);
                             }
@@ -408,6 +425,10 @@ final class CollectiveUpdateController
 
         if ($results['updated'] !== [] && !$stopped) {
             self::sendUpdateConfirmationEmail($this->app, $confirmationEmail, $results['updated']);
+        }
+
+        if (!$stopped) {
+            $this->notifyOwners($ownerEntries, $email);
         }
 
         $unconfirmedPassword = $newPassword !== '' ? " Also, if your new password doesn't work, try your old one." : '';
@@ -577,6 +598,13 @@ final class CollectiveUpdateController
             }
         }
 
+        if ($farewells !== []) {
+            $this->notifyOwners(
+                array_map(static fn(array $farewell): array => self::ownerEntry($farewell[1], $farewell[2], [MemberChangeList::REMOVED_MEMBERSHIP]), $farewells),
+                $email,
+            );
+        }
+
         $parts = [];
         if ($deleted !== []) {
             $parts[] = 'Membership deleted: ' . implode(', ', array_map('htmlspecialchars', $deleted));
@@ -656,6 +684,50 @@ final class CollectiveUpdateController
         }
 
         return $byListing;
+    }
+
+    /**
+     * One listing's part of the owner's notice. $member is as they were before this
+     * form changed anything, so the owner sees the name they know this fan by.
+     *
+     * @param list<string> $lines
+     * @return array{listing: Listing, heading: string, lines: list<string>, identity: array<string, string>}
+     */
+    private static function ownerEntry(Listing $listing, Member $member, array $lines): array
+    {
+        return [
+            'listing'  => $listing,
+            'heading'  => $listing->title . ($listing->subject !== '' ? ' (' . $listing->subject . ')' : ''),
+            'lines'    => $lines,
+            'identity' => ['{fan_name}' => $member->name],
+        ];
+    }
+
+    /**
+     * Tells the owner what this form just did (best-effort: it's already saved). One
+     * form can touch many listings, so each address gets one email about its listings.
+     *
+     * @param list<array{listing: Listing, heading: string, lines: list<string>, identity: array<string, string>}> $entries
+     */
+    private function notifyOwners(array $entries, string $fanEmail): void
+    {
+        $notice = OwnerNotice::for($this->app);
+        $what   = 'collective update notice';
+
+        try {
+            $config   = $this->app->getConfig();
+            $siteName = (string) $config->get('site_name', 'Luster');
+            $tokens   = EmailTemplateRepo::buildCollectiveUpdateTokens(
+                siteName:   $siteName,
+                ownerName:  (string) $config->get('owner_name', $siteName),
+                ownerEmail: (string) $config->get('owner_email', ''),
+                siteUrl:    (string) $config->get('site_url', ''),
+            ) + ['{fan_email}' => $fanEmail];
+
+            $notice->sendForEachAddress(EmailTemplateRepo::TYPE_NOTIFY_COLL_UPDATE, $tokens, $entries, $siteName, $what);
+        } catch (\Throwable $e) {
+            $notice->reportFailure($what, $e);
+        }
     }
 
     /**

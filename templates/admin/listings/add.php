@@ -136,7 +136,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <input id="fl-email" type="email" name="email" class="form" maxlength="255" required
                  placeholder="admin@example.com"
                  value="<?= View::e($val('email')) ?>">
-          <p class="form-hint">Luster uses this address as the sender for emails from this listing.</p>
+          <p class="form-hint">Notices about this listing, like new members, updates and contact messages, go to this address. If a listing has none, like after some imports, they go to your Contact Email instead.</p>
           <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
         </div>
       </div>

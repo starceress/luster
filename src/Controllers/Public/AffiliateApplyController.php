@@ -18,7 +18,6 @@ namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
 use Luster\Core\Captcha;
-use Luster\Core\Mailer;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -30,6 +29,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
+use Luster\Support\OwnerNotice;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -448,26 +448,17 @@ final class AffiliateApplyController
     ): void {
         $config = $this->app->getConfig();
 
+        $notice = OwnerNotice::for($this->app);
         if ($listing !== null) {
-            $adminEmail  = (string) $listing->email;
-            if ($adminEmail === '') {
-                $adminEmail = (string) $config->get('owner_email', '');
-            }
             $listingId   = (int) $listing->id;
             $listingName = (string) $listing->title;
             $listingUrl  = (string) $listing->url;
         } else {
-            $adminEmail  = (string) $config->get('owner_email', '');
             $listingId   = null;
             $listingName = (string) $config->get('site_name', '');
             $listingUrl  = (string) $config->get('site_url', '');
         }
 
-        if ($adminEmail === '') {
-            return;
-        }
-
-        $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
         $tokens    = EmailTemplateRepo::buildAffiliateTokens(
             listingName:    $listingName,
             listingUrl:     $listingUrl,
@@ -484,22 +475,16 @@ final class AffiliateApplyController
                 : 'listing',
         );
 
-        [$subject, $body] = $emailRepo->resolveForListing(
+        // Email failure is non-fatal: the application was already saved.
+        $notice->send(
             $listingId,
             EmailTemplateRepo::TYPE_AFFILIATE_APPLIED,
             $tokens,
+            $notice->addressFor($listing),
+            '',
+            "affiliate application notice for {$listingName}",
+            $imageFullPath !== null ? [$imageFullPath] : [],
         );
-
-        if ($subject === '') {
-            return;
-        }
-
-        try {
-            $mailer = new Mailer($config);
-            $mailer->send($adminEmail, '', $subject, $body, $imageFullPath !== null ? [$imageFullPath] : []);
-        } catch (\Exception) {
-            // Email failure is non-fatal — the application was already saved
-        }
     }
 
     /**

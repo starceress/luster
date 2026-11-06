@@ -16,7 +16,6 @@ namespace Luster\Addons\Adoption\Controllers;
 use Luster\Addons\Adoption\AdoptionRepo;
 use Luster\Core\Application;
 use Luster\Core\Captcha;
-use Luster\Core\Mailer;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -27,6 +26,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
+use Luster\Support\OwnerNotice;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -143,42 +143,33 @@ final class AdoptPublicController
             'message' => $message !== '' ? $message : null,
         ]);
 
-        // Admin notification email
+        // Admin notification email. Failures are non-fatal.
+        $notice = OwnerNotice::for($this->app);
         try {
-            $config    = $this->app->getConfig();
-            $adminTo   = ($listing->email !== '') ? $listing->email
-                       : (string) $config->get('owner_email', '');
-            if ($adminTo !== '') {
-                $emailRepo = new EmailTemplateRepo($db);
-                $tokens    = EmailTemplateRepo::buildAdoptionTokens(
-                    listingName      : $listing->title,
-                    listingUrl       : $listing->url,
-                    siteName         : (string) $config->get('site_name',   ''),
-                    ownerName        : (string) $config->get('owner_name',  ''),
-                    ownerEmail       : (string) $config->get('owner_email', ''),
-                    applicantName    : $name,
-                    applicantEmail   : $email,
-                    applicantUrl     : $url,
-                    applicantMessage : $message,
-                    listingSubject   : $listing->subject,
-                    listingType      : (new ListingSettingsRepo($this->app->getDatabase()))->getListingType($listingId),
-                );
-                [$subject, $body] = $emailRepo->resolveForListing(
-                    $listingId,
-                    EmailTemplateRepo::TYPE_ADOPTION_APPLIED,
-                    $tokens,
-                );
-                if ($subject !== '') {
-                    (new Mailer($config))->send(
-                        $adminTo,
-                        (string) $config->get('owner_name', ''),
-                        $subject,
-                        $body,
-                    );
-                }
-            }
-        } catch (\Throwable) {
-            // Email failures are non-fatal
+            $config = $this->app->getConfig();
+            $tokens = EmailTemplateRepo::buildAdoptionTokens(
+                listingName      : $listing->title,
+                listingUrl       : $listing->url,
+                siteName         : (string) $config->get('site_name',   ''),
+                ownerName        : (string) $config->get('owner_name',  ''),
+                ownerEmail       : (string) $config->get('owner_email', ''),
+                applicantName    : $name,
+                applicantEmail   : $email,
+                applicantUrl     : $url,
+                applicantMessage : $message,
+                listingSubject   : $listing->subject,
+                listingType      : (new ListingSettingsRepo($this->app->getDatabase()))->getListingType($listingId),
+            );
+            $notice->send(
+                $listingId,
+                EmailTemplateRepo::TYPE_ADOPTION_APPLIED,
+                $tokens,
+                $notice->addressFor($listing),
+                (string) $config->get('owner_name', ''),
+                "adoption application notice for {$listing->title}",
+            );
+        } catch (\Throwable $e) {
+            $notice->reportFailure("adoption application notice for {$listing->title}", $e);
         }
 
         $session->remove('lstr_embed_return_to');
@@ -302,46 +293,37 @@ final class AdoptPublicController
             'message' => $message !== '' ? $message : null,
         ]);
 
-        // Admin notification email
+        // Admin notification email. Failures are non-fatal.
         $listing = null;
+        $notice  = OwnerNotice::for($this->app);
         try {
             $config  = $this->app->getConfig();
             $listing = $listingRepo->getById($listingId);
-            $adminTo = (($listing?->email ?? '') !== '') ? $listing->email
-                     : (string) $config->get('owner_email', '');
-            if ($adminTo !== '') {
-                $emailRepo = new EmailTemplateRepo($db);
-                $tokens    = EmailTemplateRepo::buildAdoptionTokens(
-                    listingName      : $listing?->title ?? '',
-                    listingUrl       : $listing?->url   ?? '',
-                    siteName         : (string) $config->get('site_name',   ''),
-                    ownerName        : (string) $config->get('owner_name',  ''),
-                    ownerEmail       : (string) $config->get('owner_email', ''),
-                    applicantName    : $name,
-                    applicantEmail   : $email,
-                    applicantUrl     : $url,
-                    applicantMessage : $message,
-                    listingSubject   : $listing?->subject ?? '',
-                    listingType      : $listing !== null
-                        ? (new ListingSettingsRepo($this->app->getDatabase()))->getListingType($listingId)
-                        : 'listing',
-                );
-                [$subject, $body] = $emailRepo->resolveForListing(
-                    $listingId,
-                    EmailTemplateRepo::TYPE_ADOPTION_APPLIED,
-                    $tokens,
-                );
-                if ($subject !== '') {
-                    (new Mailer($config))->send(
-                        $adminTo,
-                        (string) $config->get('owner_name', ''),
-                        $subject,
-                        $body,
-                    );
-                }
-            }
-        } catch (\Throwable) {
-            // Email failures are non-fatal
+            $tokens  = EmailTemplateRepo::buildAdoptionTokens(
+                listingName      : $listing?->title ?? '',
+                listingUrl       : $listing?->url   ?? '',
+                siteName         : (string) $config->get('site_name',   ''),
+                ownerName        : (string) $config->get('owner_name',  ''),
+                ownerEmail       : (string) $config->get('owner_email', ''),
+                applicantName    : $name,
+                applicantEmail   : $email,
+                applicantUrl     : $url,
+                applicantMessage : $message,
+                listingSubject   : $listing?->subject ?? '',
+                listingType      : $listing !== null
+                    ? (new ListingSettingsRepo($this->app->getDatabase()))->getListingType($listingId)
+                    : 'listing',
+            );
+            $notice->send(
+                $listingId,
+                EmailTemplateRepo::TYPE_ADOPTION_APPLIED,
+                $tokens,
+                $notice->addressFor($listing),
+                (string) $config->get('owner_name', ''),
+                'adoption application notice for ' . ($listing?->title ?? 'a listing'),
+            );
+        } catch (\Throwable $e) {
+            $notice->reportFailure('adoption application notice for ' . ($listing?->title ?? 'a listing'), $e);
         }
 
         $session->remove('lstr_embed_return_to');

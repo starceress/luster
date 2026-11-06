@@ -39,6 +39,7 @@ use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\MemberAddressBusy;
 use Luster\Support\MemberAddressHandover;
 use Luster\Support\MemberWidths;
+use Luster\Support\OwnerNotice;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -304,38 +305,31 @@ final class JoinController
             }
         }
 
-        // Admin notification email (best-effort — only when listing has an email address)
-        if ($listing->email !== '') {
-            try {
-                $cfg          = $this->app->getConfig();
-                $notifyMailer = new Mailer($cfg);
-                $notifyRepo   = new EmailTemplateRepo($this->app->getDatabase());
-                $notifyTokens = EmailTemplateRepo::buildTokens(
-                    listingName:    $listing->title,
-                    listingUrl:     $listing->url,
-                    siteName:       (string) $cfg->get('site_name', 'Luster'),
-                    listingSubject: $listing->subject,
-                    ownerName:      (string) $cfg->get('owner_name', ''),
-                    ownerEmail:     (string) $cfg->get('owner_email', ''),
-                    fanName:        $name,
-                    fanEmail:       $email,
-                    fanUrl:         $url,
-                    fanCountry:     $country,
-                    listingEmail:   $listing->email,
-                    formUrlJoin:    (string) ($embedSettings['form_url_join']   ?: $globalDefaults['form_url_join']),
-                    formUrlUpdate:  (string) ($embedSettings['form_url_update'] ?: $globalDefaults['form_url_update']),
-                    formUrlReset:   (string) ($embedSettings['form_url_reset']  ?: $globalDefaults['form_url_reset']),
-                    listingType:    $settingsRepo->getListingType($listingId),
-                );
-                [$notifySubject, $notifyBody] = $notifyRepo->resolveForListing(
-                    $listingId, EmailTemplateRepo::TYPE_NOTIFY_JOIN, $notifyTokens,
-                );
-                if ($notifySubject !== '') {
-                    $notifyMailer->send($listing->email, $listing->title, $notifySubject, $notifyBody);
-                }
-            } catch (\Throwable $e) {
-                error_log('[Luster] Join notification email failed: ' . $e->getMessage());
-            }
+        // Tell the owner (best-effort). OwnerNotice decides where it goes.
+        $notice     = OwnerNotice::for($this->app);
+        $noticeName = "new member notice for {$listing->title}";
+        try {
+            $cfg          = $this->app->getConfig();
+            $notifyTokens = EmailTemplateRepo::buildTokens(
+                listingName:    $listing->title,
+                listingUrl:     $listing->url,
+                siteName:       (string) $cfg->get('site_name', 'Luster'),
+                listingSubject: $listing->subject,
+                ownerName:      (string) $cfg->get('owner_name', ''),
+                ownerEmail:     (string) $cfg->get('owner_email', ''),
+                fanName:        $name,
+                fanEmail:       $email,
+                fanUrl:         $url,
+                fanCountry:     $country,
+                listingEmail:   $listing->email,
+                formUrlJoin:    (string) ($embedSettings['form_url_join']   ?: $globalDefaults['form_url_join']),
+                formUrlUpdate:  (string) ($embedSettings['form_url_update'] ?: $globalDefaults['form_url_update']),
+                formUrlReset:   (string) ($embedSettings['form_url_reset']  ?: $globalDefaults['form_url_reset']),
+                listingType:    $settingsRepo->getListingType($listingId),
+            );
+            $notice->send($listingId, EmailTemplateRepo::TYPE_NOTIFY_JOIN, $notifyTokens, $notice->addressFor($listing), $listing->title, $noticeName);
+        } catch (\Throwable $e) {
+            $notice->reportFailure($noticeName, $e);
         }
 
         $session->remove('lstr_embed_return_to');

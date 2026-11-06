@@ -15,6 +15,7 @@ declare(strict_types=1);
 
  A scenario: {"layout": "owned"|"enth", "no_migration": bool, "queue_updates": bool,
    "php_zone": "Europe/Berlin", "db_now": "2031-06-15 12:00:00",
+   "owner_notices": bool, "owner_email": "...", "listing_emails": {"1": "..."},
    "members": [{"listing": 1, "email": "...", "name": "...", "password": "...", "md5": bool, "status": "..."}],
    "steps": [{"do": "...", ...}]}
 
@@ -27,6 +28,7 @@ declare(strict_types=1);
  on MariaDB instead, because this is only ever one connection.
 */
 
+use Luster\Addons\Adoption\Controllers\AdoptPublicController;
 use Luster\Addons\Kim\Controllers\KimAdminController;
 use Luster\Addons\Kim\Controllers\KimResetController;
 use Luster\Addons\Kim\Controllers\KimSignupController;
@@ -36,8 +38,12 @@ use Luster\Addons\Kim\KimPasswordResetRepo;
 use Luster\Addons\Kim\KimSignIn;
 use Luster\Controllers\Admin\AuthController;
 use Luster\Controllers\Admin\MemberController;
+use Luster\Controllers\Admin\BulkEmailController;
 use Luster\Controllers\Admin\PendingUpdateController;
+use Luster\Controllers\Public\AffiliateApplyController;
+use Luster\Controllers\Public\CodesSubmitController;
 use Luster\Controllers\Public\CollectiveUpdateController;
+use Luster\Controllers\Public\ContactController;
 use Luster\Controllers\Public\JoinController;
 use Luster\Controllers\Public\ResetController;
 use Luster\Controllers\Public\UpdateController;
@@ -56,6 +62,8 @@ use Luster\Tests\Unit\Support\TracingPdo;
 
 $root = dirname(__DIR__, 3);
 require $root . '/vendor/autoload.php';
+
+require __DIR__ . '/upload-function-stand-ins.php';
 
 [, $scenarioFile, $mailFile, $logFile] = $argv + [null, '', '', ''];
 if (!is_file((string) $scenarioFile) || $mailFile === '' || $logFile === '') {
@@ -92,7 +100,7 @@ function authFixture(string $root, array $s): array
         'site_url'          => 'https://fans.test',
         'site_name'         => 'Test Collective',
         'owner_name'        => 'Owner',
-        'owner_email'       => 'owner@example.com',
+        'owner_email'       => $s['owner_email'] ?? 'owner@example.com',
     ], true) . ';');
     $app = new Application($root, $cfgPath);
     unlink($cfgPath);
@@ -127,15 +135,15 @@ function authFixture(string $root, array $s): array
         $cName     = (string) ($narrow['name'] ?? 'TEXT');
         $cPassword = (string) ($narrow['password'] ?? 'TEXT');
         if ($isOwned) {
-            $pdo->prepare('INSERT INTO owned (listingid, title, url, subject, dbtable) VALUES (?, ?, ?, ?, ?)')
-                ->execute([$id, $title, 'https://fans.test/' . $table . '/', 'The ' . $title, $table]);
+            $pdo->prepare('INSERT INTO owned (listingid, title, url, email, subject, dbtable) VALUES (?, ?, ?, ?, ?, ?)')
+                ->execute([$id, $title, 'https://fans.test/' . $table . '/', $s['listing_emails'][$id] ?? '', 'The ' . $title, $table]);
             $pdo->exec("CREATE TABLE {$table} (
                 email {$emailType} NOT NULL PRIMARY KEY, name {$cName} NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '',
                 url TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, password {$cPassword} NOT NULL DEFAULT '',
                 showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL)");
         } else {
-            $pdo->prepare('INSERT INTO enth_fanlistings (id, name, url, subject, dbprefix) VALUES (?, ?, ?, ?, ?)')
-                ->execute([$id, $title, 'https://fans.test/' . $table . '/', 'The ' . $title, $table . '_']);
+            $pdo->prepare('INSERT INTO enth_fanlistings (id, name, url, email, subject, dbprefix) VALUES (?, ?, ?, ?, ?, ?)')
+                ->execute([$id, $title, 'https://fans.test/' . $table . '/', $s['listing_emails'][$id] ?? '', 'The ' . $title, $table . '_']);
             $pdo->exec("CREATE TABLE {$table}_members (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, email {$emailType} NOT NULL DEFAULT '', name {$cName} NOT NULL DEFAULT '',
                 country TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', approved INTEGER NOT NULL DEFAULT 1,
@@ -158,7 +166,10 @@ function authFixture(string $root, array $s): array
         form_url_codes_submit TEXT NOT NULL DEFAULT '', codes_submit_enabled INTEGER NOT NULL DEFAULT 1,
         db_host TEXT NOT NULL DEFAULT '', db_name TEXT NOT NULL DEFAULT '', db_user TEXT NOT NULL DEFAULT '',
         db_pass TEXT NOT NULL DEFAULT '', country_field_enabled INTEGER NULL, queue_updates INTEGER NOT NULL DEFAULT 0,
-        success_template TEXT NULL)");
+        success_template TEXT NULL, contact_enabled INTEGER NOT NULL DEFAULT 1, contact_recipient TEXT NULL,
+        form_url_contact TEXT NOT NULL DEFAULT '', affiliate_apply_enabled INTEGER NOT NULL DEFAULT 1,
+        form_url_affiliate_apply TEXT NOT NULL DEFAULT '', redirect_url_affiliate_apply TEXT NOT NULL DEFAULT '',
+        affiliate_apply_sent_template TEXT NULL, for_adoption INTEGER NOT NULL DEFAULT 1)");
     foreach ([1, 2] as $id) {
         $pdo->prepare("INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated, listing_type, queue_updates) VALUES (?, '2020-01-01', 'fanlisting', ?)")
             ->execute([$id, !empty($s['queue_updates']) ? 1 : 0]);
@@ -171,6 +182,34 @@ function authFixture(string $root, array $s): array
     $pdo->exec("CREATE TABLE lstr_email_templates (
         id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NULL, type TEXT NOT NULL,
         enabled INTEGER NOT NULL DEFAULT 1, subject TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '')");
+    // Most scenarios are about something else, so the owner's notices stay out of their
+    // mail unless a scenario asks for them. These are the same rows the Emails page saves
+    // when a notice is switched off.
+    if (empty($s['owner_notices'])) {
+        foreach (['notify_join', 'notify_update', 'notify_code', 'notify_kim_update', 'notify_coll_update'] as $type) {
+            foreach ([0, -1] as $scope) {
+                $pdo->prepare('INSERT INTO lstr_email_templates (fanlisting_id, type, enabled) VALUES (?, ?, 0)')->execute([$scope, $type]);
+            }
+        }
+    }
+    $pdo->exec("CREATE TABLE lstr_error_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, level TEXT NOT NULL DEFAULT 'error', message TEXT NOT NULL,
+        source TEXT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+    $pdo->exec("CREATE TABLE lstr_codes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NULL, filename TEXT NOT NULL DEFAULT '',
+        name TEXT NULL, width INTEGER NOT NULL DEFAULT 0, height INTEGER NOT NULL DEFAULT 0, size_id INTEGER NULL,
+        donor_id INTEGER NULL, category_id INTEGER NULL, status TEXT NOT NULL DEFAULT 'approved', submitter_name TEXT NULL,
+        submitter_email TEXT NULL, submitter_url TEXT NULL, sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+    $pdo->exec("CREATE TABLE lstr_affiliates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NULL, name TEXT NOT NULL DEFAULT '',
+        url TEXT NOT NULL DEFAULT '', email TEXT NULL, image TEXT NULL, status TEXT NOT NULL DEFAULT 'approved',
+        active INTEGER NOT NULL DEFAULT 1, application_message TEXT NULL, pending INTEGER NOT NULL DEFAULT 0,
+        added_at TEXT NULL, sort_order INTEGER NOT NULL DEFAULT 0)");
+    $pdo->exec("CREATE TABLE lstr_adoption_applications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NOT NULL, name TEXT NOT NULL DEFAULT '',
+        email TEXT NOT NULL DEFAULT '', url TEXT NULL, message TEXT NULL, status TEXT NOT NULL DEFAULT 'pending',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, submitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
     $pdo->exec("CREATE TABLE lstr_activity_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT, admin_user_id INTEGER NULL, action TEXT NOT NULL,
         description TEXT NOT NULL, ip_address TEXT NULL, created_at TEXT NULL)");
@@ -294,6 +333,17 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
         try {
             switch ($step['do']) {
                 // ---- Scripting ----
+                case 'template':
+                    // The same row the Emails page saves for a template.
+                    $pdo->prepare('INSERT INTO lstr_email_templates (fanlisting_id, type, enabled, subject, body) VALUES (?, ?, ?, ?, ?)')
+                        ->execute([$step['scope'], $step['type'], $step['enabled'] ?? 1, $step['subject'] ?? '', $step['body'] ?? '']);
+                    break;
+                case 'contact_recipient':
+                    $pdo->prepare('UPDATE lstr_fanlisting_settings SET contact_recipient = ? WHERE fanlisting_id = ?')->execute([$step['address'], $listing]);
+                    break;
+                case 'site_setting':
+                    $pdo->prepare('INSERT INTO lstr_site_settings (setting_key, setting_value) VALUES (?, ?)')->execute([$step['key'], $step['value']]);
+                    break;
                 case 'set_lock':
                     $pdo->lockAnswers[$app->getMemberAddressLock()->nameFor($listing, $email)] = $step['answer'] ?? 0;
                     break;
@@ -466,6 +516,58 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
                     (new MemberController($app))->pendingBulk($post(['action' => 'reject', 'items' => [$listing . ':' . $email]]), []);
                     break;
 
+                case 'bulk_recipients':
+                    // What {listing_email} will say in a bulk email to this listing's members.
+                    $collect = new ReflectionMethod(BulkEmailController::class, 'collectRecipients');
+                    $collect->setAccessible(true);
+                    [$recipients] = $collect->invoke(new BulkEmailController($app), $listing);
+                    $tallies[] = array_column($recipients, 'listing_email');
+                    break;
+
+                // ---- The other public forms that tell the owner something ----
+                case 'contact':
+                    $_SESSION['captcha_contact_listing_answer'] = 7;
+                    (new ContactController($app))->listingSubmit($post($body + ['_luster_embed_form' => 'm1', 'name' => 'Contact Fan', 'email' => $email, 'subject' => 'A question', 'message' => 'Hello there', 'captcha_answer' => '7']), ['id' => (string) $listing]);
+                    break;
+                case 'contact_collective':
+                    $_SESSION['captcha_contact_collective_answer'] = 7;
+                    (new ContactController($app))->collectiveSubmit($post($body + ['_luster_embed_form' => 'm1', 'name' => 'Contact Fan', 'email' => $email, 'subject' => 'A question', 'message' => 'Hello there', 'captcha_answer' => '7']), []);
+                    break;
+                case 'affiliate':
+                    $_SESSION['captcha_affiliate_apply_answer'] = 7;
+                    (new AffiliateApplyController($app))->submit($post($body + ['_luster_embed_form' => 'm1', 'name' => 'Aff Site', 'url' => 'https://aff.test/', 'email' => $email, 'message' => '', 'captcha_answer' => '7']), ['id' => (string) $listing]);
+                    break;
+                case 'affiliate_collective':
+                    $_SESSION['captcha_affiliate_apply_answer'] = 7;
+                    (new AffiliateApplyController($app))->collectiveSubmit($post($body + ['_luster_embed_form' => 'm1', 'name' => 'Aff Site', 'url' => 'https://aff.test/', 'email' => $email, 'message' => '', 'captcha_answer' => '7']), []);
+                    break;
+                case 'adopt':
+                    $_SESSION['captcha_adopt_answer'] = 7;
+                    (new AdoptPublicController($app))->submit($post($body + ['_luster_embed_form' => 'm1', 'name' => 'Adopter', 'email' => $email, 'url' => '', 'message' => '', 'captcha_answer' => '7']), ['id' => (string) $listing]);
+                    break;
+                case 'adopt_collective':
+                    $_SESSION['captcha_adopt_answer'] = 7;
+                    (new AdoptPublicController($app))->collectiveSubmit($post($body + ['_luster_embed_form' => 'm1', 'listing_id' => (string) $listing, 'name' => 'Adopter', 'email' => $email, 'url' => '', 'message' => '', 'captcha_answer' => '7']), []);
+                    break;
+                case 'codes':
+                    // $listing 0 is the collective's form. A small real image stands in for the
+                    // upload, and upload-function-stand-ins.php lets it through without a real one.
+                    $_SESSION['captcha_code_submit_answer'] = 7;
+                    $image = tempnam(sys_get_temp_dir(), 'lstr_code_');
+                    file_put_contents($image, (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/AAAMGBgGAk7lT3gAAAABJRU5ErkJggg=='));
+                    try {
+                        (new CodesSubmitController($app))->submit(
+                            new Request([], $body + ['_luster_embed_form' => 'm1', 'submitter_name' => 'Code Donor', 'submitter_email' => $email, 'submitter_url' => 'https://donor.test/', 'captcha' => '7'],
+                                ['REQUEST_METHOD' => 'POST', 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_HOST' => 'luster.test'],
+                                ['code_image' => ['name' => 'code.png', 'type' => 'image/png', 'tmp_name' => $image, 'error' => UPLOAD_ERR_OK, 'size' => (int) filesize($image)]],
+                                []),
+                            ['id' => (string) $listing],
+                        );
+                    } finally {
+                        unlink($image);
+                    }
+                    break;
+
                 // ---- Admin edits and adds, public joins ----
                 case 'edit':
                     (new MemberController($app))->edit($post($body + ['member_email' => $email, 'email' => $email, 'name' => 'A Fan', 'country' => 'Canada', 'url' => '', 'showurl' => '1']), ['id' => (string) $listing]);
@@ -548,8 +650,8 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
 
                 // ---- KIM ----
                 case 'kim_entry':
-                    $pdo->prepare('INSERT INTO lstr_kim_members (fanlisting_id, name, email, password, pending) VALUES (?, ?, ?, ?, ?)')
-                        ->execute([$listing, $step['name'] ?? 'A Fan', $email, cheapHash((string) $step['password']), !empty($step['pending']) ? 1 : 0]);
+                    $pdo->prepare('INSERT INTO lstr_kim_members (fanlisting_id, name, email, url, password, pending) VALUES (?, ?, ?, ?, ?, ?)')
+                        ->execute([$listing, $step['name'] ?? 'A Fan', $email, $step['url'] ?? '', cheapHash((string) $step['password']), !empty($step['pending']) ? 1 : 0]);
                     $ids[(string) $step['as']] = $maxId('lstr_kim_members');
                     break;
                 case 'kim_entry_sql':
@@ -664,6 +766,10 @@ foreach (json_decode((string) file_get_contents($scenarioFile), true, 512, JSON_
             'remember_tokens' => 'lstr_admin_remember_tokens',
         ]),
         'flashes'        => $stepFlashes,
+        'error_log'      => $read('SELECT level, message, source FROM lstr_error_log ORDER BY id'),
+        'codes'          => $read('SELECT fanlisting_id, status FROM lstr_codes ORDER BY id'),
+        'affiliates'     => $read('SELECT fanlisting_id, name FROM lstr_affiliates ORDER BY id'),
+        'adoptions'      => $read('SELECT fanlisting_id, name FROM lstr_adoption_applications ORDER BY id'),
         'session_authed' => array_values(array_filter(array_keys($_SESSION), static fn($k): bool => str_contains((string) $k, 'authed') || str_contains((string) $k, 'kim_update_entries') || str_contains((string) $k, 'formtoken'))),
         'statements'     => $traced,
         'locks_held'     => $pdo->locksHeld,

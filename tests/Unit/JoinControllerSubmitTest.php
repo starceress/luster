@@ -11,8 +11,10 @@ use PHPUnit\Framework\TestCase;
  * generated password, and checks what a new join does now that every join
  * waits for approval:
  *  - the member is saved as pending (pending=1 / approved=0)
- *  - exactly one email goes out: the join email, still showing the password
+ *  - the fan gets one email, the join email, still showing the password
  *  - no "reset your password" follow-up email
+ *  - the owner gets the new member notice, at the Contact Email because this listing
+ *    has no address of its own (OwnerNoticeRecipientTest has the rest of that)
  *  - the listing's Last Updated date doesn't move
  *  - the fan sees the "awaiting approval" message
  *
@@ -39,7 +41,7 @@ final class JoinControllerSubmitTest extends TestCase
     /**
      * @dataProvider joinCaseProvider
      */
-    public function testNewJoinIsPendingAndSendsOnlyTheJoinEmail(string $schema, string $passwordMode): void
+    public function testNewJoinIsPendingAndTheFanGetsOnlyTheJoinEmail(string $schema, string $passwordMode): void
     {
         [$result, $mails] = $this->runHarness($schema, $passwordMode);
 
@@ -56,8 +58,11 @@ final class JoinControllerSubmitTest extends TestCase
         }
         self::assertSame(0, (int) $member['showemail'], 'Nobody agreed to show this address');
 
-        // One email, to the fan: the join email, with the password still filled in.
-        self::assertCount(1, $mails, 'Only the join email should be sent');
+        // One email to the fan: the join email, with the password still filled in.
+        self::assertCount(2, $mails, 'The join email and the notice to the owner');
+        self::assertStringContainsString('New member joined', $mails[1]);
+        self::assertStringContainsString('owner@example.com', $mails[1]);
+        self::assertStringNotContainsString('set a new password', $mails[1], 'No reset email');
         self::assertStringContainsString('newfan@example.com', $mails[0]);
         self::assertStringContainsString('Thank you for joining', $mails[0]);
         self::assertStringNotContainsString('set a new password', $mails[0], 'No reset email');

@@ -24,6 +24,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Listing;
+use Luster\Models\Member;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -35,10 +36,12 @@ use Luster\Repositories\PendingUpdateRepo;
 use Luster\Support\FieldAnswers;
 use Luster\Support\ListingFormUrlResolver;
 use Luster\Support\MemberAddressBusy;
+use Luster\Support\MemberChangeList;
 use Luster\Support\MemberEmailRekey;
 use Luster\Support\MemberRemoval;
 use Luster\Support\MemberSignIn;
 use Luster\Support\MemberWidths;
+use Luster\Support\OwnerNotice;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -363,7 +366,7 @@ final class UpdateController
             MemberRemoval::for($this->app)->remove($listingId, $listing->dbprefix, $email);
 
             // Farewell email (best-effort)
-            $afterRelease = function () use ($listing, $listingId, $email, $memberName, $embedSettings, $globalDefaults, $settingsRepo): void {
+            $afterRelease = function () use ($listing, $listingId, $member, $email, $memberName, $embedSettings, $globalDefaults, $settingsRepo): void {
                 try {
                     $cfg       = $this->app->getConfig();
                     $mailer    = new Mailer($cfg);
@@ -390,6 +393,8 @@ final class UpdateController
                 } catch (\Throwable $e) {
                     error_log('[Luster] Remove email failed: ' . $e->getMessage());
                 }
+
+                $this->notifyOwner($listing, $listingId, $member, $email, $embedSettings, $globalDefaults, $settingsRepo, [MemberChangeList::REMOVED_MEMBERSHIP]);
             };
 
             MemberSignIn::forget($session, $listingId);
@@ -517,6 +522,15 @@ final class UpdateController
 
         $shouldQueue = $settingsRepo->getQueueUpdates($listingId);
 
+        // What to tell the owner, read before these columns change.
+        $changeLines = MemberChangeList::lines(
+            $updateData,
+            $currentRow ?? [],
+            self::fieldLabels($fieldRepo, $listing, $fields),
+            $passwordHash !== null,
+            $shouldQueue,
+        );
+
         // Password changes always apply immediately (never queued). A change of address
         // sends the password in the same UPDATE, so there's no half-saved password to
         // explain. If that reports failed, nothing changed: the old password still works
@@ -574,7 +588,86 @@ final class UpdateController
             ]));
         }
 
+        if ($changeLines !== []) {
+            $afterRelease = function () use ($listing, $listingId, $member, $email, $embedSettings, $globalDefaults, $settingsRepo, $changeLines): void {
+                $this->notifyOwner($listing, $listingId, $member, $email, $embedSettings, $globalDefaults, $settingsRepo, $changeLines);
+            };
+        }
+
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+    }
+
+    /**
+     * Tells the owner what this form just did (best-effort: the fan's change is already
+     * saved, or waiting for approval).
+     *
+     * @param array<string,mixed> $embedSettings
+     * @param array<string,mixed> $globalDefaults
+     * @param list<string>        $changeLines
+     */
+    private function notifyOwner(
+        Listing $listing,
+        int $listingId,
+        Member $member,
+        string $email,
+        array $embedSettings,
+        array $globalDefaults,
+        ListingSettingsRepo $settingsRepo,
+        array $changeLines,
+    ): void {
+        $notice = OwnerNotice::for($this->app);
+        $what   = "member update notice for {$listing->title}";
+
+        try {
+            $cfg    = $this->app->getConfig();
+            $tokens = EmailTemplateRepo::buildTokens(
+                listingName:    $listing->title,
+                listingUrl:     $listing->url,
+                siteName:       (string) $cfg->get('site_name', 'Luster'),
+                listingSubject: $listing->subject,
+                ownerName:      (string) $cfg->get('owner_name', ''),
+                ownerEmail:     (string) $cfg->get('owner_email', ''),
+                fanName:        $member->name,
+                fanEmail:       $email,
+                fanUrl:         $member->url,
+                fanCountry:     $member->country,
+                listingEmail:   $listing->email,
+                formUrlJoin:    (string) ($embedSettings['form_url_join']   ?: $globalDefaults['form_url_join']),
+                formUrlUpdate:  (string) ($embedSettings['form_url_update'] ?: $globalDefaults['form_url_update']),
+                formUrlReset:   (string) ($embedSettings['form_url_reset']  ?: $globalDefaults['form_url_reset']),
+                listingType:    $settingsRepo->getListingType($listingId),
+            ) + ['{changes}' => MemberChangeList::forOneListing($changeLines)];
+
+            $notice->send($listingId, EmailTemplateRepo::TYPE_NOTIFY_UPDATE, $tokens, $notice->addressFor($listing), $listing->title, $what);
+        } catch (\Throwable $e) {
+            $notice->reportFailure($what, $e);
+        }
+    }
+
+    /**
+     * Additional fields' labels by column, so the owner's notice says what they called
+     * a field. If the columns can't be read, the notice just uses the column names.
+     *
+     * @param array<int, object> $fields
+     * @return array<string, string>
+     */
+    private static function fieldLabels(FieldRepo $fieldRepo, Listing $listing, array $fields): array
+    {
+        try {
+            $columns = $fieldRepo->fieldColumns($listing->dbprefix, $fields);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $labels = [];
+        foreach ($fields as $field) {
+            $column = $columns[$field->name] ?? null;
+            if ($column !== null) {
+                $labels[$column] = $field->displayName();
+            }
+        }
+
+        return $labels;
     }
 
     /** Ends this sign-in and sends the fan back to sign in again. */

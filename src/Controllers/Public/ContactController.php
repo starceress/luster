@@ -27,6 +27,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
+use Luster\Support\OwnerNotice;
 
 /**
  * Public contact forms.
@@ -147,9 +148,18 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        $recipient = $contactSettings['recipient'] ?? '';
+        // A recipient set just for this form, then wherever this listing's notices go.
+        $notice    = OwnerNotice::for($this->app);
+        $recipient = trim((string) ($contactSettings['recipient'] ?? ''));
         if ($recipient === '') {
-            $recipient = $listing->email;
+            $recipient = $notice->addressFor($listing);
+        }
+
+        if ($recipient === '') {
+            $notice->reportNoAddress("contact message for {$listing->title}");
+            $session->set('lstr_flash_error:' . $marker, 'No contact email is configured. Please try again later.');
+            $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $emailSubject = "[{$listing->title}] Contact Form - {$subject}";
@@ -165,7 +175,8 @@ final class ContactController
 
         try {
             (new Mailer($this->app->getConfig()))->sendWithReplyTo($recipient, $listing->title, $emailSubject, $body, $email, $name);
-        } catch (\RuntimeException) {
+        } catch (\RuntimeException $e) {
+            $notice->reportFailure("contact message for {$listing->title}", $e);
             $session->set('lstr_flash_error:' . $marker, 'Your message could not be sent. Please try again later.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -267,7 +278,9 @@ final class ContactController
             $recipient = (string) $config->get('owner_email', '');
         }
 
+        $notice = OwnerNotice::for($this->app);
         if ($recipient === '') {
+            $notice->reportNoAddress('collective contact message');
             $session->set('lstr_flash_error:' . $marker, 'No contact email is configured. Please try again later.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -285,7 +298,8 @@ final class ContactController
 
         try {
             (new Mailer($config))->sendWithReplyTo($recipient, $siteName, $emailSubject, $body, $email, $name);
-        } catch (\RuntimeException) {
+        } catch (\RuntimeException $e) {
+            $notice->reportFailure('collective contact message', $e);
             $session->set('lstr_flash_error:' . $marker, 'Your message could not be sent. Please try again later.');
             $session->set('lstr_flash_old:' . $marker, $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);

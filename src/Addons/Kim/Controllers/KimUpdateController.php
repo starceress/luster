@@ -28,6 +28,8 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\CollectiveFormUrlResolver;
+use Luster\Support\MemberChangeList;
+use Luster\Support\OwnerNotice;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -337,6 +339,8 @@ final class KimUpdateController
             }
         }
 
+        $this->notifyOwner($locked, $deleteIds, $updateTargets, $newName, $newUrl, $newEmail, $newHash !== null, $listingRepo);
+
         // If email changed, the auth session is now stale — clear it so the user re-authenticates
         if ($updateTargets !== [] && $newEmail !== '' && $newEmail !== $authedEmail) {
             KimSignIn::forget($session);
@@ -359,4 +363,81 @@ final class KimUpdateController
         return Response::redirect($dashboardUrl);
     }
 
+    /**
+     * Tells the owner what this save did (best-effort: it's already committed). One save
+     * can touch entries on many listings, so each address gets one email about its entries.
+     *
+     * @param array<int, object> $locked        The entries as they were before the save, by id.
+     * @param list<int>          $deleteIds
+     * @param list<int>          $updateTargets
+     */
+    private function notifyOwner(
+        array $locked,
+        array $deleteIds,
+        array $updateTargets,
+        string $newName,
+        string $newUrl,
+        string $newEmail,
+        bool $passwordChanged,
+        ListingRepo $listingRepo,
+    ): void {
+        $notice = OwnerNotice::for($this->app);
+        $what   = 'KIM update notice';
+
+        try {
+            $entries = [];
+            foreach ($deleteIds as $id) {
+                $entries[] = $this->ownerEntry($locked[$id], [MemberChangeList::REMOVED_KIM_ENTRY], $listingRepo);
+            }
+            foreach ($updateTargets as $id) {
+                $member  = $locked[$id];
+                $changes = array_filter(
+                    ['name' => $newName, 'url' => $newUrl, 'email' => $newEmail],
+                    static fn(string $value, string $column): bool => $value !== '' && $value !== (string) ($member->{$column} ?? ''),
+                    ARRAY_FILTER_USE_BOTH,
+                );
+                $entries[] = $this->ownerEntry(
+                    $member,
+                    MemberChangeList::lines($changes, ['name' => $member->name, 'url' => $member->url ?? '', 'email' => $member->email], [], $passwordChanged),
+                    $listingRepo,
+                );
+            }
+
+            $config   = $this->app->getConfig();
+            $siteName = (string) $config->get('site_name', '');
+            $tokens   = EmailTemplateRepo::buildKimTokens(
+                siteName:   $siteName,
+                ownerName:  (string) $config->get('owner_name', ''),
+                ownerEmail: (string) $config->get('owner_email', ''),
+                siteUrl:    (string) $config->get('site_url', ''),
+            );
+
+            $notice->sendForEachAddress(EmailTemplateRepo::TYPE_NOTIFY_KIM_UPDATE, $tokens, $entries, $siteName, $what);
+        } catch (\Throwable $e) {
+            $notice->reportFailure($what, $e);
+        }
+    }
+
+    /**
+     * One entry's part of the owner's notice. $member is as it was before this save,
+     * so the owner sees the details they know this entry by.
+     *
+     * @param list<string> $lines
+     * @return array{listing: ?\Luster\Models\Listing, heading: string, lines: list<string>, identity: array<string, string>}
+     */
+    private function ownerEntry(object $member, array $lines, ListingRepo $listingRepo): array
+    {
+        $listing = $listingRepo->getById($member->fanlistingId);
+
+        return [
+            'listing'  => $listing,
+            'heading'  => $listing !== null ? ($listing->subject ?: $listing->title) : 'A listing that no longer exists',
+            'lines'    => $lines,
+            'identity' => [
+                '{kim_name}'  => (string) $member->name,
+                '{kim_email}' => (string) $member->email,
+                '{kim_url}'   => (string) ($member->url ?? ''),
+            ],
+        ];
+    }
 }

@@ -56,8 +56,18 @@ use Luster\Core\Database;
  * Reset-only additional token:
  *   {reset_url}         — one-time password reset link
  *
- * Admin notification (notify_join) — sent to the listing's admin email:
- *   same tokens as join.
+ * Owner notices — sent to the listing's Email, then the Contact Email (see
+ * Support\OwnerNotice for where they go):
+ *   notify_join:   same tokens as join.
+ *   notify_update: the fan-facing tokens, plus {changes} for what the fan changed.
+ *   notify_code:   the fan-facing tokens, with the donor as {fan_*}. At the collective
+ *                  scope, {listing_title} and {listing_url} are the site's.
+ *   notify_kim_update:  {kim_name}, {kim_email}, {kim_url}, {changes}, {site_name},
+ *                       {site_url}, {owner_name}, {owner_email}.
+ *   notify_coll_update: {fan_name}, {fan_email}, {changes}, {site_name}, {site_url},
+ *                       {owner_name}, {owner_email}.
+ *   In those last two, {fan_name} and {kim_*} only come from the listings that email is
+ *   about. A fan with different names on them gets each one, separated by commas.
  *
  * Affiliate application tokens (affiliate_applied / affiliate_approved / affiliate_rejected):
  *   {aff_name}          — applicant's site name
@@ -115,6 +125,10 @@ final class EmailTemplateRepo
     public const TYPE_REMOVE             = 'remove';
     public const TYPE_RESET              = 'reset';
     public const TYPE_NOTIFY_JOIN        = 'notify_join';
+    public const TYPE_NOTIFY_UPDATE      = 'notify_update';
+    public const TYPE_NOTIFY_CODE        = 'notify_code';
+    public const TYPE_NOTIFY_KIM_UPDATE  = 'notify_kim_update';
+    public const TYPE_NOTIFY_COLL_UPDATE = 'notify_coll_update';
     public const TYPE_AFFILIATE_APPLIED  = 'affiliate_applied';
     public const TYPE_AFFILIATE_APPROVED = 'affiliate_approved';
     public const TYPE_AFFILIATE_REJECTED = 'affiliate_rejected';
@@ -150,6 +164,8 @@ final class EmailTemplateRepo
         self::TYPE_KIM_RESET,
         self::TYPE_COLLECTIVE_UPDATE,
         self::TYPE_COLLECTIVE_UPDATE_CONFIRM,
+        self::TYPE_NOTIFY_KIM_UPDATE,
+        self::TYPE_NOTIFY_COLL_UPDATE,
     ];
 
     /** Types shown in the "Global Listings (Default)" and per-listing scopes. */
@@ -160,6 +176,8 @@ final class EmailTemplateRepo
         self::TYPE_REMOVE,
         self::TYPE_RESET,
         self::TYPE_NOTIFY_JOIN,
+        self::TYPE_NOTIFY_UPDATE,
+        self::TYPE_NOTIFY_CODE,
         self::TYPE_AFFILIATE_APPLIED,
         self::TYPE_AFFILIATE_APPROVED,
         self::TYPE_AFFILIATE_REJECTED,
@@ -171,7 +189,10 @@ final class EmailTemplateRepo
         self::TYPE_AFFILIATE_APPLIED,
         self::TYPE_AFFILIATE_APPROVED,
         self::TYPE_AFFILIATE_REJECTED,
+        self::TYPE_NOTIFY_CODE,
         self::TYPE_CODE_APPROVED,
+        self::TYPE_NOTIFY_KIM_UPDATE,
+        self::TYPE_NOTIFY_COLL_UPDATE,
         self::TYPE_ADOPTION_APPLIED,
         self::TYPE_ADOPTION_APPROVED,
         self::TYPE_ADOPTION_REJECTED,
@@ -197,6 +218,10 @@ final class EmailTemplateRepo
         self::TYPE_REMOVE,
         self::TYPE_RESET,
         self::TYPE_NOTIFY_JOIN,
+        self::TYPE_NOTIFY_UPDATE,
+        self::TYPE_NOTIFY_CODE,
+        self::TYPE_NOTIFY_KIM_UPDATE,
+        self::TYPE_NOTIFY_COLL_UPDATE,
         self::TYPE_AFFILIATE_APPLIED,
         self::TYPE_AFFILIATE_APPROVED,
         self::TYPE_AFFILIATE_REJECTED,
@@ -224,6 +249,10 @@ final class EmailTemplateRepo
         self::TYPE_REMOVE             => 'You have been removed from the {listing_title} listing',
         self::TYPE_RESET              => 'Reset your {listing_title} password',
         self::TYPE_NOTIFY_JOIN        => 'New member joined {listing_title}',
+        self::TYPE_NOTIFY_UPDATE      => 'Member update for {listing_title}',
+        self::TYPE_NOTIFY_CODE        => 'New code donation for {listing_title}',
+        self::TYPE_NOTIFY_KIM_UPDATE  => 'KIM List entry updated',
+        self::TYPE_NOTIFY_COLL_UPDATE => 'A member updated their details at {site_name}',
         self::TYPE_AFFILIATE_APPLIED  => 'New affiliate application for {listing_title}',
         self::TYPE_AFFILIATE_APPROVED => 'Your affiliate application for {listing_title} has been approved',
         self::TYPE_AFFILIATE_REJECTED => 'Your affiliate application for {listing_title}',
@@ -292,6 +321,39 @@ final class EmailTemplateRepo
         . '  Country: {fan_country}' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{listing_title} ({listing_url})';
+
+    private const DEFAULT_BODY_NOTIFY_UPDATE =
+        'A member used the update form for "{listing_title}" - {listing_subject} {listing_type}.' . "\n\n"
+        . '  Name: {fan_name}' . "\n"
+        . '  Email: {fan_email}' . "\n\n"
+        . 'What changed:' . "\n"
+        . '{changes}' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{listing_title} ({listing_url})';
+
+    private const DEFAULT_BODY_NOTIFY_CODE =
+        'A new code was donated to "{listing_title}" - {listing_subject} {listing_type}, and it\'s waiting for your approval.' . "\n\n"
+        . '  Donor: {fan_name}' . "\n"
+        . '  Email: {fan_email}' . "\n"
+        . '  Website: {fan_url}' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{listing_title} ({listing_url})';
+
+    private const DEFAULT_BODY_NOTIFY_KIM_UPDATE =
+        'A KIM List member updated their entries at {site_name}.' . "\n\n"
+        . '  Name: {kim_name}' . "\n"
+        . '  Email: {kim_email}' . "\n\n"
+        . 'What changed:' . "\n"
+        . '{changes}' . "\n\n"
+        . '-- {site_name} ({site_url})';
+
+    private const DEFAULT_BODY_NOTIFY_COLL_UPDATE =
+        'A member used the collective update form at {site_name}.' . "\n\n"
+        . '  Name: {fan_name}' . "\n"
+        . '  Email: {fan_email}' . "\n\n"
+        . 'What changed:' . "\n"
+        . '{changes}' . "\n\n"
+        . '-- {site_name} ({site_url})';
 
     private const DEFAULT_BODY_AFFILIATE_APPLIED =
         'A new affiliate application has been received for "{listing_title}" - {listing_subject} {listing_type}!' . "\n\n"
@@ -404,6 +466,7 @@ final class EmailTemplateRepo
         self::TYPE_KIM_APPLIED        => 'New KIM List sign-up for {listing_subject}',
         self::TYPE_KIM_APPROVED       => 'Your KIM List sign-up for {listing_subject} has been approved',
         self::TYPE_CODE_APPROVED      => 'Your code donation for {site_name} has been approved!',
+        self::TYPE_NOTIFY_CODE        => 'New code donation for {site_name}',
         self::TYPE_KIM_UPDATE         => 'Your KIM List entry has been updated',
         self::TYPE_KIM_RESET          => 'Reset your KIM List password',
         self::TYPE_COLLECTIVE_UPDATE  => 'Update your memberships at {site_name}',
@@ -419,6 +482,13 @@ final class EmailTemplateRepo
         . 'Thank you for donating a code to {site_name}. Your code has been approved and is now live!' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name} ({site_url})';
+
+    private const COLLECTIVE_DEFAULT_BODY_NOTIFY_CODE =
+        'A new code was donated to {site_name}, and it\'s waiting for your approval.' . "\n\n"
+        . '  Donor: {fan_name}' . "\n"
+        . '  Email: {fan_email}' . "\n"
+        . '  Website: {fan_url}' . "\n\n"
+        . '-- {site_name} ({site_url})';
 
     private const COLLECTIVE_DEFAULT_BODY_AFFILIATE_APPLIED =
         'A new affiliate application has been received for {site_name}.' . "\n\n"
@@ -742,6 +812,10 @@ final class EmailTemplateRepo
             self::TYPE_REMOVE             => self::DEFAULT_BODY_REMOVE,
             self::TYPE_RESET              => self::DEFAULT_BODY_RESET,
             self::TYPE_NOTIFY_JOIN        => self::DEFAULT_BODY_NOTIFY_JOIN,
+            self::TYPE_NOTIFY_UPDATE      => self::DEFAULT_BODY_NOTIFY_UPDATE,
+            self::TYPE_NOTIFY_CODE        => self::DEFAULT_BODY_NOTIFY_CODE,
+            self::TYPE_NOTIFY_KIM_UPDATE  => self::DEFAULT_BODY_NOTIFY_KIM_UPDATE,
+            self::TYPE_NOTIFY_COLL_UPDATE => self::DEFAULT_BODY_NOTIFY_COLL_UPDATE,
             self::TYPE_AFFILIATE_APPLIED  => self::DEFAULT_BODY_AFFILIATE_APPLIED,
             self::TYPE_AFFILIATE_APPROVED => self::DEFAULT_BODY_AFFILIATE_APPROVED,
             self::TYPE_AFFILIATE_REJECTED => self::DEFAULT_BODY_AFFILIATE_REJECTED,
@@ -772,6 +846,7 @@ final class EmailTemplateRepo
             self::TYPE_AFFILIATE_APPROVED => self::COLLECTIVE_DEFAULT_BODY_AFFILIATE_APPROVED,
             self::TYPE_AFFILIATE_REJECTED => self::COLLECTIVE_DEFAULT_BODY_AFFILIATE_REJECTED,
             self::TYPE_CODE_APPROVED      => self::COLLECTIVE_DEFAULT_BODY_CODE_APPROVED,
+            self::TYPE_NOTIFY_CODE        => self::COLLECTIVE_DEFAULT_BODY_NOTIFY_CODE,
             self::TYPE_COLLECTIVE_UPDATE  => self::COLLECTIVE_DEFAULT_BODY_COLLECTIVE_UPDATE,
             self::TYPE_COLLECTIVE_UPDATE_CONFIRM => self::COLLECTIVE_DEFAULT_BODY_COLLECTIVE_UPDATE_CONFIRM,
             // Adoption and KIM types share the listing-level defaults (they already
@@ -797,7 +872,8 @@ final class EmailTemplateRepo
      * $listingUrl when left empty. Legacy aliases ({form_url_join}, {form_url_update},
      * {form_url_reset}) are emitted alongside the short names for saved template compat.
      *
-     * @param string $listingEmail  The listing's own contact email ({listing_email}).
+     * @param string $listingEmail  The listing's own contact email ({listing_email}). A listing
+     *                              without one shows the owner's Contact Email instead.
      * @param string $formUrlJoin   Direct join-form URL ({join_url}); falls back to $listingUrl.
      * @param string $formUrlUpdate Direct update-form URL ({update_url}); falls back to $listingUrl.
      * @param string $formUrlReset  Direct reset-form URL ({form_url_reset}); falls back to $listingUrl.
@@ -834,7 +910,7 @@ final class EmailTemplateRepo
             '{listing_subject}'  => $listingSubject,
             '{listing_type}'     => $listingType,
             '{listing_url}'      => $listingUrl,
-            '{listing_email}'    => $listingEmail,
+            '{listing_email}'    => $listingEmail !== '' ? $listingEmail : $ownerEmail,
             '{site_name}'        => $siteName,
             '{site_url}'         => $siteUrl !== '' ? $siteUrl : self::$globalSiteUrl,
             '{owner_name}'       => $ownerName,

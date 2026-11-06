@@ -26,6 +26,7 @@ use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\OwnerNotice;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -235,49 +236,39 @@ final class KimSignupController
             error_log('[KIM] Sign-up confirmation email failed: ' . $e->getMessage());
         }
 
-        // Admin notification email
+        // Admin notification email. Failures are non-fatal.
+        $notice = OwnerNotice::for($this->app);
         try {
-            $config    = $this->app->getConfig();
-            $adminTo   = ($selectedListing !== null && $selectedListing->email !== '')
-                       ? $selectedListing->email
-                       : (string) $config->get('owner_email', '');
-            if ($adminTo !== '') {
-                $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-                $tokens    = EmailTemplateRepo::buildKimTokens(
-                    listingName    : $selectedListing?->title ?? '',
-                    listingUrl     : $selectedListing?->url   ?? '',
-                    siteName       : (string) $config->get('site_name',   ''),
-                    ownerName      : (string) $config->get('owner_name',  ''),
-                    ownerEmail     : (string) $config->get('owner_email', ''),
-                    kimName        : $name,
-                    kimEmail       : $email,
-                    kimUrl         : $url,
-                    listingSubject : $selectedListing?->subject ?? '',
-                    listingType    : $selectedListing !== null
-                        ? (new ListingSettingsRepo($this->app->getDatabase()))->getListingType((int) $selectedListing->id)
-                        : 'listing',
-                    kimUpdateUrl   : \Luster\Support\CollectiveFormUrlResolver::resolve(
-                        (new SiteSettingsRepo($this->app->getDatabase()))->get('kim_url_update') ?: 'kim-update.php',
-                        ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
-                        ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
-                    ),
-                );
-                [$notifySubject, $notifyBody] = $emailRepo->resolveForListing(
-                    $fanlistingId,
-                    EmailTemplateRepo::TYPE_KIM_APPLIED,
-                    $tokens,
-                );
-                if ($notifySubject !== '') {
-                    (new Mailer($config))->send(
-                        $adminTo,
-                        (string) $config->get('owner_name', ''),
-                        $notifySubject,
-                        $notifyBody,
-                    );
-                }
-            }
-        } catch (\Throwable) {
-            // Email failures are non-fatal
+            $config = $this->app->getConfig();
+            $tokens = EmailTemplateRepo::buildKimTokens(
+                listingName    : $selectedListing?->title ?? '',
+                listingUrl     : $selectedListing?->url   ?? '',
+                siteName       : (string) $config->get('site_name',   ''),
+                ownerName      : (string) $config->get('owner_name',  ''),
+                ownerEmail     : (string) $config->get('owner_email', ''),
+                kimName        : $name,
+                kimEmail       : $email,
+                kimUrl         : $url,
+                listingSubject : $selectedListing?->subject ?? '',
+                listingType    : $selectedListing !== null
+                    ? (new ListingSettingsRepo($this->app->getDatabase()))->getListingType((int) $selectedListing->id)
+                    : 'listing',
+                kimUpdateUrl   : \Luster\Support\CollectiveFormUrlResolver::resolve(
+                    (new SiteSettingsRepo($this->app->getDatabase()))->get('kim_url_update') ?: 'kim-update.php',
+                    ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                    ((string) $config->get('site_url', '')) ?: (string) $config->get('app_url', ''),
+                ),
+            );
+            $notice->send(
+                $fanlistingId,
+                EmailTemplateRepo::TYPE_KIM_APPLIED,
+                $tokens,
+                $notice->addressFor($selectedListing),
+                (string) $config->get('owner_name', ''),
+                'KIM sign-up notice',
+            );
+        } catch (\Throwable $e) {
+            $notice->reportFailure('KIM sign-up notice', $e);
         }
 
         $session->remove('lstr_embed_return_to');

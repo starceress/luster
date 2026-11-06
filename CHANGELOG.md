@@ -26,6 +26,13 @@ migrations** once. This update adds one small thing to your database, so Luster
 can stop a fan's update request for you to look at.
 
 **Added:**
+- **Luster tells you when a fan changes something.** You now get an email when someone uses
+  the Update form, the Collective Update form or KIM Update, including removing themselves,
+  and when someone donates a code. The email says what changed and whether it's waiting for
+  your approval. Passwords only ever say "changed". They go to the listing's email, then your
+  Contact Email, and when one form touches several listings, each address gets one email
+  covering its own listings. These are on by default, so if you don't want them, you can
+  switch each one off on the **Emails** page.
 - **A fan's update request can be stopped for you to check.** If something doesn't
   add up, like a request sent before its member even joined, the request stays in
   the queue marked **Needs review**, with the reason, and there's no Approve button
@@ -48,6 +55,16 @@ can stop a fan's update request for you to look at.
   named after the network under Custom instead. Now you get the real network and category,
   same as on your own listings. A leftover one can show up under Custom now, like a category
   called `Custom`. It's safe to delete it in Categories.
+- **Join notices don't vanish when a listing has no email address.** Luster used to skip
+  the "New member joined" email without saying anything, and the contact form told fans
+  their message couldn't be sent. A listing from a Listing Admin import can have no address.
+  Now these go to your **Contact Email** under Settings → Owner Information, like affiliate
+  and adoption applications already did. They never go to the address you log in with.
+  `{listing_email}` in an email falls back the same way.
+- **The Email box on a listing says what it really does.** It said this address was the
+  sender, but it's where that listing's notices go.
+- **When an email to you fails, you can see it.** A notice that couldn't be delivered, or
+  had nowhere to go, only went in the server's log. Now it's in your Error Log too.
 - **An email problem can't freeze your admin panel anymore.** When a new version of
   Luster came out and your email settings weren't working, every admin page tried to
   email you about it and sat there waiting for the email to fail. It could look like
